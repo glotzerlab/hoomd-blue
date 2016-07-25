@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __OPLSDIHEDRALFORCECOMPUTEGPU_H__
 #define __OPLSDIHEDRALFORCECOMPUTEGPU_H__
 
@@ -29,7 +31,7 @@ class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
     {
     public:
         //! Constructs the compute
-        OPLSDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~OPLSDihedralForceComputeGPU() { }
@@ -52,6 +54,6 @@ class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
     };
 
 //! Exports the OPLSDihedralForceComputeGPU class to python
-void export_OPLSDihedralForceComputeGPU();
+void export_OPLSDihedralForceComputeGPU(pybind11::module& m);
 
 #endif

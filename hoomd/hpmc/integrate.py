@@ -237,12 +237,12 @@ class mode_hpmc(_integrator):
             mc.shape_param.set(...)
             overlap_map = np.asarray(mc.map_overlaps())
         """
-    
+
         self.update_forces()
         N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1;
         overlap_map = self.cpp_integrator.mapOverlaps();
         return list(zip(*[iter(overlap_map)]*N))
-            
+
 
     def count_overlaps(self):
         R""" Count the number of overlaps.
@@ -1285,7 +1285,7 @@ class ellipsoid(mode_hpmc):
     # \internal
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
-        return 'ellipsoid {0} {1} {2}'.format(param['a'], param['b'], param['c']);
+        return 'ellipsoid {0} {1} {2}'.format(param.a, param.b, param.c);
 
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).

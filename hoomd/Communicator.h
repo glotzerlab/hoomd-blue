@@ -24,8 +24,12 @@
 #include "BondedGroupData.h"
 #include "DomainDecomposition.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 #include "Autotuner.h"
 
@@ -262,8 +266,8 @@ class Communicator
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
-        Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<DomainDecomposition> decomposition);
+        Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<DomainDecomposition> decomposition);
         virtual ~Communicator();
 
 
@@ -273,7 +277,7 @@ class Communicator
         //! Set the profiler.
         /*! \param prof Profiler to use with this class
          */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
             }
@@ -296,6 +300,17 @@ class Communicator
             {
             return m_ghost_layer_width_requests.connect(subscriber);
             }
+
+        //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the maximum ghost layer)
+        /*! This method keeps track of all functions that request a minimum ghost layer widht
+         * The actual ghost layer width is chosen from the max over the inputs
+         * \return A connection to the present class
+         */
+        boost::signals2::connection addExtraGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+            {
+            return m_extra_ghost_layer_width_requests.connect(subscriber);
+            }
+
 
         //! Subscribe to list of functions that determine the communication flags
         /*! This method keeps track of all functions that may request communication flags
@@ -331,21 +346,7 @@ class Communicator
         //! Subscribe to list of *optional* call-backs for computation using ghost particles
         /*!
          * Subscribe to a list of call-backs that precompute quantities using information about ghost particles
-         * before awaiting the result of the particle migration check. Pre-computation must be entirely *optional* for
-         * the subscribing class. When the signal is triggered the class may pre-compute quantities
-         * under the assumption that no particle migration will occur. Since the result of the
-         * particle migration check is in general available only *after* the signal has been triggered,
-         * the class must *not* rely on this assumption. Plus, triggering of the signal is not guaruanteed
-         * when particle migration does occur.
-         *
-         * Methods subscribed to the compute callback signal are those that improve performance by
-         * overlapping computation with all-to-all MPI synchronization and communication callbacks.
-         * For this optimization to work, subscribing methods should NOT synchronize the GPU execution stream.
-         *
-         * \note Triggering of the signal before or after MPI synchronization is dependent upon runtime (auto-) tuning.
-         *
-         * \note Subscribers are called only after updated ghost information is available
-         *       but BEFORE particle migration
+         * before awaiting the result of the particle migration check.
          *
          * \param subscriber The callback
          * \returns a connection to this class
@@ -489,6 +490,8 @@ class Communicator
             send_down = 32
             };
 
+        //@}
+
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
             \param period period (approximate) in time steps when returning occurs
@@ -496,15 +499,8 @@ class Communicator
             Derived classes should override this to set the parameters of their autotuners.
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            if (m_tuner_precompute)
-                {
-                m_tuner_precompute->setPeriod(period);
-                m_tuner_precompute->setEnabled(enable);
-                }
-            }
+            { }
 
-        //@}
     protected:
         //! Helper class to perform the communication tasks related to bonded groups
         template<class group_data>
@@ -515,7 +511,7 @@ class Communicator
                 typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
-                GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -546,8 +542,8 @@ class Communicator
 
             private:
                 Communicator& m_comm;                            //!< The outer class
-                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
-                boost::shared_ptr<group_data> m_gdata;           //!< The group data
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                std::shared_ptr<group_data> m_gdata;           //!< The group data
 
                 std::vector<rank_element_t> m_ranks_sendbuf;     //!< Send buffer for rank elements
                 std::vector<rank_element_t> m_ranks_recvbuf;     //!< Receive buffer for rank elements
@@ -579,12 +575,12 @@ class Communicator
         //! Helper function to update the shifted box for ghost particle PBC
         const BoxDim getShiftedBox() const;
 
-        boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
-        boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
+        std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
+        std::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communciator
-        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
-        boost::shared_ptr<Profiler> m_prof;                           //!< Profiler
+        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
+        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         bool m_is_communicating;               //!< Whether we are currently communicating
         bool m_force_migrate;                  //!< True if particle migration is forced
@@ -637,6 +633,9 @@ class Communicator
         boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
+        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+            m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
+
         boost::signals2::signal<void (unsigned int timestep)>
             m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
 
@@ -645,8 +644,6 @@ class Communicator
 
         boost::signals2::signal<void (const GPUArray<unsigned int>& )>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
-
-        boost::scoped_ptr<Autotuner> m_tuner_precompute; //!< Autotuner for precomputation of quantites
 
         CommFlags m_flags;                       //!< The ghost communication flags
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange
@@ -770,7 +767,7 @@ class Communicator
 
 
 //! Declaration of python export function
-void export_Communicator();
+void export_Communicator(pybind11::module& m);
 
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

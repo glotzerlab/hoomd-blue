@@ -15,7 +15,8 @@
 #include "Updater.h"
 #include "Variant.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __BOXRESIZEUPDATER_H__
 #define __BOXRESIZEUPDATER_H__
@@ -30,13 +31,13 @@ class BoxResizeUpdater : public Updater
     {
     public:
         //! Constructor
-        BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<Variant> Lx,
-                         boost::shared_ptr<Variant> Ly,
-                         boost::shared_ptr<Variant> Lz,
-                         boost::shared_ptr<Variant> xy,
-                         boost::shared_ptr<Variant> xz,
-                         boost::shared_ptr<Variant> yz);
+        BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<Variant> Lx,
+                         std::shared_ptr<Variant> Ly,
+                         std::shared_ptr<Variant> Lz,
+                         std::shared_ptr<Variant> xy,
+                         std::shared_ptr<Variant> xz,
+                         std::shared_ptr<Variant> yz);
 
         //! Destructor
         virtual ~BoxResizeUpdater();
@@ -48,16 +49,16 @@ class BoxResizeUpdater : public Updater
         virtual void update(unsigned int timestep);
 
     private:
-        boost::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
-        boost::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
-        boost::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
-        boost::shared_ptr<Variant> m_xy;    //!< Box xy tilt factor vs time
-        boost::shared_ptr<Variant> m_xz;    //!< Box xz tilt factor vs time
-        boost::shared_ptr<Variant> m_yz;    //!< Box yz tilt factor vs time
+        std::shared_ptr<Variant> m_Lx;    //!< Box Lx vs time
+        std::shared_ptr<Variant> m_Ly;    //!< Box Ly vs time
+        std::shared_ptr<Variant> m_Lz;    //!< Box Lz vs time
+        std::shared_ptr<Variant> m_xy;    //!< Box xy tilt factor vs time
+        std::shared_ptr<Variant> m_xz;    //!< Box xz tilt factor vs time
+        std::shared_ptr<Variant> m_yz;    //!< Box yz tilt factor vs time
         bool m_scale_particles;                //!< Set to true if particle positions are to be scaled as well
     };
 
 //! Export the BoxResizeUpdater to python
-void export_BoxResizeUpdater();
+void export_BoxResizeUpdater(pybind11::module& m);
 
 #endif

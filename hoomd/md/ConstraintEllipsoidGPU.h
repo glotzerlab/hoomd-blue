@@ -14,6 +14,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CONSTRAINT_ELLIPSOID_GPU_H__
 #define __CONSTRAINT_ELLIPSOID_GPU_H__
 
@@ -24,8 +26,8 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
     {
     public:
         //! Constructs the compute
-        ConstraintEllipsoidGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<ParticleGroup> group,
+        ConstraintEllipsoidGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<ParticleGroup> group,
                          Scalar3 P,
                          Scalar rx,
                          Scalar ry,
@@ -39,6 +41,6 @@ class ConstraintEllipsoidGPU : public ConstraintEllipsoid
     };
 
 //! Exports the ConstraintEllipsoidGPU class to python
-void export_ConstraintEllipsoidGPU();
+void export_ConstraintEllipsoidGPU(pybind11::module& m);
 
 #endif

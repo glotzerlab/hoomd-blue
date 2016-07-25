@@ -14,17 +14,18 @@
 #include "System.h"
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
 #include <algorithm>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <vector>
 
 template<class group_data>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata)
+Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
@@ -1051,8 +1052,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
 
 //! Constructor
-Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<DomainDecomposition> decomposition)
+Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf()),
@@ -1155,25 +1156,6 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     initializeNeighborArrays();
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // set up autotuners to determine whether to use mapped memory (boolean values)
-        std::vector<unsigned int> valid_params(2);
-        valid_params[0] = 0; valid_params[1]  = 1;
-
-        // use a sufficiently long measurement period to average over
-        unsigned int nsteps = 100;
-        m_tuner_precompute.reset(new Autotuner(valid_params, nsteps, 100000, "comm_precompute", this->m_exec_conf));
-
-        // average execution times instead of median
-        m_tuner_precompute->setMode(Autotuner::mode_avg);
-
-        // we require syncing for aligned execution streams
-        m_tuner_precompute->setSync(true);
-        }
-    #endif
     }
 
 //! Destructor
@@ -1292,49 +1274,42 @@ void Communicator::communicate(unsigned int timestep)
     // update ghost communication flags
     m_flags = m_requested_flags(timestep);
 
-    /*
-     * Always update ghosts - even if not required, i.e. if the neighbor list
-     * needs to be rebuilt. Exceptions are when we have not previously
-     * exchanged ghosts, i.e. on the first step or when ghosts have
-     * potentially been invalidated, i.e. upon reordering of particles.
-     */
+    bool has_ghost_particles = !(m_force_migrate || m_is_first_step);
 
-    bool update = !m_is_first_step && !m_force_migrate;
-
-    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : false;
-
-    update &= precompute;
-
-    if (m_tuner_precompute) m_tuner_precompute->begin();
-
-    if (update)
-        beginUpdateGhosts(timestep);
-
-    // call computation that can be overlapped with communication
-    m_local_compute_callbacks(timestep);
-
-    if (update)
-        finishUpdateGhosts(timestep);
-
-    if (precompute && update)
+    if (m_compute_callbacks.num_slots() && has_ghost_particles)
         {
-        // call subscribers *before* MPI synchronization, but after ghost update
-        m_compute_callbacks(timestep);
-        }
-
-    // distance check (synchronizes the GPU execution stream)
-    bool migrate = m_migrate_requests(timestep) || m_force_migrate || m_is_first_step;
-
-    if (!precompute && !migrate)
-        {
-        // *after* synchronization, but only if particles do not migrate
+        // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);
         finishUpdateGhosts(timestep);
 
+        // call subscribers after ghost update, but before distance check
         m_compute_callbacks(timestep);
         }
 
-    if (m_tuner_precompute) m_tuner_precompute->end();
+    // distance check (synchronizes the GPU execution stream), needs to be called
+    // before any particle reorder
+    bool migrate = m_migrate_requests(timestep) || !has_ghost_particles;
+
+    // Update ghosts if we are not migrating
+    if (!migrate && !m_compute_callbacks.num_slots())
+        {
+        beginUpdateGhosts(timestep);
+
+        // call computation that can be overlapped with communication
+        m_local_compute_callbacks(timestep);
+        
+        finishUpdateGhosts(timestep);
+        }
+
+    if (m_compute_callbacks.num_slots() && !has_ghost_particles)
+        { 
+        // initialize ghosts a first time
+        migrateParticles();
+        exchangeGhosts();
+
+        // update particle data now that ghosts are available
+        m_compute_callbacks(timestep);
+        } 
 
     // Check if migration of particles is requested
     if (migrate)
@@ -1347,7 +1322,7 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
-        }
+        } 
 
     m_is_communicating = false;
     }
@@ -1499,6 +1474,21 @@ void Communicator::updateGhostWidth()
             if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
             }
         m_r_ghost_max = r_ghost_max;
+        }
+    if (m_extra_ghost_layer_width_requests.num_slots())
+        {
+        // update the ghost layer width only if subscribers are available
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
+
+        Scalar r_extra_ghost_max = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            Scalar r_extra_ghost_i = m_extra_ghost_layer_width_requests(cur_type);
+            // add to the maximum ghost layer width
+            h_r_ghost.data[cur_type] = r_extra_ghost_i + m_r_ghost_max;
+            if (r_extra_ghost_i > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
+            }
+        m_r_ghost_max += r_extra_ghost_max;
         }
     }
 
@@ -2473,14 +2463,9 @@ const BoxDim Communicator::getShiftedBox() const
     }
 
 //! Export Communicator class to python
-void export_Communicator()
+void export_Communicator(py::module& m)
     {
-     class_< std::vector<bool> >("std_vector_bool")
-    .def(vector_indexing_suite<std::vector<bool> >());
-
-    class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
-           init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
-    ;
+    py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
     }
 #endif // ENABLE_MPI

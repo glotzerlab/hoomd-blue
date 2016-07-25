@@ -14,6 +14,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ACTIVEFORCECOMPUTE_GPU_H__
 #define __ACTIVEFORCECOMPUTE_GPU_H__
 
@@ -24,9 +26,9 @@ class ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
         //! Constructs the compute
-        ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
-                             int seed, boost::python::list f_lst,
+        ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
+                             int seed, pybind11::list f_lst,
                              bool orientation_link, bool orientation_reverse_link, Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,
@@ -49,5 +51,5 @@ class ActiveForceComputeGPU : public ActiveForceCompute
     };
 
 //! Exports the ActiveForceComputeGPU Class to python
-void export_ActiveForceComputeGPU();
+void export_ActiveForceComputeGPU(pybind11::module& m);
 #endif

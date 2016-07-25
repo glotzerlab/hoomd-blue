@@ -61,8 +61,11 @@ void gpu_update_composite(unsigned int N,
     Index2D body_indexer,
     const Scalar3 *d_body_pos,
     const Scalar4 *d_body_orientation,
+    const unsigned int *d_body_len,
     const unsigned int *d_molecule_order,
+    const unsigned int *d_molecule_len,
+    const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
-    bool remote,
-    unsigned int block_size);
+    unsigned int block_size,
+    unsigned int *d_flag);

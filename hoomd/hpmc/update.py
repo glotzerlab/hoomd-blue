@@ -678,7 +678,7 @@ class remove_drift(_updater):
         #initiliaze base class
         _updater.__init__(self);
         cls = None;
-        if not context.exec_conf.isCUDAEnabled():
+        if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.RemoveDriftUpdaterSphere;
             elif isinstance(mc, integrate.convex_polygon):

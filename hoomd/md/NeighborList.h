@@ -10,7 +10,7 @@
 #include "hoomd/GPUFlags.h"
 #include "hoomd/Index1D.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 #include <vector>
 
@@ -21,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
@@ -121,7 +123,7 @@ class NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
+        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();
@@ -425,7 +427,7 @@ class NeighborList : public Compute
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
         //! Returns true if the particle migration criterium is fulfilled
         /*! \param timestep The current timestep
@@ -589,6 +591,6 @@ class NeighborList : public Compute
     };
 
 //! Exports NeighborList to python
-void export_NeighborList();
+void export_NeighborList(pybind11::module& m);
 
 #endif

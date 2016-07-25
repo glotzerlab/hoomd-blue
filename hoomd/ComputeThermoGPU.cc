@@ -12,10 +12,7 @@
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
@@ -30,8 +27,8 @@ using namespace std;
     \param suffix Suffix to append to all logged quantity names
 */
 
-ComputeThermoGPU::ComputeThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
+ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
                                    const std::string& suffix)
     : ComputeThermo(sysdef, group, suffix), m_scratch(m_exec_conf), m_scratch_pressure_tensor(m_exec_conf),
         m_scratch_rot(m_exec_conf)
@@ -168,11 +165,11 @@ void ComputeThermoGPU::reduceProperties()
 #endif
 
 
-void export_ComputeThermoGPU()
+void export_ComputeThermoGPU(py::module& m)
     {
-    class_<ComputeThermoGPU, boost::shared_ptr<ComputeThermoGPU>, bases<ComputeThermo>, boost::noncopyable >
-        ("ComputeThermoGPU", init< boost::shared_ptr<SystemDefinition>,
-         boost::shared_ptr<ParticleGroup>,
+    py::class_<ComputeThermoGPU, std::shared_ptr<ComputeThermoGPU> >(m,"ComputeThermoGPU",py::base<ComputeThermo>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+         std::shared_ptr<ParticleGroup>,
          const std::string& >())
         ;
     }

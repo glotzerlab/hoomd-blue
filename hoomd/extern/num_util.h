@@ -14,7 +14,7 @@
 // $Id: num_util.h 39 2007-02-01 02:54:54Z phil $
 //
 
-#include <boost/python.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <numpy/noprefix.h>
 #include <iostream>
 #include <sstream>
@@ -63,7 +63,7 @@ namespace num_util{
   template<typename T> NPY_TYPES getEnum(void)
   {
     PyErr_SetString(PyExc_ValueError, "no mapping available for this type");
-    boost::python::throw_error_already_set();
+    pybind11::error_already_set();
     return NPY_VOID;
   }
 
@@ -145,7 +145,7 @@ namespace num_util{
    */
   template <typename T> PyObject* makeNumFromData(T* data, intp n = 0){
     PyObject* obj = PyArray_SimpleNewFromData(1, &n, getEnum<T>(), (void*)data);
-    return obj; 
+    return obj;
   }
 
   /**

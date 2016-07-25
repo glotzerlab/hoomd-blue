@@ -18,9 +18,10 @@
 #include "hoomd/Analyzer.h"
 #include "hoomd/ParticleGroup.h"
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <string>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
@@ -45,7 +46,7 @@ class MSDAnalyzer : public Analyzer
     {
     public:
         //! Construct the msd analyzer
-        MSDAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
+        MSDAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
                     std::string fname,
                     const std::string& header_prefix="",
                     bool overwrite=false);
@@ -60,7 +61,7 @@ class MSDAnalyzer : public Analyzer
         void setDelimiter(const std::string& delimiter);
 
         //! Adds a column to the analysis
-        void addColumn(boost::shared_ptr<ParticleGroup> group, const std::string& name);
+        void addColumn(std::shared_ptr<ParticleGroup> group, const std::string& name);
 
         //! Sets r0 from an xml file
         void setR0(const std::string& xml_fname);
@@ -90,10 +91,10 @@ class MSDAnalyzer : public Analyzer
             //! default constructor
             column() {}
             //! constructs a column
-            column(boost::shared_ptr<ParticleGroup const> group, const std::string& name) :
+            column(std::shared_ptr<ParticleGroup const> group, const std::string& name) :
                     m_group(group), m_name(name) {}
 
-            boost::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
+            std::shared_ptr<ParticleGroup const> m_group; //!< A shared pointer to the group definition
             std::string m_name;                             //!< The name to print across the file header
             };
 
@@ -102,7 +103,7 @@ class MSDAnalyzer : public Analyzer
         //! Helper function to write out the header
         void writeHeader();
         //! Helper function to calculate the MSD of a single group
-        Scalar calcMSD(boost::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot);
+        Scalar calcMSD(std::shared_ptr<ParticleGroup const> group, const SnapshotParticleData<Scalar>& snapshot);
         //! Helper function to write one row of output
         void writeRow(unsigned int timestep, const SnapshotParticleData<Scalar>& snapshot);
 
@@ -112,6 +113,6 @@ class MSDAnalyzer : public Analyzer
     };
 
 //! Exports the MSDAnalyzer class to python
-void export_MSDAnalyzer();
+void export_MSDAnalyzer(pybind11::module& m);
 
 #endif

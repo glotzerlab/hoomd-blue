@@ -9,7 +9,7 @@
 
 #include "ForceCompositeGPU.cuh"
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 /*! \file ForceCompositeGPU.cc
     \brief Contains code for the ForceCompositeGPU class
@@ -17,7 +17,7 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceCompositeGPU::ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : ForceComposite(sysdef)
     {
 
@@ -181,7 +181,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool remote)
+void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "constrain_rigid");
@@ -200,9 +200,12 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
     // access body positions and orientations
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
     // access molecule order
     ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_len(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
@@ -216,16 +219,27 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
         m_body_idx,
         d_body_pos.data,
         d_body_orientation.data,
+        d_body_len.data,
         d_molecule_order.data,
+        d_molecule_len.data,
+        d_molecule_idx.data,
         d_image.data,
         m_pdata->getBox(),
-        remote,
-        block_size);
+        block_size,
+        m_flag.getDeviceFlags());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
     m_tuner_update->end();
+
+    unsigned int flag = m_flag.readFlags();
+    if (flag)
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag-1 << " incomplete"
+            << std::endl << std::endl;
+        throw std::runtime_error("Error while updating constituent particles");
+        }
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
@@ -234,9 +248,9 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep, bool rem
         m_prof->pop(m_exec_conf);
     }
 
-void export_ForceCompositeGPU()
+void export_ForceCompositeGPU(py::module& m)
     {
-    class_< ForceCompositeGPU, boost::shared_ptr<ForceCompositeGPU>, bases<ForceComposite>, boost::noncopyable >
-    ("ForceCompositeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU", py::base<ForceComposite>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

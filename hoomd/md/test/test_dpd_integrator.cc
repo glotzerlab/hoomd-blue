@@ -7,9 +7,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/ComputeThermo.h"
 #include "hoomd/md/AllPairPotentials.h"
@@ -27,25 +25,27 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
 /*! \file dpd_integrator_test.cc
     \brief Implements unit tests for PotentialPairDPDThermo
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairDPDThermo
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 
 template <class PP_DPD>
-void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void dpd_conservative_force_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(50.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial system
     pdata->setPosition(0,make_scalar3(0.0,0.0,0.0));
@@ -54,9 +54,9 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     pdata->setVelocity(1,make_scalar3(0.0,0.0,0.0));
 
     // Construction of the Force Compute
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
+    std::shared_ptr<PotentialPairDPD> dpdc(new PP_DPD(sysdef,nlist));
     dpdc->setParams(0,0,make_scalar2(30,0));
     dpdc->setRcut(0, 0, Scalar(2.0));
 
@@ -67,31 +67,31 @@ void dpd_conservative_force_test(boost::shared_ptr<ExecutionConfiguration> exec_
     GPUArray<Scalar>& virial_array_1 =  dpdc->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].y, 0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].z, 0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 13.5375, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -28.5, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].y, 0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].z, 0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, 13.5375, tol);
     }
 
-BOOST_AUTO_TEST_CASE( DPD_ForceConservative_Test )
+UP_TEST( DPD_ForceConservative_Test )
     {
-    dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    dpd_conservative_force_test< PotentialPair<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-BOOST_AUTO_TEST_CASE( DPD_GPU_ForceConservative_Test )
+UP_TEST( DPD_GPU_ForceConservative_Test )
     {
-    dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dpd_conservative_force_test< PotentialPairGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermo_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
 
 template <class PP_DPD>
-void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void dpd_temperature_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(1000, BoxDim(5.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     // setup a simple initial dense state
     for (int j = 0; j < 1000; j++)
@@ -104,23 +104,23 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 
     Scalar deltaT = Scalar(0.02);
     Scalar Temp = Scalar(2.0);
-    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
 
     cout << endl << "Test 1" << endl;
     cout << "Creating an dpd gas of 1000 particles" << endl;
     cout << "Temperature set at " << Temp << endl;
 
-    boost::shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
-    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    std::shared_ptr<TwoStepNVE> two_step_nve(new TwoStepNVE(sysdef,group_all));
+    std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(3*1000);
-    boost::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nve);
 
 
     // Construction of the Force Compute
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(1.0), Scalar(0.8)));
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairDPDThermoDPD> dpd_thermo(new PP_DPD(sysdef,nlist));
+    std::shared_ptr<PotentialPairDPDThermoDPD> dpd_thermo(new PP_DPD(sysdef,nlist));
     dpd_thermo->setSeed(12345);
     dpd_thermo->setT(T_variant);
     dpd_thermo->setParams(0,0,make_scalar2(30,4.5));
@@ -144,7 +144,7 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     AvgT /= 5;
     cout << "Average Temperature " << AvgT << endl;
-    MY_BOOST_CHECK_CLOSE(AvgT, 2.0, 5);
+    MY_CHECK_CLOSE(AvgT, 2.0, 5);
 
    // Calculate Momentum
     Scalar(Mom_x) = 0;
@@ -160,23 +160,23 @@ void dpd_temperature_test(boost::shared_ptr<ExecutionConfiguration> exec_conf)
         Mom_z += vel.z;
         }
 
-    MY_BOOST_CHECK_SMALL(Mom_x, 1e-3);
-    MY_BOOST_CHECK_SMALL(Mom_y, 1e-3);
-    MY_BOOST_CHECK_SMALL(Mom_z, 1e-3);
+    MY_CHECK_SMALL(Mom_x, 1e-3);
+    MY_CHECK_SMALL(Mom_y, 1e-3);
+    MY_CHECK_SMALL(Mom_z, 1e-3);
 
 
 
 
     }
 
-BOOST_AUTO_TEST_CASE( DPD_Temp_Test )
+UP_TEST( DPD_Temp_Test )
     {
-    dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    dpd_temperature_test< PotentialPairDPDThermo<EvaluatorPairDPDThermo> >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-BOOST_AUTO_TEST_CASE( DPD_GPU_Temp_Test )
+UP_TEST( DPD_GPU_Temp_Test )
     {
-    dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    dpd_temperature_test< PotentialPairDPDThermoGPU<EvaluatorPairDPDThermo, gpu_compute_dpdthermodpd_forces > >(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

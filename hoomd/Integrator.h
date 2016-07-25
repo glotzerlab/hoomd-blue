@@ -21,6 +21,7 @@
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -65,7 +66,7 @@ class Integrator : public Updater
     {
     public:
         //! Constructor
-        Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
         //! Destructor
         virtual ~Integrator();
@@ -74,10 +75,10 @@ class Integrator : public Updater
         virtual void update(unsigned int timestep);
 
         //! Add a ForceCompute to the list
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+        virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
 
         //! Add a ForceConstraint to the list
-        virtual void addForceConstraint(boost::shared_ptr<ForceConstraint> fc);
+        virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
@@ -92,7 +93,7 @@ class Integrator : public Updater
         /*! \param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }
@@ -101,7 +102,7 @@ class Integrator : public Updater
         /*! \param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }
@@ -125,7 +126,7 @@ class Integrator : public Updater
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
         //! Callback for pre-computing the forces
         void computeCallback(unsigned int timestep);
@@ -133,9 +134,9 @@ class Integrator : public Updater
 
     protected:
         Scalar m_deltaT;                                            //!< The time step
-        std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+        std::vector< std::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
 
-        std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
+        std::vector< std::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
 
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
@@ -164,6 +165,6 @@ class Integrator : public Updater
     };
 
 //! Exports the NVEUpdater class to python
-void export_Integrator();
+void export_Integrator(pybind11::module& m);
 
 #endif

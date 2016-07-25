@@ -8,7 +8,7 @@
 #include "hoomd/md/NeighborList.h"
 #include "CGCMMForceGPU.cuh"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file CGCMMForceComputeGPU.h
     \brief Declares the class CGCMMForceComputeGPU
@@ -17,6 +17,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CGCMMFORCECOMPUTEGPU_H__
 #define __CGCMMFORCECOMPUTEGPU_H__
@@ -31,7 +33,7 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<NeighborList> nlist, Scalar r_cut);
+        CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut);
 
         //! Destructor
         virtual ~CGCMMForceComputeGPU();
@@ -54,6 +56,6 @@ class CGCMMForceComputeGPU : public CGCMMForceCompute
     };
 
 //! Exports the CGCMMForceComputeGPU class to python
-void export_CGCMMForceComputeGPU();
+void export_CGCMMForceComputeGPU(pybind11::module& m);
 
 #endif

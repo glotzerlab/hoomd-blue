@@ -7,7 +7,7 @@
 #include "HarmonicDihedralForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
 
 /*! \file HarmonicDihedralForceComputeGPU.h
@@ -33,7 +33,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> system);
+        HarmonicDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> system);
         //! Destructor
         ~HarmonicDihedralForceComputeGPU();
 
@@ -60,6 +60,6 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
     };
 
 //! Export the DihedralForceComputeGPU class to python
-void export_HarmonicDihedralForceComputeGPU();
+void export_HarmonicDihedralForceComputeGPU(pybind11::module& m);
 
 #endif

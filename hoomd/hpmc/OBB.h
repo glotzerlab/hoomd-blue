@@ -8,6 +8,7 @@
 #include "hoomd/AABB.h"
 
 #include <algorithm>
+#include <cfloat>
 
 #ifndef __OBB_H__
 #define __OBB_H__
