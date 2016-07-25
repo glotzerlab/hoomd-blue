@@ -17,8 +17,6 @@
 #include "HOOMDMPI.h"
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-#include <boost/serialization/set.hpp>
-
 #include <algorithm>
 #include <cmath>
 #include <functional>
