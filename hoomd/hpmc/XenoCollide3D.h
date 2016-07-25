@@ -129,8 +129,17 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     // ------
     // while (origin ray does not intersect candidate) choose new candidate
     bool intersects = false;
+    int count = 0;
     while (!intersects)
         {
+        count++;
+
+        if (count >= 1024)
+            {
+            err_count++;
+            return true;
+            }
+
         // Get the next support point
         v3 = S(n);
         if (dot(v3, n) <= 0)
@@ -163,7 +172,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         }
 
     // Phase 2: Portal Refinement
-    int count = 0;
+    count = 0;
     while (true)
         {
         count++;
