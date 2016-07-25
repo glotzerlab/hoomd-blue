@@ -6,6 +6,10 @@
 
 * Support CUDA Toolkit 8.0
 
+*Bug fixes*
+
+* Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+
 ## v2.0.1
 
 *Bug fixes*
