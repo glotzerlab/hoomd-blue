@@ -10,8 +10,6 @@
 #ifndef __XENOCOLLIDE_3D_H__
 #define __XENOCOLLIDE_3D_H__
 
-const unsigned int XENOCOLLIDE_MAX_ITERATIONS = 1024;
-
 /*! \file XenoCollide3D.h
     \brief Implements XenoCollide in 3D
 */
@@ -29,6 +27,8 @@ namespace hpmc
 
 namespace detail
 {
+
+const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
 
 //! XenoCollide overlap check in 3D
 /*! \tparam SupportFuncA Support function class type for shape A
@@ -136,7 +136,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         {
         count++;
 
-        if (count >= XENOCOLLIDE_MAX_ITERATIONS)
+        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
             return true;
@@ -218,7 +218,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         if (fabs(d) < tol)
             return true;
 
-        if (count >= XENOCOLLIDE_MAX_ITERATIONS)
+        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
             /*
