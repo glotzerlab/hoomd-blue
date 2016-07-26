@@ -239,7 +239,7 @@ class BondedGroupData : boost::noncopyable
         virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
         //! Take a snapshot
-        virtual const std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
+        virtual std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
 
         //! Get local number of bonded groups
         unsigned int getN() const

@@ -934,7 +934,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
  *  Data in the snapshot is in tag order, where non-existant tags are skipped
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-const std::map<unsigned int, unsigned int> BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
+std::map<unsigned int, unsigned int> BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
