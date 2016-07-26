@@ -454,29 +454,44 @@ public:
         }
 };
 
-class EllipsoidSpringPRL : public ShapeLogBoltzmannFunction<ShapeEllipsoid>
+template< class Shape >
+class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
+protected:
     Scalar m_k;
+    typename Shape::param_type m_reference_shape;
 public:
-    EllipsoidSpringPRL(Scalar k) : m_k(k) {}
+    ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(shape) {}
+};
+
+template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {};
+
+template <>
+class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
+{
+    using ShapeSpringBase<ShapeEllipsoid>::m_k;
+    using ShapeSpringBase<ShapeEllipsoid>::m_reference_shape;
+public:
+    ShapeSpring(Scalar k, ShapeEllipsoid::param_type ref) : ShapeSpringBase<ShapeEllipsoid>(k, ref) {}
     Scalar operator()(const unsigned int& N, const ShapeEllipsoid::param_type& shape_new, const Scalar& inew, const ShapeEllipsoid::param_type& shape_old, const Scalar& iold)
         {
+        //TODO: this uses the sphere as the reference. modify to use the reference shape.
         Scalar x_new = shape_new.x/shape_new.y;
         Scalar x_old = shape_old.x/shape_old.y;
         return m_k*(log(x_old)*log(x_old) - log(x_new)*log(x_new)); // -\beta dH
         }
 };
 
-template<class ConvexPolyhedronShape>
-class ConvexPolyhedronSpring : public ShapeLogBoltzmannFunction<ConvexPolyhedronShape>
+template<size_t max_verts>
+class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >
 {
-    Scalar m_k;
-    typename ConvexPolyhedronShape::param_type m_reference_shape;
+    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
+    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_reference_shape;
 public:
-    ConvexPolyhedronSpring(Scalar k, const typename ConvexPolyhedronShape::param_type& ref ) : m_k(k), m_reference_shape(ref) {}
-    Scalar operator()(const unsigned int& N, const typename ConvexPolyhedronShape::param_type& shape_new, const Scalar& inew, const typename ConvexPolyhedronShape::param_type& shape_old, const Scalar& iold)
+    ShapeSpring(Scalar k, const typename ShapeConvexPolyhedron<max_verts>::param_type& ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref) {}
+    Scalar operator()(const unsigned int& N, typename ShapeConvexPolyhedron<max_verts>::param_type shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
         {
-        AlchemyLogBoltzmannFunction<ConvexPolyhedronShape> fn;
+        AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<max_verts> > fn;
         Scalar U_old = 0.0, U_new = 0.0;
         for(unsigned int i = 0; i < m_reference_shape.N; i++)
             {
@@ -539,10 +554,8 @@ void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
 template< typename Shape >
 void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name);
 
-void export_LogBoltzmannEllipsoidSpring(pybind11::module& m, const std::string& name);
-
 template<class Shape>
-void export_LogBoltzmannConvexPolyhedronSpring(pybind11::module& m, const std::string& name);
+void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::string& name);
 
 template<class Shape>
 void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& name);
