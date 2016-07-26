@@ -98,9 +98,10 @@ public:
         //         }
         //     }
 
-        pybind11::list shape_data = m_python_callback(m_params[type_id]);
-        shape = pybind11::cast< typename Shape::param_type >(shape_data[0]);
-        m_determinantInertiaTensor = pybind11::cast< Scalar >(shape_data[1]);
+        pybind11::object shape_data = m_python_callback(m_params[type_id]);
+        shape = pybind11::cast< typename Shape::param_type >(shape_data);
+        detail::mass_properties<Shape> mp(shape);
+        m_determinantInertiaTensor = mp.getDeterminant();
         // m_scale = Scalar(1.0);
         // if(!m_normalized)
         //     {
@@ -546,6 +547,10 @@ void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& 
 
 template<class Shape>
 void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
+
+template<class Shape>
+void export_PythonShapeMove(pybind11::module& m, const std::string& name);
+
 
 }
 

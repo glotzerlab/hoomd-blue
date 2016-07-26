@@ -68,7 +68,7 @@ void export_sphere(py::module& m)
     export_ShapeMoveInterface< ShapeSphere >(m, "ShapeMoveSphere");
     export_ShapeLogBoltzmann< ShapeSphere >(m, "LogBoltzmannSphere");
     export_AlchemyLogBoltzmannFunction< ShapeSphere >(m, "AlchemyLogBotzmannSphere");
-
+    export_PythonShapeMove< ShapeSphere >(m, "PythonShapeMoveSphere");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");

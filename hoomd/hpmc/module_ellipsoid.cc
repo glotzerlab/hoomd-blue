@@ -71,6 +71,7 @@ void export_ellipsoid(py::module& m)
     export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(m, "AlchemyLogBotzmannEllipsoid");
     export_UpdaterShape< ShapeEllipsoid >(m, "UpdaterShapeEllipsoid");
     export_LogBoltzmannEllipsoidSpring(m, "LogBoltzmannEllipsoidSpring");
+    export_PythonShapeMove< ShapeEllipsoid >(m, "PythonShapeMoveEllipsoid");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");

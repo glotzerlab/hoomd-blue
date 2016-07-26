@@ -72,6 +72,7 @@ void export_faceted_sphere(py::module& m)
     export_ShapeLogBoltzmann< ShapeFacetedSphere >(m, "LogBoltzmannFacetedSphere");
     export_AlchemyLogBoltzmannFunction< ShapeFacetedSphere >(m, "AlchemyLogBotzmannFacetedSphere");
     export_UpdaterShape< ShapeFacetedSphere >(m, "UpdaterShapeFacetedSphere");
+    export_PythonShapeMove< ShapeFacetedSphere >(m, "PythonShapeMoveFacetedSphere");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoGPUFacetedSphere");

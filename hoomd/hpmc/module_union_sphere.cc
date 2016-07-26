@@ -70,6 +70,7 @@ void export_union_sphere(py::module& m)
     export_ShapeLogBoltzmann< ShapeUnion<ShapeSphere> >(m, "LogBoltzmannSphereUnion");
     export_AlchemyLogBoltzmannFunction< ShapeUnion<ShapeSphere> >(m, "AlchemyLogBotzmannSphereUnion");
     export_UpdaterShape< ShapeUnion<ShapeSphere> >(m, "UpdaterShapeSphereUnion");
+    export_PythonShapeMove< ShapeUnion<ShapeSphere> >(m, "PythonShapeMoveSphereUnion");
 
     #ifdef ENABLE_CUDA
 

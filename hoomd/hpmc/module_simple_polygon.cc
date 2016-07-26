@@ -72,6 +72,7 @@ void export_simple_polygon(py::module& m)
     export_ShapeLogBoltzmann< ShapeSimplePolygon >(m, "LogBoltzmannSimplePolygon");
     export_AlchemyLogBoltzmannFunction< ShapeSimplePolygon >(m, "AlchemyLogBotzmannSimplePolygon");
     export_UpdaterShape< ShapeSimplePolygon >(m, "UpdaterShapeSimplePolygon");
+    export_PythonShapeMove< ShapeSimplePolygon >(m, "PythonShapeMoveSimplePolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");

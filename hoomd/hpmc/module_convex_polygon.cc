@@ -72,6 +72,7 @@ void export_convex_polygon(py::module& m)
     export_ShapeLogBoltzmann< ShapeConvexPolygon >(m, "LogBoltzmannConvexPolygon");
     export_AlchemyLogBoltzmannFunction< ShapeConvexPolygon >(m, "AlchemyLogBotzmannConvexPolygon");
     export_UpdaterShape< ShapeConvexPolygon >(m, "UpdaterShapeConvexPolygon");
+    export_PythonShapeMove< ShapeConvexPolygon >(m, "PythonShapeMoveConvexPolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");

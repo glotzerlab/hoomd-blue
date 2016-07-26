@@ -69,6 +69,7 @@ void export_polyhedron(py::module& m)
     export_ShapeLogBoltzmann< ShapePolyhedron >(m, "LogBoltzmannPolyhedron");
     export_AlchemyLogBoltzmannFunction< ShapePolyhedron >(m, "AlchemyLogBotzmannPolyhedron");
     export_UpdaterShape< ShapePolyhedron >(m, "UpdaterShapePolyhedron");
+    export_PythonShapeMove< ShapePolyhedron >(m, "PythonShapeMovePolyhedron");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");

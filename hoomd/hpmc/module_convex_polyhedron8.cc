@@ -76,6 +76,7 @@ void export_convex_polyhedron8(py::module& m)
     export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<8> >(m, "AlchemyLogBotzmannConvexPolyhedron8");
     export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<8> >(m, "GeneralizedShapeMoveConvexPolyhedron8");
     export_UpdaterShape< ShapeConvexPolyhedron<8> >(m, "UpdaterShapeConvexPolyhedron8");
+    export_PythonShapeMove< ShapeConvexPolyhedron<8> >(m, "PythonShapeMoveConvexPolyhedron8");
 
     #ifdef ENABLE_CUDA
 

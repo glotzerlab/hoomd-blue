@@ -97,7 +97,7 @@ public:
         }
 
 protected:
-    virtual void compute() {}
+    virtual void compute() {throw std::runtime_error("mass_properties::compute() is not implemented for this shape.");}
     Scalar m_volume;
     vec3<Scalar> m_center_of_mass;
     Scalar m_inertia[6]; // xx, yy, zz, xy, yz, xz
@@ -109,7 +109,7 @@ class mass_properties : public mass_properties_base<Shape>
 public:
     mass_properties(const typename Shape::param_type& shape) :  mass_properties_base<Shape>()
     {
-    throw std::runtime_error("mass_properties is not implemented for this shape.");
+    this->compute();
     }
 };
 

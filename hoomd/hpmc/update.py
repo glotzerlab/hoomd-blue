@@ -804,6 +804,8 @@ class shape_update(_updater):
                                 seed,
                                 nselect,
                                 pretend);
+        self.move = None;
+        self.boltzmann_function = None;
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
@@ -941,6 +943,8 @@ class shape_update(_updater):
             if not stepsize is None:
                 self.cpp_updater.setStepSize(typ, step_size);
 
+    def
+
 class alchemy(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
          (mainly for internal use)
@@ -979,42 +983,35 @@ class alchemy(shape_update):
         util.print_status_line();
         # initialize base class
         shape_update.__init__(self,  mc, move_ratio, seed, **params);
-        lbf = None;
+        boltzmann_cls = None;
         if isinstance(mc, integrate.sphere):
-            lbf = _hpmc.AlchemyLogBoltzmannSphere;
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphere;
         elif isinstance(mc, integrate.convex_polygon):
-            lbf = _hpmc.AlchemyLogBoltzmannConvexPolygon;
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolygon;
         elif isinstance(mc, integrate.simple_polygon):
-            lbf = _hpmc.AlchemyLogBoltzmannSimplePolygon;
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            lbf = integrate._get_sized_entry('AlchemyLogBotzmannConvexPolyhedron', mc.max_verts);
+            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBotzmannConvexPolyhedron', mc.max_verts);
             mv = integrate._get_sized_entry('GeneralizedShapeMoveConvexPolyhedron', mc.max_verts);
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            lbf = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', mc.max_verts);
+            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', mc.max_verts);
         elif isinstance(mc, integrate.ellipsoid):
-            lbf = _hpmc.AlchemyLogBoltzmannEllipsoid;
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):
-            lbf =_hpmc.AlchemyLogBoltzmannSpheropolygon;
+            boltzmann_cls =_hpmc.AlchemyLogBoltzmannSpheropolygon;
         elif isinstance(mc, integrate.patchy_sphere):
-            lbf =_hpmc.AlchemyLogBoltzmannPatchySphere;
+            boltzmann_cls =_hpmc.AlchemyLogBoltzmannPatchySphere;
         elif isinstance(mc, integrate.polyhedron):
-            lbf =_hpmc.AlchemyLogBoltzmannPolyhedron;
+            boltzmann_cls =_hpmc.AlchemyLogBoltzmannPolyhedron;
         elif isinstance(mc, integrate.sphinx):
-            lbf =_hpmc.AlchemyLogBoltzmannSphinx;
+            boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphinx;
         elif isinstance(mc, integrate.sphere_union):
-            lbf =_hpmc.AlchemyLogBoltzmannSphereUnion;
+            boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphereUnion;
         else:
             globals.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        if not mv:
-            globals.msg.error("update.shape_update: Unsupported integrator.\n");
-            raise RuntimeError("Error initializing update.shape_update");
-
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-
-        self.cpp_updater.registerShapeMove(mv(ntypes, stepsize, mixratio, volume));
-        self.cpp_updater.registerLogBoltzmannFunction(lbf());
+        self.cpp_updater.registerLogBoltzmannFunction(boltzmann_cls());
 
 class elastic_shape(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
