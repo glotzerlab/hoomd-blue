@@ -1075,7 +1075,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
    \pre snapshot has to be allocated with a number of elements equal to the global number of particles)
 */
 template <class Real>
-const std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
+std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
     {
     // a map to containt a particle tag-> snapshot idx lookup
     std::map<unsigned int, unsigned int> index;
@@ -2338,7 +2338,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
-template const std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
+template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
 
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
@@ -2347,7 +2347,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
-template const std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
+template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 
 void export_ParticleData()

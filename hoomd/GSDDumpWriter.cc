@@ -343,9 +343,6 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
 
-    // typedef for tag -> snapshot index lookup
-    typedef std::map<unsigned int, unsigned int> map_type;
-
     writeTypeMapping("particles/types", snapshot.type_mapping);
 
         {
@@ -357,7 +354,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.type[it->second] != 0)
@@ -383,7 +380,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.mass[it->second] != float(1.0))
@@ -406,7 +403,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.charge[it->second] != float(0.0))
@@ -428,7 +425,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.diameter[it->second] != float(1.0))
@@ -454,7 +451,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.body[it->second] != NO_BODY)
@@ -480,7 +477,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.inertia[it->second].x != float(0.0) ||
@@ -513,10 +510,6 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
 
-    // typedef for tag -> snapshot index lookup
-    typedef std::map<unsigned int, unsigned int> map_type;
-
-
         {
         std::vector<float> data(N*3);
 
@@ -525,7 +518,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             data[group_idx*3+0] = float(snapshot.pos[it->second].x);
@@ -547,7 +540,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.orientation[it->second].s != float(1.0) ||
@@ -582,9 +575,6 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
     uint32_t N = m_group->getNumMembersGlobal();
     int retval;
 
-    // typedef for tag -> snapshot index lookup
-    typedef std::map<unsigned int, unsigned int> map_type;
-
         {
         std::vector<float> data(N*3);
         bool all_default = true;
@@ -594,7 +584,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.vel[it->second].x != float(0.0) ||
@@ -626,7 +616,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.angmom[it->second].s != float(0.0) ||
@@ -660,7 +650,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
             unsigned int t = m_group->getMemberTag(group_idx);
 
             // look up tag in snapshot
-            map_type::const_iterator it = map.find(t);
+            auto it = map.find(t);
             assert(it != map.end());
 
             if (snapshot.image[it->second].x != 0 ||

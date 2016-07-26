@@ -855,7 +855,7 @@ class ParticleData : boost::noncopyable
 
         //! Take a snapshot
         template <class Real>
-        const std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real> &snapshot);
+        std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
