@@ -7,9 +7,10 @@
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE SystemClassTest
-#include "boost_utf_configure.h"
+
+#include "upp11_config.h"
+HOOMD_UP_MAIN();
+
 
 #include <math.h>
 #include "hoomd/System.h"
@@ -101,7 +102,7 @@ class DummyCompute : public Compute
     };
 
 //! Tests the add, get, and set routines in System
-BOOST_AUTO_TEST_CASE( getter_setter_tests )
+UP_TEST( getter_setter_tests )
     {
     std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
 
@@ -126,11 +127,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -140,11 +141,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
     except = false;
     try
         {
@@ -154,16 +155,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.setAnalyzerPeriod("analyzer1", 15, -1);
     sys.setAnalyzerPeriod("analyzer2", 8, -1);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
 
     // remove the analyzers 1 by one and make sure they don't exist
     sys.removeAnalyzer("analyzer1");
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -173,7 +174,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeAnalyzer("analyzer2");
     except = false;
@@ -185,7 +186,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ************ Updaters
     // create two updaters to test adding
@@ -206,11 +207,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater1"), updater1);
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -220,11 +221,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
     except = false;
     try
         {
@@ -234,16 +235,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.setUpdaterPeriod("updater1", 15, -1);
     sys.setUpdaterPeriod("updater2", 8, -1);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
 
     // remove the updaters 1 by one and make sure they don't exist
     sys.removeUpdater("updater1");
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -253,7 +254,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeUpdater("updater2");
     except = false;
@@ -265,7 +266,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ********* Computes
     // create two updaters to test adding
@@ -286,11 +287,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getCompute("compute1"), compute1);
-    BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -300,11 +301,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // remove the computes 1 by one and make sure they don't exist
     sys.removeCompute("compute1");
-    BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -314,7 +315,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeCompute("compute2");
     except = false;
@@ -326,16 +327,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ************ Integrator
     std::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
     std::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
 
     sys.setIntegrator(integrator1);
-    BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator1);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
     sys.setIntegrator(integrator2);
-    BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator2);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
     }
 
 
@@ -346,7 +347,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 /*! Unfortunately, there is no way to automatically test these. A human will have to
     observe the output and verify that it is correct
 */
-/*BOOST_AUTO_TEST_CASE( run_tests )
+/*UP_TEST( run_tests )
     {
     Py_Initialize();
     #ifdef ENABLE_CUDA

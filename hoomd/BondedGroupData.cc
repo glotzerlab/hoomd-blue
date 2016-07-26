@@ -931,14 +931,17 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 #endif
 
 /*! \param snapshot Snapshot that will contain the group data
+ * \returns a map to lookup snapshot index by tag
  *
  *  Data in the snapshot is in tag order, where non-existant tags are skipped
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
+std::map<unsigned int, unsigned int> BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
     {
-    std::map<unsigned int, unsigned int> rtag_map;
+    // map to lookup snapshot index by tag
+    std::map<unsigned int, unsigned int> index;
 
+    std::map<unsigned int, unsigned int> rtag_map;
     for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
         {
         unsigned int tag = m_group_tag[group_idx];
@@ -1012,6 +1015,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
                     throw std::runtime_error("Error gathering "+std::string(name)+"s");
                     }
 
+                // store tag in index
+                index.insert(std::make_pair(group_tag, snap_id));
+
                 // rank contains the processor rank on which the particle was found
                 std::pair<unsigned int, unsigned int> rank_idx = rank_rtag_it->second;
                 unsigned int rank = rank_idx.first;
@@ -1055,6 +1061,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
                 throw std::runtime_error("Error gathering "+std::string(name)+"s");
                 }
 
+            // store tag in index
+            index.insert(std::make_pair(group_tag, snap_id));
+
             unsigned int group_idx = rtag_it->second;
             snapshot.groups[snap_id] = m_groups[group_idx];
             if (has_type_mapping)
@@ -1070,6 +1079,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    return index;
     }
 
 #ifdef ENABLE_MPI

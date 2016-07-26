@@ -25,16 +25,19 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_dipole_force.cc
     \brief Implements unit tests for AnisoPotentialPairDipole and AnisoPotentialPairDipoleGPU
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairDipoleTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 typedef boost::function<std::shared_ptr<AnisoPotentialPairDipole> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> dipoleforce_creator;
@@ -79,21 +82,21 @@ void dipole_force_particle_test(dipoleforce_creator dipole_creator, std::shared_
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar4> h_torque_1(torque_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -1.07832, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].y, -1.26201, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].z, -0.810835, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.917602, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[0].x, 0, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[0].y, 0.154201, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[0].z, -0.256091, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -1.07832, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].y, -1.26201, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].z, -0.810835, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, 0.917602, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[0].x, 0, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[0].y, 0.154201, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[0].z, -0.256091, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].x, 1.07832, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].y, 1.26201, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].z, 0.810835, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.917602, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[1].x, 0.770933, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[1].y, -0.476021, tol);
-    MY_BOOST_CHECK_CLOSE(h_torque_1.data[1].z, -0.268273, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].x, 1.07832, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].y, 1.26201, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].z, 0.810835, tol);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, 0.917602, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[1].x, 0.770933, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[1].y, -0.476021, tol);
+    MY_CHECK_CLOSE(h_torque_1.data[1].z, -0.268273, tol);
     }
     }
 
@@ -114,16 +117,16 @@ std::shared_ptr<AnisoPotentialPairDipoleGPU> gpu_dipole_creator(std::shared_ptr<
     }
 #endif
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( AnisoPotentialPairDipole_particle )
+//! test case for particle test on CPU
+UP_TEST( AnisoPotentialPairDipole_particle )
     {
     dipoleforce_creator dipole_creator_base = bind(base_class_dipole_creator, _1, _2);
     dipole_force_particle_test(dipole_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( AnisoPotentialPairDipoleGPU_particle )
+//! test case for particle test on GPU
+UP_TEST( AnisoPotentialPairDipoleGPU_particle )
     {
     dipoleforce_creator dipole_creator_gpu = bind(gpu_dipole_creator, _1, _2);
     dipole_force_particle_test(dipole_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
