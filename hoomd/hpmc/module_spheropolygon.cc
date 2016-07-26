@@ -70,6 +70,7 @@ void export_spheropolygon(py::module& m)
     export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(m, "AlchemyLogBotzmannSpheropolygon");
     export_UpdaterShape< ShapeSpheropolygon >(m, "UpdaterShapeSpheropolygon");
     export_PythonShapeMove< ShapeSpheropolygon >(m, "PythonShapeMoveSpheropolygon");
+    export_ConstantShapeMove< ShapeSpheropolygon >(m, "ConstantShapeMoveSpheropolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");

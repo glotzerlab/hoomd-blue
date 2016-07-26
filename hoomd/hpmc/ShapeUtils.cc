@@ -12,7 +12,7 @@ const Scalar ConvexHull::zero = SMALL;
 }
 
 template<class Shape>
-inline void export_massPropertiesBase(pybind11::module& m, std::string name)
+void export_massPropertiesBase(pybind11::module& m, std::string name)
     {
     // export the base class.
     using detail::mass_properties_base;
@@ -25,7 +25,7 @@ inline void export_massPropertiesBase(pybind11::module& m, std::string name)
     }
 
 template<class Shape>
-inline void export_massProperties(pybind11::module& m, std::string name)
+void export_massProperties(pybind11::module& m, std::string name)
     {
     export_massPropertiesBase<Shape>(m, name + "_base");
     // export the base class.

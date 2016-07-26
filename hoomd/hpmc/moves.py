@@ -19,7 +19,7 @@ def python_shape_move(self, callback, params, stepsize, param_ratio):
     elif isinstance(self.mc, integrate.simple_polygon):
         move_cls = _hpmc.PythonShapeMoveSimplePolygon;
     elif isinstance(self.mc, integrate.convex_polyhedron):
-        move_cls = integrate._get_sized_entry('PyhtonShapeMoveConvexPolyhedron', self.mc.max_verts);
+        move_cls = integrate._get_sized_entry('PythonShapeMoveConvexPolyhedron', self.mc.max_verts);
     elif isinstance(self.mc, integrate.convex_spheropolyhedron):
         move_cls = integrate._get_sized_entry('PythonShapeMoveSpheropolyhedron', self.mc.max_verts);
     elif isinstance(self.mc, integrate.ellipsoid):
@@ -78,3 +78,36 @@ def vertex_shifter(self, stepsize=0.01, mixratio=0.25, volume=1.0):
 
     ntypes = globals.system_definition.getParticleData().getNTypes();
     self.cpp_updater.registerShapeMove(move_cls(ntypes, stepsize, mixratio, volume));
+
+def constant_shape_move(self, shape_params):
+    move_cls = None;
+    if isinstance(self.mc, integrate.sphere):
+        move_cls = _hpmc.ConstantShapeMoveSphere;
+    elif isinstance(self.mc, integrate.convex_polygon):
+        move_cls = _hpmc.ConstantShapeMoveConvexPolygon;
+    elif isinstance(self.mc, integrate.simple_polygon):
+        move_cls = _hpmc.ConstantShapeMoveSimplePolygon;
+    elif isinstance(self.mc, integrate.convex_polyhedron):
+        move_cls = integrate._get_sized_entry('ConstantShapeMoveConvexPolyhedron', self.mc.max_verts);
+    elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+        move_cls = integrate._get_sized_entry('ConstantShapeMoveSpheropolyhedron', self.mc.max_verts);
+    elif isinstance(self.mc, integrate.ellipsoid):
+        move_cls = _hpmc.ConstantShapeMoveEllipsoid;
+    elif isinstance(self.mc, integrate.convex_spheropolygon):
+        move_cls = _hpmc.ConstantShapeMoveConvexSphereopolygon;
+    elif isinstance(self.mc, integrate.polyhedron):
+        move_cls = _hpmc.ConstantShapeMovePolyhedron;
+    elif isinstance(self.mc, integrate.sphinx):
+        move_cls = _hpmc.ConstantShapeMoveSphinx;
+    elif isinstance(self.mc, integrate.sphere_union):
+        move_cls = _hpmc.ConstantShapeMoveSphereUnion;
+    else:
+        globals.msg.error("update.shape_update.vertex_shifter: Unsupported integrator.\n");
+        raise RuntimeError("Error initializing update.shape_update");
+
+    if not move_cls:
+        globals.msg.error("update.shape_update: Unsupported integrator.\n");
+        raise RuntimeError("Error initializing update.shape_update");
+
+    ntypes = globals.system_definition.getParticleData().getNTypes();
+    self.cpp_updater.registerShapeMove(move_cls(ntypes, callback, params, stepsize, param_ratio));

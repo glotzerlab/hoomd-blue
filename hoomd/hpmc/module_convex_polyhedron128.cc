@@ -77,6 +77,7 @@ void export_convex_polyhedron128(py::module& m)
     export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<128> >(m, "GeneralizedShapeMoveConvexPolyhedron128");
     export_UpdaterShape< ShapeConvexPolyhedron<128> >(m, "UpdaterShapeConvexPolyhedron128");
     export_PythonShapeMove< ShapeConvexPolyhedron<128> >(m, "PythonShapeMoveConvexPolyhedron128");
+    export_ConstantShapeMove< ShapeConvexPolyhedron<128> >(m, "ConstantShapeMoveConvexPolyhedron128");
 
     #ifdef ENABLE_CUDA
 

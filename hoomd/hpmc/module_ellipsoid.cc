@@ -72,6 +72,7 @@ void export_ellipsoid(py::module& m)
     export_UpdaterShape< ShapeEllipsoid >(m, "UpdaterShapeEllipsoid");
     export_LogBoltzmannEllipsoidSpring(m, "LogBoltzmannEllipsoidSpring");
     export_PythonShapeMove< ShapeEllipsoid >(m, "PythonShapeMoveEllipsoid");
+    export_ConstantShapeMove< ShapeEllipsoid >(m, "ConstantShapeMoveEllipsoid");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");

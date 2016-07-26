@@ -156,22 +156,24 @@ class constant_shape_move : public shape_move_function<Shape, RNG>
 {
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
 public:
-    constant_shape_move(const typename Shape::param_type& shape_move, Scalar detI_move) : shape_move_function<Shape, RNG>(1), m_shapeMove(shape_move), m_determinantInertiaTensorMove(detI_move)
+    constant_shape_move(const unsigned int& ntypes, const std::vector< typename Shape::param_type >& shape_move) : shape_move_function<Shape, RNG>(ntypes), m_shapeMoves(shape_move)
         {
+        if(ntypes != m_shapeMoves.size())
+            throw std::runtime_error("Must supply a shape move for each type");
+        for(size_t i = 0; i < m_shapeMoves.size(); i++)
+            {
+            detail::mass_properties<Shape> mp(m_shapeMoves[i]);
+            m_determinants.push_back(mp.getDeterminant());
+            }
         }
 
     void prepare(unsigned int timestep) {}
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
         {
-        shape = m_shapeMove;
-        m_determinantInertiaTensor = m_determinantInertiaTensorMove;
+        shape = m_shapeMoves[type_id];
+        m_determinantInertiaTensor = m_determinants[type_id];
         }
-
-    // void advance(unsigned int timestep)
-    //     {
-    //     // move has been accepted.
-    //     }
 
     void retreat(unsigned int timestep)
         {
@@ -179,8 +181,8 @@ public:
         }
 
 private:
-    typename Shape::param_type      m_shapeMove;
-    Scalar                          m_determinantInertiaTensorMove;
+    std::vector< typename Shape::param_type >   m_shapeMoves;
+    std::vector< Scalar >                       m_determinants;
 };
 
 template < typename ShapeConvexPolyhedronType, typename RNG >
@@ -551,6 +553,8 @@ void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std:
 template<class Shape>
 void export_PythonShapeMove(pybind11::module& m, const std::string& name);
 
+template<class Shape>
+void export_ConstantShapeMove(pybind11::module& m, const std::string& name);
 
 }
 

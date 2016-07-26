@@ -70,6 +70,7 @@ void export_sphinx(py::module& m)
     export_AlchemyLogBoltzmannFunction< ShapeSphinx >(m, "AlchemyLogBotzmannSphinx");
     export_UpdaterShape< ShapeSphinx >(m, "UpdaterShapeSphinx");
     export_PythonShapeMove< ShapeSphinx >(m, "PythonShapeMoveSphinx");
+    export_ConstantShapeMove< ShapeSphinx >(m, "ConstantShapeMoveSphinx");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU

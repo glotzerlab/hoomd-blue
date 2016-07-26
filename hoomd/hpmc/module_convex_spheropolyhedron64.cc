@@ -73,6 +73,7 @@ void export_convex_spheropolyhedron64(py::module& m)
     export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron<64> >(m, "AlchemyLogBotzmannSpheropolyhedron64");
     export_UpdaterShape< ShapeSpheropolyhedron<64> >(m, "UpdaterShapeSpheropolyhedron64");
     export_PythonShapeMove< ShapeSpheropolyhedron<64> >(m, "PythonShapeMoveSpheropolyhedron64");
+    export_ConstantShapeMove< ShapeSpheropolyhedron<64> >(m, "ConstantShapeMoveSpheropolyhedron64");
 
     #ifdef ENABLE_CUDA
 
