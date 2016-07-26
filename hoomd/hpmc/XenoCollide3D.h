@@ -10,6 +10,8 @@
 #ifndef __XENOCOLLIDE_3D_H__
 #define __XENOCOLLIDE_3D_H__
 
+const unsigned int XENOCOLLIDE_MAX_ITERATIONS = 1024;
+
 /*! \file XenoCollide3D.h
     \brief Implements XenoCollide in 3D
 */
@@ -134,7 +136,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         {
         count++;
 
-        if (count >= 1024)
+        if (count >= XENOCOLLIDE_MAX_ITERATIONS)
             {
             err_count++;
             return true;
@@ -216,7 +218,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         if (fabs(d) < tol)
             return true;
 
-        if (count >= 1024)
+        if (count >= XENOCOLLIDE_MAX_ITERATIONS)
             {
             err_count++;
             /*
