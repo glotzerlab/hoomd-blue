@@ -30,6 +30,10 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -59,6 +63,12 @@ void export_sphere(py::module& m)
     export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
+
+    export_UpdaterShape< ShapeSphere >(m, "UpdaterShapeSphere");
+    export_ShapeMoveInterface< ShapeSphere >(m, "ShapeMoveSphere");
+    export_ShapeLogBoltzmann< ShapeSphere >(m, "LogBoltzmannSphere");
+    export_AlchemyLogBoltzmannFunction< ShapeSphere >(m, "AlchemyLogBotzmannSphere");
+
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");

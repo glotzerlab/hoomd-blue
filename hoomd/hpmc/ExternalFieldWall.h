@@ -13,6 +13,7 @@
 
 #include "IntegratorHPMCMono.h"
 #include "ExternalField.h"
+#include "ShapeUtils.h"
 
 #include <tuple>
 
@@ -22,40 +23,40 @@
 
 namespace hpmc
 {
-template < unsigned int old_max_verts, unsigned int new_max_verts >
-detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
-    {
-    // restricting this cast from small arrays to larger ones ok because it can not invalidate
-    // any of the data. The otherway is not true and I don't want to worry about that
-    // right now.
-    #if  old_max_verts > new_max_verts
-        #error "must cast to a larger number of vertices"
-    #endif
-
-    // All data guaranteed to be valid because of static_assert above
-    detail::poly3d_verts<new_max_verts> verts;
-    verts.N = old_verts.N;
-    verts.diameter = old_verts.diameter;
-    verts.sweep_radius = old_verts.sweep_radius;
-    verts.ignore = old_verts.ignore;
-
-    // initialize because we have observed strange behaviour if we don't.
-    for (unsigned int i = 0; i < new_max_verts; i++)
-        {
-        if( i < old_verts.N )
-            {
-                verts.x[i] = old_verts.x[i];
-                verts.y[i] = old_verts.y[i];
-                verts.z[i] = old_verts.z[i];
-            }
-        else
-            {
-            verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-            }
-        }
-
-    return verts;
-    }
+// template < unsigned int old_max_verts, unsigned int new_max_verts >
+// detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
+//     {
+//     // restricting this cast from small arrays to larger ones ok because it can not invalidate
+//     // any of the data. The otherway is not true and I don't want to worry about that
+//     // right now.
+//     #if  old_max_verts > new_max_verts
+//         #error "must cast to a larger number of vertices"
+//     #endif
+//
+//     // All data guaranteed to be valid because of static_assert above
+//     detail::poly3d_verts<new_max_verts> verts;
+//     verts.N = old_verts.N;
+//     verts.diameter = old_verts.diameter;
+//     verts.sweep_radius = old_verts.sweep_radius;
+//     verts.ignore = old_verts.ignore;
+//
+//     // initialize because we have observed strange behaviour if we don't.
+//     for (unsigned int i = 0; i < new_max_verts; i++)
+//         {
+//         if( i < old_verts.N )
+//             {
+//                 verts.x[i] = old_verts.x[i];
+//                 verts.y[i] = old_verts.y[i];
+//                 verts.z[i] = old_verts.z[i];
+//             }
+//         else
+//             {
+//             verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
+//             }
+//         }
+//
+//     return verts;
+//     }
 
 struct SphereWall
     {

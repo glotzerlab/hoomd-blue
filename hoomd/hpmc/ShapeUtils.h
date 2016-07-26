@@ -646,12 +646,10 @@ private:
 } // end namespace detail
 
 template<class Shape>
-void export_massPropertiesBase(std::string name);
+void export_massPropertiesBase(pybind11::module& m, std::string name);
 
 template<class Shape>
-void export_massProperties(std::string name);
-
-void export_shape_utils();
+void export_massProperties(pybind11::module& m, std::string name);
 
 } // end namespace hpmc
 #endif // end inclusion guard

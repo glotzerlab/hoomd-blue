@@ -1,41 +1,11 @@
 #ifndef _SHAPE_MOVES_H
 #define _SHAPE_MOVES_H
-#include <hoomd/hoomd_config.h>
-#include <hoomd/saruprng.h>
-#include <boost/python.hpp>
-#include <boost/python/stl_iterator.hpp>
-// #include "ShapeProxy.h"
+
+#include <hoomd/extern/saruprng.h>
 #include "ShapeUtils.h"
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc {
-
-namespace detail{
-
-template < typename Shape >
-struct shape_param_to_vector
-    {
-    void operator ()(const typename Shape::param_type&, std::vector<Scalar>&) { }
-    };
-
-template <unsigned int max_verts>
-struct shape_param_to_vector< ShapeConvexPolyhedron<max_verts> >
-    {
-    void operator ()(const typename ShapeConvexPolyhedron<max_verts>::param_type& shape, std::vector<Scalar>& params)
-        {
-        params.resize(shape.N*3, 0.0);
-        for(size_t i = 0; i < shape.N; i++)
-            {
-            params[i*3]   = shape.x[i];
-            params[i*3+1] = shape.y[i];
-            params[i*3+2] = shape.z[i];
-            }
-        }
-    };
-
-
-// void unpack_ignore_flag(unsigned int flag, bool& stats, bool& ovrlps);
-
-}
 
 template < typename Shape, typename RNG>
 class shape_move_function
@@ -44,12 +14,11 @@ public:
     shape_move_function(unsigned int ntypes) : m_determinantInertiaTensor(0), m_step_size(ntypes) {}
     shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSize()) {}
 
+    //! prepare is called at the beginning of every update()
     virtual void prepare(unsigned int timestep) = 0;
-    //! construct is called at the beginning of every update()
-    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&) = 0;
 
-    //! advance whenever the proposed move is accepted.
-    // virtual void advance(const unsigned int) = 0;
+    //! construct is called for each particle type that will be changed in update()
+    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&) = 0;
 
     //! retreat whenever the proposed move is rejected.
     virtual void retreat(const unsigned int) = 0;
@@ -65,8 +34,7 @@ public:
     void setStepSize(const unsigned int& type_id, const Scalar& stepsize) { m_step_size[type_id] = stepsize; }
 
 protected:
-    unsigned int                    m_typeid;                       // input. last typeid that was moved.
-    Scalar                          m_determinantInertiaTensor;     // output
+    Scalar                          m_determinantInertiaTensor;     // TODO: REMOVE?
     std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
 };
 
@@ -75,24 +43,21 @@ class python_callback_parameter_shape_move : public shape_move_function<Shape, R
 {
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
-    using shape_move_function<Shape, RNG>::m_typeid;
 public:
     python_callback_parameter_shape_move(   unsigned int ntypes,
-                                            boost::python::object python_function,
+                                            pybind11::object python_function,
                                             const std::vector< std::vector<Scalar> >& params,
-                                            const std::vector<Scalar>& stepsize,
-                                            Scalar mixratio,
-                                            bool normalized
+                                            std::vector<Scalar> stepsize,
+                                            Scalar mixratio
                                         )
-        :  shape_move_function<Shape, RNG>(ntypes), m_params(params), m_python_callback(python_function), m_normalized(normalized)
+        :  shape_move_function<Shape, RNG>(ntypes), m_params(params), m_python_callback(python_function) //, m_normalized(normalized)
         {
         if(m_step_size.size() != stepsize.size())
             throw std::runtime_error("must provide a stepsize for each type");
 
         m_step_size = stepsize;
         m_select_ratio = fmin(mixratio, 1.0)*65535;
-        boost::python::object tup = m_python_callback(m_params);
-        m_determinantInertiaTensor = boost::python::extract< Scalar >(tup[1]);
+        m_determinantInertiaTensor = 0.0;
         }
 
     void prepare(unsigned int timestep)
@@ -105,51 +70,46 @@ public:
         {
         // gonna make the move.
         // Saru rng(m_select_ratio, m_seed, timestep);
-        m_typeid = type_id;
-
-        if(m_normalized)
+        // type_id = type_id;
+        for(size_t i = 0; i < m_params.size(); i++)
             {
-            for(size_t i = 0; i < m_params.size(); i++)
-                {
-                Scalar x = ((rng.u32() & 0xffff) < m_select_ratio) ? rng.s(fmax(-m_step_size[m_typeid], -(m_params[m_typeid][i])), fmin(m_step_size[m_typeid], (1.0-m_params[m_typeid][i]))) : 0.0;
-                m_params[m_typeid][i] += x;
-                }
-            }
-        else
-            {
-            // could gut this part becuase of the other functions.
-            for(size_t i = 0; i < m_params[m_typeid].size() && (m_params[m_typeid].size()%3 == 0); i+=3)
-                {
-                if( (rng.u32()& 0xffff) < m_select_ratio )
-                    {
-                    Scalar x = rng.s(-1.0, 1.0);
-                    Scalar y = rng.s(-1.0, 1.0);
-                    Scalar z = rng.s(-1.0, 1.0);
-                    Scalar mag = rng.s(0.0, m_step_size[m_typeid])/sqrt(x*x + y*y + z*z);
-                    m_params[m_typeid][i] += x*mag;
-                    m_params[m_typeid][i+1] += y*mag;
-                    m_params[m_typeid][i+2] += z*mag;
-                    }
-                }
+            Scalar x = ((rng.u32() & 0xffff) < m_select_ratio) ? rng.s(fmax(-m_step_size[type_id], -(m_params[type_id][i])), fmin(m_step_size[type_id], (1.0-m_params[type_id][i]))) : 0.0;
+            m_params[type_id][i] += x;
             }
 
-        boost::python::object tup = m_python_callback(m_params[m_typeid]);
-        shape = boost::python::extract< typename Shape::param_type >(tup[0]);
-        m_determinantInertiaTensor = boost::python::extract< Scalar >(tup[1]);
-        m_scale = Scalar(1.0);
-        if(!m_normalized)
-            {
-            m_scale = boost::python::extract< Scalar >(tup[2]); // only extract if we have to.
-            detail::shape_param_to_vector<Shape> converter;
-            converter(shape, m_params[m_typeid]);
-            }
-        m_step_size[m_typeid] *= m_scale; // only need to scale if the parameters are not normalized
+        // if(m_normalized)
+        //     {
+        //     }
+        // else
+        //     {
+        //     // could gut this part becuase of the other functions.
+        //     for(size_t i = 0; i < m_params[type_id].size() && (m_params[type_id].size()%3 == 0); i+=3)
+        //         {
+        //         if( (rng.u32()& 0xffff) < m_select_ratio )
+        //             {
+        //             Scalar x = rng.s(-1.0, 1.0);
+        //             Scalar y = rng.s(-1.0, 1.0);
+        //             Scalar z = rng.s(-1.0, 1.0);
+        //             Scalar mag = rng.s(0.0, m_step_size[type_id])/sqrt(x*x + y*y + z*z);
+        //             m_params[type_id][i] += x*mag;
+        //             m_params[type_id][i+1] += y*mag;
+        //             m_params[type_id][i+2] += z*mag;
+        //             }
+        //         }
+        //     }
+
+        pybind11::list shape_data = m_python_callback(m_params[type_id]);
+        shape = pybind11::cast< typename Shape::param_type >(shape_data[0]);
+        m_determinantInertiaTensor = pybind11::cast< Scalar >(shape_data[1]);
+        // m_scale = Scalar(1.0);
+        // if(!m_normalized)
+        //     {
+        //     m_scale = pybind11::cast< Scalar >(shape_data[2]); // only extract if we have to.
+        //     detail::shape_param_to_vector<Shape> converter;
+        //     converter(shape, m_params[type_id]);
+        //     }
+        // m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
-
-    // void advance(unsigned int timestep)
-    //     {
-    //     // move has been accepted. nothing to do.
-    //     }
 
     void retreat(unsigned int timestep)
         {
@@ -186,15 +146,14 @@ private:
     Scalar                                  m_scale;            // the scale needed to keep the particle at constant volume. internal use
     std::vector< std::vector<Scalar> >      m_params_backup;    // all params are from 0,1
     std::vector< std::vector<Scalar> >      m_params;           // all params are from 0,1
-    boost::python::object                   m_python_callback;  // callback that takes m_params as an argiment and returns (shape, det(I))
-    bool                                    m_normalized;       // if true all parameters are restricted to (0,1)
+    pybind11::object                        m_python_callback;  // callback that takes m_params as an argiment and returns (shape, det(I))
+    // bool                                    m_normalized;       // if true all parameters are restricted to (0,1)
 };
 
 template< typename Shape, typename RNG >
 class constant_shape_move : public shape_move_function<Shape, RNG>
 {
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
-    using shape_move_function<Shape, RNG>::m_typeid;
 public:
     constant_shape_move(const typename Shape::param_type& shape_move, Scalar detI_move) : shape_move_function<Shape, RNG>(1), m_shapeMove(shape_move), m_determinantInertiaTensorMove(detI_move)
         {
@@ -228,7 +187,6 @@ class convex_polyhedron_generalized_shape_move : public shape_move_function<Shap
 {
     using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_determinantInertiaTensor;
     using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_step_size;
-    using shape_move_function<ShapeConvexPolyhedronType, RNG>::m_typeid;
 public:
     convex_polyhedron_generalized_shape_move(
                                             unsigned int ntypes,
@@ -237,8 +195,8 @@ public:
                                             Scalar volume
                                         ) : shape_move_function<ShapeConvexPolyhedronType, RNG>(ntypes), m_volume(volume)
         {
-                    // if(m_step_size.size() != stepsize.size())
-                    //     throw std::runtime_error("must provide a stepsize for each type");
+        // if(m_step_size.size() != stepsize.size())
+        //     throw std::runtime_error("must provide a stepsize for each type");
 
         m_determinantInertiaTensor = 1.0;
         m_scale = 1.0;
@@ -254,7 +212,7 @@ public:
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename ShapeConvexPolyhedronType::param_type& shape, RNG& rng)
         {
-        m_typeid = type_id;
+        // type_id = type_id;
         // mix the shape.
         for(size_t i = 0; i < shape.N; i++)
             {
@@ -263,7 +221,7 @@ public:
                 Scalar x = rng.s(-1.0, 1.0);
                 Scalar y = rng.s(-1.0, 1.0);
                 Scalar z = rng.s(-1.0, 1.0);
-                Scalar mag = rng.s(0.0, m_step_size[m_typeid])/sqrt(x*x + y*y + z*z);
+                Scalar mag = rng.s(0.0, m_step_size[type_id])/sqrt(x*x + y*y + z*z);
                 shape.x[i] += x*mag;
                 shape.y[i] += y*mag;
                 shape.z[i] += z*mag;
@@ -293,7 +251,7 @@ public:
         detail::mass_properties<ShapeConvexPolyhedronType> mp2(points, convex_hull.getFaces());
         m_determinantInertiaTensor = mp2.getDeterminant();
         shape.diameter = 2.0*sqrt(rsq);
-        m_step_size[m_typeid] *= m_scale; // only need to scale if the parameters are not normalized
+        m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
     // void advance(unsigned int timestep)
@@ -432,7 +390,6 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     // using shape_move_function<Shape, RNG>::m_shape;
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
-    using shape_move_function<Shape, RNG>::m_typeid;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
 public:
@@ -535,53 +492,60 @@ public:
 //**
 //**
 //**
-//! Wrapper class for wrapping pure virtual methods
+// ! Wrapper class for wrapping pure virtual methods
 template<class Shape, class RNG>
-class shape_move_function_wrap : public shape_move_function<Shape, RNG>, public boost::python::wrapper< shape_move_function<Shape, RNG> >
+class shape_move_function_wrap : public shape_move_function<Shape, RNG>
     {
     public:
         //! Constructor
         shape_move_function_wrap(unsigned int ntypes) : shape_move_function<Shape, RNG>(ntypes) {}
         void prepare(unsigned int timestep)
             {
-            this->get_override("prepare")(timestep);
+            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
+                                    shape_move_function<Shape, RNG>,            /* Parent class */
+                                    &shape_move_function<Shape, RNG>::prepare,  /* Name of function */
+                                    timestep);                                  /* Argument(s) */
             }
 
         void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
             {
-            this->get_override("construct")(timestep, type_id, shape, rng);
+            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
+                                    shape_move_function<Shape, RNG>,            /* Parent class */
+                                    &shape_move_function<Shape, RNG>::construct,/* Name of function */
+                                    timestep,                                   /* Argument(s) */
+                                    type_id,
+                                    shape,
+                                    rng);
             }
-
-        // void advance(unsigned int timestep)
-        //     {
-        //     this->get_override("advance")(timestep);
-        //     }
 
         void retreat(unsigned int timestep)
             {
-            this->get_override("retreat")(timestep);
+            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
+                                    shape_move_function<Shape, RNG>,            /* Parent class */
+                                    &shape_move_function<Shape, RNG>::retreat,  /* Name of function */
+                                    timestep);                                  /* Argument(s) */
             }
     };
 
 template<class Shape>
-void export_ShapeMoveInterface(std::string name);
+void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
 
 template<class Shape>
-void export_ElasticShapeMove(std::string name);
+void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
 
 template< typename Shape >
-void export_ShapeLogBoltzmann(const std::string& name);
+void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name);
 
-void export_LogBoltzmannEllipsoidSpring(const std::string& name);
-
-template<class Shape>
-void export_LogBoltzmannConvexPolyhedronSpring(const std::string& name);
+void export_LogBoltzmannEllipsoidSpring(pybind11::module& m, const std::string& name);
 
 template<class Shape>
-void export_AlchemyLogBoltzmannFunction(const std::string& name);
+void export_LogBoltzmannConvexPolyhedronSpring(pybind11::module& m, const std::string& name);
 
 template<class Shape>
-void export_ConvexPolyhedronGeneralizedShapeMove(const std::string& name);
+void export_AlchemyLogBoltzmannFunction(pybind11::module& m, const std::string& name);
+
+template<class Shape>
+void export_ConvexPolyhedronGeneralizedShapeMove(pybind11::module& m, const std::string& name);
 
 }
 

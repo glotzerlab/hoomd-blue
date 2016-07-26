@@ -99,6 +99,23 @@ class UpdateOrder
                     m_update_order[i] = i;
                 }
             }
+        //! randomize the order
+        /*! \param timestep Current timestep of the simulation
+            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
+            timestep.
+        */
+        void randomize(unsigned int timestep, unsigned int select = 0)
+            {
+            shuffle(timestep, select);
+            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
+            unsigned int N = m_update_order.size();
+            for (unsigned int i = 0; i < N; i++)
+                {
+                unsigned int ri = N*rng.s(0.0,1.0);
+                unsigned int rj = N*rng.s(0.0,1.0);
+                std::swap(m_update_order[ri], m_update_order[rj]);
+                }
+            }
 
         //! Access element of the shuffled order
         unsigned int operator[](unsigned int i)

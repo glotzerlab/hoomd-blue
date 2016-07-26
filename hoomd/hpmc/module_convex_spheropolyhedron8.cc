@@ -30,14 +30,15 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
-
-
-
 
 namespace py = pybind11;
 using namespace hpmc;
@@ -63,6 +64,11 @@ void export_convex_spheropolyhedron8(py::module& m)
     export_RemoveDriftUpdater<ShapeSpheropolyhedron<8> >(m, "RemoveDriftUpdaterSpheropolyhedron8");
     // export_ExternalFieldWall<ShapeSpheropolyhedron<8> >(m, "WallSpheropolyhedron8");
     // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron<8> >(m, "UpdaterExternalFieldWallSpheropolyhedron8");
+
+    export_ShapeMoveInterface< ShapeSpheropolyhedron<8> >(m, "ShapeMoveSpheropolyhedron8");
+    export_ShapeLogBoltzmann< ShapeSpheropolyhedron<8> >(m, "LogBoltzmannSpheropolyhedron8");
+    export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron<8> >(m, "AlchemyLogBotzmannSpheropolyhedron8");
+    export_UpdaterShape< ShapeSpheropolyhedron<8> >(m, "UpdaterShapeSpheropolyhedron8");
 
     #ifdef ENABLE_CUDA
 

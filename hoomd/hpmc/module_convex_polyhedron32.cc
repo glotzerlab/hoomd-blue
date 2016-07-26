@@ -30,6 +30,10 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -63,6 +67,15 @@ void export_convex_polyhedron32(py::module& m)
     export_RemoveDriftUpdater<ShapeConvexPolyhedron<32> >(m, "RemoveDriftUpdaterConvexPolyhedron32");
     export_ExternalFieldWall<ShapeConvexPolyhedron<32> >(m, "WallConvexPolyhedron32");
     export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<32> >(m, "UpdaterExternalFieldWallConvexPolyhedron32");
+
+    export_massProperties< ShapeConvexPolyhedron<32> >(m, "MassPropertiesConvexPolyhedron32");
+    export_ShapeMoveInterface< ShapeConvexPolyhedron<32> >(m, "ShapeMoveConvexPolyhedron32");
+    export_ShapeLogBoltzmann< ShapeConvexPolyhedron<32> >(m, "LogBoltzmannConvexPolyhedron32");
+    export_ElasticShapeMove< ShapeConvexPolyhedron<32> >(m, "ElasticShapeMoveConvexPolyhedron32");
+    export_LogBoltzmannConvexPolyhedronSpring< ShapeConvexPolyhedron<32> >(m, "LogBoltzmannConvexPolyhedronSpring32");
+    export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<32> >(m, "AlchemyLogBotzmannConvexPolyhedron32");
+    export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<32> >(m, "GeneralizedShapeMoveConvexPolyhedron32");
+    export_UpdaterShape< ShapeConvexPolyhedron<32> >(m, "UpdaterShapeConvexPolyhedron32");
 
     #ifdef ENABLE_CUDA
 

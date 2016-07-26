@@ -30,6 +30,10 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -60,6 +64,11 @@ void export_sphinx(py::module& m)
     export_RemoveDriftUpdater<ShapeSphinx>(m, "RemoveDriftUpdaterSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
     export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
+
+    export_ShapeMoveInterface< ShapeSphinx >(m, "ShapeMoveSphinx");
+    export_ShapeLogBoltzmann< ShapeSphinx >(m, "LogBoltzmannSphinx");
+    export_AlchemyLogBoltzmannFunction< ShapeSphinx >(m, "AlchemyLogBotzmannSphinx");
+    export_UpdaterShape< ShapeSphinx >(m, "UpdaterShapeSphinx");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU

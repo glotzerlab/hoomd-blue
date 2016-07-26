@@ -30,6 +30,10 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -60,6 +64,11 @@ void export_polyhedron(py::module& m)
     export_RemoveDriftUpdater<ShapePolyhedron>(m, "RemoveDriftUpdaterPolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
     export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
+
+    export_ShapeMoveInterface< ShapePolyhedron >(m, "ShapeMovePolyhedron");
+    export_ShapeLogBoltzmann< ShapePolyhedron >(m, "LogBoltzmannPolyhedron");
+    export_AlchemyLogBoltzmannFunction< ShapePolyhedron >(m, "AlchemyLogBotzmannPolyhedron");
+    export_UpdaterShape< ShapePolyhedron >(m, "UpdaterShapePolyhedron");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");

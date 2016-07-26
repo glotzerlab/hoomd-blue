@@ -30,6 +30,10 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
@@ -60,6 +64,13 @@ void export_ellipsoid(py::module& m)
     export_RemoveDriftUpdater<ShapeEllipsoid>(m, "RemoveDriftUpdaterEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
     export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
+
+    export_ShapeMoveInterface< ShapeEllipsoid >(m, "ShapeMoveEllipsoid");
+    export_ShapeLogBoltzmann< ShapeEllipsoid >(m, "LogBoltzmannEllipsoid");
+    export_ElasticShapeMove< ShapeEllipsoid >(m, "ElasticShapeMoveEllipsoid");
+    export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(m, "AlchemyLogBotzmannEllipsoid");
+    export_UpdaterShape< ShapeEllipsoid >(m, "UpdaterShapeEllipsoid");
+    export_LogBoltzmannEllipsoidSpring(m, "LogBoltzmannEllipsoidSpring");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");

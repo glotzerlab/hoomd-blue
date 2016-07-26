@@ -1,18 +1,16 @@
 #ifndef _UPDATER_SHAPE_H
 #define _UPDATER_SHAPE_H
-#include <hoomd/hoomd_config.h>
-// #include "CGALInclude.h" // TODO: figure out why we need to include these first??
 
 #include <numeric>
 #include <algorithm>
-#include <hoomd/Updater.h>
-#include <hoomd/saruprng.h>
+#include "hoomd/Updater.h"
+#include "hoomd/extern/saruprng.h"
 #include "IntegratorHPMCMono.h"
-#include <boost/python.hpp>
-#include <boost/python/stl_iterator.hpp>
 
-#include "ShapeMoves.h"
 #include "ShapeUtils.h"
+#include "ShapeMoves.h"
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc {
 
@@ -21,8 +19,8 @@ template< typename Shape >
 class UpdaterShape  : public Updater
 {
 public:
-    UpdaterShape(   boost::shared_ptr<SystemDefinition> sysdef,
-                    boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+    UpdaterShape(   std::shared_ptr<SystemDefinition> sysdef,
+                    std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                     Scalar move_ratio,
                     unsigned int seed,
                     unsigned int nselect,
@@ -60,14 +58,14 @@ public:
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
         }
 
-    void registerLogBoltzmannFunction(boost::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
+    void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
         {
         if(m_log_boltz_function)
             return;
         m_log_boltz_function = lbf;
         }
 
-    void registerShapeMove(boost::shared_ptr<shape_move_function<Shape, Saru> > move)
+    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move)
         {
         if(m_move_function) // if it exists I do not want to reset it.
             return;
@@ -85,14 +83,14 @@ public:
     //         return;
     //     boost::python::stl_input_iterator<Scalar> begin(pyparams), end;
     //     std::vector<Scalar> params(begin, end);
-    //     registerShapeMove(boost::shared_ptr<shape_move_function<Shape, Saru> >( new python_callback_parameter_shape_move<Shape, Saru>(pyfun, params, stepsize, mixratio, m_seed, normalized)));
+    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new python_callback_parameter_shape_move<Shape, Saru>(pyfun, params, stepsize, mixratio, m_seed, normalized)));
     //     }
     //
     // void registerConstantShapeMove(const typename Shape::param_type& shape, Scalar detI, const typename Shape::param_type& shape_move, Scalar detI_move)
     //     {
     //     if(m_move_function) // if it exists I do not want to reset it.
     //         return;
-    //     registerShapeMove(boost::shared_ptr<shape_move_function<Shape, Saru> >( new constant_shape_move<Shape, Saru>(shape, detI, shape_move, detI_move) ));
+    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new constant_shape_move<Shape, Saru>(shape, detI, shape_move, detI_move) ));
     //     }
 
     // void registerConvexPolyhedronShapeMove()
@@ -100,7 +98,7 @@ public:
     //     if(m_move_function) // if it exists I do not want to reset it.
     //         return;
     //     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-    //     registerShapeMove(boost::shared_ptr<shape_move_function<Shape, Saru> >( new convex_polyhedron_generalized_shape_move<Shape, Saru>(h_params.data[0], 1.0, 1.0, m_seed) ));
+    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new convex_polyhedron_generalized_shape_move<Shape, Saru>(h_params.data[0], 1.0, 1.0, m_seed) ));
     //     }
 
     // boost::python::dict getShapeParams(unsigned int type_id)
@@ -163,9 +161,9 @@ private:
     std::vector<unsigned int>   m_count_total;
     unsigned int                m_move_ratio;
 
-    boost::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
-    boost::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
-    boost::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
+    std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
+    std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
+    std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
 
     GPUArray< Scalar >          m_determinant;
     GPUArray< unsigned int >    m_ntypes;
@@ -178,8 +176,8 @@ private:
 };
 
 template < class Shape >
-UpdaterShape<Shape>::UpdaterShape(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                                  Scalar move_ratio,
                                  unsigned int seed,
                                  unsigned int nselect,
@@ -352,20 +350,17 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     }
 
 template< typename Shape >
-void export_UpdaterShape(const std::string& name)
+void export_UpdaterShape(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterShape<Shape>, boost::shared_ptr< UpdaterShape<Shape> >, boost::python::bases<Updater>, boost::noncopyable >
-    (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-                                        boost::shared_ptr< IntegratorHPMCMono<Shape> >,
-                                        Scalar,
-                                        unsigned int,
-                                        unsigned int,
-                                        bool >())
+    pybind11::class_< UpdaterShape<Shape>, std::shared_ptr< UpdaterShape<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+    .def( pybind11::init<   std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr< IntegratorHPMCMono<Shape> >,
+                            Scalar,
+                            unsigned int,
+                            unsigned int,
+                            bool >())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
-    // .def("registerPythonCallback", &UpdaterShape<Shape>::registerPythonCallback)
-    // .def("registerConstantShapeMove", &UpdaterShape<Shape>::registerConstantShapeMove)
-    // .def("registerConvexPolyhedronShapeMove", &UpdaterShape<Shape>::registerConvexPolyhedronShapeMove)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
     .def("registerLogBoltzmannFunction", &UpdaterShape<Shape>::registerLogBoltzmannFunction)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
