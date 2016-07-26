@@ -28,6 +28,8 @@ namespace hpmc
 namespace detail
 {
 
+const unsigned int XENOCOLLIDE_2D_MAX_ITERATIONS = 1024;
+
 //! Composite support functor
 /*! \tparam SupportFuncA Support function class type for shape A
     \tparam SupportFuncB Support function class type for shape B
@@ -210,7 +212,7 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
         if (dot(d,d) < tol*tol*dot(v3,v3))
             return true;
 
-        if (count >= 1024)
+        if (count >= XENOCOLLIDE_2D_MAX_ITERATIONS)
             {
             err_count++;
             return true;

@@ -41,6 +41,8 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include <string>
 #include <sstream>
 #include <set>
+#include <vector>
+#include <map>
 
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
@@ -230,7 +232,7 @@ class BondedGroupData : boost::noncopyable
         virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
         //! Take a snapshot
-        virtual void takeSnapshot(Snapshot& snapshot) const;
+        virtual std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
 
         //! Get local number of bonded groups
         unsigned int getN() const
