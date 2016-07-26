@@ -4,7 +4,13 @@
 
 ## v2.0.2
 
+*Not yet released*
+
 * Support CUDA Toolkit 8.0
+* Fix builds with ENABLE_DOXYGEN=on
+* Always add -std=c++11 to the compiler command line arguments
+* Fix rare infinite loops when using hpmc.integrate.faceted_sphere
+* Fix hpmc.util.tune to work with more than one tunable
 
 ## v2.0.1
 
