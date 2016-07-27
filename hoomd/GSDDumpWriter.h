@@ -95,13 +95,13 @@ class GSDDumpWriter : public Analyzer
         void writeFrameHeader(unsigned int timestep);
 
         //! Write particle attributes
-        void writeAttributes(const SnapshotParticleData<float>& snapshot);
+        void writeAttributes(const SnapshotParticleData<float>& snapshot, const std::map<unsigned int, unsigned int> &map);
 
         //! Write particle properties
-        void writeProperties(const SnapshotParticleData<float>& snapshot);
+        void writeProperties(const SnapshotParticleData<float>& snapshot, const std::map<unsigned int, unsigned int> &map);
 
         //! Write particle momenta
-        void writeMomenta(const SnapshotParticleData<float>& snapshot);
+        void writeMomenta(const SnapshotParticleData<float>& snapshot, const std::map<unsigned int, unsigned int> &map);
 
         //! Write bond topology
         void writeTopology(BondData::Snapshot& bond,
