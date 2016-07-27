@@ -81,7 +81,19 @@ struct ShapeUnion
         }
 
     //! Does this shape have an orientation
-    DEVICE static bool hasOrientation() { return true; }
+    DEVICE bool hasOrientation()
+        {
+        if (members.N == 1)
+            {
+            // if we have only one member, return that shape's anisotropy flag
+            Shape s(quat<Scalar>(), members.mparams[0]);
+            return s.hasOrientation();
+            }
+        else
+            {
+            return true;
+            }
+        }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return members.ignore; }
