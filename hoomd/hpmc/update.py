@@ -871,7 +871,6 @@ class shape_update(_updater):
         if(self.move_cpp):
             globals.msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
-
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
             pass;
@@ -911,7 +910,6 @@ class shape_update(_updater):
         if(self.move_cpp):
             globals.msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
-
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
             move_cls = _hpmc.ConstantShapeMoveSphere;
@@ -949,7 +947,6 @@ class shape_update(_updater):
         if(self.move_cpp):
             globals.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
-
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
             pass;
@@ -1133,7 +1130,6 @@ class alchemy(shape_update):
         alchem = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
 
     """
-
     def __init__(   self,
                     # mc,
                     # move_ratio,
