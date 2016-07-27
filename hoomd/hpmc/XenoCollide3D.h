@@ -131,7 +131,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     // ------
     // while (origin ray does not intersect candidate) choose new candidate
     bool intersects = false;
-    int count = 0;
+    unsigned int count = 0;
     while (!intersects)
         {
         count++;
