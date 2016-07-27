@@ -68,8 +68,8 @@ void export_convex_polyhedron64(py::module& m)
     export_massProperties< ShapeConvexPolyhedron<64> >(m, "MassPropertiesConvexPolyhedron64");
     export_ShapeMoveInterface< ShapeConvexPolyhedron<64> >(m, "ShapeMoveConvexPolyhedron64");
     export_ShapeLogBoltzmann< ShapeConvexPolyhedron<64> >(m, "LogBoltzmannConvexPolyhedron64");
-    export_ElasticShapeMove< ShapeConvexPolyhedron<64> >(m, "ElasticShapeMoveConvexPolyhedron64");
-    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<64> >(m, "ShapeSpringLogBoltzmannPolyhedronSpring64");
+    export_ScaleShearShapeMove< ShapeConvexPolyhedron<64> >(m, "ScaleShearShapeMoveConvexPolyhedron64");
+    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<64> >(m, "ShapeSpringLogBoltzmannPolyhedron64");
     export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<64> >(m, "AlchemyLogBotzmannConvexPolyhedron64");
     export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<64> >(m, "GeneralizedShapeMoveConvexPolyhedron64");
     export_UpdaterShape< ShapeConvexPolyhedron<64> >(m, "UpdaterShapeConvexPolyhedron64");

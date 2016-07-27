@@ -71,7 +71,7 @@ class shape_updater_test(unittest.TestCase):
         self.system = init.read_snapshot(self.snapshot3d)
         self.mc = hpmc.integrate.sphere(seed=2398, d=0.0)
         self.mc.shape_param.set('A', diameter=diam)
-        self.run_test(latticep=lattice3d, latticeq=[], k=k, kalt=kalt, q=0, qalt=0, uein=1.5, snapshot_s=self.snapshot3d_s, eng_check=eng_check3d, d=0.001428 );
+        self.updater = hpmc.update.shape_updater();
         self.tear_down()
 
         # ellipsoid

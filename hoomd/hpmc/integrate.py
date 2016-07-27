@@ -55,6 +55,7 @@ class mode_hpmc(_integrator):
 
         # setup the shape parameters
         self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
+        self.shape_class = None;
 
         #initialize list to check fl params
         if self.implicit:
@@ -158,6 +159,7 @@ class mode_hpmc(_integrator):
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
         # setup the coefficient options
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        self.shape_class = shape_param_type
         for i in range(0,ntypes):
             type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if not type_name in self.shape_param.keys(): # only add new keys

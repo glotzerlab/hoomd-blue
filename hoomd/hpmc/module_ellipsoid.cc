@@ -67,7 +67,7 @@ void export_ellipsoid(py::module& m)
 
     export_ShapeMoveInterface< ShapeEllipsoid >(m, "ShapeMoveEllipsoid");
     export_ShapeLogBoltzmann< ShapeEllipsoid >(m, "LogBoltzmannEllipsoid");
-    export_ElasticShapeMove< ShapeEllipsoid >(m, "ElasticShapeMoveEllipsoid");
+    export_ScaleShearShapeMove< ShapeEllipsoid >(m, "ScaleShearShapeMoveEllipsoid");
     export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(m, "AlchemyLogBotzmannEllipsoid");
     export_UpdaterShape< ShapeEllipsoid >(m, "UpdaterShapeEllipsoid");
     export_ShapeSpringLogBoltzmannFunction<ShapeEllipsoid>(m, "ShapeSpringLogBoltzmannEllipsoid");

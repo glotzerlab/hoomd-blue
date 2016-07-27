@@ -71,8 +71,8 @@ void export_convex_polyhedron32(py::module& m)
     export_massProperties< ShapeConvexPolyhedron<32> >(m, "MassPropertiesConvexPolyhedron32");
     export_ShapeMoveInterface< ShapeConvexPolyhedron<32> >(m, "ShapeMoveConvexPolyhedron32");
     export_ShapeLogBoltzmann< ShapeConvexPolyhedron<32> >(m, "LogBoltzmannConvexPolyhedron32");
-    export_ElasticShapeMove< ShapeConvexPolyhedron<32> >(m, "ElasticShapeMoveConvexPolyhedron32");
-    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<32> >(m, "ShapeSpringLogBoltzmannPolyhedronSpring32");
+    export_ScaleShearShapeMove< ShapeConvexPolyhedron<32> >(m, "ScaleShearShapeMoveConvexPolyhedron32");
+    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<32> >(m, "ShapeSpringLogBoltzmannPolyhedron32");
     export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<32> >(m, "AlchemyLogBotzmannConvexPolyhedron32");
     export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<32> >(m, "GeneralizedShapeMoveConvexPolyhedron32");
     export_UpdaterShape< ShapeConvexPolyhedron<32> >(m, "UpdaterShapeConvexPolyhedron32");

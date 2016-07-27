@@ -29,7 +29,7 @@ void export_ShapeMoveInterface(pybind11::module& m, const std::string& name)
     }
 
 template<class Shape>
-void export_ElasticShapeMove(pybind11::module& m, const std::string& name)
+void export_ScaleShearShapeMove(pybind11::module& m, const std::string& name)
     {
     pybind11::class_< elastic_shape_move_function<Shape, Saru>, std::shared_ptr< elastic_shape_move_function<Shape, Saru> > >
     (m, name.c_str(), pybind11::base< shape_move_function<Shape, Saru> >())
@@ -105,7 +105,7 @@ template void export_ConstantShapeMove< ShapeSphere >(pybind11::module& m, const
 
 template void export_ShapeMoveInterface< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
@@ -142,7 +142,7 @@ template void export_ConstantShapeMove< ShapePolyhedron >(pybind11::module& m, c
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<8> >(pybind11::module& m, const std::string& name);
@@ -152,7 +152,7 @@ template void export_ConstantShapeMove< ShapeConvexPolyhedron<8> >(pybind11::mod
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<16> >(pybind11::module& m, const std::string& name);
@@ -162,7 +162,7 @@ template void export_ConstantShapeMove< ShapeConvexPolyhedron<16> >(pybind11::mo
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<32> >(pybind11::module& m, const std::string& name);
@@ -172,7 +172,7 @@ template void export_ConstantShapeMove< ShapeConvexPolyhedron<32> >(pybind11::mo
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<64> >(pybind11::module& m, const std::string& name);
@@ -182,7 +182,7 @@ template void export_ConstantShapeMove< ShapeConvexPolyhedron<64> >(pybind11::mo
 
 template void export_ShapeMoveInterface< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
-template void export_ElasticShapeMove< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
+template void export_ScaleShearShapeMove< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
 template void export_ShapeSpringLogBoltzmannFunction< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);
 template void export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<128> >(pybind11::module& m, const std::string& name);

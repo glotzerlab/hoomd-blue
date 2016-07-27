@@ -754,7 +754,7 @@ class shape_update(_updater):
 
     Example::
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
-        shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
+        shape_up = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
 
     """
     def __init__(   self,
@@ -804,7 +804,7 @@ class shape_update(_updater):
                                 seed,
                                 nselect,
                                 pretend);
-        self.move = None;
+        self.move_cpp = None;
         self.boltzmann_function = None;
         self.seed = seed;
         self.mc = mc;
@@ -826,6 +826,170 @@ class shape_update(_updater):
                 pos.set_info(pos_callback);
 
         self.setupUpdater(period, phase);
+
+    def python_shape_move(self, callback, params, stepsize, param_ratio):
+        util.print_status_line();
+        if(self.move_cpp):
+            globals.msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+        move_cls = None;
+        if isinstance(self.mc, integrate.sphere):
+            move_cls = _hpmc.PythonShapeMoveSphere;
+        elif isinstance(self.mc, integrate.convex_polygon):
+            move_cls = _hpmc.PythonShapeMoveConvexPolygon;
+        elif isinstance(self.mc, integrate.simple_polygon):
+            move_cls = _hpmc.PythonShapeMoveSimplePolygon;
+        elif isinstance(self.mc, integrate.convex_polyhedron):
+            move_cls = integrate._get_sized_entry('PythonShapeMoveConvexPolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+            move_cls = integrate._get_sized_entry('PythonShapeMoveSpheropolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.ellipsoid):
+            move_cls = _hpmc.PythonShapeMoveEllipsoid;
+        elif isinstance(self.mc, integrate.convex_spheropolygon):
+            move_cls = _hpmc.PythonShapeMoveConvexSphereopolygon;
+        elif isinstance(self.mc, integrate.polyhedron):
+            move_cls = _hpmc.PythonShapeMovePolyhedron;
+        elif isinstance(self.mc, integrate.sphinx):
+            move_cls = _hpmc.PythonShapeMoveSphinx;
+        elif isinstance(self.mc, integrate.sphere_union):
+            move_cls = _hpmc.PythonShapeMoveSphereUnion;
+        else:
+            globals.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        if not move_cls:
+            globals.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        param_list = self.mc.shape_class.ensure_list(params);
+        self.move_cpp = move_cls(ntypes, callback, param_list, float(stepsize), float(param_ratio));
+        self.cpp_updater.registerShapeMove(self.move_cpp);
+
+    def vertex_shape_move(self, stepsize=0.01, mixratio=0.25, volume=1.0):
+        util.print_status_line();
+        if(self.move_cpp):
+            globals.msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        move_cls = None;
+        if isinstance(self.mc, integrate.sphere):
+            pass;
+        elif isinstance(self.mc, integrate.convex_polygon):
+            pass;
+        elif isinstance(self.mc, integrate.simple_polygon):
+            pass;
+        elif isinstance(self.mc, integrate.convex_polyhedron):
+            move_cls = integrate._get_sized_entry('GeneralizedShapeMoveConvexPolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+            pass;
+        elif isinstance(self.mc, integrate.ellipsoid):
+            pass;
+        elif isinstance(self.mc, integrate.convex_spheropolygon):
+            pass;
+        elif isinstance(self.mc, integrate.patchy_sphere):
+            pass;
+        elif isinstance(self.mc, integrate.polyhedron):
+            pass;
+        elif isinstance(self.mc, integrate.sphinx):
+            pass;
+        elif isinstance(self.mc, integrate.sphere_union):
+            pass;
+        else:
+            globals.msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        if not move_cls:
+            globals.msg.error("update.shape_update: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        self.cpp_updater.registerShapeMove(move_cls(ntypes, stepsize, mixratio, volume));
+
+    def constant_shape_move(self, shape_params):
+        util.print_status_line();
+        if(self.move_cpp):
+            globals.msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        move_cls = None;
+        if isinstance(self.mc, integrate.sphere):
+            move_cls = _hpmc.ConstantShapeMoveSphere;
+        elif isinstance(self.mc, integrate.convex_polygon):
+            move_cls = _hpmc.ConstantShapeMoveConvexPolygon;
+        elif isinstance(self.mc, integrate.simple_polygon):
+            move_cls = _hpmc.ConstantShapeMoveSimplePolygon;
+        elif isinstance(self.mc, integrate.convex_polyhedron):
+            move_cls = integrate._get_sized_entry('ConstantShapeMoveConvexPolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+            move_cls = integrate._get_sized_entry('ConstantShapeMoveSpheropolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.ellipsoid):
+            move_cls = _hpmc.ConstantShapeMoveEllipsoid;
+        elif isinstance(self.mc, integrate.convex_spheropolygon):
+            move_cls = _hpmc.ConstantShapeMoveConvexSphereopolygon;
+        elif isinstance(self.mc, integrate.polyhedron):
+            move_cls = _hpmc.ConstantShapeMovePolyhedron;
+        elif isinstance(self.mc, integrate.sphinx):
+            move_cls = _hpmc.ConstantShapeMoveSphinx;
+        elif isinstance(self.mc, integrate.sphere_union):
+            move_cls = _hpmc.ConstantShapeMoveSphereUnion;
+        else:
+            globals.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        if not move_cls:
+            globals.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        self.cpp_updater.registerShapeMove(move_cls(ntypes, self.mc.shape_class.make_param(**shape_params)));
+
+    def scale_shear_shape_move(self, scale_max, shear_max, move_ratio=0.5):
+        util.print_status_line();
+        if(self.move_cpp):
+            globals.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        move_cls = None;
+        if isinstance(self.mc, integrate.sphere):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveSphere;
+        elif isinstance(self.mc, integrate.convex_polygon):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveConvexPolygon;
+        elif isinstance(self.mc, integrate.simple_polygon):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveSimplePolygon;
+        elif isinstance(self.mc, integrate.convex_polyhedron):
+            move_cls = integrate._get_sized_entry('ScaleShearShapeMoveConvexPolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
+            pass;
+            # move_cls = integrate._get_sized_entry('ScaleShearShapeMoveSpheropolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.ellipsoid):
+            # move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
+        elif isinstance(self.mc, integrate.convex_spheropolygon):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveConvexSphereopolygon;
+        elif isinstance(self.mc, integrate.polyhedron):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMovePolyhedron;
+        elif isinstance(self.mc, integrate.sphinx):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveSphinx;
+        elif isinstance(self.mc, integrate.sphere_union):
+            pass;
+            # move_cls = _hpmc.ScaleShearShapeMoveSphereUnion;
+        else:
+            globals.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        if not move_cls:
+            globals.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            raise RuntimeError("Error initializing update.shape_update");
+
+        ntypes = globals.system_definition.getParticleData().getNTypes();
+        self.cpp_updater.registerShapeMove(move_cls(ntypes, callback, params, stepsize, param_ratio));
+
 
     def get_total_count(self, idx=0):
         R""" Get the total number of moves attempted by the updater
@@ -943,7 +1107,6 @@ class shape_update(_updater):
             if not stepsize is None:
                 self.cpp_updater.setStepSize(typ, step_size);
 
-    def
 
 class alchemy(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
@@ -972,17 +1135,17 @@ class alchemy(shape_update):
     """
 
     def __init__(   self,
-                    mc,
-                    move_ratio,
-                    seed,
-                    stepsize=0.01,
-                    param_ratio=0.25,
-                    volume=1.0,
-                    move = None,
+                    # mc,
+                    # move_ratio,
+                    # seed,
+                    # stepsize=0.01,
+                    # param_ratio=0.25,
+                    # volume=1.0,
+                    # move = None,
                     **params):
         util.print_status_line();
         # initialize base class
-        shape_update.__init__(self,  mc, move_ratio, seed, **params);
+        shape_update.__init__(self, **params);
         boltzmann_cls = None;
         if isinstance(mc, integrate.sphere):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphere;
@@ -992,7 +1155,6 @@ class alchemy(shape_update):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
             boltzmann_cls = integrate._get_sized_entry('AlchemyLogBotzmannConvexPolyhedron', mc.max_verts);
-            mv = integrate._get_sized_entry('GeneralizedShapeMoveConvexPolyhedron', mc.max_verts);
         elif isinstance(mc, integrate.convex_spheropolyhedron):
             boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', mc.max_verts);
         elif isinstance(mc, integrate.ellipsoid):
@@ -1011,7 +1173,8 @@ class alchemy(shape_update):
             globals.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        self.cpp_updater.registerLogBoltzmannFunction(boltzmann_cls());
+        self.boltzmann_function = boltzmann_cls();
+        self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
 
 class elastic_shape(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
@@ -1033,39 +1196,31 @@ class elastic_shape(shape_update):
 
     Example::
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
-        elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, ref_shape=...)
-
+        elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(1,1,1), (1,−1,−1), (−1,1,−1), (−1,−1,1)]))
+        # Add a shape move.
+        elastic.scale_shear_move(scale_max=0.1, shear_max=0.1, move_ratio=0.5);
     """
     def __init__(   self,
-                    mc,
-                    move_ratio,
-                    seed,
+                    # mc,
+                    # move_ratio,
+                    # seed,
                     stiffness,
-                    ref_shape=None,
-                    stepsize=0.1,
+                    reference,
+                    # stepsize=0.1,
                     **params):
         util.print_status_line();
-
         # initialize base class
-        shape_update.__init__(self,  mc, move_ratio, seed, **params);
-        mv = None;
-        lbf = None;
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-
+        shape_update.__init__(self, **params); # mc, move_ratio, seed,
         if globals.exec_conf.isCUDAEnabled():
             globals.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
+        ref_shape = self.mc.shape_class.make_param(**reference);
         if isinstance(mc, integrate.convex_polyhedron):
-            cmv = integrate._get_sized_entry('ElasticShapeMoveConvexPolyhedron', mc.max_verts);
-            mv =cmv(ntypes, stepsize, 0.5)
-            clbf = integrate._get_sized_entry('LogBoltzmannConvexPolyhedronSpring', mc.max_verts);
-            lbf = clbf(stiffness, ref_shape);
+            clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', mc.max_verts);
         elif isinstance(mc, integrate.ellipsoid):
-            mv = _hpmc.ElasticShapeMoveEllipsoid(seed);
-            lbf = _hpmc.LogBoltzmannEllipsoidSpring(stiffness);
+            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape);
         else:
             globals.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
-
-        self.cpp_updater.registerShapeMove(mv);
-        self.cpp_updater.registerLogBoltzmannFunction(lbf);
+        self.boltzmann_function = clss(stiffness, ref_shape);
+        self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);

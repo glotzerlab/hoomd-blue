@@ -549,7 +549,7 @@ template<class Shape>
 void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
 
 template<class Shape>
-void export_ElasticShapeMove(pybind11::module& m, const std::string& name);
+void export_ScaleShearShapeMove(pybind11::module& m, const std::string& name);
 
 template< typename Shape >
 void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name);
