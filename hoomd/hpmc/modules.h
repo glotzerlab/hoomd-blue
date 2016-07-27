@@ -6,6 +6,7 @@
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h> // will automatically export stl class to python equivalents vector, set, map, ...
 #endif
 
 namespace hpmc

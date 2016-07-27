@@ -768,7 +768,7 @@ class shape_update(_updater):
                     setup_pos=True,
                     pos_callback=None,
                     nselect=1):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         _updater.__init__(self);
 
         cls = None;
@@ -795,10 +795,10 @@ class shape_update(_updater):
         elif isinstance(mc, integrate.sphere_union):
             cls =_hpmc.UpdaterShapeSphereUnion;
         else:
-            globals.msg.error("update.shape_update: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        self.cpp_updater = cls(globals.system_definition,
+        self.cpp_updater = cls(hoomd.context.current.system_definition,
                                 mc.cpp_integrator,
                                 move_ratio,
                                 seed,
@@ -810,7 +810,7 @@ class shape_update(_updater):
         self.mc = mc;
         self.pos = pos;
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         self.tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
         self.tunable_map = {};
         for i in range(ntypes):
@@ -828,9 +828,9 @@ class shape_update(_updater):
         self.setupUpdater(period, phase);
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if(self.move_cpp):
-            globals.msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n");
+            hoomd.context.msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
@@ -854,22 +854,27 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.sphere_union):
             move_cls = _hpmc.PythonShapeMoveSphereUnion;
         else:
-            globals.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         if not move_cls:
-            globals.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.python_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         param_list = self.mc.shape_class.ensure_list(params);
-        self.move_cpp = move_cls(ntypes, callback, param_list, float(stepsize), float(param_ratio));
+        if isinstance(stepsize, float) or isinstance(stepsize, int):
+            stepsize_list = [float(stepsize) for i in range(ntypes) ];
+        else:
+            stepsize_list = self.mc.shape_class.ensure_list(stepsize);
+
+        self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio));
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def vertex_shape_move(self, stepsize=0.01, mixratio=0.25, volume=1.0):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if(self.move_cpp):
-            globals.msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
+            hoomd.context.msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
@@ -895,20 +900,21 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.sphere_union):
             pass;
         else:
-            globals.msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.vertex_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         if not move_cls:
-            globals.msg.error("update.shape_update: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        self.cpp_updater.registerShapeMove(move_cls(ntypes, stepsize, mixratio, volume));
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        self.move_cpp = move_cls(ntypes, stepsize, mixratio, volume);
+        self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def constant_shape_move(self, shape_params):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if(self.move_cpp):
-            globals.msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
+            hoomd.context.msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
@@ -932,20 +938,21 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.sphere_union):
             move_cls = _hpmc.ConstantShapeMoveSphereUnion;
         else:
-            globals.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         if not move_cls:
-            globals.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.constant_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        self.cpp_updater.registerShapeMove(move_cls(ntypes, self.mc.shape_class.make_param(**shape_params)));
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        self.move_cpp = move_cls(ntypes, self.mc.shape_class.make_param(**shape_params));
+        self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def scale_shear_shape_move(self, scale_max, shear_max, move_ratio=0.5):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if(self.move_cpp):
-            globals.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
+            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
             raise RuntimeError("Error initializing update.shape_update");
         move_cls = None;
         if isinstance(self.mc, integrate.sphere):
@@ -963,7 +970,7 @@ class shape_update(_updater):
             pass;
             # move_cls = integrate._get_sized_entry('ScaleShearShapeMoveSpheropolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
-            # move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
+            move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
             pass;
             # move_cls = _hpmc.ScaleShearShapeMoveConvexSphereopolygon;
@@ -977,16 +984,16 @@ class shape_update(_updater):
             pass;
             # move_cls = _hpmc.ScaleShearShapeMoveSphereUnion;
         else:
-            globals.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         if not move_cls:
-            globals.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
-        ntypes = globals.system_definition.getParticleData().getNTypes();
-        self.cpp_updater.registerShapeMove(move_cls(ntypes, callback, params, stepsize, param_ratio));
-
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        self.move_cpp = move_cls(ntypes, callback, params, stepsize, param_ratio);
+        self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def get_total_count(self, idx=0):
         R""" Get the total number of moves attempted by the updater
@@ -1003,7 +1010,7 @@ class shape_update(_updater):
             total = shape_updater.get_total_count(0)
 
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_updater.getTotalCount(idx);
 
     def get_accepted_count(self, idx=0):
@@ -1020,7 +1027,7 @@ class shape_update(_updater):
             run(100)
             accepted = shape_updater.get_accepted_count(0)
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_updater.getAcceptedCount(idx);
 
     def get_move_acceptance(self, idx=0):
@@ -1038,7 +1045,7 @@ class shape_update(_updater):
             ratio = shape_updater.get_move_acceptance(0)
 
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if self.get_total_count(idx):
             return float(self.get_accepted_count(idx))/float(self.get_total_count(idx));
         return 0.0;
@@ -1058,7 +1065,7 @@ class shape_update(_updater):
             stepsize = shape_updater.get_step_size(0)
 
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         return self.cpp_updater.getStepSize(idx);
 
     def reset_statistics(self):
@@ -1071,7 +1078,7 @@ class shape_update(_updater):
             shape_updater.reset_statistics()
 
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         self.cpp_updater.resetStatistics();
 
     ## \internal
@@ -1096,11 +1103,11 @@ class shape_update(_updater):
             run(100)
 
         """
-        util.print_status_line();
+        hoomd.util.print_status_line();
         if isinstance(types, str):
             types = [types];
         for names in types:
-            typ = globals.system_definition.getParticleData().getTypeByName(name);
+            typ = hoomd.context.current.system_definition.getParticleData().getTypeByName(name);
             if not stepsize is None:
                 self.cpp_updater.setStepSize(typ, step_size);
 
@@ -1139,34 +1146,34 @@ class alchemy(shape_update):
                     # volume=1.0,
                     # move = None,
                     **params):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # initialize base class
         shape_update.__init__(self, **params);
         boltzmann_cls = None;
-        if isinstance(mc, integrate.sphere):
+        if isinstance(self.mc, integrate.sphere):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSphere;
-        elif isinstance(mc, integrate.convex_polygon):
+        elif isinstance(self.mc, integrate.convex_polygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolygon;
-        elif isinstance(mc, integrate.simple_polygon):
+        elif isinstance(self.mc, integrate.simple_polygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
-        elif isinstance(mc, integrate.convex_polyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBotzmannConvexPolyhedron', mc.max_verts);
-        elif isinstance(mc, integrate.convex_spheropolyhedron):
+        elif isinstance(self.mc, integrate.convex_polyhedron):
+            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannConvexPolyhedron', mc.max_verts);
+        elif isinstance(self.mc, integrate.convex_spheropolyhedron):
             boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', mc.max_verts);
-        elif isinstance(mc, integrate.ellipsoid):
+        elif isinstance(self.mc, integrate.ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
-        elif isinstance(mc, integrate.convex_spheropolygon):
+        elif isinstance(self.mc, integrate.convex_spheropolygon):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSpheropolygon;
-        elif isinstance(mc, integrate.patchy_sphere):
+        elif isinstance(self.mc, integrate.patchy_sphere):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannPatchySphere;
-        elif isinstance(mc, integrate.polyhedron):
+        elif isinstance(self.mc, integrate.polyhedron):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannPolyhedron;
-        elif isinstance(mc, integrate.sphinx):
+        elif isinstance(self.mc, integrate.sphinx):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphinx;
-        elif isinstance(mc, integrate.sphere_union):
+        elif isinstance(self.mc, integrate.sphere_union):
             boltzmann_cls =_hpmc.AlchemyLogBoltzmannSphereUnion;
         else:
-            globals.msg.error("update.shape_update: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
 
         self.boltzmann_function = boltzmann_cls();
@@ -1197,26 +1204,22 @@ class elastic_shape(shape_update):
         elastic.scale_shear_move(scale_max=0.1, shear_max=0.1, move_ratio=0.5);
     """
     def __init__(   self,
-                    # mc,
-                    # move_ratio,
-                    # seed,
                     stiffness,
                     reference,
-                    # stepsize=0.1,
                     **params):
-        util.print_status_line();
+        hoomd.util.print_status_line();
         # initialize base class
         shape_update.__init__(self, **params); # mc, move_ratio, seed,
-        if globals.exec_conf.isCUDAEnabled():
-            globals.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
+        if hoomd.context.exec_conf.isCUDAEnabled():
+            hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
         ref_shape = self.mc.shape_class.make_param(**reference);
-        if isinstance(mc, integrate.convex_polyhedron):
-            clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', mc.max_verts);
-        elif isinstance(mc, integrate.ellipsoid):
+        if isinstance(self.mc, integrate.convex_polyhedron):
+            clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
+        elif isinstance(self.mc, integrate.ellipsoid):
             clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape);
         else:
-            globals.msg.error("update.elastic_shape: Unsupported integrator.\n");
+            hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
         self.boltzmann_function = clss(stiffness, ref_shape);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);

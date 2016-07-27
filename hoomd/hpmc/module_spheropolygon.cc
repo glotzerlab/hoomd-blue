@@ -67,7 +67,7 @@ void export_spheropolygon(py::module& m)
 
     export_ShapeMoveInterface< ShapeSpheropolygon >(m, "ShapeMoveSpheropolygon");
     export_ShapeLogBoltzmann< ShapeSpheropolygon >(m, "LogBoltzmannSpheropolygon");
-    export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(m, "AlchemyLogBotzmannSpheropolygon");
+    export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(m, "AlchemyLogBoltzmannSpheropolygon");
     export_UpdaterShape< ShapeSpheropolygon >(m, "UpdaterShapeSpheropolygon");
     export_PythonShapeMove< ShapeSpheropolygon >(m, "PythonShapeMoveSpheropolygon");
     export_ConstantShapeMove< ShapeSpheropolygon >(m, "ConstantShapeMoveSpheropolygon");

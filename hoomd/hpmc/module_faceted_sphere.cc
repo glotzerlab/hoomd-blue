@@ -70,7 +70,7 @@ void export_faceted_sphere(py::module& m)
 
     export_ShapeMoveInterface< ShapeFacetedSphere >(m, "ShapeMoveFacetedSphere");
     export_ShapeLogBoltzmann< ShapeFacetedSphere >(m, "LogBoltzmannFacetedSphere");
-    export_AlchemyLogBoltzmannFunction< ShapeFacetedSphere >(m, "AlchemyLogBotzmannFacetedSphere");
+    export_AlchemyLogBoltzmannFunction< ShapeFacetedSphere >(m, "AlchemyLogBoltzmannFacetedSphere");
     export_UpdaterShape< ShapeFacetedSphere >(m, "UpdaterShapeFacetedSphere");
     export_PythonShapeMove< ShapeFacetedSphere >(m, "PythonShapeMoveFacetedSphere");
     export_ConstantShapeMove< ShapeFacetedSphere >(m, "ConstantShapeMoveFacetedSphere");

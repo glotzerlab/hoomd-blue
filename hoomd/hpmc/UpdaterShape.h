@@ -256,11 +256,13 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if(!m_initialized)
         initialize();
 
-    if(!m_move_function)
+    if(!m_move_function || !m_log_boltz_function)
         return;
+
     Saru rng(m_move_ratio, m_seed, timestep); // TODO: better way to seed the rng?
     unsigned int move_type_select = rng.u32() & 0xffff;
     bool move = (move_type_select < m_move_ratio);
+
     if (!move)
         return;
 

@@ -46,7 +46,7 @@ class python_callback_parameter_shape_move : public shape_move_function<Shape, R
 public:
     python_callback_parameter_shape_move(   unsigned int ntypes,
                                             pybind11::object python_function,
-                                            const std::vector< std::vector<Scalar> >& params,
+                                            std::vector< std::vector<Scalar> > params,
                                             std::vector<Scalar> stepsize,
                                             Scalar mixratio
                                         )

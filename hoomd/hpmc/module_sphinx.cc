@@ -67,7 +67,7 @@ void export_sphinx(py::module& m)
 
     export_ShapeMoveInterface< ShapeSphinx >(m, "ShapeMoveSphinx");
     export_ShapeLogBoltzmann< ShapeSphinx >(m, "LogBoltzmannSphinx");
-    export_AlchemyLogBoltzmannFunction< ShapeSphinx >(m, "AlchemyLogBotzmannSphinx");
+    export_AlchemyLogBoltzmannFunction< ShapeSphinx >(m, "AlchemyLogBoltzmannSphinx");
     export_UpdaterShape< ShapeSphinx >(m, "UpdaterShapeSphinx");
     export_PythonShapeMove< ShapeSphinx >(m, "PythonShapeMoveSphinx");
     export_ConstantShapeMove< ShapeSphinx >(m, "ConstantShapeMoveSphinx");

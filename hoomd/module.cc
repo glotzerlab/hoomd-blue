@@ -306,6 +306,7 @@ PYBIND11_PLUGIN(_hoomd)
     m.def("cuda_profile_stop", &cuda_profile_stop);
 
     pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
+    pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector2_scalar");
     pybind11::bind_vector<string>(m,"std_vector_string");
     pybind11::bind_vector<unsigned int>(m,"std_vector_uint");
     pybind11::bind_vector<int>(m,"std_vector_int");

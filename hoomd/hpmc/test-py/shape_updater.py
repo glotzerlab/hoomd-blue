@@ -12,7 +12,14 @@ import numpy as np
 import itertools
 import sys
 
-context.initialize()
+class shape_move_funciton(object):
+    def __init__(self, mc, shape_params):
+        self.mc = mc;
+        self.shape_params = shape_params;
+
+    def __call__(params):
+        return self.mc.shape_class.make_param(**self.shape_params);
+
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);
@@ -22,57 +29,37 @@ class shape_updater_test(unittest.TestCase):
     def tear_down(self):
         del self.mc
         del self.system
-        del self.lattice
-        del self.remove_drift
+        # del self.lattice
+        # del self.remove_drift
         context.initialize()
 
     def run_test(self):
         pass;
 
 
-    def test_lattice(self):
-        N=2;
-        self.system = init.read_snapshot(hexuc.get_snapshot());
-        self.system.replicate(nx=8, ny=8, nz=1);
-
-        self.snapshot2d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
-        lattice2d = [];
-        if hoomd.comm.get_rank() == 0:
-            lattice2d = self.snapshot2d.particles.position[:];
-
-        self.snapshot2d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
-            self.snapshot2d_s.particles.position[:] = self.snapshot2d.particles.position[:]+dx2d;
-            self.snapshot2d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
-        del self.system
+    def test_shape_updater(self):
         context.initialize();
-
-        bccuc = hoomd.lattice.bcc(a=2.0);
-        self.system = init.read_snapshot(bccuc.get_snapshot());
-        self.system.replicate(nx=4, ny=4, nz=4);
-        self.snapshot3d = self.system.take_snapshot(particles=True); #data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=3), particle_types=['A'])
-        lattice3d = [];
-        if hoomd.comm.get_rank() == 0:
-            lattice3d = self.snapshot3d.particles.position[:];
-        self.snapshot3d_s = data.make_snapshot(N=N, box=self.system.box, particle_types=['A']);
-        if hoomd.comm.get_rank() == 0:
-            self.snapshot3d_s.particles.position[:] = self.snapshot3d.particles.position[:]+dx3d;
-            self.snapshot3d_s.particles.orientation[:] = np.array([dq for _ in range(N)]);
-        del self.system
-        context.initialize();
+        self.updater = None
+        # self.system = init.create_lattice(hoomd.lattice.sc(a=2.0, type_name='A'), n=2);
 
         # sphere
         print("****************************************")
         print("*               sphere                 *")
         print("****************************************")
-        # d = 0.0014284726343172743, p = 0.20123046875
-        uein = 1.5 # kT
         diam = 1.0;
-        self.system = init.read_snapshot(self.snapshot3d)
-        self.mc = hpmc.integrate.sphere(seed=2398, d=0.0)
+        self.system = init.create_lattice(hoomd.lattice.sc(a=2.0, type_name='A'), n=2);
+        self.mc = hpmc.integrate.sphere(seed=2398, d=0.01)
         self.mc.shape_param.set('A', diameter=diam)
-        self.updater = hpmc.update.shape_updater();
+        self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=0.1, seed=3832765, period=1, nselect=1);
+        hoomd.run(10, quiet=True);
+        fun = shape_move_funciton(mc=self.mc, shape_params=dict(diameter=diam));
+        self.updater.python_shape_move(callback=fun, params=[[0.0]], stepsize=0.0, param_ratio=1.0);
+        hoomd.run(10, quiet=True);
+        del self.updater;
+        with self.assertRaises(RuntimeError):
+            hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=10.0, reference=dict(diameter=diam))
         self.tear_down()
+        return;
 
         # ellipsoid
         print("****************************************")

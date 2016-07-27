@@ -70,7 +70,7 @@ void export_convex_spheropolyhedron32(py::module& m)
 
     export_ShapeMoveInterface< ShapeSpheropolyhedron<32> >(m, "ShapeMoveSpheropolyhedron32");
     export_ShapeLogBoltzmann< ShapeSpheropolyhedron<32> >(m, "LogBoltzmannSpheropolyhedron32");
-    export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron<32> >(m, "AlchemyLogBotzmannSpheropolyhedron32");
+    export_AlchemyLogBoltzmannFunction< ShapeSpheropolyhedron<32> >(m, "AlchemyLogBoltzmannSpheropolyhedron32");
     export_UpdaterShape< ShapeSpheropolyhedron<32> >(m, "UpdaterShapeSpheropolyhedron32");
     export_PythonShapeMove< ShapeSpheropolyhedron<32> >(m, "PythonShapeMoveSpheropolyhedron32");
     export_ConstantShapeMove< ShapeSpheropolyhedron<32> >(m, "ConstantShapeMoveSpheropolyhedron32");

@@ -12,7 +12,10 @@
 
 #include "UpdaterShape.h"
 #include "ShapeMoves.h"
+
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 
 namespace hpmc
 {
@@ -80,7 +83,7 @@ void export_PythonShapeMove(pybind11::module& m, const std::string& name)
     (m, name.c_str(), pybind11::base< shape_move_function<Shape, Saru> >())
     .def(pybind11::init<unsigned int,
                         pybind11::object,
-                        const std::vector< std::vector<Scalar> >&,
+                        std::vector< std::vector<Scalar> >,
                         std::vector<Scalar>,
                         Scalar >())
     ;
