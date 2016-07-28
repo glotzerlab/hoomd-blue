@@ -418,3 +418,32 @@ class rigid(_constraint_force):
     def update_coeffs(self):
         # validate copies of rigid bodies
         self.create_bodies(False)
+
+class oneD(_constraint_force):
+    R""" Constrain particles to move in the z dimention only.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+
+    :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain
+    them to only move in z. 
+
+    Example::
+
+        constrain.oneD(group=groupA)
+    """
+    def __init__(self, group):
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.OneDConstraint(hoomd.context.current.system_definition, group.cpp_group);
+        else:
+            self.cpp_force = _md.OneDConstraintGPU(hoomd.context.current.system_definition, group.cpp_group);
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+

@@ -7,6 +7,7 @@ set(_md_sources module-md.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
+                   OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
@@ -43,6 +44,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            CommunicatorGridGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
+                           OneDConstraintGPU.cc
                            Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
@@ -76,6 +78,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       CommunicatorGridGPU.cu
                       ConstraintEllipsoidGPU.cu
                       ConstraintSphereGPU.cu
+                      OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
                       Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
