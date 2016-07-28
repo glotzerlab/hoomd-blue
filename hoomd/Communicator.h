@@ -25,7 +25,6 @@
 #include "DomainDecomposition.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 #ifndef NVCC
@@ -615,7 +614,6 @@ class Communicator
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
-        // Nano::Signal m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
         void setBondsChanged()
             {
             m_bonds_changed = true;
@@ -623,7 +621,6 @@ class Communicator
 
         /* Angles communication */
         bool m_angles_changed;                          //!< True if angle information needs to be refreshed
-        // Nano::Signal m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
         void setAnglesChanged()
             {
             m_angles_changed = true;
@@ -631,7 +628,6 @@ class Communicator
 
         /* Dihedrals communication */
         bool m_dihedrals_changed;                          //!< True if dihedral information needs to be refreshed
-        // Nano::Signal m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
         void setDihedralsChanged()
             {
             m_dihedrals_changed = true;
@@ -639,7 +635,6 @@ class Communicator
 
         /* Impropers communication */
         bool m_impropers_changed;                          //!< True if improper information needs to be refreshed
-        // Nano::Signal m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
         void setImpropersChanged()
             {
             m_impropers_changed = true;
@@ -647,7 +642,6 @@ class Communicator
 
         /* Constraints communication */
         bool m_constraints_changed;                          //!< True if constraint information needs to be refreshed
-        // Nano::Signal m_constraint_connection; //!< Connection to ConstraintData addition/removal of constraints signal
         void setConstraintsChanged()
             {
             m_constraints_changed = true;
@@ -693,15 +687,6 @@ class Communicator
         friend class GroupCommunicator<ConstraintData>;
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
-
-        //! Connection to the signal notifying when particles are resorted
-        // Nano::Signal m_sort_connection;
-
-        //! Connection to the signal notifying when ghost particles are removed
-        // Nano::Signal m_ghost_particles_removed_connection;
-
-        //! Connection to the signal notifying when number of types change
-        // Nano::Signal m_num_type_change_connection;
 
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()
