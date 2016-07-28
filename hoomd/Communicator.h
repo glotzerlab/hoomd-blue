@@ -270,9 +270,9 @@ class Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+        Nano::Signal<Scalar (unsigned int)>& getGhostLayerWidthRequestSignal()
             {
-            return m_ghost_layer_width_requests.connect(subscriber);
+            return m_ghost_layer_width_requests;
             }
 
         //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the maximum ghost layer)
@@ -280,9 +280,9 @@ class Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        boost::signals2::connection addExtraGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+        Nano::Signal<Scalar (unsigned int)>& getExtraGhostLayerWidthRequestSignal()
             {
-            return m_extra_ghost_layer_width_requests.connect(subscriber);
+            return m_extra_ghost_layer_width_requests;
             }
 
 
@@ -290,9 +290,9 @@ class Communicator
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
          */
-        boost::signals2::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
+        Nano::Signal<CommFlags (unsigned int timestep)>& getCommFlagsRequestSignal()
             {
-            return m_requested_flags.connect(subscriber);
+            return m_requested_flags;
             }
 
 
@@ -304,10 +304,9 @@ class Communicator
          * \param subscriber The callback
          * \returns a connection to this class
          */
-        boost::signals2::connection addCommunicationCallback(
-            const boost::function<void (const GPUArray<unsigned int> &)>& subscriber)
+        Nano::Signal<void (const GPUArray<unsigned int> &)>& getCommunicationCallbackSignal()
             {
-            return m_comm_callbacks.connect(subscriber);
+            return m_comm_callbacks;
             }
 
         //! Subscribe to list of *optional* call-backs for computation using ghost particles
@@ -593,19 +592,19 @@ class Communicator
         Nano::Signal<bool(unsigned int timestep)>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
+        Nano::Signal<CommFlags(unsigned int timestep) >
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
-        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+        Nano::Signal<Scalar(unsigned int type) >
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
-        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+        Nano::Signal<Scalar(unsigned int type) >
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
         Nano::Signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
-        boost::signals2::signal<void (const GPUArray<unsigned int>& )>
+        Nano::Signal<void (const GPUArray<unsigned int>& )>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         CommFlags m_flags;                       //!< The ghost communication flags
@@ -616,7 +615,7 @@ class Communicator
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
-        boost::signals2::connection m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
+        // Nano::Signal m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
         void setBondsChanged()
             {
             m_bonds_changed = true;
@@ -624,7 +623,7 @@ class Communicator
 
         /* Angles communication */
         bool m_angles_changed;                          //!< True if angle information needs to be refreshed
-        boost::signals2::connection m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
+        // Nano::Signal m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
         void setAnglesChanged()
             {
             m_angles_changed = true;
@@ -632,7 +631,7 @@ class Communicator
 
         /* Dihedrals communication */
         bool m_dihedrals_changed;                          //!< True if dihedral information needs to be refreshed
-        boost::signals2::connection m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
+        // Nano::Signal m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
         void setDihedralsChanged()
             {
             m_dihedrals_changed = true;
@@ -640,7 +639,7 @@ class Communicator
 
         /* Impropers communication */
         bool m_impropers_changed;                          //!< True if improper information needs to be refreshed
-        boost::signals2::connection m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
+        // Nano::Signal m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
         void setImpropersChanged()
             {
             m_impropers_changed = true;
@@ -648,7 +647,7 @@ class Communicator
 
         /* Constraints communication */
         bool m_constraints_changed;                          //!< True if constraint information needs to be refreshed
-        boost::signals2::connection m_constraint_connection; //!< Connection to ConstraintData addition/removal of constraints signal
+        // Nano::Signal m_constraint_connection; //!< Connection to ConstraintData addition/removal of constraints signal
         void setConstraintsChanged()
             {
             m_constraints_changed = true;
@@ -696,13 +695,13 @@ class Communicator
         bool m_is_first_step;                    //!< True if no communication has yet occured
 
         //! Connection to the signal notifying when particles are resorted
-        boost::signals2::connection m_sort_connection;
+        // Nano::Signal m_sort_connection;
 
         //! Connection to the signal notifying when ghost particles are removed
-        boost::signals2::connection m_ghost_particles_removed_connection;
+        // Nano::Signal m_ghost_particles_removed_connection;
 
         //! Connection to the signal notifying when number of types change
-        boost::signals2::connection m_num_type_change_connection;
+        // Nano::Signal m_num_type_change_connection;
 
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()

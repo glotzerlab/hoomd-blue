@@ -11,7 +11,7 @@
 #include "Compute.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <boost/shared_ptr.hpp>
 
 /*! \file CellList.h
@@ -313,14 +313,14 @@ class CellList : public Compute
 
         /*! \param func Function to call when the cell width changes
             \return Connection to manage the signal/slot connection
-            Calls are performed by using boost::signals2. The function passed in
+            Calls are performed by using nano_signal_slot. The function passed in
             \a func will be called every time the CellList is notified of a change in the cell width
             \note If the caller class is destroyed, it needs to disconnect the signal connection
             via \b con.disconnect where \b con is the return value of this function.
         */
-        boost::signals2::connection connectCellWidthChange(const boost::function<void ()> &func)
+        Nano::Signal<void ()>& getCellWidthChangeSignal()
             {
-            return m_width_change.connect(func);
+            return m_width_change;
             }
 
     protected:
@@ -354,8 +354,6 @@ class CellList : public Compute
         GPUArray<Scalar4> m_orientation;     //!< Cell list with orientation
         GPUArray<unsigned int> m_idx;        //!< Cell list with index
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
-        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
 
         bool m_sort_cell_list;               //!< If true, sort cell list
         bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists
@@ -387,7 +385,7 @@ class CellList : public Compute
         //! Resets the condition status
         virtual void resetConditions();
 
-        boost::signals2::signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
+        Nano::Signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
     };
 
 //! Export the CellList class to python

@@ -83,8 +83,6 @@ class MSDAnalyzer : public Analyzer
 
         std::vector<Scalar> m_initial_group_N; //!< initial value of number of group members
 
-        boost::signals2::connection m_ptls_sort_connection; //!< Connection to pdata particle sort signal
-
         //! struct for storing the particle group and name assocated with a column in the output
         struct column
             {

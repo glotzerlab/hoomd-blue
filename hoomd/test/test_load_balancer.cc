@@ -331,7 +331,7 @@ void test_load_balancer_ghost(std::shared_ptr<ExecutionConfiguration> exec_conf,
 
     // add a ghost layer subscriber and exchange ghosts
     ghost_layer_width_request g(Scalar(0.05));
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width_request, &ghost_layer_width_request::get>(g);
     comm->exchangeGhosts();
 
     for (unsigned int t=0; t < 20; ++t)
