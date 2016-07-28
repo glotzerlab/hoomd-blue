@@ -203,8 +203,8 @@ class convex_polyhedron_params(_param):
 
     @classmethod
     def make_param(cls, vertices, ignore_overlaps=False, ignore_statistics=False):
-        if self.mc.max_verts < len(vertices):
-            raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(self.mc.max_verts,len(vertices)));
+        if cls.max_verts < len(vertices):
+            raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(cls.max_verts,len(vertices)));
         return cls.make_fn(cls.ensure_list(vertices),
                             float(0),
                             ignore_statistics,

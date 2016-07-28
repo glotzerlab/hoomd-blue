@@ -459,9 +459,12 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
     Scalar m_k;
-    typename Shape::param_type m_reference_shape;
+    std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
-    ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(shape) {}
+    ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
+    {
+        (*m_reference_shape) = shape;
+    }
 };
 
 template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {};
@@ -488,14 +491,16 @@ class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< 
     using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
     using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_reference_shape;
 public:
-    ShapeSpring(Scalar k, const typename ShapeConvexPolyhedron<max_verts>::param_type& ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref) {}
+    ShapeSpring(Scalar k, const typename ShapeConvexPolyhedron<max_verts>::param_type& ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
+        {
+        }
     Scalar operator()(const unsigned int& N, typename ShapeConvexPolyhedron<max_verts>::param_type shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
         {
         AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<max_verts> > fn;
         Scalar U_old = 0.0, U_new = 0.0;
-        for(unsigned int i = 0; i < m_reference_shape.N; i++)
+        for(unsigned int i = 0; i < m_reference_shape->N; i++)
             {
-            vec3<Scalar> v_old(shape_old.x[i], shape_old.y[i], shape_old.z[i]), v_new(shape_new.x[i], shape_new.y[i], shape_new.z[i]), v_ref(m_reference_shape.x[i], m_reference_shape.y[i], m_reference_shape.z[i]), dro, drn;
+            vec3<Scalar> v_old(shape_old.x[i], shape_old.y[i], shape_old.z[i]), v_new(shape_new.x[i], shape_new.y[i], shape_new.z[i]), v_ref(m_reference_shape->x[i], m_reference_shape->y[i], m_reference_shape->z[i]), dro, drn;
             dro = v_old - v_ref;
             drn = v_new - v_ref;
             U_old += m_k*dot(dro, dro);
