@@ -9,7 +9,7 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
-#include <boost/signals2.hpp>
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 #ifdef CUSOLVER_AVAILABLE
 #include <cusparse.h>

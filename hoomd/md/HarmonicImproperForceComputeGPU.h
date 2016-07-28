@@ -8,7 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 
 /*! \file HarmonicImproperForceComputeGPU.h
     \brief Declares the HarmonicImproperForceGPU class

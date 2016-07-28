@@ -26,10 +26,10 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
     m_constraint_violated.resetFlags(0);
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
-    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraint::slotConstraintReorder, this));
+    m_cdata->getGroupReorderSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
 
     // connect to ConstraintData to receive notifications when global constraint topology changes
-    m_group_num_change_connection = m_cdata->connectGroupNumChange(boost::bind(&ForceDistanceConstraint::slotConstraintsAddedRemoved, this));
+    m_cdata->getGroupNumChangeSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
 
     // reset condition
     m_condition.resetFlags(0);
@@ -39,15 +39,11 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
 ForceDistanceConstraint::~ForceDistanceConstraint()
     {
     // disconnect from signal in ConstraintData
-    m_constraint_reorder_connection.disconnect();
-
-    m_group_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        {
-        // register this class with the communciator
-        m_comm_ghost_layer_connection.disconnect();
-        }
+    m_cdata->getGroupReorderSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
+    m_cdata->getGroupNumChangeSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    m_comm->getGhostLayerWidthRequestSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+    #endif
     }
 
 /*! Does nothing in the base class

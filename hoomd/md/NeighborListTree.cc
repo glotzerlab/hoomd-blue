@@ -30,19 +30,19 @@ NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListTree::slotNumTypesChanged, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListTree::slotBoxChanged, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListTree::slotMaxNumChanged, this));
-    m_sort_conn = m_pdata->connectParticleSort(bind(&NeighborListTree::slotRemapParticles, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().connect<NeighborListTree, &NeighborListTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListTree, &NeighborListTree::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().connect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
 NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
-    m_num_type_change_conn.disconnect();
-    m_boxchange_connection.disconnect();
-    m_max_numchange_conn.disconnect();
-    m_sort_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().disconnect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)

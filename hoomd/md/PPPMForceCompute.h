@@ -16,7 +16,7 @@
 #include "hoomd/extern/kiss_fftnd.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include <boost/bind.hpp>
 
 const Scalar EPS_HOC(1.0e-7);
@@ -161,8 +161,6 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_x;   //!< Fourier transformed mesh times the influence function, x-component
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_y;   //!< Fourier transformed mesh times the influence function, y-component
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_z;   //!< Fourier transformed mesh times the influence function, z-component
-
-        boost::signals2::connection m_boxchange_connection; //!< Connection to ParticleData box change signal
 
         std::vector<std::string> m_log_names;           //!< Name of the log quantity
 

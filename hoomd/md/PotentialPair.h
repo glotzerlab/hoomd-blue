@@ -167,11 +167,6 @@ class PotentialPair : public ForceCompute
             GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 /*! \param sysdef System to compute forces on
@@ -201,7 +196,7 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialPair<evaluator>::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
 template< class evaluator >
@@ -209,7 +204,7 @@ PotentialPair< evaluator >::~PotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair

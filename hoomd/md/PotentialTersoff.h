@@ -127,10 +127,6 @@ class PotentialTersoff : public ForceCompute
             GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
     };
 
 /*! \param sysdef System to compute forces on
@@ -160,14 +156,14 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialTersoff<evaluator>::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair

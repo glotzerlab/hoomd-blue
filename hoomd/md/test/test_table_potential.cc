@@ -5,7 +5,7 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-
+#include <boost/function.hpp>
 #include <fstream>
 
 #include "hoomd/md/TablePotential.h"
@@ -15,14 +15,10 @@
 #endif
 
 using namespace std;
-using namespace boost;
 
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
-
-
-
 
 /*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants
