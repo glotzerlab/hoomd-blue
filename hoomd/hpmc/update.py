@@ -768,9 +768,8 @@ class shape_update(_updater):
                     setup_pos=True,
                     pos_callback=None,
                     nselect=1):
-        hoomd.util.print_status_line();
         _updater.__init__(self);
-
+        
         cls = None;
         if isinstance(mc, integrate.sphere):
             cls = _hpmc.UpdaterShapeSphere;
@@ -797,7 +796,6 @@ class shape_update(_updater):
         else:
             hoomd.context.msg.error("update.shape_update: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.shape_update");
-
         self.cpp_updater = cls(hoomd.context.current.system_definition,
                                 mc.cpp_integrator,
                                 move_ratio,
@@ -809,8 +807,8 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
         self.tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
         self.tunable_map = {};
         for i in range(ntypes):
@@ -824,7 +822,6 @@ class shape_update(_updater):
                 pos.set_info(self.pos_callback);
             else:
                 pos.set_info(pos_callback);
-
         self.setupUpdater(period, phase);
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
@@ -1157,9 +1154,9 @@ class alchemy(shape_update):
         elif isinstance(self.mc, integrate.simple_polygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannConvexPolyhedron', mc.max_verts);
+            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannConvexPolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', mc.max_verts);
+            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1210,10 +1207,11 @@ class elastic_shape(shape_update):
         hoomd.util.print_status_line();
         # initialize base class
         shape_update.__init__(self, **params); # mc, move_ratio, seed,
+        hoomd.context.msg.warning("checkpoint 11\n")
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
-        ref_shape = self.mc.shape_class.make_param(**reference);
+
         if isinstance(self.mc, integrate.convex_polyhedron):
             clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
@@ -1221,5 +1219,7 @@ class elastic_shape(shape_update):
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
+
+        ref_shape = self.mc.shape_class.make_param(**reference);
         self.boltzmann_function = clss(stiffness, ref_shape);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);

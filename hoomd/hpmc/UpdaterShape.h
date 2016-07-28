@@ -35,9 +35,6 @@ public:
 
     void initialize()
         {
-        if(!m_move_function)
-            return;
-        m_initialized = true;
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
@@ -46,6 +43,7 @@ public:
             detail::mass_properties<Shape> mp(h_params.data[i]);
             h_det.data[i] = mp.getDeterminant();
             }
+        m_initialized = true;
         }
 
     unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
@@ -76,44 +74,6 @@ public:
             m_ProvidedQuantities.push_back(getParamName(i));
             }
         }
-
-    // void registerPythonCallback(boost::python::object pyfun, boost::python::list pyparams, Scalar stepsize, Scalar mixratio, bool normalized)
-    //     {
-    //     if(m_move_function) // if it exists I do not want to reset it.
-    //         return;
-    //     boost::python::stl_input_iterator<Scalar> begin(pyparams), end;
-    //     std::vector<Scalar> params(begin, end);
-    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new python_callback_parameter_shape_move<Shape, Saru>(pyfun, params, stepsize, mixratio, m_seed, normalized)));
-    //     }
-    //
-    // void registerConstantShapeMove(const typename Shape::param_type& shape, Scalar detI, const typename Shape::param_type& shape_move, Scalar detI_move)
-    //     {
-    //     if(m_move_function) // if it exists I do not want to reset it.
-    //         return;
-    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new constant_shape_move<Shape, Saru>(shape, detI, shape_move, detI_move) ));
-    //     }
-
-    // void registerConvexPolyhedronShapeMove()
-    //     {
-    //     if(m_move_function) // if it exists I do not want to reset it.
-    //         return;
-    //     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-    //     registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> >( new convex_polyhedron_generalized_shape_move<Shape, Saru>(h_params.data[0], 1.0, 1.0, m_seed) ));
-    //     }
-
-    // boost::python::dict getShapeParams(unsigned int type_id)
-    //     {
-    //     // validate input
-    //     if (type_id >= this->m_pdata->getNTypes())
-    //         {
-    //         this->m_exec_conf->msg->error() << "update.shape_updater." << /*evaluator::getName() <<*/ ": Trying to set pair params for a non existant type! " << type_id << std::endl;
-    //         throw std::runtime_error("Error setting parameters in IntegratorHPMCMono");
-    //         }
-    //
-    //     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-    //     detail::shape_param_to_python<Shape> converter;
-    //     return converter(h_params.data[type_id]);
-    //     }
 
     Scalar getStepSize(unsigned int typ)
         {
@@ -253,11 +213,15 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 template < class Shape >
 void UpdaterShape<Shape>::update(unsigned int timestep)
     {
+    m_exec_conf->msg->notice(10) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << std::endl;
+    bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
 
-    if(!m_move_function || !m_log_boltz_function)
+    if(!m_move_function || !m_log_boltz_function){
+        if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
         return;
+    }
 
     Saru rng(m_move_ratio, m_seed, timestep); // TODO: better way to seed the rng?
     unsigned int move_type_select = rng.u32() & 0xffff;
@@ -265,10 +229,6 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     if (!move)
         return;
-
-
-
-    m_exec_conf->msg->notice(10) << "ElasticShape update: " << timestep << std::endl;
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getNTypes());
@@ -349,6 +309,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
             }
         }
+    if (m_prof) this->m_prof->pop();
     }
 
 template< typename Shape >
