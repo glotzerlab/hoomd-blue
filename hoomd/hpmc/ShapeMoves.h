@@ -491,7 +491,7 @@ class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< 
     using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
     using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_reference_shape;
 public:
-    ShapeSpring(Scalar k, const typename ShapeConvexPolyhedron<max_verts>::param_type& ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
+    ShapeSpring(Scalar k, typename ShapeConvexPolyhedron<max_verts>::param_type ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
         {
         }
     Scalar operator()(const unsigned int& N, typename ShapeConvexPolyhedron<max_verts>::param_type shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)

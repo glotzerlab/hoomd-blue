@@ -96,7 +96,7 @@ public:
             for(size_t j= 0; j < m_pdata->getN(); j++)
                 {
                 int typ_j = __scalar_as_int(h_postype.data[j].w);
-                if(typ_j == i) ct++;
+                if(size_t(typ_j) == i) ct++;
                 }
             h_ntypes.data[i] = ct;
             }
