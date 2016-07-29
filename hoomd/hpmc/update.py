@@ -758,6 +758,7 @@ class shape_update(_updater):
         setup_callback (function): will override the default pos callback. will be called everytime the pos file is written
         nselect (int): number of types to change every time the updater is called.
 
+    Note:
         Only one of the Monte Carlo move types are applied to evolve the particle shape definition. By default, no moves are applied.
         Activate desired move types using the following methods.
 
@@ -837,8 +838,7 @@ class shape_update(_updater):
         self.setupUpdater(period, phase);
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
-        R"""
-        Enable python shape move and set parameters. All python shape moves must
+        R"""Enable python shape move and set parameters. All python shape moves must
         be callable object that take a single list of parameters between 0 and 1 as
         the call arguments and returns a shape parameter definition.
 
@@ -853,6 +853,7 @@ class shape_update(_updater):
             volume if necessary/desired.
 
         Example::
+
             # example callback
             class convex_polyhedron_callback:
                 def __init__(self, mc):
@@ -861,11 +862,10 @@ class shape_update(_updater):
                     # do something with params and define verts
                     return self.mc.shape_class.make_param(vertices=verts);
 
+            # now set up the updater
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
-            shape_up.python_shape_move( callback=convex_polyhedron_callback(mc),
-                                        params={'A': [0.5, 0.5]},
-                                        stepsize=0.001,
-                                        param_ratio=0.5)
+            shape_up.python_shape_move( callback=convex_polyhedron_callback(mc), params={'A': [0.5, 0.5]}, stepsize=0.001, param_ratio=0.5)
+
         """
         hoomd.util.print_status_line();
         if(self.move_cpp):
@@ -923,9 +923,8 @@ class shape_update(_updater):
 
         Example::
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
-            shape_up.vertex_shape_move( stepsize=0.001,
-                                        param_ratio=0.25,
-                                        volume=1.0)
+            shape_up.vertex_shape_move( stepsize=0.001, param_ratio=0.25, volume=1.0)
+
         """
         hoomd.util.print_status_line();
         if(self.move_cpp):
@@ -985,6 +984,7 @@ class shape_update(_updater):
 
         See Also:
             :py:mod:`hoomd.hpmc.data` for required shape parameters.
+
         """
         hoomd.util.print_status_line();
         if(self.move_cpp):
@@ -1037,6 +1037,7 @@ class shape_update(_updater):
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             # convex_polyhedron
             shape_up.scale_shear_shape_move(scale_max=0.01, shear_max=0.01)
+
         """
         hoomd.util.print_status_line();
         if(self.move_cpp):
@@ -1140,6 +1141,7 @@ class shape_update(_updater):
 
     def get_step_size(self, idx=0):
         R""" Get the shape move stepsize for a particle type
+
         Args:
             idx (int): the typeid of the particle type
         Returns:
@@ -1158,6 +1160,7 @@ class shape_update(_updater):
 
     def reset_statistics(self):
         R""" Reset the acceptance statistics for the updater
+
         Example::
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
@@ -1202,23 +1205,11 @@ class shape_update(_updater):
 
 class alchemy(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
-         (mainly for internal use)
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        move_ratio (:py:class:`float` or :py:mod:`hoomd.variant`): fraction of steps to run the updater.
-        seed (int): random number seed for shape move generators
-        stepsize (float): initial stepsize for all particle types.
-        param_ratio (float): average fraction of shape parameters to change each update.
-        volume (float): volume of the particles to hold constant (depricated)
-        move (callable object): If supplied the updater will use this callback to update the shape definitions see below for more details.
-                                If None then the default shape move will be applied to each shape type.
         params (dict): any of the other keyword arguments from :py:mod:`hoomd.hpmc.update.shape_update`
 
     Additional comments here. what enseble are we simulating etc.
-
-    Note on move function:
-        explain how to write the function here.
 
     Example::
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
@@ -1226,13 +1217,6 @@ class alchemy(shape_update):
 
     """
     def __init__(   self,
-                    # mc,
-                    # move_ratio,
-                    # seed,
-                    # stepsize=0.01,
-                    # param_ratio=0.25,
-                    # volume=1.0,
-                    # move = None,
                     **params):
         hoomd.util.print_status_line();
         # initialize base class
@@ -1269,16 +1253,11 @@ class alchemy(shape_update):
 
 class elastic_shape(shape_update):
     R""" Apply shape updates to the shape definitions defined in the integrator.
-         (mainly for internal use)
 
     Args:
-        mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
-        move_ratio (:py:class:`float` or :py:mod:`hoomd.variant`): fraction of steps to run the updater.
-        seed (int): random number seed for shape move generators
-        stepsize (float): initial stepsize for all particle types.
-        ref_shape (:py:mod:`hoomd.hpmc.data.shape_param`): describe
+        reference (dict): dictionary of shape parameters. (same as `mc.shape_param.set(....)`)
         stiffness (float): stiffness of the particle spring
-        params (dict): any of the other keyword arguments from :py:mod:`hoomd.hpmc.update.shape_update`
+        params (dict): any of the other keyword arguments to be passed to :py:mod:`hoomd.hpmc.update.shape_update`
 
     Additional comments here. what enseble are we simulating etc.
 
