@@ -467,7 +467,7 @@ public:
     }
 };
 
-template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {};
+template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { };
 
 template <>
 class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
