@@ -134,8 +134,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             if (m_aabbs != NULL)
                 free(m_aabbs);
-            m_boxchange_connection.disconnect();
-            m_sort_connection.disconnect();
+            m_pdata->getBoxChangeSignal().disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+            m_pdata->getParticleSortSignal().disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
             }
 
         virtual void printStats();
@@ -251,8 +251,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
         std::vector<vec3<Scalar> > m_image_list;             //!< List of potentially interacting simulation box images
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         unsigned int m_image_list_rebuilds;                  //!< Number of times the image list has been rebuilt
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
@@ -290,11 +288,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             m_aabb_tree_invalid = true;
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 template <class Shape>
@@ -312,8 +305,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_params.swap(params);
 
     // Connect to the BoxChange signal
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&IntegratorHPMCMono<Shape>::slotBoxChanged, this));
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&IntegratorHPMCMono<Shape>::slotSorted, this));
+    m_pdata->getBoxChangeSignal().connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+    m_pdata->getParticleSortSignal().connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
 
     m_image_list_rebuilds = 0;
     m_image_list_warning_issued = false;

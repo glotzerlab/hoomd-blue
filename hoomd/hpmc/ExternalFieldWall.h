@@ -390,11 +390,11 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           {
           m_box = m_pdata->getGlobalBox();
           //! scale the container walls every time the box changes
-          m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&ExternalFieldWall<Shape>::scaleWalls, this));
+          m_pdata->getBoxChangeSignal().connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
           }
         ~ExternalFieldWall()
           {
-          m_boxchange_connection.disconnect();
+          m_pdata->getBoxChangeSignal().disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
           }
 
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru&)
@@ -784,7 +784,6 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         Scalar                      m_Volume;
     private:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
-        boost::signals2::connection                   m_boxchange_connection; //!< connection to the ParticleData box change signal
         BoxDim                                        m_box; //!< the current box
     };
 

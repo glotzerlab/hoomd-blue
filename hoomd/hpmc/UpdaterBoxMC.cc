@@ -44,14 +44,14 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
 
     // Connect to the MaxParticleNumberChange signal
-    m_maxparticlenumberchange_connection = m_pdata->connectMaxParticleNumberChange(boost::bind(&UpdaterBoxMC::slotMaxNChange, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
 
     }
 
 UpdaterBoxMC::~UpdaterBoxMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying UpdaterBoxMC" << std::endl;
-    m_maxparticlenumberchange_connection.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
     }
 
 /*! hpmc::UpdaterBoxMC provides:

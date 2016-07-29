@@ -224,10 +224,6 @@ class UpdaterMuVT : public Updater
 
         //! Get number of particles of a given type
         unsigned int getNumParticlesType(unsigned int type);
-
-    private:
-        boost::signals2::connection m_type_num_change_connection;      //!< Connection to the ParticleData particle type number change signal
-        boost::signals2::connection m_particle_sort_connection;       //!< Connection to the ParticleData particle sort signal
     };
 
 //! Export the UpdaterMuVT class to python
@@ -263,8 +259,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
-    m_type_num_change_connection = m_pdata->connectNumTypesChange(boost::bind(&UpdaterMuVT<Shape>::slotNumTypesChange, this));
-    m_particle_sort_connection = m_pdata->connectParticleSort(boost::bind(&UpdaterMuVT<Shape>::mapTypes, this));
+    m_pdata->getNumTypesChangeSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
 
     if (npartition > 1)
         {
@@ -313,8 +309,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 template<class Shape>
 UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
-    m_type_num_change_connection.disconnect();
-    m_particle_sort_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
     }
 
 template<class Shape>
