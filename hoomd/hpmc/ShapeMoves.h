@@ -467,7 +467,7 @@ public:
     }
 };
 
-template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { };
+template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {/* Empty base template will fail on export to python. */ };
 
 template <>
 class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
@@ -485,7 +485,8 @@ public:
         }
 };
 
-template<size_t max_verts>
+template< >
+template<unsigned int max_verts>
 class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >
 {
     using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
