@@ -1,4 +1,5 @@
 # HOOMD-blue
+######### this is a private repository. 
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
@@ -14,8 +15,8 @@ To install HOOMD-blue, first download and install
 Then add the `glotzer` channel and install HOOMD-blue:
 
 ```bash
-$ conda config --add channels glotzer
-$ conda install hoomd
+$ conda config --add channels file:///nfs/glotzer/software/conda-private
+$ conda install hoomd-alchem
 ```
 
 # Compiling HOOMD-blue
@@ -89,4 +90,3 @@ See [ChangeLog.md](ChangeLog.md).
 # Contributing to HOOMD-blue.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
-
