@@ -36,6 +36,7 @@
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
 #endif
 
 namespace hpmc
