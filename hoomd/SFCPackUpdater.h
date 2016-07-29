@@ -16,7 +16,6 @@
 #include "GPUVector.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>

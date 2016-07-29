@@ -8,7 +8,6 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
 
 /*! \file HarmonicAngleForceComputeGPU.h
     \brief Declares the HarmonicAngleForceGPU class

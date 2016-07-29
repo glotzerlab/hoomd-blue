@@ -22,7 +22,6 @@
 #include <string>
 #include <fstream>
 #include <memory>
-#include <boost/signals2.hpp>
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten

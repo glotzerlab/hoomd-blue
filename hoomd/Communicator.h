@@ -106,7 +106,6 @@ struct comm_flags_bitwise_or
 //! Perform a maximum reduction on the return values of several signals
 struct ghost_layer_max
     {
-    //! This is needed by boost::signals2
     typedef Scalar result_type;
 
     //! Max-reduce return values
@@ -137,7 +136,6 @@ struct ghost_layer_max
 //! Perform a sum reduction on the return values of several signals
 struct ghost_layer_add
     {
-    //! This is needed by boost::signals2
     typedef Scalar result_type;
 
     //! Max-reduce return values
