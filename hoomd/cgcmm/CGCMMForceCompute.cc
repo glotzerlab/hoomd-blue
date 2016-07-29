@@ -3,7 +3,7 @@
 
 #include "CGCMMForceCompute.h"
 
-#include <boost/bind.hpp>
+#include <functional>
 namespace py = pybind11;
 #include <stdexcept>
 

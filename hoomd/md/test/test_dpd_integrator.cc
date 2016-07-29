@@ -7,8 +7,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/ComputeThermo.h"
@@ -27,7 +26,6 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
 /*! \file dpd_integrator_test.cc
     \brief Implements unit tests for PotentialPairDPDThermo

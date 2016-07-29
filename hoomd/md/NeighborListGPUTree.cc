@@ -12,7 +12,7 @@
 #include "NeighborListGPUTree.cuh"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
+#include <functional>
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"

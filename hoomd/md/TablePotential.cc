@@ -5,7 +5,7 @@
 // Maintainer: joaander
 #include "TablePotential.h"
 
-#include <boost/bind.hpp>
+#include <functional>
 
 namespace py = pybind11;
 

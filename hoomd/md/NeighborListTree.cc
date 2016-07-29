@@ -11,8 +11,7 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-#include <boost/bind.hpp>
-using namespace boost;
+#include <functional>
 namespace py = pybind11;
 
 #ifdef ENABLE_MPI

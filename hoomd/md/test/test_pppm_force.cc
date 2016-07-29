@@ -5,8 +5,7 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include <iostream>
@@ -23,7 +22,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file pppm_force_test.cc
     \brief Implements unit tests for PPPMForceCompute and PPPMForceComputeGPU and descendants
@@ -39,7 +38,7 @@ HOOMD_UP_MAIN();
 
 //! Typedef'd PPPMForceCompute factory
 
-typedef boost::function<std::shared_ptr<PPPMForceCompute> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<PPPMForceCompute> (std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<NeighborList> nlist,
                                                       std::shared_ptr<ParticleGroup> group)> pppmforce_creator;
 

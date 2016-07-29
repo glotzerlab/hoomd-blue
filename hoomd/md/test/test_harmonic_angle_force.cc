@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/md/HarmonicAngleForceCompute.h"
 #include "hoomd/ConstForceCompute.h"
@@ -22,13 +21,13 @@
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 
-//! Typedef to make using the boost::function factory easier
-typedef boost::function<std::shared_ptr<HarmonicAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
+//! Typedef to make using the std::function factory easier
+typedef std::function<std::shared_ptr<HarmonicAngleForceCompute>  (std::shared_ptr<SystemDefinition> sysdef)> angleforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

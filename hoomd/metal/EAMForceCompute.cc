@@ -5,7 +5,6 @@
 
 #include <vector>
 using namespace std;
-using namespace boost;
 #include <stdexcept>
 namespace py = pybind11;
 

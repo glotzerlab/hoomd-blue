@@ -5,7 +5,7 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <boost/bind.hpp>
+#include <functional>
 #include "hoomd/ForceCompute.h"
 
 /*! \file PotentialExternal.h

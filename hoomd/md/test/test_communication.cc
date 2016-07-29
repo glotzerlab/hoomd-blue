@@ -11,8 +11,7 @@ HOOMD_UP_MAIN()
 #include "hoomd/System.h"
 
 #include <memory>
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
@@ -34,7 +33,7 @@ HOOMD_UP_MAIN()
 using namespace std;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef boost::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
 std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,

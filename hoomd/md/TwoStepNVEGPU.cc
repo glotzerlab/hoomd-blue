@@ -10,7 +10,7 @@
 #include "TwoStepNVEGPU.cuh"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
+#include <functional>
 
 using namespace std;
 

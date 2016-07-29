@@ -14,7 +14,7 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/bind.hpp>
+#include <functional>
 
 using namespace std;
 namespace py = pybind11;

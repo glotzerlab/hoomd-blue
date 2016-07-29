@@ -13,9 +13,9 @@ HOOMD_UP_MAIN();
 #include <iostream>
 #include <string>
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 using namespace hpmc;

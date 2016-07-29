@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/GPUArray.h"
@@ -19,7 +18,6 @@
 #endif
 
 using namespace std;
-using namespace boost;
 
 /*! \file gpu_array_test.cc
     \brief Implements unit tests for GPUArray and GPUVector

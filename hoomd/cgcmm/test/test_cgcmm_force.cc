@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/cgcmm/CGCMMForceCompute.h"
@@ -22,7 +21,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file cgcmm_force_test.cc
     \brief Implements unit tests for CGCMMForceCompute and descendants
@@ -34,7 +33,7 @@ using namespace boost;
 HOOMD_UP_MAIN();
 
 //! Typedef'd CGCMMForceCompute factory
-typedef boost::function<std::shared_ptr<CGCMMForceCompute> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
+typedef std::function<std::shared_ptr<CGCMMForceCompute> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<NeighborList> nlist, Scalar r_cut)> cgcmmforce_creator;
 
 //! Test the ability of the cgcmm LJ12-4 force compute to actually calucate forces
 void cgcmm_force_particle124_test(cgcmmforce_creator cgcmm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

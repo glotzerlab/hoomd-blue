@@ -8,7 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <boost/bind.hpp>
+#include <functional>
 #include <fstream>
 
 #include "hoomd/HOOMDMath.h"

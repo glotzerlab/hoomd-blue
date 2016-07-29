@@ -8,8 +8,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/AllExternalPotentials.h"
@@ -19,7 +18,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants
@@ -34,7 +33,7 @@ HOOMD_UP_MAIN();
 
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<std::shared_ptr<PotentialExternalPeriodic> (std::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
+typedef std::function<std::shared_ptr<PotentialExternalPeriodic> (std::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces
 void periodic_force_particle_test(periodicforce_creator periodic_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

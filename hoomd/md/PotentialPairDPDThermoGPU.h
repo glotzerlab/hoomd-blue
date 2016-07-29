@@ -9,7 +9,7 @@
 
 #ifdef ENABLE_CUDA
 
-#include <boost/bind.hpp>
+#include <functional>
 #include "hoomd/Variant.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "AllPairPotentials.h"

@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
@@ -19,7 +18,7 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file shiftedlj_force_test.cc
     \brief Implements unit tests for PotentialPairSLJ and descendants
@@ -34,7 +33,7 @@ HOOMD_UP_MAIN();
 
 
 //! Typedef'd PotentialPairSLJ factory
-typedef boost::function<std::shared_ptr<PotentialPairSLJ> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<PotentialPairSLJ> (std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<NeighborList> nlist)> shiftedljforce_creator;
 
 //! Test the ability of the shiftedlj force compute to actually calucate forces

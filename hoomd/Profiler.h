@@ -17,7 +17,7 @@
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
-#include <boost/bind.hpp>
+#include <functional>
 #endif
 
 #ifdef ENABLE_NVTOOLS

@@ -7,7 +7,7 @@
 
 #ifdef ENABLE_CUDA
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <memory>
 
 #include "PotentialTersoff.h"

@@ -14,8 +14,7 @@
 
 namespace py = pybind11;
 
-#include <boost/bind.hpp>
-using namespace boost;
+#include <functional>
 
 using namespace std;
 

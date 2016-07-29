@@ -15,9 +15,8 @@
 #include <stdexcept>
 namespace py = pybind11;
 
-#include <boost/bind.hpp>
+#include <functional>
 
-using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on

@@ -12,12 +12,11 @@
 #include "hoomd/BondedGroupData.h"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
+#include <functional>
 
 #include <iostream>
 #include <stdexcept>
 
-using namespace boost;
 using namespace std;
 
 /*! \file NeighborList.cc

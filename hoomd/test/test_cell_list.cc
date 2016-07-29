@@ -8,8 +8,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/CellList.h"
@@ -24,7 +23,6 @@
 #include "upp11_config.h"
 
 using namespace std;
-using namespace boost;
 
 /*! \file test_cell_list.cc
     \brief Implements unit tests for CellList and descendants

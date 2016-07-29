@@ -12,7 +12,7 @@
 #include "Enforce2DUpdaterGPU.h"
 #include "Enforce2DUpdaterGPU.cuh"
 
-#include <boost/bind.hpp>
+#include <functional>
 
 namespace py = pybind11;
 

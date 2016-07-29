@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/md/AllBondPotentials.h"
 #include "hoomd/ConstForceCompute.h"
@@ -17,7 +16,7 @@
 #include "hoomd/Initializers.h"
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file harmonic_bond_force_test.cc
     \brief Implements unit tests for PotentialBondHarmonic and
@@ -28,8 +27,8 @@ using namespace boost;
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 
-//! Typedef to make using the boost::function factory easier
-typedef boost::function<std::shared_ptr<PotentialBondHarmonic>  (std::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
+//! Typedef to make using the std::function factory easier
+typedef std::function<std::shared_ptr<PotentialBondHarmonic>  (std::shared_ptr<SystemDefinition> sysdef)> bondforce_creator;
 
 //! Perform some simple functionality tests of any BondForceCompute
 void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

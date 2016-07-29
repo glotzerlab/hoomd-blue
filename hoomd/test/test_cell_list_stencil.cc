@@ -14,7 +14,6 @@
 using namespace std;
 
 #include <memory>
-using namespace boost;
 
 #include "upp11_config.h"
 
