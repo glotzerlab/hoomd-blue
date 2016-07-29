@@ -8,15 +8,13 @@
 
 #include "HarmonicImproperForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <math.h>
 
 using namespace std;
+namespace py = pybind11;
 
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
@@ -28,7 +26,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-HarmonicImproperForceCompute::HarmonicImproperForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicImproperForceCompute::HarmonicImproperForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef), m_K(NULL), m_chi(NULL)
     {
     m_exec_conf->msg->notice(5) << "Constructing HarmonicImproperForceCompute" << endl;
@@ -318,10 +316,10 @@ void HarmonicImproperForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_HarmonicImproperForceCompute()
+void export_HarmonicImproperForceCompute(py::module& m)
     {
-    class_<HarmonicImproperForceCompute, boost::shared_ptr<HarmonicImproperForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("HarmonicImproperForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicImproperForceCompute, std::shared_ptr<HarmonicImproperForceCompute> >(m, "HarmonicImproperForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &HarmonicImproperForceCompute::setParams)
     ;
     }

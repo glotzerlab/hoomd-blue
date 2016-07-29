@@ -11,10 +11,10 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * numpy >= 1.7
      * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5, intel 15)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
-     * MPI (tested with OpenMPI, MVAPICH, impi)
+     * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
  * Useful developer tools
      * Git >= 1.7.0
@@ -90,25 +90,17 @@ For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/
 
     module purge
     module load python
-    module unload intel
-    module load intel/2015.2.164
+    module load gnu
     module load mvapich2_ib
     module load gnutools
     module load scipy
     module load cmake
     module load cuda/7.0
+    module load boost/1.55.0
 
-    export CC=`which icc`
-    export CXX=`which icpc`
+    export CC=`which gcc`
+    export CXX=`which g++`
     export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
-
-Comet's boost module includes boost::python, but it is broken so you need to build boost (see :ref:`building-boost`).
-
-.. note::
-    The python module on comet provides both python2. You need to force hoomd to build
-    against python2::
-
-        cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
 .. note::
     CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
@@ -133,18 +125,17 @@ XSEDE TACC Stampede::
     export CXX=`which icpc`
     export SOFTWARE_ROOT=${WORK}/software
 
-Stampede's boost module does not include boost::python, you need to build boost (see :ref:`building-boost`).
-
-.. note::
-    Stampede admins highly recommend building with the intel compiler and MPI libraries. They attribute random crashes
-    to the mvapich library and GNU compiler.
-
 .. note::
     CUDA libraries are only available on GPU nodes on Stampede. To run on the CPU-only nodes, you must build hoomd
     with ENABLE_CUDA=off.
 
 .. note::
     Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
+
+.. warning:
+    HOOMD-blue is no longer tested with the intel compiler. Numerous compiler bugs in Intel 2015 prevent it from
+    building hoomd. HOOMD developers do not currently have access to stampede to generate new build instructions
+    using gcc.
 
 For more information, see: https://portal.tacc.utexas.edu/user-guides/stampede
 

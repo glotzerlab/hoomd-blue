@@ -12,9 +12,8 @@
 #include "hoomd/SystemDefinition.h"
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
 using namespace boost;
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -23,7 +22,7 @@ using namespace boost::python;
 using namespace std;
 using namespace hpmc::detail;
 
-NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
@@ -372,9 +371,9 @@ void NeighborListTree::traverseTree()
     if (this->m_prof) this->m_prof->pop();
     }
 
-void export_NeighborListTree()
+void export_NeighborListTree(py::module& m)
     {
-    class_<NeighborListTree, boost::shared_ptr<NeighborListTree>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListTree, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree", py::base<NeighborList>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

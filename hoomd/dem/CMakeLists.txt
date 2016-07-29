@@ -32,7 +32,7 @@ endif (ENABLE_CUDA)
 add_library (_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_dem _hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_dem _hoomd _md ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

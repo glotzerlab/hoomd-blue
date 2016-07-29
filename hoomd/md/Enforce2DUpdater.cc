@@ -10,8 +10,7 @@
 
 #include "Enforce2DUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -21,7 +20,7 @@ using namespace std;
 
 /*! \param sysdef System to zero the momentum of
 */
-Enforce2DUpdater::Enforce2DUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+Enforce2DUpdater::Enforce2DUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing Enforce2DUpdater" << endl;
@@ -62,9 +61,9 @@ void Enforce2DUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_Enforce2DUpdater()
+void export_Enforce2DUpdater(py::module& m)
     {
-    class_<Enforce2DUpdater, boost::shared_ptr<Enforce2DUpdater>, bases<Updater>, boost::noncopyable>
-    ("Enforce2DUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<Enforce2DUpdater, std::shared_ptr<Enforce2DUpdater> >(m, "Enforce2DUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

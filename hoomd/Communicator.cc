@@ -14,17 +14,18 @@
 #include "System.h"
 
 #include <boost/bind.hpp>
-#include <boost/python.hpp>
 #include <algorithm>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <vector>
 
 template<class group_data>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata)
+Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
@@ -1051,8 +1052,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
 
 //! Constructor
-Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<DomainDecomposition> decomposition)
+Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf()),
@@ -2462,14 +2463,9 @@ const BoxDim Communicator::getShiftedBox() const
     }
 
 //! Export Communicator class to python
-void export_Communicator()
+void export_Communicator(py::module& m)
     {
-     class_< std::vector<bool> >("std_vector_bool")
-    .def(vector_indexing_suite<std::vector<bool> >());
-
-    class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
-           init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
-    ;
+    py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
     }
 #endif // ENABLE_MPI

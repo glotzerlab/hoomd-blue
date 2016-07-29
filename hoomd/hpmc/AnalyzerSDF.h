@@ -10,13 +10,16 @@
 
 
 #include "hoomd/Analyzer.h"
-#include <boost/python.hpp>
 #include "hoomd/Filesystem.h"
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
+#endif
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -108,8 +111,8 @@ class AnalyzerSDF : public Analyzer
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        AnalyzerSDF(boost::shared_ptr<SystemDefinition> sysdef,
-                    boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+        AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
+                    std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                     double lmax,
                     double dl,
                     unsigned int navg,
@@ -127,7 +130,7 @@ class AnalyzerSDF : public Analyzer
         virtual void analyze(unsigned int timestep);
 
     protected:
-        boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The integrator
+        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The integrator
         double m_lmax;                          //!< Maximum lambda value
         double m_dl;                            //!< Histogram step size
         unsigned int m_navg;                    //!< Number of samples to average before writing out to the file
@@ -173,8 +176,8 @@ class AnalyzerSDF : public Analyzer
     Construct the SDF analyzer and initialize histogram memory to 0
 */
 template < class Shape >
-AnalyzerSDF<Shape>::AnalyzerSDF(boost::shared_ptr<SystemDefinition> sysdef,
-                                boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
+                                std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                                 double lmax,
                                 double dl,
                                 unsigned int navg,
@@ -461,10 +464,10 @@ int AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of AnalyzerSDF<Shape> will be exported
 */
-template < class Shape > void export_AnalyzerSDF(const std::string& name)
+template < class Shape > void export_AnalyzerSDF(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< AnalyzerSDF<Shape>, boost::shared_ptr< AnalyzerSDF<Shape> >, boost::python::bases<Analyzer>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
+    pybind11::class_< AnalyzerSDF<Shape>, std::shared_ptr< AnalyzerSDF<Shape> > >(m, name.c_str(), pybind11::base<Analyzer>())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
           ;
     }
 

@@ -8,8 +8,7 @@
 
 #include "OPLSDihedralForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <sstream>
@@ -25,7 +24,7 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \post Memory is allocated, and forces are zeroed.
 */
-OPLSDihedralForceCompute::OPLSDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
+OPLSDihedralForceCompute::OPLSDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceCompute(sysdef)
 {
     m_exec_conf->msg->notice(5) << "Constructing OPLSDihedralForceCompute" << endl;
@@ -356,10 +355,10 @@ void OPLSDihedralForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_OPLSDihedralForceCompute()
+void export_OPLSDihedralForceCompute(py::module& m)
     {
-    class_<OPLSDihedralForceCompute, boost::shared_ptr<OPLSDihedralForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("OPLSDihedralForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<OPLSDihedralForceCompute, std::shared_ptr<OPLSDihedralForceCompute> >(m, "OPLSDihedralForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setParams", &OPLSDihedralForceCompute::setParams)
     ;
     }

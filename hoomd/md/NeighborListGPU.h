@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPU_H__
 #define __NEIGHBORLISTGPU_H__
 
@@ -32,7 +34,7 @@ class NeighborListGPU : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListGPU(boost::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
+        NeighborListGPU(std::shared_ptr<SystemDefinition> sysdef, Scalar r_cut, Scalar r_buff)
             : NeighborList(sysdef, r_cut, r_buff)
             {
             GPUFlags<unsigned int> flags(exec_conf);
@@ -113,6 +115,6 @@ class NeighborListGPU : public NeighborList
     };
 
 //! Exports NeighborListGPU to python
-void export_NeighborListGPU();
+void export_NeighborListGPU(pybind11::module& m);
 
 #endif

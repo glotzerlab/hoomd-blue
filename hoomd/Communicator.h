@@ -24,8 +24,14 @@
 #include "BondedGroupData.h"
 #include "DomainDecomposition.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/signals2.hpp>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
+#include "Autotuner.h"
 
 /*! \ingroup hoomd_lib
     @{
@@ -260,8 +266,8 @@ class Communicator
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
-        Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<DomainDecomposition> decomposition);
+        Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<DomainDecomposition> decomposition);
         virtual ~Communicator();
 
 
@@ -271,7 +277,7 @@ class Communicator
         //! Set the profiler.
         /*! \param prof Profiler to use with this class
          */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
             }
@@ -505,7 +511,7 @@ class Communicator
                 typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
-                GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -536,8 +542,8 @@ class Communicator
 
             private:
                 Communicator& m_comm;                            //!< The outer class
-                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
-                boost::shared_ptr<group_data> m_gdata;           //!< The group data
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                std::shared_ptr<group_data> m_gdata;           //!< The group data
 
                 std::vector<rank_element_t> m_ranks_sendbuf;     //!< Send buffer for rank elements
                 std::vector<rank_element_t> m_ranks_recvbuf;     //!< Receive buffer for rank elements
@@ -569,12 +575,12 @@ class Communicator
         //! Helper function to update the shifted box for ghost particle PBC
         const BoxDim getShiftedBox() const;
 
-        boost::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
-        boost::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
+        std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
+        std::shared_ptr<ParticleData> m_pdata;                      //!< Particle data
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communciator
-        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
-        boost::shared_ptr<Profiler> m_prof;                           //!< Profiler
+        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition information
+        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         bool m_is_communicating;               //!< Whether we are currently communicating
         bool m_force_migrate;                  //!< True if particle migration is forced
@@ -761,7 +767,7 @@ class Communicator
 
 
 //! Declaration of python export function
-void export_Communicator();
+void export_Communicator(pybind11::module& m);
 
 #endif // __COMMUNICATOR_H__
 #endif // ENABLE_MPI

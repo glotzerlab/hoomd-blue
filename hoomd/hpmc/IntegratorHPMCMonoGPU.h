@@ -7,8 +7,6 @@
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
-
 /*! \file IntegratorHPMCMonoGPU.h
     \brief Defines the template class for HPMC on the GPU
     \note This header cannot be compiled by nvcc
@@ -17,6 +15,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -30,8 +30,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
     {
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                              boost::shared_ptr<CellList> cl,
+        IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                              std::shared_ptr<CellList> cl,
                               unsigned int seed);
         //! Destructor
         virtual ~IntegratorHPMCMonoGPU() { };
@@ -54,7 +54,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             }
 
     protected:
-        boost::shared_ptr<CellList> m_cl;           //!< Cell list
+        std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep
         Index2D m_cell_set_indexer;           //!< Indexer into the cell set array
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -82,8 +82,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
     };
 
 template< class Shape >
-IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                                   boost::shared_ptr<CellList> cl,
+IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                                   std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
     : IntegratorHPMCMono<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
@@ -427,10 +427,10 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMonoGPU(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<IntegratorHPMCMonoGPU<Shape>, boost::shared_ptr< IntegratorHPMCMonoGPU<Shape> >, boost::python::bases< IntegratorHPMCMono<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList>, unsigned int >())
+     pybind11::class_<IntegratorHPMCMonoGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMono<Shape> >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
               ;
     }
 
@@ -439,4 +439,3 @@ template < class Shape > void export_IntegratorHPMCMonoGPU(const std::string& na
 #endif // ENABLE_CUDA
 
 #endif // __POTENTIAL_PAIR_GPU_H__
-

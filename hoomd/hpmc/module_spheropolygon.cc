@@ -30,16 +30,17 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,26 +49,33 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_spheropolygon()
+void export_spheropolygon(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSpheropolygon >("IntegratorHPMCMonoSpheropolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitSpheropolygon");
-    export_ComputeFreeVolume< ShapeSpheropolygon >("ComputeFreeVolumeSpheropolygon");
-    export_AnalyzerSDF< ShapeSpheropolygon >("AnalyzerSDFSpheropolygon");
-    export_UpdaterMuVT< ShapeSpheropolygon >("UpdaterMuVTSpheropolygon");
-    export_UpdaterMuVTImplicit< ShapeSpheropolygon >("UpdaterMuVTImplicitSpheropolygon");
+    export_IntegratorHPMCMono< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygon");
+    export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitSpheropolygon");
+    export_ComputeFreeVolume< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygon");
+    export_AnalyzerSDF< ShapeSpheropolygon >(m, "AnalyzerSDFSpheropolygon");
+    export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTSpheropolygon");
+    export_UpdaterMuVTImplicit< ShapeSpheropolygon >(m, "UpdaterMuVTImplicitSpheropolygon");
 
-    export_ExternalFieldInterface<ShapeSpheropolygon>("ExternalFieldSpheropolygon");
-    export_LatticeField<ShapeSpheropolygon>("ExternalFieldLatticeSpheropolygon");
-    export_ExternalFieldComposite<ShapeSpheropolygon>("ExternalFieldCompositeSpheropolygon");
-    export_RemoveDriftUpdater<ShapeSpheropolygon>("RemoveDriftUpdaterSpheropolygon");
-    // export_ExternalFieldWall<ShapeSpheropolygon>("WallSpheropolygon");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolygon>("UpdaterExternalFieldWallSpheropolygon");
+    export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
+    export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");
+    export_ExternalFieldComposite<ShapeSpheropolygon>(m, "ExternalFieldCompositeSpheropolygon");
+    export_RemoveDriftUpdater<ShapeSpheropolygon>(m, "RemoveDriftUpdaterSpheropolygon");
+    // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
+    // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m, "UpdaterExternalFieldWallSpheropolygon");
+
+    export_ShapeMoveInterface< ShapeSpheropolygon >(m, "ShapeMoveSpheropolygon");
+    export_ShapeLogBoltzmann< ShapeSpheropolygon >(m, "LogBoltzmannSpheropolygon");
+    export_AlchemyLogBoltzmannFunction< ShapeSpheropolygon >(m, "AlchemyLogBoltzmannSpheropolygon");
+    export_UpdaterShape< ShapeSpheropolygon >(m, "UpdaterShapeSpheropolygon");
+    export_PythonShapeMove< ShapeSpheropolygon >(m, "PythonShapeMoveSpheropolygon");
+    export_ConstantShapeMove< ShapeSpheropolygon >(m, "ConstantShapeMoveSpheropolygon");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >("IntegratorHPMCMonoGPUSpheropolygon");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >("IntegratorHPMCMonoImplicitGPUSpheropolygon");
-    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >("ComputeFreeVolumeGPUSpheropolygon");
+    export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitGPUSpheropolygon");
+    export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeGPUSpheropolygon");
     #endif
     }
 

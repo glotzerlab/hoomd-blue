@@ -7,8 +7,8 @@
 #include "hoomd/md/NeighborList.h"
 
 #include <iterator>
-#include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #include "DEMEvaluator.h"
 
@@ -42,8 +42,8 @@ class DEM2DForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        DEM2DForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
+        DEM2DForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
             Real r_cut, Potential potential);
 
         //! Destructor
@@ -51,7 +51,7 @@ class DEM2DForceCompute : public ForceCompute
 
         //! Set the vertices for a particle
         virtual void setParams(unsigned int type,
-            const boost::python::list &vertices);
+            const pybind11::list &vertices);
 
         virtual void setRcut(Real r_cut) {m_r_cut = r_cut;}
 
@@ -81,7 +81,7 @@ class DEM2DForceCompute : public ForceCompute
             }
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Real m_r_cut;         //!< Cutoff radius beyond which the force is set to 0
         DEMEvaluator<Real, Real4, Potential> m_evaluator; //!< Object holding parameters and computation method for the potential
         std::vector<std::vector<vec2<Real> > > m_shapes; //!< Vertices for each type

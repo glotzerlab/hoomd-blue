@@ -11,17 +11,17 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __MESSENGER_H__
 #define __MESSENGER_H__
@@ -339,11 +339,11 @@ class Messenger
         std::ostream *m_warning_stream; //!< warning stream
         std::ostream *m_notice_stream;  //!< notice stream
 
-        boost::shared_ptr<std::streambuf> m_streambuf_out;   //!< streambuf (stdout)
-        boost::shared_ptr<std::streambuf> m_streambuf_err;   //!< streambuf (if err different from out)
-        boost::shared_ptr<nullstream>    m_nullstream;   //!< null stream
-        boost::shared_ptr<std::ostream>  m_file_out;     //!< File stream (stdout)
-        boost::shared_ptr<std::ostream>  m_file_err;     //!< File stream (stderr)
+        std::shared_ptr<std::streambuf> m_streambuf_out;   //!< streambuf (stdout)
+        std::shared_ptr<std::streambuf> m_streambuf_err;   //!< streambuf (if err different from out)
+        std::shared_ptr<nullstream>    m_nullstream;   //!< null stream
+        std::shared_ptr<std::ostream>  m_file_out;     //!< File stream (stdout)
+        std::shared_ptr<std::ostream>  m_file_err;     //!< File stream (stderr)
 
         std::string m_err_prefix;       //!< Prefix for error messages
         std::string m_warning_prefix;   //!< Prefix for warning messages
@@ -374,7 +374,11 @@ class Messenger
 #endif
     };
 
+// This pybind11 code needs to be called before any export functions.
+// It is in Messenger.h because this is the first include file in the chain.
+PYBIND11_DECLARE_HOLDER_TYPE(Tsharedptr, std::shared_ptr<Tsharedptr>);
+
 //! Exports Messenger to python
-void export_Messenger();
+void export_Messenger(pybind11::module& m);
 
 #endif // #ifndef __MESSENGER_H__

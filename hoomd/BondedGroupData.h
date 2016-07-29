@@ -31,9 +31,10 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #endif
 
 #include <boost/signals2.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <memory>
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 #include <boost/bind.hpp>
 
 #include <stack>
@@ -75,15 +76,9 @@ struct packed_storage
 #endif
 
 #ifdef ENABLE_MPI
-BOOST_CLASS_IMPLEMENTATION(typeval_t,boost::serialization::object_serializable)
-BOOST_CLASS_IMPLEMENTATION(group_storage<2>,boost::serialization::object_serializable)
-BOOST_CLASS_IMPLEMENTATION(group_storage<3>,boost::serialization::object_serializable)
-BOOST_CLASS_IMPLEMENTATION(group_storage<4>,boost::serialization::object_serializable)
-namespace boost
+namespace cereal
    {
    //! Serialization functions for group data types
-   namespace serialization
-        {
         //! Serialization of typeval_union
         template<class Archive>
         void serialize(Archive & ar, typeval_t & t, const unsigned int version)
@@ -117,8 +112,6 @@ namespace boost
             ar & s.tag[2];
             ar & s.tag[3];
             }
-
-        }
     }
 #endif
 
@@ -207,16 +200,16 @@ class BondedGroupData : boost::noncopyable
             void replicate(unsigned int n, unsigned int old_n_particles);
 
             //! Get type as a numpy array
-            PyObject* getTypeNP();
+            pybind11::object getTypeNP();
             //! Get value as a numpy array
-            PyObject* getValueNP();
+            pybind11::object getValueNP();
 
             //! Get bonded tags as a numpy array
-            PyObject* getBondedTagsNP();
+            pybind11::object getBondedTagsNP();
             //! Get the type names for python
-            boost::python::list getTypes();
+            pybind11::list getTypes();
             //! Set the type names from python
-            void setTypes(boost::python::list types);
+            void setTypes(pybind11::list types);
 
             std::vector<unsigned int> type_id;             //!< Stores type for each group
             std::vector<Scalar> val;                       //!< Stores constraint value for each group
@@ -226,11 +219,11 @@ class BondedGroupData : boost::noncopyable
             };
 
         //! Constructor for empty BondedGroupData
-        BondedGroupData(boost::shared_ptr<ParticleData> pdata,
+        BondedGroupData(std::shared_ptr<ParticleData> pdata,
             unsigned int n_group_types);
 
         //! Constructor to initialize from a snapshot
-        BondedGroupData(boost::shared_ptr<ParticleData> pdata,
+        BondedGroupData(std::shared_ptr<ParticleData> pdata,
             const Snapshot& snapshot);
 
         virtual ~BondedGroupData();
@@ -556,7 +549,7 @@ class BondedGroupData : boost::noncopyable
         //! Set the profiler
         /*! \param prof The profiler
          */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
             }
@@ -602,8 +595,8 @@ class BondedGroupData : boost::noncopyable
         void moveParticleGroups(unsigned int tag, unsigned int old_rank, unsigned int new_rank);
         #endif
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
-        boost::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration for CUDA context
+        std::shared_ptr<ParticleData> m_pdata;        //!< Particle Data these bonds belong to
 
         GPUVector<members_t> m_groups;               //!< List of groups
         GPUVector<typeval_t> m_group_typeval;        //!< List of group types/constraint values
@@ -635,7 +628,7 @@ class BondedGroupData : boost::noncopyable
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
         GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
         bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
-        boost::shared_ptr<Profiler> m_prof;          //!< Profiler
+        std::shared_ptr<Profiler> m_prof;          //!< Profiler
 
     private:
         bool m_groups_dirty;                         //!< Is it necessary to rebuild the lookup-by-index table?
@@ -685,7 +678,7 @@ class BondedGroupData : boost::noncopyable
 
 //! Exports BondData to python
 template<class T, class Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct=true);
+void export_BondedGroupData(pybind11::module& m, std::string name, std::string snapshot_name, bool export_struct=true);
 
 /*!
  * Typedefs for template instantiations
@@ -736,9 +729,10 @@ struct Bond {
         }
 
     //! This helper function needs to be provided for the templated BondData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Bond>("Bond", init<unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Bond>(m,"Bond")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Bond::type)
             .def_readonly("a", &Bond::a)
             .def_readonly("b", &Bond::b)
@@ -799,9 +793,10 @@ struct Angle {
         }
 
     //! This helper function needs to be provided for the templated AngleData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Angle>("Angle", init<unsigned int, unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Angle>(m,"Angle")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Angle::type)
             .def_readonly("a", &Angle::a)
             .def_readonly("b", &Angle::b)
@@ -865,9 +860,10 @@ struct Dihedral {
         }
 
     //! This helper function needs to be provided for the templated DihedralData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Dihedral>("Dihedral", init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
+        pybind11::class_<Dihedral>(m,"Dihedral")
+            .def(pybind11::init<unsigned int, unsigned int, unsigned int, unsigned int, unsigned int>())
             .def_readonly("type", &Dihedral::type)
             .def_readonly("a", &Dihedral::a)
             .def_readonly("b", &Dihedral::b)
@@ -943,9 +939,10 @@ struct Constraint {
         }
 
     //! This helper function needs to be provided for the templated ConstraintData to work correctly
-    static void export_to_python()
+    static void export_to_python(pybind11::module& m)
         {
-        boost::python::class_<Constraint>("Constraint", init<Scalar, unsigned int, unsigned int>())
+        pybind11::class_<Constraint>(m,"Constraint")
+            .def(pybind11::init<Scalar, unsigned int, unsigned int>())
             .def_readonly("d", &Constraint::d)
             .def_readonly("a", &Constraint::a)
             .def_readonly("b", &Constraint::b)

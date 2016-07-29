@@ -30,16 +30,17 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,28 +49,35 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_sphinx()
+void export_sphinx(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSphinx >("IntegratorHPMCMonoSphinx");
-    export_IntegratorHPMCMonoImplicit< ShapeSphinx >("IntegratorHPMCMonoImplicitSphinx");
-    export_ComputeFreeVolume< ShapeSphinx >("ComputeFreeVolumeSphinx");
-    export_AnalyzerSDF< ShapeSphinx >("AnalyzerSDFSphinx");
-    // export_UpdaterMuVT< ShapeSphinx >("UpdaterMuVTSphinx");
-    // export_UpdaterMuVTImplicit< ShapeSphinx >("UpdaterMuVTImplicitSphinx");
+    export_IntegratorHPMCMono< ShapeSphinx >(m, "IntegratorHPMCMonoSphinx");
+    export_IntegratorHPMCMonoImplicit< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitSphinx");
+    export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
+    export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
+    // export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
+    // export_UpdaterMuVTImplicit< ShapeSphinx >(m, "UpdaterMuVTImplicitSphinx");
 
-    export_ExternalFieldInterface<ShapeSphinx>("ExternalFieldSphinx");
-    export_LatticeField<ShapeSphinx>("ExternalFieldLatticeSphinx");
-    export_ExternalFieldComposite<ShapeSphinx>("ExternalFieldCompositeSphinx");
-    export_RemoveDriftUpdater<ShapeSphinx>("RemoveDriftUpdaterSphinx");
-    export_ExternalFieldWall<ShapeSphinx>("WallSphinx");
-    export_UpdaterExternalFieldWall<ShapeSphinx>("UpdaterExternalFieldWallSphinx");
+    export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
+    export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");
+    export_ExternalFieldComposite<ShapeSphinx>(m, "ExternalFieldCompositeSphinx");
+    export_RemoveDriftUpdater<ShapeSphinx>(m, "RemoveDriftUpdaterSphinx");
+    export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
+    export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
+
+    export_ShapeMoveInterface< ShapeSphinx >(m, "ShapeMoveSphinx");
+    export_ShapeLogBoltzmann< ShapeSphinx >(m, "LogBoltzmannSphinx");
+    export_AlchemyLogBoltzmannFunction< ShapeSphinx >(m, "AlchemyLogBoltzmannSphinx");
+    export_UpdaterShape< ShapeSphinx >(m, "UpdaterShapeSphinx");
+    export_PythonShapeMove< ShapeSphinx >(m, "PythonShapeMoveSphinx");
+    export_ConstantShapeMove< ShapeSphinx >(m, "ConstantShapeMoveSphinx");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU
 
-    export_IntegratorHPMCMonoGPU< ShapeSphinx >("IntegratorHPMCMonoGPUSphere");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >("IntegratorHPMCMonoImplicitGPUSphere");
-    export_ComputeFreeVolumeGPU< ShapeSphinx >("ComputeFreeVolumeGPUSphere");
+    export_IntegratorHPMCMonoGPU< ShapeSphinx >(m, "IntegratorHPMCMonoGPUSphinx");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitGPUSphinx");
+    export_ComputeFreeVolumeGPU< ShapeSphinx >(m, "ComputeFreeVolumeGPUSphinx");
 
     #endif
     #endif

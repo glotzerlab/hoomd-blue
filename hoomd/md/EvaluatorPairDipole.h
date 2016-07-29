@@ -11,7 +11,6 @@
 
 #ifndef NVCC
 #include <string>
-#include <boost/python.hpp>
 #endif
 
 #include "QuaternionMath.h"
@@ -53,10 +52,6 @@
 #define _EXP(x) expf( (x) )
 #else
 #define _EXP(x) exp( (x) )
-#endif
-
-#ifndef NVCC
-using namespace boost::python;
 #endif
 
 class EvaluatorPairDipole

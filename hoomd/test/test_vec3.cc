@@ -5,84 +5,83 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE vec3
-#include "boost_utf_configure.h"
+#include "upp11_config.h"
+
+HOOMD_UP_MAIN();
+
 
 #include <iostream>
 
 #include <math.h>
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #include "hoomd/VectorMath.h"
 
-BOOST_AUTO_TEST_CASE( construction )
+UP_TEST( construction )
     {
     // test each constructor separately
     vec3<Scalar> a;
-    MY_BOOST_CHECK_SMALL(a.x, tol_small);
-    MY_BOOST_CHECK_SMALL(a.y, tol_small);
-    MY_BOOST_CHECK_SMALL(a.z, tol_small);
+    MY_CHECK_SMALL(a.x, tol_small);
+    MY_CHECK_SMALL(a.y, tol_small);
+    MY_CHECK_SMALL(a.z, tol_small);
 
     vec3<Scalar> b(123, 86, -103);
-    MY_BOOST_CHECK_CLOSE(b.x, 123, tol);
-    MY_BOOST_CHECK_CLOSE(b.y, 86, tol);
-    MY_BOOST_CHECK_CLOSE(b.z, -103, tol);
+    MY_CHECK_CLOSE(b.x, 123, tol);
+    MY_CHECK_CLOSE(b.y, 86, tol);
+    MY_CHECK_CLOSE(b.z, -103, tol);
 
     Scalar3 s3 = make_scalar3(-10, 25, 92);
     vec3<Scalar> c(s3);
-    MY_BOOST_CHECK_CLOSE(c.x, s3.x, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, s3.y, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, s3.z, tol);
+    MY_CHECK_CLOSE(c.x, s3.x, tol);
+    MY_CHECK_CLOSE(c.y, s3.y, tol);
+    MY_CHECK_CLOSE(c.z, s3.z, tol);
 
     Scalar4 s4 = make_scalar4(18, -22, 78, 12);
     vec3<Scalar> d(s4);
-    MY_BOOST_CHECK_CLOSE(d.x, s4.x, tol);
-    MY_BOOST_CHECK_CLOSE(d.y, s4.y, tol);
-    MY_BOOST_CHECK_CLOSE(d.z, s4.z, tol);
+    MY_CHECK_CLOSE(d.x, s4.x, tol);
+    MY_CHECK_CLOSE(d.y, s4.y, tol);
+    MY_CHECK_CLOSE(d.z, s4.z, tol);
 
     vec3<float> e(123, 86, -103);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(e).x, 123, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(e).y, 86, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(e).z, -103, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(e).x, 123, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(e).y, 86, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(e).z, -103, tol);
+    MY_CHECK_CLOSE(vec3<float>(e).x, 123, tol);
+    MY_CHECK_CLOSE(vec3<float>(e).y, 86, tol);
+    MY_CHECK_CLOSE(vec3<float>(e).z, -103, tol);
+    MY_CHECK_CLOSE(vec3<double>(e).x, 123, tol);
+    MY_CHECK_CLOSE(vec3<double>(e).y, 86, tol);
+    MY_CHECK_CLOSE(vec3<double>(e).z, -103, tol);
 
     vec3<double> f(123, 86, -103);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(f).x, 123, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(f).y, 86, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<float>(f).z, -103, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(f).x, 123, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(f).y, 86, tol);
-    MY_BOOST_CHECK_CLOSE(vec3<double>(f).z, -103, tol);
+    MY_CHECK_CLOSE(vec3<float>(f).x, 123, tol);
+    MY_CHECK_CLOSE(vec3<float>(f).y, 86, tol);
+    MY_CHECK_CLOSE(vec3<float>(f).z, -103, tol);
+    MY_CHECK_CLOSE(vec3<double>(f).x, 123, tol);
+    MY_CHECK_CLOSE(vec3<double>(f).y, 86, tol);
+    MY_CHECK_CLOSE(vec3<double>(f).z, -103, tol);
 
     // Test assignment
     vec3<float> g;
     vec3<double> h;
     g = vec3<float>(121, 12, -10);
-    MY_BOOST_CHECK_CLOSE(g.x, 121, tol);
-    MY_BOOST_CHECK_CLOSE(g.y, 12, tol);
-    MY_BOOST_CHECK_CLOSE(g.z, -10, tol);
+    MY_CHECK_CLOSE(g.x, 121, tol);
+    MY_CHECK_CLOSE(g.y, 12, tol);
+    MY_CHECK_CLOSE(g.z, -10, tol);
     g = vec3<double>(-122, 15, 3);
-    MY_BOOST_CHECK_CLOSE(g.x, -122, tol);
-    MY_BOOST_CHECK_CLOSE(g.y, 15, tol);
-    MY_BOOST_CHECK_CLOSE(g.z, 3, tol);
+    MY_CHECK_CLOSE(g.x, -122, tol);
+    MY_CHECK_CLOSE(g.y, 15, tol);
+    MY_CHECK_CLOSE(g.z, 3, tol);
     h = vec3<float>(18, 12, -1000);
-    MY_BOOST_CHECK_CLOSE(h.x, 18, tol);
-    MY_BOOST_CHECK_CLOSE(h.y, 12, tol);
-    MY_BOOST_CHECK_CLOSE(h.z, -1000, tol);
+    MY_CHECK_CLOSE(h.x, 18, tol);
+    MY_CHECK_CLOSE(h.y, 12, tol);
+    MY_CHECK_CLOSE(h.z, -1000, tol);
     h = vec3<double>(55, -64, 1);
-    MY_BOOST_CHECK_CLOSE(h.x, 55, tol);
-    MY_BOOST_CHECK_CLOSE(h.y, -64, tol);
-    MY_BOOST_CHECK_CLOSE(h.z, 1, tol);
+    MY_CHECK_CLOSE(h.x, 55, tol);
+    MY_CHECK_CLOSE(h.y, -64, tol);
+    MY_CHECK_CLOSE(h.z, 1, tol);
     }
 
-BOOST_AUTO_TEST_CASE( component_wise )
+UP_TEST( component_wise )
     {
     vec3<Scalar> a(1,2,3);
     vec3<Scalar> b(4,6,8);
@@ -90,32 +89,32 @@ BOOST_AUTO_TEST_CASE( component_wise )
 
     // test each component-wise operator separately
     c = a + b;
-    MY_BOOST_CHECK_CLOSE(c.x, 5, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 11, tol);
+    MY_CHECK_CLOSE(c.x, 5, tol);
+    MY_CHECK_CLOSE(c.y, 8, tol);
+    MY_CHECK_CLOSE(c.z, 11, tol);
 
     c = a - b;
-    MY_BOOST_CHECK_CLOSE(c.x, -3, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, -4, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, -5, tol);
+    MY_CHECK_CLOSE(c.x, -3, tol);
+    MY_CHECK_CLOSE(c.y, -4, tol);
+    MY_CHECK_CLOSE(c.z, -5, tol);
 
     c = a * b;
-    MY_BOOST_CHECK_CLOSE(c.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 12, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 24, tol);
+    MY_CHECK_CLOSE(c.x, 4, tol);
+    MY_CHECK_CLOSE(c.y, 12, tol);
+    MY_CHECK_CLOSE(c.z, 24, tol);
 
     c = a / b;
-    MY_BOOST_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 2.0/6.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 3.0/8.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0/6.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0/8.0, tol);
 
     c = -a;
-    MY_BOOST_CHECK_CLOSE(c.x, -1, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, -2, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, -3, tol);
+    MY_CHECK_CLOSE(c.x, -1, tol);
+    MY_CHECK_CLOSE(c.y, -2, tol);
+    MY_CHECK_CLOSE(c.z, -3, tol);
     }
 
-BOOST_AUTO_TEST_CASE( assignment_component_wise )
+UP_TEST( assignment_component_wise )
     {
     vec3<Scalar> a(1,2,3);
     vec3<Scalar> b(4,6,8);
@@ -123,42 +122,42 @@ BOOST_AUTO_TEST_CASE( assignment_component_wise )
 
     // test each component-wise operator separately
     c = a += b;
-    MY_BOOST_CHECK_CLOSE(c.x, 5, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 11, tol);
-    MY_BOOST_CHECK_CLOSE(a.x, 5, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 11, tol);
+    MY_CHECK_CLOSE(c.x, 5, tol);
+    MY_CHECK_CLOSE(c.y, 8, tol);
+    MY_CHECK_CLOSE(c.z, 11, tol);
+    MY_CHECK_CLOSE(a.x, 5, tol);
+    MY_CHECK_CLOSE(a.y, 8, tol);
+    MY_CHECK_CLOSE(a.z, 11, tol);
 
     a = vec3<Scalar>(1,2,3);
     c = a -= b;
-    MY_BOOST_CHECK_CLOSE(c.x, -3, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, -4, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, -5, tol);
-    MY_BOOST_CHECK_CLOSE(a.x, -3, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, -4, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, -5, tol);
+    MY_CHECK_CLOSE(c.x, -3, tol);
+    MY_CHECK_CLOSE(c.y, -4, tol);
+    MY_CHECK_CLOSE(c.z, -5, tol);
+    MY_CHECK_CLOSE(a.x, -3, tol);
+    MY_CHECK_CLOSE(a.y, -4, tol);
+    MY_CHECK_CLOSE(a.z, -5, tol);
 
     a = vec3<Scalar>(1,2,3);
     c = a *= b;
-    MY_BOOST_CHECK_CLOSE(c.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 12, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 24, tol);
-    MY_BOOST_CHECK_CLOSE(a.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 12, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 24, tol);
+    MY_CHECK_CLOSE(c.x, 4, tol);
+    MY_CHECK_CLOSE(c.y, 12, tol);
+    MY_CHECK_CLOSE(c.z, 24, tol);
+    MY_CHECK_CLOSE(a.x, 4, tol);
+    MY_CHECK_CLOSE(a.y, 12, tol);
+    MY_CHECK_CLOSE(a.z, 24, tol);
 
     a = vec3<Scalar>(1,2,3);
     c = a /= b;
-    MY_BOOST_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 2.0/6.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 3.0/8.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.x, 1.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 2.0/6.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 3.0/8.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0/6.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0/8.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0/4.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0/6.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0/8.0, tol);
     }
 
-BOOST_AUTO_TEST_CASE( scalar )
+UP_TEST( scalar )
     {
     vec3<Scalar> a(1,2,3);
     Scalar b(4);
@@ -166,22 +165,22 @@ BOOST_AUTO_TEST_CASE( scalar )
 
     // test each component-wise operator separately
     c = a * b;
-    MY_BOOST_CHECK_CLOSE(c.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 12, tol);
+    MY_CHECK_CLOSE(c.x, 4, tol);
+    MY_CHECK_CLOSE(c.y, 8, tol);
+    MY_CHECK_CLOSE(c.z, 12, tol);
 
     c = b * a;
-    MY_BOOST_CHECK_CLOSE(c.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 12, tol);
+    MY_CHECK_CLOSE(c.x, 4, tol);
+    MY_CHECK_CLOSE(c.y, 8, tol);
+    MY_CHECK_CLOSE(c.z, 12, tol);
 
     c = a / b;
-    MY_BOOST_CHECK_CLOSE(c.x, 1.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 2.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, 3.0/4.0, tol);
+    MY_CHECK_CLOSE(c.x, 1.0/4.0, tol);
+    MY_CHECK_CLOSE(c.y, 2.0/4.0, tol);
+    MY_CHECK_CLOSE(c.z, 3.0/4.0, tol);
     }
 
-BOOST_AUTO_TEST_CASE( assignment_scalar )
+UP_TEST( assignment_scalar )
     {
     vec3<Scalar> a(1,2,3);
     Scalar b(4);
@@ -189,18 +188,18 @@ BOOST_AUTO_TEST_CASE( assignment_scalar )
     // test each component-wise operator separately
     a = vec3<Scalar>(1,2,3);
     a *= b;
-    MY_BOOST_CHECK_CLOSE(a.x, 4, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 8, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 12, tol);
+    MY_CHECK_CLOSE(a.x, 4, tol);
+    MY_CHECK_CLOSE(a.y, 8, tol);
+    MY_CHECK_CLOSE(a.z, 12, tol);
 
     a = vec3<Scalar>(1,2,3);
     a /= b;
-    MY_BOOST_CHECK_CLOSE(a.x, 1.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 2.0/4.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 3.0/4.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0/4.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0/4.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0/4.0, tol);
     }
 
-BOOST_AUTO_TEST_CASE( vector_ops )
+UP_TEST( vector_ops )
     {
     vec3<Scalar> a(1,2,3);
     vec3<Scalar> b(6,5,4);
@@ -209,15 +208,15 @@ BOOST_AUTO_TEST_CASE( vector_ops )
 
     // test each vector operation
     d = dot(a,b);
-    MY_BOOST_CHECK_CLOSE(d, 28, tol);
+    MY_CHECK_CLOSE(d, 28, tol);
 
     c = cross(a,b);
-    MY_BOOST_CHECK_CLOSE(c.x, -7, tol);
-    MY_BOOST_CHECK_CLOSE(c.y, 14, tol);
-    MY_BOOST_CHECK_CLOSE(c.z, -7, tol);
+    MY_CHECK_CLOSE(c.x, -7, tol);
+    MY_CHECK_CLOSE(c.y, 14, tol);
+    MY_CHECK_CLOSE(c.z, -7, tol);
     }
 
-BOOST_AUTO_TEST_CASE( vec_to_scalar )
+UP_TEST( vec_to_scalar )
     {
     vec3<Scalar> a(1,2,3);
     Scalar w(4);
@@ -226,46 +225,46 @@ BOOST_AUTO_TEST_CASE( vec_to_scalar )
 
     // test convenience functions for converting between types
     m = vec_to_scalar3(a);
-    MY_BOOST_CHECK_CLOSE(m.x, 1, tol);
-    MY_BOOST_CHECK_CLOSE(m.y, 2, tol);
-    MY_BOOST_CHECK_CLOSE(m.z, 3, tol);
+    MY_CHECK_CLOSE(m.x, 1, tol);
+    MY_CHECK_CLOSE(m.y, 2, tol);
+    MY_CHECK_CLOSE(m.z, 3, tol);
 
     n = vec_to_scalar4(a, w);
-    MY_BOOST_CHECK_CLOSE(n.x, 1, tol);
-    MY_BOOST_CHECK_CLOSE(n.y, 2, tol);
-    MY_BOOST_CHECK_CLOSE(n.z, 3, tol);
-    MY_BOOST_CHECK_CLOSE(n.w, 4, tol);
+    MY_CHECK_CLOSE(n.x, 1, tol);
+    MY_CHECK_CLOSE(n.y, 2, tol);
+    MY_CHECK_CLOSE(n.z, 3, tol);
+    MY_CHECK_CLOSE(n.w, 4, tol);
 
     // test mapping of Scalar{3,4} to vec3
     a = vec3<Scalar>(0.0, 0.0, 0.0);
     a = vec3<Scalar>(m);
-    MY_BOOST_CHECK_CLOSE(a.x, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 3.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0, tol);
 
     a = vec3<Scalar>(0.0, 0.0, 0.0);
     a = vec3<Scalar>(n);
-    MY_BOOST_CHECK_CLOSE(a.x, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.y, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.z, 3.0, tol);
+    MY_CHECK_CLOSE(a.x, 1.0, tol);
+    MY_CHECK_CLOSE(a.y, 2.0, tol);
+    MY_CHECK_CLOSE(a.z, 3.0, tol);
     }
 
-BOOST_AUTO_TEST_CASE( comparison )
+UP_TEST( comparison )
     {
     vec3<Scalar> a(1.1,2.1,.1);
     vec3<Scalar> b = a;
     vec3<Scalar> c(.1,1.1,2.1);
 
     // test equality
-    BOOST_CHECK(a==b);
-    BOOST_CHECK(!(a==c));
+    UP_ASSERT(a==b);
+    UP_ASSERT(!(a==c));
 
     // test inequality
-    BOOST_CHECK(!(a!=b));
-    BOOST_CHECK(a!=c);
+    UP_ASSERT(!(a!=b));
+    UP_ASSERT(a!=c);
     }
 
-BOOST_AUTO_TEST_CASE( test_swap )
+UP_TEST( test_swap )
     {
     vec3<Scalar> a(1.1, 2.2, 0.0);
     vec3<Scalar> b(3.3, 4.4, 0.0);
@@ -274,6 +273,6 @@ BOOST_AUTO_TEST_CASE( test_swap )
 
     // test swap
     a.swap(b);
-    BOOST_CHECK(a==d);
-    BOOST_CHECK(b==c);
+    UP_ASSERT(a==d);
+    UP_ASSERT(b==c);
     }

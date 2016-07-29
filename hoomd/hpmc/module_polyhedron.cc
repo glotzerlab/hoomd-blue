@@ -30,16 +30,17 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,26 +49,33 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_polyhedron()
+void export_polyhedron(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapePolyhedron >("IntegratorHPMCMonoPolyhedron");
-    export_IntegratorHPMCMonoImplicit< ShapePolyhedron >("IntegratorHPMCMonoImplicitPolyhedron");
-    export_ComputeFreeVolume< ShapePolyhedron >("ComputeFreeVolumePolyhedron");
-    // export_AnalyzerSDF< ShapePolyhedron >("AnalyzerSDFPolyhedron");
-    export_UpdaterMuVT< ShapePolyhedron >("UpdaterMuVTPolyhedron");
-    export_UpdaterMuVTImplicit< ShapePolyhedron >("UpdaterMuVTImplicitPolyhedron");
+    export_IntegratorHPMCMono< ShapePolyhedron >(m, "IntegratorHPMCMonoPolyhedron");
+    export_IntegratorHPMCMonoImplicit< ShapePolyhedron >(m, "IntegratorHPMCMonoImplicitPolyhedron");
+    export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
+    // export_AnalyzerSDF< ShapePolyhedron >(m, "AnalyzerSDFPolyhedron");
+    export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
+    export_UpdaterMuVTImplicit< ShapePolyhedron >(m, "UpdaterMuVTImplicitPolyhedron");
 
-    export_ExternalFieldInterface<ShapePolyhedron>("ExternalFieldPolyhedron");
-    export_LatticeField<ShapePolyhedron>("ExternalFieldLatticePolyhedron");
-    export_ExternalFieldComposite<ShapePolyhedron>("ExternalFieldCompositePolyhedron");
-    export_RemoveDriftUpdater<ShapePolyhedron>("RemoveDriftUpdaterPolyhedron");
-    export_ExternalFieldWall<ShapePolyhedron>("WallPolyhedron");
-    export_UpdaterExternalFieldWall<ShapePolyhedron>("UpdaterExternalFieldWallPolyhedron");
+    export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
+    export_LatticeField<ShapePolyhedron>(m, "ExternalFieldLatticePolyhedron");
+    export_ExternalFieldComposite<ShapePolyhedron>(m, "ExternalFieldCompositePolyhedron");
+    export_RemoveDriftUpdater<ShapePolyhedron>(m, "RemoveDriftUpdaterPolyhedron");
+    export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
+    export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
+
+    export_ShapeMoveInterface< ShapePolyhedron >(m, "ShapeMovePolyhedron");
+    export_ShapeLogBoltzmann< ShapePolyhedron >(m, "LogBoltzmannPolyhedron");
+    export_AlchemyLogBoltzmannFunction< ShapePolyhedron >(m, "AlchemyLogBoltzmannPolyhedron");
+    export_UpdaterShape< ShapePolyhedron >(m, "UpdaterShapePolyhedron");
+    export_PythonShapeMove< ShapePolyhedron >(m, "PythonShapeMovePolyhedron");
+    export_ConstantShapeMove< ShapePolyhedron >(m, "ConstantShapeMovePolyhedron");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapePolyhedron >("IntegratorHPMCMonoGPUPolyhedron");
-    export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >("IntegratorHPMCMonoImplicitGPUPolyhedron");
-    export_ComputeFreeVolumeGPU< ShapePolyhedron >("ComputeFreeVolumeGPUPolyhedron");
+    export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");
+    export_IntegratorHPMCMonoImplicitGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoImplicitGPUPolyhedron");
+    export_ComputeFreeVolumeGPU< ShapePolyhedron >(m, "ComputeFreeVolumeGPUPolyhedron");
     #endif
     }
 

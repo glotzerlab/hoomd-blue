@@ -7,53 +7,56 @@
 /*! \file ExternalField.h
     \brief Declaration of ExternalField base class
 */
-#include <boost/python.hpp>
-
-
 #include "hoomd/Compute.h"
 #include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
 #include "ExternalField.h"
+#include "ShapeUtils.h"
 
+#include <tuple>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
-template < unsigned int old_max_verts, unsigned int new_max_verts >
-detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
-    {
-    // restricting this cast from small arrays to larger ones ok because it can not invalidate
-    // any of the data. The otherway is not true and I don't want to worry about that
-    // right now.
-    #if  old_max_verts > new_max_verts
-        #error "must cast to a larger number of vertices"
-    #endif
-
-    // All data guaranteed to be valid because of static_assert above
-    detail::poly3d_verts<new_max_verts> verts;
-    verts.N = old_verts.N;
-    verts.diameter = old_verts.diameter;
-    verts.sweep_radius = old_verts.sweep_radius;
-    verts.ignore = old_verts.ignore;
-
-    // initialize because we have observed strange behaviour if we don't.
-    for (unsigned int i = 0; i < new_max_verts; i++)
-        {
-        if( i < old_verts.N )
-            {
-                verts.x[i] = old_verts.x[i];
-                verts.y[i] = old_verts.y[i];
-                verts.z[i] = old_verts.z[i];
-            }
-        else
-            {
-            verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-            }
-        }
-
-    return verts;
-    }
+// template < unsigned int old_max_verts, unsigned int new_max_verts >
+// detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
+//     {
+//     // restricting this cast from small arrays to larger ones ok because it can not invalidate
+//     // any of the data. The otherway is not true and I don't want to worry about that
+//     // right now.
+//     #if  old_max_verts > new_max_verts
+//         #error "must cast to a larger number of vertices"
+//     #endif
+//
+//     // All data guaranteed to be valid because of static_assert above
+//     detail::poly3d_verts<new_max_verts> verts;
+//     verts.N = old_verts.N;
+//     verts.diameter = old_verts.diameter;
+//     verts.sweep_radius = old_verts.sweep_radius;
+//     verts.ignore = old_verts.ignore;
+//
+//     // initialize because we have observed strange behaviour if we don't.
+//     for (unsigned int i = 0; i < new_max_verts; i++)
+//         {
+//         if( i < old_verts.N )
+//             {
+//                 verts.x[i] = old_verts.x[i];
+//                 verts.y[i] = old_verts.y[i];
+//                 verts.z[i] = old_verts.z[i];
+//             }
+//         else
+//             {
+//             verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
+//             }
+//         }
+//
+//     return verts;
+//     }
 
 struct SphereWall
     {
@@ -79,7 +82,7 @@ struct SphereWall
     OverlapReal          rsq;
     bool            inside;
     vec3<OverlapReal>    origin;
-    boost::shared_ptr<detail::poly3d_verts<1> >    verts;
+    std::shared_ptr<detail::poly3d_verts<1> >    verts;
     };
 
 struct CylinderWall
@@ -124,7 +127,7 @@ struct CylinderWall
     bool            inside;
     vec3<OverlapReal>    origin;         // center of cylinder.
     vec3<OverlapReal>    orientation;    // (normal) vector pointing in direction of long axis of cylinder (sign of vector has no meaning)
-    boost::shared_ptr<detail::poly3d_verts<2> >    verts;
+    std::shared_ptr<detail::poly3d_verts<2> >    verts;
     };
 
 struct PlaneWall
@@ -384,7 +387,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
     {
         using Compute::m_pdata;
     public:
-        ExternalFieldWall(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<IntegratorHPMCMono<Shape> > mc) : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
+        ExternalFieldWall(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<IntegratorHPMCMono<Shape> > mc) : ExternalFieldMono<Shape>(sysdef), m_mc(mc)
           {
           m_box = m_pdata->getGlobalBox();
           //! scale the container walls every time the box changes
@@ -490,54 +493,54 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             m_box = newBox;
             }
 
-        boost::tuple<OverlapReal, vec3<OverlapReal>, bool> GetSphereWallParameters(size_t index)
+        std::tuple<OverlapReal, vec3<OverlapReal>, bool> GetSphereWallParameters(size_t index)
             {
             SphereWall w = GetSphereWall(index);
-            return boost::make_tuple(w.rsq, w.origin, w.inside);
+            return std::make_tuple(w.rsq, w.origin, w.inside);
             }
 
-        boost::python::tuple GetSphereWallParametersPy(size_t index)
+        pybind11::tuple GetSphereWallParametersPy(size_t index)
             {
             OverlapReal rsq; vec3<OverlapReal> origin; bool inside;
-            boost::python::list pyorigin;
-            boost::tuple<OverlapReal, vec3<OverlapReal>, bool> t = GetSphereWallParameters(index);
-            boost::tie(rsq, origin, inside) = t;
-            pyorigin.append(origin.x); pyorigin.append(origin.y); pyorigin.append(origin.z);
-            return boost::python::make_tuple(rsq, pyorigin, inside);
+            pybind11::list pyorigin;
+            std::tuple<OverlapReal, vec3<OverlapReal>, bool> t = GetSphereWallParameters(index);
+            std::tie(rsq, origin, inside) = t;
+            pyorigin.append(pybind11::cast(origin.x)); pyorigin.append(pybind11::cast(origin.y)); pyorigin.append(pybind11::cast(origin.z));
+            return pybind11::make_tuple(rsq, pyorigin, inside);
             }
 
-        boost::tuple<OverlapReal, vec3<OverlapReal>, vec3<OverlapReal>, bool> GetCylinderWallParameters(size_t index)
+        std::tuple<OverlapReal, vec3<OverlapReal>, vec3<OverlapReal>, bool> GetCylinderWallParameters(size_t index)
             {
             CylinderWall w = GetCylinderWall(index);
-            return boost::make_tuple(w.rsq, w.origin, w.orientation, w.inside);
+            return std::make_tuple(w.rsq, w.origin, w.orientation, w.inside);
             }
 
-        boost::python::tuple GetCylinderWallParametersPy(size_t index)
+        pybind11::tuple GetCylinderWallParametersPy(size_t index)
             {
             OverlapReal rsq; vec3<OverlapReal> origin; vec3<OverlapReal> orientation; bool inside;
-            boost::python::list pyorigin; boost::python::list pyorientation;
-            boost::tuple<OverlapReal, vec3<OverlapReal>, vec3<OverlapReal>, bool> t = GetCylinderWallParameters(index);
-            boost::tie(rsq, origin, orientation, inside) = t;
-            pyorigin.append(origin.x); pyorigin.append(origin.y); pyorigin.append(origin.z);
-            pyorientation.append(orientation.x); pyorientation.append(orientation.y); pyorientation.append(orientation.z);
-            return boost::python::make_tuple(rsq, pyorigin, pyorientation, inside);
+            pybind11::list pyorigin; pybind11::list pyorientation;
+            std::tuple<OverlapReal, vec3<OverlapReal>, vec3<OverlapReal>, bool> t = GetCylinderWallParameters(index);
+            std::tie(rsq, origin, orientation, inside) = t;
+            pyorigin.append(pybind11::cast(origin.x)); pyorigin.append(pybind11::cast(origin.y)); pyorigin.append(pybind11::cast(origin.z));
+            pyorientation.append(pybind11::cast(orientation.x)); pyorientation.append(pybind11::cast(orientation.y)); pyorientation.append(pybind11::cast(orientation.z));
+            return pybind11::make_tuple(rsq, pyorigin, pyorientation, inside);
             }
 
-        boost::tuple<vec3<OverlapReal>, vec3<OverlapReal> > GetPlaneWallParameters(size_t index)
+        std::tuple<vec3<OverlapReal>, vec3<OverlapReal> > GetPlaneWallParameters(size_t index)
             {
             PlaneWall w = GetPlaneWall(index);
-            return boost::make_tuple(w.normal, w.origin);
+            return std::make_tuple(w.normal, w.origin);
             }
 
-        boost::python::tuple GetPlaneWallParametersPy(size_t index)
+        pybind11::tuple GetPlaneWallParametersPy(size_t index)
             {
             vec3<OverlapReal> normal; vec3<OverlapReal> origin;
-            boost::python::list pynormal; boost::python::list pyorigin;
-            boost::tuple<vec3<OverlapReal>, vec3<OverlapReal> > t = GetPlaneWallParameters(index);
-            boost::tie(normal, origin) = t;
-            pynormal.append(normal.x); pynormal.append(normal.y); pynormal.append(normal.z);
-            pyorigin.append(origin.x); pyorigin.append(origin.y); pyorigin.append(origin.z);
-            return boost::python::make_tuple(pynormal, pyorigin);
+            pybind11::list pynormal; pybind11::list pyorigin;
+            std::tuple<vec3<OverlapReal>, vec3<OverlapReal> > t = GetPlaneWallParameters(index);
+            std::tie(normal, origin) = t;
+            pynormal.append(pybind11::cast(normal.x)); pynormal.append(pybind11::cast(normal.y)); pynormal.append(pybind11::cast(normal.z));
+            pyorigin.append(pybind11::cast(origin.x)); pyorigin.append(pybind11::cast(origin.y)); pyorigin.append(pybind11::cast(origin.z));
+            return pybind11::make_tuple(pynormal, pyorigin);
             }
 
         const std::vector<SphereWall>& GetSphereWalls()
@@ -781,16 +784,18 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         std::vector<std::string>    m_CylinderLogQuantities;
         Scalar                      m_Volume;
     private:
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
         boost::signals2::connection                   m_boxchange_connection; //!< connection to the ParticleData box change signal
         BoxDim                                        m_box; //!< the current box
     };
 
+
+
 template<class Shape>
-void export_ExternalFieldWall(const std::string& name)
+void export_ExternalFieldWall(pybind11::module& m, const std::string& name)
 {
-    class_< ExternalFieldWall<Shape>, boost::shared_ptr< ExternalFieldWall<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> > >())
+   pybind11::class_< ExternalFieldWall<Shape>, std::shared_ptr< ExternalFieldWall<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> > >())
     .def("SetSphereWallParameter", &ExternalFieldWall<Shape>::SetSphereWallParameter)
     .def("SetCylinderWallParameter", &ExternalFieldWall<Shape>::SetCylinderWallParameter)
     .def("SetPlaneWallParameter", &ExternalFieldWall<Shape>::SetPlaneWallParameter)

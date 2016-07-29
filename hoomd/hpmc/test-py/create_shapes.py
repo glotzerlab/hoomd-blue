@@ -326,7 +326,7 @@ class sphinx_test(unittest.TestCase):
 
         self.mc = hpmc.integrate.sphinx(seed=10);
         self.mc.shape_param.set('A', diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
-			               colors=['ff','ffff00','ffff00']);
+                           colors=['ff','ffff00','ffff00']);
 
         context.current.sorter.set_params(grid=8)
 

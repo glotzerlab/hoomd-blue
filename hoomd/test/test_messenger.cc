@@ -13,37 +13,38 @@
 #include "hoomd/Messenger.h"
 
 using namespace std;
-using namespace boost;
+
 
 /*! \file test_messenger.cc
     \brief Unit test for Messenger
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE MessengerTests
-#include "boost_utf_configure.h"
 
-BOOST_AUTO_TEST_CASE( Messenger_basic )
+#include "upp11_config.h"
+HOOMD_UP_MAIN();
+
+
+UP_TEST( Messenger_basic )
     {
     Messenger msg;
 
     // check that the default streams are set as documented
-    BOOST_CHECK_EQUAL(&(msg.error()), &cerr);
-    BOOST_CHECK_EQUAL(&(msg.warning()), &cerr);
-    BOOST_CHECK_EQUAL(msg.getNoticeLevel(), (unsigned int)2);
-    BOOST_CHECK_EQUAL(&(msg.notice(0)), &cout);
-    BOOST_CHECK_EQUAL(&(msg.notice(1)), &cout);
-    BOOST_CHECK_EQUAL(&(msg.notice(2)), &cout);
-    BOOST_CHECK_EQUAL(&(msg.notice(3)), &(msg.getNullStream()));
+    UP_ASSERT_EQUAL(&(msg.error()), &cerr);
+    UP_ASSERT_EQUAL(&(msg.warning()), &cerr);
+    UP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)2);
+    UP_ASSERT_EQUAL(&(msg.notice(0)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(1)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(2)), &cout);
+    UP_ASSERT_EQUAL(&(msg.notice(3)), &(msg.getNullStream()));
     cout << endl;
 
     msg.setNoticeLevel(10);
-    BOOST_CHECK_EQUAL(msg.getNoticeLevel(), (unsigned int)10);
+    UP_ASSERT_EQUAL(msg.getNoticeLevel(), (unsigned int)10);
     }
 
 
-BOOST_AUTO_TEST_CASE( Messenger_print )
+UP_TEST( Messenger_print )
     {
     Messenger msg;
 
@@ -56,7 +57,7 @@ BOOST_AUTO_TEST_CASE( Messenger_print )
     msg.notice(1) << "Notice level 1" << endl;
     }
 
-BOOST_AUTO_TEST_CASE( Messenger_null )
+UP_TEST( Messenger_null )
     {
     Messenger msg;
 
@@ -74,41 +75,41 @@ BOOST_AUTO_TEST_CASE( Messenger_null )
     msg.notice(1) << "But this one should not" << endl;
     }
 
-BOOST_AUTO_TEST_CASE( Messenger_prefix )
+UP_TEST( Messenger_prefix )
     {
     Messenger msg;
 
     // check that set/get work on prefixes
     msg.setErrorPrefix("err");
-    BOOST_CHECK_EQUAL(msg.getErrorPrefix(), string("err"));
+    UP_ASSERT_EQUAL(msg.getErrorPrefix(), string("err"));
     msg.setWarningPrefix("warn");
-    BOOST_CHECK_EQUAL(msg.getWarningPrefix(), string("warn"));
+    UP_ASSERT_EQUAL(msg.getWarningPrefix(), string("warn"));
     msg.setNoticePrefix("note");
-    BOOST_CHECK_EQUAL(msg.getNoticePrefix(), string("note"));
+    UP_ASSERT_EQUAL(msg.getNoticePrefix(), string("note"));
 
     ostringstream strm;
     // check that the prefixes are used properly
     msg.setErrorStream(strm);
     msg.error() << "message";
-    BOOST_CHECK_EQUAL(strm.str(), string("err: message"));
+    UP_ASSERT_EQUAL(strm.str(), string("err: message"));
 
     strm.str("");
     msg.setWarningStream(strm);
     msg.warning() << "message";
-    BOOST_CHECK_EQUAL(strm.str(), string("warn: message"));
+    UP_ASSERT_EQUAL(strm.str(), string("warn: message"));
 
     strm.str("");
     msg.setNoticeStream(strm);
     msg.notice(1) << "message";
-    BOOST_CHECK_EQUAL(strm.str(), string("message"));
+    UP_ASSERT_EQUAL(strm.str(), string("message"));
 
     strm.str("");
     msg.setNoticeStream(strm);
     msg.notice(5) << "message";
-    BOOST_CHECK_EQUAL(strm.str(), string(""));
+    UP_ASSERT_EQUAL(strm.str(), string(""));
     msg.setNoticeLevel(5);
     msg.notice(5) << "message";
-    BOOST_CHECK_EQUAL(strm.str(), string("note(5): message"));
+    UP_ASSERT_EQUAL(strm.str(), string("note(5): message"));
 
     // try copying a messenger and make sure that it still works
     strm.str("");
@@ -119,10 +120,10 @@ BOOST_AUTO_TEST_CASE( Messenger_prefix )
     msg2.notice(1) << "3" << endl;
     msg2.notice(5) << "4" << endl;
     msg2.notice(6) << "5" << endl;
-    BOOST_CHECK_EQUAL(strm.str(), string("err: 1\nwarn: 2\n3\nnote(5): 4\n"));
+    UP_ASSERT_EQUAL(strm.str(), string("err: 1\nwarn: 2\n3\nnote(5): 4\n"));
     }
 
-BOOST_AUTO_TEST_CASE( Messenger_file )
+UP_TEST( Messenger_file )
     {
     // scope the messengers so that the file is closed and written
         {
@@ -148,27 +149,27 @@ BOOST_AUTO_TEST_CASE( Messenger_file )
         }
 
     // make sure the file was created
-    BOOST_REQUIRE(filesystem::exists("test_messenger_output"));
+    UP_ASSERT(filesystem::exists("test_messenger_output"));
 
     // read in the file and make sure correct data was written
     ifstream f("test_messenger_output");
     string line;
 
     getline(f, line);
-    BOOST_CHECK_EQUAL(line, "err: Error 1");
-    BOOST_REQUIRE(!f.bad());
+    UP_ASSERT_EQUAL(line, "err: Error 1");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    BOOST_CHECK_EQUAL(line, "warn: Warning 2");
-    BOOST_REQUIRE(!f.bad());
+    UP_ASSERT_EQUAL(line, "warn: Warning 2");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    BOOST_CHECK_EQUAL(line, "Notice 3");
-    BOOST_REQUIRE(!f.bad());
+    UP_ASSERT_EQUAL(line, "Notice 3");
+    UP_ASSERT(!f.bad());
 
     getline(f, line);
-    BOOST_CHECK_EQUAL(line, "note(5): Notice 4");
-    BOOST_REQUIRE(!f.bad());
+    UP_ASSERT_EQUAL(line, "note(5): Notice 4");
+    UP_ASSERT(!f.bad());
     f.close();
 
     unlink("test_messenger_output");

@@ -30,16 +30,20 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 
+#include "ShapeUtils.h"
+#include "ShapeMoves.h"
+#include "UpdaterShape.h"
+
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
 
-using namespace boost::python;
+
+
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,27 +52,38 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_convex_polyhedron16()
+void export_convex_polyhedron16(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoConvexPolyhedron16");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoImplicitConvexPolyhedron16");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeConvexPolyhedron16");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<16> >("AnalyzerSDFConvexPolyhedron16");
-    export_UpdaterMuVT< ShapeConvexPolyhedron<16> >("UpdaterMuVTConvexPolyhedron16");
-    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron<16> >("UpdaterMuVTImplicitConvexPolyhedron16");
+    export_IntegratorHPMCMono< ShapeConvexPolyhedron<16> >(m, "IntegratorHPMCMonoConvexPolyhedron16");
+    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<16> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedron16");
+    export_ComputeFreeVolume< ShapeConvexPolyhedron<16> >(m, "ComputeFreeVolumeConvexPolyhedron16");
+    export_AnalyzerSDF< ShapeConvexPolyhedron<16> >(m, "AnalyzerSDFConvexPolyhedron16");
+    export_UpdaterMuVT< ShapeConvexPolyhedron<16> >(m, "UpdaterMuVTConvexPolyhedron16");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron<16> >(m, "UpdaterMuVTImplicitConvexPolyhedron16");
 
-    export_ExternalFieldInterface<ShapeConvexPolyhedron<16> >("ExternalFieldConvexPolyhedron16");
-    export_LatticeField<ShapeConvexPolyhedron<16> >("ExternalFieldLatticeConvexPolyhedron16");
-    export_ExternalFieldComposite<ShapeConvexPolyhedron<16> >("ExternalFieldCompositeConvexPolyhedron16");
-    export_RemoveDriftUpdater<ShapeConvexPolyhedron<16> >("RemoveDriftUpdaterConvexPolyhedron16");
-    export_ExternalFieldWall<ShapeConvexPolyhedron<16> >("WallConvexPolyhedron16");
-    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<16> >("UpdaterExternalFieldWallConvexPolyhedron16");
+    export_ExternalFieldInterface<ShapeConvexPolyhedron<16> >(m, "ExternalFieldConvexPolyhedron16");
+    export_LatticeField<ShapeConvexPolyhedron<16> >(m, "ExternalFieldLatticeConvexPolyhedron16");
+    export_ExternalFieldComposite<ShapeConvexPolyhedron<16> >(m, "ExternalFieldCompositeConvexPolyhedron16");
+    export_RemoveDriftUpdater<ShapeConvexPolyhedron<16> >(m, "RemoveDriftUpdaterConvexPolyhedron16");
+    export_ExternalFieldWall<ShapeConvexPolyhedron<16> >(m, "WallConvexPolyhedron16");
+    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<16> >(m, "UpdaterExternalFieldWallConvexPolyhedron16");
+
+    export_massProperties< ShapeConvexPolyhedron<16> >(m, "MassPropertiesConvexPolyhedron16");
+    export_ShapeMoveInterface< ShapeConvexPolyhedron<16> >(m, "ShapeMoveConvexPolyhedron16");
+    export_ShapeLogBoltzmann< ShapeConvexPolyhedron<16> >(m, "LogBoltzmannConvexPolyhedron16");
+    export_ScaleShearShapeMove< ShapeConvexPolyhedron<16> >(m, "ScaleShearShapeMoveConvexPolyhedron16");
+    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<16> >(m, "ShapeSpringLogBoltzmannPolyhedron16");
+    export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<16> >(m, "AlchemyLogBoltzmannConvexPolyhedron16");
+    export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<16> >(m, "GeneralizedShapeMoveConvexPolyhedron16");
+    export_UpdaterShape< ShapeConvexPolyhedron<16> >(m, "UpdaterShapeConvexPolyhedron16");
+    export_PythonShapeMove< ShapeConvexPolyhedron<16> >(m, "PythonShapeMoveConvexPolyhedron16");
+    export_ConstantShapeMove< ShapeConvexPolyhedron<16> >(m, "ConstantShapeMoveConvexPolyhedron16");
 
     #ifdef ENABLE_CUDA
 
-    export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoGPUConvexPolyhedron16");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<16> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron16");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<16> >("ComputeFreeVolumeGPUConvexPolyhedron16");
+    export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<16> >(m, "IntegratorHPMCMonoGPUConvexPolyhedron16");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<16> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedron16");
+    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<16> >(m, "ComputeFreeVolumeGPUConvexPolyhedron16");
 
     #endif
     }

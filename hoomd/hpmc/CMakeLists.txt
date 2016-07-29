@@ -26,6 +26,8 @@ set(_hpmc_sources   module.cc
                     module_convex_spheropolyhedron32.cc
                     module_convex_spheropolyhedron64.cc
                     module_convex_spheropolyhedron128.cc
+                    module_updater_shape.cc
+                    ShapeUtils.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )
