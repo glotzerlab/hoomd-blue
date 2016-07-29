@@ -36,7 +36,6 @@
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/stl.h>
 #endif
 
 namespace hpmc
@@ -1162,7 +1161,16 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     return overlap_map;
     }
 
-
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
+    {
+    pybind11::list overlap_map = pybind11::cast<pybind11::list>(IntegratorHPMCMono<Shape>::mapOverlaps());
+    return overlap_map;
+    }
 
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
@@ -1174,7 +1182,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           ;
     }
 
