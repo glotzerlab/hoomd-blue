@@ -14,7 +14,7 @@ if ((BOOST_ROOT OR NOT $ENV{BOOST_ROOT} STREQUAL "") OR NOT $ENV{BOOSTROOT} STRE
     set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-set(REQUIRED_BOOST_COMPONENTS signals serialization)
+set(REQUIRED_BOOST_COMPONENTS)
 
 message(STATUS "First attempt to find boost, it's OK if it fails")
 # first, see if we can get any supported version of Boost
