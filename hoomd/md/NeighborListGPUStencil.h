@@ -75,7 +75,7 @@ class NeighborListGPUStencil : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list

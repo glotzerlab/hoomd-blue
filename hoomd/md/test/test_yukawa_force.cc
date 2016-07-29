@@ -19,7 +19,11 @@
 #include <math.h>
 
 using namespace std;
+<<<<<<< HEAD
 using namespace std::placeholders;
+=======
+
+>>>>>>> origin/master
 
 /*! \file yukawa_force_test.cc
     \brief Implements unit tests for PotentialPairYukawa and descendants
@@ -228,7 +232,7 @@ std::shared_ptr<PotentialPairYukawaGPU> gpu_yukawa_creator(std::shared_ptr<Syste
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( YukawaForce_particle )
     {
     yukawaforce_creator yukawa_creator_base = bind(base_class_yukawa_creator, _1, _2);
@@ -236,14 +240,14 @@ UP_TEST( YukawaForce_particle )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( YukawaForceGPU_particle )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
     yukawa_force_particle_test(yukawa_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( YukawaForceGPU_compare )
     {
     yukawaforce_creator yukawa_creator_gpu = bind(gpu_yukawa_creator, _1, _2);
@@ -254,4 +258,3 @@ UP_TEST( YukawaForceGPU_compare )
     }
 
 #endif
-                          

@@ -84,7 +84,6 @@ typedef std::bitset<32> CommFlags;
 //! Perform a bitwise or operation on the return values of several signals
 struct comm_flags_bitwise_or
     {
-    //! This is needed by boost::signals
     typedef CommFlags result_type;
 
     //! Combine return values using logical or

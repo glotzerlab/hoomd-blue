@@ -18,7 +18,11 @@
 #include <math.h>
 
 using namespace std;
+<<<<<<< HEAD
 using namespace std::placeholders;
+=======
+
+>>>>>>> origin/master
 
 /*! \file shiftedlj_force_test.cc
     \brief Implements unit tests for PotentialPairSLJ and descendants
@@ -406,14 +410,14 @@ std::shared_ptr<PotentialPairSLJ> gpu_shiftedlj_creator(std::shared_ptr<SystemDe
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( SLJForce_particle )
     {
     shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
     shiftedlj_force_particle_test(shiftedlj_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for periodic test on CPU
+//! test case for periodic test on CPU
 UP_TEST( SLJForce_periodic )
     {
     shiftedljforce_creator shiftedlj_creator_base = bind(base_class_shiftedlj_creator, _1, _2);
@@ -422,7 +426,7 @@ UP_TEST( SLJForce_periodic )
 
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on CPU - threaded
+//! test case for particle test on CPU - threaded
 UP_TEST( SLJForceGPU_particle )
     {
     shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
@@ -430,14 +434,14 @@ UP_TEST( SLJForceGPU_particle )
     }
 
 
-//! boost test case for periodic test on the GPU
+//! test case for periodic test on the GPU
 UP_TEST( SLJForceGPU_periodic )
     {
     shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
     shiftedlj_force_periodic_test(shiftedlj_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( SLJForceGPU_compare )
     {
     shiftedljforce_creator shiftedlj_creator_gpu = bind(gpu_shiftedlj_creator, _1, _2);
@@ -448,4 +452,3 @@ UP_TEST( SLJForceGPU_compare )
     }
 
 #endif
-              

@@ -9,9 +9,7 @@ HOOMD_UP_MAIN();
 #include <iostream>
 #include <algorithm>
 
-#include <functional>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <memory>
 
 
 #include "hoomd/VectorMath.h"

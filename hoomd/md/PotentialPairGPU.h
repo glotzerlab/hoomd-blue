@@ -80,7 +80,7 @@ class PotentialPairGPU : public PotentialPair<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_param;                       //!< Kernel tuning parameter
 
         //! Actually compute the forces

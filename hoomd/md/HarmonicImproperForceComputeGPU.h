@@ -56,7 +56,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size
         GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU (k,chi)
 
         //! Actually compute the forces
