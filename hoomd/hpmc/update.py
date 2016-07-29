@@ -1,7 +1,9 @@
 # Copyright (c) 2009-2016 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+R""" HPMC updaters.
 
-""" HPMC updaters.
+Defines new ensembles and updaters to HPMC specifc data structures
+
 """
 
 from . import _hpmc
@@ -736,8 +738,12 @@ class remove_drift(_updater):
         self.setupUpdater(period);
 
 class shape_update(_updater):
-    R""" Apply shape updates to the shape definitions defined in the integrator.
-         (mainly for internal use)
+    R"""
+    Apply shape updates to the shape definitions defined in the integrator. This class should not be instaianted directly
+    but the alchemy and elastic_shapes classes can be. Each updater defines a specific statistical ensemble. See the different
+    updaters for documentaion on the specific acceptance criteria and examples.
+
+    Right now the shape move will update the shape definitions for every type.
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): HPMC integrator object for system on which to apply box updates
@@ -752,9 +758,15 @@ class shape_update(_updater):
         setup_callback (function): will override the default pos callback. will be called everytime the pos file is written
         nselect (int): number of types to change every time the updater is called.
 
-    Example::
-        mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
-        shape_up = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
+        Only one of the Monte Carlo move types are applied to evolve the particle shape definition. By default, no moves are applied.
+        Activate desired move types using the following methods.
+
+        - :py:meth:`python_shape_move` - supply a python call back that will take a list of parameters between 0 and 1 and return a shape param object.
+        - :py:meth:`vertex_shape_move` - make changes to the the vertices of the shape definition. Currently only defined for convex polyhedra.
+        - :py:meth:`constant_shape_move` - make a single move to a shape i.e. shape_old -> shape_new. Useful when pretend is set to True.
+        - :py:meth:`scale_shear_shape_move` - scale and shear the particle definitions. Currently only defined for ellipsoids and convex polyhedra.
+
+        See the documentation for the individual moves for more usage information.
 
     """
     def __init__(   self,
@@ -769,7 +781,7 @@ class shape_update(_updater):
                     pos_callback=None,
                     nselect=1):
         _updater.__init__(self);
-        
+
         cls = None;
         if isinstance(mc, integrate.sphere):
             cls = _hpmc.UpdaterShapeSphere;
@@ -825,6 +837,36 @@ class shape_update(_updater):
         self.setupUpdater(period, phase);
 
     def python_shape_move(self, callback, params, stepsize, param_ratio):
+        R"""
+        Enable python shape move and set parameters. All python shape moves must
+        be callable object that take a single list of parameters between 0 and 1 as
+        the call arguments and returns a shape parameter definition.
+
+        Args:
+            callback (callable object): The python function that will be called each update.
+            params (dict): dictionary of types and the corresponding list parameters ({'A' : [1.0], 'B': [0.0]})
+            stepsize (float): step size in parameter space.
+            param_ratio (float): average fraction of parameters to change each update
+
+        Note:
+            Parameters must be given for every particle type. Shape move should rescale the particle to have constnt
+            volume if necessary/desired.
+
+        Example::
+            # example callback
+            class convex_polyhedron_callback:
+                def __init__(self, mc):
+                    self.mc = mc;
+                def __call__(self, params):
+                    # do something with params and define verts
+                    return self.mc.shape_class.make_param(vertices=verts);
+
+            shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
+            shape_up.python_shape_move( callback=convex_polyhedron_callback(mc),
+                                        params={'A': [0.5, 0.5]},
+                                        stepsize=0.001,
+                                        param_ratio=0.5)
+        """
         hoomd.util.print_status_line();
         if(self.move_cpp):
             hoomd.context.msg.error("update.shape_update.python_shape_move: Cannot change the move once initialized.\n");
@@ -868,7 +910,23 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, callback, param_list, stepsize_list, float(param_ratio));
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def vertex_shape_move(self, stepsize=0.01, mixratio=0.25, volume=1.0):
+    def vertex_shape_move(self, stepsize, param_ratio, volume=1.0):
+        R"""
+        Enable vertex shape move and set parameters. Changes a particle shape by
+        translating vertices and rescaling to have constant volume. The shape definition
+        corresponds to the convex hull of the vertices.
+
+        Args:
+            volume (float): volume of the particles to hold constant
+            stepsize (float): stepsize for each
+            param_ratio (float): average fraction of vertices to change each update
+
+        Example::
+            shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
+            shape_up.vertex_shape_move( stepsize=0.001,
+                                        param_ratio=0.25,
+                                        volume=1.0)
+        """
         hoomd.util.print_status_line();
         if(self.move_cpp):
             hoomd.context.msg.error("update.shape_update.vertex_shape_move: Cannot change the move once initialized.\n");
@@ -908,7 +966,26 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, stepsize, mixratio, volume);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def constant_shape_move(self, shape_params):
+    def constant_shape_move(self, **shape_params):
+        R"""
+        Enable constant shape move and set parameters. Changes a particle shape by
+        the same way every time the updater is called. This is useful for calculating
+        a spcific transition probability and derived thermodynamic quantities.
+
+        Args:
+            shape parameters required to define the reference shape. Depends on the
+            integrator.
+
+        Example::
+            shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
+            # convex_polyhedron
+            shape_up.constant_shape_move(vertices=verts)
+            # ellipsoid
+            shape_up.constant_shape_move(a=1, b=1, c=1);
+
+        See Also:
+            :py:mod:`hoomd.hpmc.data` for required shape parameters.
+        """
         hoomd.util.print_status_line();
         if(self.move_cpp):
             hoomd.context.msg.error("update.shape_update.constant_shape_move: Cannot change the move once initialized.\n");
@@ -947,6 +1024,20 @@ class shape_update(_updater):
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def scale_shear_shape_move(self, scale_max, shear_max, move_ratio=0.5):
+        R"""
+        Enable scale and shear shape move and set parameters. Changes a particle shape by
+        scaling the particle and shearing the particle.
+
+        Args:
+            scale_max (float): largest scaling factor used.
+            shear_max (float): largest shearing factor used.
+            move_ratio (float): fraction of scale to shear moves.
+
+        Example::
+            shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
+            # convex_polyhedron
+            shape_up.scale_shear_shape_move(scale_max=0.01, shear_max=0.01)
+        """
         hoomd.util.print_status_line();
         if(self.move_cpp):
             hoomd.context.msg.error("update.shape_update.scale_shear_shape_move: Cannot change the move once initialized.\n");
