@@ -171,7 +171,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual std::vector<bool> mapOverlaps();
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;

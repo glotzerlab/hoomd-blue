@@ -277,7 +277,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             return Scalar(0.0);
             }
