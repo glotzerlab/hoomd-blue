@@ -18,11 +18,7 @@
 #include <math.h>
 
 using namespace std;
-<<<<<<< HEAD
 using namespace std::placeholders;
-=======
-
->>>>>>> origin/master
 
 /*! \file shiftedlj_force_test.cc
     \brief Implements unit tests for PotentialPairSLJ and descendants

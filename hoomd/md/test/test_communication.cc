@@ -31,6 +31,7 @@ HOOMD_UP_MAIN()
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 using namespace std;
+using namespace std::placeholders;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
 typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,

@@ -19,11 +19,8 @@
 #include <math.h>
 
 using namespace std;
-<<<<<<< HEAD
 using namespace std::placeholders;
-=======
 
->>>>>>> origin/master
 
 /*! \file yukawa_force_test.cc
     \brief Implements unit tests for PotentialPairYukawa and descendants
