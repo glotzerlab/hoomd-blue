@@ -7,7 +7,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <functional>
 #include <memory>
 
 #include "hoomd/ComputeThermo.h"

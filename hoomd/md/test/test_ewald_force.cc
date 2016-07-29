@@ -232,7 +232,7 @@ std::shared_ptr<PotentialPairEwaldGPU> gpu_ewald_creator(std::shared_ptr<SystemD
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( EwaldForce_particle )
     {
     ewaldforce_creator ewald_creator_base = bind(base_class_ewald_creator, _1, _2);
@@ -240,14 +240,14 @@ UP_TEST( EwaldForce_particle )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( EwaldForceGPU_particle )
     {
     ewaldforce_creator ewald_creator_gpu = bind(gpu_ewald_creator, _1, _2);
     ewald_force_particle_test(ewald_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( EwaldForceGPU_compare )
     {
     ewaldforce_creator ewald_creator_gpu = bind(gpu_ewald_creator, _1, _2);

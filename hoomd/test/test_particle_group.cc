@@ -19,6 +19,7 @@
 
 using namespace std;
 
+
 #include "upp11_config.h"
 
 HOOMD_UP_MAIN();

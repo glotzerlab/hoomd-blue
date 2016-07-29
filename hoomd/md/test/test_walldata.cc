@@ -14,7 +14,6 @@ HOOMD_UP_MAIN();
 
 #include "hoomd/md/WallData.h"
 
-#include <functional>
 #include <memory>
 #include <cstdlib>
 #include <vector>

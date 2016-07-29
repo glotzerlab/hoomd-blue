@@ -25,11 +25,11 @@
 #include <sstream>
 #include <vector>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/vector.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/archives/binary.hpp>
 
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
@@ -39,11 +39,9 @@ const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
 #endif
 
-namespace boost
+namespace cereal
    {
     //! Serialization functions for some of our data types
-    namespace serialization
-        {
         //! Serialization of Scalar4
         template<class Archive>
         void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
@@ -98,7 +96,6 @@ namespace boost
             ar & u.y;
             ar & u.z;
             }
-        }
     }
 
 
@@ -114,7 +111,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     if (rank == (int)root)
         {
         std::stringstream s(std::ios_base::out | std::ios_base::binary);
-        boost::archive::binary_oarchive ar(s);
+        cereal::BinaryOutputArchive ar(s);
 
         // serialize object
         ar << val;
@@ -139,7 +136,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
         {
         // de-serialize
         std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
-        boost::archive::binary_iarchive ar(s);
+        cereal::BinaryInputArchive ar(s);
 
         ar >> val;
         }
@@ -175,7 +172,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
             {
             unsigned int idx = it - in_values.begin();
             std::stringstream s(std::ios_base::out | std::ios_base::binary);
-            boost::archive::binary_oarchive ar(s);
+            cereal::BinaryOutputArchive ar(s);
 
             // serialize object
             ar << *it;
@@ -204,7 +201,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
 
     // de-serialize data
     std::stringstream s(std::string(rbuf, recv_count), std::ios_base::in | std::ios_base::binary);
-    boost::archive::binary_iarchive ar(s);
+    cereal::BinaryInputArchive ar(s);
 
     ar >> out_value;
 
@@ -228,7 +225,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
 
     // serialize in_value
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
-    boost::archive::binary_oarchive ar(s);
+    cereal::BinaryOutputArchive ar(s);
 
     ar << in_value;
     s.flush();
@@ -270,7 +267,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         for (unsigned int i = 0; i < out_values.size(); i++)
             {
             std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
-            boost::archive::binary_iarchive ar(s);
+            cereal::BinaryInputArchive ar(s);
 
             ar >> out_values[i];
             }
@@ -292,7 +289,7 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
 
     // serialize in_value
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
-    boost::archive::binary_oarchive ar(s);
+    cereal::BinaryOutputArchive ar(s);
 
     ar << in_value;
     s.flush();
@@ -325,7 +322,7 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     for (unsigned int i = 0; i < out_values.size(); i++)
         {
         std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
-        boost::archive::binary_iarchive ar(s);
+        cereal::BinaryInputArchive ar(s);
 
         ar >> out_values[i];
         }

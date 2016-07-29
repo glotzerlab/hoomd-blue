@@ -23,6 +23,7 @@
 
 using namespace std;
 
+
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 

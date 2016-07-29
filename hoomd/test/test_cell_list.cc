@@ -8,7 +8,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <functional>
 #include <memory>
 
 #include "hoomd/CellList.h"
@@ -141,7 +140,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     CHECK_EQUAL_UINT(cl->getCellAdjArray().getNumElements(), 5*3*10*27);
     }
 
-//! boost test case for cell list dimension test on the CPU
+//! test case for cell list dimension test on the CPU
 UP_TEST( CellList_dimension )
     {
     celllist_dimension_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -222,7 +221,7 @@ void celllist_adj_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     }
 
-//! boost test case for cell list adj test on the CPU
+//! test case for cell list adj test on the CPU
 UP_TEST( CellList_adj )
     {
     celllist_adj_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
@@ -506,14 +505,14 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     }
 
-//! boost test case for celllist_small_test
+//! test case for celllist_small_test
 UP_TEST( CellList_small )
     {
     celllist_small_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for celllist_small_test on the GPU
+//! test case for celllist_small_test on the GPU
 UP_TEST( CellListGPU_small )
     {
     celllist_small_test<CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
@@ -570,14 +569,14 @@ void celllist_large_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         UP_ASSERT(present[p]);
     }
 
-//! boost test case for celllist_large_test
+//! test case for celllist_large_test
 UP_TEST( CellList_large )
     {
     celllist_large_test<CellList>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for celllist_large_test on the GPU
+//! test case for celllist_large_test on the GPU
 UP_TEST( CellListGPU_large )
     {
     celllist_large_test<CellListGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));

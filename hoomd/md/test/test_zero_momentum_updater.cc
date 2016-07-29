@@ -23,7 +23,7 @@ HOOMD_UP_MAIN();
     \ingroup unit_tests
 */
 
-//! boost test case to verify proper operation of ZeroMomentumUpdater
+//! test case to verify proper operation of ZeroMomentumUpdater
 UP_TEST( ZeroMomentumUpdater_basic )
     {
     // create a simple particle data to test with

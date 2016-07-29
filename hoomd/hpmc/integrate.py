@@ -1100,7 +1100,8 @@ class sphinx(mode_hpmc):
         diameters = param.diameters;
         circumsphere_d = param.diameter
 
-        if param.colors is None:
+        colors = param.colors
+        if colors is None:
             # default
             colors = ["005984ff" for c in centers]
 

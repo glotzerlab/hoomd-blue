@@ -522,21 +522,21 @@ std::shared_ptr<CGCMMForceCompute> gpu_cgcmm_creator(std::shared_ptr<SystemDefin
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( CGCMMForce_particle124 )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
     cgcmm_force_particle124_test(cgcmm_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( CGCMMForce_particle96 )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
     cgcmm_force_particle96_test(cgcmm_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for periodic test on CPU
+//! test case for periodic test on CPU
 UP_TEST( CGCMMForce_periodic )
     {
     cgcmmforce_creator cgcmm_creator_base = bind(base_class_cgcmm_creator, _1, _2, _3);
@@ -544,28 +544,28 @@ UP_TEST( CGCMMForce_periodic )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU - threaded
+//! test case for particle test on GPU - threaded
 UP_TEST( CGCMMForceGPU_particle124 )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
     cgcmm_force_particle124_test(cgcmm_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for particle test on GPU - threaded
+//! test case for particle test on GPU - threaded
 UP_TEST( CGCMMForceGPU_particle96 )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
     cgcmm_force_particle96_test(cgcmm_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for periodic test on the GPU
+//! test case for periodic test on the GPU
 UP_TEST( CGCMMForceGPU_periodic )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);
     cgcmm_force_periodic_test(cgcmm_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( CGCMMForceGPU_compare )
     {
     cgcmmforce_creator cgcmm_creator_gpu = bind(gpu_cgcmm_creator, _1, _2, _3);

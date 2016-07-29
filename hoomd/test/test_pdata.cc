@@ -14,13 +14,12 @@
 
 #include <iostream>
 
-#include <functional>
-
 #include "hoomd/ParticleData.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
+
 
 #include "upp11_config.h"
 

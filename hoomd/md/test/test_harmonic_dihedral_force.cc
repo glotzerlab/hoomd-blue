@@ -454,7 +454,7 @@ std::shared_ptr<HarmonicDihedralForceCompute> gpu_tf_creator(std::shared_ptr<Sys
     }
 #endif
 
-//! boost test case for dihedral forces on the CPU
+//! test case for dihedral forces on the CPU
 UP_TEST( HarmonicDihedralForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -463,7 +463,7 @@ UP_TEST( HarmonicDihedralForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for dihedral forces on the GPU
+//! test case for dihedral forces on the GPU
 UP_TEST( HarmonicDihedralForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -471,7 +471,7 @@ UP_TEST( HarmonicDihedralForceComputeGPU_basic )
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( HarmonicDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
@@ -479,7 +479,7 @@ UP_TEST( HarmonicDihedralForceComputeGPU_compare )
     dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing calculation on the CPU to multi-gpu ones
+//! test case for comparing calculation on the CPU to multi-gpu ones
 UP_TEST( HarmonicDihedralForce_MultiGPU_compare)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));

@@ -184,7 +184,7 @@ std::shared_ptr<PotentialExternalPeriodic> gpu_periodic_creator(std::shared_ptr<
     }
 #endif
 
-//! boost test case for particle test on CPU
+//! test case for particle test on CPU
 UP_TEST( PotentialExternalPeriodic_particle )
     {
     periodicforce_creator periodic_creator_base = bind(base_class_periodic_creator, _1);
@@ -192,7 +192,7 @@ UP_TEST( PotentialExternalPeriodic_particle )
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
+//! test case for particle test on GPU
 UP_TEST( PotentialExternalLamellaGPU_particle )
     {
     periodicforce_creator periodic_creator_gpu = bind(gpu_periodic_creator, _1);
@@ -200,7 +200,7 @@ UP_TEST( PotentialExternalLamellaGPU_particle )
     }
 
 /*
-//! boost test case for comparing GPU output to base class output
+//! test case for comparing GPU output to base class output
 UP_TEST( LJForceGPU_compare )
     {
     ljforce_creator lj_creator_gpu = bind(gpu_lj_creator, _1, _2);

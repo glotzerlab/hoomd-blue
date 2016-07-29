@@ -8,7 +8,6 @@
 #include <iostream>
 #include <algorithm>
 
-#include <functional>
 #include <memory>
 
 #include "hoomd/md/NeighborList.h"

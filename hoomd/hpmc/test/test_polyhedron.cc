@@ -13,9 +13,7 @@ HOOMD_UP_MAIN();
 #include <iostream>
 #include <string>
 
-#include <functional>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <functional>
 #include <memory>
 
 using namespace hpmc;

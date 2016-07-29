@@ -528,7 +528,7 @@ std::shared_ptr<OPLSDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemD
     }
 #endif
 
-//! boost test case for dihedral forces on the CPU
+//! test case for dihedral forces on the CPU
 UP_TEST( OPLSDihedralForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -537,7 +537,7 @@ UP_TEST( OPLSDihedralForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for dihedral forces on the GPU
+//! test case for dihedral forces on the GPU
 UP_TEST( OPLSDihedralForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -545,7 +545,7 @@ UP_TEST( OPLSDihedralForceComputeGPU_basic )
     dihedral_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( OPLSDihedralForceComputeGPU_compare )
     {
     dihedralforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);
@@ -553,7 +553,7 @@ UP_TEST( OPLSDihedralForceComputeGPU_compare )
     dihedral_force_comparison_tests(tf_creator, tf_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing calculation on the CPU to multi-gpu ones
+//! test case for comparing calculation on the CPU to multi-gpu ones
 UP_TEST( OPLSDihedralForce_MultiGPU_compare)
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));

@@ -448,3 +448,4 @@ UP_TEST( SLJForceGPU_compare )
     }
 
 #endif
+              

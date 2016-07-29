@@ -7,7 +7,6 @@
 
 #include <iostream>
 
-#include <functional>
 #include <memory>
 
 #include "hoomd/GPUArray.h"
@@ -29,7 +28,7 @@ using namespace std;
 HOOMD_UP_MAIN();
 
 
-//! boost test case for testing the basic operation of GPUArray
+//! test case for testing the basic operation of GPUArray
 UP_TEST( GPUArray_basic_tests )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
@@ -91,7 +90,7 @@ UP_TEST( GPUArray_basic_tests )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for testing device to/from host transfers
+//! test case for testing device to/from host transfers
 UP_TEST( GPUArray_transfer_tests )
     {
     std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU));

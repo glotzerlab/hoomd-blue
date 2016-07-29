@@ -12,7 +12,6 @@ HOOMD_UP_MAIN();
 
 #include <iostream>
 
-#include <functional>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <functional>
 #include <memory>
@@ -586,5 +585,3 @@ UP_TEST( overlap_special_case )
     UP_ASSERT(test_overlap(r_ab, a,b,err_count));
     UP_ASSERT(test_overlap(-r_ab,a,b,err_count));
     }
-
-

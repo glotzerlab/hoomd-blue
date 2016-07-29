@@ -11,7 +11,6 @@ HOOMD_UP_MAIN();
 
 #include <functional>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <functional>
 #include <memory>
 
 

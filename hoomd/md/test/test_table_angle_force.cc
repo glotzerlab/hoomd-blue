@@ -270,7 +270,7 @@ std::shared_ptr<TableAngleForceCompute> gpu_tf_creator(std::shared_ptr<SystemDef
     }
 #endif
 
-//! boost test case for angle forces on the CPU
+//! test case for angle forces on the CPU
 UP_TEST( TableAngleForceCompute_basic )
     {
     printf(" IN UP_TEST: CPU \n");
@@ -279,7 +279,7 @@ UP_TEST( TableAngleForceCompute_basic )
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for angle forces on the GPU
+//! test case for angle forces on the GPU
 UP_TEST( TableAngleForceComputeGPU_basic )
     {
     printf(" IN UP_TEST: GPU \n");
@@ -287,7 +287,7 @@ UP_TEST( TableAngleForceComputeGPU_basic )
     angle_force_basic_tests(tf_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #if 0
-//! boost test case for comparing bond GPU and CPU BondForceComputes
+//! test case for comparing bond GPU and CPU BondForceComputes
 UP_TEST( TableAngleForceComputeGPU_compare )
     {
     angleforce_creator tf_creator_gpu = bind(gpu_tf_creator, _1);

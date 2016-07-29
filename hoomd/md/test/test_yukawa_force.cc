@@ -254,3 +254,4 @@ UP_TEST( YukawaForceGPU_compare )
     }
 
 #endif
+                          
