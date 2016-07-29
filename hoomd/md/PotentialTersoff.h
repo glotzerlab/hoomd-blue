@@ -156,14 +156,14 @@ PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_pdata->getNumTypesChangeSignal().connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
-    m_pdata->getNumTypesChangeSignal().disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair

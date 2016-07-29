@@ -259,8 +259,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
-    m_pdata->getNumTypesChangeSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
-    m_pdata->getParticleSortSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
+    m_pdata->getNumTypesChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
 
     if (npartition > 1)
         {
@@ -309,8 +309,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 template<class Shape>
 UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
-    m_pdata->getNumTypesChangeSignal().disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
-    m_pdata->getParticleSortSignal().disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
+    m_pdata->getNumTypesChangeSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
     }
 
 template<class Shape>

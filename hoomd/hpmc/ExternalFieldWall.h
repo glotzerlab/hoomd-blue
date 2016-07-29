@@ -390,11 +390,11 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           {
           m_box = m_pdata->getGlobalBox();
           //! scale the container walls every time the box changes
-        //   m_pdata->getBoxChangeSignal().connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
+          m_pdata->getBoxChangeSignal().template connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
           }
         ~ExternalFieldWall()
           {
-        //   m_pdata->getBoxChangeSignal().disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
+          m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this); //TODO: adios_boost
           }
 
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru&)

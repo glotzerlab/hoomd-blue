@@ -89,7 +89,7 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
     m_field.swap(field);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_pdata->getNumTypesChangeSignal().connect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template connect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! Destructor
@@ -97,7 +97,7 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
 template<class evaluator>
 PotentialExternal<evaluator>::~PotentialExternal()
     {
-    m_pdata->getNumTypesChangeSignal().disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! PotentialExternal provides

@@ -49,12 +49,12 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         << endl;
 
     // connect to particle sort signal
-    m_pdata->getParticleSortSignal().connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->getSingleParticleMoveSignal().connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
             &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
@@ -98,7 +98,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
     // connect to particle sort signal
-    m_pdata->getParticleSortSignal().connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
 
     #ifdef ENABLE_CUDA
@@ -115,7 +115,7 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->getSingleParticleMoveSignal().connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
             &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
@@ -125,10 +125,10 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::~BondedGroupData()
     {
-    m_pdata->getParticleSortSignal().disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+    m_pdata->getParticleSortSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
-    m_pdata->getSingleParticleMoveSignal().disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+    m_pdata->getSingleParticleMoveSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
         &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
     #endif
     }

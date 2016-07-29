@@ -175,7 +175,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_ProvidedQuantities.push_back(LATTICE_NUM_SAMPLES_LOG_NAME);
             // Connect to the BoxChange signal
             m_box = m_pdata->getBox();
-            // m_pdata->getBoxChangeSignal().connect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this); //TODO: adios_boost
+            m_pdata->getBoxChangeSignal().template connect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this); //TODO: adios_boost
             setReferences(r0, q0);
 
             std::vector<Scalar4> rots;
@@ -198,7 +198,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 
         ~ExternalFieldLattice()
         {
-            // m_pdata->getBoxChangeSignal().disconnect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this); //TODO: adios_boost
+            m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this); //TODO: adios_boost
         }
 
         Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }

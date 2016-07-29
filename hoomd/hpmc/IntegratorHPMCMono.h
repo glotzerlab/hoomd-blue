@@ -134,8 +134,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             if (m_aabbs != NULL)
                 free(m_aabbs);
-            m_pdata->getBoxChangeSignal().disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
-            m_pdata->getParticleSortSignal().disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
+            m_pdata->getBoxChangeSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+            m_pdata->getParticleSortSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
             }
 
         virtual void printStats();
@@ -305,8 +305,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_params.swap(params);
 
     // Connect to the BoxChange signal
-    m_pdata->getBoxChangeSignal().connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
-    m_pdata->getParticleSortSignal().connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
+    m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+    m_pdata->getParticleSortSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
 
     m_image_list_rebuilds = 0;
     m_image_list_warning_issued = false;
