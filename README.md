@@ -1,5 +1,5 @@
 # HOOMD-blue
-######### this is a private repository. 
+###### this is a private repository. 
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
