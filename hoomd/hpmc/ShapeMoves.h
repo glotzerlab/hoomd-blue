@@ -494,7 +494,7 @@ public:
     ShapeSpring(Scalar k, typename ShapeConvexPolyhedron<max_verts>::param_type ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
         {
         }
-    Scalar operator()(const unsigned int& N, typename ShapeConvexPolyhedron<max_verts>::param_type shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
+    Scalar operator()(const unsigned int& N, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
         {
         AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<max_verts> > fn;
         Scalar U_old = 0.0, U_new = 0.0;

@@ -58,7 +58,7 @@ void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::stri
     {
     pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> > >
     (m, name.c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
-    .def(pybind11::init< Scalar, const typename Shape::param_type& >())
+    .def(pybind11::init< Scalar, typename Shape::param_type >())
     ;
     }
 
