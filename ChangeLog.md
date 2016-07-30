@@ -5,6 +5,7 @@
 ## v2.0.2
 
 * Support CUDA Toolkit 8.0
+* group.rigid()/nonrigid() did not work in MPI simulations
 
 ## v2.0.1
 
