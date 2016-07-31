@@ -2935,10 +2935,13 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
 
                     unsigned int k = j*old_size + i;
 
-                    // wrap into new box
+                    // coordinates in new box
                     Scalar3 q = new_box.makeCoordinates(f_new);
-                    image[k] = make_int3(0,0,0);
-                    new_box.wrap(q,image[k]);
+
+                    // wrap by multiple box vectors if necessary
+                    image[k] = new_box.getImage(q);
+                    int3 negimg = make_int3(-image[k].x, -image[k].y, -image[k].z);
+                    q = new_box.shift(q, negimg);
 
                     pos[k] = vec3<Real>(q);
                     vel[k] = vel[i];
