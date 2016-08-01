@@ -22,8 +22,8 @@ except ImportError:
     lattice = None;
     trianglehedra = None;
 
-from hoomd_script import *
-from hoomd_plugins import hpmc
+import hoomd
+from hoomd import hpmc
 
 # In the following face is assumed to be an array of indices of a triangular face.
 # verts is a numpy array of the vertices
