@@ -261,9 +261,9 @@ class sphinx_test(unittest.TestCase):
         context.initialize()
 
     def test_metadata_dump(self):
-        shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
-                           colors=['ff','ffff00','ffff00'])
+        shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)] )
         self.mc.shape_param.set('A',  **shape_param)
+        self.mc.shape_param['A'].colors=['ff','ffff00','ffff00']
         context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.sphinx', meta_data)
@@ -274,7 +274,7 @@ class sphinx_test(unittest.TestCase):
         for i,center in enumerate(shape_param['centers']):
             for j,c in enumerate(center):
                 self.assertAlmostEqual(meta_data['hoomd.hpmc.integrate.sphinx']['shape_param']['A']['centers'][i][j], c);
-        self.assertEqual(meta_data['hoomd.hpmc.integrate.sphinx']['shape_param']['A']['colors'], shape_param['colors']);
+        self.assertEqual(meta_data['hoomd.hpmc.integrate.sphinx']['shape_param']['A']['colors'], self.mc.shape_param['A'].colors);
 
 
 if __name__ == '__main__':

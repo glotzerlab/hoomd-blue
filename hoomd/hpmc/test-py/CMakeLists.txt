@@ -61,7 +61,7 @@ set(TEST_LIST_CPU
     meta_data.py
     shape_proxy.py
     external_lattice.py
-    test_shape_umtils.py
+    test_shape_utils.py
     )
 
 set(TEST_LIST_GPU

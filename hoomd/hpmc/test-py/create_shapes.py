@@ -9,12 +9,14 @@ context.initialize()
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);
-    return init.read_snapshot(snap);
+    system = init.read_snapshot(snap);
+    return system;
 
 # Tests to ensure that all particle types can be created
 
 class validate_test(unittest.TestCase):
     def setUp(self):
+
         self.system = create_empty(N=2, box=data.boxdim(L=10, dimensions=2), particle_types=['A', 'B'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10);
@@ -325,8 +327,8 @@ class sphinx_test(unittest.TestCase):
         self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.sphinx(seed=10);
-        self.mc.shape_param.set('A', diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
-                           colors=['ff','ffff00','ffff00']);
+        self.mc.shape_param.set('A', diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)]);
+        self.mc.shape_param['A'].colors=['ff','ffff00','ffff00'];
 
         context.current.sorter.set_params(grid=8)
 
