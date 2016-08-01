@@ -323,3 +323,16 @@ option(BUILD_DEM "Build the dem package" on)
 if (BUILD_DEM AND BUILD_MD)
     add_subdirectory(dem)
 endif()
+
+file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
+
+# explicitly remove packages which are already explicitly dealt with
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem)
+
+foreach(entry ${_directory_contents})
+    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+            add_subdirectory(${entry})
+        endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+    endif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+endforeach()
