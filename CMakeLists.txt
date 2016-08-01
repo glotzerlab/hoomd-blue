@@ -137,6 +137,9 @@ endif (BUILD_TESTING)
 ## Process subdirectories
 add_subdirectory (hoomd)
 
+# build the example plugin
+add_subdirectory(example_plugin/example_plugin)
+
 ###############################
 ## include documentation directories
 if (ENABLE_DOXYGEN)
