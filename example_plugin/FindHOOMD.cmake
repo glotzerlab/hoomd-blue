@@ -33,12 +33,12 @@ endif(HOOMD_ROOT)
 
 find_path(FOUND_HOOMD_ROOT
         NAMES _hoomd.so __init__.py
-        HINTS ${hoomd_installation_guess}
+        HINTS ${HOOMD_ROOT} ${hoomd_installation_guess}
         )
 
 if(FOUND_HOOMD_ROOT)
-  message(STATUS "Found hoomd installation at " ${FOUND_HOOMD_ROOT})
-  set(HOOMD_ROOT ${FOUND_HOOMD_ROOT} CACHE FILEPATH "Directory containing a hoomd installation (i.e. _hoomd.so)")
+  set(HOOMD_ROOT ${FOUND_HOOMD_ROOT} CACHE FILEPATH "Directory containing a hoomd installation (i.e. _hoomd.so)" FORCE)
+  message(STATUS "Found hoomd installation at " ${HOOMD_ROOT})
 else(FOUND_HOOMD_ROOT)
   message(FATAL_ERROR "Could not find hoomd installation, either set HOOMD_ROOT or set PYTHON_EXECUTABLE to a python which can find hoomd")
 endif(FOUND_HOOMD_ROOT)

@@ -126,8 +126,6 @@ set(_md_headers ActiveForceComputeGPU.h
                 TablePotentialGPU.h
                 TablePotential.h
                 TempRescaleUpdater.h
-                test/boost_utf_configure.h
-                test/MPITestSetup.h
                 TwoStepBDGPU.h
                 TwoStepBD.h
                 TwoStepBerendsenGPU.h

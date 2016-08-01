@@ -82,7 +82,6 @@ set(cmake_files CMake/hoomd/HOOMDBoostSetup.cmake
                 CMake/hoomd/HOOMDNumpySetup.cmake
                 CMake/hoomd/HOOMDOSSpecificSetup.cmake
                 CMake/hoomd/HOOMDPythonSetup.cmake
-                CMake/mpi/FindMPI.cmake
                 CMake/git/FindGit.cmake
                 CMake/git/GetGitRevisionDescription.cmake
                 CMake/libgetar/Findlibgetar.cmake
@@ -139,7 +138,7 @@ endif (BUILD_TESTING)
 add_subdirectory (hoomd)
 
 # build the example plugin
-add_subdirectory(example_plugin/example_plugin)
+#add_subdirectory(example_plugin/example_plugin)
 
 ###############################
 ## include documentation directories

@@ -62,6 +62,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <hoomd/Updater.h>
 
+// pybind11 is used to create the python bindings to the C++ object,
+// but not if we are compiling GPU kernels
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 // (if you really don't want to include the whole hoomd.h, you can include individual files IF AND ONLY IF
 // hoomd_config.h is included first)
 // For example:
@@ -77,14 +83,14 @@ class ExampleUpdater : public Updater
     {
     public:
         //! Constructor
-        ExampleUpdater(boost::shared_ptr<SystemDefinition> sysdef);
+        ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
     };
 
 //! Export the ExampleUpdater class to python
-void export_ExampleUpdater();
+void export_ExampleUpdater(pybind11::module& m);
 
 // Third, this class offers a GPU accelerated method in order to demonstrate how to include CUDA code in pluins
 // we need to declare a separate class for that (but only if ENABLE_CUDA is set)
@@ -98,14 +104,14 @@ class ExampleUpdaterGPU : public ExampleUpdater
     {
     public:
         //! Constructor
-        ExampleUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
     };
 
 //! Export the ExampleUpdaterGPU class to python
-void export_ExampleUpdaterGPU();
+void export_ExampleUpdaterGPU(pybind11::module& m);
 
 #endif // ENABLE_CUDA
 

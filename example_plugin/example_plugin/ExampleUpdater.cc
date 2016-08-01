@@ -69,7 +69,7 @@ using namespace boost;
 
 /*! \param sysdef System to zero the velocities of
 */
-ExampleUpdater::ExampleUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+ExampleUpdater::ExampleUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
     }
@@ -97,10 +97,12 @@ void ExampleUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_ExampleUpdater()
+/* Export the CPU updater to be visible in the python module
+ */
+void export_ExampleUpdater(pybind11::module& m)
     {
-    class_<ExampleUpdater, boost::shared_ptr<ExampleUpdater>, bases<Updater>, boost::noncopyable>
-    ("ExampleUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    pybind11::class_<ExampleUpdater, std::shared_ptr<ExampleUpdater> >(m, "ExampleUpdater", pybind11::base<Updater>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }
 
@@ -111,7 +113,7 @@ void export_ExampleUpdater()
 
 /*! \param sysdef System to zero the velocities of
 */
-ExampleUpdaterGPU::ExampleUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef)
+ExampleUpdaterGPU::ExampleUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
         : ExampleUpdater(sysdef)
     {
     }
@@ -137,10 +139,12 @@ void ExampleUpdaterGPU::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_ExampleUpdaterGPU()
+/* Export the GPU updater to be visible in the python module
+ */
+void export_ExampleUpdaterGPU(pybind11::module& m)
     {
-    class_<ExampleUpdaterGPU, boost::shared_ptr<ExampleUpdaterGPU>, bases<ExampleUpdater>, boost::noncopyable>
-    ("ExampleUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    pybind11::class_<ExampleUpdaterGPU, std::shared_ptr<ExampleUpdaterGPU> >(m, "ExampleUpdaterGPU", pybind11::base<ExampleUpdater>())
+        .def(pybind11::init<std::shared_ptr<SystemDefinition> >())
     ;
     }
 

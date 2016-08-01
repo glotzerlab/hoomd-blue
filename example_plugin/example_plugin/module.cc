@@ -50,17 +50,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // Include the defined classes that are to be exported to python
 #include "ExampleUpdater.h"
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 // specify the python module. Note that the name must expliclty match the PROJECT() name provided in CMakeLists
 // (with an underscore in front)
-BOOST_PYTHON_MODULE(_example_plugin)
+PYBIND11_PLUGIN(_example_plugin)
     {
-    export_ExampleUpdater();
+    pybind11::module m("_example_plugin");
+    export_ExampleUpdater(m);
 
     #ifdef ENABLE_CUDA
-    export_ExampleUpdaterGPU();
+    export_ExampleUpdaterGPU(m);
     #endif
+
+    return m.ptr();
     }
