@@ -2943,6 +2943,9 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
                     int3 negimg = make_int3(-image[k].x, -image[k].y, -image[k].z);
                     q = new_box.shift(q, negimg);
 
+                    // rewrap using wrap so that rounding is consistent
+                    new_box.wrap(q,image[k]);
+
                     pos[k] = vec3<Real>(q);
                     vel[k] = vel[i];
                     accel[k] = accel[i];
