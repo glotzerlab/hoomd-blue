@@ -48,30 +48,14 @@ class interaction_matrix:
     are checked between all pairs of types. To disable overlap checking for a specific
     type pair, set the coefficient for that pair to 0.
 
-    There are two ways to set the coefficients for a particular type pair.
-    The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
-
-    The second method is to build the :py:class:`interaction_matrix` class first and then assign it to the
-    integrator. There are some advantages to this method in that you could specify a
-    complicated set of pair coefficients in a separate python file and import it into
-    your job script.
-
-    Example (**int_matrix.py**)::
+    Access the interaction matrix with a saved integrator object like so::
 
         from hoomd import hpmc
-        my_matrix = hpmc.integrate.interaction_matrix();
-        my_matrix.set('A', 'A', enable=False)
-        my_matrix.set('A', 'B', enable=True)
-        my_matrix.set('B', 'B', enable=False)
 
-    Example job script::
-
-        from hoomd import hpmc
-        import int_matrix
-
-        .....
         mc = hpmc.integrate.some_shape(arguments...)
-        mc.overlap_checks = int_matrix.my_matrix
+        mv.overlap_checks.set('A', 'A', enable=False)
+        mc.overlap_checks.set('A', 'B', enable=True)
+        mc.overlap_checks.set('B', 'B', enable=False)
 
     """
 
