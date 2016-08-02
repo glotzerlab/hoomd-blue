@@ -13,6 +13,7 @@ Not yet released
 * Fix rare infinite loops when using hpmc.integrate.faceted_sphere
 * Fix hpmc.util.tune to work with more than one tunable
 * Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+* replicate() sometimes did not work when restarting a simulation
 
 ## v2.0.1
 
