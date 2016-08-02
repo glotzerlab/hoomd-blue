@@ -61,6 +61,7 @@ set(TEST_LIST_CPU
     meta_data.py
     shape_proxy.py
     external_lattice.py
+    map_overlap.py
     )
 
 set(TEST_LIST_GPU
@@ -87,6 +88,7 @@ set(EXCLUDE_FROM_MPI
     max_verts.py
     create_shapes.py
     test_sdf.py
+    map_overlap.py
    )
 
 set(MPI_ONLY
