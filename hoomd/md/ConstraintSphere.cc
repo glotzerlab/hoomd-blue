@@ -53,7 +53,7 @@ void ConstraintSphere::setSphere(Scalar3 P, Scalar r)
 */
 unsigned int ConstraintSphere::getNDOFRemoved()
     {
-    return m_group->getNumMembers();
+    return m_group->getNumMembersGlobal();
     }
 
 /*! Computes the specified constraint forces
