@@ -57,6 +57,7 @@ class interaction_matrix:
         mc.overlap_checks.set('A', 'B', enable=True)
         mc.overlap_checks.set('B', 'B', enable=False)
 
+    .. versionadded:: 2.1
     """
 
     ## \internal
@@ -636,6 +637,10 @@ class sphere(mode_hpmc):
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Examples::
 
@@ -715,6 +720,10 @@ class convex_polygon(mode_hpmc):
           don't put the origin right next to an edge).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -784,6 +793,10 @@ class convex_spheropolygon(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Useful cases:
 
@@ -868,6 +881,10 @@ class simple_polygon(mode_hpmc):
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -938,6 +955,10 @@ class polyhedron(mode_hpmc):
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1037,6 +1058,10 @@ class convex_polyhedron(mode_hpmc):
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1135,6 +1160,10 @@ class faceted_sphere(mode_hpmc):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1220,6 +1249,10 @@ class sphinx(mode_hpmc):
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Quick Example::
 
@@ -1316,6 +1349,10 @@ class convex_spheropolyhedron(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1409,6 +1446,10 @@ class ellipsoid(mode_hpmc):
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1478,6 +1519,10 @@ class sphere_union(mode_hpmc):
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
