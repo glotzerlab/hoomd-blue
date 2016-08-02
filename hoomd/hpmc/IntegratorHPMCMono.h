@@ -168,7 +168,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
 
         //! Return a vector that is an unwrapped overlap map
-        virtual bool* mapOverlaps();
+        virtual std::vector<bool> mapOverlaps();
 
         //! Return a python list that is an unwrapped overlap map
         virtual pybind11::list PyMapOverlaps();
@@ -1075,11 +1075,11 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
  * with true/false indicating the overlap status of the ith and jth particle
  */
 template <class Shape>
-bool* IntegratorHPMCMono<Shape>::mapOverlaps()
+std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     {
     unsigned int N = m_pdata->getMaximumTag() + 1;
 
-    bool overlap_map[N*N]={false};
+    std::vector<bool> overlap_map(N*N, false);
 
     m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
 
@@ -1171,11 +1171,12 @@ bool* IntegratorHPMCMono<Shape>::mapOverlaps()
 template <class Shape>
 pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
     {
-    bool* v = IntegratorHPMCMono<Shape>::mapOverlaps();
+    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
     pybind11::list overlap_map;
-    for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
         {
-        overlap_map.append(pybind11::cast<bool>(v[i]));
+        overlap_map.append(pybind11::cast<bool>(i));
         }
     return overlap_map;
     }
