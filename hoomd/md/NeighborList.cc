@@ -185,13 +185,15 @@ NeighborList::~NeighborList()
     m_pdata->getGlobalParticleNumberChangeSignal().disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 #ifdef ENABLE_MPI
     if (m_comm)
+        {
         m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
         m_comm->getCommFlagsRequestSignal().disconnect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
         m_comm->getGhostLayerWidthRequestSignal().disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
 #endif
 
     m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(this);
-    m_rcut_signal.disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
+    getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
