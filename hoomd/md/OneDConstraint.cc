@@ -99,7 +99,7 @@ void OneDConstraint::computeForces(unsigned int timestep)
 
 /*! OneDCOnstraint removes 2 degrees of freedom per particle in the group
 */
-unsigned int ConstraintSphere::getNDOFRemoved()
+unsigned int OneDConstraint::getNDOFRemoved()
     {
     return m_group->getNumMembersGlobal();
     }
