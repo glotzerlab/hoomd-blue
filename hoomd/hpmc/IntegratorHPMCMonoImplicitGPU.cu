@@ -75,8 +75,8 @@ __device__ inline int warp_reduce(int val, int width)
     \param N number of particles
     \param num_types Number of particle types
     \param seed User chosen random number seed
-    \param d_d Array of maximum move displacements
-    \param d_a Array of rotation move sizes
+    \param d_check_overlaps Interaction matrix
+    \param overlap_idx Indexer for interactinon matrix
     \param timestep Current timestep of the simulation
     \param dim Dimension of the simulation box
     \param box Simulation box
@@ -104,8 +104,8 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
-                                     const Scalar* d_d,
-                                     const Scalar* d_a,
+                                     const unsigned int *d_check_overlaps,
+                                     const Index2D overlap_idx,
                                      const unsigned int timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
@@ -154,6 +154,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
+    unsigned int *s_check_overlaps = (unsigned int *)(s_params + num_types);
 
     // copy over parameters one int per thread for fast loads
         {
@@ -166,6 +167,15 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
             if (cur_offset + tidx < param_size)
                 {
                 ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
+                }
+            }
+
+        unsigned int ntyppairs = overlap_idx.getNumElements();
+        for (unsigned int cur_offset = 0; cur_offset < ntyppairs; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < ntyppairs)
+                {
+                s_check_overlaps[cur_offset + tidx] = d_check_overlaps[cur_offset + tidx];
                 }
             }
         }
@@ -367,13 +377,14 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
                     if (circumsphere_overlap)
                         {
-                        Shape shape_j(quat<Scalar>(), s_params[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_j(quat<Scalar>(), s_params[typ_j]);
                         if (shape_j.hasOrientation())
                             {
                             shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, orientation_old_tex, j));
                             }
 
-                        if (!(shape_test.ignoreOverlaps()&&shape_j.ignoreOverlaps())
+                        if (s_check_overlaps[overlap_idx(depletant_type, typ_j)]
                             && test_overlap(r_ij, shape_test, shape_j, err_count))
                             {
                             overlap = 1;
@@ -401,7 +412,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                 n_free_volume++;
 
                 vec3<Scalar> r_ij = pos_i - pos_test;
-                if (!(shape_test.ignoreOverlaps() && shape_i.ignoreOverlaps())
+                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
                     && test_overlap(r_ij, shape_test, shape_i, err_count))
                     {
                     // increase overlap count
@@ -452,8 +463,6 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
     \param N number of particles
     \param num_types Number of particle types
     \param seed User chosen random number seed
-    \param d_d Array of maximum move displacements
-    \param d_a Array of rotation move sizes
     \param timestep Current timestep of the simulation
     \param dim Dimension of the simulation box
     \param box Simulation box
@@ -481,8 +490,8 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
                                      const unsigned int N,
                                      const unsigned int num_types,
                                      const unsigned int seed,
-                                     const Scalar* d_d,
-                                     const Scalar* d_a,
+                                     const unsigned int *d_check_overlaps,
+                                     Index2D overlap_idx,
                                      const unsigned int timestep,
                                      const unsigned int dim,
                                      const BoxDim box,
@@ -534,6 +543,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
+    unsigned int *s_check_overlaps = (unsigned int *)(s_params + num_types);
 
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
@@ -541,7 +551,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     __shared__ unsigned int s_n_overlap_checks;
     __shared__ unsigned int s_n_overlap_errors;
 
-    Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
+    Scalar4 *s_orientation_group = (Scalar4*)(s_check_overlaps + overlap_idx.getNumElements());
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
     unsigned int *s_queue_j =   (unsigned int*)(s_pos_group + n_groups);
     unsigned int *s_overlap =   (unsigned int*)(s_queue_j + max_queue_size);
@@ -558,6 +568,15 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             if (cur_offset + tidx < param_size)
                 {
                 ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
+                }
+            }
+
+        unsigned int num_typpairs = overlap_idx.getNumElements();
+        for (unsigned int cur_offset = 0; cur_offset < num_typpairs; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < num_typpairs)
+                {
+                s_check_overlaps[cur_offset + tidx] = d_check_overlaps[cur_offset + tidx];
                 }
             }
         }
@@ -781,7 +800,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             }
 
         // if depletant can be inserted in excluded volume at old (new) position, success
-        if (!(shape_test.ignoreOverlaps()&&shape_i.ignoreOverlaps())
+        if (s_check_overlaps[overlap_idx(__scalar_as_int(postype_i.w), depletant_type)]
             && test_overlap(r_ij, shape_test, shape_i, err_count))
             {
             overlap_shape_old = true;
@@ -795,7 +814,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             }
 
         // if depletant can be inserted in excluded volume at old (new) position, success
-        if (!(shape_test.ignoreOverlaps()&&shape_i.ignoreOverlaps())
+        if (s_check_overlaps[overlap_idx(__scalar_as_int(postype_i.w), depletant_type)]
             && test_overlap(r_ij, shape_test, shape_i, err_count))
             {
             overlap_shape_new = true;
@@ -940,7 +959,8 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             // build shape j from global memory
             postype_j = texFetchScalar4(d_postype_old, postype_old_tex, check_j);
             orientation_j = make_scalar4(1,0,0,0);
-            Shape shape_j(quat<Scalar>(orientation_j), s_params[__scalar_as_int(postype_j.w)]);
+            unsigned int typ_j = __scalar_as_int(postype_j.w);
+            Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
             if (shape_j.hasOrientation())
                 shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, orientation_old_tex, check_j));
 
@@ -948,7 +968,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
             r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
-            if (!(shape_i.ignoreOverlaps()&&shape_j.ignoreOverlaps())
+            if (s_check_overlaps[overlap_idx(depletant_type, typ_j)]
                 && test_overlap(r_ij, shape_i, shape_j, err_count))
                 {
                 atomicAdd(&s_overlap[check_group], 1);
@@ -1196,8 +1216,6 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
     assert(args.d_excell_idx);
     assert(args.d_excell_size);
     assert(args.d_cell_set);
-    assert(args.d_d);
-    assert(args.d_a);
     assert(args.group_size >= 1);
     assert(args.group_size <= 32);  // note, really should be warp size of the device
     assert(args.block_size%(args.stride*args.group_size)==0);
@@ -1265,7 +1283,8 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
     if (error != cudaSuccess)
         return;
 
-    unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type));
+    unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type))
+        + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     // the new block size might not be a multiple of group size, decrease group size until it is
     unsigned int group_size = args.group_size;
@@ -1318,8 +1337,8 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
                                                                  args.N,
                                                                  args.num_types,
                                                                  args.seed,
-                                                                 args.d_d,
-                                                                 args.d_a,
+                                                                 args.d_check_overlaps,
+                                                                 args.overlap_idx,
                                                                  args.timestep,
                                                                  args.dim,
                                                                  args.box,
@@ -1366,8 +1385,6 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
     assert(args.d_excell_idx);
     assert(args.d_excell_size);
     assert(args.d_cell_set);
-    assert(args.d_d);
-    assert(args.d_a);
     assert(args.group_size >= 1);
     assert(args.group_size <= 32);  // note, really should be warp size of the device
 
@@ -1405,7 +1422,8 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
 
         unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
                                     block_size*sizeof(unsigned int)*2 +
-                                    args.num_types * (sizeof(typename Shape::param_type));
+                                    args.num_types * (sizeof(typename Shape::param_type)) +
+                                    args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
         while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             {
@@ -1422,7 +1440,8 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             n_groups = block_size / group_size / args.stride;
             shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
                            block_size*sizeof(unsigned int)*2 +
-                           args.num_types * (sizeof(typename Shape::param_type));
+                           args.num_types * (sizeof(typename Shape::param_type)) +
+                           args.overlap_idx.getNumElements() * sizeof(unsigned int);
             }
 
         // reset counters
@@ -1469,8 +1488,8 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
                                                                      args.N,
                                                                      args.num_types,
                                                                      args.seed,
-                                                                     args.d_d,
-                                                                     args.d_a,
+                                                                     args.d_check_overlaps,
+                                                                     args.overlap_idx,
                                                                      args.timestep,
                                                                      args.dim,
                                                                      args.box,

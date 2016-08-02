@@ -1287,6 +1287,9 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+    const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
     Shape shape(orientation, h_params.data[type]);
@@ -1305,7 +1308,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
             {
             // check for self-overlap with all images except the original
             vec3<Scalar> r_ij = pos - pos_image;
-            if (!shape.ignoreOverlaps()
+            if (h_overlaps.data[overlap_idx(type, type)]
                 && check_circumsphere_overlap(r_ij, shape, shape)
                 && test_overlap(r_ij, shape, shape, err_count))
                 {
@@ -1335,9 +1338,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                         // put particles in coordinate system of particle i
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
-                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                        if (!(shape.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                        if (h_overlaps.data[overlap_idx(type, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)
                             && test_overlap(r_ij, shape, shape_j, err_count))
                             {
@@ -1403,6 +1407,9 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+    const Index2D & overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
     Shape shape(orientation, h_params.data[newtype]);
@@ -1424,7 +1431,7 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
             {
             // check for self-overlap with all images except the original
             vec3<Scalar> r_ij = pos - pos_image;
-            if (!shape.ignoreOverlaps()
+            if (h_overlaps.data[overlap_idx(newtype,newtype)]
                 && check_circumsphere_overlap(r_ij, shape, shape)
                 && test_overlap(r_ij, shape, shape, err_count))
                 {
@@ -1451,9 +1458,10 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
                         // put particles in coordinate system of particle i
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
-                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                        if (!(shape.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                        if (h_overlaps.data[overlap_idx(typ_j, newtype)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)
                             && test_overlap(r_ij, shape, shape_j, err_count))
                             {

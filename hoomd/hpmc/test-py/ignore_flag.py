@@ -55,7 +55,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
 
 
         #track stats and particles do not overlap
-        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
+        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False)
         run(100)
 
         # verify that not all moves are accepted and zero overlaps are registered
@@ -70,7 +70,6 @@ class pair_ignore_overlaps_check(unittest.TestCase):
 
         # Particles cannot overlap, but still track stats
         self.mc.shape_param["A"].ignore_statistics=True
-        self.mc.shape_param["A"].ignore_overlaps=False
         run(100)
         # verify zero overlaps are registered
         number_of_overlaps = self.mc.count_overlaps();
@@ -84,7 +83,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
 
         #accept every move by ignoring overlaps, track stats
         self.mc.shape_param["A"].ignore_statistics=False
-        self.mc.shape_param["A"].ignore_overlaps=True
+        self.mc.overlap_checks.set('A','A', False)
 
         run(100)
         #not all rots are accepted
@@ -99,7 +98,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
             self.assertEqual(translate_acceptance_prob,1)
         #renable overlaps for counting
         self.mc.shape_param["A"].ignore_statistics=False
-        self.mc.shape_param["A"].ignore_overlaps=False
+        self.mc.overlap_checks.set('A','A', True)
 
         run(1)
         # verify that some overlaps are registered
@@ -114,7 +113,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
 
         #renable overlaps for counting
         self.mc.shape_param["A"].ignore_statistics=False
-        self.mc.shape_param["A"].ignore_overlaps=False
+        self.mc.overlap_checks.set('A','A', True)
 
         run(1)
         # verify that init config contains no overlaps
@@ -123,7 +122,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
 
         #accept every move and generate overlapping configs while ignoring stats
         self.mc.shape_param["A"].ignore_statistics=True
-        self.mc.shape_param["A"].ignore_overlaps=True
+        self.mc.overlap_checks.set('A','A', False)
 
         run(100)
         # no moves tracked, hoomd returns 0
@@ -134,7 +133,7 @@ class pair_ignore_overlaps_check(unittest.TestCase):
         self.assertEqual(translate_acceptance_prob,0.0)
         #renable overlaps for counting
         self.mc.shape_param["A"].ignore_statistics=False
-        self.mc.shape_param["A"].ignore_overlaps=False
+        self.mc.overlap_checks.set('A','A', True)
 
         run(1)
         # verify that some overlaps are registered

@@ -112,10 +112,7 @@ struct ShapePolyhedron
     DEVICE bool hasOrientation() { return data.verts.N > 1; }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return data.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const { return data.ignore & 0x01; }
+    DEVICE bool ignoreStatistics() const { return data.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const

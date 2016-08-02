@@ -4,6 +4,14 @@
 
 ## v2.1.0
 
+*New features*
+
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+
+*Deprecated*
+
+* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
+
 *Other changes*
 
 * Removed dependency on boost::python.
