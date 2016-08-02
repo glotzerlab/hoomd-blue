@@ -162,10 +162,22 @@ ParticleSelectorRigid::ParticleSelectorRigid(boost::shared_ptr<SystemDefinition>
 */
 bool ParticleSelectorRigid::isSelected(unsigned int tag) const
     {
-    assert(tag <=  m_pdata->getMaximumTag());
+    assert(tag <= m_pdata->getMaximumTag());
 
-    // get body id of current particle tag
-    unsigned int body = m_pdata->getBody(tag);
+    // access array directly instead of going through the getBody() interface
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    unsigned int idx = h_rtag.data[tag];
+
+    if (idx >= m_pdata->getN())
+        {
+        // particle is not local
+        return false;
+        }
+
+    // get position of particle
+    unsigned int body = h_body.data[idx];
 
     // see if it matches the criteria
     bool result = false;
