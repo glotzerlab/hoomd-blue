@@ -35,6 +35,9 @@ class OneDConstraint : public ForceConstraint
         //! Destructor
         virtual ~OneDConstraint();
 
+        //! Return the number of DOF removed by this constraint
+        virtual unsigned int getNDOFRemoved();
+
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
 

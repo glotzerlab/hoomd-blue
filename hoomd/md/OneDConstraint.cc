@@ -97,10 +97,18 @@ void OneDConstraint::computeForces(unsigned int timestep)
         m_prof->pop();
     }
 
+/*! OneDCOnstraint removes 2 degrees of freedom per particle in the group
+*/
+unsigned int ConstraintSphere::getNDOFRemoved()
+    {
+    return m_group->getNumMembersGlobal();
+    }
+
 void export_OneDConstraint(py::module& m)
     {
     py::class_< OneDConstraint, std::shared_ptr<OneDConstraint> >(m, "OneDConstraint", py::base<ForceConstraint>())
     .def(py::init< std::shared_ptr<SystemDefinition>,
                    std::shared_ptr<ParticleGroup> >())
+    .def("getNDOFRemoved", &OneDConstraint::getNDOFRemoved)
     ;
     }
