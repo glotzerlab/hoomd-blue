@@ -121,7 +121,7 @@ namespace cereal
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping = true>
-class BondedGroupData : boost::noncopyable
+class BondedGroupData
     {
     public:
         //! Group size

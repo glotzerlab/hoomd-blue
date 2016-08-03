@@ -4,8 +4,6 @@
 #ifndef __SHAPE_PROXY_H__
 #define __SHAPE_PROXY_H__
 
-#include <boost/utility.hpp>
-
 #include "IntegratorHPMCMono.h"
 
 #include "ShapeSphere.h"

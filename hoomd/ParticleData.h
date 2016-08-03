@@ -28,7 +28,6 @@
 
 #include <memory>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include <boost/utility.hpp>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -335,7 +334,7 @@ struct pdata_element
     ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
     not be sufficient for simulations where the box size changes. We'll see in testing.
 */
-class ParticleData : boost::noncopyable
+class ParticleData
     {
     public:
         //! Construct with N particles in the given box
