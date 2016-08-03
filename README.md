@@ -16,7 +16,7 @@ Then add the `glotzer` channel and install HOOMD-blue:
 
 ```bash
 $ conda config --add channels file:///nfs/glotzer/software/conda-private
-$ conda install hoomd
+$ conda install hoomd=2.0.1.2a
 ```
 
 # Compiling HOOMD-blue
