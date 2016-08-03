@@ -227,8 +227,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     ArrayHandle<hpmc_counters_t> d_counters(this->m_count_total, access_location::device, access_mode::readwrite);
 
-    // access the parameters
+    // access the parameters and interaction matrix
     ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
     // access the move sizes by type
     ArrayHandle<Scalar> d_d(this->m_d, access_location::device, access_mode::read);
@@ -292,6 +293,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 this->m_seed + this->m_exec_conf->getRank()*this->m_nselect*particles_per_cell + i,
                                                                 d_d.data,
                                                                 d_a.data,
+                                                                d_overlaps.data,
+                                                                this->m_overlap_idx,
                                                                 this->m_move_ratio,
                                                                 timestep,
                                                                 this->m_sysdef->getNDimensions(),

@@ -128,10 +128,7 @@ struct ShapeSphinx
         }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return spheres.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const { return spheres.ignore & 0x01; }
+    DEVICE bool ignoreStatistics() const { return spheres.ignore; }
 
     //!Ignore flag for overlaps
     HOSTDEVICE static bool isParallel() {return false; }
