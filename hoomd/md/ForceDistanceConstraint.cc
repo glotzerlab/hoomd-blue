@@ -127,16 +127,13 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the constraint
         const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(n);
-        assert(constraint.tag[0] < m_pdata->getMaximumTag());
-        assert(constraint.tag[1] < m_pdata->getMaximumTag());
+        assert(constraint.tag[0] <= m_pdata->getMaximumTag());
+        assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
-
-        assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
-        assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
 
         if (idx_a >= max_local || idx_b >= max_local)
             {
@@ -166,8 +163,8 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             {
             // lookup the tag of each of the particles participating in the constraint
             const ConstraintData::members_t constraint_m = m_cdata->getMembersByIndex(m);
-            assert(constraint_m.tag[0] < m_pdata->getMaximumTag());
-            assert(constraint_m.tag[1] < m_pdata->getMaximumTag());
+            assert(constraint_m.tag[0] <= m_pdata->getMaximumTag());
+            assert(constraint_m.tag[1] <= m_pdata->getMaximumTag());
 
             // transform a and b into indicies into the particle data arrays
             // (MEM TRANSFER: 4 integers)
