@@ -333,7 +333,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {}, ignores = {})\n".format(self.centers, self.orientations, self.diameter, self.ignores);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
