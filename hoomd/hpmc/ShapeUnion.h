@@ -79,18 +79,20 @@ struct ShapeUnion
         }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation()
+    DEVICE bool hasOrientation() const
         {
         if (members.N == 1)
             {
-            // if we have only one member, return that shape's anisotropy flag
-            Shape s(quat<Scalar>(), members.mparams[0]);
-            return s.hasOrientation();
+            // if we have only one member in the center, return that shape's anisotropy flag
+            const vec3<Scalar>& pos = members.mpos[0];
+            if (pos.x == Scalar(0.0) && pos.y == pos.x && pos.z == pos.x)
+                {
+                Shape s(quat<Scalar>(), members.mparams[0]);
+                return s.hasOrientation();
+                }
             }
-        else
-            {
-            return true;
-            }
+
+        return true;
         }
 
     //!Ignore flag for acceptance statistics
