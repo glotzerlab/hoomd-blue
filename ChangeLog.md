@@ -21,7 +21,7 @@
 
 ## v2.0.2
 
-Not yet released
+*Not yet released*
 
 * Support CUDA Toolkit 8.0
 * Fix builds with ENABLE_DOXYGEN=on
