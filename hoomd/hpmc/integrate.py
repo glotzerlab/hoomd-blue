@@ -48,31 +48,16 @@ class interaction_matrix:
     are checked between all pairs of types. To disable overlap checking for a specific
     type pair, set the coefficient for that pair to 0.
 
-    There are two ways to set the coefficients for a particular type pair.
-    The first way is to save the pair force in a variable and call :py:meth:`set()` directly.
-
-    The second method is to build the :py:class:`interaction_matrix` class first and then assign it to the
-    integrator. There are some advantages to this method in that you could specify a
-    complicated set of pair coefficients in a separate python file and import it into
-    your job script.
-
-    Example (**int_matrix.py**)::
+    Access the interaction matrix with a saved integrator object like so::
 
         from hoomd import hpmc
-        my_matrix = hpmc.integrate.interaction_matrix();
-        my_matrix.set('A', 'A', enable=False)
-        my_matrix.set('A', 'B', enable=True)
-        my_matrix.set('B', 'B', enable=False)
 
-    Example job script::
-
-        from hoomd import hpmc
-        import int_matrix
-
-        .....
         mc = hpmc.integrate.some_shape(arguments...)
-        mc.overlap_checks = int_matrix.my_matrix
+        mv.overlap_checks.set('A', 'A', enable=False)
+        mc.overlap_checks.set('A', 'B', enable=True)
+        mc.overlap_checks.set('B', 'B', enable=False)
 
+    .. versionadded:: 2.1
     """
 
     ## \internal
@@ -652,6 +637,10 @@ class sphere(mode_hpmc):
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Examples::
 
@@ -731,6 +720,10 @@ class convex_polygon(mode_hpmc):
           don't put the origin right next to an edge).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -800,6 +793,10 @@ class convex_spheropolygon(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Useful cases:
 
@@ -884,6 +881,10 @@ class simple_polygon(mode_hpmc):
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -954,6 +955,10 @@ class polyhedron(mode_hpmc):
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1053,6 +1058,10 @@ class convex_polyhedron(mode_hpmc):
           don't put the origin right next to a face).
 
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1151,6 +1160,10 @@ class faceted_sphere(mode_hpmc):
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1236,6 +1249,10 @@ class sphinx(mode_hpmc):
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Quick Example::
 
@@ -1332,6 +1349,10 @@ class convex_spheropolyhedron(mode_hpmc):
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1425,6 +1446,10 @@ class ellipsoid(mode_hpmc):
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1493,10 +1518,13 @@ class sphere_union(mode_hpmc):
 
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
-<<<<<<< HEAD
     * *ignores* (**default: False for all spheres **) - list of flags to ignore overlaps of constituent particles for which *ignores[i] && ignores[j]* is True
     * *rigid* (**default: False**) - if True, **all** overlaps between two rigid unions are checked, independent of *ignores*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 

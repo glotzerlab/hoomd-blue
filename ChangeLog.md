@@ -6,7 +6,12 @@
 
 *New features*
 
-* per-particle ignore flag for sphere_union() shapes
+* enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+
+*Deprecated*
+
+* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
 
 *Other changes*
 
