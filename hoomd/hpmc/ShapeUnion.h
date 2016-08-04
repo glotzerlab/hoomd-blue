@@ -50,11 +50,9 @@ struct union_params : aligned_struct
     vec3<Scalar> mpos[MAX_MEMBERS];          //!< Position vectors of member shapes
     quat<Scalar> morientation[MAX_MEMBERS];  //!< Orientation of member shapes
     mparam_type mparams[MAX_MEMBERS];        //!< Parameters of member shapes
-    unsigned int mignore[MAX_MEMBERS];       //!< do not check overlaps if shape_i.mignore[i]&&shape_j.mignore[j]
+    unsigned int moverlap[MAX_MEMBERS];       //!< only check overlaps for which moverlap[i] & moverlap[j] 
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
-    unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                             //   First bit is ignore overlaps, Second bit is ignore statistics
-    unsigned int rigid;                      //!< If 1, ptl is rigid. *All* overlaps between two rigid rigid ptls are checked
+    unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
     union_gpu_tree_type tree;                //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
@@ -157,8 +155,6 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
-    bool both_rigid = (a.members.rigid && b.members.rigid);
-
     // loop through shape of cur_node_a
     for (unsigned int i= 0; i< detail::union_gpu_tree_type::capacity; i++)
         {
@@ -169,7 +165,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
         vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
-        bool ignore_i = a.members.mignore[ishape];
+        unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
@@ -180,10 +176,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             const mparam_type& params_j = b.members.mparams[jshape];
             const quat<Scalar> q_j = b.members.morientation[jshape];
             Shape shape_j(q_j, params_j);
-            bool ignore_j = b.members.mignore[jshape];
+            unsigned int overlap_j = b.members.moverlap[jshape];
 
             unsigned int err =0;
-            if ((both_rigid || !(ignore_i && ignore_j)))
+            if (overlap_i & overlap_j)
                 {
                 vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
                 if (test_overlap(r_ij, shape_i, shape_j, err))

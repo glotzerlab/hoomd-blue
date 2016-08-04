@@ -396,8 +396,7 @@ template<class Shape>
 union_params<Shape> make_union_params(pybind11::list _members,
                                                 pybind11::list positions,
                                                 pybind11::list orientations,
-                                                bool rigid,
-                                                pybind11::list ignore_flags,
+                                                pybind11::list overlap,
                                                 bool ignore_stats)
     {
     union_params<Shape> result;
@@ -416,13 +415,12 @@ union_params<Shape> make_union_params(pybind11::list _members,
         throw std::runtime_error("Number of member orientations not equal to number of members");
         }
 
-    if (len(ignore_flags) != result.N)
+    if (len(overlap) != result.N)
         {
         throw std::runtime_error("Number of member ignore flags not equal to number of members");
         }
 
     result.ignore = ignore_stats;
-    result.rigid = rigid;
 
     hpmc::detail::OBB *obbs;
     int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*result.N);
@@ -450,7 +448,7 @@ union_params<Shape> make_union_params(pybind11::list _members,
         result.mparams[i] = param;
         result.mpos[i] = pos;
         result.morientation[i] = orientation;
-        result.mignore[i] = pybind11::cast<bool>(ignore_flags[i]);
+        result.moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
 
         Shape dummy(quat<Scalar>(), param);
         Scalar d = sqrt(dot(pos,pos));
