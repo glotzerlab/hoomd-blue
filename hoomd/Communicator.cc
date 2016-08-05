@@ -14,7 +14,6 @@
 #include "System.h"
 
 #include <algorithm>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 #include <hoomd/extern/pybind/include/pybind11/stl.h>
 
 

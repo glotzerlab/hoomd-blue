@@ -12,7 +12,6 @@
 
 #include <memory>
 #include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
-#include <boost/shared_ptr.hpp>
 
 /*! \file CellList.h
     \brief Declares the CellList class
