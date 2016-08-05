@@ -1273,7 +1273,7 @@ void Communicator::communicate(unsigned int timestep)
     // update ghost communication flags
     m_requested_flags.emit_accumulate( [&](CommFlags f)
                                         {
-                                        m_flags = f;
+                                        m_flags |= f;
                                         }
                                       , timestep);
 
