@@ -355,7 +355,6 @@ void ForceDistanceConstraint::solveConstraints(unsigned int timestep)
     if (m_sparse_solver.info())
         {
         m_exec_conf->msg->error() << "Could not solve linear system of constraint equations." << std::endl;
-        MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         throw std::runtime_error("Error evaluating constraint forces.\n");
         }
 

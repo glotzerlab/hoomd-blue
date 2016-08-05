@@ -866,7 +866,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
             {
             m_exec_conf->msg->error() << "constrain.rigid(): Missing central particle tag " << central_tag << "!"
                 << std::endl << std::endl;
-            MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
             throw std::runtime_error("Error updating composite particles.\n");
             }
 
@@ -892,7 +891,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
                 // if the molecule is incomplete and has local members, this is an error
                 m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
                     << std::endl << std::endl;
-                MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
 

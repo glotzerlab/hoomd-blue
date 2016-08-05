@@ -13,7 +13,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/HOOMDMPI.h"
 #include <cmath>
-// #include <random>
 #include "hoomd/extern/upp11/upp11.h"
 
 // ******** helper macros

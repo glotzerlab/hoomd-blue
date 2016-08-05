@@ -592,7 +592,6 @@ bool CellList::checkConditions()
         unsigned int n = conditions.y - 1;
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         m_exec_conf->msg->error() << "Particle with unique tag " << h_tag.data[n] << " has NaN for its position." << endl;
-        MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         throw runtime_error("Error computing cell list");
         }
 
@@ -615,7 +614,6 @@ bool CellList::checkConditions()
         Scalar3 hi = m_pdata->getBox().getHi();
         m_exec_conf->msg->error() << "Local box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
         m_exec_conf->msg->error() << "          hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
-        MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
         throw runtime_error("Error computing cell list");
         }
 
