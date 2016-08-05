@@ -41,8 +41,10 @@ ForceDistanceConstraint::~ForceDistanceConstraint()
     // disconnect from signal in ConstraintData
     m_cdata->getGroupReorderSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
     m_cdata->getGroupNumChangeSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
     if (m_comm_ghost_layer_connected)
         m_comm->getGhostLayerWidthRequestSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+    #endif
     }
 
 /*! Does nothing in the base class
