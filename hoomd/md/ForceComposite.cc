@@ -51,6 +51,7 @@ ForceComposite::~ForceComposite()
     m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
     #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
         m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
     #endif
     }
