@@ -28,6 +28,7 @@
 #include <math.h>
 
 using namespace std;
+using namespace std::placeholders;
 
 
 /*! \file nve_updater_test.cc

@@ -35,6 +35,7 @@
 #include <math.h>
 
 using namespace std;
+using namespace std::placeholders;
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants

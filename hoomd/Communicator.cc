@@ -1475,12 +1475,14 @@ void Communicator::updateGhostWidth()
         Scalar r_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
-            m_ghost_layer_width_requests.emit_accumulate([&](Scalar r_ghost_i)
+            Scalar r_ghost_i = 0.0;
+            m_ghost_layer_width_requests.emit_accumulate([&](Scalar r)
                                                             {
-                                                            h_r_ghost.data[cur_type] = r_ghost_i;
-                                                            if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
+                                                            if (r > r_ghost_i) r_ghost_i = r;
                                                             }
                                                             ,cur_type);
+            h_r_ghost.data[cur_type] = r_ghost_i;
+            if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
             }
         m_r_ghost_max = r_ghost_max;
         }
@@ -1492,13 +1494,16 @@ void Communicator::updateGhostWidth()
         Scalar r_extra_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
-            m_extra_ghost_layer_width_requests.emit_accumulate([&](Scalar r_extra_ghost_i)
+            Scalar r_extra_ghost_i = 0.0;
+            m_extra_ghost_layer_width_requests.emit_accumulate([&](Scalar r)
                                                             {
-                                                            // add to the maximum ghost layer width
-                                                            h_r_ghost.data[cur_type] = r_extra_ghost_i + m_r_ghost_max;
-                                                            if (r_extra_ghost_i > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
+                                                            if (r > r_extra_ghost_i) r_extra_ghost_i = r;
                                                             }
                                                             ,cur_type);
+
+            // add to the maximum ghost layer width
+            h_r_ghost.data[cur_type] = r_extra_ghost_i + m_r_ghost_max;
+            if (r_extra_ghost_i > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
         m_r_ghost_max += r_extra_ghost_max;
         }
