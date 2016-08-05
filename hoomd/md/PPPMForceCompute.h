@@ -16,7 +16,7 @@
 #include "hoomd/extern/kiss_fftnd.h"
 
 #include <memory>
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <functional>
 
 const Scalar EPS_HOC(1.0e-7);

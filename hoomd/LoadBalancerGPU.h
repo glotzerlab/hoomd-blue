@@ -21,7 +21,7 @@
 #include "GPUFlags.h"
 #include "LoadBalancer.h"
 #include "Autotuner.h"
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! GPU implementation of dynamic load balancing

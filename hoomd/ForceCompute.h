@@ -16,7 +16,7 @@
 #endif
 
 #include <memory>
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class

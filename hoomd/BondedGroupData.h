@@ -30,7 +30,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "BondedGroupData.cuh"
 #endif
 
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>

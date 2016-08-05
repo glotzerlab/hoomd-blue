@@ -27,7 +27,7 @@
 #include "BoxDim.h"
 
 #include <memory>
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>

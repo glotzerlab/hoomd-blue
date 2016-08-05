@@ -8,7 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file HarmonicDihedralForceComputeGPU.h
     \brief Declares the HarmonicDihedralForceGPU class
