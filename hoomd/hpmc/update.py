@@ -901,7 +901,12 @@ class shape_update(_updater):
             raise RuntimeError("Error initializing update.shape_update");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        param_list = self.mc.shape_class.ensure_list(params);
+        param_list = [];
+        for i in range(ntypes):
+            typ = hoomd.context.current.system_definition.getParticleData().getNameByType(i)
+            param_list.append(self.mc.shape_class.ensure_list(params[typ]));
+
+
         if isinstance(stepsize, float) or isinstance(stepsize, int):
             stepsize_list = [float(stepsize) for i in range(ntypes) ];
         else:

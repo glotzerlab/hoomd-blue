@@ -62,6 +62,7 @@ set(TEST_LIST_CPU
     shape_proxy.py
     external_lattice.py
     test_shape_utils.py
+    shape_updater.py
     )
 
 set(TEST_LIST_GPU
@@ -89,6 +90,7 @@ set(EXCLUDE_FROM_MPI
     create_shapes.py
     test_sdf.py
     test_shape_utils.py
+    shape_updater.py
    )
 
 set(MPI_ONLY

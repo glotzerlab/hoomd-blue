@@ -53,7 +53,7 @@ class shape_updater_test(unittest.TestCase):
         fun = shape_move_funciton(mc=self.mc, shape_params=dict(diameter=diam));
 
         with self.assertRaises(RuntimeError):
-            self.updater = self.updater.python_shape_move(callback=fun, params=[[0.0]], stepsize=0.0, param_ratio=1.0);
+            self.updater = self.updater.python_shape_move(callback=fun, params={'A':[0.0]}, stepsize=0.0, param_ratio=1.0);
             hoomd.run(10, quiet=True);
 
         del self.updater;
@@ -152,7 +152,7 @@ class shape_updater_test(unittest.TestCase):
         self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=0.1, seed=3832765, period=1, nselect=1);
         hoomd.run(10, quiet=True);
         fun = shape_move_funciton(mc=self.mc, shape_params=dict(vertices=v));
-        self.updater.python_shape_move(callback=fun, params=[[0.0]], stepsize=0.0, param_ratio=1.0);
+        self.updater.python_shape_move(callback=fun, params={'A':[0.0]}, stepsize=0.0, param_ratio=1.0);
         hoomd.run(10, quiet=True);
         del self.updater;
 
