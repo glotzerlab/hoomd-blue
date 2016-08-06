@@ -157,6 +157,7 @@ class shape_updater_test(unittest.TestCase):
         del self.updater;
 
         self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=10.0, reference=dict(vertices=v))
+        self.updater.scale_shear_shape_move(scale_max=0.1, shear_max=0.1);
         print("Running for 10 steps")
         hoomd.run(10, quiet=True);
         del self.updater;
