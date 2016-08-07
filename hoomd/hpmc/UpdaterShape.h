@@ -26,6 +26,8 @@ public:
                     unsigned int nselect,
                     bool pretend);
 
+    ~UpdaterShape();
+
     std::vector< std::string > getProvidedLogQuantities();
 
     //! Calculates the requested log value and returns it
@@ -161,6 +163,9 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     countTypes(); // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
     }
 
+template< class Shape >
+UpdaterShape<Shape>::~UpdaterShape() { m_exec_conf->msg->notice(5) << "Destroying UpdaterShape "<< std::endl; }
+
 /*! hpmc::UpdaterShape provides:
 \returns a list of provided quantities
 */
@@ -213,7 +218,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 template < class Shape >
 void UpdaterShape<Shape>::update(unsigned int timestep)
     {
-    m_exec_conf->msg->notice(10) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << std::endl;
+    m_exec_conf->msg->notice(10) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << " @ " << std::hex << this << std::dec << std::endl;
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
@@ -236,7 +241,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "ElasticShape update");
     Scalar log_boltz = 0.0;
-
+    m_exec_conf->msg->notice(10) << "UpdaterShape copying data" << std::endl;
     GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
     GPUArray< Scalar > determinant_backup(m_determinant);
     m_move_function->prepare(timestep);
@@ -244,6 +249,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         {
         // make a trial move for i
         int typ_i = m_update_order[cur_type];
+        m_exec_conf->msg->notice(10) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
         m_count_total[typ_i]++;
         // access parameters
         typename Shape::param_type param;
@@ -273,15 +279,18 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
     if(rng.s(Scalar(0.0),Scalar(1.0)) < fast::exp(log_boltz))
         {
+        m_exec_conf->msg->notice(8) << " UpdaterShape counting overlaps" << std::endl;
         accept = ! m_mc->countOverlaps(timestep, true);
         }
 
     if( !accept ) // catagorically reject the move.
         {
+        m_exec_conf->msg->notice(8) << " UpdaterShape move rejected" << std::endl;
         m_move_function->retreat(timestep);
         }
     else if( m_pretend ) // pretend to accept the move but actually reject it.
         {
+        m_exec_conf->msg->notice(8) << " UpdaterShape move accepted -- pretend mode" << std::endl;
         m_move_function->retreat(timestep);
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
             {
@@ -291,6 +300,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         }
     else    // actually accept the move.
         {
+        m_exec_conf->msg->notice(8) << " UpdaterShape move accepted" << std::endl;
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
             {
             int typ_i = m_update_order[cur_type];
@@ -302,6 +312,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     if(reject)
         {
+        m_exec_conf->msg->notice(8) << " UpdaterShape move rejected" << std::endl;
         m_determinant.swap(determinant_backup);
         ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
         for(size_t typ = 0; typ < m_pdata->getNTypes(); typ++)
@@ -310,6 +321,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             }
         }
     if (m_prof) this->m_prof->pop();
+    m_exec_conf->msg->notice(8) << " UpdaterShape update done" << std::endl;
     }
 
 template< typename Shape >

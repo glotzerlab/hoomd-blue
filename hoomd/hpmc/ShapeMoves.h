@@ -485,7 +485,6 @@ public:
         }
 };
 
-template< >
 template<unsigned int max_verts>
 class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >
 {

@@ -1282,7 +1282,6 @@ class elastic_shape(shape_update):
         hoomd.util.print_status_line();
         # initialize base class
         shape_update.__init__(self, **params); # mc, move_ratio, seed,
-        hoomd.context.msg.warning("checkpoint 11\n")
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
