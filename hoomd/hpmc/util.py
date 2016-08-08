@@ -355,7 +355,7 @@ class compress:
         #
 
         log_values = [
-                    'hpmc_boxmc_pressure',
+                    'hpmc_boxmc_betaP',
                     'volume',
                     'hpmc_d',
                     'hpmc_a',
