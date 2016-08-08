@@ -385,7 +385,7 @@ private:
             throw(std::runtime_error("Could not initialize ConvexHull: need 4 points to take the convex hull in 3D"));
             }
 
-        ik[0] = 0; // always choose the first point (could choose a random one but I don't want to generate a random number)
+        ik[0] = 0;
         bool coplanar = true;
         while( coplanar )
             {
@@ -409,9 +409,12 @@ private:
                 }
 
             vec3<Scalar> d1 = m_points[ik[1]] - m_points[ik[0]];
+            normalize_inplace(d1);
             vec3<Scalar> d2 = m_points[ik[2]] - m_points[ik[0]];
-            vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[2]];
-            Scalar d = dot(d2, cross(d1, d3));
+            normalize_inplace(d2);
+            vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[0]];
+            normalize_inplace(d3);
+            Scalar d = dot(d3, cross(d1, d2));
             if(fabs(d) > zero)
                 {
                 coplanar = false;

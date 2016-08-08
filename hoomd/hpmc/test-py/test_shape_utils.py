@@ -122,7 +122,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             hull = ConvexHull(verts);
             faces = np.array(hull.vertices);
             faces = sortFaces(verts, faces);
-            # py_volume = getVolume(verts, faces);
+            py_volume = getVolume(verts, faces);
             # py_com = getCentroid(verts, faces).transpose()[0];
             # py_inertia = getInertiaTensor(verts, faces);
             end = time.time();
@@ -140,11 +140,13 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             cpp_time += end-start;
 
             cpp_ids = set(); # the actual points in the convex_hull
-            # print("num faces (py, cpp) = ({}, {})".format(len(faces), mp.num_faces()));
-            # print("volume (py, cpp) = ({}, {})".format(py_volume, cpp_volume));
+            print("num faces (py, cpp) = ({}, {})".format(len(faces), mp.num_faces()));
+            print("volume (py, cpp) = ({}, {})".format(py_volume, cpp_volume));
             cpp_faces = []
             for f in range(mp.num_faces()):
                 cpp_ids.update([mp.index(f, i) for i in range(3)]);
+                cpp_faces.append([mp.index(f, i) for i in range(3)]);
+            print("Faces = \n", cpp_faces)
 
             vol, com, inertia = geometry.massProperties(verts, faces);
 
