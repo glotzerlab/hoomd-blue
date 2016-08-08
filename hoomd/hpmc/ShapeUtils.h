@@ -456,34 +456,12 @@ private:
                 ik[k] = std::distance(min_dsq.begin(), std::max_element(min_dsq.begin(), min_dsq.end()));
                 }
 
-            // vec3<Scalar> d1 = m_points[ik[1]] - m_points[ik[0]];
-            // normalize_inplace(d1);
-            // vec3<Scalar> d2 = m_points[ik[2]] - m_points[ik[0]];
-            // normalize_inplace(d2);
-            // vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[0]];
-            // normalize_inplace(d3);
-            // Scalar d = dot(d3, cross(d1, d2));
-            // vec3<Scalar> d33 = m_points[ik[3]] - m_points[ik[2]];
-            // Scalar dd = dot(d2, cross(d1, d33));
             if(!is_coplanar(ik[0], ik[1], ik[2], ik[3]))
                 {
                 coplanar = false;
                 }
             else
                 {
-                // std::cout << std::endl << std::endl;
-                // std::cout << "found coplanar points: " << ik[0] << ", "<< ik[1] << ", "<< ik[2] << ", "<< ik[3] << " d = " << d << std::endl;
-                // std::cout << "d1: " << d1.x << ", "<< d1.y << ", "<< d1.z << std::endl;
-                // std::cout << "d2: " << d2.x << ", "<< d2.y << ", "<< d2.z << std::endl;
-                // std::cout << "d3: " << d3.x << ", "<< d3.y << ", "<< d3.z << std::endl;
-                // vec3<Scalar> crs =cross(d1, d2);
-                // std::cout << "crs: " << crs.x << ", "<< crs.y << ", "<< crs.z << std::endl;
-                // std::cout << "dot: " << dot(d3, crs) << std::endl;
-                // std::cout << "points: " << m_points[ik[0]].x << ", "<< m_points[ik[0]].y << ", "<< m_points[ik[0]].z << std::endl;
-                // std::cout << "points: " << m_points[ik[1]].x << ", "<< m_points[ik[1]].y << ", "<< m_points[ik[1]].z << std::endl;
-                // std::cout << "points: " << m_points[ik[2]].x << ", "<< m_points[ik[2]].y << ", "<< m_points[ik[2]].z << std::endl;
-                // std::cout << "points: " << m_points[ik[3]].x << ", "<< m_points[ik[3]].y << ", "<< m_points[ik[3]].z << std::endl;
-                //
                 ik[0]++;
                 ik[1] = ik[2] = ik[3] = invalid_index;
                 if( ik[0] >= m_points.size() ) // tried all of the points and this will not.
