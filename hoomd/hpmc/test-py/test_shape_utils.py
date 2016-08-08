@@ -13,9 +13,6 @@ lattice = None;
 trianglehedra = None;
 try:
     from pyhull.convex_hull import ConvexHull
-    from mendelev.crystal import library
-    from mendelev.crystal import lattice
-    from mendelev import trianglehedra
 except ImportError:
     ConvexHull = None;
     library = None;
@@ -42,45 +39,6 @@ def getOutwardNormal(verts, face, thresh = 0.0001):
         n = -n;
     return n;
 
-def getVolume(verts, faces):
-    vol = 0.0;
-    for i in range(len(faces)):
-        n = getOutwardNormal(verts, faces[i]);
-        vol+= verts[faces[i, 0]].dot(n);
-    return vol/6.0;
-
-def getCentroid(verts, faces):
-    V = getVolume(verts, faces);
-    center = np.zeros((3,1));
-    for i in range(len(faces)):
-        n = getOutwardNormal(verts, faces[i]);
-        (a,b,c) = verts[faces[i]];
-        for j in range(3):
-            center[j]+= n[j]*((a[j]+b[j])**2.0 + (b[j]+c[j])**2.0 + (c[j]+a[j])**2.0);
-    return center/(48.0*V);
-
-def getTetrahedra(verts, faces, nulled = False):
-    center = np.array([[0,0,0]]);
-    if not nulled:
-        center = getCentroid(verts, faces).transpose();
-    for i in range(len(faces)):
-        yield np.concatenate((center, verts[faces[i]]))
-
-def getInertiaTensor(verts, faces, nulled = False):
-    vs = verts;
-    if not nulled:
-        center = getCentroid(verts, faces).transpose();
-        vs = verts - center;
-
-    tets = getTetrahedra(vs, faces, True);
-
-    II = np.zeros((3,3));
-    # for each of the tetrahedra, compute the moment of inertia
-    for tet in tets :
-        II += trianglehedra.auxiliary.mapInertiaTensor(tet);
-
-    return II;
-
 def sortFaces(verts, faces):
     sorted_face = [];
     for face in faces:
@@ -93,18 +51,10 @@ def sortFaces(verts, faces):
             sorted_face.append(face[::-1]);
     return np.array(sorted_face)
 
-def calcVolume(verts):
-    vtemp = np.copy(np.array(verts));
-    hull = ConvexHull(vtemp);
-    faces = np.array(hull.vertices);
-    faces = sortFaces(vtemp, faces);
-    print(vtemp, faces)
-    volume = getVolume(vtemp, faces);
-    return volume
-
 class mass_properties_convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
         np.random.seed(1001248987);
+
     def test_convex_polyhedron(self):
         print("")
         cpp_time = 0.0;
@@ -119,9 +69,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             hull = ConvexHull(verts);
             faces = np.array(hull.vertices);
             faces = sortFaces(verts, faces);
-            py_volume = getVolume(verts, faces);
-            py_com = getCentroid(verts, faces).transpose()[0];
-            py_inertia = getInertiaTensor(verts, faces);
+            vol, com, inertia = geometry.massProperties(verts, faces);
             end = time.time();
             py_time += end-start;
             py_ids = set(); # the actual points in the convex_hull
@@ -130,20 +78,16 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
 
             start = time.time();
             mp = mass_class(make_verts(verts.tolist(), 0, False, False));
-            cpp_volume = mp.volume()
-            cpp_com = [ mp.center_of_mass(i) for i in range(3) ];
-            cpp_inertia = [ mp.moment_of_inertia(i) for i in range(6) ];
             end = time.time();
             cpp_time += end-start;
 
+            cpp_volume = mp.volume()
+            cpp_com = [ mp.center_of_mass(i) for i in range(3) ];
+            cpp_inertia = [ mp.moment_of_inertia(i) for i in range(6) ];
+
             cpp_ids = set(); # the actual points in the convex_hull
-            # print("num faces (py, cpp) = ({}, {})".format(len(faces), mp.num_faces()));
-            # print("volume (py, cpp) = ({}, {})".format(py_volume, cpp_volume));
-            cpp_faces = []
             for f in range(mp.num_faces()):
                 cpp_ids.update([mp.index(f, i) for i in range(3)]);
-
-            vol, com, inertia = geometry.massProperties(verts, faces);
 
             # faces my be differnt because triangulation is not unique but there should be
             # the same number of faces and the same vertices will be in the hull.
@@ -155,11 +99,11 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             diff = py_ids - cpp_ids;
             self.assertEqual(len(diff), 0); # all points in cpp are in py.
             # volume is equal
-            self.assertAlmostEqual(py_volume, cpp_volume, 5);
+            self.assertAlmostEqual(vol, cpp_volume, 5);
             # com is equal
-            self.assertAlmostEqual(py_com[0], cpp_com[0], 5);
-            self.assertAlmostEqual(py_com[1], cpp_com[1], 5);
-            self.assertAlmostEqual(py_com[2], cpp_com[2], 5);
+            self.assertAlmostEqual(com[0], cpp_com[0], 5);
+            self.assertAlmostEqual(com[1], cpp_com[1], 5);
+            self.assertAlmostEqual(com[2], cpp_com[2], 5);
             # interia tensor is the same.
             self.assertAlmostEqual(inertia[0], cpp_inertia[0], 4); # xx
             self.assertAlmostEqual(inertia[3], cpp_inertia[1], 4); # yy
@@ -169,6 +113,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             self.assertAlmostEqual(inertia[2], cpp_inertia[5], 4); # xz
         print("c++ ran 100 convex hulls in {} ({} per call)".format(cpp_time, cpp_time/100));
         print("py ran 100 convex hulls in {} ({} per call)".format(py_time, py_time/100));
+
     def tearDown(self):
         pass;
 
