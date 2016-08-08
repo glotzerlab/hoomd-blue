@@ -199,6 +199,7 @@ public:
         std::vector<unsigned int> outside(m_points.size(), invalid_index);
         for(unsigned int i = 0; i < m_points.size(); i++)
             {
+            // step 2: initialize the outside and inside sets
             for(unsigned int f = 0; f < m_faces.size() && !inside[i]; f++)
                 {
                 if(m_deleted[f])
@@ -214,9 +215,9 @@ public:
                 inside[i] = true;
                 }
             }
-        // step 2: initialize the outside sets and
+
         unsigned int faceid = 0;
-        write_pos_frame(inside);
+        // write_pos_frame(inside);
         while(faceid < m_faces.size())
             {
             if(m_deleted[faceid]) // this facet is deleted so we can skip it.
@@ -293,7 +294,27 @@ public:
             inside[_id] = true;
             assert(m_deleted.size() == m_faces.size() && m_faces.size() == m_adjacency.size());
             faceid++;
-            write_pos_frame(inside);
+            // write_pos_frame(inside);
+            #ifndef NDEBUG
+            for(size_t i = 0; i < m_faces.size(); i++)
+                {
+                if(m_deleted[i]) continue;
+                for(size_t j = i+1; j < m_faces.size(); j++)
+                    {
+                    if(m_deleted[j]) continue;
+                    for(size_t k = 0; k < m_faces[j].size(); k++)
+                        {
+                        if(is_above(m_faces[j][k], i))
+                            {
+                            std::cout << "ERROR!!! point " << m_faces[j][k] << ": [" << m_points[m_faces[j][k]].x << ", " << m_points[m_faces[j][k]].y << m_points[m_faces[j][k]].z << "]" << std::endl
+                                      << "         is above face " << i << ": [" << m_faces[i][0] << ", " << m_faces[i][1] << ", " << m_faces[i][2] << "]" << std::endl
+                                      << "         from the face " << j << ": [" << m_faces[j][0] << ", " << m_faces[j][1] << ", " << m_faces[j][2] << "]" << std::endl;
+                            throw std::runtime_error("ERROR in ConvexHull::compute() !");
+                            }
+                        }
+                    }
+                }
+            #endif
             }
         remove_deleted_faces(); // actually remove the deleted faces.
         build_edge_list();
@@ -343,6 +364,7 @@ private:
         {
         vec3<Scalar> n = getOutwardNormal(m_points, m_faces, faceid, zero);
         vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];
+        normalize_inplace(dx);
         return dot(dx, n); // signed distance. eiter in the plane or outside.
         }
 
@@ -350,7 +372,22 @@ private:
         {
         if(i == m_faces[faceid][0] || i == m_faces[faceid][1] || i == m_faces[faceid][2])
             return false;
-        return (signed_distance(i, faceid) > zero); // signed distance. eiter in the plane or outside.
+        return (signed_distance(i, faceid) > zero); // signed distance. either in the plane or outside.
+        }
+
+    bool is_coplanar(const unsigned int& i, const unsigned int& j, const unsigned int& k, const unsigned int& l)
+        {
+        if( i == j || i == k || i == l || j == k || j == l || k == l)
+            return true;
+
+        vec3<Scalar> d1 = m_points[j] - m_points[i];
+        normalize_inplace(d1);
+        vec3<Scalar> d2 = m_points[k] - m_points[i];
+        normalize_inplace(d2);
+        vec3<Scalar> d3 = m_points[l] - m_points[i];
+        normalize_inplace(d3);
+        Scalar d = dot(d3, cross(d1, d2));
+        return fabs(d) <= zero;
         }
 
     void edges_from_face(const unsigned int& faceid, std::vector< std::vector<unsigned int> >& edges)
@@ -399,28 +436,54 @@ private:
                         vec3<Scalar> dr = m_points[p] - m_points[ik[i]];
                         Scalar dsq = dot(dr, dr);
                         if(i == 0)
+                            {
                             min_dsq[p] = dsq;
+                            }
                         else
+                            {
                             if(dsq < min_dsq[p])
+                                {
                                 min_dsq[p] = dsq;
+                                }
+
+                            if(k == Nsym-1 && is_coplanar(ik[0], ik[1], ik[2], p))
+                                {
+                                min_dsq[p] = 0; // take the point out of the running.
+                                }
+                            }
                         }
                     }
                 ik[k] = std::distance(min_dsq.begin(), std::max_element(min_dsq.begin(), min_dsq.end()));
                 }
 
-            vec3<Scalar> d1 = m_points[ik[1]] - m_points[ik[0]];
-            normalize_inplace(d1);
-            vec3<Scalar> d2 = m_points[ik[2]] - m_points[ik[0]];
-            normalize_inplace(d2);
-            vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[0]];
-            normalize_inplace(d3);
-            Scalar d = dot(d3, cross(d1, d2));
-            if(fabs(d) > zero)
+            // vec3<Scalar> d1 = m_points[ik[1]] - m_points[ik[0]];
+            // normalize_inplace(d1);
+            // vec3<Scalar> d2 = m_points[ik[2]] - m_points[ik[0]];
+            // normalize_inplace(d2);
+            // vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[0]];
+            // normalize_inplace(d3);
+            // Scalar d = dot(d3, cross(d1, d2));
+            // vec3<Scalar> d33 = m_points[ik[3]] - m_points[ik[2]];
+            // Scalar dd = dot(d2, cross(d1, d33));
+            if(!is_coplanar(ik[0], ik[1], ik[2], ik[3]))
                 {
                 coplanar = false;
                 }
             else
                 {
+                // std::cout << std::endl << std::endl;
+                // std::cout << "found coplanar points: " << ik[0] << ", "<< ik[1] << ", "<< ik[2] << ", "<< ik[3] << " d = " << d << std::endl;
+                // std::cout << "d1: " << d1.x << ", "<< d1.y << ", "<< d1.z << std::endl;
+                // std::cout << "d2: " << d2.x << ", "<< d2.y << ", "<< d2.z << std::endl;
+                // std::cout << "d3: " << d3.x << ", "<< d3.y << ", "<< d3.z << std::endl;
+                // vec3<Scalar> crs =cross(d1, d2);
+                // std::cout << "crs: " << crs.x << ", "<< crs.y << ", "<< crs.z << std::endl;
+                // std::cout << "dot: " << dot(d3, crs) << std::endl;
+                // std::cout << "points: " << m_points[ik[0]].x << ", "<< m_points[ik[0]].y << ", "<< m_points[ik[0]].z << std::endl;
+                // std::cout << "points: " << m_points[ik[1]].x << ", "<< m_points[ik[1]].y << ", "<< m_points[ik[1]].z << std::endl;
+                // std::cout << "points: " << m_points[ik[2]].x << ", "<< m_points[ik[2]].y << ", "<< m_points[ik[2]].z << std::endl;
+                // std::cout << "points: " << m_points[ik[3]].x << ", "<< m_points[ik[3]].y << ", "<< m_points[ik[3]].z << std::endl;
+                //
                 ik[0]++;
                 ik[1] = ik[2] = ik[3] = invalid_index;
                 if( ik[0] >= m_points.size() ) // tried all of the points and this will not.
@@ -432,17 +495,30 @@ private:
             }
         if(ik[0] == invalid_index || ik[1] == invalid_index || ik[2] == invalid_index || ik[3] == invalid_index)
             {
+            std::cerr << std::endl << std::endl<< "*************************" << std::endl;
+            for(size_t i = 0; i < m_points.size(); i++)
+                {
+                std::cerr << "point " << i << ": [" << m_points[i].x << ", " << m_points[i].y << ", " << m_points[i].z << "]" << std::endl;
+                }
             throw(std::runtime_error("Could not initialize ConvexHull: found only nearly coplanar points"));
             }
 
         std::vector<unsigned int> face(3);
+        // face 0
         face[0] = ik[0]; face[1] = ik[1]; face[2] = ik[2];
+        std::sort(face.begin(), face.end());
         m_faces.push_back(face);
+        // face 1
         face[0] = ik[0]; face[1] = ik[1]; face[2] = ik[3];
+        std::sort(face.begin(), face.end());
         m_faces.push_back(face);
+        // face 2
         face[0] = ik[0]; face[1] = ik[2]; face[2] = ik[3];
+        std::sort(face.begin(), face.end());
         m_faces.push_back(face);
+        // face 3
         face[0] = ik[1]; face[1] = ik[2]; face[2] = ik[3];
+        std::sort(face.begin(), face.end());
         m_faces.push_back(face);
         m_deleted.resize(4, false); // we have 4 facets at this point.
         build_adjacency_for_face(0);
@@ -483,15 +559,17 @@ private:
         std::vector<bool> found(m_deleted);
         worklist.push(faceid);
         found[faceid] = true;
+        // std::cout << "point id: " << pointid << ", face id: " << faceid << std::endl;
         while(!worklist.empty())
             {
             unsigned int f = worklist.front();
             worklist.pop();
+            // std::cout << "face " << f << ": " << "[ " << m_faces[f][0] << ", " << m_faces[f][1] << ", " << m_faces[f][2] << "] "<< std::endl;
             if(m_deleted[f]) continue;
             // std::cout << " m_adjacency.size = "<< m_adjacency.size() << " m_adjacency["<<f<<"].size = "<< m_adjacency[f].size() << std::endl;
             for(std::set<unsigned int>::iterator i = m_adjacency[f].begin(); i != m_adjacency[f].end(); i++)
                 {
-                // std::cout << "found: " << found[*i] << " - ref = "<< *i << std::endl;
+                // std::cout << "found: " << found[*i] << " - neighbor "<< *i << ": " << "[ " << m_faces[*i][0] << ", " << m_faces[*i][1] << ", " << m_faces[*i][2] << "] "<< std::endl;
                 if(!found[*i]) // face was not found yet and the point is above the face.
                     {
                     found[*i] = true;
