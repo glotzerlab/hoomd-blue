@@ -659,29 +659,29 @@ class tune(object):
         if (tunable_map is None):
             self.tunable_map = dict()
             if type is None:
-                t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
-                self.tunable_map.update({'d'.format(t): {
-                                                     'get': lambda: getattr(obj, 'get_d')(t),
+                self.tunable_map.update({'d': {
+                                                     'get': lambda: getattr(obj, 'get_d')(),
                                                      'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                     'set': lambda x: getattr(obj, 'set_params')(d=x),
                                                      'maximum': 1.0
                                                       },
-                                          'a'.format(t): {
-                                                     'get': lambda: getattr(obj, 'get_a')(t),
+                                          'a': {
+                                                     'get': lambda: getattr(obj, 'get_a')(),
                                                      'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                     'set': lambda x: getattr(obj, 'set_params')(a=x),
                                                      'maximum': 0.5
                                                       }})
             else:
-                type_names = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())]
-                map_dict = dict()
-                for t in type_names:
-                     self.tunable_map.update({'d'.format(t): {
+                self.tunable_map.update({'d': {
                                                  'get': lambda: getattr(obj, 'get_d')(type),
                                                  'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                 'set': lambda x: getattr(obj, 'set_params')(d={type: x}),
                                                  'maximum': 1.0
                                                  },
-                                              'a'.format(t): {
+                                              'a': {
                                                  'get': lambda: getattr(obj, 'get_a')(type),
                                                  'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                 'set': lambda x: getattr(obj, 'set_params')(a={type: x}),
                                                  'maximum': 0.5
                                                  }})
         else:
@@ -710,8 +710,6 @@ class tune(object):
                 self.tunables[item] = self.tunable_map[item]
                 if max_val_length != 0:
                     self.tunables[item]['maximum'] = max_val[i]
-                if not 'set' in self.tunable_map[item]:
-                    self.tunable_map[item]['set'] = lambda x, name=item: obj.set_params(**{name : x} )
                 self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
@@ -753,10 +751,7 @@ class tune(object):
                     newval = float(1e-6)
                 if (newval > max_val):
                     newval = max_val
-            if self.type is None:
-                newquantities[param_name] = float(newval)
-            else:
-                newquantities[param_name] = {self.type:float(newval)}
+            newquantities[param_name] = float(newval)
         for q in newquantities:
             self.tunables[q]['set'](newquantities[q])
         hoomd.util.unquiet_status();
