@@ -63,7 +63,7 @@ public:
     void prepare(unsigned int timestep)
         {
         m_params_backup = m_params;
-        m_step_size_backup = m_step_size;
+        // m_step_size_backup = m_step_size;
         }
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
@@ -71,7 +71,7 @@ public:
         // gonna make the move.
         // Saru rng(m_select_ratio, m_seed, timestep);
         // type_id = type_id;
-        for(size_t i = 0; i < m_params.size(); i++)
+        for(size_t i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar x = ((rng.u32() & 0xffff) < m_select_ratio) ? rng.s(fmax(-m_step_size[type_id], -(m_params[type_id][i])), fmin(m_step_size[type_id], (1.0-m_params[type_id][i]))) : 0.0;
             m_params[type_id][i] += x;
@@ -116,7 +116,7 @@ public:
         {
         // move has been rejected.
         std::swap(m_params, m_params_backup);
-        std::swap(m_step_size, m_step_size_backup);
+        // std::swap(m_step_size, m_step_size_backup);
         }
 
     Scalar getParam(size_t k)
