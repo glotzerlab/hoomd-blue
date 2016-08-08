@@ -7,6 +7,7 @@ import copy
 import time
 import unittest
 from plato import geometry
+import freud.shape
 ConvexHull = None;
 library = None;
 lattice = None;
@@ -115,13 +116,15 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             mass_class = hpmc.integrate._get_sized_entry("MassPropertiesConvexPolyhedron", nverts);
             verts = 5.0*np.random.rand(nverts, 3);
 
+            poly = freud.shape.ConvexPolyhedron(points=verts);
+            print(poly.getVolume())
             start = time.time();
             hull = ConvexHull(verts);
             faces = np.array(hull.vertices);
             faces = sortFaces(verts, faces);
-            py_volume = getVolume(verts, faces);
-            py_com = getCentroid(verts, faces).transpose()[0];
-            py_inertia = getInertiaTensor(verts, faces);
+            # py_volume = getVolume(verts, faces);
+            # py_com = getCentroid(verts, faces).transpose()[0];
+            # py_inertia = getInertiaTensor(verts, faces);
             end = time.time();
             py_time += end-start;
             py_ids = set(); # the actual points in the convex_hull
@@ -155,11 +158,11 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
             diff = py_ids - cpp_ids;
             self.assertEqual(len(diff), 0); # all points in cpp are in py.
             # volume is equal
-            self.assertAlmostEqual(py_volume, cpp_volume, 5);
+            self.assertAlmostEqual(vol, cpp_volume, 5);
             # com is equal
-            self.assertAlmostEqual(py_com[0], cpp_com[0], 5);
-            self.assertAlmostEqual(py_com[1], cpp_com[1], 5);
-            self.assertAlmostEqual(py_com[2], cpp_com[2], 5);
+            self.assertAlmostEqual(com[0], cpp_com[0], 5);
+            self.assertAlmostEqual(com[1], cpp_com[1], 5);
+            self.assertAlmostEqual(com[2], cpp_com[2], 5);
             # interia tensor is the same.
             self.assertAlmostEqual(inertia[0], cpp_inertia[0], 4); # xx
             self.assertAlmostEqual(inertia[3], cpp_inertia[1], 4); # yy

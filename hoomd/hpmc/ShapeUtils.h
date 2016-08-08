@@ -216,7 +216,7 @@ public:
             }
         // step 2: initialize the outside sets and
         unsigned int faceid = 0;
-        // write_pos_frame(inside);
+        write_pos_frame(inside);
         while(faceid < m_faces.size())
             {
             if(m_deleted[faceid]) // this facet is deleted so we can skip it.
@@ -293,7 +293,7 @@ public:
             inside[_id] = true;
             assert(m_deleted.size() == m_faces.size() && m_faces.size() == m_adjacency.size());
             faceid++;
-            // write_pos_frame(inside);
+            write_pos_frame(inside);
             }
         remove_deleted_faces(); // actually remove the deleted faces.
         build_edge_list();
@@ -372,38 +372,74 @@ private:
 
     void initialize()
         {
+        const unsigned int Nsym = 4; // number of points in the simplex.
+        unsigned int ik[Nsym] = {invalid_index, invalid_index, invalid_index, invalid_index}; // indices of the four points.
+        ik[0] = ik[1] = ik[2] = ik[3] = invalid_index;
         m_faces.clear(); m_faces.reserve(100000);
         m_edges.clear(); m_edges.reserve(100000);
         m_deleted.clear(); m_deleted.reserve(100000);
         m_adjacency.clear(); m_adjacency.reserve(100000);
 
-        if(m_points.size() < 4) // problem is not well posed.
-            return;
-
-        vec3<Scalar> d1 = m_points[1] - m_points[0];
-        vec3<Scalar> d2 = m_points[2] - m_points[0];
-        unsigned int other = m_points.size();
-        for(size_t i = 3; i < m_points.size(); i++)
+        if(m_points.size() < Nsym) // TODO: the problem is basically done. but need to set up the data structures and return. not common in our use case so put it off until later.
             {
-            vec3<Scalar> d3 = m_points[i] - m_points[2];
+            throw(std::runtime_error("Could not initialize ConvexHull: need 4 points to take the convex hull in 3D"));
+            }
+
+        ik[0] = 0; // always choose the first point (could choose a random one but I don't want to generate a random number)
+        bool coplanar = true;
+        while( coplanar )
+            {
+            for(size_t k = 1; k < Nsym; k++)
+                {
+                std::vector<Scalar> min_dsq(m_points.size());
+                for(size_t p = 0; p < m_points.size(); p++)
+                    {
+                    for(size_t i = 0; i < k; i++)
+                        {
+                        vec3<Scalar> dr = m_points[p] - m_points[ik[i]];
+                        Scalar dsq = dot(dr, dr);
+                        if(i == 0)
+                            min_dsq[p] = dsq;
+                        else
+                            if(dsq < min_dsq[p])
+                                min_dsq[p] = dsq;
+                        }
+                    }
+                ik[k] = std::distance(min_dsq.begin(), std::max_element(min_dsq.begin(), min_dsq.end()));
+                }
+
+            vec3<Scalar> d1 = m_points[ik[1]] - m_points[ik[0]];
+            vec3<Scalar> d2 = m_points[ik[2]] - m_points[ik[0]];
+            vec3<Scalar> d3 = m_points[ik[3]] - m_points[ik[2]];
             Scalar d = dot(d2, cross(d1, d3));
             if(fabs(d) > zero)
                 {
-                other = i;
-                break;
+                coplanar = false;
+                }
+            else
+                {
+                ik[0]++;
+                ik[1] = ik[2] = ik[3] = invalid_index;
+                if( ik[0] >= m_points.size() ) // tried all of the points and this will not.
+                    {
+                    ik[0] = invalid_index; // exit loop and throw an error.
+                    coplanar = false;
+                    }
                 }
             }
-        if(other == m_points.size())
-            throw(std::runtime_error("could not initialize ConvexHull"));
+        if(ik[0] == invalid_index || ik[1] == invalid_index || ik[2] == invalid_index || ik[3] == invalid_index)
+            {
+            throw(std::runtime_error("Could not initialize ConvexHull: found only nearly coplanar points"));
+            }
 
         std::vector<unsigned int> face(3);
-        face[0] = 0; face[1] = 1; face[2] = 2;
+        face[0] = ik[0]; face[1] = ik[1]; face[2] = ik[2];
         m_faces.push_back(face);
-        face[0] = 0; face[1] = 1; face[2] = other;
+        face[0] = ik[0]; face[1] = ik[1]; face[2] = ik[3];
         m_faces.push_back(face);
-        face[0] = 0; face[1] = 2; face[2] = other;
+        face[0] = ik[0]; face[1] = ik[2]; face[2] = ik[3];
         m_faces.push_back(face);
-        face[0] = 1; face[1] = 2; face[2] = other;
+        face[0] = ik[1]; face[1] = ik[2]; face[2] = ik[3];
         m_faces.push_back(face);
         m_deleted.resize(4, false); // we have 4 facets at this point.
         build_adjacency_for_face(0);
