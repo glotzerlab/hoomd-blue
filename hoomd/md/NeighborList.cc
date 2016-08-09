@@ -12,7 +12,6 @@
 #include "hoomd/BondedGroupData.h"
 
 namespace py = pybind11;
-#include <functional>
 
 #include <iostream>
 #include <stdexcept>

@@ -14,8 +14,6 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <functional>
-
 using namespace std;
 namespace py = pybind11;
 /*!

@@ -8,7 +8,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <memory>
-#include <functional>
 #include <fstream>
 
 #include "hoomd/HOOMDMath.h"

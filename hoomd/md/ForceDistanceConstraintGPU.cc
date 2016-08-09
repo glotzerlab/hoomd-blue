@@ -12,8 +12,6 @@
 #include <string.h>
 namespace py = pybind11;
 
-#include <functional>
-
 /*! \file ForceDistanceConstraintGPU.cc
     \brief Contains code for the ForceDistanceConstraintGPU class
 */

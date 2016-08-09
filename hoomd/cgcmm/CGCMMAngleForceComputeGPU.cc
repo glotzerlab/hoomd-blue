@@ -14,8 +14,6 @@
 
 namespace py = pybind11;
 
-#include <functional>
-
 using namespace std;
 
 /*! \param sysdef System to compute angle forces on

@@ -17,8 +17,6 @@
 #endif
 
 namespace py = pybind11;
-#include <functional>
-
 using namespace std;
 
 /*! \file TwoStepNVTMTKGPU.h

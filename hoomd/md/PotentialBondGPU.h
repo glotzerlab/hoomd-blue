@@ -9,8 +9,6 @@
 
 #ifdef ENABLE_CUDA
 
-#include <functional>
-
 #include "PotentialBond.h"
 #include "PotentialBondGPU.cuh"
 #include "hoomd/Autotuner.h"

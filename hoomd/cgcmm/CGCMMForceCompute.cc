@@ -3,7 +3,6 @@
 
 #include "CGCMMForceCompute.h"
 
-#include <functional>
 namespace py = pybind11;
 #include <stdexcept>
 

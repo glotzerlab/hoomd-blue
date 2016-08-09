@@ -12,7 +12,6 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-#include <functional>
 namespace py = pybind11;
 
 using namespace std;

@@ -8,7 +8,6 @@
 #include "TablePotentialGPU.h"
 
 namespace py = pybind11;
-#include <functional>
 #include <stdexcept>
 
 /*! \file TablePotentialGPU.cc

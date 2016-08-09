@@ -11,7 +11,6 @@
 #include <stdexcept>
 #include <memory>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <functional>
 #include "hoomd/extern/num_util.h"
 
 #include "hoomd/HOOMDMath.h"

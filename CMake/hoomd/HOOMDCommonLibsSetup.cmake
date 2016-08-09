@@ -4,16 +4,6 @@ include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
 
 ################################
 ## Define common libraries used by every target in HOOMD
-set(BOOST_LIBS
-        ${Boost_SIGNALS_LIBRARY}
-        )
-
-set(BOOST_LIBS ${BOOST_LIBS})
-
-# these libraries are needed for MPI
-if(ENABLE_MPI)
-set(BOOST_LIBS ${BOOST_LIBS} ${Boost_SERIALIZATION_LIBRARY})
-endif(ENABLE_MPI)
 
 ## An update to to CentOS5's python broke linking of the hoomd exe. According
 ## to an ancient post online, adding -lutil fixed this in python 2.2
@@ -29,7 +19,6 @@ endif (UNIX AND NOT APPLE)
 
 set(HOOMD_COMMON_LIBS
         ${HOOMD_PYTHON_LIBRARY}
-        ${BOOST_LIBS}
         ${ADDITIONAL_LIBS}
         )
 

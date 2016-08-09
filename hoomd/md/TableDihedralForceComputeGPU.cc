@@ -7,7 +7,6 @@
 #include "TableDihedralForceComputeGPU.h"
 
 namespace py = pybind11;
-#include <functional>
 
 #include <stdexcept>
 

@@ -19,7 +19,6 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <functional>
 
 namespace py = pybind11;
 

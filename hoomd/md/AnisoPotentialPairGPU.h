@@ -9,8 +9,6 @@
 
 #ifdef ENABLE_CUDA
 
-#include <functional>
-
 #include "hoomd/Autotuner.h"
 #include "AnisoPotentialPair.h"
 #include "AnisoPotentialPairGPU.cuh"

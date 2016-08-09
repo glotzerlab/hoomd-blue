@@ -7,8 +7,6 @@
 #include "BondTablePotentialGPU.h"
 
 namespace py = pybind11;
-#include <functional>
-
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc

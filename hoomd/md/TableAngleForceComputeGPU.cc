@@ -7,7 +7,6 @@
 #include "TableAngleForceComputeGPU.h"
 
 namespace py = pybind11;
-#include <functional>
 #include <stdexcept>
 
 /*! \file TableAngleForceComputeGPU.cc

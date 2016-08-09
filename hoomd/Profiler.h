@@ -17,7 +17,6 @@
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
-#include <functional>
 #endif
 
 #ifdef ENABLE_NVTOOLS

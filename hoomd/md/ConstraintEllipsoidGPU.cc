@@ -8,8 +8,6 @@
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintEllipsoidGPU.cuh"
 
-#include <functional>
-
 namespace py = pybind11;
 
 using namespace std;

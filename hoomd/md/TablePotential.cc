@@ -5,8 +5,6 @@
 // Maintainer: joaander
 #include "TablePotential.h"
 
-#include <functional>
-
 namespace py = pybind11;
 
 #include <stdexcept>

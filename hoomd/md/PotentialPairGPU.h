@@ -9,7 +9,6 @@
 
 #ifdef ENABLE_CUDA
 
-#include <functional>
 #include <memory>
 
 #include "PotentialPair.h"

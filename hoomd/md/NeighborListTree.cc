@@ -11,7 +11,6 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-#include <functional>
 namespace py = pybind11;
 
 #ifdef ENABLE_MPI
