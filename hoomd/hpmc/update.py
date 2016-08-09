@@ -820,16 +820,7 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        self.tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
-        self.tunable_map = {};
-        for i in range(ntypes):
-            self.tunable_map.update({'stepsize-{}'.format(i) : (
-                                    lambda obj: getattr(obj, 'get_step_size')(i),
-                                    lambda obj: getattr(obj, 'get_move_acceptance')(i),
-                                    1.0
-                                    )})
+        
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
