@@ -91,10 +91,10 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
-        boost::scoped_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
-        boost::scoped_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
+        std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
+        std::unique_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
         mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
 
 

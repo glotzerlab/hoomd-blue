@@ -6,8 +6,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/ComputeThermo.h"
@@ -36,7 +35,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 /*! \file test_npt_mtk_integrator.cc
     \brief Implements unit tests for NPTMTKpdater and descendants
@@ -61,7 +60,7 @@ typedef struct
     } args_t;
 
 //! Typedef'd NPTMTKUpdator class factory
-typedef boost::function<std::shared_ptr<TwoStepNPTMTK> (args_t args) > twostep_npt_mtk_creator;
+typedef std::function<std::shared_ptr<TwoStepNPTMTK> (args_t args) > twostep_npt_mtk_creator;
 
 //! Basic functionality test of a generic TwoStepNPTMTK
 void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

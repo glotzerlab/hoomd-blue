@@ -55,13 +55,13 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
         h_gamma_r.data[i] = Scalar(1.0);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TwoStepLangevinBase::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 TwoStepLangevinBase::~TwoStepLangevinBase()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevinBase" << endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 void TwoStepLangevinBase::slotNumTypesChange()

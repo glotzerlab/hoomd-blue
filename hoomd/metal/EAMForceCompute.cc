@@ -5,7 +5,6 @@
 
 #include <vector>
 using namespace std;
-using namespace boost;
 #include <stdexcept>
 namespace py = pybind11;
 
@@ -35,13 +34,13 @@ EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char 
     assert(m_ntypes > 0);
 
     // connect to the ParticleData to receive notifications when the number of particle types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(bind(&EAMForceCompute::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 EAMForceCompute::~EAMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 /*
