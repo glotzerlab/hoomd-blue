@@ -820,16 +820,7 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        self.tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
-        self.tunable_map = {};
-        for i in range(ntypes):
-            self.tunable_map.update({'stepsize-{}'.format(i) : (
-                                    lambda obj: getattr(obj, 'get_step_size')(i),
-                                    lambda obj: getattr(obj, 'get_move_acceptance')(i),
-                                    1.0
-                                    )})
+        
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
@@ -1028,20 +1019,18 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, self.mc.shape_class.make_param(**shape_params));
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def scale_shear_shape_move(self, scale_max, shear_max, move_ratio=0.5):
+    def scale_shear_shape_move(self, stepsize, move_ratio=0.5):
         R"""
         Enable scale and shear shape move and set parameters. Changes a particle shape by
         scaling the particle and shearing the particle.
 
         Args:
-            scale_max (float): largest scaling factor used.
-            shear_max (float): largest shearing factor used.
+            stepsize (float): largest scaling/shearing factor used.
             move_ratio (float): fraction of scale to shear moves.
 
         Example::
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
-            # convex_polyhedron
-            shape_up.scale_shear_shape_move(scale_max=0.01, shear_max=0.01)
+            shape_up.scale_shear_shape_move(stepsize=0.01)
 
         """
         hoomd.util.print_status_line();
@@ -1086,13 +1075,53 @@ class shape_update(_updater):
             raise RuntimeError("Error initializing update.shape_update");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        self.move_cpp = move_cls(ntypes, shear_max, move_ratio);
+        self.move_cpp = move_cls(ntypes, stepsize, move_ratio);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def get_total_count(self, idx=0):
+    def get_tuner(self, average = False, **kwargs):
+        R"""
+        Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
+        Args:
+            average (bool): If set to true will set up the tuner to set all types together using averaged statistics.
+            kwargs: keyword argments that will be passed to :py:mod:`hoomd.hpmc.util.tune`
+
+        Example::
+            shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
+            shape_up.scale_shear_shape_move(stepsize=0.1);
+            tuner = shape_up.get_tuner(average=True);
+            for _ in range(100):
+                hoomd.run(1000, quiet=True);
+                tuner.update();
+        """
+        from . import util
+        import numpy as np
+        if not average:
+            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+            tunables = ["stepsize-{}".format(i) for i in range(ntypes)];
+            tunable_map = {};
+            for i in range(ntypes):
+                tunable_map.update({'stepsize-{}'.format(i) : {
+                                        'get': lambda : getattr(self, 'get_step_size')(i),
+                                        'acceptance': lambda : getattr(self, 'get_move_acceptance')(i),
+                                        'set': lambda x, name=hoomd.context.current.system_definition.getParticleData().getNameByType(i): getattr(self, 'set_params')(types=name, stepsize=x),
+                                        'maximum': 0.5
+                                        }})
+        else:
+            ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+            type_list = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(ntypes)]
+            tunables=["stepsize"]
+            tunable_map = {'stepsize' : {
+                                    'get': lambda : getattr(self, 'get_step_size')(0),
+                                    'acceptance': lambda : float(getattr(self, 'get_accepted_count')(None))/float(getattr(self, 'get_total_count')(None)),
+                                    'set': lambda x, name=type_list: getattr(self, 'set_params')(types=name, stepsize=x),
+                                    'maximum': 0.5
+                                    }};
+        return util.tune(self, tunables=tunables, tunable_map=tunable_map, **kwargs);
+
+    def get_total_count(self, typeid=None):
         R""" Get the total number of moves attempted by the updater
         Args:
-            idx (int): the typeid of the particle type
+            typeid (int): the typeid of the particle type. If None the sum over all types will be returned.
         Returns:
             The total number of moves attempted by the updater
 
@@ -1105,12 +1134,15 @@ class shape_update(_updater):
 
         """
         hoomd.util.print_status_line();
-        return self.cpp_updater.getTotalCount(idx);
+        if typeid is None:
+            return sum([self.cpp_updater.getTotalCount(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())])
+        else:
+            return self.cpp_updater.getTotalCount(typeid);
 
-    def get_accepted_count(self, idx=0):
+    def get_accepted_count(self, typeid=None):
         R""" Get the total number of moves accepted by the updater
         Args:
-            idx (int): the typeid of the particle type
+            typeid (int): the typeid of the particle type. if None then the sum of all counts will be returned.
         Returns:
             The total number of moves accepted by the updater
 
@@ -1122,12 +1154,15 @@ class shape_update(_updater):
             accepted = shape_updater.get_accepted_count(0)
         """
         hoomd.util.print_status_line();
-        return self.cpp_updater.getAcceptedCount(idx);
+        if typeid is None:
+            return sum([self.cpp_updater.getAcceptedCount(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())])
+        else:
+            return self.cpp_updater.getAcceptedCount(typeid);
 
-    def get_move_acceptance(self, idx=0):
+    def get_move_acceptance(self, typeid=0):
         R""" Get the acceptance ratio for a particle type
         Args:
-            idx (int): the typeid of the particle type
+            typeid (int): the typeid of the particle type
         Returns:
             The acceptance ratio for a particle type
 
@@ -1140,15 +1175,15 @@ class shape_update(_updater):
 
         """
         hoomd.util.print_status_line();
-        if self.get_total_count(idx):
-            return float(self.get_accepted_count(idx))/float(self.get_total_count(idx));
+        if self.get_total_count(typeid):
+            return float(self.get_accepted_count(typeid))/float(self.get_total_count(typeid));
         return 0.0;
 
-    def get_step_size(self, idx=0):
+    def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
 
         Args:
-            idx (int): the typeid of the particle type
+            typeid (int): the typeid of the particle type
         Returns:
             The shape move stepsize for a particle type
 
@@ -1161,7 +1196,7 @@ class shape_update(_updater):
 
         """
         hoomd.util.print_status_line();
-        return self.cpp_updater.getStepSize(idx);
+        return self.cpp_updater.getStepSize(typeid);
 
     def reset_statistics(self):
         R""" Reset the acceptance statistics for the updater
@@ -1202,10 +1237,10 @@ class shape_update(_updater):
         hoomd.util.print_status_line();
         if isinstance(types, str):
             types = [types];
-        for names in types:
+        for name in types:
             typ = hoomd.context.current.system_definition.getParticleData().getTypeByName(name);
             if not stepsize is None:
-                self.cpp_updater.setStepSize(typ, step_size);
+                self.cpp_updater.setStepSize(typ, stepsize);
 
 
 class alchemy(shape_update):
@@ -1273,7 +1308,7 @@ class elastic_shape(shape_update):
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(1,1,1), (1,−1,−1), (−1,1,−1), (−1,−1,1)]))
         # Add a shape move.
-        elastic.scale_shear_move(scale_max=0.1, shear_max=0.1, move_ratio=0.5);
+        elastic.scale_shear_move(stepsize=0.1, move_ratio=0.5);
     """
     def __init__(   self,
                     stiffness,
