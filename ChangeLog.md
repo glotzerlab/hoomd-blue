@@ -20,17 +20,16 @@
 
 ## v2.0.2
 
-*Not yet released*
+Not yet released
 
 * Support CUDA Toolkit 8.0
+* group.rigid()/nonrigid() did not work in MPI simulations
 * Fix builds with ENABLE_DOXYGEN=on
 * Always add -std=c++11 to the compiler command line arguments
 * Fix rare infinite loops when using hpmc.integrate.faceted_sphere
 * Fix hpmc.util.tune to work with more than one tunable
-
-*Bug fixes*
-
 * Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+* replicate() sometimes did not work when restarting a simulation
 
 ## v2.0.1
 
