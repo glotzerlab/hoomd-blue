@@ -8,7 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file HarmonicImproperForceComputeGPU.h
     \brief Declares the HarmonicImproperForceGPU class
@@ -56,7 +56,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size
         GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU (k,chi)
 
         //! Actually compute the forces

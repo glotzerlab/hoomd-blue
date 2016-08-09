@@ -9,7 +9,6 @@
 #include <string.h>
 #include <map>
 
-#include <boost/bind.hpp>
 namespace py = pybind11;
 
 /*! \file MolecularForceCompute.cc

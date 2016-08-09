@@ -75,13 +75,13 @@ class NeighborListGPUTree : public NeighborListGPU
     private:
         //! \name Autotuners
         // @{
-        boost::scoped_ptr<Autotuner> m_tuner_morton;    //!< Tuner for kernel to calculate morton codes
-        boost::scoped_ptr<Autotuner> m_tuner_merge;     //!< Tuner for kernel to merge particles into leafs
-        boost::scoped_ptr<Autotuner> m_tuner_hierarchy; //!< Tuner for kernel to generate tree hierarchy
-        boost::scoped_ptr<Autotuner> m_tuner_bubble;    //!< Tuner for kernel to bubble aabbs up hierarchy
-        boost::scoped_ptr<Autotuner> m_tuner_move;      //!< Tuner for kernel to move particles to leaf order
-        boost::scoped_ptr<Autotuner> m_tuner_map;       //!< Tuner for kernel to help map particles by type
-        boost::scoped_ptr<Autotuner> m_tuner_traverse;  //!< Tuner for kernel to traverse generated tree
+        std::unique_ptr<Autotuner> m_tuner_morton;    //!< Tuner for kernel to calculate morton codes
+        std::unique_ptr<Autotuner> m_tuner_merge;     //!< Tuner for kernel to merge particles into leafs
+        std::unique_ptr<Autotuner> m_tuner_hierarchy; //!< Tuner for kernel to generate tree hierarchy
+        std::unique_ptr<Autotuner> m_tuner_bubble;    //!< Tuner for kernel to bubble aabbs up hierarchy
+        std::unique_ptr<Autotuner> m_tuner_move;      //!< Tuner for kernel to move particles to leaf order
+        std::unique_ptr<Autotuner> m_tuner_map;       //!< Tuner for kernel to help map particles by type
+        std::unique_ptr<Autotuner> m_tuner_traverse;  //!< Tuner for kernel to traverse generated tree
         // @}
 
         //! \name Signal updates
@@ -113,13 +113,8 @@ class NeighborListGPUTree : public NeighborListGPU
 
         unsigned int m_prev_ntypes;                         //!< Previous number of types
         bool m_type_changed;                                //!< Flag if types changed
-        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
-
         bool m_box_changed;                                 //!< Flag if box changed
-        boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
-
         bool m_max_num_changed;                             //!< Flag if max number of particles changed
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
         // @}
 
         //! \name Tree building

@@ -75,7 +75,7 @@ class NeighborListGPUStencil : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
         std::shared_ptr<CellList> m_cl;   //!< The cell list
@@ -84,7 +84,6 @@ class NeighborListGPUStencil : public NeighborListGPU
 
         //! Update the stencil radius
         void updateRStencil();
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
         bool m_needs_restencil;                             //!< Flag for updating the stencil
         void slotRCutChange()
             {
@@ -94,8 +93,6 @@ class NeighborListGPUStencil : public NeighborListGPU
         //! Sort the particles by type
         void sortTypes();
         GPUArray<unsigned int> m_pid_map;                   //!< Particle indexes sorted by type
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to the maximum number of particles changing
-        boost::signals2::connection m_sort_conn;            //!< Connection to the ParticleData sort signal
         bool m_needs_resort;                                //!< Flag to resort the particles
         void slotParticleSort()
             {

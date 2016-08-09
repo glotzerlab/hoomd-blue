@@ -206,6 +206,8 @@ cudaError_t gpu_hpmc_excell(unsigned int *d_excell_idx,
     \param seed User chosen random number seed
     \param d_d Array of maximum move displacements
     \param d_a Array of rotation move sizes
+    \param d_check_overlaps Interaction matrix
+    \parma overlap_idx Indexer into interaction matrix
     \param move_ratio Ratio of translation moves to rotation moves
     \param timestep Current timestep of the simulation
     \param dim Dimension of the simulation box
@@ -268,6 +270,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                                      const unsigned int seed,
                                      const Scalar* d_d,
                                      const Scalar* d_a,
+                                     const unsigned int *d_check_overlaps,
+                                     const Index2D overlap_idx,
                                      const unsigned int move_ratio,
                                      const unsigned int timestep,
                                      const unsigned int dim,
@@ -327,7 +331,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
     Scalar *s_d = (Scalar *)(s_pos_group + n_groups);
     Scalar *s_a = (Scalar *)(s_d + num_types);
-    unsigned int *s_queue_j =   (unsigned int*)(s_a + num_types);
+    unsigned int *s_check_overlaps = (unsigned int *) (s_a + num_types);
+    unsigned int *s_queue_j =   (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
     unsigned int *s_overlap =   (unsigned int*)(s_queue_j + max_queue_size);
     unsigned int *s_queue_gid = (unsigned int*)(s_overlap + n_groups);
     unsigned int *s_type_group = (unsigned int*)(s_queue_gid + max_queue_size);
@@ -352,6 +357,16 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                 {
                 s_a[cur_offset + tidx] = d_a[cur_offset + tidx];
                 s_d[cur_offset + tidx] = d_d[cur_offset + tidx];
+                }
+            }
+
+        unsigned int ntyppairs = overlap_idx.getNumElements();
+
+        for (unsigned int cur_offset = 0; cur_offset < ntyppairs; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < ntyppairs)
+                {
+                s_check_overlaps[cur_offset + tidx] = d_check_overlaps[cur_offset + tidx];
                 }
             }
         }
@@ -596,7 +611,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             // build shape j from global memory
             postype_j = texFetchScalar4(d_postype, postype_tex, check_j);
             orientation_j = make_scalar4(1,0,0,0);
-            Shape shape_j(quat<Scalar>(orientation_j), s_params[__scalar_as_int(postype_j.w)]);
+            unsigned int type_j = __scalar_as_int(postype_j.w);
+            Shape shape_j(quat<Scalar>(orientation_j), s_params[type_j]);
             if (shape_j.hasOrientation())
                 shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, orientation_tex, check_j));
 
@@ -604,8 +620,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             r_ij = vec3<Scalar>(postype_j) - vec3<Scalar>(pos_i);
             r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
 
-            if (!(shape_i.ignoreOverlaps()&&shape_j.ignoreOverlaps())
-                && test_overlap(r_ij, shape_i, shape_j, err_count))
+            if (s_check_overlaps[overlap_idx(type_i, type_j)] && test_overlap(r_ij, shape_i, shape_j, err_count))
                 {
                 atomicAdd(&s_overlap[check_group], 1);
                 }
@@ -770,6 +785,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     assert(args.d_cell_set);
     assert(args.d_d);
     assert(args.d_a);
+    assert(args.d_check_overlaps);
     assert(args.group_size >= 1);
     assert(args.block_size%(args.stride*args.group_size)==0);
 
@@ -801,7 +817,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     unsigned int n_groups = block_size / group_size / args.stride;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                                 block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
-                                args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+                                args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
+                                args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     if (args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -823,7 +840,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         n_groups = block_size / group_size / args.stride;
         shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                        block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
-                       args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar));
+                       args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
+                       args.overlap_idx.getNumElements() * sizeof(unsigned int);
         }
 
     // setup the grid to run the kernel
@@ -888,6 +906,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                                                  args.seed,
                                                                  args.d_d,
                                                                  args.d_a,
+                                                                 args.d_check_overlaps,
+                                                                 args.overlap_idx,
                                                                  args.move_ratio,
                                                                  args.timestep,
                                                                  args.dim,

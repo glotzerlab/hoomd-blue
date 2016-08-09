@@ -203,8 +203,8 @@ class CommunicatorGPU : public Communicator
         /* Ghost communication */
         bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
         bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
 
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags

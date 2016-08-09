@@ -19,7 +19,6 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <boost/bind.hpp>
 
 namespace py = pybind11;
 
@@ -93,14 +92,14 @@ MSDAnalyzer::MSDAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
         m_initial_z[tag] = unwrapped.z;
         }
 
-    m_ptls_sort_connection = m_pdata->connectParticleSort(boost::bind(&MSDAnalyzer::slotParticleSort, this));
+    m_pdata->getParticleSortSignal().connect<MSDAnalyzer, &MSDAnalyzer::slotParticleSort>(this);
     }
 
 MSDAnalyzer::~MSDAnalyzer()
     {
     m_exec_conf->msg->notice(5) << "Destroying MSDAnalyzer" << endl;
 
-    m_ptls_sort_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<MSDAnalyzer, &MSDAnalyzer::slotParticleSort>(this);
     }
 
 void MSDAnalyzer::slotParticleSort()
