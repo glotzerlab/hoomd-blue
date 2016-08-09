@@ -25,9 +25,9 @@ CellListStencil::CellListStencil(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(boost::bind(&CellListStencil::slotTypeChange, this));
-    m_box_change_conn = m_pdata->connectBoxChange(boost::bind(&CellListStencil::requestCompute, this));
-    m_width_change_conn = m_cl->connectCellWidthChange(boost::bind(&CellListStencil::requestCompute, this));
+    m_pdata->getNumTypesChangeSignal().connect<CellListStencil, &CellListStencil::slotTypeChange>(this);
+    m_pdata->getBoxChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(this);
+    m_cl->getCellWidthChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(this);
 
     // Default initialization is no stencil for any type
     m_rstencil = std::vector<Scalar>(m_pdata->getNTypes(), -1.0);
@@ -44,9 +44,9 @@ CellListStencil::~CellListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellListStencil" << endl;
 
-    m_num_type_change_conn.disconnect();
-    m_box_change_conn.disconnect();
-    m_width_change_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<CellListStencil, &CellListStencil::slotTypeChange>(this);
+    m_pdata->getBoxChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(this);
+    m_cl->getCellWidthChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(this);
     }
 
 void CellListStencil::compute(unsigned int timestep)

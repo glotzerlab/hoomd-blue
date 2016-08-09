@@ -11,7 +11,7 @@ HOOMD_UP_MAIN()
 #include "hoomd/System.h"
 
 #include <memory>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
@@ -31,9 +31,10 @@ HOOMD_UP_MAIN()
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 using namespace std;
+using namespace std::placeholders;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef boost::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
                                                   std::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
 std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
@@ -969,7 +970,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
     // width of ghost layer
     ghost_layer_width g(Scalar(0.05)*ref_box.getL().x);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g, _1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -1932,7 +1933,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2605,7 +2606,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2756,8 +2757,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     // width of ghost layer
     ghost_layer_width g(0.2);
-    comm_1->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
-    comm_2->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm_1->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
+    comm_2->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata_1->setDomainDecomposition(decomposition_1);
     pdata_2->setDomainDecomposition(decomposition_2);
@@ -2795,11 +2796,11 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         pdata_2->setVelocity(tag, make_scalar3(0.01,0.02,0.03));
         }
 
-    comm_1->addMigrateRequest(bind(&migrate_request,_1));
-    comm_2->addMigrateRequest(bind(&migrate_request,_1));
+    comm_1->getMigrateSignal().connect<migrate_request>();
+    comm_2->getMigrateSignal().connect<migrate_request>();
 
-    comm_1->addCommFlagsRequest(bind(&comm_flag_request, _1));
-    comm_2->addCommFlagsRequest(bind(&comm_flag_request, _1));
+    comm_1->getCommFlagsRequestSignal().connect<comm_flag_request>();
+    comm_2->getCommFlagsRequestSignal().connect<comm_flag_request>();
 
     nve_up_1->setCommunicator(comm_1);
     nve_up_2->setCommunicator(comm_2);
@@ -2909,7 +2910,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())
@@ -3167,24 +3168,24 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, std:
     CHECK_SMALL(comm->getGhostLayerMaxWidth(), tol_small);
 
     // width of ghost layer
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_1,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_1>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
     CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_2,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_2>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
     CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_3,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_3>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
     CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.1, tol);
 
     // check that when using two types, only one gets updated
     two_type_ghost_layer g(Scalar(0.05), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g);
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
         {
@@ -3195,7 +3196,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, std:
 
     // now update the other type
     two_type_ghost_layer g2(Scalar(0.3), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g2,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g2);
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
         {
@@ -3282,7 +3283,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
 
     // width of ghost layer
     two_type_ghost_layer g(Scalar(0.1), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())

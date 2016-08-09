@@ -43,7 +43,7 @@ SFCPackUpdater::SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef)
         m_grid = 256;
 
     // register reallocate method with particle data maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&SFCPackUpdater::reallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
     }
 
 /*! reallocate the internal arrays
@@ -59,7 +59,7 @@ void SFCPackUpdater::reallocate()
 SFCPackUpdater::~SFCPackUpdater()
     {
     m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
-    m_max_particle_num_change_connection.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
     }
 
 /*! Performs the sort.

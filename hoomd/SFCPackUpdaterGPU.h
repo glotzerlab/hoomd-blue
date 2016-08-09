@@ -21,7 +21,7 @@
 #include "GPUArray.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
 #include <utility>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -50,9 +50,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     private:
         GPUArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
         GPUArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
-
-        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
-
+        
         //! Helper function that actually performs the sort
         virtual void getSortedOrder2D();
 

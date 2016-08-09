@@ -17,7 +17,6 @@
 
 namespace py = pybind11;
 #include <algorithm>
-#include <functional>
 
 //! Constructor
 CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,

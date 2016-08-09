@@ -5,8 +5,6 @@
 // Maintainer: joaander
 #include "TablePotential.h"
 
-#include <boost/bind.hpp>
-
 namespace py = pybind11;
 
 #include <stdexcept>
@@ -57,14 +55,14 @@ TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
     m_log_name = std::string("pair_table_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TablePotential::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<TablePotential, &TablePotential::slotNumTypesChange>(this);
     }
 
 TablePotential::~TablePotential()
     {
     m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
 
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<TablePotential, &TablePotential::slotNumTypesChange>(this);
     }
 
 void TablePotential::slotNumTypesChange()
