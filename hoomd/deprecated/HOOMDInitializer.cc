@@ -38,7 +38,7 @@ HOOMDInitializer::HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration>
     m_num_dimensions = 3;
 
     // initialize the parser map
-    m_parser_map["box"] = std::bind(&HOOMDInitializer::parseBoxNode, this, std::placeholders::_1); //TODO: adios_boost, we can switch to use namespace std::placeholders if we want after removing all of boost, right now it's too greedy and keeps grabbing these calls
+    m_parser_map["box"] = std::bind(&HOOMDInitializer::parseBoxNode, this, std::placeholders::_1);
     m_parser_map["position"] = std::bind(&HOOMDInitializer::parsePositionNode, this, std::placeholders::_1);
     m_parser_map["image"] = std::bind(&HOOMDInitializer::parseImageNode, this, std::placeholders::_1);
     m_parser_map["velocity"] = std::bind(&HOOMDInitializer::parseVelocityNode, this, std::placeholders::_1);
