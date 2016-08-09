@@ -35,18 +35,7 @@ public:
 
     void update(unsigned int timestep);
 
-    void initialize()
-        {
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        for(size_t i = 0; i < m_pdata->getNTypes(); i++)
-            {
-            detail::mass_properties<Shape> mp(h_params.data[i]);
-            h_det.data[i] = mp.getDeterminant();
-            }
-        m_initialized = true;
-        }
+    void initialize();
 
     unsigned int getAcceptedCount(unsigned int ndx) { return m_count_accepted[ndx]; }
 
@@ -58,24 +47,9 @@ public:
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
         }
 
-    void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
-        {
-        if(m_log_boltz_function)
-            return;
-        m_log_boltz_function = lbf;
-        }
+    void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
 
-    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move)
-        {
-        if(m_move_function) // if it exists I do not want to reset it.
-            return;
-        m_move_function = move;
-        m_num_params = m_move_function->getNumParam();
-        for(size_t i = 0; i < m_num_params; i++)
-            {
-            m_ProvidedQuantities.push_back(getParamName(i));
-            }
-        }
+    void registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move);
 
     Scalar getStepSize(unsigned int typ)
         {
@@ -88,25 +62,10 @@ public:
         if(m_move_function) m_move_function->setStepSize(typ, stepsize);
         }
 
-    void countTypes()
-        {
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-        for(size_t i = 0; i < m_pdata->getNTypes(); i++)
-            {
-            unsigned int ct = 0;
-            for(size_t j= 0; j < m_pdata->getN(); j++)
-                {
-                int typ_j = __scalar_as_int(h_postype.data[j].w);
-                if(size_t(typ_j) == i) ct++;
-                }
-            h_ntypes.data[i] = ct;
-            }
-
-        }
+    void countTypes();
 
 protected:
-    std::string getParamName(size_t i)
+    static std::string getParamName(size_t i)
         {
         std::stringstream ss;
         std::string snum;
@@ -265,6 +224,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         Saru rng_i(typ_i, m_seed + m_exec_conf->getRank()*m_nselect + typ_i, timestep); //TODO: think about the seed for MPI.
         m_move_function->construct(timestep, typ_i, param, rng_i);
         h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
+        m_exec_conf->msg->notice(10) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
         // energy and moment of interia change.
         log_boltz += (*m_log_boltz_function)(
                                                 h_ntypes.data[typ_i],           // number of particles of type typ_i
@@ -277,7 +237,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         }
     // calculate boltzmann factor.
     bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
-    if(rng.s(Scalar(0.0),Scalar(1.0)) < fast::exp(log_boltz))
+    Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
+    m_exec_conf->msg->notice(8) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
+    if( p < Z)
         {
         m_exec_conf->msg->notice(8) << " UpdaterShape counting overlaps" << std::endl;
         accept = ! m_mc->countOverlaps(timestep, true);
@@ -285,7 +247,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     if( !accept ) // catagorically reject the move.
         {
-        m_exec_conf->msg->notice(8) << " UpdaterShape move rejected" << std::endl;
+        m_exec_conf->msg->notice(8) << " UpdaterShape move retreating" << std::endl;
         m_move_function->retreat(timestep);
         }
     else if( m_pretend ) // pretend to accept the move but actually reject it.
@@ -322,6 +284,58 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         }
     if (m_prof) this->m_prof->pop();
     m_exec_conf->msg->notice(8) << " UpdaterShape update done" << std::endl;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::initialize()
+    {
+    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
+        {
+        detail::mass_properties<Shape> mp(h_params.data[i]);
+        h_det.data[i] = mp.getDeterminant();
+        }
+    m_initialized = true;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf)
+    {
+    if(m_log_boltz_function)
+        return;
+    m_log_boltz_function = lbf;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<Shape, Saru> > move)
+    {
+    if(m_move_function) // if it exists I do not want to reset it.
+        return;
+    m_move_function = move;
+    m_num_params = m_move_function->getNumParam();
+    for(size_t i = 0; i < m_num_params; i++)
+        {
+        m_ProvidedQuantities.push_back(getParamName(i));
+        }
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::countTypes()
+    {
+    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
+        {
+        unsigned int ct = 0;
+        for(size_t j= 0; j < m_pdata->getN(); j++)
+            {
+            int typ_j = __scalar_as_int(h_postype.data[j].w);
+            if(size_t(typ_j) == i) ct++;
+            }
+        h_ntypes.data[i] = ct;
+        }
     }
 
 template< typename Shape >

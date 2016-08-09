@@ -96,6 +96,8 @@ public:
         return dot(a, cross(b,c));
         }
 
+    virtual void updateParam(const typename Shape::param_type& param, bool force = true) { }
+
 protected:
     virtual void compute() {throw std::runtime_error("mass_properties::compute() is not implemented for this shape.");}
     Scalar m_volume;
@@ -107,6 +109,8 @@ template<class Shape>
 class mass_properties : public mass_properties_base<Shape>
 {
 public:
+    mass_properties() : mass_properties_base<Shape>() {}
+
     mass_properties(const typename Shape::param_type& shape) :  mass_properties_base<Shape>()
     {
     this->compute();
@@ -641,6 +645,13 @@ public:
 
     const std::vector< vec3<Scalar> >& getPoints() { return m_points; }
 
+    void moveData(std::vector< std::vector<unsigned int> >& faces, std::vector< vec3<Scalar> >& points)
+        {
+        // NOTE: *this is not valid after using this method!
+        faces = std::move(m_faces);
+        points = std::move(m_points);
+        }
+
 protected:
     std::vector< vec3<Scalar> >                 m_points;
     std::vector< std::vector<unsigned int> >    m_faces; // Always have 3 vertices in a face.
@@ -657,17 +668,43 @@ using mass_properties_base< ShapeConvexPolyhedron<max_verts> >::m_center_of_mass
 using mass_properties_base< ShapeConvexPolyhedron<max_verts> >::m_inertia;
 
 public:
-    mass_properties(const typename ShapeConvexPolyhedron<max_verts>::param_type& param) : m_hull(param), points(m_hull.getPoints()), faces(m_hull.getFaces())
+    mass_properties() {}
+
+    mass_properties(const typename ShapeConvexPolyhedron<max_verts>::param_type& param)
         {
-        m_hull.compute();
+        ConvexHull hull(param);
+        hull.compute();
+        hull.moveData(faces, points);
         compute();
         }
+
     mass_properties(const std::vector< vec3<Scalar> >& p, const std::vector<std::vector<unsigned int> >& f) :  points(p), faces(f)
         {
         compute();
         }
+
     unsigned int getFaceIndex(unsigned int i, unsigned int j) { return faces[i][j]; }
+
     unsigned int getNumFaces() { return faces.size(); }
+
+    void updateParam(const typename ShapeConvexPolyhedron<max_verts>::param_type& param, bool force = true)
+        {
+        if(force || param.N != points.size())
+            {
+            ConvexHull hull(param);
+            hull.compute();
+            hull.moveData(faces, points);
+            }
+        else
+            {
+            // assumes that the faces are still good.
+            for(unsigned int i = 0; i < param.N; i++)
+                {
+                points[i] = vec3<Scalar>(param.x[i], param.y[i], param.z[i]);
+                }
+            }
+        compute();
+        }
 
 protected:
 /*
@@ -733,9 +770,8 @@ protected:
         m_inertia[5] = -(intg[9] - m_volume*cxz);
         }
 private:
-    ConvexHull m_hull;
-    const std::vector< vec3<Scalar> >& points;
-    const std::vector<std::vector<unsigned int> >& faces;
+    std::vector< vec3<Scalar> > points;
+    std::vector<std::vector<unsigned int> > faces;
 };
 
 } // end namespace detail

@@ -322,6 +322,7 @@ struct shear< ShapeConvexPolyhedron<max_verts>, RNG >
             dsq = fmax(dsq, dot(vert, vert));
             }
         param.diameter = 2.0*sqrt(dsq);
+        // std::cout << "shearing by " << gamma << std::endl;
         }
     };
 
@@ -332,14 +333,14 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
     Scalar scale_min;
     Scalar scale_max;
     scale(Scalar movesize, bool iso = true) : isotropic(iso)
-    {
-    if(movesize < 0.0 || movesize > 1.0)
         {
-        movesize = 0.0;
+        if(movesize < 0.0 || movesize > 1.0)
+            {
+            movesize = 0.0;
+            }
+        scale_max = (1.0+movesize);
+        scale_min = 1.0/scale_max;
         }
-    scale_max = (1.0+movesize);
-    scale_min = 1.0/scale_max;
-    }
     void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
         {
         Scalar sx, sy, sz;
@@ -360,6 +361,7 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
             param.z[i] *= sz;
             }
         param.diameter *= s;
+        // std::cout << "scaling by " << s << std::endl;
         }
     };
 
@@ -400,7 +402,7 @@ public:
                                     unsigned int ntypes,
                                     const Scalar& stepsize,
                                     Scalar move_ratio
-                                ) : shape_move_function<Shape, RNG>(ntypes)
+                                ) : shape_move_function<Shape, RNG>(ntypes), m_mass_props(ntypes)
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
@@ -423,8 +425,8 @@ public:
             shear<Shape, RNG> move(m_step_size[type_id]);
             move(shape, rng); // always make the move
             }
-        detail::mass_properties<Shape> mp(shape); // this could be slow for some shapes.
-        m_determinantInertiaTensor = mp.getDeterminant();
+        m_mass_props[type_id].updateParam(shape, false); // update allows caching since for some shapes a full compute is not necessary.
+        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
         }
 
     //! advance whenever the proposed move is accepted.
@@ -435,6 +437,7 @@ public:
 
 protected:
     unsigned int            m_select_ratio;
+    std::vector< detail::mass_properties<Shape> > m_mass_props;
 };
 
 template<class Shape>
