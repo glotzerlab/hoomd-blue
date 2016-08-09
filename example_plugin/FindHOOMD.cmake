@@ -88,8 +88,6 @@ include (CMake_install_options)
 
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
-# Find the boost libraries and set them up
-include (HOOMDBoostSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 # Set default CFlags
