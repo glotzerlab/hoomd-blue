@@ -4,15 +4,22 @@
 
 ## v2.1.0
 
+*New features*
+
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+
+*Deprecated*
+
+* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
+
 *Other changes*
 
-* Removed dependency on boost::python.
-* Removed dependency on boost::unit_test_framework
+* Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
 
 ## v2.0.2
 
-Not yet released
+Released 2016/08/09
 
 * Support CUDA Toolkit 8.0
 * group.rigid()/nonrigid() did not work in MPI simulations

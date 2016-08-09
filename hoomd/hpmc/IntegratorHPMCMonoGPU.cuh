@@ -48,6 +48,8 @@ struct hpmc_args_t
                 const unsigned int _seed,
                 const Scalar* _d,
                 const Scalar* _a,
+                const unsigned int *_check_overlaps,
+                const Index2D& _overlap_idx,
                 const unsigned int _move_ratio,
                 const unsigned int _timestep,
                 const unsigned int _dim,
@@ -83,6 +85,8 @@ struct hpmc_args_t
                   seed(_seed),
                   d_d(_d),
                   d_a(_a),
+                  d_check_overlaps(_check_overlaps),
+                  overlap_idx(_overlap_idx),
                   move_ratio(_move_ratio),
                   timestep(_timestep),
                   dim(_dim),
@@ -121,6 +125,8 @@ struct hpmc_args_t
     const unsigned int seed;          //!< RNG seed
     const Scalar* d_d;                //!< Maximum move displacement
     const Scalar* d_a;                //!< Maximum move angular displacement
+    const unsigned int *d_check_overlaps; //!< Interaction matrix
+    const Index2D& overlap_idx;       //!< Indexer into interaction matrix
     const unsigned int move_ratio;    //!< Ratio of translation to rotation moves
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions

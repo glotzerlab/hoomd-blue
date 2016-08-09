@@ -75,7 +75,7 @@ void export_walls(py::module& m)
     // export wall structs.
    py::class_<SphereWall, std::shared_ptr<SphereWall> >(m, "sphere_wall_params");
    py::class_<CylinderWall, std::shared_ptr<CylinderWall> >(m, "cylinder_wall_params");
-   py::class_<PlaneWall, std::shared_ptr<PlaneWall> >(m, "plane_wall_params");//TODO: adios_boost, what did no_init do?
+   py::class_<PlaneWall, std::shared_ptr<PlaneWall> >(m, "plane_wall_params");
 
     // export helper functions.
     m.def("make_sphere_wall", &make_sphere_wall);

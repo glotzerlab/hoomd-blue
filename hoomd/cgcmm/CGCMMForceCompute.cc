@@ -3,7 +3,6 @@
 
 #include "CGCMMForceCompute.h"
 
-#include <boost/bind.hpp>
 namespace py = pybind11;
 #include <stdexcept>
 
@@ -55,7 +54,7 @@ CGCMMForceCompute::CGCMMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     memset((void*)m_lj4,  0, sizeof(Scalar)*m_ntypes*m_ntypes);
 
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&CGCMMForceCompute::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<CGCMMForceCompute, &CGCMMForceCompute::slotNumTypesChange>(this);
     }
 
 void CGCMMForceCompute::slotNumTypesChange()
@@ -92,7 +91,7 @@ CGCMMForceCompute::~CGCMMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying CGCMMForceCompute" << endl;
 
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<CGCMMForceCompute, &CGCMMForceCompute::slotNumTypesChange>(this);
 
     // deallocate our memory
     delete[] m_lj12;

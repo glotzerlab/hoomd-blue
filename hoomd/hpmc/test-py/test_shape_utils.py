@@ -77,7 +77,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
                 py_ids.update(f);
 
             start = time.time();
-            mp = mass_class(make_verts(verts.tolist(), 0, False, False));
+            mp = mass_class(make_verts(verts.tolist(), 0, False));
             end = time.time();
             cpp_time += end-start;
 

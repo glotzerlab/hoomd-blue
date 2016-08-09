@@ -299,13 +299,13 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
     updateMemberTags(true);
 
     // connect to the particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
+    m_pdata->getParticleSortSignal().connect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
 
     // connect updateMemberTags() method to maximum particle number change signal
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
     }
 
 /*! \param sysdef System definition to build the group from
@@ -373,13 +373,13 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     rebuildIndexList();
 
     // connect to the particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
+    m_pdata->getParticleSortSignal().connect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
 
     // connect updateMemberTags() method to maximum particle number change signal
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
     }
 
 ParticleGroup::~ParticleGroup()
@@ -387,9 +387,9 @@ ParticleGroup::~ParticleGroup()
     // disconnect the sort connection, but only if there was a particle data to connect it to in the first place
     if (m_pdata)
         {
-        m_sort_connection.disconnect();
-        m_max_particle_num_change_connection.disconnect();
-        m_global_particle_num_change_connection.disconnect();
+        m_pdata->getParticleSortSignal().disconnect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
+        m_pdata->getMaxParticleNumberChangeSignal().disconnect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
+        m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
         }
     }
 

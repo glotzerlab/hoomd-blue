@@ -51,8 +51,8 @@ struct hpmc_implicit_args_t
                 const unsigned int _N,
                 const unsigned int _num_types,
                 const unsigned int _seed,
-                const Scalar* _d,
-                const Scalar* _a,
+                const unsigned int *_d_check_overlaps,
+                const Index2D& _overlap_idx,
                 const unsigned int _timestep,
                 const unsigned int _dim,
                 const BoxDim& _box,
@@ -107,8 +107,8 @@ struct hpmc_implicit_args_t
                   N(_N),
                   num_types(_num_types),
                   seed(_seed),
-                  d_d(_d),
-                  d_a(_a),
+                  d_check_overlaps(_d_check_overlaps),
+                  overlap_idx(_overlap_idx),
                   timestep(_timestep),
                   dim(_dim),
                   box(_box),
@@ -165,8 +165,8 @@ struct hpmc_implicit_args_t
     const unsigned int N;             //!< Number of particles
     const unsigned int num_types;     //!< Number of particle types
     const unsigned int seed;          //!< RNG seed
-    const Scalar* d_d;                //!< Maximum move displacement
-    const Scalar* d_a;                //!< Maximum move angular displacement
+    const unsigned int *d_check_overlaps; //!< Interaction matrix
+    const Index2D& overlap_idx;       //!< Indexer for interaction matrix
     const unsigned int timestep;      //!< Current time step
     const unsigned int dim;           //!< Number of dimensions
     const BoxDim& box;                //!< Current simulation box

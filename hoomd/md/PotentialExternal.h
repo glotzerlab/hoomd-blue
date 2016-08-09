@@ -5,7 +5,6 @@
 // Maintainer: jglaser
 
 #include <memory>
-#include <boost/bind.hpp>
 #include "hoomd/ForceCompute.h"
 
 /*! \file PotentialExternal.h
@@ -69,10 +68,6 @@ class PotentialExternal: public ForceCompute
             GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
             m_params.swap(params);
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
    };
 
 /*! Constructor
@@ -93,7 +88,7 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
     m_field.swap(field);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialExternal<evaluator>::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().template connect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! Destructor
@@ -101,7 +96,7 @@ PotentialExternal<evaluator>::PotentialExternal(std::shared_ptr<SystemDefinition
 template<class evaluator>
 PotentialExternal<evaluator>::~PotentialExternal()
     {
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialExternal<evaluator>, &PotentialExternal<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! PotentialExternal provides

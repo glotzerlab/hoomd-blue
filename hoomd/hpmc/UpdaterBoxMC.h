@@ -264,8 +264,6 @@ class UpdaterBoxMC : public Updater
         float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
-        boost::signals2::connection m_maxparticlenumberchange_connection;
-                                                    //!< Connection to MaxParticleNumberChange signal
 
         hpmc_boxmc_counters_t m_count_total;          //!< Accept/reject total count
         hpmc_boxmc_counters_t m_count_run_start;      //!< Count saved at run() start

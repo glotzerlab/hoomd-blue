@@ -6,8 +6,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/ConstForceCompute.h"
@@ -29,6 +28,7 @@
 #include <math.h>
 
 using namespace std;
+using namespace std::placeholders;
 
 
 /*! \file nve_updater_test.cc
@@ -40,7 +40,7 @@ using namespace std;
 HOOMD_UP_MAIN();
 
 //! Typedef'd NVEUpdator class factory
-typedef boost::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,
                                                        std::shared_ptr<ParticleGroup> group)> twostepnve_creator;
 
 //! Integrate 1 particle through time and compare to an analytical solution

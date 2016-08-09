@@ -21,9 +21,9 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&ForceComposite::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
 
-    m_global_ptl_num_change_connection = m_pdata->connectGlobalParticleNumberChange(boost::bind(&ForceComposite::slotPtlsAddedRemoved, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -48,12 +48,12 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 ForceComposite::~ForceComposite()
     {
     // disconnect from signal in ParticleData;
-    m_num_type_change_connection.disconnect();
-
-    m_global_ptl_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        m_comm_ghost_layer_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+    #endif
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -894,8 +894,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
                     << std::endl << std::endl;
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
-    
-            // otherwise we must ignore it 
+
+            // otherwise we must ignore it
             continue;
             }
 

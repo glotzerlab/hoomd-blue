@@ -14,8 +14,6 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/bind.hpp>
-
 using namespace std;
 namespace py = pybind11;
 /*!
@@ -53,13 +51,13 @@ NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysde
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListStencil::slotRCutChange, this));
+    getRCutChangeSignal().connect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
     }
 
 NeighborListStencil::~NeighborListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListStencil" << endl;
-    m_rcut_change_conn.disconnect();
+    getRCutChangeSignal().disconnect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
     }
 
 void NeighborListStencil::setRCut(Scalar r_cut, Scalar r_buff)

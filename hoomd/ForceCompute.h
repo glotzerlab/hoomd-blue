@@ -16,7 +16,7 @@
 #endif
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class
@@ -175,12 +175,6 @@ class ForceCompute : public Compute
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
-
-        //! Connection to the signal notifying when particles are resorted
-        boost::signals2::connection m_sort_connection;
-
-        //! Connection to the signal notifying when maximum number of particles changes
-        boost::signals2::connection m_max_particle_num_change_connection;
 
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
