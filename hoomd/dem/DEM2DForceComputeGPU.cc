@@ -21,10 +21,6 @@
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-
-#include <boost/bind.hpp>
-
-using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on

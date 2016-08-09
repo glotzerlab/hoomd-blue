@@ -8,8 +8,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
@@ -20,7 +19,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 /*! \file lj_force_test.cc
     \brief Implements unit tests for PotentialPairLJ and PotentialPairLJGPU and descendants
@@ -35,7 +34,7 @@ HOOMD_UP_MAIN();
 
 
 //! Typedef'd LJForceCompute factory
-typedef boost::function<std::shared_ptr<PotentialPairLJ> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<PotentialPairLJ> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
 //! Test the ability of the lj force compute to actually calucate forces

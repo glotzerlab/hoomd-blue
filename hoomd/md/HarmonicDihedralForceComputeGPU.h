@@ -8,7 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file HarmonicDihedralForceComputeGPU.h
     \brief Declares the HarmonicDihedralForceGPU class
@@ -52,7 +52,7 @@ class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
         virtual void setParams(unsigned int type, Scalar K, int sign, unsigned int multiplicity);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<Scalar4> m_params;           //!< Parameters stored on the GPU (k,sign,m)
 
         //! Actually compute the forces

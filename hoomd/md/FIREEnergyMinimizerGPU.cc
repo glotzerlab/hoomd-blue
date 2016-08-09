@@ -11,8 +11,6 @@
 #include "TwoStepNVEGPU.h"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
-
 using namespace std;
 
 /*! \file FIREEnergyMinimizerGPU.h

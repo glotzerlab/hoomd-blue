@@ -204,10 +204,7 @@ struct ShapeFacetedSphere
     DEVICE bool hasOrientation() { return params.N > 0; }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return params.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const {return params.ignore & 0x01;}
+    DEVICE bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const

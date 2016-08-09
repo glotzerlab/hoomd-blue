@@ -106,11 +106,11 @@ class ForceComposite : public MolecularForceCompute
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addExtraGhostLayerWidthRequest(
-                    boost::bind(&ForceComposite::requestExtraGhostLayerWidth, this, _1));
+                m_comm->getExtraGhostLayerWidthRequestSignal().connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -119,13 +119,7 @@ class ForceComposite : public MolecularForceCompute
         virtual void computeForces(unsigned int timestep);
 
     private:
-        //! Connection o the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
-        //! Connection to particle data signal when particle number changes
-        boost::signals2::connection m_global_ptl_num_change_connection;
-
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected ghost layer width requests
     };
 
 //! Exports the ForceComposite to python

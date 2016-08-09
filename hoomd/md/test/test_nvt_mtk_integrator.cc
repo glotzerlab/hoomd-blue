@@ -5,8 +5,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
@@ -26,7 +25,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
@@ -38,7 +37,7 @@ HOOMD_UP_MAIN();
 
 
 //! Typedef'd NVTUpdator class factory
-typedef boost::function<std::shared_ptr<TwoStepNVTMTK> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<TwoStepNVTMTK> (std::shared_ptr<SystemDefinition> sysdef,
                                                  std::shared_ptr<ParticleGroup> group,
                                                  std::shared_ptr<ComputeThermo> thermo,
                                                  Scalar Q,

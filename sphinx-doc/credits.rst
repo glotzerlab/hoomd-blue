@@ -86,6 +86,7 @@ Jens Glaser, University of Michigan
  * pair.reaction_field
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
+ * hpmc interaction_matrix
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -154,6 +155,8 @@ James Proctor, University of Michigan
  * Wall potentials
  * boost python to pybind11 conversion
  * boost unit_test to upp11 conversion
+ * boost signals to Nano::Signals conversion
+ * Removal of misc boost library calls
 
 Chengyu Dai, University of Michigan
  * Rewrite integrate.brownian with 3D rotational updates
@@ -633,6 +636,5 @@ Libraries
 
 HOOMD-blue links to the following libraries:
 
- * boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)
  * python - Used under the Python license (http://www.python.org/psf/license/)
  * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)

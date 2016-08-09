@@ -31,10 +31,6 @@ using namespace std;
 
 namespace py = pybind11;
 
-#include <boost/bind.hpp>
-
-using namespace boost::signals2;
-
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
 
@@ -220,7 +216,7 @@ void ParticleData::setGlobalBox(const BoxDim& box)
         m_box = box;
         }
 
-    m_boxchange_signal();
+    m_boxchange_signal.emit();
     }
 
 /*! \return Global simulation box dimensions
@@ -230,83 +226,12 @@ const BoxDim & ParticleData::getGlobalBox() const
     return m_global_box;
     }
 
-/*! \param func Function to call when the particles are resorted
-    \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals2. The function passed in
-    \a func will be called every time the ParticleData is notified of a particle
-    sort via notifyParticleSort().
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-*/
-boost::signals2::connection ParticleData::connectParticleSort(const boost::function<void ()> &func)
-    {
-    return m_sort_signal.connect(func);
-    }
-
 /*! \b ANY time particles are rearranged in memory, this function must be called.
     \note The call must be made after calling release()
 */
 void ParticleData::notifyParticleSort()
     {
-    m_sort_signal();
-    }
-
-/*! \param func Function to call when the box size changes
-    \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals2. The function passed in
-    \a func will be called every time the the box size is changed via setGlobalBoxL()
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-*/
-boost::signals2::connection ParticleData::connectBoxChange(const boost::function<void ()> &func)
-    {
-    return m_boxchange_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the particle data arrays are resized
-    \return Connection to manage the signal
-
-    The maximum particle number is the size of the particle data arrays in memory. This
-    can be larger than the current local particle number. The arrays are infrequently
-    resized (e.g. by doubling the size if necessary), to keep the amount of data
-    copied to a minimum.
-
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-
-    \note A change in maximum particle number does not necessarily imply a change in sort order,
-          and notifyParticleSort() needs to be called separately after all particle data is available
-          on the local processor.
-*/
-boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
-    {
-    return m_max_particle_num_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the global number of particles changes
-    \return Connection to manage the signal
-
-    The global number of particles can be changed during the simulation, by calls
-    to addParticle() or removeParticle(). Classes that store information e.g.
-    for every global particle should subscribe to this signal.
-
-    Changes in global particle number imply a local change in particle number (on some processor),
-    and are indicated both by this signal, and notifyParticleSort(), which is triggered
-    *after* the global particle number change signal.
-
-    The signal is to be triggered after all changes to the particle data are complete.
- */
-boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(const boost::function<void ()> &func)
-    {
-    return m_global_particle_num_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the ghost particles are remove
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boost::function<void ()> &func)
-    {
-    return m_ghost_particles_removed_signal.connect(func);
+    m_sort_signal.emit();
     }
 
 /*! This function is called any time the ghost particles are removed
@@ -318,29 +243,9 @@ boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boo
  */
 void ParticleData::notifyGhostParticlesRemoved()
     {
-    m_ghost_particles_removed_signal();
+    m_ghost_particles_removed_signal.emit();
     }
 
-/*! \param func Function to be called when the number of types changes
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectNumTypesChange(const boost::function<void ()> &func)
-    {
-    return m_num_types_signal.connect(func);
-    }
-
-
-
-#ifdef ENABLE_MPI
-/*! \param func Function to be called when a single particle moves between domains
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectSingleParticleMove(
-    const boost::function<void(unsigned int, unsigned int, unsigned int)> &func)
-    {
-    return m_ptl_move_signal.connect(func);
-    }
-#endif
 
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
@@ -469,7 +374,7 @@ void ParticleData::allocate(unsigned int N)
     allocateAlternateArrays(N);
 
     // notify observers
-    m_max_particle_num_signal();
+    m_max_particle_num_signal.emit();
     }
 
 /*! \param N Number of particles to allocate memory for
@@ -549,7 +454,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
     m_nglobal = nglobal;
 
     // we have changed the global particle number, notify subscribers
-    m_global_particle_num_signal();
+    m_global_particle_num_signal.emit();
     }
 
 /*! \param new_nparticles New particle number
@@ -573,7 +478,7 @@ void ParticleData::resize(unsigned int new_nparticles)
 
 /*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
- *  this method issues a m_max_particle_num_signal().
+ *  this method issues a m_max_particle_num_signal.emit().
  *
  *  \note To keep unnecessary data copying to a minimum, arrays are not reallocated with every change of the
  *  particle number, rather an amortized array expanding strategy is used.
@@ -624,7 +529,7 @@ void ParticleData::reallocate(unsigned int max_n)
         }
 
     // notify observers
-    m_max_particle_num_signal();
+    m_max_particle_num_signal.emit();
     }
 
 /*! Rebuild the cached vector of active tags, if necessary
@@ -1063,7 +968,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     m_o_image = make_int3(0,0,0);
 
     // notify listeners that number of types has changed
-    m_num_types_signal();
+    m_num_types_signal.emit();
     }
 
 //! take a particle data snapshot
@@ -1841,7 +1746,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 }
 
             // Notify observers
-            m_ptl_move_signal(tag, owner_rank, new_rank);
+            m_ptl_move_signal.emit(tag, owner_rank, new_rank);
             }
         }
     #endif // ENABLE_MPI
@@ -2896,7 +2801,7 @@ unsigned int ParticleData::addType(const std::string& type_name)
     m_type_mapping.push_back(type_name);
 
     // inform listeners about the number of types change
-    m_num_types_signal();
+    m_num_types_signal.emit();
 
     // return id of newly added type
     return m_type_mapping.size() - 1;

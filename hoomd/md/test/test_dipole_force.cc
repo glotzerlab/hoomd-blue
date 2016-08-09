@@ -13,8 +13,7 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/AllAnisoPairPotentials.h"
@@ -25,7 +24,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 /*! \file test_dipole_force.cc
     \brief Implements unit tests for AnisoPotentialPairDipole and AnisoPotentialPairDipoleGPU
@@ -39,7 +38,7 @@ HOOMD_UP_MAIN();
 
 
 
-typedef boost::function<std::shared_ptr<AnisoPotentialPairDipole> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<AnisoPotentialPairDipole> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> dipoleforce_creator;
 
 //! Test the ability of the Gay Berne force compute to actually calucate forces

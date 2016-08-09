@@ -45,7 +45,7 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
       m_dfft_initialized(false)
     {
 
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&PPPMForceCompute::setBoxChange, this));
+    m_pdata->getBoxChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
@@ -149,7 +149,7 @@ PPPMForceCompute::~PPPMForceCompute()
         dfft_destroy_plan(m_dfft_plan_inverse);
         }
     #endif
-    m_boxchange_connection.disconnect();
+    m_pdata->getBoxChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     }
 
 //! Compute auxillary table for influence function

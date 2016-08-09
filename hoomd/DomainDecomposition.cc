@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <functional>
 #include <numeric>
 
 using namespace std;

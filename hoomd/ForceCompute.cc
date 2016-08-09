@@ -45,10 +45,10 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(s
     m_virial_pitch = m_virial.getPitch();
 
     // connect to the ParticleData to recieve notifications when particles change order in memory
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
+     m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ForceCompute::reallocate, this));
+     m_pdata->getMaxParticleNumberChangeSignal().connect<ForceCompute, &ForceCompute::reallocate>(this);
 
     // reset external virial
     for (unsigned int i = 0; i < 6; ++i)
@@ -73,8 +73,8 @@ void ForceCompute::reallocate()
 */
 ForceCompute::~ForceCompute()
     {
-    m_sort_connection.disconnect();
-    m_max_particle_num_change_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<ForceCompute, &ForceCompute::reallocate>(this);
     }
 
 /*! Sums the total potential energy calculated by the last call to compute() and returns it.

@@ -13,8 +13,6 @@
 #include "HarmonicDihedralForceComputeGPU.h"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
-
 using namespace std;
 
 /*! \param sysdef System to compute bond forces on

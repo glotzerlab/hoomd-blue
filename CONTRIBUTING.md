@@ -90,6 +90,12 @@ Include examples on using new functionality.
 
 The master command index needs a reference to new script commands so they are easy to find for users.
 
+## Document version status
+
+Each user-facing python class, method, etc... with a docstring should have [versionadded, versionchanged, and
+deprecated sphinx paragraphs](www.sphinx-doc.org/en/stable/markup/para.html) so that users will be aware of
+how functionality changes from version to version (post-2.0).
+
 ## Add developer to the credits
 
 Developers need to be credited for their work. Update the credits documentation to reference what each developer

@@ -25,7 +25,7 @@
 #include "DomainDecomposition.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -80,117 +80,6 @@ struct comm_flag
 
 //! Bitset to determine required ghost communication fields
 typedef std::bitset<32> CommFlags;
-
-//! Perform a logical or operation on the return values of several signals
-struct migrate_logical_or
-    {
-    //! This is needed by boost::signals2
-    typedef bool result_type;
-
-    //! Combine return values using logical or
-    /*! \param first First return value
-        \param last Last return value
-     */
-    template<typename InputIterator>
-    bool operator()(InputIterator first, InputIterator last) const
-        {
-        if (first == last)
-            return false;
-
-        bool return_value = *first++;
-        while (first != last)
-            {
-            if (*first++)
-                return_value = true;
-            }
-
-        return return_value;
-        }
-    };
-
-//! Perform a bitwise or operation on the return values of several signals
-struct comm_flags_bitwise_or
-    {
-    //! This is needed by boost::signals
-    typedef CommFlags result_type;
-
-    //! Combine return values using logical or
-    /*! \param first First return value
-        \param last Last return value
-     */
-    template<typename InputIterator>
-    CommFlags operator()(InputIterator first, InputIterator last) const
-        {
-        if (first == last) return CommFlags(0);
-
-        CommFlags return_value(0);
-        while (first != last) return_value |= *first++;
-
-        return return_value;
-        }
-    };
-
-//! Perform a maximum reduction on the return values of several signals
-struct ghost_layer_max
-    {
-    //! This is needed by boost::signals2
-    typedef Scalar result_type;
-
-    //! Max-reduce return values
-    /*! \param first First return value
-        \param last Last return value
-     */
-    template<typename InputIterator>
-    Scalar operator()(InputIterator first, InputIterator last) const
-        {
-        if (first == last)
-            {
-            return Scalar(0.0);
-            }
-
-        Scalar return_value = *first++;
-        while (first != last)
-            {
-            assert(*first >= Scalar(0.0));
-            if (*first > return_value)
-                return_value = *first;
-            first++;
-            }
-
-        return return_value;
-        }
-    };
-
-//! Perform a sum reduction on the return values of several signals
-struct ghost_layer_add
-    {
-    //! This is needed by boost::signals2
-    typedef Scalar result_type;
-
-    //! Max-reduce return values
-    /*! \param first First return value
-        \param last Last return value
-     */
-    template<typename InputIterator>
-    Scalar operator()(InputIterator first, InputIterator last) const
-        {
-        if (first == last)
-            {
-            return Scalar(0.0);
-            }
-
-        Scalar return_value = *first++;
-        while (first != last)
-            {
-            assert(*first >= Scalar(0.0));
-            return_value += *first;
-            first++;
-            }
-
-        return return_value;
-        }
-    };
-
 
 //! A compact storage for rank information
 template<typename ranks_t>
@@ -284,11 +173,11 @@ class Communicator
 
         //! Subscribe to list of functions that determine when the particles are migrated
         /*! This method keeps track of all functions that may request particle migration.
-         * \return A connection to the present class
+         * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        boost::signals2::connection addMigrateRequest(const boost::function<bool (unsigned int timestep)>& subscriber)
+        Nano::Signal<bool(unsigned int timestep)>& getMigrateSignal()
             {
-            return m_migrate_requests.connect(subscriber);
+            return m_migrate_requests;
             }
 
         //! Subscribe to list of functions that request a minimum ghost layer width
@@ -296,9 +185,9 @@ class Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        boost::signals2::connection addGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+        Nano::Signal<Scalar (unsigned int)>& getGhostLayerWidthRequestSignal()
             {
-            return m_ghost_layer_width_requests.connect(subscriber);
+            return m_ghost_layer_width_requests;
             }
 
         //! Subscribe to list of functions that request a minimum extra ghost layer width (added to the maximum ghost layer)
@@ -306,9 +195,9 @@ class Communicator
          * The actual ghost layer width is chosen from the max over the inputs
          * \return A connection to the present class
          */
-        boost::signals2::connection addExtraGhostLayerWidthRequest(const boost::function<Scalar (unsigned int)>& subscriber)
+        Nano::Signal<Scalar (unsigned int)>& getExtraGhostLayerWidthRequestSignal()
             {
-            return m_extra_ghost_layer_width_requests.connect(subscriber);
+            return m_extra_ghost_layer_width_requests;
             }
 
 
@@ -316,9 +205,9 @@ class Communicator
         /*! This method keeps track of all functions that may request communication flags
          * \return A connection to the present class
          */
-        boost::signals2::connection addCommFlagsRequest(const boost::function<CommFlags (unsigned int timestep)>& subscriber)
+        Nano::Signal<CommFlags (unsigned int timestep)>& getCommFlagsRequestSignal()
             {
-            return m_requested_flags.connect(subscriber);
+            return m_requested_flags;
             }
 
 
@@ -330,17 +219,9 @@ class Communicator
          * \param subscriber The callback
          * \returns a connection to this class
          */
-        boost::signals2::connection addCommunicationCallback(
-            const boost::function<void (const GPUArray<unsigned int> &)>& subscriber)
+        Nano::Signal<void (const GPUArray<unsigned int> &)>& getCommunicationCallbackSignal()
             {
-            return m_comm_callbacks.connect(subscriber);
-            }
-
-        //! Subscribe to list of call-backs for overlapping computation
-        boost::signals2::connection addLocalComputeCallback(
-            const boost::function<void (unsigned int timestep)>& subscriber)
-            {
-            return m_local_compute_callbacks.connect(subscriber);
+            return m_comm_callbacks;
             }
 
         //! Subscribe to list of *optional* call-backs for computation using ghost particles
@@ -349,12 +230,11 @@ class Communicator
          * before awaiting the result of the particle migration check.
          *
          * \param subscriber The callback
-         * \returns a connection to this class
+         * \return A Nano::Signal object reference to be used for connect and disconnect calls.
          */
-        boost::signals2::connection addComputeCallback(
-            const boost::function<void (unsigned int timestep)>& subscriber)
+        Nano::Signal<void (unsigned int timestep)>& getComputeCallbackSignal()
             {
-            return m_compute_callbacks.connect(subscriber);
+            return m_compute_callbacks;
             }
 
         //! Get the ghost communication flags
@@ -624,25 +504,22 @@ class Communicator
 
         GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
-        boost::signals2::signal<bool(unsigned int timestep), migrate_logical_or>
+        Nano::Signal<bool(unsigned int timestep)>
             m_migrate_requests; //!< List of functions that may request particle migration
 
-        boost::signals2::signal<CommFlags(unsigned int timestep), comm_flags_bitwise_or>
+        Nano::Signal<CommFlags(unsigned int timestep) >
             m_requested_flags;  //!< List of functions that may request ghost communication flags
 
-        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+        Nano::Signal<Scalar(unsigned int type) >
             m_ghost_layer_width_requests;  //!< List of functions that request a minimum ghost layer width
 
-        boost::signals2::signal<Scalar (unsigned int type), ghost_layer_max>
+        Nano::Signal<Scalar(unsigned int type) >
             m_extra_ghost_layer_width_requests;  //!< List of functions that request an extra ghost layer width
 
-        boost::signals2::signal<void (unsigned int timestep)>
-            m_local_compute_callbacks;   //!< List of functions that can be overlapped with communication
-
-        boost::signals2::signal<void (unsigned int timestep)>
+        Nano::Signal<void (unsigned int timestep)>
             m_compute_callbacks;   //!< List of functions that are called after ghost communication
 
-        boost::signals2::signal<void (const GPUArray<unsigned int>& )>
+        Nano::Signal<void (const GPUArray<unsigned int>& )>
             m_comm_callbacks;   //!< List of functions that are called after the compute callbacks
 
         CommFlags m_flags;                       //!< The ghost communication flags
@@ -653,7 +530,6 @@ class Communicator
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed
-        boost::signals2::connection m_bond_connection; //!< Connection to BondData addition/removal of bonds signal
         void setBondsChanged()
             {
             m_bonds_changed = true;
@@ -661,7 +537,6 @@ class Communicator
 
         /* Angles communication */
         bool m_angles_changed;                          //!< True if angle information needs to be refreshed
-        boost::signals2::connection m_angle_connection; //!< Connection to AngleData addition/removal of angles signal
         void setAnglesChanged()
             {
             m_angles_changed = true;
@@ -669,7 +544,6 @@ class Communicator
 
         /* Dihedrals communication */
         bool m_dihedrals_changed;                          //!< True if dihedral information needs to be refreshed
-        boost::signals2::connection m_dihedral_connection; //!< Connection to DihedralData addition/removal of dihedrals signal
         void setDihedralsChanged()
             {
             m_dihedrals_changed = true;
@@ -677,7 +551,6 @@ class Communicator
 
         /* Impropers communication */
         bool m_impropers_changed;                          //!< True if improper information needs to be refreshed
-        boost::signals2::connection m_improper_connection; //!< Connection to ImproperData addition/removal of impropers signal
         void setImpropersChanged()
             {
             m_impropers_changed = true;
@@ -685,7 +558,6 @@ class Communicator
 
         /* Constraints communication */
         bool m_constraints_changed;                          //!< True if constraint information needs to be refreshed
-        boost::signals2::connection m_constraint_connection; //!< Connection to ConstraintData addition/removal of constraints signal
         void setConstraintsChanged()
             {
             m_constraints_changed = true;
@@ -731,15 +603,6 @@ class Communicator
         friend class GroupCommunicator<ConstraintData>;
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
-
-        //! Connection to the signal notifying when particles are resorted
-        boost::signals2::connection m_sort_connection;
-
-        //! Connection to the signal notifying when ghost particles are removed
-        boost::signals2::connection m_ghost_particles_removed_connection;
-
-        //! Connection to the signal notifying when number of types change
-        boost::signals2::connection m_num_type_change_connection;
 
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()
