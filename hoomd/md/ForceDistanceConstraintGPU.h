@@ -9,7 +9,7 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/GPUFlags.h"
 
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 #ifdef CUSOLVER_AVAILABLE
 #include <cusparse.h>
@@ -63,8 +63,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
-        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+        std::unique_ptr<Autotuner> m_tuner_fill;  //!< Autotuner for filling the constraint matrix
+        std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
 
         #ifdef CUSOLVER_AVAILABLE
         cusparseHandle_t m_cusparse_handle;                //!< cuSPARSE handle

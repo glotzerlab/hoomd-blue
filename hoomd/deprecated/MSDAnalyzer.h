@@ -22,7 +22,6 @@
 #include <string>
 #include <fstream>
 #include <memory>
-#include <boost/signals2.hpp>
 
 //! Prints a log of the mean-squared displacement calculated over particles in the simulation
 /*! On construction, MSDAnalyzer opens the given file name for writing. The file will optionally be overwritten
@@ -82,8 +81,6 @@ class MSDAnalyzer : public Analyzer
         std::vector<Scalar> m_initial_z;    //!< initial value of the z-component listed by tag
 
         std::vector<Scalar> m_initial_group_N; //!< initial value of number of group members
-
-        boost::signals2::connection m_ptls_sort_connection; //!< Connection to pdata particle sort signal
 
         //! struct for storing the particle group and name assocated with a column in the output
         struct column

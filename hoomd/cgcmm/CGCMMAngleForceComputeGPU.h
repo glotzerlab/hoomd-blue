@@ -8,7 +8,6 @@
 #include "hoomd/Autotuner.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
 
 /*! \file HarmonicAngleForceComputeGPU.h
     \brief Declares the HarmonicAngleForceGPU class
@@ -58,7 +57,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<Scalar2> m_params;           //!< k, t0 Parameters stored on the GPU
 
         // below are just for the CG-CMM angle potential

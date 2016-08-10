@@ -277,7 +277,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             return Scalar(0.0);
             }
@@ -294,7 +294,7 @@ class IntegratorHPMC : public Integrator
                 // only add the migrate request on the first call
                 assert(comm);
                 #ifdef HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
-                m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(boost::bind(&IntegratorHPMC::getGhostLayerWidth, this));
+                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
                 #else
                 #error "Unsupported HOOMD version."
                 #endif
@@ -308,11 +308,6 @@ class IntegratorHPMC : public Integrator
     private:
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
-
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
-        boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
     };
 
 //! Export the IntegratorHPMC class to python

@@ -41,15 +41,15 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
 
-    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
+    m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellList" << endl;
-    m_sort_connection.disconnect();
-    m_boxchange_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().disconnect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 //! Round down to the nearest multiple
@@ -262,7 +262,7 @@ void CellList::initializeWidth()
                                   (L.z + Scalar(2.0)*m_ghost_width.z) / Scalar(m_dim.z));
 
     // signal that the width has changed
-    m_width_change();
+    m_width_change.emit();
 
     if (m_prof)
         m_prof->pop();

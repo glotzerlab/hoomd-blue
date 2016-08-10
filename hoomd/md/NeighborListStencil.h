@@ -66,7 +66,6 @@ class NeighborListStencil : public NeighborList
         std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
         bool m_override_cell_width;                 //!< Flag to override the cell width
 
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
         bool m_needs_restencil;                             //!< Flag for updating the stencil
         void slotRCutChange()
             {

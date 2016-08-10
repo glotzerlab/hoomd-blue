@@ -16,7 +16,6 @@
 #include "GPUVector.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
 #include <vector>
 #include <utility>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -74,7 +73,6 @@ class SFCPackUpdater : public Updater
         unsigned int m_last_dim;    //!< Check the last dimension we ran at
         GPUArray< unsigned int > m_traversal_order;      //!< Generated traversal order of bins
 
-        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
         //! Helper function that actually performs the sort
         virtual void getSortedOrder2D();
         //! Helper function that actually performs the sort

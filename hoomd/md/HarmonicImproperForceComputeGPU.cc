@@ -12,7 +12,6 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-#include <boost/bind.hpp>
 namespace py = pybind11;
 using namespace std;
 

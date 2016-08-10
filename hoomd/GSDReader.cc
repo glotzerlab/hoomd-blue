@@ -19,8 +19,6 @@ using namespace std;
 
 namespace py = pybind11;
 
-using namespace boost;
-
 /*! \param exec_conf The execution configuration
     \param name File name to read
     \param frame Frame index to read from the file

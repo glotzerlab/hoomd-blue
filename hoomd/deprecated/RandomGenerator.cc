@@ -393,8 +393,8 @@ void RandomGenerator::generate()
     m_data = GeneratedParticles(m_exec_conf, n_particles, m_box, m_radii);
 
     // start the random number generator
-    boost::mt19937 rnd;
-    rnd.seed(boost::mt19937::result_type(m_seed));
+    std::mt19937 rnd;
+    rnd.seed(std::mt19937::result_type(m_seed));
 
     // perform the generation
     unsigned int start_idx = 0;
@@ -455,7 +455,7 @@ unsigned int RandomGenerator::getBondTypeId(const std::string& name)
 //! Helper function to generate a [0..1] float
 /*! \param rnd Random number generator to use
 */
-static Scalar random01(boost::mt19937& rnd)
+static Scalar random01(std::mt19937& rnd)
     {
     unsigned int val = rnd();
 
@@ -499,7 +499,7 @@ PolymerParticleGenerator::PolymerParticleGenerator(std::shared_ptr<const Executi
     \param rnd Random number generator
     \param start_idx Index to start generating particles at
 */
-void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx)
+void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, std::mt19937& rnd, unsigned int start_idx)
     {
     const BoxDim& box = particles.getBox();
 
@@ -554,7 +554,7 @@ void PolymerParticleGenerator::generateParticles(GeneratedParticles& particles, 
 
     \returns true When all particles in the polymer > i are able to be placed
 */
-bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx,  const GeneratedParticles::particle& prev_particle)
+bool PolymerParticleGenerator::generateNextParticle(GeneratedParticles& particles, std::mt19937& rnd, unsigned int i, unsigned int start_idx,  const GeneratedParticles::particle& prev_particle)
     {
     // handle stopping condition
     if (i == m_types.size())

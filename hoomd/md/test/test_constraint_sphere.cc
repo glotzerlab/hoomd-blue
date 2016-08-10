@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/IntegratorTwoStep.h"
@@ -21,7 +20,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 /*! \file constraint_sphere_test.cc
     \brief Implements unit tests for ConstraintSphere and descendants
@@ -32,7 +31,7 @@ using namespace std;
 HOOMD_UP_MAIN();
 
 //! Typedef'd class factory
-typedef boost::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,
                                                       std::shared_ptr<ParticleGroup> group,
                                                       Scalar3 P,
                                                       Scalar r)> cs_creator_t;

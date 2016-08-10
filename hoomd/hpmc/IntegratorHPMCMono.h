@@ -136,8 +136,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             if (m_aabbs != NULL)
                 free(m_aabbs);
-            m_boxchange_connection.disconnect();
-            m_sort_connection.disconnect();
+            m_pdata->getBoxChangeSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+            m_pdata->getParticleSortSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
             }
 
         virtual void printStats();
@@ -188,7 +188,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual std::vector<bool> mapOverlaps();
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
@@ -268,8 +268,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
         std::vector<vec3<Scalar> > m_image_list;             //!< List of potentially interacting simulation box images
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         unsigned int m_image_list_rebuilds;                  //!< Number of times the image list has been rebuilt
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
@@ -309,11 +307,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             m_aabb_tree_invalid = true;
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 template <class Shape>
@@ -335,8 +328,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_overlaps.swap(overlaps);
 
     // Connect to the BoxChange signal
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&IntegratorHPMCMono<Shape>::slotBoxChanged, this));
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&IntegratorHPMCMono<Shape>::slotSorted, this));
+    m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+    m_pdata->getParticleSortSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
 
     m_image_list_rebuilds = 0;
     m_image_list_warning_issued = false;

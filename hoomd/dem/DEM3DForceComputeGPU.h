@@ -53,7 +53,7 @@ class DEM3DForceComputeGPU: public DEM3DForceCompute<Real, Real4, Potential>
         size_t maxGPUThreads() const;
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

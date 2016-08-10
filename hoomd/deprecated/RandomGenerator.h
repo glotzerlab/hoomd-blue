@@ -21,7 +21,7 @@
 #include <map>
 
 #include <memory>
-#include <boost/random.hpp>
+#include <random>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __RANDOM_GENERATOR_H__
@@ -152,7 +152,7 @@ class ParticleGenerator
             call it to generate the particles. Particles should be placed at indices
             \a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1
         */
-        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx) {}
+        virtual void generateParticles(GeneratedParticles& particles, std::mt19937& rnd, unsigned int start_idx) {}
     };
 
 //! Generates random polymers
@@ -180,7 +180,7 @@ class PolymerParticleGenerator : public ParticleGenerator
             }
 
         //! Generates a single polymer
-        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx);
+        virtual void generateParticles(GeneratedParticles& particles, std::mt19937& rnd, unsigned int start_idx);
 
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
@@ -193,7 +193,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         unsigned int m_dimensions;          //!< Number of dimensions
 
         //! helper function to place particles recursively
-        bool generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
+        bool generateNextParticle(GeneratedParticles& particles, std::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
 
     };
 
