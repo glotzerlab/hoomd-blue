@@ -225,7 +225,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b)
     }
 
 #ifndef NVCC
-DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const std::vector< OverlapReal>& vertex_radius)
+DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
     {
     // compute mean
     OBB res;
@@ -314,13 +314,13 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
         proj.y = dot(pts[i]-mean, axis[1]);
         proj.z = dot(pts[i]-mean, axis[2]);
 
-        if (proj.x > proj_max.x) proj_max.x = proj.x+vertex_radius[i];
-        if (proj.y > proj_max.y) proj_max.y = proj.y+vertex_radius[i];
-        if (proj.z > proj_max.z) proj_max.z = proj.z+vertex_radius[i];
+        if (proj.x > proj_max.x) proj_max.x = proj.x;
+        if (proj.y > proj_max.y) proj_max.y = proj.y;
+        if (proj.z > proj_max.z) proj_max.z = proj.z;
 
-        if (proj.x < proj_min.x) proj_min.x = proj.x-vertex_radius[i];
-        if (proj.y < proj_min.y) proj_min.y = proj.y-vertex_radius[i];
-        if (proj.z < proj_min.z) proj_min.z = proj.z-vertex_radius[i];
+        if (proj.x < proj_min.x) proj_min.x = proj.x;
+        if (proj.y < proj_min.y) proj_min.y = proj.y;
+        if (proj.z < proj_min.z) proj_min.z = proj.z;
         }
 
     res.center = mean;
@@ -329,6 +329,10 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
     res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
     res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
+
+    res.lengths.x += vertex_radius;
+    res.lengths.y += vertex_radius;
+    res.lengths.z += vertex_radius;
 
     return res;
     }

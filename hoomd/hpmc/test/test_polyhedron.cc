@@ -50,7 +50,6 @@ ShapePolyhedron::gpu_tree_type build_tree(poly3d_data &data)
         }
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
-    std::vector<std::vector<OverlapReal> > vertex_radius;
     // construct bounding box tree
     for (unsigned int i = 0; i < data.n_faces; ++i)
         {
@@ -61,11 +60,10 @@ ShapePolyhedron::gpu_tree_type build_tree(poly3d_data &data)
             vec3<OverlapReal> v(data.verts.x[data.face_verts[j]], data.verts.y[data.face_verts[j]], data.verts.z[data.face_verts[j]]);
             face_vec.push_back(v);
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, std::vector<OverlapReal>(face_vec.size(),data.verts.sweep_radius));
+        obbs[i] = hpmc::detail::compute_obb(face_vec, data.verts.sweep_radius);
         internal_coordinates.push_back(face_vec);
-        vertex_radius.push_back(std::vector<OverlapReal>(face_vec.size(),data.verts.sweep_radius));
         }
-    tree.buildTree(obbs, internal_coordinates, vertex_radius, data.n_faces);
+    tree.buildTree(obbs, internal_coordinates, data.verts.sweep_radius, data.n_faces);
     ShapePolyhedron::gpu_tree_type gpu_tree(tree);
     free(obbs);
     return gpu_tree;
