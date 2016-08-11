@@ -22,8 +22,9 @@ using namespace std;
     \param r radius of the sphere
 */
 OneDConstraintGPU::OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
-                                         std::shared_ptr<ParticleGroup> group)
-        : OneDConstraint(sysdef, group), m_block_size(256)
+                                         std::shared_ptr<ParticleGroup> group,
+                                         Scalar3 constraint_vec)
+        : OneDConstraint(sysdef, group, constraint_vec), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -69,7 +70,8 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
                                          d_vel.data,
                                          d_net_force.data,
                                          m_deltaT,
-                                         m_block_size);
+                                         m_block_size,
+                                         m_vec);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
@@ -83,6 +85,7 @@ void export_OneDConstraintGPU(py::module& m)
     {
     py::class_< OneDConstraintGPU, std::shared_ptr<OneDConstraintGPU> >(m, "OneDConstraintGPU", py::base<ForceConstraint>())
     .def(py::init< std::shared_ptr<SystemDefinition>,
-                   std::shared_ptr<ParticleGroup> >())
+                   std::shared_ptr<ParticleGroup>, 
+                   Scalar3 >())
     ;
     }

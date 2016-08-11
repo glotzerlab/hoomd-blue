@@ -30,16 +30,21 @@ class OneDConstraint : public ForceConstraint
     public:
         //! Constructs the compute
         OneDConstraint(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<ParticleGroup> group);
+                         std::shared_ptr<ParticleGroup> group,
+                         Scalar3 constraint_vec );
 
         //! Destructor
         virtual ~OneDConstraint();
+
+        //! Set the force to a new value
+        void setVector(Scalar3 constraint_vec);
 
         //! Return the number of DOF removed by this constraint
         virtual unsigned int getNDOFRemoved();
 
     protected:
         std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this constraint is applied
+        Scalar3 m_vec;  //!< The vector along which particles are constrained
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

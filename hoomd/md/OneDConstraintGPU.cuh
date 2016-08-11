@@ -25,6 +25,7 @@ cudaError_t gpu_compute_one_d_constraint_forces(Scalar4* d_force,
                                                  const Scalar4 *d_vel,
                                                  const Scalar4 *d_net_force,
                                                  Scalar deltaT,
-                                                 unsigned int block_size);
+                                                 unsigned int block_size,
+                                                 Scalar3 m_vec);
 
 #endif

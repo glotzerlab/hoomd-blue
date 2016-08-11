@@ -20,8 +20,9 @@ using namespace std;
     \param group Group of particles on which to apply this constraint
 */
 OneDConstraint::OneDConstraint(std::shared_ptr<SystemDefinition> sysdef,
-                                   std::shared_ptr<ParticleGroup> group)
-        : ForceConstraint(sysdef), m_group(group)
+                                   std::shared_ptr<ParticleGroup> group,
+                                   Scalar3 constraint_vec)
+        : ForceConstraint(sysdef), m_group(group), m_vec(constraint_vec)
     {
     m_exec_conf->msg->notice(5) << "Constructing OneDConstraint" << endl;
 
@@ -30,6 +31,14 @@ OneDConstraint::OneDConstraint(std::shared_ptr<SystemDefinition> sysdef,
 OneDConstraint::~OneDConstraint()
     {
     m_exec_conf->msg->notice(5) << "Destroying OneDConstraint" << endl;
+    }
+
+/*!
+    \param constraint_vec direction that particles are constrained to
+*/
+void OneDConstraint::setVector(Scalar3 constraint_vec)
+    {
+    m_vec = constraint_vec;
     }
 
 /*! Computes the specified constraint forces
@@ -77,7 +86,9 @@ void OneDConstraint::computeForces(unsigned int timestep)
         // evaluate the constraint position
         EvaluatorConstraint constraint(X, V, F, m, m_deltaT);
         Scalar3 U = constraint.evalU();
-        Scalar3 C = make_scalar3(X.x, X.y, U.z);
+        Scalar3 D = make_scalar3((U.x - X.x), (U.y - X.y), (U.z - X.z));
+        Scalar n = (D.x*m_vec.x + D.y*m_vec.y + D.z*m_vec.z)/(m_vec.x*m_vec.x + m_vec.y*m_vec.y + m_vec.z*m_vec.z);
+        Scalar3 C = make_scalar3((n*m_vec.x + X.x), (n*m_vec.y + X.y), (n*m_vec.z + X.z));
 
         // evaluate the constraint force
         Scalar3 FC;
@@ -108,7 +119,9 @@ void export_OneDConstraint(py::module& m)
     {
     py::class_< OneDConstraint, std::shared_ptr<OneDConstraint> >(m, "OneDConstraint", py::base<ForceConstraint>())
     .def(py::init< std::shared_ptr<SystemDefinition>,
-                   std::shared_ptr<ParticleGroup> >())
+                   std::shared_ptr<ParticleGroup>,
+                   Scalar3 >())
     .def("getNDOFRemoved", &OneDConstraint::getNDOFRemoved)
+    .def("setVector", &OneDConstraint::setVector)
     ;
     }

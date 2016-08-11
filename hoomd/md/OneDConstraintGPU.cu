@@ -35,7 +35,8 @@ void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
                                                  const Scalar4 *d_pos,
                                                  const Scalar4 *d_vel,
                                                  const Scalar4 *d_net_force,
-                                                 Scalar deltaT)
+                                                 Scalar deltaT,
+                                                 Scalar3 m_vec)
     {
     // start by identifying which particle we are to handle
     // determine which particle this thread works on
@@ -64,7 +65,10 @@ void gpu_compute_one_d_constraint_forces_kernel(Scalar4* d_force,
     Scalar3 FC;
     Scalar virial[6];
     Scalar3 U = constraint.evalU();
-    Scalar3 C = make_scalar3(pos.x, pos.y, U.z);
+    Scalar3 D = make_scalar3((U.x - X.x), (U.y - X.y), (U.z - X.z));
+    Scalar n = (D.x*m_vec.x + D.y*m_vec.y + D.z*m_vec.z)/(m_vec.x*m_vec.x + m_vec.y*m_vec.y + m_vec.z*m_vec.z);
+    Scalar3 C = make_scalar3((n*m_vec.x + X.x), (n*m_vec.y + X.y), (n*m_vec.z + X.z));
+
     constraint.evalConstraintForce(FC, virial, C);
 
     // now that the force calculation is complete, write out the results
@@ -99,7 +103,8 @@ cudaError_t gpu_compute_one_d_constraint_forces(Scalar4* d_force,
                                                 const Scalar4 *d_vel,
                                                 const Scalar4 *d_net_force,
                                                 Scalar deltaT,
-                                                unsigned int block_size)
+                                                unsigned int block_size,
+                                                Scalar3 m_vec)
     {
     assert(d_group_members);
     assert(d_net_force);
@@ -120,7 +125,8 @@ cudaError_t gpu_compute_one_d_constraint_forces(Scalar4* d_force,
                                                                     d_pos,
                                                                     d_vel,
                                                                     d_net_force,
-                                                                    deltaT);
+                                                                    deltaT,
+                                                                    m_vec);
 
     return cudaSuccess;
     }

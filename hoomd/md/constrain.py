@@ -432,7 +432,10 @@ class oneD(_constraint_force):
 
         constrain.oneD(group=groupA)
     """
-    def __init__(self, group):
+    def __init__(self, group, constraint_vector=[0,0,1]):
+
+        constraint_vector = _hoomd.make_scalar3(constraint_vector[0], constraint_vector[1], constraint_vector[2]);
+
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -440,10 +443,16 @@ class oneD(_constraint_force):
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.OneDConstraint(hoomd.context.current.system_definition, group.cpp_group);
+            self.cpp_force = _md.OneDConstraint(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);
         else:
-            self.cpp_force = _md.OneDConstraintGPU(hoomd.context.current.system_definition, group.cpp_group);
+            self.cpp_force = _md.OneDConstraintGPU(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # store metadata
+        self.group = group
+        self.constraint_vector = constraint_vector
+        self.metadata_fields = ['group','constraint_vector']
+
 
 

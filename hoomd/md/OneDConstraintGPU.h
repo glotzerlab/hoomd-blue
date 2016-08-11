@@ -27,7 +27,8 @@ class OneDConstraintGPU : public OneDConstraint
     public:
         //! Constructs the compute
         OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
-                          std::shared_ptr<ParticleGroup> group);
+                          std::shared_ptr<ParticleGroup> group,
+                          Scalar3 constraint_vec);
 
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
