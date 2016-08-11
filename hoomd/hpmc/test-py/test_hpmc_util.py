@@ -291,10 +291,6 @@ class tune (unittest.TestCase):
 
         # Check that the new acceptance has improved
         new_acceptance = self.mc.get_translate_acceptance()
-        print(old_acceptance)
-        print(new_acceptance)
-        print(old_d)
-        print(self.mc.get_d())
         self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
         self.assertNotEqual(old_d, self.mc.get_d())
         del tuner
@@ -315,16 +311,11 @@ class tune (unittest.TestCase):
 
         # Check that the new acceptance has improved
         new_acceptance = self.mc.get_rotate_acceptance()
-        print(old_acceptance)
-        print(new_acceptance)
-        print(old_a)
-        print(self.mc.get_d())
         self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
         self.assertNotEqual(old_a, self.mc.get_a())
         del tuner
 
     # show that the tuner can tune both d and a simultaneously
-    @unittest.expectedFailure
     def test_multiple_tunables(self):
         # Set up
         self.mc.set_params(d=1, a=1, move_ratio=0.5)
@@ -343,14 +334,6 @@ class tune (unittest.TestCase):
         # Check that the new acceptance has improved
         new_translate_acceptance = self.mc.get_translate_acceptance()
         new_rotate_acceptance = self.mc.get_rotate_acceptance()
-        print(old_translate_acceptance)
-        print(new_translate_acceptance)
-        print(old_rotate_acceptance)
-        print(new_rotate_acceptance)
-        print(old_a)
-        print(self.mc.get_a())
-        print(old_d)
-        print(self.mc.get_d())
         self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
         self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
         self.assertNotEqual(old_a, self.mc.get_a())
@@ -413,9 +396,8 @@ class tune (unittest.TestCase):
         del self.system
         context.initialize()
 
-# Test tuning of systems with multiple types
-#@unittest.skip("Multiple type tuning is largely broken at present")
-class tune_multiple_types(unittest.TestCase):
+# Test tuning of systems where we specify the type
+class tune_by_type(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=2, box=data.boxdim(L=4.5), particle_types=['A', 'B'])
         self.system.particles[0].position = (1.0,0,0)
@@ -433,84 +415,49 @@ class tune_multiple_types(unittest.TestCase):
         # Set up
         self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
         target = 0.8
-        old_acceptance = self.mc.get_translate_acceptance()
-        old_d = self.mc.get_d()
-
-        # Create and run the tuner
-        tuner = hpmc.util.tune(self.mc, tunables=['d'], max_val=[2], target=target, gamma=0.0)
-        for i in range(5):
-                    run(2e2)
-                    tuner.update()
-
-        # Check that the new acceptance has improved
-        new_acceptance = self.mc.get_translate_acceptance()
-        print(old_acceptance)
-        print(new_acceptance)
-        print(old_d)
-        print(self.mc.get_d())
-        self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
-        self.assertNotEqual(old_d, self.mc.get_d())
-        del tuner
-
-    # show that the tuner will adjust a to achieve a reasonable acceptance ratio
-    def test_a(self):
-        # Set up
-        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
-        target = 0.8
-        old_acceptance = self.mc.get_rotate_acceptance()
-        old_a = self.mc.get_a()
-
-        # Create and run the tuner
-        tuner = hpmc.util.tune(self.mc, tunables=['a'], max_val=[2], target=target, gamma=0.0)
-        for i in range(5):
-                    run(2e2)
-                    tuner.update()
-
-        # Check that the new acceptance has improved
-        new_acceptance = self.mc.get_rotate_acceptance()
-        print(old_acceptance)
-        print(new_acceptance)
-        print(old_a)
-        print(self.mc.get_d())
-        self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
-        self.assertNotEqual(old_a, self.mc.get_a())
-        del tuner
-
-    # show that the tuner can tune both d and a simultaneously
-    def test_multiple_tunables(self):
-        # Set up
-        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
-        target = 0.8
         old_translate_acceptance = self.mc.get_translate_acceptance()
-        old_rotate_acceptance = self.mc.get_rotate_acceptance()
-        old_a = self.mc.get_a()
-        old_d = self.mc.get_d()
+        old_d = self.mc.get_d("A")
+        old_d_fixed = self.mc.get_d("B")
 
-        # Create and run the tuner
-        tuner = hpmc.util.tune(self.mc, tunables=['d', 'a'], max_val=[1, 1], target=target, gamma=0.0)
+        # Create and run the tuner. Make sure to ignore statistics for the unused type
+        self.mc.shape_param["B"].ignore_statistics = True
+        tuner = hpmc.util.tune(self.mc, type='A', tunables=['d'], max_val=[1], target=target, gamma=0.0)
         for i in range(5):
             run(2e2)
             tuner.update()
 
         # Check that the new acceptance has improved
         new_translate_acceptance = self.mc.get_translate_acceptance()
-        new_rotate_acceptance = self.mc.get_rotate_acceptance()
-        print(old_translate_acceptance)
-        print(new_translate_acceptance)
-        print(old_rotate_acceptance)
-        print(new_rotate_acceptance)
-        print(old_a)
-        print(self.mc.get_a())
-        print(old_d)
-        print(self.mc.get_d())
         self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
-        self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
-        self.assertNotEqual(old_a, self.mc.get_a())
-        self.assertNotEqual(old_d, self.mc.get_d())
+        self.assertNotEqual(old_d, self.mc.get_d("A"))
+        self.assertEqual(old_d_fixed, self.mc.get_d("B"))
         del tuner
 
     # Test per-type tuning
-    def test_type_specification(self):
+    def test_a(self):
+        # Set up
+        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
+        target = 0.8
+        old_rotate_acceptance = self.mc.get_rotate_acceptance()
+        old_a = self.mc.get_a("A")
+        old_a_fixed = self.mc.get_a("B")
+
+        # Create and run the tuner. Make sure to ignore statistics for the unused type
+        self.mc.shape_param["B"].ignore_statistics = True
+        tuner = hpmc.util.tune(self.mc, type='A', tunables=['a'], max_val=[1], target=target, gamma=0.0)
+        for i in range(5):
+            run(2e2)
+            tuner.update()
+
+        # Check that the new acceptance has improved
+        new_rotate_acceptance = self.mc.get_rotate_acceptance()
+        self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
+        self.assertNotEqual(old_a, self.mc.get_a("A"))
+        self.assertEqual(old_a_fixed, self.mc.get_a("B"))
+        del tuner
+
+    # Test per-type tuning
+    def test_multiple_tunables(self):
         # Set up
         self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
         target = 0.8
@@ -531,14 +478,6 @@ class tune_multiple_types(unittest.TestCase):
         # Check that the new acceptance has improved
         new_translate_acceptance = self.mc.get_translate_acceptance()
         new_rotate_acceptance = self.mc.get_rotate_acceptance()
-        print(old_translate_acceptance)
-        print(new_translate_acceptance)
-        print(old_rotate_acceptance)
-        print(new_rotate_acceptance)
-        print(old_a)
-        print(self.mc.get_a())
-        print(old_d)
-        print(self.mc.get_d())
         self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
         self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
         self.assertNotEqual(old_a, self.mc.get_a("A"))
