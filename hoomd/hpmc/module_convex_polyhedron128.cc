@@ -72,7 +72,7 @@ void export_convex_polyhedron128(py::module& m)
     export_ShapeMoveInterface< ShapeConvexPolyhedron<128> >(m, "ShapeMoveConvexPolyhedron128");
     export_ShapeLogBoltzmann< ShapeConvexPolyhedron<128> >(m, "LogBoltzmannConvexPolyhedron128");
     export_ScaleShearShapeMove< ShapeConvexPolyhedron<128> >(m, "ScaleShearShapeMoveConvexPolyhedron128");
-    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<128> >(m, "ShapeSpringLogBoltzmannPolyhedron128");
+    export_ShapeSpringLogBoltzmannFunction<ShapeConvexPolyhedron<128> >(m, "ShapeSpringLogBoltzmannConvexPolyhedron128");
     export_AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<128> >(m, "AlchemyLogBoltzmannConvexPolyhedron128");
     export_ConvexPolyhedronGeneralizedShapeMove< ShapeConvexPolyhedron<128> >(m, "GeneralizedShapeMoveConvexPolyhedron128");
     export_UpdaterShape< ShapeConvexPolyhedron<128> >(m, "UpdaterShapeConvexPolyhedron128");
