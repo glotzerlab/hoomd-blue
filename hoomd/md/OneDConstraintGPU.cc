@@ -81,6 +81,9 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
     if (m_prof)
         m_prof->pop(m_exec_conf);
     }

@@ -5,6 +5,7 @@
 // Maintainer: joaander
 
 #include "OneDConstraint.h"
+#include "hoomd/Autotuner.h"
 
 /*! \file OneDConstraintGPU.h
     \brief Declares a class for computing sphere constraint forces on the GPU
