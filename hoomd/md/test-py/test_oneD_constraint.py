@@ -10,7 +10,7 @@ import unittest
 class test_oneD(unittest.TestCase):
     def setUp(self):
         hoomd.context.initialize()
-        self.system = hoomd.init.create_lattice(hoomd.lattice.fcc(a=4.0), n=[1,1,1])
+        self.system = hoomd.init.create_lattice(hoomd.lattice.fcc(a=4.0), n=[2,2,2])
         self.system.box = hoomd.data.boxdim(Lx=self.system.box.Lx*2, Ly=self.system.box.Ly*2, Lz=self.system.box.Lz*2)
         self.initial = self.system.take_snapshot(particles=True)
         lj = hoomd.md.pair.lj(r_cut=3.0, nlist=hoomd.md.nlist.cell())
@@ -28,7 +28,7 @@ class test_oneD(unittest.TestCase):
         pos_diff = np.asarray(self.final.particles.position) - np.asarray(self.initial.particles.position)
         dots = np.dot(pos_diff,np.asarray(constraint_vec))/(np.linalg.norm(pos_diff,axis=1)*np.linalg.norm(np.asarray(constraint_vec)))
         tolerance = 1e-15
-        assert(np.abs(np.abs(dots).sum() - final.particles.N)<tolerance)
+        assert(np.abs(np.abs(dots).sum() - self.final.particles.N)<tolerance)
 
     def tearDown(self):
         del(self.system)
