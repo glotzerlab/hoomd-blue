@@ -30,8 +30,21 @@ class OneDConstraintGPU : public OneDConstraint
                           std::shared_ptr<ParticleGroup> group,
                           Scalar3 constraint_vec);
 
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            OneDConstraint::setAutotunerParams(enable, period);
+            m_tuner->setPeriod(period);
+            m_tuner->setEnabled(enable);
+            }
+
     protected:
         unsigned int m_block_size;  //!< block size to execute on the GPU
+
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

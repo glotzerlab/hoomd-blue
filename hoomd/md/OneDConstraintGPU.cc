@@ -31,6 +31,9 @@ OneDConstraintGPU::OneDConstraintGPU(std::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->error() << "Creating a OneDConstraintGPU with no GPU in the execution configuration" << endl;
         throw std::runtime_error("Error initializing OneDConstraintGPU");
         }
+
+    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "oneD_constraint", this->m_exec_conf));
+
     }
 
 /*! Computes the specified constraint forces
@@ -60,6 +63,7 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar> d_virial(m_virial,access_location::device,access_mode::overwrite);
 
     // run the kernel in parallel on all GPUs
+    m_tuner->begin();
     gpu_compute_one_d_constraint_forces(d_force.data,
                                          d_virial.data,
                                          m_virial.getPitch(),
@@ -70,11 +74,12 @@ void OneDConstraintGPU::computeForces(unsigned int timestep)
                                          d_vel.data,
                                          d_net_force.data,
                                          m_deltaT,
-                                         m_block_size,
+                                         m_tuner->getParam(),
                                          m_vec);
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+    m_tuner->end();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
