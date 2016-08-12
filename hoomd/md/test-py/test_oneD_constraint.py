@@ -6,7 +6,6 @@ import hoomd
 import hoomd.md
 import unittest
 
-
 class test_oneD(unittest.TestCase):
     def setUp(self):
         hoomd.context.initialize()
@@ -27,7 +26,7 @@ class test_oneD(unittest.TestCase):
 
         pos_diff = np.asarray(self.final.particles.position) - np.asarray(self.initial.particles.position)
         dots = np.dot(pos_diff,np.asarray(constraint_vec))/(np.linalg.norm(pos_diff,axis=1)*np.linalg.norm(np.asarray(constraint_vec)))
-        tolerance = 1e-15
+        tolerance = 1e-10
         assert(np.abs(np.abs(dots).sum() - self.final.particles.N)<tolerance)
 
     def tearDown(self):
