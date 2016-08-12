@@ -432,6 +432,8 @@ class oneD(_constraint_force):
     Example::
 
         constrain.oneD(group=groupA, constraint_vector=[1,0,0])
+
+    .. versionadded:: 2.1
     """
     def __init__(self, group, constraint_vector=[0,0,1]):
         
