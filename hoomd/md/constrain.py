@@ -420,19 +420,23 @@ class rigid(_constraint_force):
         self.create_bodies(False)
 
 class oneD(_constraint_force):
-    R""" Constrain particles to move in the z dimention only.
+    R""" Constrain particles to move along a specific direction only
 
     Args:
         group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        constraint_vector (List): [x,y,z] list indicating the direction that the particles are restricted to
 
     :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain
-    them to only move in z. 
+    them to only move along a given vector. 
 
     Example::
 
-        constrain.oneD(group=groupA)
+        constrain.oneD(group=groupA, constraint_vector=[1,0,0])
     """
     def __init__(self, group, constraint_vector=[0,0,1]):
+        
+        if (constraint_vector[0]**2 + constraint_vector[1]**2 + constraint_vector[2]**2) < 1e-10:
+            raise RuntimeError("The one dimension constraint vector is zero");
 
         constraint_vector = _hoomd.make_scalar3(constraint_vector[0], constraint_vector[1], constraint_vector[2]);
 
