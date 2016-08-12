@@ -173,6 +173,9 @@ Vyas Ramasubramani, University of Michigan
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
 
+Bryan VanSaders, University of Michigan
+ * constrain.oneD
+
 HPMC developers
 ---------------
 
