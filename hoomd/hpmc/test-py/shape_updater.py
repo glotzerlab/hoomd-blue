@@ -223,12 +223,51 @@ class shape_updater_test(unittest.TestCase):
         v = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
         self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=16)
         self.mc.shape_param.set(self.types, vertices=v)
-
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
         self.updater.scale_shear_shape_move(stepsize=0.1);
+        hoomd.run(10, quiet=True);
 
-        hoomd.run(10000, quiet=True);
+        self.tearDown();
+        self.setUp();
+        v = np.random.random((15,3));
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
+        self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
+        self.updater.scale_shear_shape_move(stepsize=0.1);
+        hoomd.run(10, quiet=True);
+
+        self.tearDown();
+        self.setUp();
+        v = np.random.random((31,3));
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
+        self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
+        self.updater.scale_shear_shape_move(stepsize=0.1);
+        hoomd.run(10, quiet=True);
+
+        self.tearDown();
+        self.setUp();
+        v = np.random.random((63,3));
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
+        self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
+        self.updater.scale_shear_shape_move(stepsize=0.1);
+        hoomd.run(10, quiet=True);
+
+        self.tearDown();
+        self.setUp();
+        v = np.random.random((127,3));
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0, max_verts=v.shape[0])
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
+        self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=1.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
+        self.updater.scale_shear_shape_move(stepsize=0.1);
+        hoomd.run(10, quiet=True);
+
 
     def test_tuner(self):
         # convex_polyhedron
@@ -239,12 +278,12 @@ class shape_updater_test(unittest.TestCase):
         self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
         self.updater.scale_shear_shape_move(stepsize=0.1);
         tuner = self.updater.get_tuner();
-        for _ in range(100):
+        for _ in range(10):
             # hoomd.util.quiet_status();
             # print( "stepsizes: ", [ self.updater.get_step_size(i) for i in range(len(self.types))] );
             # print( "acceptance: ", [ self.updater.get_move_acceptance(i) for i in range(len(self.types))] );
             # hoomd.util.unquiet_status();
-            hoomd.run(100, quiet=True);
+            hoomd.run(10, quiet=True);
             tuner.update();
 
     def test_tuner_average(self):
@@ -256,12 +295,12 @@ class shape_updater_test(unittest.TestCase):
         self.updater = hpmc.update.elastic_shape(mc=self.mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), pos=self.pos, nselect=3)
         self.updater.scale_shear_shape_move(stepsize=0.1);
         tuner = self.updater.get_tuner(average=True);
-        for _ in range(100):
+        for _ in range(10):
             hoomd.util.quiet_status();
             print( "stepsizes: ", [ self.updater.get_step_size(i) for i in range(len(self.types))] );
             print( "acceptance: ", [ self.updater.get_move_acceptance(i) for i in range(len(self.types))] );
             hoomd.util.unquiet_status();
-            hoomd.run(100, quiet=True);
+            hoomd.run(10, quiet=True);
             tuner.update();
 
     def test_convex_spheropolyhedron(self):

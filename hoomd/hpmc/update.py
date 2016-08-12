@@ -820,7 +820,7 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-        
+
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
@@ -1112,7 +1112,7 @@ class shape_update(_updater):
             tunables=["stepsize"]
             tunable_map = {'stepsize' : {
                                     'get': lambda : getattr(self, 'get_step_size')(0),
-                                    'acceptance': lambda : float(getattr(self, 'get_accepted_count')(None))/float(getattr(self, 'get_total_count')(None)),
+                                    'acceptance': lambda : float(getattr(self, 'get_move_acceptance')(None)),
                                     'set': lambda x, name=type_list: getattr(self, 'set_params')(types=name, stepsize=x),
                                     'maximum': 0.5
                                     }};
