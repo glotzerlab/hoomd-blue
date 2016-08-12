@@ -7,7 +7,7 @@ import tempfile
 import os
 import numpy as np
 
-context.initialize("--mode=cpu")
+context.initialize()
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);

@@ -17,9 +17,6 @@ import sys
 import colorsys as cs
 import re
 
-# Added functools to fix the lambda function definition in the tuner
-from functools import partial
-
 #replace range with xrange for python3 compatibility
 if sys.version_info[0]==2:
     range=xrange
@@ -699,7 +696,6 @@ class tune(object):
         #  (1) lambda expression to retrieve acceptance rate
         #  (2) sensible maximum allowed value
 
-        remap_argument = lambda val, name: self.obj.set_params(**{name: val})
         for i in range(len(tunables)):
             item = tunables[i]
             if item in allowed_tunables:
