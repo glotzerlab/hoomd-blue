@@ -13,7 +13,6 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <boost/utility.hpp>
 
 #ifdef ENABLE_CUDA
 #include <cuda.h>
@@ -78,7 +77,7 @@ struct ExecutionConfiguration
     ~ExecutionConfiguration();
 
 #ifdef ENABLE_MPI
-    //! Returns the boost MPI communicator
+    //! Returns the MPI communicator
     MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;

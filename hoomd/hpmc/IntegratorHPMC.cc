@@ -43,7 +43,7 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
       }
 
     // Connect to number of types change signal
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&IntegratorHPMC::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
     resetStats();
     }
@@ -51,11 +51,7 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-
-    if (m_num_type_change_connection.connected())
-        {
-        m_num_type_change_connection.disconnect();
-        }
+    m_pdata->getNumTypesChangeSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
     }
 
 

@@ -12,12 +12,10 @@
 #include "hoomd/BondedGroupData.h"
 
 namespace py = pybind11;
-#include <boost/bind.hpp>
 
 #include <iostream>
 #include <stdexcept>
 
-using namespace boost;
 using namespace std;
 
 /*! \file NeighborList.cc
@@ -128,18 +126,18 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
 
     // connect to particle sort to force rebuild
-    m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
+    m_pdata->getParticleSortSignal().connect<NeighborList, &NeighborList::forceUpdate>(this);
 
     // connect to max particle change to resize neighborlist arrays
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborList, &NeighborList::reallocate>(this);
 
     // connect to type change to resize type data arrays
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborList::reallocateTypes, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborList, &NeighborList::reallocateTypes>(this);
 
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&NeighborList::slotGlobalParticleNumberChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
     // connect locally to the rcut changing signal
-    m_rcut_change_conn = connectRCutChange(bind(&NeighborList::slotRCutChange, this));
+    getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
@@ -173,7 +171,7 @@ void NeighborList::reallocateTypes()
     m_Nmax.resize(m_pdata->getNTypes());
     m_conditions.resize(m_pdata->getNTypes());
 
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
@@ -181,20 +179,20 @@ NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
 
-    m_sort_connection.disconnect();
-    m_max_particle_num_change_connection.disconnect();
-    m_global_particle_num_change_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<NeighborList, &NeighborList::forceUpdate>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborList, &NeighborList::reallocate>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 #ifdef ENABLE_MPI
-    if (m_migrate_request_connection.connected())
-        m_migrate_request_connection.disconnect();
-    if (m_comm_flags_request.connected())
-        m_comm_flags_request.disconnect();
-    if (m_ghost_layer_width_request.connected())
-        m_ghost_layer_width_request.disconnect();
+    if (m_comm)
+        {
+        m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal().disconnect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal().disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
 #endif
 
-    m_num_type_change_conn.disconnect();
-    m_rcut_change_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(this);
+    getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
@@ -333,7 +331,7 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
 
     // signal the change in rcut
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
@@ -349,7 +347,7 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
@@ -1399,10 +1397,9 @@ void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
         {
         // only add the migrate request on the first call
         assert(comm);
-
-        m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
-        m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
-        m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
+        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        comm->getCommFlagsRequestSignal().connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        comm->getGhostLayerWidthRequestSignal().connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
 
     Compute::setCommunicator(comm);

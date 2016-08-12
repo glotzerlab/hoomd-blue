@@ -159,8 +159,8 @@ class Integrator : public Updater
 
     private:
         #ifdef ENABLE_MPI
-        boost::signals2::connection m_request_flags_connection;     //!< Connection to Communicator to request communication flags
-        boost::signals2::connection m_callback_connection;          //!< Connection to Commmunicator for compute callback
+        bool m_request_flags_connected = false;     //!< Connection to Communicator to request communication flags
+        bool m_signals_connected = false;                           //!< Track if we have already connected signals
         #endif
     };
 

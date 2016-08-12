@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/md/FIREEnergyMinimizer.h"
 
@@ -29,7 +28,7 @@ using namespace std;
 HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
-typedef boost::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
+typedef std::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
 
 //! FIREEnergyMinimizer creator
 std::shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)

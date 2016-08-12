@@ -78,12 +78,6 @@ class ForceDistanceConstraint : public MolecularForceCompute
             //!< The persistent state of the sparse matrix solver
         GPUVector<int> m_sparse_idxlookup;          //!< Reverse lookup from column-major to sparse matrix element
 
-        //! Connection to the signal notifying when groups are resorted
-        boost::signals2::connection m_constraint_reorder_connection;
-
-        //!< Connection to the signal for global topology changes
-        boost::signals2::connection m_group_num_change_connection;
-
         bool m_constraint_reorder;         //!< True if groups have changed
         bool m_constraints_added_removed;  //!< True if global constraint topology has changed
 
@@ -128,11 +122,11 @@ class ForceDistanceConstraint : public MolecularForceCompute
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceDistanceConstraint::askGhostLayerWidth, this, _1));
+                m_comm->getGhostLayerWidthRequestSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -142,7 +136,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
         Scalar dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
             unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length);
 
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected to ghost layer width requests
 
     };
 

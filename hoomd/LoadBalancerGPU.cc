@@ -17,7 +17,6 @@
 
 using namespace std;
 
-#include <boost/bind.hpp>
 namespace py = pybind11;
 
 
@@ -30,7 +29,7 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
     : LoadBalancer(sysdef, decomposition)
     {
     // allocate data connected to the maximum number of particles
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&LoadBalancerGPU::slotMaxNumChanged, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
 
     GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
     m_off_ranks.swap(off_ranks);
@@ -44,7 +43,7 @@ LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
 LoadBalancerGPU::~LoadBalancerGPU()
     {
     // disconnect from the signal
-    m_max_numchange_conn.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
     }
 
 void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)

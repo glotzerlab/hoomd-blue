@@ -71,7 +71,7 @@ class NeighborListGPUBinned : public NeighborListGPU
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);

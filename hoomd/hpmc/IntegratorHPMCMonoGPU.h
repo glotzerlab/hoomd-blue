@@ -65,8 +65,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);

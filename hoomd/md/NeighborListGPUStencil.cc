@@ -86,9 +86,9 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUStencil::slotRCutChange, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUStencil::slotMaxNumChanged, this));
-    m_sort_conn = m_pdata->connectParticleSort(boost::bind(&NeighborListGPUStencil::slotParticleSort, this));
+    getRCutChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
 
     // needs realloc on size change...
     GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
@@ -98,9 +98,9 @@ NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition>
 NeighborListGPUStencil::~NeighborListGPUStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
-    m_rcut_change_conn.disconnect();
-    m_max_numchange_conn.disconnect();
-    m_sort_conn.disconnect();
+    getRCutChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
     }
 
 void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)

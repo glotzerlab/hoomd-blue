@@ -62,10 +62,6 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TwoStepLangevinBase class to python
