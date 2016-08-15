@@ -1079,19 +1079,20 @@ class shape_update(_updater):
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def get_tuner(self, average = False, **kwargs):
-        R"""
-        Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
+        R""" Get a :py:mod:`hoomd.hpmc.util.tune` object set to tune the step size of the shape move.
         Args:
             average (bool): If set to true will set up the tuner to set all types together using averaged statistics.
             kwargs: keyword argments that will be passed to :py:mod:`hoomd.hpmc.util.tune`
 
         Example::
+
             shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
             shape_up.scale_shear_shape_move(stepsize=0.1);
             tuner = shape_up.get_tuner(average=True);
             for _ in range(100):
                 hoomd.run(1000, quiet=True);
                 tuner.update();
+
         """
         from . import util
         import numpy as np
@@ -1306,7 +1307,7 @@ class elastic_shape(shape_update):
 
     Example::
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
-        elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(1,1,1), (1,−1,−1), (−1,1,−1), (−1,−1,1)]))
+        elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
         elastic.scale_shear_move(stepsize=0.1, move_ratio=0.5);
     """
