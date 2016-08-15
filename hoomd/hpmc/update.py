@@ -958,7 +958,7 @@ class shape_update(_updater):
             raise RuntimeError("Error initializing update.shape_update");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        self.move_cpp = move_cls(ntypes, stepsize, mixratio, volume);
+        self.move_cpp = move_cls(ntypes, stepsize, param_ratio, volume);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def constant_shape_move(self, **shape_params):
