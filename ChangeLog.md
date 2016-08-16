@@ -2,6 +2,10 @@
 
 [TOC]
 
+## Bugfixes for next release
+
+* hpmc.util.tune now works with particle types as documented
+
 ## v2.0.2
 
 Released 2016/08/09

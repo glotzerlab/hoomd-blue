@@ -246,6 +246,9 @@ The following people contributed to the :py:mod:`hpmc` package.
     * Wall overlap checks
     * Lattice external potential
 
+Vyas Ramasubramani, University of Michigan
+ * hpmc.util.tune fixes for tuning by type
+
 DEM developers
 --------------
 
