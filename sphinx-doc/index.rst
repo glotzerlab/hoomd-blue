@@ -17,6 +17,7 @@ Welcome to the user documentation for HOOMD-blue!
     autotuner
     restartable-jobs
     varperiod
+    developer
 
 .. toctree::
    :maxdepth: 3
