@@ -392,6 +392,7 @@ template<class Shape>
 union_params<Shape> make_union_params(pybind11::list _members,
                                                 pybind11::list positions,
                                                 pybind11::list orientations,
+                                                pybind11::list overlap,
                                                 bool ignore_stats)
     {
     union_params<Shape> result;
@@ -408,6 +409,11 @@ union_params<Shape> make_union_params(pybind11::list _members,
     if (len(orientations) != result.N)
         {
         throw std::runtime_error("Number of member orientations not equal to number of members");
+        }
+
+    if (len(overlap) != result.N)
+        {
+        throw std::runtime_error("Number of member overlap flags not equal to number of members");
         }
 
     result.ignore = ignore_stats;
@@ -437,6 +443,7 @@ union_params<Shape> make_union_params(pybind11::list _members,
         result.mparams[i] = param;
         result.mpos[i] = pos;
         result.morientation[i] = orientation;
+        result.moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
 
         Shape dummy(quat<Scalar>(), param);
         Scalar d = sqrt(dot(pos,pos));

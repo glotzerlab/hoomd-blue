@@ -328,12 +328,12 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
+        self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
         self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {})\n".format(self.centers, self.orientations, self.diameter);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
@@ -352,7 +352,10 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, ignore_statistics=False, colors=None):
+    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
         members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
@@ -361,4 +364,5 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return self.make_fn(self.ensure_list(members),
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
+                            self.ensure_list(overlap),
                             ignore_statistics);

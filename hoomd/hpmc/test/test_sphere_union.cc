@@ -75,6 +75,8 @@ UP_TEST( construction )
     params.morientation[1] = o;
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
+    params.moverlap[0] = 1;
+    params.moverlap[1] = 1;
     build_tree(params);
 
     // construct and check
@@ -129,6 +131,8 @@ UP_TEST( non_overlap )
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
     params.ignore = 0;
+    params.moverlap[0] = 1;
+    params.moverlap[1] = 1;
     build_tree(params);
 
     // create two identical dumbbells
@@ -202,6 +206,8 @@ UP_TEST( overlapping_dumbbells )
     params.mparams[0] = par_i;
     params.mparams[1] = par_j;
     params.ignore = 0;
+    params.moverlap[0] = 1;
+    params.moverlap[1] = 1;
     build_tree(params);
 
     // create two identical dumbbells

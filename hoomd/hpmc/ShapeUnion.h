@@ -37,7 +37,7 @@ const int MAX_MEMBERS=128;
 const unsigned int MAX_UNION_NODES=64;
 
 //! Maximum number of spheres per leaf node
-const unsigned int MAX_UNION_CAPACITY=8;
+const unsigned int MAX_UNION_CAPACITY=6;
 
 typedef GPUTree<MAX_UNION_NODES,MAX_UNION_CAPACITY> union_gpu_tree_type;
 
@@ -50,9 +50,9 @@ struct union_params : aligned_struct
     vec3<Scalar> mpos[MAX_MEMBERS];          //!< Position vectors of member shapes
     quat<Scalar> morientation[MAX_MEMBERS];  //!< Orientation of member shapes
     mparam_type mparams[MAX_MEMBERS];        //!< Parameters of member shapes
+    unsigned int moverlap[MAX_MEMBERS];       //!< only check overlaps for which moverlap[i] & moverlap[j] 
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
-    unsigned int ignore;                     //!<  Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                             //   First bit is ignore overlaps, Second bit is ignore statistics
+    unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
     union_gpu_tree_type tree;                //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
@@ -79,7 +79,21 @@ struct ShapeUnion
         }
 
     //! Does this shape have an orientation
-    DEVICE static bool hasOrientation() { return true; }
+    DEVICE bool hasOrientation() const
+        {
+        if (members.N == 1)
+            {
+            // if we have only one member in the center, return that shape's anisotropy flag
+            const vec3<Scalar>& pos = members.mpos[0];
+            if (pos.x == Scalar(0.0) && pos.y == pos.x && pos.z == pos.x)
+                {
+                Shape s(quat<Scalar>(), members.mparams[0]);
+                return s.hasOrientation();
+                }
+            }
+
+        return true;
+        }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return members.ignore; }
@@ -138,6 +152,8 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
+    vec3<Scalar> r_ab = rotate(conj(b.orientation),vec3<Scalar>(dr));
+
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
 
@@ -148,8 +164,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         if (ishape == -1) break;
 
         const mparam_type& params_i = a.members.mparams[ishape];
-        const quat<Scalar> q_i = a.orientation * a.members.morientation[ishape];
+        const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
+        vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
+        unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
         for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
@@ -158,13 +176,18 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             if (jshape == -1) break;
 
             const mparam_type& params_j = b.members.mparams[jshape];
-            const quat<Scalar> q_j = b.orientation * b.members.morientation[jshape];
-            vec3<Scalar> r_ij = vec3<Scalar>(dr) + rotate(b.orientation, b.members.mpos[jshape]) - rotate(a.orientation, a.members.mpos[ishape]);
+            const quat<Scalar> q_j = b.members.morientation[jshape];
             Shape shape_j(q_j, params_j);
+            unsigned int overlap_j = b.members.moverlap[jshape];
+
             unsigned int err =0;
-            if (test_overlap(r_ij, shape_i, shape_j, err))
+            if (overlap_i & overlap_j)
                 {
-                return true;
+                vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
+                if (test_overlap(r_ij, shape_i, shape_j, err))
+                    {
+                    return true;
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@
 
 *New features*
 
+* enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
 * Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
 * Add constrain.oned to constrain particles to move in one dimension
 
@@ -20,7 +21,7 @@
 
 ## v2.0.2
 
-Not yet released
+*Not yet released*
 
 * Support CUDA Toolkit 8.0
 * group.rigid()/nonrigid() did not work in MPI simulations

@@ -1518,6 +1518,10 @@ class sphere_union(mode_hpmc):
 
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
+    * *overlap* (**default: 1 for all spheres**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+
+        * .. versionadded:: 2.1
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
