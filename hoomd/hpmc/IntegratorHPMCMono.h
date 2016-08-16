@@ -187,6 +187,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<bool> mapOverlaps();
 
+        //! Return a python list that is an unwrapped overlap map
+        virtual pybind11::list PyMapOverlaps();
+
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int)
             {
@@ -1221,7 +1224,22 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     return overlap_map;
     }
 
-
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
+    {
+    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
+    pybind11::list overlap_map;
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
+        {
+        overlap_map.append(pybind11::cast<bool>(i));
+        }
+    return overlap_map;
+    }
 
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
@@ -1234,7 +1252,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           ;
     }
 
