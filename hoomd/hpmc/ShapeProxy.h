@@ -413,7 +413,7 @@ union_params<Shape> make_union_params(pybind11::list _members,
 
     if (len(overlap) != result.N)
         {
-        throw std::runtime_error("Number of member ignore flags not equal to number of members");
+        throw std::runtime_error("Number of member overlap flags not equal to number of members");
         }
 
     result.ignore = ignore_stats;
