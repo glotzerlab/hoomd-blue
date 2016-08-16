@@ -35,7 +35,7 @@ To run out of the build directory, add the build directory to your `PYTHONPATH`:
 export PYTHONPATH=`pwd`:$PYTHONPATH
 ```
 
-For more detailed instructions, [see the documentation](http://glotzerlab.engin.umich.edu/hoomd-blue/doc/page_compile_guide.html).
+For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
 
 ## Prerequisites
 
