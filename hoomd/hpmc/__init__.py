@@ -65,9 +65,9 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 :py:class:`compute.free_volume` provides the following loggable quantities:
 - ``hpmc_free_volume`` - The free volume estimate in the simulation box obtained by MC sampling (in volume units)
 
-:py:class:`update.npt` provides the following loggable quantities:
+:py:class:`update.boxmc` provides the following loggable quantities:
 
-- ``hpmc_boxmc_trial_count`` - Number of NPT box changes attempted since the start of the NPT updater
+- ``hpmc_boxmc_trial_count`` - Number of box changes attempted since the start of the boxmc updater
 - ``hpmc_boxmc_volume_acceptance`` - Fraction of volume/length change trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_shear_acceptance`` - Fraction of shear trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_aspect_acceptance`` - Fraction of aspect trials accepted (averaged from the start of the last run)

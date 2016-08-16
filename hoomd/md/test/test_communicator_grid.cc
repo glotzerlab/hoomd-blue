@@ -10,7 +10,7 @@ HOOMD_UP_MAIN()
 #include "hoomd/System.h"
 
 #include <memory>
-#include <boost/bind.hpp>
+#include <functional>
 
 #include "hoomd/md/CommunicatorGrid.h"
 

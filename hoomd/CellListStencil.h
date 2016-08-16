@@ -96,10 +96,6 @@ class CellListStencil : public Compute
         std::shared_ptr<CellList> m_cl;               //!< Pointer to cell list operating on
         std::vector<Scalar> m_rstencil;                 //!< Per-type radius to stencil
 
-        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
-        boost::signals2::connection m_box_change_conn;      //!< Connection to the box size
-        boost::signals2::connection m_width_change_conn;    //!< Connection to the cell width changing
-
         Index2D m_stencil_idx;                  //!< Type indexer into stencils
         GPUArray<Scalar4> m_stencil;            //!< Stencil of shifts and closest distance to bin
         GPUArray<unsigned int> m_n_stencil;     //!< Number of bins in a stencil

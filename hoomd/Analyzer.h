@@ -21,7 +21,6 @@
 #include "SystemDefinition.h"
 
 #include <memory>
-#include <boost/utility.hpp>
 
 /*! \ingroup hoomd_lib
     @{

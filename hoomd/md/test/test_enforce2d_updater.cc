@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 #include <memory>
 
 #include "hoomd/md/Enforce2DUpdater.h"
@@ -28,7 +27,7 @@
 #include <math.h>
 
 using namespace std;
-
+using namespace std::placeholders;
 
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
@@ -40,7 +39,7 @@ HOOMD_UP_MAIN();
 */
 
 //! Typedef'd Enforce2DUpdater factory
-typedef boost::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
+typedef std::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
 
 //! test case to verify proper operation of Enforce2DUpdater
 void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionConfiguration> exec_conf)

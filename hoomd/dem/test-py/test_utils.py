@@ -6,6 +6,8 @@ import unittest
 import numpy as np
 from hoomd.dem.utils import *
 
+np.random.seed(10)
+
 class utils(unittest.TestCase):
     def test_mass_properties_2d(self, tries=32):
         """Run some tests for the massProperties function in dem.utils for

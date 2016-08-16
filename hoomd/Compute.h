@@ -8,7 +8,6 @@
 #include "Profiler.h"
 
 #include <memory>
-#include <boost/utility.hpp>
 #include <string>
 #include <vector>
 

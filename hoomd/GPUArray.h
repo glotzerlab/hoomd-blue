@@ -28,7 +28,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <stdlib.h>
 
 //! Specifies where to acquire the data

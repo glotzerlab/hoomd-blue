@@ -8,7 +8,6 @@
 #include "Profiler.h"
 
 #include <memory>
-#include <boost/utility.hpp>
 
 #ifndef __UPDATER_H__
 #define __UPDATER_H__
