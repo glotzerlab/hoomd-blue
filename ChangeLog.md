@@ -7,6 +7,7 @@
 *New features*
 
 * Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+* Add constrain.oned to constrain particles to move in one dimension
 
 *Deprecated*
 
