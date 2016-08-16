@@ -1518,14 +1518,17 @@ class sphere_union(mode_hpmc):
 
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
-    * *ignores* (**default: False for all spheres **) - list of flags to ignore overlaps of constituent particles for which *ignores[i] && ignores[j]* is True
+    * *ignores* (**default: False for all spheres**) - list of flags to ignore overlaps of constituent particles for which *ignores[i] && ignores[j]* is True
     * *rigid* (**default: False**) - if True, **all** overlaps between two rigid unions are checked, independent of *ignores*
-    * *overlap* (**default: 1 for all spheres **) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator
+    * *overlap* (**default: 1 for all spheres**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+
+    .. versionadded:: 2.1
+        *ignores*, *rigid*, and *overlap*.
 
     Example::
 
