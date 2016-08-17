@@ -173,6 +173,9 @@ Vyas Ramasubramani, University of Michigan
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
 
+Ludwig Schneider, Georg-August Univeristy Goettingen
+  * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+
 HPMC developers
 ---------------
 
