@@ -70,10 +70,6 @@ class MuellerPlatheFlow : public Updater
 
         void set_min_slab(const unsigned int slab_id);
         void set_max_slab(const unsigned int slab_id);
-        //! Swap min and max slab for a reverse flow.
-        //! More efficient than separate calls of set_min_slab() and set_max_slab(),
-        //! especailly in MPI runs.
-        void swap_min_max_slab(void);
 
         //! Determine, whether this part of the domain decomposition
         //! has particles in the min slab.
@@ -89,6 +85,11 @@ class MuellerPlatheFlow : public Updater
         //! Get the ignored variance between flow target and summed flow.
         void set_flow_epsilon(const Scalar flow_epsilon){m_flow_epsilon=flow_epsilon;}
     protected:
+        //! Swap min and max slab for a reverse flow.
+        //! More efficient than separate calls of set_min_slab() and set_max_slab(),
+        //! especailly in MPI runs.
+        void swap_min_max_slab(void);
+
         //! Group of particles, which are searched for the velocity exchange
         std::shared_ptr<ParticleGroup> m_group;
 

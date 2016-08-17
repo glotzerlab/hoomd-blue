@@ -234,8 +234,10 @@ class mueller_plathe_flow(_updater):
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed
         volume, where the unphysical swapping is done. But each slab has to contain a sufficient
         number of particle.
-        max_slab (int): Id < n_slabs where the max velocity component is search for.
-        min_slab (int): Id < n_slabs where the min velocity component is search for.
+        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0
+        the value is set to its default n_slabs/2.
+        min_slab (int): Id < n_slabs where the min velocity component is search for.If set < 0
+        the value is set to its default 0.
 
     .. attention::
         * This updater has to be always applied every timestep.
@@ -255,14 +257,20 @@ class mueller_plathe_flow(_updater):
         update.mueller_plathe_flow(all,const_flow,2,0,100,50,0)
 
     """
-    def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab,min_slab):
+    def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
         hoomd.util.print_status_line();
         period=1 # This updater has to be applied every timestep
         assert (slab_direction>-1 and slab_direction < 3),"Invalid slab_direction in [0,2] (X,Y,Z)."
         assert (flow_direction>-1 and flow_direction < 3),"Invalid flow_direction in [0,2] (X,Y,Z)."
         assert (n_slabs > 0 ),"Invalid negative number of slabs."
+        if min_slab < 0:
+            min_slab = 0
+        if max_slab < 0:
+            max_slab = n_slabs/2
+
         assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
         assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."
+        assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
 
         # initialize the base class
         _updater.__init__(self);
@@ -308,11 +316,6 @@ class mueller_plathe_flow(_updater):
         R"""Returned the summed up exchanged velocity of the full simulation."""
         return self.cpp_updater.getSummedExchangedMomentum()
 
-    def swap_min_max(self):
-        hoomd.util.print_status_line();
-        R"""Swap the min and max slab. Can be modeled, by two separated calls,
-        but this is more efficient."""
-        self.cpp_updater.swapMinMaxSlab()
 
     def has_min_slab(self):
         R"""Returns, whether this MPI instance is part of the min slab."""
@@ -322,7 +325,14 @@ class mueller_plathe_flow(_updater):
         R"""Returns, whether this MPI instance is part of the max slab."""
         return self.cpp_updater.hasMaxSlab()
 
-    def update_domain_decomposition(self):
-        hoomd.util.print_status_line();
-        R"""Function that can be called, if the recalculation of domain decomposition is necessary."""
-        self.cpp_updater.updateDomainDecomposition()
+    # Functions no longer available via the python interface.
+    # def update_domain_decomposition(self):
+    #     hoomd.util.print_status_line();
+    #     R"""Function that can be called, if the recalculation of domain decomposition is necessary."""
+    #     self.cpp_updater.updateDomainDecomposition()
+
+    # def swap_min_max(self):
+    #     hoomd.util.print_status_line();
+    #     R"""Swap the min and max slab. Can be modeled, by two separated calls,
+    #     but this is more efficient."""
+    #     self.cpp_updater.swapMinMaxSlab()

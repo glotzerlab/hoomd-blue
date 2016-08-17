@@ -91,15 +91,8 @@ class update_mueller_plathe_flow (unittest.TestCase):
         assert flow.get_flow_epsilon() == epsilon
         assert flow.get_summed_exchanged_momentum() == 0
 
-        tmp = max_slab_loc
-        max_slab_loc = min_slab_loc
-        min_slab_loc = tmp
-        flow.swap_min_max()
-        assert flow.get_min_slab() == min_slab_loc
-        assert flow.get_max_slab() == max_slab_loc
-
         run(100);
-        flow.update_domain_decomposition()
+        #flow.update_domain_decomposition()
         run(100)
         snapshot = data.system_data.take_snapshot(self.system)
         area = snapshot.box.Ly * snapshot.box.Lz
