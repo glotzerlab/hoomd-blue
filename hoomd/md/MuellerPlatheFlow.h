@@ -122,6 +122,14 @@ class MuellerPlatheFlow : public Updater
             int rank;
             int size;
             int gbl_rank; //!< global rank of zero in the comm.
+            bool initialized; //!< initialized struct, manully set.
+            MPI_SWAP()
+                :
+                rank(MPI_UNDEFINED),
+                size(MPI_UNDEFINED),
+                gbl_rank(MPI_UNDEFINED),
+                initialized(false)
+                {}
             };
         struct MPI_SWAP m_min_swap;
         struct MPI_SWAP m_max_swap;

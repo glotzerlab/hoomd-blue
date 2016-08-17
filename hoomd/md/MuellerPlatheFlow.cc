@@ -308,6 +308,9 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
 //Not performance optimized: could be slow. It is meant for init.
 void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP*ms,const int color)
     {
+    if( ms->initialized)
+        MPI_Comm_free( &(ms->comm) );
+
     MPI_Comm_split( m_exec_conf->getMPICommunicator(),
                     color, m_exec_conf->getRank(),
                     &(ms->comm));
@@ -340,6 +343,7 @@ void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP*ms,const int color)
             }
         }
     assert( ms->gbl_rank > -1);
+    ms->initialized = true;
     }
 
 void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar_Int*vel,const MPI_Op op)
