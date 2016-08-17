@@ -225,7 +225,10 @@ class mueller_plathe_flow(_updater):
 
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
-        flow_target (:py:mod:`hoomd.variant`): Integrated target flow.
+        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the
+        in the natural units of the simulation:
+        [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
+        The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
         slab_direction (int): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
         flow_direction (int): Direction of the flow. In [0,2] (X,Y,Z).
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed
@@ -236,7 +239,8 @@ class mueller_plathe_flow(_updater):
 
     .. attention::
         * This updater has to be always applied every timestep.
-        * The masses of the particles are always expected to be zero.
+        * The masses of the particles are always expected to be 1.
+        * This updater works currently only with orthorhombic boxes.
 
     Note:
         If you set this updater with unrealistic values, it algorithm might not terminate,
