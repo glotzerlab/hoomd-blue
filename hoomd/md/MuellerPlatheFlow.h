@@ -125,6 +125,7 @@ class MuellerPlatheFlow : public Updater
             bool initialized; //!< initialized struct, manully set.
             MPI_SWAP()
                 :
+                comm(MPI_COMM_NULL),
                 rank(MPI_UNDEFINED),
                 size(MPI_UNDEFINED),
                 gbl_rank(MPI_UNDEFINED),

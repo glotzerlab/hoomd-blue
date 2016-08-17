@@ -308,7 +308,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
 //Not performance optimized: could be slow. It is meant for init.
 void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP*ms,const int color)
     {
-    if( ms->initialized)
+    if( ms->initialized && ms->rank != MPI_UNDEFINED)
         MPI_Comm_free( &(ms->comm) );
 
     MPI_Comm_split( m_exec_conf->getMPICommunicator(),
