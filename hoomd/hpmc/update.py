@@ -1102,8 +1102,8 @@ class shape_update(_updater):
             tunable_map = {};
             for i in range(ntypes):
                 tunable_map.update({'stepsize-{}'.format(i) : {
-                                        'get': lambda : getattr(self, 'get_step_size')(i),
-                                        'acceptance': lambda : getattr(self, 'get_move_acceptance')(i),
+                                        'get': lambda typeid=i: getattr(self, 'get_step_size')(typeid),
+                                        'acceptance': lambda typeid=i: getattr(self, 'get_move_acceptance')(typeid),
                                         'set': lambda x, name=hoomd.context.current.system_definition.getParticleData().getNameByType(i): getattr(self, 'set_params')(types=name, stepsize=x),
                                         'maximum': 0.5
                                         }})
@@ -1176,9 +1176,12 @@ class shape_update(_updater):
 
         """
         hoomd.util.print_status_line();
+        acc = 0.0;
+        hoomd.util.quiet_status()
         if self.get_total_count(typeid):
-            return float(self.get_accepted_count(typeid))/float(self.get_total_count(typeid));
-        return 0.0;
+            acc = float(self.get_accepted_count(typeid))/float(self.get_total_count(typeid));
+        hoomd.util.unquiet_status()
+        return acc;
 
     def get_step_size(self, typeid=0):
         R""" Get the shape move stepsize for a particle type
