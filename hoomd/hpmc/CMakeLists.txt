@@ -15,7 +15,13 @@ set(_hpmc_sources   module.cc
                     module_ellipsoid.cc
                     module_faceted_sphere.cc
                     module_sphinx.cc
-                    module_union_sphere.cc
+                    module_union_sphere8.cc
+                    module_union_sphere16.cc
+                    module_union_sphere32.cc
+                    module_union_sphere64.cc
+                    module_union_sphere128.cc
+                    module_union_sphere256.cc
+                    module_union_sphere512.cc
                     module_convex_polyhedron8.cc
                     module_convex_polyhedron16.cc
                     module_convex_polyhedron32.cc
@@ -35,9 +41,33 @@ set(_hpmc_sources   module.cc
 #                            )
 # endif()
 
-set(_hpmc_cu_sources ComputeFreeVolumeGPU.cu
-                     IntegratorHPMCMonoGPU.cu
+set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      IntegratorHPMCMonoImplicitGPU.cu
+                     all_kernels_sphere.cu
+                     all_kernels_convex_polygon.cu
+                     all_kernels_simple_polygon.cu
+                     all_kernels_spheropolygon.cu
+                     all_kernels_polyhedron.cu
+                     all_kernels_ellipsoid.cu
+                     all_kernels_faceted_sphere.cu
+                     all_kernels_sphinx.cu
+                     all_kernels_union_sphere8.cu
+                     all_kernels_union_sphere16.cu
+                     all_kernels_union_sphere32.cu
+                     all_kernels_union_sphere64.cu
+                     all_kernels_union_sphere128.cu
+                     all_kernels_union_sphere256.cu
+                     all_kernels_union_sphere512.cu
+                     all_kernels_convex_polyhedron8.cu
+                     all_kernels_convex_polyhedron16.cu
+                     all_kernels_convex_polyhedron32.cu
+                     all_kernels_convex_polyhedron64.cu
+                     all_kernels_convex_polyhedron128.cu
+                     all_kernels_convex_spheropolyhedron8.cu
+                     all_kernels_convex_spheropolyhedron16.cu
+                     all_kernels_convex_spheropolyhedron32.cu
+                     all_kernels_convex_spheropolyhedron64.cu
+                     all_kernels_convex_spheropolyhedron128.cu
                      )
 
 # quiet some warnings locally on files we can't modify

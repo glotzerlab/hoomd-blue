@@ -74,7 +74,13 @@ PYBIND11_PLUGIN(_hpmc)
     export_ellipsoid(m);
     export_faceted_sphere(m);
     export_sphinx(m);
-    export_union_sphere(m);
+    export_union_sphere8(m);
+    export_union_sphere16(m);
+    export_union_sphere32(m);
+    export_union_sphere64(m);
+    export_union_sphere128(m);
+    export_union_sphere256(m);
+    export_union_sphere512(m);
     export_convex_polyhedron8(m);
     export_convex_polyhedron16(m);
     export_convex_polyhedron32(m);
@@ -99,7 +105,13 @@ PYBIND11_PLUGIN(_hpmc)
     py::class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >(m, "faceted_sphere_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
-    py::class_< union_params<ShapeSphere>, std::shared_ptr< union_params<ShapeSphere> > >(m, "msph_params");
+    py::class_< ShapeUnion<ShapeSphere, 8>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 8>::param_type> >(m, "msph_params8");
+    py::class_< ShapeUnion<ShapeSphere, 16>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 16>::param_type> >(m, "msph_params16");
+    py::class_< ShapeUnion<ShapeSphere, 32>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 32>::param_type> >(m, "msph_params32");
+    py::class_< ShapeUnion<ShapeSphere, 64>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 64>::param_type> >(m, "msph_params64");
+    py::class_< ShapeUnion<ShapeSphere, 128>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 128>::param_type> >(m, "msph_params128");
+    py::class_< ShapeUnion<ShapeSphere, 256>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 256>::param_type> >(m, "msph_params256");
+    py::class_< ShapeUnion<ShapeSphere, 512>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 512>::param_type> >(m, "msph_params512");
 
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
@@ -112,7 +124,13 @@ PYBIND11_PLUGIN(_hpmc)
     m.def("make_sph_params", &make_sph_params);
     m.def("make_faceted_sphere", &make_faceted_sphere);
     m.def("make_sphinx3d_params", &make_sphinx3d_params);
-    m.def("make_sphere_union_params", &make_union_params<ShapeSphere>);
+    m.def("make_sphere_union_params8", &make_union_params<ShapeSphere, 8>);
+    m.def("make_sphere_union_params16", &make_union_params<ShapeSphere, 16>);
+    m.def("make_sphere_union_params32", &make_union_params<ShapeSphere, 32>);
+    m.def("make_sphere_union_params64", &make_union_params<ShapeSphere, 64>);
+    m.def("make_sphere_union_params128", &make_union_params<ShapeSphere, 128>);
+    m.def("make_sphere_union_params256", &make_union_params<ShapeSphere, 256>);
+    m.def("make_sphere_union_params512", &make_union_params<ShapeSphere, 512>);
     m.def("make_overlapreal3", &make_overlapreal3);
     m.def("make_overlapreal4", &make_overlapreal4);
 

@@ -30,30 +30,21 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of constituent shapes
-const int MAX_MEMBERS=128;
-
-//! Maximum number of nodes in OBB tree
-const unsigned int MAX_UNION_NODES=64;
-
-//! Maximum number of spheres per leaf node
-const unsigned int MAX_UNION_CAPACITY=6;
-
-typedef GPUTree<MAX_UNION_NODES,MAX_UNION_CAPACITY> union_gpu_tree_type;
-
 //! Data structure for shape composed of a union of multiple shapes
-template<class Shape>
+template<class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes>
 struct union_params : aligned_struct
     {
+    typedef GPUTree<max_n_nodes,capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
+
     unsigned int N;                          //!< Number of member shapes
-    vec3<Scalar> mpos[MAX_MEMBERS];          //!< Position vectors of member shapes
-    quat<Scalar> morientation[MAX_MEMBERS];  //!< Orientation of member shapes
-    mparam_type mparams[MAX_MEMBERS];        //!< Parameters of member shapes
-    unsigned int moverlap[MAX_MEMBERS];       //!< only check overlaps for which moverlap[i] & moverlap[j] 
+    vec3<Scalar> mpos[max_n_members];        //!< Position vectors of member shapes
+    quat<Scalar> morientation[max_n_members];//!< Orientation of member shapes
+    mparam_type mparams[max_n_members];      //!< Parameters of member shapes
+    unsigned int moverlap[max_n_members];    //!< only check overlaps for which moverlap[i] & moverlap[j] 
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
-    union_gpu_tree_type tree;                //!< OBB tree for constituent shapes
+    gpu_tree_type tree;                      //!< OBB tree for constituent shapes
     } __attribute__((aligned(32)));
 
 } // end namespace detail
@@ -65,12 +56,20 @@ struct union_params : aligned_struct
 
     The purpose of ShapeUnion is to allow an overlap check to iterate through pairs of member shapes between
     two composite particles. The two particles overlap if any of their member shapes overlap.
+
+    ShapeUnion stores an internal OBB tree for fast overlap checks.
+
+    To estimate the maximum number of nodes, we assume that the tree is maximally unbalanced,
+    i.e. every second leaf is (almost) empty. Then n_leaf_max = max_n_members/capacity*2 and
+    max_n_nodes = n_leaf_max*2-1.
 */
-template<class Shape>
+template<class Shape, unsigned int max_n_members=8,
+     unsigned int capacity=8,
+     unsigned int max_n_nodes=(max_n_members/capacity*2)*2-1 >
 struct ShapeUnion
     {
     //! Define the parameter type
-    typedef typename detail::union_params<Shape> param_type;
+    typedef typename detail::union_params<Shape, max_n_members, capacity, max_n_nodes> param_type;
 
     //! Initialize a sphere_union
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
@@ -134,9 +133,9 @@ struct ShapeUnion
 
     \ingroup shape
 */
-template <class Shape>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
-    const ShapeUnion<Shape> &b)
+template <class Shape, unsigned int max_n_members>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape, max_n_members>& a,
+    const ShapeUnion<Shape, max_n_members> &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -145,10 +144,10 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-template<class Shape>
+template<class Shape, unsigned int max_n_members, unsigned int capacity,unsigned int max_n_nodes >
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
-                                             const ShapeUnion<Shape>& a,
-                                             const ShapeUnion<Shape>& b,
+                                             const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& a,
+                                             const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& b,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
@@ -158,7 +157,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     typedef typename Shape::param_type mparam_type;
 
     // loop through shape of cur_node_a
-    for (unsigned int i= 0; i< detail::union_gpu_tree_type::capacity; i++)
+    for (unsigned int i= 0; i < capacity; i++)
         {
         int ishape = a.members.tree.getParticle(cur_node_a, i);
         if (ishape == -1) break;
@@ -170,7 +169,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
-        for (unsigned int j= 0; j< detail::union_gpu_tree_type::capacity; j++)
+        for (unsigned int j= 0; j < capacity; j++)
             {
             int jshape = b.members.tree.getParticle(cur_node_b, j);
             if (jshape == -1) break;
@@ -204,10 +203,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     \ingroup shape
 */
 
-template <class Shape >
+template <class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeUnion<Shape>& a,
-                                const ShapeUnion<Shape>& b,
+                                const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& a,
+                                const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& b,
                                 unsigned int& err)
 {
     vec3<Scalar> dr(r_ab);
