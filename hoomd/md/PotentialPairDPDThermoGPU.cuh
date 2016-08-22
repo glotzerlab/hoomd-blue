@@ -332,12 +332,12 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
                 if (compute_virial)
                     {
                     Scalar force_div2r_cons = Scalar(0.5) * force_divr_cons;
-                    virial[0] = dx.x * dx.x * force_div2r_cons;
-                    virial[1] = dx.x * dx.y * force_div2r_cons;
-                    virial[2] = dx.x * dx.z * force_div2r_cons;
-                    virial[3] = dx.y * dx.y * force_div2r_cons;
-                    virial[4] = dx.y * dx.z * force_div2r_cons;
-                    virial[5] = dx.z * dx.z * force_div2r_cons;
+                    virial[0] += dx.x * dx.x * force_div2r_cons;
+                    virial[1] += dx.x * dx.y * force_div2r_cons;
+                    virial[2] += dx.x * dx.z * force_div2r_cons;
+                    virial[3] += dx.y * dx.y * force_div2r_cons;
+                    virial[4] += dx.y * dx.z * force_div2r_cons;
+                    virial[5] += dx.z * dx.z * force_div2r_cons;
                     }
 
                 // add up the force vector components (FLOPS: 7)
@@ -375,7 +375,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     if (compute_virial)
         {
         for (unsigned int i = 0; i < 6; ++i)
-            virial[i] = warp_reduce(tpp, threadIdx.x % tpp, virial[0], &sh[cta_offs]);
+            virial[i] = warp_reduce(tpp, threadIdx.x % tpp, virial[i], &sh[cta_offs]);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x %tpp == 0)
