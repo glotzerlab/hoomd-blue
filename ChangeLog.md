@@ -5,6 +5,7 @@
 ## Bugfixes for next release
 
 * hpmc.util.tune now works with particle types as documented
+* Fix a bug where dump.dcd corrupted files on job restart
 
 ## v2.0.2
 
