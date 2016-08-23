@@ -6,6 +6,7 @@
 
 * hpmc.util.tune now works with particle types as documented
 * Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
 
 ## v2.0.2
 
