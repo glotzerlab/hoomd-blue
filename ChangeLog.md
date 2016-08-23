@@ -9,6 +9,7 @@
 * enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
 * Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
 * Add constrain.oned to constrain particles to move in one dimension
+* hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
 
 *Deprecated*
 
@@ -18,6 +19,7 @@
 
 * Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
+* Shorter compile time for HPMC GPU kernels
 * Include symlinked external components in the build process.
 * Add template for external components.
 
