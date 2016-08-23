@@ -731,7 +731,7 @@ class wall(_external):
 
         """
         hoomd.util.print_status_line();
-        return data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
+        return hoomd.data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
                            Ly=self.cpp_compute.GetCurrBoxLy(),
                            Lz=self.cpp_compute.GetCurrBoxLz(),
                            xy=self.cpp_compute.GetCurrBoxTiltFactorXY(),
