@@ -20,6 +20,8 @@
 * Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
 * Shorter compile time for HPMC GPU kernels
+* Include symlinked external components in the build process.
+* Add template for external components.
 
 ## v2.0.2
 

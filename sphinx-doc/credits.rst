@@ -149,6 +149,7 @@ Matthew Spellings, Univeristy of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
+ * External components in hoomd 2.x
 
 James Proctor, University of Michigan
  * Refactor external potential framework
