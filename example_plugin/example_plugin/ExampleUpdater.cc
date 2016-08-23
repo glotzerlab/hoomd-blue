@@ -1,14 +1,6 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// we need to include boost.python in order to export ExampleUpdater to python
-#include <boost/python.hpp>
-using namespace boost::python;
-
-// we need to include boost.bind for GPUWorker execution
-#include <boost/bind.hpp>
-using namespace boost;
-
 #include "ExampleUpdater.h"
 #ifdef ENABLE_CUDA
 #include "ExampleUpdater.cuh"
