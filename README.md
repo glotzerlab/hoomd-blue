@@ -27,11 +27,7 @@ with jupyter notebooks.
 
 * View a [static version of hoomd-examples at nbviewer.org](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
 * Launch an [executable version of hoomd-examples at mybinder.org](http://mybinder.org:/repo/joaander/hoomd-examples) (CPU only).
-* Or, clone the hoomd-examples repository and run on your local system:
-
-      git clone https://bitbucket.org/glotzer/hoomd-examples.git
-      cd hoomd-examples
-      jupyter notebook
+* Or, clone the hoomd-examples repository and run on your local system.
 
 ## Compiling HOOMD-blue
 
