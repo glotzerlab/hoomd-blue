@@ -8,6 +8,8 @@
 * Fix pressure computation with pair.dpd() on the GPU
 * Fix a bug where dump.dcd corrupted files on job restart
 * Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
 
 ## v2.0.2
 
