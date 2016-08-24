@@ -1,3 +1,5 @@
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
+
 # HOOMD-blue
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
@@ -5,7 +7,7 @@ of a variety of shape classes, and molecular dynamics simulations of particles w
 and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
 many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab.engin.umich.edu/hoomd-blue).
 
-# Installing HOOMD-blue
+## Installing HOOMD-blue
 
 Official binaries of HOOMD-blue are available via [conda](http://conda.pydata.org/docs/) through
 the [glotzer channel](https://anaconda.org/glotzer).
@@ -18,7 +20,20 @@ $ conda config --add channels glotzer
 $ conda install hoomd
 ```
 
-# Compiling HOOMD-blue
+## Tutorials and examples
+
+The [hoomd-examples git repository](https://bitbucket.org/glotzer/hoomd-examples) demonstrates how to use hoomd
+with jupyter notebooks.
+
+* View a [static version of hoomd-examples at nbviewer.org](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
+* Launch an [executable version of hoomd-examples at mybinder.org](http://mybinder.org:/repo/joaander/hoomd-examples) (CPU only).
+* Or, clone the hoomd-examples repository and run on your local system:
+  ```git clone https://bitbucket.org/glotzer/hoomd-examples.git
+  cd hoomd-examples
+  jupyter notebook
+  ```
+
+## Compiling HOOMD-blue
 
 Use cmake to configure an out of source build and make to build hoomd.
 
@@ -37,7 +52,7 @@ export PYTHONPATH=`pwd`:$PYTHONPATH
 
 For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
 
-## Prerequisites
+### Prerequisites
 
  * Required:
      * Python >= 2.7
@@ -50,7 +65,7 @@ For more detailed instructions, [see the documentation](http://hoomd-blue.readth
      * MPI (tested with OpenMPI, MVAPICH, impi)
      * sqlite3
 
-# Job scripts
+## Job scripts
 
 HOOMD-blue job scripts are python scripts. You can control system initialization, run protocol, analyze simulation data,
 or develop complex workflows all with python code in your job.
@@ -78,15 +93,15 @@ hoomd.run(10e3)
 
 Save this as `lj.py` and run with `python lj.py`.
 
-# Documentation
+## Documentation
 
 Documentation for current and previous releases is available at [readthedocs](http://hoomd-blue.readthedocs.io).
 
-# Change log
+## Change log
 
 See [ChangeLog.md](ChangeLog.md).
 
-# Contributing to HOOMD-blue.
+## Contributing to HOOMD-blue.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
 
