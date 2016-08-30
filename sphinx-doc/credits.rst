@@ -134,6 +134,7 @@ James Antonaglia, University of Michigan
 Carl Simon Adorf, University of Michigan
  * Analyzer callback
  * metadata output
+ * Frenkel-Ladd bug fixes
 
 Paull Dodd, University of Michigan
  * pair.compute_energy

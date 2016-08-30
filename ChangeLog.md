@@ -10,6 +10,7 @@
 * Fix a bug where HPMC walls did not work correctly with MPI
 * Fix a bug where stdout/stderr did not appear in MPI execution
 * HOOMD will now report an human readable error when users forget context.initialize()
+* Fix syntax errors in frenkel ladd field
 
 ## v2.0.2
 
