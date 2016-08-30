@@ -2,7 +2,9 @@
 
 [TOC]
 
-## Bugfixes for next release
+## v2.0.3
+
+Released 2016/08/30
 
 * hpmc.util.tune now works with particle types as documented
 * Fix pressure computation with pair.dpd() on the GPU
