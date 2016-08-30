@@ -844,7 +844,7 @@ class frenkel_ladd_energy(_compute):
                                         k = self.trans_spring_const,
                                         q = self.rotat_spring_const,
                                         symmetry=symmetry);
-        self.remove_drift = hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
+        self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
 
     def reset_statistics(self):
         R""" Reset the statistics counters.
