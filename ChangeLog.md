@@ -4,6 +4,8 @@
 
 ## v2.1.0
 
+Not yet released
+
 *New features*
 
 * enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
@@ -23,9 +25,21 @@
 * Include symlinked external components in the build process.
 * Add template for external components.
 
+## v2.0.3
+
+Released 2016/08/30
+
+* hpmc.util.tune now works with particle types as documented
+* Fix pressure computation with pair.dpd() on the GPU
+* Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
+* Fix syntax errors in frenkel ladd field
+
 ## v2.0.2
 
-*Not yet released*
+Released 2016/08/09
 
 * Support CUDA Toolkit 8.0
 * group.rigid()/nonrigid() did not work in MPI simulations

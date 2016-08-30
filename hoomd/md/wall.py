@@ -36,7 +36,6 @@ class group(object):
     R""" Defines a wall group.
 
     Args:
-        name (str): Name of the wall structure (string, defaults to empty string).
         walls (list): Wall objects to be included in the group.
 
     All wall forces use a wall group as an input so it is necessary to create a
