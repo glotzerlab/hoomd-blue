@@ -274,34 +274,72 @@ class tune (unittest.TestCase):
         self.mc.set_params(d=0.1, a=0.1)
         self.mc.shape_param.set('A', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
            (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
+
     # show that the tuner will adjust d to achieve a reasonable acceptance ratio
     def test_d(self):
+        # Set up
         self.mc.set_params(d=1, a=1, move_ratio=0.5)
         target = 0.8
-        #tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.0)
+        old_acceptance = self.mc.get_translate_acceptance()
+        old_d = self.mc.get_d()
+
+        # Create and run the tuner
         tuner = hpmc.util.tune(self.mc, tunables=['d'], max_val=[2], target=target, gamma=0.0)
         for i in range(5):
                     run(2e2)
                     tuner.update()
-        acceptance = self.mc.get_translate_acceptance()
-        print(acceptance)
-        print(self.mc.get_d())
-        # self.assertAlmostEqual(acceptance, target, places=1)
+
+        # Check that the new acceptance has improved
+        new_acceptance = self.mc.get_translate_acceptance()
+        self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
+        self.assertNotEqual(old_d, self.mc.get_d())
         del tuner
+
     # show that the tuner can reduce a to achieve a reasonable acceptance ratio
     def test_a(self):
-        self.mc.set_params(d=0.4, a=0.1, move_ratio=0.5)
+        # Set up
+        self.mc.set_params(d=0.4, a=1, move_ratio=0.5)
         target = 0.8
-        #tuner = hpmc.util.tune(mc, tunables=['d', 'a'], target=0.2, gamma=0.0)
-        tuner = hpmc.util.tune(self.mc, tunables=['a'], target=target, gamma=0.0)
+        old_acceptance = self.mc.get_rotate_acceptance()
+        old_a = self.mc.get_a()
+
+        # Create and run the tuner
+        tuner = hpmc.util.tune(self.mc, tunables=['a'], max_val=[2], target=target, gamma=0.0)
         for i in range(5):
                     run(2e2)
                     tuner.update()
-        acceptance = self.mc.get_rotate_acceptance()
-        # self.assertAlmostEqual(acceptance, target, places=1)
-        print(acceptance)
-        print(self.mc.get_a())
+
+        # Check that the new acceptance has improved
+        new_acceptance = self.mc.get_rotate_acceptance()
+        self.assertLess(abs(new_acceptance - target), abs(old_acceptance - target)) 
+        self.assertNotEqual(old_a, self.mc.get_a())
         del tuner
+
+    # show that the tuner can tune both d and a simultaneously
+    def test_multiple_tunables(self):
+        # Set up
+        self.mc.set_params(d=1, a=1, move_ratio=0.5)
+        target = 0.8
+        old_translate_acceptance = self.mc.get_translate_acceptance()
+        old_rotate_acceptance = self.mc.get_rotate_acceptance()
+        old_a = self.mc.get_a()
+        old_d = self.mc.get_d()
+
+        # Create and run the tuner
+        tuner = hpmc.util.tune(self.mc, tunables=['d', 'a'], max_val=[1, 1], target=target, gamma=0.0)
+        for i in range(5):
+            run(2e2)
+            tuner.update()
+
+        # Check that the new acceptance has improved
+        new_translate_acceptance = self.mc.get_translate_acceptance()
+        new_rotate_acceptance = self.mc.get_rotate_acceptance()
+        self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
+        self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
+        self.assertNotEqual(old_a, self.mc.get_a())
+        self.assertNotEqual(old_d, self.mc.get_d())
+        del tuner
+
     # show that the npt tuner can reasonably handle volume changes
     def test_npt_noshear(self):
         target = 0.5
@@ -318,6 +356,7 @@ class tune (unittest.TestCase):
         self.assertLess(acceptance, 1.0)
         del tuner
         del updater
+
     # show that the npt tuner can properly handle shear
     def test_npt_shear(self):
         target = 0.5
@@ -334,6 +373,7 @@ class tune (unittest.TestCase):
         self.assertLess(acceptance, 1.0)
         del tuner
         del updater
+
     # check the tuner for isotropic mode
     def test_npt_isotropic(self):
         target = 0.5
@@ -350,6 +390,102 @@ class tune (unittest.TestCase):
         self.assertLess(acceptance, 1.0)
         del tuner
         del updater
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize()
+
+# Test tuning of systems where we specify the type
+class tune_by_type(unittest.TestCase):
+    def setUp(self):
+        self.system = create_empty(N=2, box=data.boxdim(L=4.5), particle_types=['A', 'B'])
+        self.system.particles[0].position = (1.0,0,0)
+        self.system.particles[1].position = (-1.0,0,0)
+        self.system.particles.types = ['A', 'B']
+        self.mc = hpmc.integrate.convex_polyhedron(seed=1)
+        self.mc.set_params(d=0.5, a=0.5)
+        self.mc.shape_param.set('A', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
+           (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
+        self.mc.shape_param.set('B', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
+           (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
+
+    # show that the tuner will adjust d to achieve a reasonable acceptance ratio
+    def test_d(self):
+        # Set up
+        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
+        target = 0.8
+        old_translate_acceptance = self.mc.get_translate_acceptance()
+        old_d = self.mc.get_d("A")
+        old_d_fixed = self.mc.get_d("B")
+
+        # Create and run the tuner. Make sure to ignore statistics for the unused type
+        self.mc.shape_param["B"].ignore_statistics = True
+        tuner = hpmc.util.tune(self.mc, type='A', tunables=['d'], max_val=[1], target=target, gamma=0.0)
+        for i in range(5):
+            run(2e2)
+            tuner.update()
+
+        # Check that the new acceptance has improved
+        new_translate_acceptance = self.mc.get_translate_acceptance()
+        self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
+        self.assertNotEqual(old_d, self.mc.get_d("A"))
+        self.assertEqual(old_d_fixed, self.mc.get_d("B"))
+        del tuner
+
+    # Test per-type tuning
+    def test_a(self):
+        # Set up
+        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
+        target = 0.8
+        old_rotate_acceptance = self.mc.get_rotate_acceptance()
+        old_a = self.mc.get_a("A")
+        old_a_fixed = self.mc.get_a("B")
+
+        # Create and run the tuner. Make sure to ignore statistics for the unused type
+        self.mc.shape_param["B"].ignore_statistics = True
+        tuner = hpmc.util.tune(self.mc, type='A', tunables=['a'], max_val=[1], target=target, gamma=0.0)
+        for i in range(5):
+            run(2e2)
+            tuner.update()
+
+        # Check that the new acceptance has improved
+        new_rotate_acceptance = self.mc.get_rotate_acceptance()
+        self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
+        self.assertNotEqual(old_a, self.mc.get_a("A"))
+        self.assertEqual(old_a_fixed, self.mc.get_a("B"))
+        del tuner
+
+    # Test per-type tuning
+    def test_multiple_tunables(self):
+        # Set up
+        self.mc.set_params(d=0.5, a=0.5, move_ratio=0.5)
+        target = 0.8
+        old_translate_acceptance = self.mc.get_translate_acceptance()
+        old_rotate_acceptance = self.mc.get_rotate_acceptance()
+        old_a = self.mc.get_a("A")
+        old_d = self.mc.get_d("A")
+        old_a_fixed = self.mc.get_a("B")
+        old_d_fixed = self.mc.get_d("B")
+
+        # Create and run the tuner. Make sure to ignore statistics for the unused type
+        self.mc.shape_param["B"].ignore_statistics = True
+        tuner = hpmc.util.tune(self.mc, type='A', tunables=['d', 'a'], max_val=[1, 1], target=target, gamma=0.0)
+        for i in range(5):
+            run(2e2)
+            tuner.update()
+
+        # Check that the new acceptance has improved
+        new_translate_acceptance = self.mc.get_translate_acceptance()
+        new_rotate_acceptance = self.mc.get_rotate_acceptance()
+        self.assertLess(abs(new_translate_acceptance - target), abs(old_translate_acceptance - target)) 
+        self.assertLess(abs(new_rotate_acceptance - target), abs(old_rotate_acceptance - target)) 
+        self.assertNotEqual(old_a, self.mc.get_a("A"))
+        self.assertNotEqual(old_d, self.mc.get_d("A"))
+        self.assertEqual(old_a_fixed, self.mc.get_a("B"))
+        self.assertEqual(old_d_fixed, self.mc.get_d("B"))
+        del tuner
+
     def tearDown(self):
         del self.mc
         del self.system

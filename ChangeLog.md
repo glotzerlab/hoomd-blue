@@ -2,6 +2,28 @@
 
 [TOC]
 
+## Bugfixes for next release
+
+* hpmc.util.tune now works with particle types as documented
+* Fix pressure computation with pair.dpd() on the GPU
+* Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
+
+## v2.0.2
+
+Released 2016/08/09
+
+* Support CUDA Toolkit 8.0
+* group.rigid()/nonrigid() did not work in MPI simulations
+* Fix builds with ENABLE_DOXYGEN=on
+* Always add -std=c++11 to the compiler command line arguments
+* Fix rare infinite loops when using hpmc.integrate.faceted_sphere
+* Fix hpmc.util.tune to work with more than one tunable
+* Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+* replicate() sometimes did not work when restarting a simulation
+
 ## v2.0.1
 
 *Bug fixes*

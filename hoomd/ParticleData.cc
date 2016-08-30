@@ -1070,12 +1070,16 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
 
 //! take a particle data snapshot
 /* \param snapshot The snapshot to write to
+   \returns a map to lookup the snapshot index from a particle tag
 
    \pre snapshot has to be allocated with a number of elements equal to the global number of particles)
 */
 template <class Real>
-void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
+std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
     {
+    // a map to containt a particle tag-> snapshot idx lookup
+    std::map<unsigned int, unsigned int> index;
+
     m_exec_conf->msg->notice(4) << "ParticleData: taking snapshot" << std::endl;
 
     ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::read);
@@ -1224,6 +1228,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
                 unsigned int rank = rank_idx.first;
                 unsigned int idx = rank_idx.second;
 
+                // store tag in index map
+                index.insert(std::make_pair(tag, snap_id));
+
                 snapshot.pos[snap_id] = vec3<Real>(pos_proc[rank][idx]);
                 snapshot.vel[snap_id] = vec3<Real>(vel_proc[rank][idx]);
                 snapshot.accel[snap_id] = vec3<Real>(accel_proc[rank][idx]);
@@ -1263,6 +1270,9 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
             unsigned int idx = h_rtag.data[tag];
             assert(idx < m_nparticles);
 
+            // store tag in index map
+            index.insert(std::make_pair(tag, snap_id));
+
             snapshot.pos[snap_id] = vec3<Real>(make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z) - m_origin);
             snapshot.vel[snap_id] = vec3<Real>(make_scalar3(h_vel.data[idx].x, h_vel.data[idx].y, h_vel.data[idx].z));
             snapshot.accel[snap_id] = vec3<Real>(h_accel.data[idx]);
@@ -1289,6 +1299,8 @@ void ParticleData::takeSnapshot(SnapshotParticleData<Real> &snapshot)
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    return index;
     }
 
 //! Add ghost particles at the end of the local particle data
@@ -2326,7 +2338,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
-template void ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
+template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
 
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
@@ -2335,7 +2347,7 @@ template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            boost::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
-template void ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
+template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 
 void export_ParticleData()
@@ -2923,9 +2935,15 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
 
                     unsigned int k = j*old_size + i;
 
-                    // wrap into new box
+                    // coordinates in new box
                     Scalar3 q = new_box.makeCoordinates(f_new);
-                    image[k] = make_int3(0,0,0);
+
+                    // wrap by multiple box vectors if necessary
+                    image[k] = new_box.getImage(q);
+                    int3 negimg = make_int3(-image[k].x, -image[k].y, -image[k].z);
+                    q = new_box.shift(q, negimg);
+
+                    // rewrap using wrap so that rounding is consistent
                     new_box.wrap(q,image[k]);
 
                     pos[k] = vec3<Real>(q);
