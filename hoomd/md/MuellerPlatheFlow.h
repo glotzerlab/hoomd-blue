@@ -62,6 +62,13 @@ class MuellerPlatheFlow : public Updater
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
+
+        //! Returns a list of log quantities this compute calculates
+        virtual std::vector< std::string > getProvidedLogQuantities(void);
+
+        //! Calculates the requested log value and returns it
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+
         Scalar summed_exchanged_momentum(void) const{return m_exchanged_momentum;}
 
         unsigned int get_N_slabs(void)const{return m_N_slabs;}
