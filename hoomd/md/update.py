@@ -244,10 +244,11 @@ class mueller_plathe_flow(_updater):
         * The masses of the particles are always expected to be 1.
         * This updater works currently only with orthorhombic boxes.
 
-    Note:
+    .. note:
         If you set this updater with unrealistic values, it algorithm might not terminate,
         because your desired flow target can not be achieved.
 
+    .. versionadded:: v2.0.3
 
     Examples::
 
@@ -287,19 +288,23 @@ class mueller_plathe_flow(_updater):
         self.setupUpdater(period);
 
     def get_n_slabs(self):
-        R"""" Get the number of slabs."""
+        R"""" Get the number of slabs.
+             .. versionadded:: v2.0.3 """
         return self.cpp_updater.getNSlabs()
 
     def get_min_slab(self):
-        R"""" Get the slab id of min velocity search."""
+        R"""" Get the slab id of min velocity search.
+            .. versionadded:: v2.0.3 """
         return self.cpp_updater.getMinSlab()
 
     def get_max_slab(self):
-        R"""" Get the slab id of max velocity search."""
+        R"""" Get the slab id of max velocity search.
+        .. versionadded:: v2.0.3"""
         return self.cpp_updater.getMaxSlab()
 
     def get_flow_epsilon(self):
-        R""" Get the tolerance between target flow and actual achieved flow."""
+        R""" Get the tolerance between target flow and actual achieved flow.
+        .. versionadded:: v2.0.3"""
         return self.cpp_updater.getFlowEpsilon()
 
     def set_flow_epsilon(self,epsilon):
@@ -308,31 +313,23 @@ class mueller_plathe_flow(_updater):
            Args:
            epsilon (float): New tolerance for the deviation of actual and achieved flow.
 
+        .. versionadded:: v2.0.3
         """
         hoomd.util.print_status_line();
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation."""
+        R"""Returned the summed up exchanged velocity of the full simulation.
+        .. versionadded:: v2.0.3 """
         return self.cpp_updater.getSummedExchangedMomentum()
 
 
     def has_min_slab(self):
-        R"""Returns, whether this MPI instance is part of the min slab."""
+        R"""Returns, whether this MPI instance is part of the min slab.
+        .. versionadded:: v2.0.3 """
         return self.cpp_updater.hasMinSlab()
 
     def has_max_slab(self):
-        R"""Returns, whether this MPI instance is part of the max slab."""
+        R"""Returns, whether this MPI instance is part of the max slab.
+        .. versionadded:: v2.0.3"""
         return self.cpp_updater.hasMaxSlab()
-
-    # Functions no longer available via the python interface.
-    # def update_domain_decomposition(self):
-    #     hoomd.util.print_status_line();
-    #     R"""Function that can be called, if the recalculation of domain decomposition is necessary."""
-    #     self.cpp_updater.updateDomainDecomposition()
-
-    # def swap_min_max(self):
-    #     hoomd.util.print_status_line();
-    #     R"""Swap the min and max slab. Can be modeled, by two separated calls,
-    #     but this is more efficient."""
-    #     self.cpp_updater.swapMinMaxSlab()
