@@ -135,6 +135,7 @@ James Antonaglia, University of Michigan
 Carl Simon Adorf, University of Michigan
  * Analyzer callback
  * metadata output
+ * Frenkel-Ladd bug fixes
 
 Paull Dodd, University of Michigan
  * pair.compute_energy
@@ -250,6 +251,9 @@ The following people contributed to the :py:mod:`hpmc` package.
     * External potential framework
     * Wall overlap checks
     * Lattice external potential
+
+Vyas Ramasubramani, University of Michigan
+ * hpmc.util.tune fixes for tuning by type
 
 DEM developers
 --------------

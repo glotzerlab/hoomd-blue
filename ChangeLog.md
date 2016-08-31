@@ -2,20 +2,17 @@
 
 [TOC]
 
-## v2.1.0
+## v2.0.3
 
-*New features*
+Released 2016/08/30
 
-* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
-
-*Deprecated*
-
-* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
-
-*Other changes*
-
-* Removed dependency on all boost libraries.
-* No longer supporting Intel compiler builds.
+* hpmc.util.tune now works with particle types as documented
+* Fix pressure computation with pair.dpd() on the GPU
+* Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
+* Fix syntax errors in frenkel ladd field
 
 ## v2.0.2
 
@@ -32,8 +29,6 @@ Released 2016/08/09
 
 ## v2.0.1
 
-Released 2016/07/15
-
 *Bug fixes*
 
 * Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
@@ -44,8 +39,6 @@ Released 2016/07/15
 * Clarify definition of the dihedral angle.
 
 ## v2.0.0
-
-Released 2016/06/22
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 
