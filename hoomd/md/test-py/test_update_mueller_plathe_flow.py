@@ -16,12 +16,7 @@ dt = 0.005
 class update_mueller_plathe_flow (unittest.TestCase):
     def setUp(self):
         print
-        self.system = deprecated.init.create_random(N=20000, phi_p=0.3,name='A');
-        nlist = md.nlist.cell(3.0)
-        lj = md.pair.lj(3.0,nlist)
-        lj.pair_coeff.set('A','A',epsilon=1.0,sigma=1.0)
-        md.integrate.mode_standard(dt=dt)
-        md.integrate.nvt(group=group.all(),kT=1.2,tau=0.5)
+        self.system = deprecated.init.create_random(N=200, phi_p=0.3,name='A');
 
     # tests basic creation of the updater
     def test(self):
@@ -91,13 +86,7 @@ class update_mueller_plathe_flow (unittest.TestCase):
         assert flow.get_flow_epsilon() == epsilon
         assert flow.get_summed_exchanged_momentum() == 0
 
-        run(100);
-        #flow.update_domain_decomposition()
-        run(100)
-        snapshot = data.system_data.take_snapshot(self.system)
-        area = snapshot.box.Ly * snapshot.box.Lz
-        expected_flow = 0.03*dt*200
-        assert abs(flow.get_summed_exchanged_momentum()/area -expected_flow) < epsilon+1e-2, str( (flow.get_summed_exchanged_momentum()/area,expected_flow) )
+        run(10);
 
 
     def tearDown(self):
