@@ -211,5 +211,5 @@ cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
                                                          last_max_vel, last_min_vel,
                                                          flow_direction);
 
-    return cudaDeviceSynchronize();
+    return cudaPeekAtLastError();
     }
