@@ -140,7 +140,7 @@ Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, unsigned int 
         }
     else
         {
-        m_exec_conf->msd->error() << "update.mueller_plathe_flow: " << quantity
+        m_exec_conf->msg->error() << "update.mueller_plathe_flow: " << quantity
                                   << " is not a valid log quantity." << endl;
         throw runtime_error("Error getting log value");
         }
