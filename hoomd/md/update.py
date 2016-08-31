@@ -210,34 +210,29 @@ class constraint_ellipsoid(_updater):
 
 class mueller_plathe_flow(_updater):
     R""" Updater class for a shear flow according
-    to an algorithm published by Mueller Plathe.
-      * Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
-      * An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999.
+    to an algorithm published by Mueller Plathe.:
+
+     "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
+     An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999."
 
     The simulation box is divided in a number of slabs.
-    Two distinct slabs of those are chosen. The max slab searched for the
-    max velocity componend in flow direction, the min is searched for the min.
+    Two distinct slabs of those are chosen. The "max" slab searched for the
+    max. velocity componend in flow direction, the "min" is searched for the min. velocity component.
     Afterwards, both velocity components are swapped.
+
     This introduces a momentum flow, which drives the flow. The strength of this flow,
     can be controlled by the flow_target variant, which defines the integrated target momentum
-    flow. The searching and swapping is repeated until the target is reached. In the target,
-    changes sign max and min slap are swapped.
+    flow. The searching and swapping is repeated until the target is reached. Depending on the target sign,
+    the "max" and "min" slap might be swapped.
 
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
-        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the
-        in the natural units of the simulation:
-        [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`.
-        The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
+        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
         slab_direction (int): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
         flow_direction (int): Direction of the flow. In [0,2] (X,Y,Z).
-        n_slabs (int): Number of slabs. You want as many as possible for small disturbed
-        volume, where the unphysical swapping is done. But each slab has to contain a sufficient
-        number of particle.
-        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0
-        the value is set to its default n_slabs/2.
-        min_slab (int): Id < n_slabs where the min velocity component is search for.If set < 0
-        the value is set to its default 0.
+        n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
+        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
+        min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
 
     .. attention::
         * This updater has to be always applied every timestep.
@@ -252,7 +247,7 @@ class mueller_plathe_flow(_updater):
 
     Examples::
 
-        #const integrated flow with 0.1 slope for max 1e10 timesteps
+        #const integrated flow with 0.1 slope for max 1e8 timesteps
         const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
         #velocity gradient in z direction and shear flow in x direction.
         update.mueller_plathe_flow(all,const_flow,2,0,100,50,0)
@@ -288,22 +283,26 @@ class mueller_plathe_flow(_updater):
         self.setupUpdater(period);
 
     def get_n_slabs(self):
-        R"""" Get the number of slabs.
-             .. versionadded:: v2.0.3 """
+        R""" Get the number of slabs.
+
+        .. versionadded:: v2.0.3 """
         return self.cpp_updater.getNSlabs()
 
     def get_min_slab(self):
-        R"""" Get the slab id of min velocity search.
-            .. versionadded:: v2.0.3 """
+        R""" Get the slab id of min velocity search.
+
+        .. versionadded:: v2.0.3 """
         return self.cpp_updater.getMinSlab()
 
     def get_max_slab(self):
-        R"""" Get the slab id of max velocity search.
+        R""" Get the slab id of max velocity search.
+
         .. versionadded:: v2.0.3"""
         return self.cpp_updater.getMaxSlab()
 
     def get_flow_epsilon(self):
         R""" Get the tolerance between target flow and actual achieved flow.
+
         .. versionadded:: v2.0.3"""
         return self.cpp_updater.getFlowEpsilon()
 
@@ -320,16 +319,19 @@ class mueller_plathe_flow(_updater):
 
     def get_summed_exchanged_momentum(self):
         R"""Returned the summed up exchanged velocity of the full simulation.
+
         .. versionadded:: v2.0.3 """
         return self.cpp_updater.getSummedExchangedMomentum()
 
 
     def has_min_slab(self):
         R"""Returns, whether this MPI instance is part of the min slab.
+
         .. versionadded:: v2.0.3 """
         return self.cpp_updater.hasMinSlab()
 
     def has_max_slab(self):
         R"""Returns, whether this MPI instance is part of the max slab.
+
         .. versionadded:: v2.0.3"""
         return self.cpp_updater.hasMaxSlab()
