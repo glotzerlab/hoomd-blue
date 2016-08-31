@@ -183,7 +183,7 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
         const Scalar min_frac = m_min_slab/static_cast<Scalar>(m_N_slabs);
         const Scalar max_frac = m_max_slab/static_cast<Scalar>(m_N_slabs);
 
-        const uint3 grid = dec->getGridPartition();
+        const uint3 grid = dec->getGridSize();
         const uint3 pos = dec->getGridPos();
         const unsigned int my_grid = m_slab_direction == X ? grid.x :( m_slab_direction == Y ? grid.y : grid.z);
         const unsigned int my_pos = m_slab_direction == X ? pos.x :( m_slab_direction == Y ? pos.y : pos.z);
