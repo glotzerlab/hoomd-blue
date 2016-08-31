@@ -5,7 +5,7 @@
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
-
+#include <functional>
 #include <fstream>
 
 #include "hoomd/md/TablePotential.h"
@@ -15,14 +15,11 @@
 #endif
 
 using namespace std;
-
+using namespace std::placeholders;
 
 #include "hoomd/test/upp11_config.h"
 
 HOOMD_UP_MAIN();
-
-
-
 
 /*! \file table_potential.cc
     \brief Implements unit tests for TablePotential and descendants
@@ -30,7 +27,7 @@ HOOMD_UP_MAIN();
 */
 
 //! Typedef'd TablePotential factory
-typedef boost::function<std::shared_ptr<TablePotential> (std::shared_ptr<SystemDefinition> sysdef,
+typedef std::function<std::shared_ptr<TablePotential> (std::shared_ptr<SystemDefinition> sysdef,
                                                     std::shared_ptr<NeighborList> nlist,
                                                     unsigned int width)> table_potential_creator;
 

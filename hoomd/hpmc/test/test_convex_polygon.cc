@@ -14,7 +14,6 @@ HOOMD_UP_MAIN();
 #include <string>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <memory>
 
 
 #include "hoomd/extern/saruprng.h"

@@ -100,7 +100,7 @@ class lattice_field(_external):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldLatticeSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.ExternalFieldLatticeSphereUnion;
+                cls = integrate._get_sized_entry('ExternalFieldLatticeSphereUnion', mc.max_members);
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
@@ -265,7 +265,7 @@ class external_field_composite(_external):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldCompositeSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.ExternalFieldCompositeSphereUnion;
+                cls = integrate.get_sized_entry('ExternalFieldCompositeSphereUnion', mc.max_members);
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
@@ -756,7 +756,7 @@ class wall(_external):
 
         """
         hoomd.util.print_status_line();
-        return data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
+        return hoomd.data.boxdim(Lx=self.cpp_compute.GetCurrBoxLx(),
                            Ly=self.cpp_compute.GetCurrBoxLy(),
                            Lz=self.cpp_compute.GetCurrBoxLz(),
                            xy=self.cpp_compute.GetCurrBoxTiltFactorXY(),
@@ -869,7 +869,7 @@ class frenkel_ladd_energy(_compute):
                                         k = self.trans_spring_const,
                                         q = self.rotat_spring_const,
                                         symmetry=symmetry);
-        self.remove_drift = hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
+        self.remove_drift = hoomd.hpmc.update.remove_drift(self.mc, self.lattice, period=drift_period);
 
     def reset_statistics(self):
         R""" Reset the statistics counters.

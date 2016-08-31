@@ -8,8 +8,6 @@
 #include "ConstraintSphereGPU.h"
 #include "ConstraintSphereGPU.cuh"
 
-#include <boost/bind.hpp>
-
 namespace py = pybind11;
 
 using namespace std;

@@ -4,11 +4,51 @@
 
 ## v2.1.0
 
+Not yet released
+
+*New features*
+
+* enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+* Add constrain.oned to constrain particles to move in one dimension
+* hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
+
+*Deprecated*
+
+* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
+
 *Other changes*
 
-* Removed dependency on boost::python.
-* Removed dependency on boost::unit_test_framework
+* Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
+* Shorter compile time for HPMC GPU kernels
+* Include symlinked external components in the build process.
+* Add template for external components.
+
+## v2.0.3
+
+Released 2016/08/30
+
+* hpmc.util.tune now works with particle types as documented
+* Fix pressure computation with pair.dpd() on the GPU
+* Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
+* Fix syntax errors in frenkel ladd field
+
+## v2.0.2
+
+Released 2016/08/09
+
+* Support CUDA Toolkit 8.0
+* group.rigid()/nonrigid() did not work in MPI simulations
+* Fix builds with ENABLE_DOXYGEN=on
+* Always add -std=c++11 to the compiler command line arguments
+* Fix rare infinite loops when using hpmc.integrate.faceted_sphere
+* Fix hpmc.util.tune to work with more than one tunable
+* Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+* replicate() sometimes did not work when restarting a simulation
 
 ## v2.0.1
 

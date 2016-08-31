@@ -49,12 +49,13 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty, this));
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+            &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
 
@@ -97,8 +98,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty,
-        this));
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -114,8 +115,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+            &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
     }
@@ -124,10 +125,11 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::~BondedGroupData()
     {
-    m_sort_connection.disconnect();
+    m_pdata->getParticleSortSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
-    if (m_particle_move_connection.connected())
-        m_particle_move_connection.disconnect();
+    m_pdata->getSingleParticleMoveSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
     #endif
     }
 
@@ -421,7 +423,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     m_nglobal++;
 
     // notifiy observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
 
     return tag;
@@ -642,7 +644,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_nglobal--;
 
     // notifiy observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
     }
 
@@ -931,14 +933,17 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
 #endif
 
 /*! \param snapshot Snapshot that will contain the group data
+ * \returns a map to lookup snapshot index by tag
  *
  *  Data in the snapshot is in tag order, where non-existant tags are skipped
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
+std::map<unsigned int, unsigned int> BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Snapshot& snapshot) const
     {
-    std::map<unsigned int, unsigned int> rtag_map;
+    // map to lookup snapshot index by tag
+    std::map<unsigned int, unsigned int> index;
 
+    std::map<unsigned int, unsigned int> rtag_map;
     for (unsigned int group_idx = 0; group_idx < getN(); group_idx++)
         {
         unsigned int tag = m_group_tag[group_idx];
@@ -1012,6 +1017,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
                     throw std::runtime_error("Error gathering "+std::string(name)+"s");
                     }
 
+                // store tag in index
+                index.insert(std::make_pair(group_tag, snap_id));
+
                 // rank contains the processor rank on which the particle was found
                 std::pair<unsigned int, unsigned int> rank_idx = rank_rtag_it->second;
                 unsigned int rank = rank_idx.first;
@@ -1055,6 +1063,9 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
                 throw std::runtime_error("Error gathering "+std::string(name)+"s");
                 }
 
+            // store tag in index
+            index.insert(std::make_pair(group_tag, snap_id));
+
             unsigned int group_idx = rtag_it->second;
             snapshot.groups[snap_id] = m_groups[group_idx];
             if (has_type_mapping)
@@ -1070,6 +1081,8 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::takeSnapshot(Sn
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    return index;
     }
 
 #ifdef ENABLE_MPI
@@ -1197,7 +1210,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
         }
 
     // notify observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
     }
 #endif

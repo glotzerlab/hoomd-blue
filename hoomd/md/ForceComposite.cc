@@ -21,9 +21,9 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&ForceComposite::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
 
-    m_global_ptl_num_change_connection = m_pdata->connectGlobalParticleNumberChange(boost::bind(&ForceComposite::slotPtlsAddedRemoved, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -48,12 +48,12 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 ForceComposite::~ForceComposite()
     {
     // disconnect from signal in ParticleData;
-    m_num_type_change_connection.disconnect();
-
-    m_global_ptl_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        m_comm_ghost_layer_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+    #endif
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -658,6 +658,14 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(unsigned int timestep)
     {
+    // access local molecule data
+    // need to move this on top because of scoping issues
+    Index2D molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
+
+    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
+
     // access particle data
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -674,14 +682,6 @@ void ForceComposite::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-
-    // for each local body
-    Index2D molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
-
-    // access local molecule data
-    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
 
     // access rigid body definition
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -820,6 +820,11 @@ void ForceComposite::computeForces(unsigned int timestep)
 
 void ForceComposite::updateCompositeParticles(unsigned int timestep)
     {
+    // access molecule order (this needs to be on top because of ArrayHandle scope)
+    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
+
     // access the particle data arrays
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
@@ -833,11 +838,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    // access molecule order
-    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -894,8 +894,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
                     << std::endl << std::endl;
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
-    
-            // otherwise we must ignore it 
+
+            // otherwise we must ignore it
             continue;
             }
 

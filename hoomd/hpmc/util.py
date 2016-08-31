@@ -355,7 +355,7 @@ class compress:
         #
 
         log_values = [
-                    'hpmc_boxmc_pressure',
+                    'hpmc_boxmc_betaP',
                     'volume',
                     'hpmc_d',
                     'hpmc_a',
@@ -647,50 +647,46 @@ class tune(object):
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         hoomd.util.quiet_status()
 
+        # Ensure that max_val conforms to the tunable list provided
         max_val_length = len(max_val)
         if (max_val_length != 0) and (max_val_length != len(tunables)):
             raise ValueError("If provided, max_val must be same length as tunables.")
-        self.type=type
-        #initialize tunable map
 
-        #use the default map
+        # Use the default tunable map if none is provided
         if (tunable_map is None):
-            self.tunable_map = dict()
+            tunable_map = dict()
             if type is None:
-                t = hoomd.context.current.system_definition.getParticleData().getNameByType(0)
-                self.tunable_map.update({'d'.format(t): {
-                                                     'get': lambda: getattr(obj, 'get_d')(t),
+                tunable_map.update({'d': {
+                                                     'get': lambda: getattr(obj, 'get_d')(),
                                                      'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                     'set': lambda x: getattr(obj, 'set_params')(d=x),
                                                      'maximum': 1.0
                                                       },
-                                          'a'.format(t): {
-                                                     'get': lambda: getattr(obj, 'get_a')(t),
+                                          'a': {
+                                                     'get': lambda: getattr(obj, 'get_a')(),
                                                      'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                     'set': lambda x: getattr(obj, 'set_params')(a=x),
                                                      'maximum': 0.5
                                                       }})
             else:
-                type_names = [hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(hoomd.context.current.system_definition.getParticleData().getNTypes())]
-                map_dict = dict()
-                for t in type_names:
-                     self.tunable_map.update({'d'.format(t): {
+                tunable_map.update({'d': {
                                                  'get': lambda: getattr(obj, 'get_d')(type),
                                                  'acceptance': lambda: getattr(obj, 'get_translate_acceptance')(),
+                                                 'set': lambda x: getattr(obj, 'set_params')(d={type: x}),
                                                  'maximum': 1.0
                                                  },
-                                              'a'.format(t): {
+                                              'a': {
                                                  'get': lambda: getattr(obj, 'get_a')(type),
                                                  'acceptance': lambda: getattr(obj, 'get_rotate_acceptance')(),
+                                                 'set': lambda x: getattr(obj, 'set_params')(a={type: x}),
                                                  'maximum': 0.5
                                                  }})
-        else:
-            self.tunable_map=tunable_map
 
         #init rest of tuner
-        self.obj = obj
         self.target = float(target)
         self.max_scale = float(max_scale)
         self.gamma = float(gamma)
-        allowed_tunables = set(self.tunable_map.keys())
+        allowed_tunables = set(tunable_map.keys())
         # list of maximum values for active tunables; not used internally
         self.maxima = list()
         # mapping of tunables and acceptance ratios being tracked to information and methods
@@ -704,11 +700,9 @@ class tune(object):
         for i in range(len(tunables)):
             item = tunables[i]
             if item in allowed_tunables:
-                self.tunables[item] = self.tunable_map[item]
+                self.tunables[item] = tunable_map[item]
                 if max_val_length != 0:
                     self.tunables[item]['maximum'] = max_val[i]
-                if not 'set' in self.tunable_map[item]:
-                    self.tunable_map[item]['set'] = lambda x, name=item: obj.set_params(**{name : x} )
                 self.maxima.append(self.tunables[item]['maximum'])
             else:
                 raise ValueError( "Unknown tunable {0}".format(item))
@@ -722,27 +716,23 @@ class tune(object):
 
         # Note: we are not doing any checking on the quality of our retrieved statistics
         newquantities = dict()
-        # For each of the tunables we are watching...
+        # For each of the tunables we are watching, compute the new value we're setting that tunable to
         for tunable in self.tunables:
-            get = self.tunables[tunable]['get']
-            acceptance = self.tunables[tunable]['acceptance']
-            target = self.target
-            actual = acceptance()
-            if (actual > 0.0):
-                # find (damped) scale somewhere between 1.0 and actual/target
-                scale = ((1.0 + self.gamma) * actual) / (target + self.gamma * actual)
+            oldval = self.tunables[tunable]['get']()
+            acceptance = self.tunables[tunable]['acceptance']()
+            max_val = self.tunables[tunable]['maximum']
+            if (acceptance > 0.0):
+                # find (damped) scale somewhere between 1.0 and acceptance/target
+                scale = ((1.0 + self.gamma) * acceptance) / (self.target + self.gamma * acceptance)
             else:
                 # acceptance rate was zero. Try a parameter value an order of magnitude smaller
                 scale = 0.1
             if (scale > self.max_scale):
                 scale = self.max_scale
             # find new value
-            param_name = tunable
-            max_val = self.tunables[tunable]['maximum']
-            oldval = get()
             if (oldval == 0):
                 newval = 1e-5
-                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(param_name, newval))
+                hoomd.context.msg.warning("Oops. Somehow {0} went to zero at previous update. Resetting to {1}.\n".format(tunable, newval))
             else:
                 newval = float(scale * oldval)
                 # perform sanity checking on newval
@@ -751,13 +741,7 @@ class tune(object):
                 if (newval > max_val):
                     newval = max_val
 
-            if self.type is None:
-                newquantities[param_name] = float(newval)
-            else:
-                newquantities[param_name] = {self.type:float(newval)}
-
-        for q in newquantities:
-            self.tunables[q]['set'](newquantities[q])
+            self.tunables[tunable]['set'](float(newval))
         hoomd.util.unquiet_status();
 
 class tune_npt(tune):

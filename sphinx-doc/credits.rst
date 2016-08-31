@@ -86,6 +86,7 @@ Jens Glaser, University of Michigan
  * pair.reaction_field
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
+ * hpmc interaction_matrix
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -134,6 +135,7 @@ James Antonaglia, University of Michigan
 Carl Simon Adorf, University of Michigan
  * Analyzer callback
  * metadata output
+ * Frenkel-Ladd bug fixes
 
 Paull Dodd, University of Michigan
  * pair.compute_energy
@@ -148,12 +150,15 @@ Matthew Spellings, Univeristy of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
+ * External components in hoomd 2.x
 
 James Proctor, University of Michigan
  * Refactor external potential framework
  * Wall potentials
  * boost python to pybind11 conversion
  * boost unit_test to upp11 conversion
+ * boost signals to Nano::Signals conversion
+ * Removal of misc boost library calls
 
 Chengyu Dai, University of Michigan
  * Rewrite integrate.brownian with 3D rotational updates
@@ -173,8 +178,12 @@ Vyas Ramasubramani, University of Michigan
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
 
+Bryan VanSaders, University of Michigan
+ * constrain.oneD
+
 Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+
 
 HPMC developers
 ---------------
@@ -250,6 +259,9 @@ The following people contributed to the :py:mod:`hpmc` package.
     * External potential framework
     * Wall overlap checks
     * Lattice external potential
+
+Vyas Ramasubramani, University of Michigan
+ * hpmc.util.tune fixes for tuning by type
 
 DEM developers
 --------------
@@ -636,6 +648,5 @@ Libraries
 
 HOOMD-blue links to the following libraries:
 
- * boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)
  * python - Used under the Python license (http://www.python.org/psf/license/)
  * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)

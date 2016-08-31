@@ -27,7 +27,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
     if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
 
         set(_common_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas")
-        set(_common_cxx_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas -std=c++11")
+        set(_common_cxx_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas")
 
         if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
             set(_common_cxx_options "${_common_cxx_options} -Wno-c++14-extensions")
@@ -51,10 +51,10 @@ if(NOT PASSED_FIRST_CONFIGURE)
         set(CMAKE_C_FLAGS_RELEASE "-xHOST -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
         set(CMAKE_C_FLAGS_RELWITHDEBINFO "-xHOST -g -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 
-        set(CMAKE_CXX_FLAGS_DEBUG "-xHOST -O0 -g -std=c++11" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
-        set(CMAKE_CXX_FLAGS_MINSIZEREL "-xHOST -Os -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-xHOST -O3 -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during release builds." FORCE)
-        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-xHOST -g -O3 -DNDEBUG -std=c++11" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-xHOST -O0 -g" CACHE STRING "Flags used by the compiler during debug builds." FORCE)
+        set(CMAKE_CXX_FLAGS_MINSIZEREL "-xHOST -Os -DNDEBUG" CACHE STRING "Flags used by the compiler during minimum size release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-xHOST -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds." FORCE)
+        set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-xHOST -g -O3 -DNDEBUG" CACHE STRING "Flags used by the compiler during release builds with debug info." FORCE)
 
     else(CMAKE_COMPILER_IS_GNUCXX)
         message(STATUS "No default CXXFLAGS for your compiler, set them manually")
@@ -71,3 +71,5 @@ if(NOT PASSED_FIRST_CONFIGURE)
 
 SET(PASSED_FIRST_CONFIGURE ON CACHE INTERNAL "First configure has run: CXX_FLAGS have had their defaults changed" FORCE)
 endif(NOT PASSED_FIRST_CONFIGURE)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

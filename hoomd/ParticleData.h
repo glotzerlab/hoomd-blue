@@ -27,9 +27,7 @@
 #include "BoxDim.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
-#include <boost/function.hpp>
-#include <boost/utility.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -43,6 +41,7 @@
 
 #include <stdlib.h>
 #include <vector>
+#include <map>
 #include <string>
 #include <bitset>
 #include <stack>
@@ -335,7 +334,7 @@ struct pdata_element
     ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
     not be sufficient for simulations where the box size changes. We'll see in testing.
 */
-class ParticleData : boost::noncopyable
+class ParticleData
     {
     public:
         //! Construct with N particles in the given box
@@ -630,34 +629,54 @@ class ParticleData : boost::noncopyable
             }
 
         //! Connects a function to be called every time the particles are rearranged in memory
-        boost::signals2::connection connectParticleSort(const boost::function<void ()> &func);
+        Nano::Signal<void ()>& getParticleSortSignal()
+            {
+            return m_sort_signal;
+            }
 
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
 
         //! Connects a function to be called every time the box size is changed
-        boost::signals2::connection connectBoxChange(const boost::function<void ()> &func);
+        Nano::Signal<void ()>& getBoxChangeSignal()
+            {
+            return m_boxchange_signal;
+            }
 
         //! Connects a function to be called every time the global number of particles changes
-        boost::signals2::connection connectGlobalParticleNumberChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getGlobalParticleNumberChangeSignal()
+            {
+            return m_global_particle_num_signal;
+            }
 
         //! Connects a function to be called every time the local maximum particle number changes
-        boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getMaxParticleNumberChangeSignal()
+            {
+            return m_max_particle_num_signal;
+            }
 
         //! Connects a function to be called every time the ghost particles become invalid
-        boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
+        Nano::Signal< void()>& getGhostParticlesRemovedSignal()
+            {
+            return m_ghost_particles_removed_signal;
+            }
 
         #ifdef ENABLE_MPI
         //! Connects a function to be called every time a single particle migration is requested
-        boost::signals2::connection connectSingleParticleMove(
-            const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
+        Nano::Signal<void (unsigned int, unsigned int, unsigned int)>& getSingleParticleMoveSignal()
+            {
+            return m_ptl_move_signal;
+            }
         #endif
 
         //! Notify listeners that ghost particles have been removed
         void notifyGhostParticlesRemoved();
 
         //! Connects a funtion to be called every time the number of types changes
-        boost::signals2::connection connectNumTypesChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getNumTypesChangeSignal()
+            {
+            return m_num_types_signal;
+            }
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -857,7 +876,7 @@ class ParticleData : boost::noncopyable
 
         //! Take a snapshot
         template <class Real>
-        void takeSnapshot(SnapshotParticleData<Real> &snapshot);
+        std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
@@ -878,7 +897,7 @@ class ParticleData : boost::noncopyable
             assert(decomposition);
             m_decomposition = decomposition;
             m_box = m_decomposition->calculateLocalBox(m_global_box);
-            m_boxchange_signal();
+            m_boxchange_signal.emit();
             }
 
         //! Returns the domain decomin decomposition information
@@ -977,15 +996,15 @@ class ParticleData : boost::noncopyable
 
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
 
-        boost::signals2::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
-        boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
-        boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signals2::signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
-        boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
-        boost::signals2::signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
+        Nano::Signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
+        Nano::Signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
+        Nano::Signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
+        Nano::Signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
+        Nano::Signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
+        Nano::Signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
 
         #ifdef ENABLE_MPI
-        boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
+        Nano::Signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
         #endif
 
         unsigned int m_nparticles;                  //!< number of particles

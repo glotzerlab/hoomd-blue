@@ -30,17 +30,18 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "BondedGroupData.cuh"
 #endif
 
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
-#include <boost/bind.hpp>
 
 #include <stack>
 #include <string>
 #include <sstream>
 #include <set>
+#include <vector>
+#include <map>
 
 //! Storage data type for group members
 /*! We use a union to emphasize it that can contain either particle
@@ -120,7 +121,7 @@ namespace cereal
  *  \tpp name Name of element, i.e. bond, angle, dihedral, ..
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping = true>
-class BondedGroupData : boost::noncopyable
+class BondedGroupData
     {
     public:
         //! Group size
@@ -230,7 +231,7 @@ class BondedGroupData : boost::noncopyable
         virtual void initializeFromSnapshot(const Snapshot& snapshot);
 
         //! Take a snapshot
-        virtual void takeSnapshot(Snapshot& snapshot) const;
+        virtual std::map<unsigned int, unsigned int> takeSnapshot(Snapshot& snapshot) const;
 
         //! Get local number of bonded groups
         unsigned int getN() const
@@ -553,17 +554,15 @@ class BondedGroupData : boost::noncopyable
             }
 
         //! Connects a function to be called every time the global number of bonded groups changes
-        boost::signals2::connection connectGroupNumChange(
-            const boost::function<void ()> &func)
+        Nano::Signal<void()>& getGroupNumChangeSignal()
             {
-            return m_group_num_change_signal.connect(func);
+            return m_group_num_change_signal;
             }
 
         //! Connects a function to be called every time the local number of bonded groups changes
-        boost::signals2::connection connectGroupReorder(
-            const boost::function<void ()> &func)
+        Nano::Signal<void()>& getGroupReorderSignal()
             {
-            return m_group_reorder_signal.connect(func);
+            return m_group_reorder_signal;
             }
 
 
@@ -574,7 +573,7 @@ class BondedGroupData : boost::noncopyable
             m_groups_dirty = true;
 
             // notify subscribers
-            m_group_reorder_signal();
+            m_group_reorder_signal.emit();
             }
 
         //! Indicate that GPU table needs to be rebuilt
@@ -630,14 +629,9 @@ class BondedGroupData : boost::noncopyable
 
     private:
         bool m_groups_dirty;                         //!< Is it necessary to rebuild the lookup-by-index table?
-        boost::signals2::connection m_sort_connection;   //!< Connection to the resort signal from ParticleData
 
-        #ifdef ENABLE_MPI
-        boost::signals2::connection m_particle_move_connection;     //!< Connection to single particle move signal from ParticleData
-        #endif
-
-        boost::signals2::signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
-        boost::signals2::signal<void ()> m_group_reorder_signal;    //!< Signal that is triggered when groups are added or deleted locally
+        Nano::Signal<void ()> m_group_num_change_signal; //!< Signal that is triggered when groups are added or deleted (globally)
+        Nano::Signal<void ()> m_group_reorder_signal;    //!< Signal that is triggered when groups are added or deleted locally
 
         //! Initialize internal memory
         void initialize();

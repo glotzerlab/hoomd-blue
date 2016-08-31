@@ -5,6 +5,7 @@ if(COMMAND cmake_policy)
     cmake_policy(SET CMP0003 NEW)
     cmake_policy(SET CMP0026 OLD)
     cmake_policy(SET CMP0042 OLD)
+    set(CMAKE_MACOSX_RPATH ON)
 endif(COMMAND cmake_policy)
 endif()
 
@@ -29,8 +30,6 @@ include (CMake_install_options.cmake)
 include (HOOMDMPISetup)
 # find the python libraries to link to
 include(HOOMDPythonSetup)
-# Find the boost libraries and set them up
-include (HOOMDBoostSetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 # Set default CFlags
@@ -71,12 +70,65 @@ else (libgetar_DIR)
 endif (libgetar_DIR)
 
 ################################
+# install cmake scripts into hoomd/CMake
+
+set(cmake_files CMake/hoomd/HOOMDCFlagsSetup.cmake
+                CMake/hoomd/HOOMDCommonLibsSetup.cmake
+                CMake/hoomd/HOOMDCUDASetup.cmake
+                CMake/hoomd/HOOMDMacros.cmake
+                CMake/hoomd/HOOMDMPISetup.cmake
+                CMake/hoomd/HOOMDNumpySetup.cmake
+                CMake/hoomd/HOOMDOSSpecificSetup.cmake
+                CMake/hoomd/HOOMDPythonSetup.cmake
+                CMake/git/FindGit.cmake
+                CMake/git/GetGitRevisionDescription.cmake
+                CMake/libgetar/Findlibgetar.cmake
+                CMake/thrust/FindThrust.cmake
+                CMake_build_options.cmake
+                CMake_install_options.cmake
+                CMake_preprocessor_flags.cmake
+                CMake_src_setup.cmake
+                CMake_version_options.cmake
+   )
+
+# copy cmake scripts we currently use into build directory
+MACRO(copy_cmake file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/hoomd/${file}
+        COMMENT    "Copy hoomd/${file}"
+    )
+ENDMACRO(copy_cmake)
+
+# install headers in installation target
+install(FILES ${cmake_files}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}
+       )
+
+# copy headers into build directory
+foreach(file ${cmake_files})
+    copy_cmake(${file})
+endforeach()
+
+configure_file(hoomd_cache.cmake.in
+    ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
+
+install(FILES ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/CMake/hoomd)
+
+add_custom_target(copy_cmake ALL
+    DEPENDS ${cmake_files} ${HOOMD_BINARY_DIR}/hoomd/CMake/hoomd/hoomd_cache.cmake)
+
+################################
 # set up unit tests
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
 if (BUILD_TESTING)
      # add test_all to the ALL target
      add_custom_target(test_all ALL)
+
 endif (BUILD_TESTING)
 
 ################################

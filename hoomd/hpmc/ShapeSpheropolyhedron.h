@@ -115,10 +115,7 @@ struct ShapeSpheropolyhedron
         }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return verts.ignore>>1&0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const { return verts.ignore & 0x01; }
+    DEVICE bool ignoreStatistics() const { return verts.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const

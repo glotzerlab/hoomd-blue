@@ -15,6 +15,7 @@
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
+#include "OneDConstraint.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
 #include "FIREEnergyMinimizer.h"
@@ -60,6 +61,7 @@
 #include "BondTablePotentialGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "OneDConstraintGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ForceCompositeGPU.h"
@@ -227,6 +229,7 @@ PYBIND11_PLUGIN(_md)
     export_NeighborListStencil(m);
     export_NeighborListTree(m);
     export_ConstraintSphere(m);
+    export_OneDConstraint(m);
     export_MolecularForceCompute(m);
     export_ForceDistanceConstraint(m);
     export_ForceComposite(m);
@@ -279,6 +282,7 @@ PYBIND11_PLUGIN(_md)
     export_TableDihedralForceComputeGPU(m);
     export_HarmonicImproperForceComputeGPU(m);
     export_ConstraintSphereGPU(m);
+    export_OneDConstraintGPU(m);
     export_ForceDistanceConstraintGPU(m);
     // export_ConstExternalFieldDipoleForceComputeGPU(m);
     export_PPPMForceComputeGPU(m);

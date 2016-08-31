@@ -162,11 +162,10 @@ template < >
 DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall, const ShapeSphere& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
     t.x  = t.x - wall.origin.x;
     t.y  = t.y - wall.origin.y;
     t.z  = t.z - wall.origin.z;
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
 
     OverlapReal rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z; // distance from the container origin.
     OverlapReal max_dist = sqrt(rxyz_sq) + (shape.getCircumsphereDiameter()/OverlapReal(2.0));
@@ -192,11 +191,10 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
     t.x  = t.x - wall.origin.x;
     t.y  = t.y - wall.origin.y;
     t.z  = t.z - wall.origin.z;
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
 
     OverlapReal rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
     OverlapReal max_dist = (sqrt(rxyz_sq) + shape.getCircumsphereDiameter()/OverlapReal(2.0));
@@ -259,11 +257,10 @@ template < >
 DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& wall, const ShapeSphere& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
     t.x = t.x - wall.origin.x;
     t.y = t.y - wall.origin.y;
     t.z = t.z - wall.origin.z;
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
 
     vec3<OverlapReal> dist_vec = cross(shifted_pos, wall.orientation); // find the component of the shifted position that is perpendicular to the normalized orientation vector
     OverlapReal max_dist = sqrt(dot(dist_vec, dist_vec));
@@ -290,11 +287,10 @@ DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPoly
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
     t.x = t.x - wall.origin.x;
     t.y = t.y - wall.origin.y;
     t.z = t.z - wall.origin.z;
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
 
     vec3<OverlapReal> dist_vec = cross(shifted_pos, wall.orientation); // find the component of the shifted position that is perpendicular to the normalized orientation vector
     OverlapReal max_dist = sqrt(dot(dist_vec, dist_vec));
@@ -351,8 +347,7 @@ template < >
 DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall, const ShapeSphere& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
     OverlapReal max_dist = dot(wall.normal, shifted_pos) + wall.d; // proj onto unit normal. (signed distance)
     return (max_dist < 0) ? false :  0 < (max_dist - shape.getCircumsphereDiameter()/OverlapReal(2.0));
     }
@@ -363,8 +358,7 @@ DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhed
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
-    box.minImage(t);
-    vec3<OverlapReal> shifted_pos(t);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
     OverlapReal max_dist = dot(wall.normal, shifted_pos) + wall.d; // proj onto unit normal. (signed distance)
     accept = OverlapReal(0.0) < max_dist; // center is on the correct side of the plane.
     if( accept && (max_dist <= shape.getCircumsphereDiameter()/OverlapReal(2.0))) // should this be <= for consistency? should never matter... it was previously just <
@@ -390,16 +384,16 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           {
           m_box = m_pdata->getGlobalBox();
           //! scale the container walls every time the box changes
-          m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&ExternalFieldWall<Shape>::scaleWalls, this));
+          m_pdata->getBoxChangeSignal().template connect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this);
           }
         ~ExternalFieldWall()
           {
-          m_boxchange_connection.disconnect();
+          m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this);
           }
 
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru&)
             {
-            return boltzmann(index, position_old, shape_old, position_new, shape_new) == Scalar(1.0);
+            return fabs(boltzmann(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0)) < SMALL;
             }
 
         Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
@@ -784,7 +778,6 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         Scalar                      m_Volume;
     private:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
-        boost::signals2::connection                   m_boxchange_connection; //!< connection to the ParticleData box change signal
         BoxDim                                        m_box; //!< the current box
     };
 

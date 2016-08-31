@@ -67,6 +67,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "sum force and torque");
 
+    // access local molecule data (need to move this on top because of GPUArray scoping issues)
+    const Index2D& molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
+
+    ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_list(getMoleculeList(), access_location::device, access_mode::read);
+
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -81,14 +88,6 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-
-    // for each local body
-    const Index2D& molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
-
-    // access local molecule data
-    ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_list(getMoleculeList(), access_location::device, access_mode::read);
 
     // access rigid body definition
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
@@ -189,6 +188,11 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "update");
 
+    // access molecule order
+    ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_len(getMoleculeLengths(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
+
     // access the particle data arrays
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
@@ -201,11 +205,6 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
-
-    // access molecule order
-    ArrayHandle<unsigned int> d_molecule_order(getMoleculeOrder(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_len(getMoleculeLengths(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
