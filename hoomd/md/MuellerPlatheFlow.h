@@ -103,10 +103,15 @@ class MuellerPlatheFlow : public Updater
         virtual void search_min_max_velocity(void);
         virtual void update_min_max_velocity(void);
 
-        //!Temporary variables to store last found min vel;
-        Scalar_Int m_last_min_vel;
-        //!Temporary variables to store last found max vel;
-        Scalar_Int m_last_max_vel;
+        //!Temporary variables to store last found min vel info.
+	//!
+	//! x: velocity y: mass z: tag as scalar.
+        Scalar3 m_last_min_vel;
+
+        //!Temporary variables to store last found max vel info
+	//!
+	//! x: velocity y: mass z: tag as scalar.
+        Scalar3 m_last_max_vel;
 
         //! Direction perpendicular to the slabs.
         enum Direction m_slab_direction;
@@ -143,7 +148,7 @@ class MuellerPlatheFlow : public Updater
         struct MPI_SWAP m_min_swap;
         struct MPI_SWAP m_max_swap;
         void init_mpi_swap(struct MPI_SWAP* ms,const int color);
-        void bcast_vel_to_all(struct MPI_SWAP*ms,Scalar_Int*vel,const MPI_Op op);
+        void bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MPI_Op op);
         void mpi_exchange_velocity(void);
 #endif//ENABLE_MPI
     };

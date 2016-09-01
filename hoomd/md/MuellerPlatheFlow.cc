@@ -45,10 +45,10 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("ERROR: invalid slow direction.");
         }
 
-    m_last_max_vel.s = -INVALID_VEL;
-    m_last_max_vel.i = INVALID_TAG;
-    m_last_min_vel.s = INVALID_VEL;
-    m_last_min_vel.i = INVALID_TAG;
+    m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
+    m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
+    m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
+    m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
 
     m_exec_conf->msg->notice(5) << "Constructing MuellerPlatheFlow " << endl;
     this->update_domain_decomposition();
@@ -87,19 +87,19 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             this->swap_min_max_slab();
             }
 
-        m_last_max_vel.s = -INVALID_VEL;
-        m_last_max_vel.i = INVALID_TAG;
-        m_last_min_vel.s = INVALID_VEL;
-        m_last_max_vel.i = INVALID_TAG;
+        m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
+        m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
+        m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
+        m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
         search_min_max_velocity();
 #ifdef ENABLE_MPI
         mpi_exchange_velocity();
 
 #endif//ENABLE_MPI
-        if( m_last_max_vel.s == -INVALID_VEL
-            || static_cast<unsigned int>(m_last_max_vel.i) == INVALID_TAG
-            || m_last_min_vel.s == -INVALID_VEL
-            || static_cast<unsigned int>(m_last_min_vel.i) == INVALID_TAG)
+        if( m_last_max_vel.x == -INVALID_VEL
+            || static_cast<unsigned int>(__scalar_as_int(m_last_max_vel.z)) == INVALID_TAG
+            || m_last_min_vel.x == -INVALID_VEL
+            || static_cast<unsigned int>(__scalar_as_int(m_last_min_vel.z)) == INVALID_TAG)
             {
             m_exec_conf->msg->warning() << "WARNING: at time "<<timestep
                                             <<"  MuellerPlatheFlow could not find a min/max pair."
@@ -109,7 +109,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             {
             update_min_max_velocity();
             const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
-            m_exchanged_momentum += sign * (m_last_max_vel.s - m_last_min_vel.s);
+            m_exchanged_momentum += sign * (m_last_max_vel.x - m_last_min_vel.x);
             }
         }
     if(counter >= max_iteration)
@@ -277,15 +277,20 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                     case Y: vel = h_vel.data[j].y;break;
                     case Z: vel = h_vel.data[j].z;break;
                     }
-                if( index == this->get_max_slab() && m_last_max_vel.s < vel &&  this->has_max_slab())
+                const Scalar mass = h_vel.data[j].w;
+                vel *= mass; //Use momentum instead of velocity
+                if( index == this->get_max_slab() && m_last_max_vel.x < vel &&  this->has_max_slab())
                     {
-                    m_last_max_vel.s = vel;
-                    m_last_max_vel.i = h_tag.data[j];
+                    m_last_max_vel.x = vel;
+                    m_last_max_vel.y = mass;
+                    m_last_max_vel.z = __int_as_scalar(h_tag.data[j]);
+
                     }
-                if( index == this->get_min_slab() && m_last_min_vel.s > vel && this->has_min_slab())
+                if( index == this->get_min_slab() && m_last_min_vel.x > vel && this->has_min_slab())
                     {
-                    m_last_min_vel.s = vel;
-                    m_last_min_vel.i = h_tag.data[j];
+                    m_last_min_vel.x = vel;
+                    m_last_max_vel.y = mass;
+                    m_last_min_vel.z = __int_as_scalar(h_tag.data[j]);
                     }
                 }
             }
@@ -298,8 +303,10 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     {
     if(m_prof) m_prof->push("MuellerPlatheFlow::update");
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
-    const unsigned int min_idx = h_rtag.data[m_last_min_vel.i];
-    const unsigned int max_idx = h_rtag.data[m_last_max_vel.i];
+    const unsigned int min_tag = __scalar_as_int(m_last_min_vel.z);
+    const unsigned int min_idx = h_rtag.data[min_tag];
+    const unsigned int max_tag = __scalar_as_int(m_last_max_vel.z);
+    const unsigned int max_idx = h_rtag.data[max_tag];
     const unsigned int Ntotal = m_pdata->getN()+m_pdata->getNGhosts();
     //Is my particle local on the processor?
     if( min_idx < Ntotal || max_idx < Ntotal)
@@ -308,20 +315,24 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
         //Swap the particles the new velocities.
         if( min_idx < Ntotal)
             {
-            switch(m_flow_direction)
+              const Scalar new_min_vel = m_last_max_vel.x / m_last_min_vel.y;
+              switch(m_flow_direction)
                 {
-                case X: h_vel.data[min_idx].x = m_last_max_vel.s; break;
-                case Y: h_vel.data[min_idx].y = m_last_max_vel.s; break;
-                case Z: h_vel.data[min_idx].z = m_last_max_vel.s; break;
+                case X: h_vel.data[min_idx].x = new_min_vel; break;
+                case Y: h_vel.data[min_idx].y = new_min_vel; break;
+                case Z: h_vel.data[min_idx].z = new_min_vel; break;
                 }
             }
         if( max_idx < Ntotal)
+          {
+            const Scalar new_max_vel = m_last_min_vel.x / m_last_max_vel.y;
             switch(m_flow_direction)
                 {
-                case X: h_vel.data[max_idx].x = m_last_min_vel.s;
-                case Y: h_vel.data[max_idx].y = m_last_min_vel.s;
-                case Z: h_vel.data[max_idx].z = m_last_min_vel.s;
+                case X: h_vel.data[max_idx].x = new_max_vel;break;
+                case Y: h_vel.data[max_idx].y = new_max_vel;break;
+                case Z: h_vel.data[max_idx].z = new_max_vel;break;
                 }
+          }
         }
     if(m_prof) m_prof->pop();
     }
@@ -369,12 +380,12 @@ void MuellerPlatheFlow::init_mpi_swap(struct MPI_SWAP*ms,const int color)
     ms->initialized = true;
     }
 
-void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar_Int*vel,const MPI_Op op)
+void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar3*vel,const MPI_Op op)
     {
     if( ms->rank != MPI_UNDEFINED)
         {
         Scalar_Int tmp;
-        tmp.s = vel->s;
+        tmp.s = vel->x;
         tmp.i = ms->rank;
         MPI_Allreduce(MPI_IN_PLACE,&tmp,1,MPI_HOOMD_SCALAR_INT,op, ms->comm);
         //Send to subset local rank
@@ -382,11 +393,11 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar_Int*vel,const
             {
             if( ms->rank == 0)
                 {
-                MPI_Recv( vel,1, MPI_HOOMD_SCALAR_INT, tmp.i, 42, ms->comm, MPI_STATUS_IGNORE);
+                  recv(*vel,tmp.i,ms->comm);
                 }
             if( ms->rank == tmp.i)
                 {
-                MPI_Send( vel,1, MPI_HOOMD_SCALAR_INT, 0, 42, ms->comm);
+                  send(*vel, 0 , ms->comm);
                 }
             }
         //ms->rank == 0 has the definite answer
@@ -394,7 +405,7 @@ void MuellerPlatheFlow::bcast_vel_to_all(struct MPI_SWAP*ms,Scalar_Int*vel,const
     //Broadcast the result to every rank.
     //This way, each rank can check, whether
     //it needs to update and can determine the exchanged momentum.
-    MPI_Bcast( vel, 1, MPI_HOOMD_SCALAR_INT, ms->gbl_rank, m_exec_conf->getMPICommunicator());
+    bcast( *vel, ms->gbl_rank, m_exec_conf->getMPICommunicator() );
     }
 
 void MuellerPlatheFlow::mpi_exchange_velocity(void)

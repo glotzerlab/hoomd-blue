@@ -10,7 +10,7 @@
 #include <thrust/functional.h>
 #include <thrust/device_ptr.h>
 
-struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Scalar_Int>
+struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Scalar3>
     {
         vel_search_un_opt(const Scalar4*const d_vel,const unsigned int *const d_tag,
                           const unsigned int flow_direction)
@@ -22,7 +22,7 @@ struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Sca
         const Scalar4*const m_vel;
         const unsigned int*const m_tag;
         const unsigned int m_flow_direction;
-        __host__ __device__ Scalar_Int operator()(const unsigned int idx)const
+        __host__ __device__ Scalar3 operator()(const unsigned int idx)const
             {
             const unsigned int tag = m_tag[idx];
             Scalar vel;
@@ -32,15 +32,18 @@ struct vel_search_un_opt : public thrust::unary_function< const unsigned int,Sca
                 case Y: vel = m_vel[idx].y;break;
                 case Z: vel = m_vel[idx].z;break;
                 }
-            Scalar_Int result;
-            result.s = vel;
-            result.i = tag;
+            const Scalar mass = m_vel[idx].w;
+            vel *= mass;
+            Scalar3 result;
+            result.x = vel;
+            result.y = mass;
+            result.z = __int_as_scalar(tag);
             return result;
             }
     };
 
 template <typename CMP>
-struct vel_search_binary_opt : public thrust::binary_function< Scalar_Int, Scalar_Int, Scalar_Int >
+struct vel_search_binary_opt : public thrust::binary_function< Scalar3, Scalar3, Scalar3 >
     {
         vel_search_binary_opt(const unsigned int*const d_rtag,
                               const Scalar4*const d_pos,
@@ -48,7 +51,7 @@ struct vel_search_binary_opt : public thrust::binary_function< Scalar_Int, Scala
                               const unsigned int Nslabs,
                               const unsigned int slab_index,
                               const unsigned int slab_direction,
-                              const Scalar_Int invalid)
+                              const Scalar3 invalid)
             : m_rtag(d_rtag),
               m_pos(d_pos),
               m_gl_box(gl_box),
@@ -63,19 +66,19 @@ struct vel_search_binary_opt : public thrust::binary_function< Scalar_Int, Scala
         const unsigned int m_Nslabs;
         const unsigned int m_slab_index;
         const unsigned int m_slab_direction;
-        const Scalar_Int m_invalid;
+        const Scalar3 m_invalid;
 
-        __host__ __device__ Scalar_Int operator()(const Scalar_Int& a,const Scalar_Int& b)const
+        __host__ __device__ Scalar3 operator()(const Scalar3& a,const Scalar3& b)const
             {
-            Scalar_Int result = m_invalid;
+            Scalar3 result = m_invalid;
             //Early exit, if invalid args involved.
-            if( a.i == m_invalid.i )
+            if( a.z == m_invalid.z )
                 return b;
-            if( b.i == m_invalid.i )
+            if( b.z == m_invalid.z )
                 return a;
 
-            const unsigned int idx_a = m_rtag[a.i];
-            const unsigned int idx_b = m_rtag[b.i];
+            const unsigned int idx_a = m_rtag[__scalar_as_int(a.z)];
+            const unsigned int idx_b = m_rtag[__scalar_as_int(b.z)];
 
             unsigned int index_a,index_b;
             switch(m_slab_direction)
@@ -101,7 +104,7 @@ struct vel_search_binary_opt : public thrust::binary_function< Scalar_Int, Scala
                 if( index_a == m_slab_index )
                     {
                     CMP cmp;
-                    if( cmp(a.s,b.s) )
+                    if( cmp(a.x,b.x) )
                         result = a;
                     else
                         result = b;
@@ -130,8 +133,8 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         const unsigned int flow_direction,
                                         const unsigned int max_slab,
                                         const unsigned int min_slab,
-                                        Scalar_Int*const last_max_vel,
-                                        Scalar_Int*const last_min_vel,
+                                        Scalar3*const last_max_vel,
+                                        Scalar3*const last_min_vel,
                                         const bool has_max_slab,
                                         const bool has_min_slab,
                                         const unsigned int blocksize)
@@ -144,7 +147,7 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
         vel_search_binary_opt<thrust::greater<const Scalar> > max_bin_opt(d_rtag,d_pos,gl_box,Nslabs,
                                                                     max_slab,slab_direction,
                                                                     *last_max_vel);
-        Scalar_Int init = *last_max_vel;
+        Scalar3 init = *last_max_vel;
         *last_max_vel = thrust::transform_reduce(member_ptr,member_ptr+group_size,
                                                  un_opt,init,max_bin_opt);
         }
@@ -154,7 +157,7 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
         vel_search_binary_opt<thrust::less<const Scalar> > min_bin_opt(d_rtag,d_pos,gl_box,Nslabs,
                                                                  min_slab,slab_direction,
                                                                  *last_min_vel);
-        Scalar_Int init = *last_min_vel;
+        Scalar3 init = *last_min_vel;
         *last_min_vel = thrust::transform_reduce(member_ptr,member_ptr+group_size,
                                                  un_opt,init,min_bin_opt);
         }
@@ -167,41 +170,46 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
 void __global__ gpu_update_min_max_velocity_kernel(const unsigned int *const d_rtag,
                                                    Scalar4*const d_vel,
                                                    const unsigned int Ntotal,
-                                                   const Scalar_Int last_max_vel,
-                                                   const Scalar_Int last_min_vel,
+                                                   const Scalar3 last_max_vel,
+                                                   const Scalar3 last_min_vel,
                                                    const unsigned int flow_direction)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= 1)
         return;
-
-    const unsigned int min_idx = d_rtag[last_min_vel.i];
-    const unsigned int max_idx = d_rtag[last_max_vel.i];
+    const unsigned int min_tag = __scalar_as_int( last_min_vel.z);
+    const unsigned int min_idx = d_rtag[min_tag];
+    const unsigned int max_tag = __scalar_as_int( last_max_vel.z);
+    const unsigned int max_idx = d_rtag[max_tag];
     //Is the particle local on the processor?
     //Swap the particles the new velocities.
     if( min_idx < Ntotal)
         {
+        const Scalar new_min_vel = last_max_vel.x  / last_min_vel.y;
         switch(flow_direction)
             {
-            case X: d_vel[min_idx].x = last_max_vel.s; break;
-            case Y: d_vel[min_idx].y = last_max_vel.s; break;
-            case Z: d_vel[min_idx].z = last_max_vel.s; break;
+            case X: d_vel[min_idx].x = new_min_vel; break;
+            case Y: d_vel[min_idx].y = new_min_vel; break;
+            case Z: d_vel[min_idx].z = new_min_vel; break;
             }
         }
     if( max_idx < Ntotal)
+      {
+        const Scalar new_max_vel = last_min_vel.x  / last_max_vel.y;
         switch(flow_direction)
             {
-            case X: d_vel[max_idx].x = last_min_vel.s;
-            case Y: d_vel[max_idx].y = last_min_vel.s;
-            case Z: d_vel[max_idx].z = last_min_vel.s;
+            case X: d_vel[max_idx].x = new_max_vel;break;
+            case Y: d_vel[max_idx].y = new_max_vel;break;
+            case Z: d_vel[max_idx].z = new_max_vel;break;
             }
+      }
     }
 
 cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
                                         Scalar4*const d_vel,
                                         const unsigned int Ntotal,
-                                        const Scalar_Int last_max_vel,
-                                        const Scalar_Int last_min_vel,
+                                        const Scalar3 last_max_vel,
+                                        const Scalar3 last_min_vel,
                                         const unsigned int flow_direction)
     {
     dim3 grid( 1, 1, 1);
