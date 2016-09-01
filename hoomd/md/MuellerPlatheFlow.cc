@@ -26,6 +26,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
     ,m_flow_epsilon(1e-2)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
+    ,m_needs_orthorhombic_check(true)
     {
     assert(m_flow_target);
     switch(slab_direction)
@@ -51,9 +52,9 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
             "slab and flow direction to be equal. This is no shear flow. "
             "The method has not been developed for this application." << endl;
         }
-    this->verify_orthorhombic_box();
+
     m_pdata->getBoxChangeSignal()
-        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::verify_orthorhombic_box >(this);
+        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check >(this);
 
     m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
     m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
@@ -73,11 +74,14 @@ MuellerPlatheFlow::~MuellerPlatheFlow(void)
     {
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlow " << endl;
     m_pdata->getBoxChangeSignal()
-        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::verify_orthorhombic_box>(this);
+        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::force_orthorhombic_box_check>(this);
     }
 
 void MuellerPlatheFlow::update(unsigned int timestep)
     {
+    if( m_needs_orthorhombic_check)
+        this->verify_orthorhombic_box();
+
     const BoxDim&box= m_pdata->getBox();
     double area;
     switch(m_slab_direction)
@@ -363,6 +367,8 @@ void MuellerPlatheFlow::verify_orthorhombic_box(void)const throw(runtime_error)
             " MuellerPlatheFlow can only be used with orthorhombic boxes. " << endl;
         throw runtime_error("MuellerPlatheFlow non orthorhombic box.");
         }
+    //Disable check for the next update call.
+    m_needs_orthorhombic_check = false;
     }
 #ifdef ENABLE_MPI
 

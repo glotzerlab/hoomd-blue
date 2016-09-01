@@ -91,11 +91,8 @@ class MuellerPlatheFlow : public Updater
         Scalar get_flow_epsilon(void)const{return m_flow_epsilon;}
         //! Get the ignored variance between flow target and summed flow.
         void set_flow_epsilon(const Scalar flow_epsilon){m_flow_epsilon=flow_epsilon;}
-
-        //! Verify that the box is orthorhombic.
-        //!
-        //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
-        void verify_orthorhombic_box(void)const throw(std::runtime_error);
+        //! Trigger checks for orthorhombic checks.
+        void force_orthorhombic_box_check(void){m_needs_orthorhombic_check=true;}
     protected:
         //! Swap min and max slab for a reverse flow.
         //! More efficient than separate calls of set_min_slab() and set_max_slab(),
@@ -111,11 +108,18 @@ class MuellerPlatheFlow : public Updater
         //!Temporary variables to store last found min vel info.
         //!
         //! x: velocity y: mass z: tag as scalar.
+        //! \note Transferring the mass is only neccessary if velocities are updated in the ghost layer. This is only
+        //! sometimes the case, but for the sake of simplicity it will be update here always. The performance loss
+        //! should be only minimal.
         Scalar3 m_last_min_vel;
 
         //!Temporary variables to store last found max vel info
         //!
         //! x: velocity y: mass z: tag as scalar.
+        //! \note Transferring the mass is only neccessary if velocities are updated in the ghost layer. This is only
+        //! sometimes the case, but for the sake of simplicity it will be update here always. The performance loss
+        //! should be only minimal.
+
         Scalar3 m_last_max_vel;
 
         //! Direction perpendicular to the slabs.
@@ -134,6 +138,11 @@ class MuellerPlatheFlow : public Updater
 
         bool m_has_min_slab;
         bool m_has_max_slab;
+        bool m_needs_orthorhombic_check;
+        //! Verify that the box is orthorhombic.
+        //!
+        //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
+        void verify_orthorhombic_box(void)const throw(std::runtime_error);
 #ifdef ENABLE_MPI
         struct MPI_SWAP{
             MPI_Comm comm;
