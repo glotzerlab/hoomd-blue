@@ -236,7 +236,6 @@ class mueller_plathe_flow(_updater):
 
     .. attention::
         * This updater has to be always applied every timestep.
-        * The masses of the particles are always expected to be 1.
         * This updater works currently only with orthorhombic boxes.
 
     .. note:

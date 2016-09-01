@@ -45,6 +45,16 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("ERROR: invalid slow direction.");
         }
 
+    if( slab_direction == flow_direction)
+        {
+        m_exec_conf->msg->warning() << " MuellerPlatheFlow setup with "
+            "slab and flow direction to be equal. This is no shear flow. "
+            "The method has not been developed for this application." << endl;
+        }
+    this->verify_orthorhombic_box();
+    m_pdata->getBoxChangeSignal()
+        .connect<MuellerPlatheFlow, &MuellerPlatheFlow::verify_orthorhombic_box >(this);
+
     m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
     m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
     m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
@@ -62,6 +72,8 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
 MuellerPlatheFlow::~MuellerPlatheFlow(void)
     {
     m_exec_conf->msg->notice(5) << "Destroying MuellerPlatheFlow " << endl;
+    m_pdata->getBoxChangeSignal()
+        .disconnect<MuellerPlatheFlow, &MuellerPlatheFlow::verify_orthorhombic_box>(this);
     }
 
 void MuellerPlatheFlow::update(unsigned int timestep)
@@ -337,6 +349,21 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     if(m_prof) m_prof->pop();
     }
 
+void MuellerPlatheFlow::verify_orthorhombic_box(void)const throw(runtime_error)
+    {
+    bool valid = true;
+    const BoxDim box = m_pdata->getBox();
+    valid &= box.getTiltFactorXY() == Scalar(0.);
+    valid &= box.getTiltFactorXZ() == Scalar(0.);
+    valid &= box.getTiltFactorYZ() == Scalar(0.);
+
+    if( not valid )
+        {
+        m_exec_conf->msg->error() <<
+            " MuellerPlatheFlow can only be used with orthorhombic boxes. " << endl;
+        throw runtime_error("MuellerPlatheFlow non orthorhombic box.");
+        }
+    }
 #ifdef ENABLE_MPI
 
 //Not performance optimized: could be slow. It is meant for init.

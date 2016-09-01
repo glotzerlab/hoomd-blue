@@ -91,6 +91,11 @@ class MuellerPlatheFlow : public Updater
         Scalar get_flow_epsilon(void)const{return m_flow_epsilon;}
         //! Get the ignored variance between flow target and summed flow.
         void set_flow_epsilon(const Scalar flow_epsilon){m_flow_epsilon=flow_epsilon;}
+
+        //! Verify that the box is orthorhombic.
+        //!
+        //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
+        void verify_orthorhombic_box(void)const throw(std::runtime_error);
     protected:
         //! Swap min and max slab for a reverse flow.
         //! More efficient than separate calls of set_min_slab() and set_max_slab(),
