@@ -109,13 +109,13 @@ class MuellerPlatheFlow : public Updater
         virtual void update_min_max_velocity(void);
 
         //!Temporary variables to store last found min vel info.
-	//!
-	//! x: velocity y: mass z: tag as scalar.
+        //!
+        //! x: velocity y: mass z: tag as scalar.
         Scalar3 m_last_min_vel;
 
         //!Temporary variables to store last found max vel info
-	//!
-	//! x: velocity y: mass z: tag as scalar.
+        //!
+        //! x: velocity y: mass z: tag as scalar.
         Scalar3 m_last_max_vel;
 
         //! Direction perpendicular to the slabs.
