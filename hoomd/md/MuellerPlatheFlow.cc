@@ -151,25 +151,13 @@ Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, unsigned int 
 void MuellerPlatheFlow::swap_min_max_slab(void)
     {
     std::swap( m_max_slab, m_min_slab);
-//     const unsigned int old_max_slab = this->get_max_slab();
-//     m_max_slab = this->get_min_slab();
-//     m_min_slab = old_max_slab;
 
     std::swap( m_last_max_vel, m_last_min_vel);
-//     const Scalar_Int old_max_vel = m_last_max_vel;
-//     m_last_max_vel = m_last_min_vel;
-//     m_last_min_vel = old_max_vel;
 
     std::swap( m_has_max_slab, m_has_min_slab);
-//     const bool old_max_bool = m_has_max_slab;
-//     m_has_max_slab = m_has_min_slab;
-//     m_has_min_slab = old_max_bool;
 
 #ifdef ENABLE_MPI
     std::swap( m_max_swap, m_min_swap);
-//     const struct MPI_SWAP old_max_swap = m_max_swap;
-//     m_max_swap = m_min_swap;
-//     m_min_swap = old_max_swap;
 #endif//ENABLE_MPI
     }
 
