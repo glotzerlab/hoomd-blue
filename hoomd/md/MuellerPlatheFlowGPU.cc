@@ -15,8 +15,8 @@ using namespace std;
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
-                                           const unsigned int slab_direction,
-                                           const unsigned int flow_direction,
+                                           const MuellerPlatheFlow::Direction slab_direction,
+                                           const MuellerPlatheFlow::Direction flow_direction,
                                            const unsigned int N_slabs,
                                            const unsigned int min_slab,
                                            const unsigned int max_slab)
@@ -169,7 +169,7 @@ void export_MuellerPlatheFlowGPU(py::module&m)
     {
     py::class_< MuellerPlatheFlowGPU, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU",py::base<MuellerPlatheFlow>())
         .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
-             std::shared_ptr<Variant>, const unsigned int, const unsigned int,
+             std::shared_ptr<Variant>, const MuellerPlatheFlow::Direction,const MuellerPlatheFlow::Direction,
              const unsigned int, const unsigned int, const unsigned int >())
         ;
     }

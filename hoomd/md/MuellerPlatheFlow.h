@@ -35,6 +35,13 @@ extern const Scalar INVALID_VEL;
 class MuellerPlatheFlow : public Updater
     {
     public:
+        //! Enum for dimensions
+        enum Direction
+            {
+            X=0,//!< X-direction
+            Y,//!< Y-direction
+            Z//!< Z-direction
+            };
         //! Constructs the compute
         //!
         //! \param direction Indicates the normal direction of the slabs.
@@ -46,8 +53,8 @@ class MuellerPlatheFlow : public Updater
         MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
                           std::shared_ptr<Variant> flow_target,
-                          const unsigned int slab_direction,
-                          const unsigned int flow_direction,
+                          const MuellerPlatheFlow::Direction slab_direction,
+                          const MuellerPlatheFlow::Direction flow_direction,
                           const unsigned int N_slabs,
                           const unsigned int min_slab,
                           const unsigned int max_slab);
@@ -89,14 +96,6 @@ class MuellerPlatheFlow : public Updater
         //! Trigger checks for orthorhombic checks.
         void force_orthorhombic_box_check(void){m_needs_orthorhombic_check=true;}
     protected:
-        //! Enum for dimensions
-        enum Direction
-            {
-            X=0,//!< X-direction
-            Y,//!< Y-direction
-            Z//!< Z-direction
-            };
-
         //! Swap min and max slab for a reverse flow.
         //! More efficient than separate calls of set_min_slab() and set_max_slab(),
         //! especailly in MPI runs.

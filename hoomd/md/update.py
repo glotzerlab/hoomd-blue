@@ -209,6 +209,13 @@ class constraint_ellipsoid(_updater):
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
 class mueller_plathe_flow(_updater):
+    R""" Direction Enum X for this class"""
+    X = _md.MuellerPlatheFlow.Direction.X
+    R""" Direction Enum X for this class"""
+    Y = _md.MuellerPlatheFlow.Direction.Y
+    R""" Direction Enum X for this class"""
+    Z = _md.MuellerPlatheFlow.Direction.Z
+
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
 
@@ -228,8 +235,8 @@ class mueller_plathe_flow(_updater):
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
         flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
-        slab_direction (int): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
-        flow_direction (int): Direction of the flow. In [0,2] (X,Y,Z).
+        slab_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
+        flow_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction of the flow. In [0,2] (X,Y,Z).
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
         max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
         min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
@@ -249,14 +256,12 @@ class mueller_plathe_flow(_updater):
         #const integrated flow with 0.1 slope for max 1e8 timesteps
         const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
         #velocity gradient in z direction and shear flow in x direction.
-        update.mueller_plathe_flow(all,const_flow,2,0,100,50,0)
+        update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
 
     """
     def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
         hoomd.util.print_status_line();
         period=1 # This updater has to be applied every timestep
-        assert (slab_direction>-1 and slab_direction < 3),"Invalid slab_direction in [0,2] (X,Y,Z)."
-        assert (flow_direction>-1 and flow_direction < 3),"Invalid flow_direction in [0,2] (X,Y,Z)."
         assert (n_slabs > 0 ),"Invalid negative number of slabs."
         if min_slab < 0:
             min_slab = 0

@@ -17,34 +17,18 @@ const Scalar INVALID_VEL = FLT_MAX; //should be ok, even for double.
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<Variant> flow_target,
-                                     const unsigned int slab_direction,
-                                     const unsigned int flow_direction,
+                                     const MuellerPlatheFlow::Direction slab_direction,
+                                     const MuellerPlatheFlow::Direction flow_direction,
                                      const unsigned int N_slabs,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab)
-    :Updater(sysdef), m_group(group), m_flow_target(flow_target)
-    ,m_flow_epsilon(1e-2)
+    :Updater(sysdef), m_group(group),m_slab_direction(slab_direction),m_flow_direction(flow_direction)
+    ,m_flow_epsilon(1e-2), m_flow_target(flow_target)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
     ,m_needs_orthorhombic_check(true)
     {
     assert(m_flow_target);
-    switch(slab_direction)
-        {
-        case 0: m_slab_direction = X; break;
-        case 1: m_slab_direction = Y; break;
-        case 2: m_slab_direction = Z; break;
-        default:
-        throw runtime_error("ERROR: invalid slab direction.");
-        }
-    switch(flow_direction)
-        {
-        case 0: m_flow_direction = X; break;
-        case 1: m_flow_direction = Y; break;
-        case 2: m_flow_direction = Z; break;
-        default:
-        throw runtime_error("ERROR: invalid slow direction.");
-        }
 
     if( slab_direction == flow_direction)
         {
@@ -457,9 +441,9 @@ void MuellerPlatheFlow::mpi_exchange_velocity(void)
 void export_MuellerPlatheFlow(py::module& m)
     {
     py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >
-        (m,"MuellerPlatheFlow",py::base<Updater>())
-        .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
-             std::shared_ptr<Variant>, const unsigned int, const unsigned int,
+        flow (m,"MuellerPlatheFlow",py::base<Updater>());
+    flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
+             std::shared_ptr<Variant>, const MuellerPlatheFlow::Direction, const MuellerPlatheFlow::Direction,
              const unsigned int, const unsigned int, const unsigned int >() )
         .def("getNSlabs",&MuellerPlatheFlow::get_N_slabs)
         .def("getMinSlab",&MuellerPlatheFlow::get_min_slab)
@@ -475,4 +459,9 @@ void export_MuellerPlatheFlow(py::module& m)
         // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
         // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         ;
+    py::enum_<MuellerPlatheFlow::Direction>(flow,"Direction")
+        .value("X",MuellerPlatheFlow::Direction::X)
+        .value("Y",MuellerPlatheFlow::Direction::Y)
+        .value("Z",MuellerPlatheFlow::Direction::Z)
+        .export_values();
     }

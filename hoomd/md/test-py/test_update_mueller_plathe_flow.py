@@ -3,6 +3,7 @@
 from hoomd import *
 from hoomd import deprecated
 from hoomd import md;
+
 context.initialize()
 import unittest
 import os
@@ -22,49 +23,49 @@ class update_mueller_plathe_flow (unittest.TestCase):
     def test(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
         #simple creation
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,2,0,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with X slab direction and Y shear direction
     def test_XY(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,0,1,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.X,md.update.mueller_plathe_flow.Y,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with X slab direction and Z shear direction
     def test_XZ(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,0,2,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.X,md.update.mueller_plathe_flow.Y,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with Y slab direction and X shear direction
     def test_YX(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,1,0,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Y,md.update.mueller_plathe_flow.X,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with Y slab direction and Z shear direction
     def test_YX(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,1,2,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Y,md.update.mueller_plathe_flow.Z,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with Y slab direction and Z shear direction
-    def test_YX(self):
+    def test_YZ(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,1,2,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Y,md.update.mueller_plathe_flow.Z,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with Z slab direction and X shear direction
-    def test_YX(self):
+    def test_ZX(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,2,0,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,Nslabs,max_slab,min_slab)
         run(10);
 
     # tests with Z slab direction and Y shear direction
-    def test_YX(self):
+    def test_ZY(self):
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,2,1,Nslabs,max_slab,min_slab)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.Y,Nslabs,max_slab,min_slab)
         run(10);
 
 
@@ -75,7 +76,7 @@ class update_mueller_plathe_flow (unittest.TestCase):
 
         const_flow = variant.linear_interp(  [(0,0),(1e8,0.03*dt*1e8)] )
         #simple creation
-        flow = md.update.mueller_plathe_flow(group.all(),const_flow,2,0,Nslabs,max_slab_loc,min_slab_loc)
+        flow = md.update.mueller_plathe_flow(group.all(),const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,Nslabs,max_slab_loc,min_slab_loc)
 
         assert flow.get_n_slabs() == Nslabs
         assert flow.get_min_slab() == min_slab_loc
