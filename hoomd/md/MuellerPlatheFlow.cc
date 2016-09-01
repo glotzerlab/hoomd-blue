@@ -118,8 +118,8 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             || static_cast<unsigned int>(__scalar_as_int(m_last_min_vel.z)) == INVALID_TAG)
             {
             m_exec_conf->msg->warning() << "WARNING: at time "<<timestep
-                                            <<"  MuellerPlatheFlow could not find a min/max pair."
-                                        <<" This could cause infinite loops."<<endl;
+                                        << "  MuellerPlatheFlow could not find a min/max pair."
+                                        << endl;
             }
         else
             {
@@ -353,7 +353,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     if(m_prof) m_prof->pop();
     }
 
-void MuellerPlatheFlow::verify_orthorhombic_box(void)const throw(runtime_error)
+void MuellerPlatheFlow::verify_orthorhombic_box(void) throw(runtime_error)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getBox();

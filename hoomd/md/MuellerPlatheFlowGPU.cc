@@ -58,26 +58,77 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     const BoxDim& gl_box = m_pdata->getGlobalBox();
 
     m_tuner->begin();
-    gpu_search_min_max_velocity(group_size,
-                                d_vel.data,
-                                d_pos.data,
-                                d_tag.data,
-                                d_rtag.data,
-                                d_group_members.data,
-                                gl_box,
-                                this->get_N_slabs(),
-                                m_slab_direction,
-                                m_flow_direction,
-                                this->get_max_slab(),
-                                this->get_min_slab(),
-                                &m_last_max_vel,
-                                &m_last_min_vel,
-                                this->has_max_slab(),
-                                this->has_min_slab(),
-                                m_tuner->getParam());
+    if( m_flow_direction == X and m_slab_direction == X)
+        {
+        gpu_search_min_max_velocity<true,false,false,true,false,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == X and m_slab_direction == Y)
+        {
+        gpu_search_min_max_velocity<true,false,false,false,true,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == X and m_slab_direction == Z)
+        {
+        gpu_search_min_max_velocity<true,false,false,false,false,true>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+
+    if( m_flow_direction == Y and m_slab_direction == X)
+        {
+        gpu_search_min_max_velocity<false,true,false,true,false,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == Y and m_slab_direction == Y)
+        {
+        gpu_search_min_max_velocity<false,true,false,false,true,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == Y and m_slab_direction == Z)
+        {
+        gpu_search_min_max_velocity<false,true,false,false,false,true>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+
+    if( m_flow_direction == Z and m_slab_direction == X)
+        {
+        gpu_search_min_max_velocity<false,false,true,true,false,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == Z and m_slab_direction == Y)
+        {
+        gpu_search_min_max_velocity<false,false,true,false,true,false>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+    if( m_flow_direction == Z and m_slab_direction == Z)
+        {
+        gpu_search_min_max_velocity<false,false,true,false,false,true>
+            (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
+             gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
+             &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
+        }
+
+
+    m_tuner->end();
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
-    m_tuner->end();
+
     if(m_prof) m_prof->pop();
     }
 
@@ -88,8 +139,24 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),access_location::device,access_mode::readwrite);
     const unsigned int Ntotal = m_pdata->getN()+m_pdata->getNGhosts();
 
-    gpu_update_min_max_velocity(d_rtag.data,d_vel.data,Ntotal,m_last_max_vel,
-                                m_last_min_vel,m_flow_direction);
+    switch(m_flow_direction)
+        {
+        case X:
+            gpu_update_min_max_velocity<true,false,false>(d_rtag.data,d_vel.data,
+                                                          Ntotal,m_last_max_vel,
+                                                          m_last_min_vel);
+            break;
+        case Y:
+            gpu_update_min_max_velocity<false,true,false>(d_rtag.data,d_vel.data,
+                                                          Ntotal,m_last_max_vel,
+                                                          m_last_min_vel);
+            break;
+        case Z:
+            gpu_update_min_max_velocity<false,false,true>(d_rtag.data,d_vel.data,
+                                                          Ntotal,m_last_max_vel,
+                                                          m_last_min_vel);
+            break;
+        }
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 

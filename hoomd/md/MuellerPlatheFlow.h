@@ -14,12 +14,7 @@
 
 #ifndef __MUELLER_PLATHE_FLOW_H__
 #define __MUELLER_PLATHE_FLOW_H__
-enum Direction
-    {
-    X=0,//!< X-direction
-    Y,//!< Y-direction
-    Z//!< Z-direction
-    };
+
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
@@ -94,6 +89,14 @@ class MuellerPlatheFlow : public Updater
         //! Trigger checks for orthorhombic checks.
         void force_orthorhombic_box_check(void){m_needs_orthorhombic_check=true;}
     protected:
+        //! Enum for dimensions
+        enum Direction
+            {
+            X=0,//!< X-direction
+            Y,//!< Y-direction
+            Z//!< Z-direction
+            };
+
         //! Swap min and max slab for a reverse flow.
         //! More efficient than separate calls of set_min_slab() and set_max_slab(),
         //! especailly in MPI runs.
@@ -142,7 +145,7 @@ class MuellerPlatheFlow : public Updater
         //! Verify that the box is orthorhombic.
         //!
         //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
-        void verify_orthorhombic_box(void)const throw(std::runtime_error);
+        void verify_orthorhombic_box(void) throw(std::runtime_error);
 #ifdef ENABLE_MPI
         struct MPI_SWAP{
             MPI_Comm comm;
