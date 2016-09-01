@@ -104,6 +104,8 @@ void MuellerPlatheFlow::update(unsigned int timestep)
             m_exec_conf->msg->warning() << "WARNING: at time "<<timestep
                                         << "  MuellerPlatheFlow could not find a min/max pair."
                                         << endl;
+            //Increase the counter to stop the while loop.
+            counter = max_iteration;
             }
         else
             {
