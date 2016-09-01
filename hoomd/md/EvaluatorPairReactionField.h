@@ -47,15 +47,15 @@ class EvaluatorPairReactionField
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef Scalar3 param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
-            \param _rcutsq Sqauared distance at which the potential goes to 0
+            \param _rcutsq Squared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairReactionField(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), epsrf(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), epsrf(_params.y), use_charge(__scalar_as_int(_params.z)), qiqj(1.0)
             {
             }
 
@@ -67,13 +67,17 @@ class EvaluatorPairReactionField
         */
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-        //! ReactionField doesn't use charge
-        DEVICE static bool needsCharge() { return false; }
-        //! Accept the optional diameter values
+        //! ReactionField uses charge
+        DEVICE static bool needsCharge() { return true; }
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj) { }
+        DEVICE void setCharge(Scalar qi, Scalar qj)
+            {
+            if (use_charge) qiqj = qi*qj;
+            }
 
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
@@ -87,7 +91,7 @@ class EvaluatorPairReactionField
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq && epsilon != 0)
+            if (rsq < rcutsq && epsilon != 0 && qiqj != 0)
                 {
                 Scalar rcut3inv = fast::rsqrt(rcutsq)/rcutsq;
                 Scalar rinv = fast::rsqrt(rsq);
@@ -100,14 +104,14 @@ class EvaluatorPairReactionField
                     eps_fac = Scalar(1.0/2.0)*rcut3inv;
                     }
 
-                force_divr = epsilon * (r2inv * rinv - Scalar(2.0)*eps_fac);
-                pair_eng = epsilon * (rinv + eps_fac*r*r);
+                force_divr = qiqj*epsilon * (r2inv * rinv - Scalar(2.0)*eps_fac);
+                pair_eng = qiqj*epsilon * (rinv + eps_fac*r*r);
 
                 if (energy_shift)
                     {
                     Scalar rcutinv = fast::rsqrt(rcutsq);
                     Scalar rcut = Scalar(1.0) / rcutinv;
-                    pair_eng -= epsilon * (rcutinv + eps_fac*rcut*rcut);
+                    pair_eng -= qiqj*epsilon * (rcutinv + eps_fac*rcut*rcut);
                     }
                 return true;
                 }
@@ -131,6 +135,8 @@ class EvaluatorPairReactionField
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
         Scalar epsrf;   //!< epsilon_rf parameter extracted from the params passed to the constructor
+        bool use_charge; //!< True if we are using the particle charges
+        Scalar qiqj;    //!< Product of charges
     };
 
 
