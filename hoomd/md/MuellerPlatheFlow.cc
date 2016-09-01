@@ -147,7 +147,6 @@ Scalar MuellerPlatheFlow::getLogValue(const std::string& quantity, unsigned int 
     return Scalar(0.0);
     }
 
-
 void MuellerPlatheFlow::swap_min_max_slab(void)
     {
     std::swap( m_max_slab, m_min_slab);
@@ -329,9 +328,9 @@ void MuellerPlatheFlow::verify_orthorhombic_box(void) throw(runtime_error)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getBox();
-    valid &= box.getTiltFactorXY() == Scalar(0.);
-    valid &= box.getTiltFactorXZ() == Scalar(0.);
-    valid &= box.getTiltFactorYZ() == Scalar(0.);
+    valid &= fabs(box.getTiltFactorXY()) < 1e-7;
+    valid &= fabs(box.getTiltFactorXZ()) < 1e-7;
+    valid &= fabs(box.getTiltFactorYZ()) < 1e-7;
 
     if( not valid )
         {
