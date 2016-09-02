@@ -45,6 +45,8 @@ configure_file (
   "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h"
    )
 
+install(FILES "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h" DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/extern/dfftlib/src)
+
 # Using manual source configuration below
 # library source
 # add_subdirectory(src)

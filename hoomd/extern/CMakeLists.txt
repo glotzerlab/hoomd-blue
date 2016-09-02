@@ -3,6 +3,20 @@ file(GLOB_RECURSE _extern_headers
      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
      *.h *.cuh *.hpp)
 
+# Eigen headers have no suffix
+file(GLOB _eigen_files
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    Eigen/*)
+
+#filter directories
+FOREACH(file ${_eigen_files})
+    if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        list(APPEND _eigen_headers ${file})
+    endif()
+endforeach()
+
+list(APPEND _extern_headers ${_eigen_headers})
+
 # cereal should get its headers installed a separate way, so find and
 # remove those from _extern_headers
 file(GLOB_RECURSE _cereal_headers
