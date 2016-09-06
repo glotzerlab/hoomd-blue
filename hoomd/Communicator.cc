@@ -1280,21 +1280,11 @@ void Communicator::communicate(unsigned int timestep)
                                         }
                                       , timestep);
 
-    // are rigid body updaters registered with this class?
-    if (!m_compute_callbacks.empty())
+    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
         {
-        if (m_has_ghost_particles)
-            {
-            // do an obligatory update before determining whether to migrate
-            beginUpdateGhosts(timestep);
-            finishUpdateGhosts(timestep);
-            }
-        else
-            {
-            // migrate
-            migrateParticles();
-            exchangeGhosts();
-            }
+        // do an obligatory update before determining whether to migrate
+        beginUpdateGhosts(timestep);
+        finishUpdateGhosts(timestep);
 
         // call subscribers after ghost update, but before distance check
         m_compute_callbacks.emit(timestep);

@@ -285,9 +285,6 @@ class Communicator
         //! Force particle migration
         void forceMigrate()
             {
-            // a particle reorder also invalidates ghost particles
-            m_has_ghost_particles = false;
-
             // prevent recursive force particle migration
             if (! m_is_communicating)
                 m_force_migrate = true;

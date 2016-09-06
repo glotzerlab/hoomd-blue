@@ -75,6 +75,10 @@ void SFCPackUpdater::update(unsigned int timestep)
     #ifdef ENABLE_MPI
     if (m_comm)
         {
+        // make sure all particles that need to be local are
+        m_comm->forceMigrate();
+        m_comm->communicate(timestep);
+ 
         // remove all ghost particles
         m_pdata->removeAllGhostParticles();
         }

@@ -201,11 +201,6 @@ void ForceComposite::slotNumTypesChange()
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
-    // the default ghost layer is there to ensure that constituent particles are always
-    // communicated for every central particle
-
-    // central particle may stick out a particle radius from the boundary, therefore constituent
-    // particles can be found within 2*R
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])

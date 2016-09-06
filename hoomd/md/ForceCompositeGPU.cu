@@ -584,8 +584,6 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         return;
         }
 
-    if (central_idx == NOT_LOCAL && idx >= N) return;
-
     // do not overwrite central ptl
     if (idx == central_idx) return;
 
