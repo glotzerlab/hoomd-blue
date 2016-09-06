@@ -50,7 +50,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Scalar4* d_body_orientation,
                                                  const unsigned int *d_body_len,
                                                  const unsigned int *d_body,
-                                                 unsigned int *d_flag,
+                                                 uint2 *d_flag,
                                                  Scalar4* d_net_force,
                                                  Scalar4* d_net_torque,
                                                  unsigned int n_mol,
@@ -112,7 +112,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         if (mol_len != d_body_len[body_type[m]] + 1)
             {
             // incomplete molecule
-            atomicMax(d_flag, d_body[central_idx[m]] + 1);
+            atomicMax(&(d_flag->x), d_body[central_idx[m]] + 1);
             }
 
         // slide the window throughout the block
@@ -392,7 +392,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_body_orientation,
                  const unsigned int *d_body_len,
                  const unsigned int *d_body,
-                 unsigned int *d_flag,
+                 uint2 *d_flag,
                  Scalar4* d_net_force,
                  Scalar4* d_net_torque,
                  unsigned int n_mol,
@@ -559,7 +559,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
-    unsigned int *d_flag)
+    uint2 *d_flag)
     {
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -571,6 +571,18 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     if (central_tag == NO_BODY) return;
 
     unsigned int central_idx = d_rtag[central_tag];
+
+    if (central_idx >= N + n_ghost)
+        {
+        // if a molecule with a local member has no central particle, error out
+        if (idx < N)
+            {
+            atomicMax(&(d_flag->x), central_tag+1);
+            }
+
+        // otherwise, ignore
+        return;
+        }
 
     if (central_idx == NOT_LOCAL && idx >= N) return;
 
@@ -591,7 +603,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         // if a molecule with a local member is incomplete, this is an error
         if (idx < N)
             {
-            atomicMax(d_flag, central_tag+1);
+            atomicMax(&(d_flag->y), central_tag+1);
             }
 
         // otherwise, ignore
@@ -635,7 +647,7 @@ void gpu_update_composite(unsigned int N,
     int3 *d_image,
     const BoxDim box,
     unsigned int block_size,
-    unsigned int *d_flag)
+    uint2 *d_flag)
     {
     unsigned int run_block_size = block_size;
 
