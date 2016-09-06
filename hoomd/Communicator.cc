@@ -1076,6 +1076,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
+            m_has_ghost_particles(false),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -1083,8 +1084,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_angle_comm(*this, m_sysdef->getAngleData()),
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
             m_improper_comm(*this, m_sysdef->getImproperData()),
-            m_constraint_comm(*this, m_sysdef->getConstraintData()),
-            m_is_first_step(true)
+            m_constraint_comm(*this, m_sysdef->getConstraintData())
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1279,9 +1279,7 @@ void Communicator::communicate(unsigned int timestep)
                                         }
                                       , timestep);
 
-    bool has_ghost_particles = !(m_force_migrate || m_is_first_step);
-
-    if (!m_compute_callbacks.empty() && has_ghost_particles)
+    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
         {
         // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);
@@ -1300,7 +1298,7 @@ void Communicator::communicate(unsigned int timestep)
                                             },
                                         timestep);
 
-    bool migrate = migrate_request || !has_ghost_particles;
+    bool migrate = migrate_request || m_force_migrate || !m_has_ghost_particles;
 
     // Update ghosts if we are not migrating
     if (!migrate && m_compute_callbacks.empty())
@@ -1310,27 +1308,21 @@ void Communicator::communicate(unsigned int timestep)
         finishUpdateGhosts(timestep);
         }
 
-    if (!m_compute_callbacks.empty() && !has_ghost_particles)
-        {
-        // initialize ghosts a first time
-        migrateParticles();
-        exchangeGhosts();
-
-        // update particle data now that ghosts are available
-        m_compute_callbacks.emit(timestep);
-        }
-
     // Check if migration of particles is requested
     if (migrate)
         {
         m_force_migrate = false;
-        m_is_first_step = false;
 
         // If so, migrate atoms
         migrateParticles();
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
+ 
+        // update particle data now that ghosts are available
+        m_compute_callbacks.emit(timestep);
+        
+        m_has_ghost_particles = true;
         }
 
     m_is_communicating = false;

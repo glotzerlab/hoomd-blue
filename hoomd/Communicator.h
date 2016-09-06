@@ -499,6 +499,7 @@ class Communicator
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
+        bool m_has_ghost_particles;              //!< True if we have a current copy of ghost particles
 
         //! Update the ghost width array
         void updateGhostWidth();
@@ -603,8 +604,6 @@ class Communicator
         GroupCommunicator<ConstraintData> m_constraint_comm; //!< Communicator helper for constraints
         friend class GroupCommunicator<ConstraintData>;
 
-        bool m_is_first_step;                    //!< True if no communication has yet occured
-
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()
             {
@@ -628,6 +627,7 @@ class Communicator
         void slotGhostParticlesRemoved()
             {
             removeGhostParticleTags();
+            m_has_ghost_particles = false;
             }
 
     };

@@ -72,6 +72,14 @@ void SFCPackUpdater::update(unsigned int timestep)
     {
     m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // remove all ghost particles
+        m_pdata->removeAllGhostParticles();
+        }
+    #endif
+
     if (m_prof) m_prof->push(m_exec_conf, "SFCPack");
 
     // figure out the sort order we need to apply
