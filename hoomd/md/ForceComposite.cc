@@ -250,12 +250,15 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                 {
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
+                    for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                        { 
+                        Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+                        Scalar d = sqrt(dot(dr,dr));
 
-                    if (d > m_d_max[type])
-                        {
-                        m_d_max[type] = d;
+                        if (d > m_d_max[type])
+                            {
+                            m_d_max[type] = d;
+                            }
                         }
                     }
                 }
