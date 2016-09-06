@@ -1118,6 +1118,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
 
+    GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+    m_r_ghost_body.swap(r_ghost_body);
+
     /*
      * Bonded group communication
      */
@@ -1466,6 +1469,17 @@ void Communicator::migrateParticles()
 
 void Communicator::updateGhostWidth()
     {
+        {
+        // reset values (this may not be needed in most cases, but it doesn't harm to be safe
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::overwrite);
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            h_r_ghost.data[cur_type] = Scalar(0.0);
+            h_r_ghost_body.data[cur_type] = Scalar(0.0);
+            }
+        }
+
     if (!m_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
@@ -1489,7 +1503,7 @@ void Communicator::updateGhostWidth()
     if (!m_extra_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
-        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::readwrite);
 
         Scalar r_extra_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
@@ -1502,8 +1516,8 @@ void Communicator::updateGhostWidth()
                                                             ,cur_type);
 
             // add to the maximum ghost layer width
-            h_r_ghost.data[cur_type] = r_extra_ghost_i + m_r_ghost_max;
-            if (r_extra_ghost_i > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
+            h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
+            if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
         m_r_ghost_max += r_extra_ghost_max;
         }
@@ -1544,16 +1558,20 @@ void Communicator::exchangeGhosts()
 
     // compute the ghost layer widths as fractions
     ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::read);
     const Scalar3 box_dist = box.getNearestPlaneDistance();
     std::vector<Scalar3> ghost_fractions(m_pdata->getNTypes());
+    std::vector<Scalar3> ghost_fractions_body(m_pdata->getNTypes());
     for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         ghost_fractions[cur_type] = h_r_ghost.data[cur_type] / box_dist;
+        ghost_fractions_body[cur_type] = h_r_ghost_body.data[cur_type] / box_dist;
         }
 
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
@@ -1563,7 +1581,14 @@ void Communicator::exchangeGhosts()
 
             // get the ghost fraction for this particle type
             const unsigned int type = __scalar_as_int(postype.w);
-            const Scalar3 ghost_fraction = ghost_fractions[type];
+            Scalar3 ghost_fraction = ghost_fractions[type];
+
+            if (h_body.data[idx] != NO_BODY)
+                {
+                ghost_fraction.x += ghost_fractions_body[type].x;
+                ghost_fraction.y += ghost_fractions_body[type].y;
+                ghost_fraction.z += ghost_fractions_body[type].z;
+                }
 
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)

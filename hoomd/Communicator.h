@@ -495,6 +495,7 @@ class Communicator
 
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
+        GPUArray<Scalar> m_r_ghost_body;         //!< Extra ghost width for rigid bodies
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
@@ -615,6 +616,9 @@ class Communicator
 
             GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
             m_r_ghost.swap(r_ghost);
+
+            GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+            m_r_ghost_body.swap(r_ghost_body);
             }
 
         //! Helper function to initialize adjacency arrays

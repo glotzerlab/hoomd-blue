@@ -1839,15 +1839,19 @@ void CommunicatorGPU::exchangeGhosts()
             {
             // compute plans for all particles, including already received ghosts
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
             ArrayHandle<Scalar> d_r_ghost(m_r_ghost, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_r_ghost_body(m_r_ghost_body, access_location::device, access_mode::read);
 
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),
                                          d_pos.data,
+                                         d_body.data,
                                          m_pdata->getBox(),
                                          d_r_ghost.data,
+                                         d_r_ghost_body.data,
                                          m_pdata->getNTypes(),
                                          m_comm_mask[stage]);
 

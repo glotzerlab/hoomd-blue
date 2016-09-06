@@ -325,20 +325,26 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
 __global__ void gpu_make_ghost_exchange_plan_kernel(
     unsigned int N,
     const Scalar4 *d_postype,
+    const unsigned int *d_body,
     unsigned int *d_plan,
     const BoxDim box,
     const Scalar *d_r_ghost,
+    const Scalar *d_r_ghost_body,
     unsigned int ntypes,
     unsigned int mask
     )
     {
     // cache the ghost width fractions into shared memory (N_types*sizeof(Scalar3) B)
-    extern __shared__ Scalar3 s_ghost_fractions[];
+    extern __shared__ Scalar3 sdata[];
+    Scalar3* s_ghost_fractions = sdata;
+    Scalar3 *s_body_ghost_fractions = sdata + ntypes;
+
     for (unsigned int cur_offset = 0; cur_offset < ntypes; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < ntypes)
             {
             s_ghost_fractions[cur_offset + threadIdx.x] = d_r_ghost[cur_offset + threadIdx.x] / box.getNearestPlaneDistance();
+            s_body_ghost_fractions[cur_offset + threadIdx.x] = d_r_ghost_body[cur_offset + threadIdx.x] / box.getNearestPlaneDistance();
             }
         }
     __syncthreads();
@@ -350,7 +356,15 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
     Scalar4 postype = d_postype[idx];
     Scalar3 pos = make_scalar3(postype.x,postype.y,postype.z);
     const unsigned int type = __scalar_as_int(postype.w);
-    const Scalar3 ghost_fraction = s_ghost_fractions[type];
+    Scalar3 ghost_fraction = s_ghost_fractions[type];
+
+    if (d_body[idx] != NO_BODY)
+        {
+        ghost_fraction.x += s_body_ghost_fractions[type].x;
+        ghost_fraction.y += s_body_ghost_fractions[type].y;
+        ghost_fraction.z += s_body_ghost_fractions[type].z;
+        }
+
     Scalar3 f = box.makeFraction(pos);
 
     unsigned int plan = 0;
@@ -385,21 +399,25 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
 void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int N,
                                   const Scalar4 *d_pos,
+                                  const unsigned int *d_body,
                                   const BoxDim &box,
                                   const Scalar *d_r_ghost,
+                                  const Scalar *d_r_ghost_body,
                                   unsigned int ntypes,
                                   unsigned int mask)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size + 1;
-    unsigned int shared_bytes = sizeof(Scalar3) * ntypes;
+    unsigned int shared_bytes = 2 *sizeof(Scalar3) * ntypes;
 
     gpu_make_ghost_exchange_plan_kernel<<<n_blocks, block_size, shared_bytes>>>(
         N,
         d_pos,
+        d_body,
         d_plan,
         box,
         d_r_ghost,
+        d_r_ghost_body,
         ntypes,
         mask);
     }

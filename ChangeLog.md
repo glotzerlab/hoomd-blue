@@ -19,6 +19,7 @@ Not yet released
 
 *Other changes*
 
+* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
 * Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
 * Shorter compile time for HPMC GPU kernels
