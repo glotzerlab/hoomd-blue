@@ -1075,6 +1075,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
+            m_r_extra_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
             m_has_ghost_particles(false),
             m_plan(m_exec_conf),
@@ -1279,24 +1280,40 @@ void Communicator::communicate(unsigned int timestep)
                                         }
                                       , timestep);
 
-    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
+    // are rigid body updaters registered with this class?
+    if (!m_compute_callbacks.empty())
         {
-        // do an obligatory update before determining whether to migrate
-        beginUpdateGhosts(timestep);
-        finishUpdateGhosts(timestep);
+        if (m_has_ghost_particles)
+            {
+            // do an obligatory update before determining whether to migrate
+            beginUpdateGhosts(timestep);
+            finishUpdateGhosts(timestep);
+            }
+        else
+            {
+            // migrate
+            migrateParticles();
+            exchangeGhosts();
+            }
 
         // call subscribers after ghost update, but before distance check
         m_compute_callbacks.emit(timestep);
+
+        // by now, local particles may have moved outside the box due to the rigid body update
+        // we will make sure that they are inside by doing a second migrate if necessary
         }
 
-    // distance check (synchronizes the GPU execution stream), needs to be called
-    // before any particle reorder
     bool migrate_request = false;
-    m_migrate_requests.emit_accumulate( [&](bool r)
-                                            {
-                                            migrate_request = migrate_request || r;
-                                            },
-                                        timestep);
+    if (! m_force_migrate)
+        {
+        // distance check, may not be called directly after particle reorder (such as
+        // due to SFCPackUpdater running before)
+        m_migrate_requests.emit_accumulate( [&](bool r)
+                                                {
+                                                migrate_request = migrate_request || r;
+                                                },
+                                            timestep);
+        }
 
     bool migrate = migrate_request || m_force_migrate || !m_has_ghost_particles;
 
@@ -1511,7 +1528,7 @@ void Communicator::updateGhostWidth()
             h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
             if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
-        m_r_ghost_max += r_extra_ghost_max;
+        m_r_extra_ghost_max = r_extra_ghost_max;
         }
     }
 
@@ -1577,9 +1594,7 @@ void Communicator::exchangeGhosts()
 
             if (h_body.data[idx] != NO_BODY)
                 {
-                ghost_fraction.x += ghost_fractions_body[type].x;
-                ghost_fraction.y += ghost_fractions_body[type].y;
-                ghost_fraction.z += ghost_fractions_body[type].z;
+                ghost_fraction = m_r_ghost_max/ box_dist + ghost_fractions_body[type];
                 }
 
             Scalar3 f = box.makeFraction(pos);

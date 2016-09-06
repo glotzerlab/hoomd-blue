@@ -261,7 +261,7 @@ class Communicator
         //! Get the current maximum ghost layer width
         Scalar getGhostLayerMaxWidth() const
             {
-            return m_r_ghost_max;
+            return m_r_ghost_max + m_r_extra_ghost_max;
             }
 
         //! Set the ghost communication flags
@@ -285,6 +285,9 @@ class Communicator
         //! Force particle migration
         void forceMigrate()
             {
+            // a particle reorder also invalidates ghost particles
+            m_has_ghost_particles = false;
+
             // prevent recursive force particle migration
             if (! m_is_communicating)
                 m_force_migrate = true;
@@ -497,6 +500,7 @@ class Communicator
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
         GPUArray<Scalar> m_r_ghost_body;         //!< Extra ghost width for rigid bodies
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+        Scalar m_r_extra_ghost_max;              //!< Maximum extra ghost layer width
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
         bool m_has_ghost_particles;              //!< True if we have a current copy of ghost particles
@@ -575,9 +579,10 @@ class Communicator
             Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
 
-            if ((m_r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
-                (m_r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
-                (m_r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
+            Scalar r_ghost_max = getGhostLayerMaxWidth();
+            if ((r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
                 m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
                 throw std::runtime_error("Error during communication");

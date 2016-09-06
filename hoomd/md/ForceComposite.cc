@@ -159,22 +159,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
         assert(m_d_max_changed.size() > body_typeid);
 
         // make sure central particle will be communicated
-        m_d_max[body_typeid] = Scalar(0.0);
-
-        for (unsigned int i = 0; i < pos.size(); ++i)
-            {
-            Scalar3 dr = pos[i];
-
-            // it would suffice to pull in central particles within R=|dr| from the boundary
-            // however, to account for boundary cases where it is exactly at R, we still
-            // need to update local constituent particles, so multiply by two to be safe
-            Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
-
-            if (d > m_d_max[body_typeid])
-                {
-                m_d_max[body_typeid] = d;
-                }
-            }
+        m_d_max_changed[body_typeid] = true;
 
         // also update diameter on constituent particles
         for (unsigned int i = 0; i < type.size(); ++i)
@@ -237,7 +222,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = false;
+            bool is_part_of_body = body_type == type;
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
                 if (h_body_type.data[m_body_idx(body_type,i)] == type)
@@ -250,14 +235,28 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                 {
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
-                    for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                        { 
-                        Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
-                        Scalar d = sqrt(dot(dr,dr));
+                    if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
 
-                        if (d > m_d_max[type])
-                            {
-                            m_d_max[type] = d;
+                    // distance to central particle 
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+                    Scalar d = sqrt(dot(dr,dr));
+                    if (d > m_d_max[type])
+                        {
+                        m_d_max[type] = d;
+                        }
+
+                    if (body_type != type) 
+                        {
+                        // for non-central particles, distance to every other particle
+                        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                            { 
+                            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+                            d = sqrt(dot(dr,dr));
+
+                            if (d > m_d_max[type])
+                                {
+                                m_d_max[type] = d;
+                                }
                             }
                         }
                     }

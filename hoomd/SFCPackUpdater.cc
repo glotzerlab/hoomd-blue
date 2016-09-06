@@ -91,7 +91,16 @@ void SFCPackUpdater::update(unsigned int timestep)
     // apply that sort order to the particles
     applySortOrder();
 
+    // trigger sort signal (this also forces particle migration)
     m_pdata->notifyParticleSort();
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // restore ghosts
+        m_comm->communicate(timestep);
+        }
+    #endif
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }

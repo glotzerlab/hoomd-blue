@@ -1778,6 +1778,8 @@ void CommunicatorGPU::removeGhostParticleTags()
     {
     if (m_last_flags[comm_flag::tag])
         {
+        m_exec_conf->msg->notice(9) << "CommunicatorGPU: removing " << m_ghosts_added << " ghost particles " << std::endl;
+
         // Reset reverse lookup tags of old ghost atoms
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
@@ -1852,6 +1854,7 @@ void CommunicatorGPU::exchangeGhosts()
                                          m_pdata->getBox(),
                                          d_r_ghost.data,
                                          d_r_ghost_body.data,
+                                         m_r_ghost_max,
                                          m_pdata->getNTypes(),
                                          m_comm_mask[stage]);
 

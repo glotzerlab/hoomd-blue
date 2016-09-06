@@ -91,6 +91,7 @@ void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   const BoxDim& box,
                                   const Scalar *d_r_ghost,
                                   const Scalar *d_r_ghost_body,
+                                  Scalar r_ghost_max,
                                   unsigned int ntypes,
                                   unsigned int mask);
 
