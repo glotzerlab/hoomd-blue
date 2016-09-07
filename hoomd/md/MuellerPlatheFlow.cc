@@ -17,8 +17,8 @@ const Scalar INVALID_VEL = FLT_MAX; //should be ok, even for double.
 MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      std::shared_ptr<ParticleGroup> group,
                                      std::shared_ptr<Variant> flow_target,
-                                     const MuellerPlatheFlow::Direction slab_direction,
-                                     const MuellerPlatheFlow::Direction flow_direction,
+                                     const flow_enum::Direction slab_direction,
+                                     const flow_enum::Direction flow_direction,
                                      const unsigned int N_slabs,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab)
@@ -70,9 +70,9 @@ void MuellerPlatheFlow::update(unsigned int timestep)
     double area;
     switch(m_slab_direction)
       {
-      case X: area = box.getL().y * box.getL().z;
-      case Y: area = box.getL().x * box.getL().z;
-      case Z: area = box.getL().y * box.getL().x;
+      case flow_enum::X: area = box.getL().y * box.getL().z;
+      case flow_enum::Y: area = box.getL().x * box.getL().z;
+      case flow_enum::Z: area = box.getL().y * box.getL().x;
       }
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
@@ -197,8 +197,8 @@ void MuellerPlatheFlow::update_domain_decomposition(void)
 
         const uint3 grid = dec->getGridSize();
         const uint3 pos = dec->getGridPos();
-        const unsigned int my_grid = m_slab_direction == X ? grid.x :( m_slab_direction == Y ? grid.y : grid.z);
-        const unsigned int my_pos = m_slab_direction == X ? pos.x :( m_slab_direction == Y ? pos.y : pos.z);
+        const unsigned int my_grid = m_slab_direction == flow_enum::X ? grid.x :( m_slab_direction == flow_enum::Y ? grid.y : grid.z);
+        const unsigned int my_pos = m_slab_direction == flow_enum::X ? pos.x :( m_slab_direction == flow_enum::Y ? pos.y : pos.z);
         if( m_N_slabs % my_grid != 0)
             {
             m_exec_conf->msg->warning()<<"MuellerPlatheFlow::N_slabs does is divideable "
@@ -247,11 +247,11 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             unsigned int index;
             switch(m_slab_direction)
                 {
-                case X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
+                case flow_enum::X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
                     break;
-                case Y: index = ( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs();
+                case flow_enum::Y: index = ( (h_pos.data[j].y)/gl_box.getL().y + .5) * this->get_N_slabs();
                     break;
-                case Z: index = ( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs();
+                case flow_enum::Z: index = ( (h_pos.data[j].z)/gl_box.getL().z + .5) * this->get_N_slabs();
                     break;
                 }
             index %= this->get_N_slabs(); //border cases. wrap periodic box
@@ -262,9 +262,9 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
                 Scalar vel;
                 switch(m_flow_direction)
                     {
-                    case X: vel = h_vel.data[j].x;break;
-                    case Y: vel = h_vel.data[j].y;break;
-                    case Z: vel = h_vel.data[j].z;break;
+                    case flow_enum::X: vel = h_vel.data[j].x;break;
+                    case flow_enum::Y: vel = h_vel.data[j].y;break;
+                    case flow_enum::Z: vel = h_vel.data[j].z;break;
                     }
                 const Scalar mass = h_vel.data[j].w;
                 vel *= mass; //Use momentum instead of velocity
@@ -307,9 +307,9 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
               const Scalar new_min_vel = m_last_max_vel.x / m_last_min_vel.y;
               switch(m_flow_direction)
                 {
-                case X: h_vel.data[min_idx].x = new_min_vel; break;
-                case Y: h_vel.data[min_idx].y = new_min_vel; break;
-                case Z: h_vel.data[min_idx].z = new_min_vel; break;
+                case flow_enum::X: h_vel.data[min_idx].x = new_min_vel; break;
+                case flow_enum::Y: h_vel.data[min_idx].y = new_min_vel; break;
+                case flow_enum::Z: h_vel.data[min_idx].z = new_min_vel; break;
                 }
             }
         if( max_idx < Ntotal)
@@ -317,9 +317,9 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
             const Scalar new_max_vel = m_last_min_vel.x / m_last_max_vel.y;
             switch(m_flow_direction)
                 {
-                case X: h_vel.data[max_idx].x = new_max_vel;break;
-                case Y: h_vel.data[max_idx].y = new_max_vel;break;
-                case Z: h_vel.data[max_idx].z = new_max_vel;break;
+                case flow_enum::X: h_vel.data[max_idx].x = new_max_vel;break;
+                case flow_enum::Y: h_vel.data[max_idx].y = new_max_vel;break;
+                case flow_enum::Z: h_vel.data[max_idx].z = new_max_vel;break;
                 }
           }
         }
@@ -432,7 +432,7 @@ void export_MuellerPlatheFlow(py::module& m)
     py::class_< MuellerPlatheFlow, std::shared_ptr<MuellerPlatheFlow> >
         flow (m,"MuellerPlatheFlow",py::base<Updater>());
     flow.def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
-             std::shared_ptr<Variant>, const MuellerPlatheFlow::Direction, const MuellerPlatheFlow::Direction,
+             std::shared_ptr<Variant>, const flow_enum::Direction, const flow_enum::Direction,
              const unsigned int, const unsigned int, const unsigned int >() )
         .def("getNSlabs",&MuellerPlatheFlow::get_N_slabs)
         .def("getMinSlab",&MuellerPlatheFlow::get_min_slab)
@@ -448,9 +448,9 @@ void export_MuellerPlatheFlow(py::module& m)
         // .def("swapMinMaxSlab",&MuellerPlatheFlow::swap_min_max_slab)
         // .def("updateDomainDecomposition",&MuellerPlatheFlow::update_domain_decomposition)
         ;
-    py::enum_<MuellerPlatheFlow::Direction>(flow,"Direction")
-        .value("X",MuellerPlatheFlow::Direction::X)
-        .value("Y",MuellerPlatheFlow::Direction::Y)
-        .value("Z",MuellerPlatheFlow::Direction::Z)
+    py::enum_<flow_enum::Direction>(flow,"Direction")
+        .value("X",flow_enum::Direction::X)
+        .value("Y",flow_enum::Direction::Y)
+        .value("Z",flow_enum::Direction::Z)
         .export_values();
     }

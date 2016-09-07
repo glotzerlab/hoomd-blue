@@ -42,8 +42,8 @@ class MuellerPlatheFlowGPU : public MuellerPlatheFlow
         MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              std::shared_ptr<Variant> flow_target,
-                             const MuellerPlatheFlow::Direction slab_direction,
-                             const MuellerPlatheFlow::Direction flow_direction,
+                             const flow_enum::Direction slab_direction,
+                             const flow_enum::Direction flow_direction,
                              const unsigned int N_slabs,
                              const unsigned int min_slab,
                              const unsigned int max_slab);

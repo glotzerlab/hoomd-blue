@@ -15,8 +15,8 @@ using namespace std;
 MuellerPlatheFlowGPU::MuellerPlatheFlowGPU(std::shared_ptr<SystemDefinition> sysdef,
                                            std::shared_ptr<ParticleGroup> group,
                                            std::shared_ptr<Variant> flow_target,
-                                           const MuellerPlatheFlow::Direction slab_direction,
-                                           const MuellerPlatheFlow::Direction flow_direction,
+                                           const flow_enum::Direction slab_direction,
+                                           const flow_enum::Direction flow_direction,
                                            const unsigned int N_slabs,
                                            const unsigned int min_slab,
                                            const unsigned int max_slab)
@@ -58,21 +58,21 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
     const BoxDim& gl_box = m_pdata->getGlobalBox();
 
     m_tuner->begin();
-    if( m_flow_direction == X and m_slab_direction == X)
+    if( m_flow_direction == flow_enum::X and m_slab_direction == flow_enum::X)
         {
         gpu_search_min_max_velocity<true,false,false,true,false,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == X and m_slab_direction == Y)
+    if( m_flow_direction == flow_enum::X and m_slab_direction == flow_enum::Y)
         {
         gpu_search_min_max_velocity<true,false,false,false,true,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == X and m_slab_direction == Z)
+    if( m_flow_direction == flow_enum::X and m_slab_direction == flow_enum::Z)
         {
         gpu_search_min_max_velocity<true,false,false,false,false,true>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
@@ -80,21 +80,21 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
 
-    if( m_flow_direction == Y and m_slab_direction == X)
+    if( m_flow_direction == flow_enum::Y and m_slab_direction == flow_enum::X)
         {
         gpu_search_min_max_velocity<false,true,false,true,false,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == Y and m_slab_direction == Y)
+    if( m_flow_direction == flow_enum::Y and m_slab_direction == flow_enum::Y)
         {
         gpu_search_min_max_velocity<false,true,false,false,true,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == Y and m_slab_direction == Z)
+    if( m_flow_direction == flow_enum::Y and m_slab_direction == flow_enum::Z)
         {
         gpu_search_min_max_velocity<false,true,false,false,false,true>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
@@ -102,21 +102,21 @@ void MuellerPlatheFlowGPU::search_min_max_velocity(void)
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
 
-    if( m_flow_direction == Z and m_slab_direction == X)
+    if( m_flow_direction == flow_enum::Z and m_slab_direction == flow_enum::X)
         {
         gpu_search_min_max_velocity<false,false,true,true,false,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == Z and m_slab_direction == Y)
+    if( m_flow_direction == flow_enum::Z and m_slab_direction == flow_enum::Y)
         {
         gpu_search_min_max_velocity<false,false,true,false,true,false>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
              gl_box,this->get_N_slabs(),this->get_max_slab(),this->get_min_slab(),&m_last_max_vel,
              &m_last_min_vel,this->has_max_slab(),this->has_min_slab(),m_tuner->getParam());
         }
-    if( m_flow_direction == Z and m_slab_direction == Z)
+    if( m_flow_direction == flow_enum::Z and m_slab_direction == flow_enum::Z)
         {
         gpu_search_min_max_velocity<false,false,true,false,false,true>
             (group_size,d_vel.data,d_pos.data,d_tag.data,d_rtag.data,d_group_members.data,
@@ -141,17 +141,17 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
 
     switch(m_flow_direction)
         {
-        case X:
+        case flow_enum::X:
             gpu_update_min_max_velocity<true,false,false>(d_rtag.data,d_vel.data,
                                                           Ntotal,m_last_max_vel,
                                                           m_last_min_vel);
             break;
-        case Y:
+        case flow_enum::Y:
             gpu_update_min_max_velocity<false,true,false>(d_rtag.data,d_vel.data,
                                                           Ntotal,m_last_max_vel,
                                                           m_last_min_vel);
             break;
-        case Z:
+        case flow_enum::Z:
             gpu_update_min_max_velocity<false,false,true>(d_rtag.data,d_vel.data,
                                                           Ntotal,m_last_max_vel,
                                                           m_last_min_vel);
@@ -169,7 +169,7 @@ void export_MuellerPlatheFlowGPU(py::module&m)
     {
     py::class_< MuellerPlatheFlowGPU, std::shared_ptr<MuellerPlatheFlowGPU> >(m,"MuellerPlatheFlowGPU",py::base<MuellerPlatheFlow>())
         .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,
-             std::shared_ptr<Variant>, const MuellerPlatheFlow::Direction,const MuellerPlatheFlow::Direction,
+             std::shared_ptr<Variant>, const flow_enum::Direction,const flow_enum::Direction,
              const unsigned int, const unsigned int, const unsigned int >())
         ;
     }

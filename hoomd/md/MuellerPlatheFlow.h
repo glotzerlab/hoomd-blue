@@ -18,6 +18,18 @@
 extern const unsigned int INVALID_TAG;
 extern const Scalar INVALID_VEL;
 
+//! Dummy struct to keep the enums out of global scope
+struct flow_enum
+    {
+        //! Enum for dimensions
+        enum Direction
+            {
+            X=0,//!< X-direction
+            Y,//!< Y-direction
+            Z//!< Z-direction
+            };
+    };
+
 //Above this line shared constructs can be declared.
 #ifndef NVCC
 #include "hoomd/ParticleGroup.h"
@@ -28,20 +40,12 @@ extern const Scalar INVALID_VEL;
 #include <cfloat>
 #include <memory>
 
-
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
 */
 class MuellerPlatheFlow : public Updater
     {
     public:
-        //! Enum for dimensions
-        enum Direction
-            {
-            X=0,//!< X-direction
-            Y,//!< Y-direction
-            Z//!< Z-direction
-            };
         //! Constructs the compute
         //!
         //! \param direction Indicates the normal direction of the slabs.
@@ -53,8 +57,8 @@ class MuellerPlatheFlow : public Updater
         MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<ParticleGroup> group,
                           std::shared_ptr<Variant> flow_target,
-                          const MuellerPlatheFlow::Direction slab_direction,
-                          const MuellerPlatheFlow::Direction flow_direction,
+                          const flow_enum::Direction slab_direction,
+                          const flow_enum::Direction flow_direction,
                           const unsigned int N_slabs,
                           const unsigned int min_slab,
                           const unsigned int max_slab);
@@ -125,9 +129,9 @@ class MuellerPlatheFlow : public Updater
         Scalar3 m_last_max_vel;
 
         //! Direction perpendicular to the slabs.
-        enum Direction m_slab_direction;
+        enum flow_enum::Direction m_slab_direction;
         //! Direction of the induced flow.
-        enum Direction m_flow_direction;
+        enum flow_enum::Direction m_flow_direction;
 
     private:
         std::shared_ptr<Variant> m_flow_target;
