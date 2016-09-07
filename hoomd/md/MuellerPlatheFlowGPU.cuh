@@ -12,7 +12,6 @@
 #ifndef __MUELLER_PLATHE_FLOW_GPU_CUH__
 #define __MUELLER_PLATHE_FLOW_GPU_CUH__
 
-template<bool flowX,bool flowY,bool flowZ,bool slabX,bool slabY,bool slabZ>
 cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         const Scalar4*const d_vel,
                                         const Scalar4*const d_pos,
@@ -27,7 +26,9 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                         Scalar3*const last_min_vel,
                                         const bool has_max_slab,
                                         const bool has_min_slab,
-                                        const unsigned int blocksize);
+                                        const unsigned int blocksize,
+                                        flow_enum::Direction flow_direction,
+                                        flow_enum::Direction slab_direction);
 
 template<bool flowX,bool flowY,bool flowZ>
 cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
