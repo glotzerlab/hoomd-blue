@@ -10,6 +10,7 @@
 #include "PotentialBond.h"
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondFENE.h"
+#include "EvaluatorBondLJ.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialBondGPU.h"
@@ -28,12 +29,16 @@
 typedef PotentialBond<EvaluatorBondHarmonic> PotentialBondHarmonic;
 //! Bond potential force compute for FENE forces
 typedef PotentialBond<EvaluatorBondFENE> PotentialBondFENE;
+//! Bond potential force compute for LJ forces
+typedef PotentialBond<EvaluatorBondLJ> PotentialBondLJ;
 
 #ifdef ENABLE_CUDA
 //! Bond potential force compute for harmonic forces on the GPU
 typedef PotentialBondGPU< EvaluatorBondHarmonic, gpu_compute_harmonic_forces > PotentialBondHarmonicGPU;
 //! Bond potential force compute for FENE forces on the GPU
 typedef PotentialBondGPU< EvaluatorBondFENE, gpu_compute_fene_forces > PotentialBondFENEGPU;
+//! Bond potential force compute for LJ forces on the GPU
+typedef PotentialBondGPU< EvaluatorBondLJ, gpu_compute_lj_forces > PotentialBondLJGPU;
 #endif
 
 #endif // __BOND_POTENTIALS_H__

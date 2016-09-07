@@ -592,3 +592,74 @@ class table(force._force):
         hoomd.util.quiet_status();
         self.bond_coeff.set(bondname, func=_table_eval, rmin=rmin_table, rmax=rmax_table, coeff=dict(V=V_table, F=F_table, width=self.width))
         hoomd.util.unquiet_status();
+
+class lj(_bond):
+    R""" LJ bond potential.
+
+    Args:
+        name (str): Name of the bond instance.
+
+    :py:class:`lj` specifies a Lennard-Jones potential energy between the two particles in each defined bond.
+
+    This is useful for implementing e.g. special 1-4 interactions in all-atom force fields.
+
+    The bond potential uses the standard LJ definition.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                          \alpha \left( \frac{\sigma}{r} \right)^{6} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    where :math:`\vec{r}` is the vector pointing from one particle to the other in the bond.
+
+    Coefficients:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+
+    Example::
+
+        bond_lj = bond.harmonic(name="mybond")
+        bond_lj.bond_coeff.set('pairtype_1', epsilon=5.4, sigma=0.47, r_cut=1.1)
+
+    """
+    def __init__(self,name=None):
+        hoomd.util.print_status_line();
+
+        # initiailize the base class
+        _bond.__init__(self);
+
+        # check that some bonds are defined
+        if hoomd.context.current.system_definition.getBondData().getNGlobal() == 0:
+            hoomd.context.msg.error("No bonds are defined.\n");
+            raise RuntimeError("Error creating bond forces");
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialBondLJ(hoomd.context.current.system_definition,self.name);
+        else:
+            self.cpp_force = _md.PotentialBondLJGPU(hoomd.context.current.system_definition,self.name);
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['epsilon','sigma','alpha','r_cut'];
+        self.bond_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        r_cut = coeff['r_cut'];
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
+        return _hoomd.make_scalar3(lj1, lj2,r_cut);
+
+

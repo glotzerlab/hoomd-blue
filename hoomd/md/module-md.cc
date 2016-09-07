@@ -222,6 +222,7 @@ PYBIND11_PLUGIN(_md)
     export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(m, "PotentialPairDPDLJThermoDPD");
     export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
     export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
+    export_PotentialBond<PotentialBondLJ>(m, "PotentialBondLJ");
     export_NeighborList(m);
     export_NeighborListBinned(m);
     export_NeighborListStencil(m);
@@ -271,6 +272,7 @@ PYBIND11_PLUGIN(_md)
     export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
     export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(m, "PotentialBondHarmonicGPU");
     export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
+    export_PotentialBondGPU<PotentialBondLJGPU, PotentialBondLJ>(m, "PotentialBondLJGPU");
     export_BondTablePotentialGPU(m);
     export_TablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);

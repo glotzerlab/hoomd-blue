@@ -60,6 +60,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
+                EvaluatorBondLJ.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
                 EvaluatorConstraintSphere.h

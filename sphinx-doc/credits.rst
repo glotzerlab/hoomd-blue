@@ -87,6 +87,7 @@ Jens Glaser, University of Michigan
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
  * hpmc interaction_matrix
+ * bond.lj
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
