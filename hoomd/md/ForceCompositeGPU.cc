@@ -233,16 +233,29 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     m_tuner_update->end();
 
     uint2 flag = m_flag.readFlags();
+
     if (flag.x)
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.x-1 << " is missing central particle"
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+        unsigned int idx = flag.x - 1;
+        unsigned int body_id = h_body.data[idx];
+        unsigned int tag = h_tag.data[idx];
+
+        m_exec_conf->msg->error() << "constrain.rigid(): Particle " << tag << " part of composite body " << body_id << " is missing central particle"
             << std::endl << std::endl;
         throw std::runtime_error("Error while updating constituent particles");
         }
 
     if (flag.y)
         {
-        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.y-1 << " incomplete"
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+
+        unsigned int idx = flag.y - 1;
+        unsigned int body_id = h_body.data[idx];
+
+        m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body id " << body_id << " incomplete"
             << std::endl << std::endl;
         throw std::runtime_error("Error while updating constituent particles");
         }

@@ -577,7 +577,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         // if a molecule with a local member has no central particle, error out
         if (idx < N)
             {
-            atomicMax(&(d_flag->x), central_tag+1);
+            atomicMax(&(d_flag->x), idx+1);
             }
 
         // otherwise, ignore
@@ -601,7 +601,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         // if a molecule with a local member is incomplete, this is an error
         if (idx < N)
             {
-            atomicMax(&(d_flag->y), central_tag+1);
+            atomicMax(&(d_flag->y), idx+1);
             }
 
         // otherwise, ignore
