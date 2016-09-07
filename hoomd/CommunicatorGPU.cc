@@ -3135,7 +3135,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3148,7 +3148,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3164,7 +3164,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3177,7 +3177,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
