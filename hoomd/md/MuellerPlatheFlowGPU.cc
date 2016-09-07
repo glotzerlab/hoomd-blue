@@ -79,24 +79,9 @@ void MuellerPlatheFlowGPU::update_min_max_velocity(void)
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),access_location::device,access_mode::readwrite);
     const unsigned int Ntotal = m_pdata->getN()+m_pdata->getNGhosts();
 
-    switch(m_flow_direction)
-        {
-        case flow_enum::X:
-            gpu_update_min_max_velocity<true,false,false>(d_rtag.data,d_vel.data,
-                                                          Ntotal,m_last_max_vel,
-                                                          m_last_min_vel);
-            break;
-        case flow_enum::Y:
-            gpu_update_min_max_velocity<false,true,false>(d_rtag.data,d_vel.data,
-                                                          Ntotal,m_last_max_vel,
-                                                          m_last_min_vel);
-            break;
-        case flow_enum::Z:
-            gpu_update_min_max_velocity<false,false,true>(d_rtag.data,d_vel.data,
-                                                          Ntotal,m_last_max_vel,
-                                                          m_last_min_vel);
-            break;
-        }
+    gpu_update_min_max_velocity(d_rtag.data,d_vel.data,Ntotal,m_last_max_vel,
+                                m_last_min_vel,m_flow_direction);
+
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 

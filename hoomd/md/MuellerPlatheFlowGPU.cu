@@ -164,12 +164,12 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
     }
 
 
-template<bool flowX,bool flowY,bool flowZ>
 void __global__ gpu_update_min_max_velocity_kernel(const unsigned int *const d_rtag,
                                                    Scalar4*const d_vel,
                                                    const unsigned int Ntotal,
                                                    const Scalar3 last_max_vel,
-                                                   const Scalar3 last_min_vel)
+                                                   const Scalar3 last_min_vel,
+                                                   const flow_enum::Direction flow_direction)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= 1)
@@ -183,62 +183,50 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int *const d_r
     if( min_idx < Ntotal)
         {
         const Scalar new_min_vel = last_max_vel.x  / last_min_vel.y;
-        if(flowX)
-            d_vel[min_idx].x = new_min_vel;
-        if(flowY)
-            d_vel[min_idx].y = new_min_vel;
-        if(flowZ)
-            d_vel[min_idx].z = new_min_vel;
+        switch( flow_direction )
+            {
+            case flow_enum::X:
+                d_vel[min_idx].x = new_min_vel;
+                break;
+            case flow_enum::Y:
+                d_vel[min_idx].y = new_min_vel;
+                break;
+            case flow_enum::Z:
+                d_vel[min_idx].z = new_min_vel;
+                break;
+            }
         }
+
     if( max_idx < Ntotal)
       {
         const Scalar new_max_vel = last_min_vel.x  / last_max_vel.y;
-        if(flowX)
-            d_vel[max_idx].x = new_max_vel;
-        if(flowY)
-            d_vel[max_idx].y = new_max_vel;
-        if(flowZ)
-            d_vel[max_idx].z = new_max_vel;
+        switch( flow_direction)
+            {
+            case flow_enum::X:
+                d_vel[max_idx].x = new_max_vel;
+                break;
+            case flow_enum::Y:
+                d_vel[max_idx].y = new_max_vel;
+                break;
+            case flow_enum::Z:
+                d_vel[max_idx].z = new_max_vel;
+                break;
+            }
       }
     }
 
-template<bool flowX,bool flowY,bool flowZ>
 cudaError_t gpu_update_min_max_velocity(const unsigned int *const d_rtag,
                                         Scalar4*const d_vel,
                                         const unsigned int Ntotal,
                                         const Scalar3 last_max_vel,
-                                        const Scalar3 last_min_vel)
+                                        const Scalar3 last_min_vel,
+                                        const flow_enum::Direction flow_direction)
     {
-    assert( flowX | flowY | flowZ);
-    if( flowX )
-        { assert(flowY == false and flowZ == false); }
-    if( flowY )
-        { assert(flowX == false and flowZ == false); }
-    if( flowZ )
-        { assert(flowY == false and flowX == false); }
-
     dim3 grid( 1, 1, 1);
     dim3 threads(1, 1, 1);
 
-    gpu_update_min_max_velocity_kernel<flowX,flowY,flowZ>
-        <<<grid,threads>>>(d_rtag, d_vel, Ntotal,last_max_vel, last_min_vel);
+    gpu_update_min_max_velocity_kernel<<<grid,threads>>>(d_rtag, d_vel, Ntotal,last_max_vel,
+                                                         last_min_vel, flow_direction);
 
     return cudaPeekAtLastError();
     }
-
-//Explicit instances of the templates of VALID configurations
-template cudaError_t gpu_update_min_max_velocity<true,false,false>(const unsigned int *const d_rtag,
-                                                                   Scalar4*const d_vel,
-                                                                   const unsigned int Ntotal,
-                                                                   const Scalar3 last_max_vel,
-                                                                   const Scalar3 last_min_vel);
-template cudaError_t gpu_update_min_max_velocity<false,true,false>(const unsigned int *const d_rtag,
-                                                                   Scalar4*const d_vel,
-                                                                   const unsigned int Ntotal,
-                                                                   const Scalar3 last_max_vel,
-                                                                   const Scalar3 last_min_vel);
-template cudaError_t gpu_update_min_max_velocity<false,false,true>(const unsigned int *const d_rtag,
-                                                                   Scalar4*const d_vel,
-                                                                   const unsigned int Ntotal,
-                                                                   const Scalar3 last_max_vel,
-                                                                   const Scalar3 last_min_vel);
