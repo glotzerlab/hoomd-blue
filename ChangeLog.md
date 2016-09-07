@@ -26,6 +26,9 @@ Not yet released
 * Include symlinked external components in the build process.
 * Add template for external components.
 
+*Bug fixes*
+* fix rare cases where analyze.log() would report a wrong pressure
+
 ## v2.0.3
 
 Released 2016/08/30
