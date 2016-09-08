@@ -131,6 +131,8 @@ class HOOMDInitializer
         void parseBodyNode(const XMLNode& node);
         //! Helper function to parse the bonds node
         void parseBondNode(const XMLNode& node);
+        //! Helper function to parse the pairs node
+        void parsePairNode(const XMLNode& node);
         //! Helper function to parse the angle node
         void parseAngleNode(const XMLNode& node);
         //! Helper function to parse the dihedral node
@@ -158,6 +160,8 @@ class HOOMDInitializer
         unsigned int getDihedralTypeId(const std::string& name);
         //! Helper function for identifying the improper type id
         unsigned int getImproperTypeId(const std::string& name);
+        //! Helper function for identifying the pair type id
+        unsigned int getPairTypeId(const std::string& name);
 
         std::map< std::string, std::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
 
@@ -181,6 +185,8 @@ class HOOMDInitializer
         std::vector< unsigned int > m_dihedral_types; //!< Dihedral types read in from the file
         std::vector< ImproperData::members_t > m_impropers;  //!< Improper read in from the file
         std::vector< unsigned int > m_improper_types; //!< Improper read in from the file
+        std::vector< PairData::members_t > m_pairs;  //!< Pair read in from the file
+        std::vector< unsigned int > m_pair_types; //!< Pair read in from the file
         std::vector< ConstraintData::members_t > m_constraints;  //!< Constraint read in from the file
         std::vector< Scalar > m_constraint_distances;//!< Constraint distances
         unsigned int m_timestep;                     //!< The time stamp
@@ -190,6 +196,7 @@ class HOOMDInitializer
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
+        std::vector<std::string> m_pair_type_mapping; //!< The created mapping between pair types and ids
 
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
         std::vector<Scalar3> m_moment_inertia;       //!< Moments of inertia for each particle
