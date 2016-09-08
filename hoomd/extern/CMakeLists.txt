@@ -26,7 +26,11 @@ foreach(file ${_extern_headers})
     # copy headers into build directory
     copy_header(${file})
     # install into installation target
+    if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
+    else()
+    get_filename_component(dir ${file} PATH)
+    endif()
     install(FILES ${file} DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/extern/${dir})
 endforeach()
 
@@ -46,7 +50,11 @@ foreach(file ${_cereal_headers})
     # copy headers into build directory
     copy_cereal_header(${file})
     # install into installation target
+    if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
+    else()
+    get_filename_component(dir ${file} PATH)
+    endif()
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cereal/${file} DESTINATION ${PYTHON_MODULE_BASE_DIR}/${dir})
     list(APPEND _cereal_installed_headers include/${file})
 endforeach()
