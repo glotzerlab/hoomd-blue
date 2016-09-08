@@ -200,6 +200,9 @@ class CommunicatorGPU : public Communicator
         GroupCommunicatorGPU<ConstraintData> m_constraint_comm;  //!< Communication helper for constraints
         friend class GroupCommunicatorGPU<ConstraintData>;
 
+        GroupCommunicatorGPU<PairData> m_pair_comm;    //!< Communication helper for pairs
+        friend class GroupCommunicatorGPU<PairData>;
+
         /* Ghost communication */
         bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
         bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers

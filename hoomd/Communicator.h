@@ -563,6 +563,12 @@ class Communicator
             m_constraints_changed = true;
             }
 
+        /* Pairs communication */
+        bool m_pairs_changed;                          //!< True if pair information needs to be refreshed
+        void setPairsChanged()
+            {
+            m_pairs_changed = true;
+            }
 
         //! Remove tags of ghost particles
         virtual void removeGhostParticleTags();
@@ -601,6 +607,10 @@ class Communicator
 
         GroupCommunicator<ConstraintData> m_constraint_comm; //!< Communicator helper for constraints
         friend class GroupCommunicator<ConstraintData>;
+
+        /* Communication of bonded groups */
+        GroupCommunicator<PairData> m_pair_comm;    //!< Communication helper for special pairs
+        friend class GroupCommunicator<PairData>;
 
         bool m_is_first_step;                    //!< True if no communication has yet occured
 

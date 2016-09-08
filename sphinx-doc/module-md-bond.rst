@@ -11,7 +11,6 @@ md.bond
     md.bond.fene
     md.bond.harmonic
     md.bond.table
-    md.bond.lj
 
 .. rubric:: Details
 

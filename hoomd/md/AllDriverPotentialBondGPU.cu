@@ -10,7 +10,6 @@
 
 #include "EvaluatorBondHarmonic.h"
 #include "EvaluatorBondFENE.h"
-#include "EvaluatorBondLJ.h"
 #include "AllDriverPotentialBondGPU.cuh"
 
 cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
@@ -27,15 +26,6 @@ cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
                                    unsigned int *d_flags)
     {
     return gpu_compute_bond_forces<EvaluatorBondFENE>(bond_args,
-                                                     d_params,
-                                                     d_flags);
-    }
-
-cudaError_t gpu_compute_lj_forces(const bond_args_t& bond_args,
-                                   const Scalar3 *d_params,
-                                   unsigned int *d_flags)
-    {
-    return gpu_compute_bond_forces<EvaluatorBondLJ>(bond_args,
                                                      d_params,
                                                      d_flags);
     }

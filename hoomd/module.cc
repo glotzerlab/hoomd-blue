@@ -331,6 +331,7 @@ PYBIND11_PLUGIN(_hoomd)
     export_BondedGroupData<DihedralData,Dihedral>(m,"DihedralData","DihedralDataSnapshot");
     export_BondedGroupData<ImproperData,Dihedral>(m,"ImproperData","ImproperDataSnapshot",false);
     export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
+    export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
 
     // initializers
     export_GSDReader(m);

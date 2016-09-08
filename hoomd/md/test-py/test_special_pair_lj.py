@@ -7,38 +7,38 @@ context.initialize()
 import unittest
 import os
 
-# tests md.bond.lj
-class bond_lj_tests (unittest.TestCase):
+# tests md.special_pair.lj
+class special_pair_lj_tests (unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(N=3,
                                   box=data.boxdim(L=100),
                                   particle_types = ['A'],
-                                  bond_types = ['pairtype_1','pairtype_2'],
+                                  pair_types = ['pairtype_1','pairtype_2'],
                                   angle_types = [],
                                   dihedral_types = [],
                                   improper_types = [])
 
         if comm.get_rank() == 0:
-            snap.bonds.resize(2);
+            snap.pairs.resize(2);
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (0,0,1.5)
             snap.particles.position[2] = (-0.5,0,0)
-            snap.bonds.group[0,:] = [0,1]
-            snap.bonds.group[1,:] = [1,2]
-            snap.bonds.typeid[0] = 0
-            snap.bonds.typeid[1] = 1
+            snap.pairs.group[0,:] = [0,1]
+            snap.pairs.group[1,:] = [1,2]
+            snap.pairs.typeid[0] = 0
+            snap.pairs.typeid[1] = 1
 
         self.s = init.read_snapshot(snap)
 
     # test to see that se can create a md.force.constant
     def test_create(self):
-        md.bond.lj();
+        md.special_pair.lj();
 
     # test setting coefficients
     def test_set_coeff(self):
-        lj = md.bond.lj();
-        lj.bond_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
-        lj.bond_coeff.set('pairtype_2', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj = md.special_pair.lj();
+        lj.pair_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('pairtype_2', sigma=1.0, epsilon=1.0, r_cut=3.0)
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
@@ -46,18 +46,18 @@ class bond_lj_tests (unittest.TestCase):
 
     # test coefficient not set checking
     def test_set_coeff_fail(self):
-        lj = md.bond.lj();
-        lj.bond_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj = md.special_pair.lj();
+        lj.pair_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
         self.assertRaises(RuntimeError, run, 100);
 
     # test remove particle fails
-    def test_bond_fail(self):
-        lj = md.bond.lj();
-        lj.bond_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
-        lj.bond_coeff.set('pairtype_2', sigma=1.0, epsilon=1.0, r_cut=3.0)
+    def test_special_pair_fail(self):
+        lj = md.special_pair.lj();
+        lj.pair_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('pairtype_2', sigma=1.0, epsilon=1.0, r_cut=3.0)
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.nve(all);
@@ -72,10 +72,10 @@ class bond_lj_tests (unittest.TestCase):
             pass
 
     # check the value of the pair potential
-    def test_bond_lj_value(self):
-        lj = md.bond.lj();
-        lj.bond_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
-        lj.bond_coeff.set('pairtype_2', sigma=1.5, epsilon=2.5, r_cut=3.0)
+    def test_special_pair_lj_value(self):
+        lj = md.special_pair.lj();
+        lj.pair_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        lj.pair_coeff.set('pairtype_2', sigma=1.5, epsilon=2.5, r_cut=3.0)
         all = group.all();
         md.integrate.mode_standard(dt=0);
         md.integrate.nve(all);

@@ -636,8 +636,8 @@ class lj(_bond):
         _bond.__init__(self);
 
         # check that some bonds are defined
-        if hoomd.context.current.system_definition.getBondData().getNGlobal() == 0:
-            hoomd.context.msg.error("No bonds are defined.\n");
+        if hoomd.context.current.system_definition.getPairData().getNGlobal() == 0:
+            hoomd.context.msg.error("No pairs are defined.\n");
             raise RuntimeError("Error creating bond forces");
 
         # create the c++ mirror class

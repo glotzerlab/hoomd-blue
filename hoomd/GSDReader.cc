@@ -81,7 +81,7 @@ GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema in " << name << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+    if (m_handle.header.schema_version >= gsd_make_version(2,1))
         {
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema version in " << name << endl;
         throw runtime_error("Error opening GSD file");
@@ -337,6 +337,19 @@ void GSDReader::readTopology()
             m_snapshot->constraint_data.val[i] = Scalar(data[i]);
 
         readChunk(&m_snapshot->constraint_data.groups[0], m_frame, "constraints/group", N*8, N);
+        }
+
+    if (m_handle.header.schema_version >= gsd_make_version(2,0))
+        {
+        N = 0;
+        readChunk(&N, m_frame, "pairs/N", 4);
+        if (N > 0)
+            {
+            m_snapshot->pair_data.resize(N);
+            m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
+            readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N*4, N);
+            readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N*8, N);
+            }
         }
     }
 

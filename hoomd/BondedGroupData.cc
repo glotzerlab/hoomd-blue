@@ -30,6 +30,7 @@ char name_angle_data[] = "angle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
 char name_constraint_data[] = "constraint";
+char name_pair_data[] = "pair";
 
 /*
  * Implementation of BondedGroupData methods
@@ -1384,3 +1385,6 @@ template void export_BondedGroupData<ImproperData,Dihedral>(py::module& m, std::
 
 template class BondedGroupData<2, Constraint, name_constraint_data, false>;
 template void export_BondedGroupData<ConstraintData,Constraint>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
+
+template class BondedGroupData<2, Bond, name_pair_data>;
+template void export_BondedGroupData<PairData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
