@@ -249,7 +249,7 @@ class mueller_plathe_flow(_updater):
         If you set this updater with unrealistic values, it algorithm might not terminate,
         because your desired flow target can not be achieved.
 
-    .. versionadded:: v2.0.3
+    .. versionadded:: v2.1
 
     Examples::
 
@@ -287,27 +287,19 @@ class mueller_plathe_flow(_updater):
         self.setupUpdater(period);
 
     def get_n_slabs(self):
-        R""" Get the number of slabs.
-
-        .. versionadded:: v2.0.3 """
+        R""" Get the number of slabs."""
         return self.cpp_updater.getNSlabs()
 
     def get_min_slab(self):
-        R""" Get the slab id of min velocity search.
-
-        .. versionadded:: v2.0.3 """
+        R""" Get the slab id of min velocity search."""
         return self.cpp_updater.getMinSlab()
 
     def get_max_slab(self):
-        R""" Get the slab id of max velocity search.
-
-        .. versionadded:: v2.0.3"""
+        R""" Get the slab id of max velocity search."""
         return self.cpp_updater.getMaxSlab()
 
     def get_flow_epsilon(self):
-        R""" Get the tolerance between target flow and actual achieved flow.
-
-        .. versionadded:: v2.0.3"""
+        R""" Get the tolerance between target flow and actual achieved flow."""
         return self.cpp_updater.getFlowEpsilon()
 
     def set_flow_epsilon(self,epsilon):
@@ -316,26 +308,19 @@ class mueller_plathe_flow(_updater):
            Args:
            epsilon (float): New tolerance for the deviation of actual and achieved flow.
 
-        .. versionadded:: v2.0.3
         """
         hoomd.util.print_status_line();
         return self.cpp_updater.setFlowEpsilon(float(epsilon))
 
     def get_summed_exchanged_momentum(self):
-        R"""Returned the summed up exchanged velocity of the full simulation.
-
-        .. versionadded:: v2.0.3 """
+        R"""Returned the summed up exchanged velocity of the full simulation."""
         return self.cpp_updater.getSummedExchangedMomentum()
 
 
     def has_min_slab(self):
-        R"""Returns, whether this MPI instance is part of the min slab.
-
-        .. versionadded:: v2.0.3 """
+        R"""Returns, whether this MPI instance is part of the min slab."""
         return self.cpp_updater.hasMinSlab()
 
     def has_max_slab(self):
-        R"""Returns, whether this MPI instance is part of the max slab.
-
-        .. versionadded:: v2.0.3"""
+        R"""Returns, whether this MPI instance is part of the max slab."""
         return self.cpp_updater.hasMaxSlab()
