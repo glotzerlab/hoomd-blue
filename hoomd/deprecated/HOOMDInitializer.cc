@@ -530,6 +530,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_constraints.size() > 0)
         m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
+    if (m_pairs.size() > 0)
+        m_exec_conf->msg->notice(2) << m_pairs.size() << " special pairs" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_orientation.size() > 0)
