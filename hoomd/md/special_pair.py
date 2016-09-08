@@ -23,6 +23,177 @@ import hoomd;
 import math;
 import sys;
 
+class coeff:
+    R""" Define special_pair coefficients.
+
+    The coefficients for all special pair potentials are specified using this class. Coefficients are
+    specified per pair type.
+
+    There are two ways to set the coefficients for a particular special_pair potential.
+    The first way is to save the special_pair potential in a variable and call :py:meth:`set()` directly.
+    See below for an example of this.
+
+    The second method is to build the coeff class first and then assign it to the
+    special_pair potential. There are some advantages to this method in that you could specify a
+    complicated set of special_pair potential coefficients in a separate python file and import
+    it into your job script.
+
+    Example::
+
+        my_coeffs = hoomd.md.special_pair.coeff();
+        special_pair_force.pair_coeff.set('pairtype1', epsilon=1, sigma=1)
+        special_pair_force.pair_coeff.set('backbone', epsilon=1.2, sigma=1)
+
+    """
+
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+        self.default_coeff = {}
+
+    ## \var values
+    # \internal
+    # \brief Contains the vector of set values in a dictionary
+
+    ## \var default_coeff
+    # \internal
+    # \brief default_coeff['coeff'] lists the default value for \a coeff, if it is set
+
+    ## \internal
+    # \brief Sets a default value for a given coefficient
+    # \details
+    # \param name Name of the coefficient to for which to set the default
+    # \param value Default value to set
+    #
+    # Some coefficients have reasonable default values and the user should not be burdened with typing them in
+    # all the time. set_default_coeff() sets
+    def set_default_coeff(self, name, value):
+        self.default_coeff[name] = value;
+
+    def set(self, type, **coeffs):
+        R""" Sets parameters for special_pair types.
+
+        Args:
+            type (str): Type of special_pair (or a list of type names)
+            coeffs: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a special_pair type. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the special_pair
+        potential you are setting these coefficients for, see the corresponding documentation.
+
+        All possible special_pair types as defined in the simulation box must be specified before executing run().
+        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+        special_pair types that do not exist in the simulation. This can be useful in defining a potential field for many
+        different types of special_pairs even when some simulations only include a subset.
+
+        Examples::
+
+            my_special_pair_force.special_pair_coeff.set('pair1', epsilon=1, sigma=1)
+            my_special_pair_force.pair_coeff.set('pair2', epsilon=0.5, sigma=0.7)
+            my_special_pair_force.pair_coeff.set(['special_pairA','special_pairB'], epsilon=0, sigma=1)
+
+        Note:
+            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
+            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
+            parameters as they were previously set.
+
+        """
+        hoomd.util.print_status_line();
+
+        # listify the input
+        if isinstance(type, str):
+            type = [type];
+
+        for typei in type:
+            self.set_single(typei, coeffs);
+
+    ## \internal
+    # \brief Sets a single parameter
+    def set_single(self, type, coeffs):
+        type = str(type);
+
+        # create the type identifier if it hasn't been created yet
+        if (not type in self.values):
+            self.values[type] = {};
+
+        # update each of the values provided
+        if len(coeffs) == 0:
+            hoomd.context.msg.error("No coefficents specified\n");
+        for name, val in coeffs.items():
+            self.values[type][name] = val;
+
+        # set the default values
+        for name, val in self.default_coeff.items():
+            # don't override a coeff if it is already set
+            if not name in self.values[type]:
+                self.values[type][name] = val;
+
+    ## \internal
+    # \brief Verifies that all values are set
+    # \details
+    # \param self Python required self variable
+    # \param required_coeffs list of required variables
+    #
+    # This can only be run after the system has been initialized
+    def verify(self, required_coeffs):
+        # first, check that the system has been initialized
+        if not hoomd.init.is_initialized():
+            hoomd.context.msg.error("Cannot verify special_pair coefficients before initialization\n");
+            raise RuntimeError('Error verifying force coefficients');
+
+        # get a list of types from the particle data
+        ntypes = hoomd.context.current.system_definition.getPairData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(hoomd.context.current.system_definition.getPairData().getNameByType(i));
+
+        valid = True;
+        # loop over all possible types and verify that all required variables are set
+        for i in range(0,ntypes):
+            type = type_list[i];
+
+            if type not in self.values.keys():
+                hoomd.context.msg.error("Pair type " +str(type) + " not found in pair coeff\n");
+                valid = False;
+                continue;
+
+            # verify that all required values are set by counting the matches
+            count = 0;
+            for coeff_name in self.values[type].keys():
+                if not coeff_name in required_coeffs:
+                    hoomd.context.msg.notice(2, "Notice: Possible typo? Force coeff " + str(coeff_name) + " is specified for type " + str(type) + \
+                          ", but is not used by the special pair force\n");
+                else:
+                    count += 1;
+
+            if count != len(required_coeffs):
+                hoomd.context.msg.error("Special pair type " + str(type) + " is missing required coefficients\n");
+                valid = False;
+
+        return valid;
+
+    ## \internal
+    # \brief Gets the value of a single %special_pair %force coefficient
+    # \detail
+    # \param type Name of special_pair type
+    # \param coeff_name Coefficient to get
+    def get(self, type, coeff_name):
+        if type not in self.values.keys():
+            hoomd.context.msg.error("Bug detected in force.coeff. Please report\n");
+            raise RuntimeError("Error setting special_pair coeff");
+
+        return self.values[type][coeff_name];
+
+    ## \internal
+    # \brief Return metadata
+    def get_metadata(self):
+        return self.values
+
+
 ## \internal
 # \brief Base class for special pair potentials
 #
@@ -47,7 +218,7 @@ class _special_pair(force._force):
         self.cpp_force = None;
 
         # setup the coefficient vector (use bond coefficients for that)
-        self.pair_coeff = bond.coeff();
+        self.pair_coeff = coeff();
 
         self.enabled = True;
 
