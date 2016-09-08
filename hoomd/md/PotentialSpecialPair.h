@@ -207,7 +207,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
         // throw an error if this bond is incomplete
         if (idx_a >= max_local || idx_b >= max_local)
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond " <<
+            this->m_exec_conf->msg->error() << "special_pair." << evaluator::getName() << ": bond " <<
                 bond.tag[0] << " " << bond.tag[1] << " incomplete." << std::endl << std::endl;
             throw std::runtime_error("Error in bond calculation");
             }
@@ -299,8 +299,8 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
             }
         else
             {
-            this->m_exec_conf->msg->error() << "bond." << evaluator::getName() << ": bond out of bounds" << std::endl << std::endl;
-            throw std::runtime_error("Error in bond calculation");
+            this->m_exec_conf->msg->error() << "special_pair." << evaluator::getName() << ": bond out of bounds" << std::endl << std::endl;
+            throw std::runtime_error("Error in special pair calculation");
             }
         }
 
