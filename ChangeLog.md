@@ -26,6 +26,10 @@ Not yet released
 * Include symlinked external components in the build process.
 * Add template for external components.
 
+*Bug fixes*
+
+* Fix invalid forces in simulations with many bond types (on GPU)
+
 ## v2.0.3
 
 Released 2016/08/30
