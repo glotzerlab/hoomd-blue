@@ -1439,7 +1439,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 
                 // update reverse-lookup table
                 gpu_compute_ghost_rtags(first_idx,
-                    n_recv_ghost_groups_tot[stage],
+                    n_keep,
                     d_group_tag.data + first_idx,
                     d_group_rtag.data);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())

@@ -28,6 +28,7 @@ Not yet released
 
 *Bug fixes*
 * fix rare cases where analyze.log() would report a wrong pressure
+* fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
 
 ## v2.0.3
 
