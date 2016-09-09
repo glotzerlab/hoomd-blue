@@ -3,6 +3,20 @@ file(GLOB_RECURSE _extern_headers
      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
      *.h *.cuh *.hpp)
 
+# Eigen headers have no suffix
+file(GLOB _eigen_files
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+    Eigen/*)
+
+#filter directories
+FOREACH(file ${_eigen_files})
+    if(NOT IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${file})
+        list(APPEND _eigen_headers ${file})
+    endif()
+endforeach()
+
+list(APPEND _extern_headers ${_eigen_headers})
+
 # cereal should get its headers installed a separate way, so find and
 # remove those from _extern_headers
 file(GLOB_RECURSE _cereal_headers
@@ -26,7 +40,11 @@ foreach(file ${_extern_headers})
     # copy headers into build directory
     copy_header(${file})
     # install into installation target
+    if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
+    else()
+    get_filename_component(dir ${file} PATH)
+    endif()
     install(FILES ${file} DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/extern/${dir})
 endforeach()
 
@@ -46,7 +64,11 @@ foreach(file ${_cereal_headers})
     # copy headers into build directory
     copy_cereal_header(${file})
     # install into installation target
+    if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
+    else()
+    get_filename_component(dir ${file} PATH)
+    endif()
     install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cereal/${file} DESTINATION ${PYTHON_MODULE_BASE_DIR}/${dir})
     list(APPEND _cereal_installed_headers include/${file})
 endforeach()

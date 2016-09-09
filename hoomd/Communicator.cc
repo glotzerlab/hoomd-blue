@@ -1275,6 +1275,7 @@ void Communicator::communicate(unsigned int timestep)
     m_is_communicating = true;
 
     // update ghost communication flags
+    m_flags = CommFlags(0);
     m_requested_flags.emit_accumulate( [&](CommFlags f)
                                         {
                                         m_flags |= f;
