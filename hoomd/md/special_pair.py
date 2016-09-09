@@ -290,6 +290,11 @@ class lj(_special_pair):
         lj = special_pair.harmonic(name="mybond")
         lj.pair_coeff.set('pairtype_1', epsilon=5.4, sigma=0.47, r_cut=1.1)
 
+    Note:
+        The energy of special pair interactions is reported in a log quantity **special_pair_lj_energy**, which
+        is separate from those of other non-bonded interactions. Therefore, the total energy of nonbonded interactions
+        is obtained by adding that of standard and special interactions.
+
     .. versionadded:: 2.1
 
     """
