@@ -295,7 +295,7 @@ std::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() co
     // allocate memory
     pair_data.resize(m_pairs.size());
 
-    // loop through all the dihedrals and add an dihedral for each
+    // loop through all the pairs and add a special pair for each
     for (unsigned int i = 0; i < m_pairs.size(); i++)
         {
         pair_data.groups[i] = m_pairs[i];
