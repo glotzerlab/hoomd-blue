@@ -572,9 +572,14 @@ Scalar PPPMForceComputeGPU::computePE()
 
     if (m_exec_conf->getRank()==0)
         {
-        // add correction on rank 0
-        sum -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
-        sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
+        // subtract Madelung constant on rank 0 (see Frenkel and Smit, and Salin and Caillol)
+        sum -= m_q2 * (m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
+            + Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
+        if (m_alpha != Scalar(0.0))
+            sum -= m_q2 * Scalar(2.0*M_PI)*(exp(m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))-Scalar(1.0))/(m_alpha*m_alpha)/V;
+
+        // k = 0 term already accounted for by exclude_dc
+        //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
 
     // store this rank's contribution as external potential energy
@@ -635,6 +640,7 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
                                    pdim,
                                    EPS_HOC,
                                    m_kappa,
+                                   m_alpha,
                                    d_gf_b.data,
                                    m_order,
                                    block_size);
@@ -674,6 +680,7 @@ void PPPMForceComputeGPU::fixExclusions()
                    d_exlist.data,
                    nex,
                    m_kappa,
+                   m_alpha,
                    d_index_array.data,
                    group_size,
                    m_block_size,

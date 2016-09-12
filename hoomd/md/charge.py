@@ -42,6 +42,12 @@ class pppm(force._force):
     force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
     initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
 
+    The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
+    This is useful if one wants to compute a screened interaction (i.e. a solution to the linerized Poisson-Boltzmann
+    equation), yet the cut-off radius is so large that the computation with a purely short-ranged potential would become
+    inefficient. In that case, the inverse Debye screening length can be supplied using :py:meth`set_params()`.
+    Also see `Salin, G and Caillol, J. 2000, <http://dx.doi.org/10.1063/1.1326477>`.
+
     Parameters:
 
     - Nx - Number of grid points in x direction
@@ -75,6 +81,21 @@ class pppm(force._force):
 
         # initialize the base class
         force._force.__init__(self);
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='dnlebard2012',
+                         author=['D N LeBard', 'B G Levine', 'S A Barr', 'A Jusufi', 'S Sanders', 'M L Klein', 'A Z Panagiotopoulos'],
+                         title='Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units',
+                         journal='Journal of Computational Physics',
+                         volume=8,
+                         number=8,
+                         pages='2385-2397',
+                         month='',
+                         year='2012',
+                         doi='10.1039/c1sm06787g',
+                         feature='PPPM')
+        hoomd.cite._ensure_global_bib().add(c)
+
         # create the c++ mirror class
 
         # PPPM itself doesn't really need a neighbor list, so subscribe call back as None
@@ -94,7 +115,7 @@ class pppm(force._force):
 
         # initialize the short range part of electrostatics
         hoomd.util.quiet_status();
-        self.ewald = pair.ewald(r_cut = 0.0, nlist = self.nlist);
+        self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
         hoomd.util.unquiet_status();
 
     # overrride disable and enable to work with both of the forces
@@ -114,7 +135,7 @@ class pppm(force._force):
         self.ewald.enable();
         hoomd.util.unquiet_status();
 
-    def set_params(self, Nx, Ny, Nz, order, rcut):
+    def set_params(self, Nx, Ny, Nz, order, rcut, alpha = 0.0):
         """ Sets PPPM parameters.
 
         Args:
@@ -123,6 +144,8 @@ class pppm(force._force):
             Nz (int): Number of grid points in z direction
             order (int): Number of grid points in each direction to assign charges to
             rcut  (float): Cutoff for the short-ranged part of the electrostatics calculation
+            alpha (float, **optional**): Debye screening parameter (in units 1/distance)
+                .. versionadded:: 2.1
 
         Examples::
 
@@ -195,7 +218,7 @@ class pppm(force._force):
         hoomd.util.unquiet_status();
 
         # set the parameters for the appropriate type
-        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
+        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha);
 
     def update_coeffs(self):
         if not self.params_set:

@@ -880,16 +880,21 @@ class ewald(pair):
         :nowrap:
 
         \begin{eqnarray*}
-         V_{\mathrm{ewald}}(r)  = & q_i q_j \mathrm{erfc}(\kappa r)/r & r < r_{\mathrm{cut}} \\
+         V_{\mathrm{ewald}}(r)  = & q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
+                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r) & r < r_{\mathrm{cut}} \\
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
+
+    The Ewald potential is designed to be used in conjunction with :py:class:`charge.pppm`.
 
     See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
-    - :math:`\kappa` - *kappa* (in 1/distance units)
+    - :math:`\kappa` - *kappa* (Splitting parameter, in 1/distance units)
+    - :math:`\alpha` - *alpha* (Debye screening length, in 1/distance units)
+        .. versionadded:: 2.1
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
@@ -901,6 +906,7 @@ class ewald(pair):
         nl = nlist.cell()
         ewald = pair.ewald(r_cut=3.0, nlist=nl)
         ewald.pair_coeff.set('A', 'A', kappa=1.0)
+        ewald.pair_coeff.set('A', 'A', kappa=1.0, alpha=1.5)
         ewald.pair_coeff.set('A', 'B', kappa=1.0, r_cut=3.0, r_on=2.0);
 
     Warning:
@@ -928,12 +934,14 @@ class ewald(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['kappa'];
+        self.required_coeffs = ['kappa','alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 0.0);
 
     def process_coeff(self, coeff):
         kappa = coeff['kappa'];
+        alpha = coeff['alpha'];
 
-        return kappa;
+        return _hoomd.make_scalar2(kappa, alpha)
 
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);

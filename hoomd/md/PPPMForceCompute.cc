@@ -57,13 +57,15 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_kappa = Scalar(0.0);
     m_rcut = Scalar(0.0);
     m_order = 0;
+    m_alpha = Scalar(0.0);
     }
 
 void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int nz,
-    unsigned int order, Scalar kappa, Scalar rcut)
+    unsigned int order, Scalar kappa, Scalar rcut, Scalar alpha)
     {
     m_kappa = kappa;
     m_rcut = rcut;
+    m_alpha = alpha;
 
     m_mesh_points = make_uint3(nx, ny, nz);
     m_global_dim = m_mesh_points;
@@ -679,9 +681,9 @@ void PPPMForceCompute::computeInfluenceFunction()
 
                         Scalar3 kn = knx + kny + knz;
                         Scalar dot1 = dot(kn, k);
-                        Scalar dot2 = dot(kn, kn);
+                        Scalar dot2 = dot(kn, kn)+m_alpha*m_alpha;
 
-                        Scalar arg_gauss = Scalar(0.25)*dot2/m_kappa/m_kappa;
+                        Scalar arg_gauss = Scalar(0.25)*(dot2+m_alpha*m_alpha)/m_kappa/m_kappa;
                         Scalar gauss = exp(-arg_gauss);
 
                         sum1 += (dot1/dot2) * gauss * wx * wx * wy * wy * wz * wz;
@@ -1187,9 +1189,15 @@ Scalar PPPMForceCompute::computePE()
 
     if (m_exec_conf->getRank()==0)
         {
-        // add correction on rank 0
-        sum -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
-        sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
+        // subtract Madelung constant on rank 0 (see Frenkel and Smit, and Salin and Caillol)
+        sum -= m_q2 * (m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
+            + Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
+
+        if (m_alpha != Scalar(0.0))
+            sum -= m_q2 * Scalar(2.0*M_PI)*(exp(m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))-Scalar(1.0))/(m_alpha*m_alpha)/V;
+
+        // k = 0 term already accounted for by exclude_dc
+        //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
 
     // store this rank's contribution as external potential energy
@@ -1409,9 +1417,16 @@ void PPPMForceCompute::fixExclusions()
             Scalar rsq = dot(dx, dx);
             Scalar r = sqrtf(rsq);
             Scalar qiqj = qi * qj;
-            Scalar erffac = erf(m_kappa * r) / r;
-            Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
-            Scalar pair_eng = qiqj * erffac;
+            Scalar expfac = fast::exp(-m_alpha*r);
+            Scalar arg1 = m_kappa * r - m_alpha/Scalar(2.0)/m_kappa;
+            Scalar arg2 = m_kappa * r + m_alpha/Scalar(2.0)/m_kappa;
+            Scalar erffac = (::erf(arg1)*expfac + expfac - ::erfc(arg2)*exp(m_alpha*r))/(Scalar(2.0)*r);
+
+            Scalar force_divr = qiqj * (expfac*Scalar(2.0)*m_kappa/sqrtpi*fast::exp(-arg1*arg1)
+                - Scalar(0.5)*m_alpha*(expfac*::erfc(arg1)+fast::exp(m_alpha*r)*::erfc(arg2)) - erffac)/rsq;
+
+            // subtract long-range part of pair-interaction
+            Scalar pair_eng = -qiqj * erffac;
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
             virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;

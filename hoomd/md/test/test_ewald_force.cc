@@ -65,7 +65,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr
 
     // first test: choose a basic set of values
     Scalar kappa = Scalar(0.5);
-    fc_3->setParams(0,0,kappa);
+    fc_3->setParams(0,0,make_scalar2(kappa,0));
 
     // compute the forces
     fc_3->compute(0);
@@ -75,6 +75,7 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_3->getVirialArray().getPitch();
 
+    std::cout << h_force.data[0]. x << " " << h_force.data[0].w << std::endl;
     MY_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
     MY_CHECK_SMALL(h_force.data[0].y, tol_small);
     MY_CHECK_SMALL(h_force.data[0].z, tol_small);
@@ -156,8 +157,8 @@ void ewald_force_comparison_test(ewaldforce_creator ewald_creator1,
     Scalar kappa = Scalar(0.5);
 
     // specify the force parameters
-    fc1->setParams(0,0,kappa);
-    fc2->setParams(0,0,kappa);
+    fc1->setParams(0,0,make_scalar2(kappa,0));
+    fc2->setParams(0,0,make_scalar2(kappa,0));
 
     // compute the forces
     fc1->compute(0);

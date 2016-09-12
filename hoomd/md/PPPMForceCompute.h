@@ -35,7 +35,7 @@ class PPPMForceCompute : public ForceCompute
 
         //! Set the parameters
         virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
-            unsigned int order, Scalar kappa, Scalar rcut);
+            unsigned int order, Scalar kappa, Scalar rcut, Scalar alpha = 0);
 
         void computeForces(unsigned int timestep);
 
@@ -93,9 +93,10 @@ class PPPMForceCompute : public ForceCompute
 
         GPUArray<Scalar> m_virial_mesh;     //!< k-space mesh of virial tensor values
 
-        Scalar m_kappa;                     //!< Screening parameter
+        Scalar m_kappa;                     //!< Splitting parameter
         Scalar m_rcut;                      //!< Cutoff for short-ranged interaction
         int m_order;                        //!< Order of interpolation scheme
+        Scalar m_alpha;                     //!< Debye screening parameter
 
         Scalar m_q;                         //!< Total system charge
         Scalar m_q2;                        //!< Sum of charge squared

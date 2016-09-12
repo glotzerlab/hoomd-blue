@@ -1518,7 +1518,8 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
                                           int nbz,
                                           const Scalar *gf_b,
                                           int order,
-                                          Scalar kappa)
+                                          Scalar kappa,
+                                          Scalar alpha)
     {
     unsigned int kidx;
 
@@ -1640,9 +1641,9 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
 
                     Scalar3 kn = knx + kny + knz;
                     Scalar dot1 = dot(kn, kval);
-                    Scalar dot2 = dot(kn, kn);
+                    Scalar dot2 = dot(kn, kn)+alpha*alpha;
 
-                    Scalar arg_gauss = Scalar(0.25)*dot2/kappa/kappa;
+                    Scalar arg_gauss = Scalar(0.25)*(dot2+alpha*alpha)/kappa/kappa;
                     Scalar gauss = exp(-arg_gauss);
 
                     sum1 += (dot1/dot2) * gauss * wx * wx * wy * wy * wz * wz;
@@ -1671,6 +1672,7 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                     const uint3 pdim,
                                     const Scalar EPS_HOC,
                                     Scalar kappa,
+                                    Scalar alpha,
                                     const Scalar *d_gf_b,
                                     int order,
                                     unsigned int block_size)
@@ -1736,7 +1738,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                                                               nbz,
                                                                               d_gf_b,
                                                                               order,
-                                                                              kappa);
+                                                                              kappa,
+                                                                              alpha);
         }
     #ifdef ENABLE_MPI
     else
@@ -1780,7 +1783,8 @@ void gpu_compute_influence_function(const uint3 mesh_dim,
                                                                              nbz,
                                                                              d_gf_b,
                                                                              order,
-                                                                             kappa);
+                                                                             kappa,
+                                                                             alpha);
         }
     #endif
     }
@@ -1803,6 +1807,7 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                                           const unsigned int *d_nlist,
                                           const Index2D nli,
                                           Scalar kappa,
+                                          Scalar alpha,
                                           unsigned int *d_group_members,
                                           unsigned int group_size)
     {
@@ -1851,9 +1856,16 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     Scalar rsq = dot(dx,dx);
                     Scalar r = sqrtf(rsq);
                     Scalar qiqj = qi * qj;
-                    Scalar erffac = ::erf(kappa * r) / r;
-                    Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * kappa * kappa) * kappa / (sqrtpi * rsq) + erffac / rsq);
-                    Scalar pair_eng = qiqj * erffac;
+                    Scalar expfac = fast::exp(-alpha*r);
+                    Scalar arg1 = kappa * r - alpha/Scalar(2.0)/kappa;
+                    Scalar arg2 = kappa * r + alpha/Scalar(2.0)/kappa;
+                    Scalar erffac = (::erf(arg1)*expfac + expfac - fast::erfc(arg2)*exp(alpha*r))/(Scalar(2.0)*r);
+
+                    Scalar force_divr = qiqj * (expfac*Scalar(2.0)*kappa/sqrtpi*fast::exp(-arg1*arg1)
+                        - Scalar(0.5)*alpha*(expfac*::erfc(arg1)+fast::exp(alpha*r)*fast::erfc(arg2)) - erffac)/rsq;
+
+                    // subtract long-range part of pair-interaction
+                    Scalar pair_eng = -qiqj * erffac;
 
                     Scalar force_div2r = Scalar(0.5) * force_divr;
                     virial[0] += dx.x * dx.x * force_div2r;
@@ -1892,6 +1904,7 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                            const unsigned int *d_exlist,
                            const Index2D nex,
                            Scalar kappa,
+                           Scalar alpha,
                            unsigned int *d_group_members,
                            unsigned int group_size,
                            int block_size,
@@ -1922,6 +1935,7 @@ cudaError_t gpu_fix_exclusions(Scalar4 *d_force,
                                                       d_exlist,
                                                       nex,
                                                       kappa,
+                                                      alpha,
                                                       d_group_members,
                                                       group_size);
     return cudaSuccess;
