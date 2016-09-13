@@ -25,11 +25,16 @@ Not yet released
 
 *Other changes*
 
+* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
 * Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
 * Shorter compile time for HPMC GPU kernels
 * Include symlinked external components in the build process.
 * Add template for external components.
+
+*Bug fixes*
+* fix rare cases where analyze.log() would report a wrong pressure
+* fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
 
 ## v2.0.3
 
