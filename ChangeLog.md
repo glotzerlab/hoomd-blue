@@ -6,6 +6,10 @@
 
 Not yet released
 
+*Bug fixes*
+* Correctly handle particle type names in lattice.unitcell
+* Validate group.tag_list is consistent across MPI ranks
+
 *New features*
 
 * enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
@@ -13,6 +17,7 @@ Not yet released
 * Add constrain.oned to constrain particles to move in one dimension
 * hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
 * md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
+* `use_charge` option for pair.reaction_field
 
 *Deprecated*
 
