@@ -75,7 +75,6 @@ void ewald_force_particle_test(ewaldforce_creator ewald_creator, std::shared_ptr
     ArrayHandle<Scalar> h_virial(fc_3->getVirialArray(), access_location::host, access_mode::read);
     unsigned int pitch = fc_3->getVirialArray().getPitch();
 
-    std::cout << h_force.data[0]. x << " " << h_force.data[0].w << std::endl;
     MY_CHECK_CLOSE(h_force.data[0].x, -0.9188914117, tol);
     MY_CHECK_SMALL(h_force.data[0].y, tol_small);
     MY_CHECK_SMALL(h_force.data[0].z, tol_small);
