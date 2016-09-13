@@ -683,7 +683,7 @@ void PPPMForceCompute::computeInfluenceFunction()
                         Scalar dot1 = dot(kn, k);
                         Scalar dot2 = dot(kn, kn)+m_alpha*m_alpha;
 
-                        Scalar arg_gauss = Scalar(0.25)*(dot2+m_alpha*m_alpha)/m_kappa/m_kappa;
+                        Scalar arg_gauss = Scalar(0.25)*dot2/m_kappa/m_kappa;
                         Scalar gauss = exp(-arg_gauss);
 
                         sum1 += (dot1/dot2) * gauss * wx * wx * wy * wy * wz * wz;
@@ -1189,12 +1189,12 @@ Scalar PPPMForceCompute::computePE()
 
     if (m_exec_conf->getRank()==0)
         {
-        // subtract Madelung constant on rank 0 (see Frenkel and Smit, and Salin and Caillol)
-        sum -= m_q2 * (m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
-            + Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
+        // subtract self-energy on rank 0 (see Frenkel and Smit, and Salin and Caillol)
+        sum -= m_q2 * (Scalar(2.0)*m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
+            - Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
 
         if (m_alpha != Scalar(0.0))
-            sum -= m_q2 * Scalar(2.0*M_PI)*(exp(m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))-Scalar(1.0))/(m_alpha*m_alpha)/V;
+            sum += m_q2 * Scalar(2.0*M_PI)*(exp(m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))-Scalar(1.0))/(m_alpha*m_alpha)/V;
 
         // k = 0 term already accounted for by exclude_dc
         //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);

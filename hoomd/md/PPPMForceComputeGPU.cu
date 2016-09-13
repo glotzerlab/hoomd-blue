@@ -1643,7 +1643,7 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
                     Scalar dot1 = dot(kn, kval);
                     Scalar dot2 = dot(kn, kn)+alpha*alpha;
 
-                    Scalar arg_gauss = Scalar(0.25)*(dot2+alpha*alpha)/kappa/kappa;
+                    Scalar arg_gauss = Scalar(0.25)*dot2/kappa/kappa;
                     Scalar gauss = exp(-arg_gauss);
 
                     sum1 += (dot1/dot2) * gauss * wx * wx * wy * wy * wz * wz;

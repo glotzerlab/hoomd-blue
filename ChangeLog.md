@@ -25,6 +25,10 @@ Not yet released
 * Include symlinked external components in the build process.
 * Add template for external components.
 
+*Bug fixes*
+
+* fix invalid mesh energy in non-neutral systems with charge.pppm()
+
 ## v2.0.3
 
 Released 2016/08/30
