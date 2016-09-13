@@ -316,9 +316,9 @@ void PPPMForceCompute::setupCoeffs()
         }
     #endif
 
-    if (fabs(m_q) > 1e-5)
+    if (fabs(m_q) > 1e-5 && m_alpha==Scalar(0.0))
         {
-        m_exec_conf->msg->warning() << "charge.pppm: system in not neutral, the net charge is " << m_q << std::endl;
+        m_exec_conf->msg->warning() << "charge.pppm: system is not neutral and unscreened interactions are calculated, the net charge is " << m_q << std::endl;
         }
 
     // compute RMS force error
