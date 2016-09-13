@@ -1883,12 +1883,12 @@ __global__ void gpu_fix_exclusions_kernel(Scalar4 *d_force,
                     }
                 }
         force.w *= Scalar(0.5);
-        d_force[idx].x -= force.x;
-        d_force[idx].y -= force.y;
-        d_force[idx].z -= force.z;
-        d_force[idx].w -= force.w;
+        d_force[idx].x += force.x;
+        d_force[idx].y += force.y;
+        d_force[idx].z += force.z;
+        d_force[idx].w += force.w;
         for (unsigned int i = 0; i < 6; i++)
-            d_virial[i*virial_pitch+idx] = - virial[i];
+            d_virial[i*virial_pitch+idx] += virial[i];
         }
     }
 

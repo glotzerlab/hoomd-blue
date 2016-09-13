@@ -1439,12 +1439,12 @@ void PPPMForceCompute::fixExclusions()
             force.w += pair_eng;
             }
         force.w *= Scalar(0.5);
-        h_force.data[idx].x -= force.x;
-        h_force.data[idx].y -= force.y;
-        h_force.data[idx].z -= force.z;
-        h_force.data[idx].w = -force.w;
+        h_force.data[idx].x += force.x;
+        h_force.data[idx].y += force.y;
+        h_force.data[idx].z += force.z;
+        h_force.data[idx].w += force.w;
         for (unsigned int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx] = -virial[k];
+            h_virial.data[k*virial_pitch+idx] += virial[k];
         }
 
     if (m_prof) m_prof->pop();
