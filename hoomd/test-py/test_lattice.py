@@ -149,5 +149,20 @@ class lattice_fcc_test (unittest.TestCase):
     def tearDown(self):
         context.initialize();
 
+# unit tests for uc
+class lattice_unitcell_test (unittest.TestCase):
+    def test_init(self):
+        uc = hoomd.lattice.unitcell(N = 3,
+                            a1 = [1, 0, 0],
+                            a2 = [0, 1, 0],
+                            a3 = [0, 0, 1],
+                            dimensions = 3,
+                            type_name = ["A", "A", "B"]);
+        sysdef = init.create_lattice(unitcell=uc, n=1);
+        snap = sysdef.take_snapshot();
+
+    def tearDown(self):
+        context.initialize();
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
