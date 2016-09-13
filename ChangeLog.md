@@ -12,6 +12,7 @@ Not yet released
 * Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
 * Add constrain.oned to constrain particles to move in one dimension
 * hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
+* md.charge.pppm() takes a Debye screening length as an optional parameter
 
 *Deprecated*
 
