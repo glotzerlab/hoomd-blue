@@ -214,7 +214,7 @@ class pppm(force._force):
         hoomd.util.quiet_status();
         for i in range(0,ntypes):
             for j in range(0,ntypes):
-                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
+                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, alpha = alpha, r_cut=rcut)
         hoomd.util.unquiet_status();
 
         # set the parameters for the appropriate type
