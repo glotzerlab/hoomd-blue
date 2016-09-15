@@ -98,7 +98,7 @@ class EvaluatorPairEwald
                 Scalar arg2 = kappa*r-alpha/(Scalar(2.0)*kappa);
                 Scalar expfac1 = fast::exp(alpha*r);
                 Scalar expfac2 = fast::exp(-alpha*r);
-                Scalar val = (fast::erfc(arg1)*expfac1 + fast::erfc(arg2)*expfac2)/(Scalar(2.0)*r);
+                Scalar val = Scalar(0.5)*(fast::erfc(arg1)*expfac1 + fast::erfc(arg2)*expfac2)*rinv;
 
                 force_divr = qiqj * r2inv * (val + expfac2*Scalar(2.0)*kappa*fast::exp(-arg2*arg2)/fast::sqrt(Scalar(M_PI))
                     + alpha*Scalar(0.5)*expfac2*fast::erfc(arg2) - alpha*Scalar(0.5)*expfac1*fast::erfc(arg1));
