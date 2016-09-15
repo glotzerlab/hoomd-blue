@@ -413,9 +413,9 @@ void Integrator::computeNetForce(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
         unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
@@ -684,9 +684,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::readwrite);
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles <= net_force.getNumElements());

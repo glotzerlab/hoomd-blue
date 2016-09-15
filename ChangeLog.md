@@ -37,6 +37,7 @@ Not yet released
 * fix invalid mesh energy in non-neutral systems with charge.pppm()
 * fix rare cases where analyze.log() would report a wrong pressure
 * fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
+* fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 
 ## v2.0.3
 
