@@ -1339,7 +1339,7 @@ class dpd(pair):
     Example::
 
         nl = nlist.cell()
-        dpd = pair.dpd(r_cut=1.0, nlist=nl, kT=1.0)
+        dpd = pair.dpd(r_cut=1.0, nlist=nl, kT=1.0, seed=0)
         dpd.pair_coeff.set('A', 'A', A=25.0, gamma = 4.5)
         dpd.pair_coeff.set('A', 'B', A=40.0, gamma = 4.5)
         dpd.pair_coeff.set('B', 'B', A=25.0, gamma = 4.5)
@@ -1578,7 +1578,7 @@ class dpdlj(pair):
     Example::
 
         nl = nlist.cell()
-        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, kT=1.0)
+        dpdlj = pair.dpdlj(r_cut=2.5, nlist=nl, kT=1.0, seed=0)
         dpdlj.pair_coeff.set('A', 'A', epsilon=1.0, sigma = 1.0, gamma = 4.5)
         dpdlj.pair_coeff.set('A', 'B', epsilon=0.0, sigma = 1.0 gamma = 4.5)
         dpdlj.pair_coeff.set('B', 'B', epsilon=1.0, sigma = 1.0 gamma = 4.5, r_cut = 2.0**(1.0/6.0))
