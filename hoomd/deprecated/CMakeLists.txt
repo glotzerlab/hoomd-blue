@@ -107,12 +107,14 @@ install(FILES ${_deprecated_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/deprecated
        )
 
+if (COPY_HEADERS)
 # copy headers into build directory
 foreach(file ${_deprecated_headers})
     copy_header(${file})
 endforeach()
 
 add_custom_target(copy_deprecated ALL DEPENDS ${files} ${_deprecated_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

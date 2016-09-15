@@ -203,12 +203,14 @@ install(FILES ${_hpmc_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/hpmc
        )
 
+if (COPY_HEADERS)
 # copy headers into build directory
 foreach(file ${_hpmc_headers})
     copy_header(${file})
 endforeach()
 
 add_custom_target(copy_hpmc ALL DEPENDS ${files} ${_hpmc_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

@@ -99,12 +99,14 @@ install(FILES ${_${PACKAGE_NAME}_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/${PACKAGE_NAME}
        )
 
+if (COPY_HEADERS)
 # copy headers into build directory
 foreach(file ${_${PACKAGE_NAME}_headers})
     copy_header(${file})
 endforeach()
 
 add_custom_target(copy_${PACKAGE_NAME} ALL DEPENDS ${files} ${_${PACKAGE_NAME}_headers})
+endif()
 
 if (BUILD_TESTING)
     # add_subdirectory(test-py)

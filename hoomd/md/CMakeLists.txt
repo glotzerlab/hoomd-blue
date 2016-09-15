@@ -306,12 +306,14 @@ install(FILES ${_md_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/md
        )
 
+if (COPY_HEADERS)
 # copy headers into build directory
 foreach(file ${_md_headers})
     copy_header(${file})
 endforeach()
 
 add_custom_target(copy_md ALL DEPENDS ${files} ${_md_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
