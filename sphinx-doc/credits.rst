@@ -181,6 +181,10 @@ Nathan Horst
 Bryan VanSaders, University of Michigan
  * constrain.oneD
 
+Ludwig Schneider, Georg-August Univeristy Goettingen
+  * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+
+
 HPMC developers
 ---------------
 

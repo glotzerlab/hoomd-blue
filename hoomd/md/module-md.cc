@@ -52,6 +52,7 @@
 #include "TwoStepNVTMTK.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
+#include "MuellerPlatheFlow.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -88,6 +89,7 @@
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
+#include "MuellerPlatheFlowGPU.h"
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -311,6 +313,7 @@ PYBIND11_PLUGIN(_md)
     export_Enforce2DUpdater(m);
     export_ConstraintEllipsoid(m);
     export_FIREEnergyMinimizer(m);
+    export_MuellerPlatheFlow(m);
 
 #ifdef ENABLE_CUDA
     export_TwoStepNVEGPU(m);
@@ -322,6 +325,7 @@ PYBIND11_PLUGIN(_md)
     export_Enforce2DUpdaterGPU(m);
     export_FIREEnergyMinimizerGPU(m);
     export_ConstraintEllipsoidGPU(m);
+    export_MuellerPlatheFlowGPU(m);
 #endif
 
     return m.ptr();
