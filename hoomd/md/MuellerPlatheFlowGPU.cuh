@@ -3,7 +3,6 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
-#include "hoomd/HOOMDMPI.h"
 
 /*! \file MuellerPlatheFlowGPU.cuh
     \brief Declares GPU kernel code for calculating MinMax velocities and updates for the flow.
