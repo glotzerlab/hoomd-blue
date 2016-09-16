@@ -2,50 +2,12 @@
 
 [TOC]
 
-## v2.1.0
-
-Not yet released
-
-*Bug fixes*
-* Correctly handle particle type names in lattice.unitcell
-* Validate group.tag_list is consistent across MPI ranks
-
-*New features*
-
-* enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
-* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
-* Add constrain.oned to constrain particles to move in one dimension
-* hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
-* md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
-* `use_charge` option for pair.reaction_field
-* md.charge.pppm() takes a Debye screening length as an optional parameter
-
-*Deprecated*
-
-* HPMC: the ignore_overlaps flag is replaced by hpmc.integrate.interaction_matrix
-
-*Other changes*
-
-* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
-* Removed dependency on all boost libraries.
-* No longer supporting Intel compiler builds.
-* Shorter compile time for HPMC GPU kernels
-* Include symlinked external components in the build process.
-* Add template for external components.
-
-*Bug fixes*
-* fix invalid mesh energy in non-neutral systems with charge.pppm()
-* fix rare cases where analyze.log() would report a wrong pressure
-* fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
-
 ## v2.0.4
 
 Not yet released
 
-*Bug fixes*
-
-* fig a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
-* fix a bug where the potential energy is misreported on the first step with constrain.rigid()
+* Fix a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
+* Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 
 ## v2.0.3
 

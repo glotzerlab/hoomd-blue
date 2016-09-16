@@ -115,6 +115,7 @@ class MolecularForceCompute : public ForceConstraint
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 
+        boost::signals2::connection m_psort_connection;
         bool m_dirty;                               //!< True if we need to rebuild indices
 
         void setDirty()

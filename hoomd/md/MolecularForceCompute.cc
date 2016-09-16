@@ -24,13 +24,13 @@ MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition>
       m_molecule_idx(m_exec_conf), m_dirty(true)
     {
     // connect to the ParticleData to recieve notifications when particles change order in memory
-    m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+    m_psort_connection = m_pdata->connectParticleSort(boost::bind(&MolecularForceCompute::setDirty, this));
     }
 
 //! Destructor
 MolecularForceCompute::~MolecularForceCompute()
     {
-    m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+    m_psort_connection.disconnect();
     }
 
 void MolecularForceCompute::initMolecules()
