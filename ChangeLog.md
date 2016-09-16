@@ -2,6 +2,10 @@
 
 [TOC]
 
+## v2.0.4.
+
+* Fix a bug where PPPM interactions on CPU where not computed correctly
+
 ## v2.0.3
 
 Released 2016/08/30
