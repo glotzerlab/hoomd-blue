@@ -87,8 +87,11 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
 void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int N,
                                   const Scalar4 *d_pos,
+                                  const unsigned int *d_body,
                                   const BoxDim& box,
                                   const Scalar *d_r_ghost,
+                                  const Scalar *d_r_ghost_body,
+                                  Scalar r_ghost_max,
                                   unsigned int ntypes,
                                   unsigned int mask);
 

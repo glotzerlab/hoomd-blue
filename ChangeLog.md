@@ -6,6 +6,10 @@
 
 Not yet released
 
+*Bug fixes*
+* Correctly handle particle type names in lattice.unitcell
+* Validate group.tag_list is consistent across MPI ranks
+
 *New features*
 
 * enable/disable overlap checks between pairs of constituent particles for hpmc.integrate.sphere_union()
@@ -13,6 +17,8 @@ Not yet released
 * Add constrain.oned to constrain particles to move in one dimension
 * hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
 * add special_pair.lj() to support scaled 1-4 (or other) exclusions in all-atom force fields
+* md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
+* `use_charge` option for pair.reaction_field
 
 *Deprecated*
 
@@ -20,6 +26,7 @@ Not yet released
 
 *Other changes*
 
+* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
 * Removed dependency on all boost libraries.
 * No longer supporting Intel compiler builds.
 * Shorter compile time for HPMC GPU kernels
@@ -29,6 +36,8 @@ Not yet released
 *Bug fixes*
 
 * Fix invalid forces in simulations with many bond types (on GPU)
+* fix rare cases where analyze.log() would report a wrong pressure
+* fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
 
 ## v2.0.3
 

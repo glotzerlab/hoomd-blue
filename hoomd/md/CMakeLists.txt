@@ -36,6 +36,7 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
+		   MuellerPlatheFlow.cc
                    )
 
 set(_md_headers ActiveForceComputeGPU.h
@@ -174,6 +175,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
+			   MuellerPlatheFlowGPU.cc
                            )
 endif()
 
@@ -211,6 +213,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepNVTMTKGPU.cu
+		      MuellerPlatheFlowGPU.cu
                       )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc

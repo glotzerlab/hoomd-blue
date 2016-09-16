@@ -158,6 +158,8 @@ class DomainDecomposition
         //! Get the rank for a particle to be placed
         unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
+        //! Get the number of grid cells in each dimension.
+        uint3 getGridSize(void)const{return make_uint3(m_nx,m_ny,m_nz);}
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis

@@ -1440,7 +1440,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 
                 // update reverse-lookup table
                 gpu_compute_ghost_rtags(first_idx,
-                    n_recv_ghost_groups_tot[stage],
+                    n_keep,
                     d_group_tag.data + first_idx,
                     d_group_rtag.data);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1783,6 +1783,8 @@ void CommunicatorGPU::removeGhostParticleTags()
     {
     if (m_last_flags[comm_flag::tag])
         {
+        m_exec_conf->msg->notice(9) << "CommunicatorGPU: removing " << m_ghosts_added << " ghost particles " << std::endl;
+
         // Reset reverse lookup tags of old ghost atoms
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
@@ -1844,15 +1846,20 @@ void CommunicatorGPU::exchangeGhosts()
             {
             // compute plans for all particles, including already received ghosts
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
             ArrayHandle<Scalar> d_r_ghost(m_r_ghost, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_r_ghost_body(m_r_ghost_body, access_location::device, access_mode::read);
 
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),
                                          d_pos.data,
+                                         d_body.data,
                                          m_pdata->getBox(),
                                          d_r_ghost.data,
+                                         d_r_ghost_body.data,
+                                         m_r_ghost_max,
                                          m_pdata->getNTypes(),
                                          m_comm_mask[stage]);
 
@@ -3136,7 +3143,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3149,7 +3156,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3165,7 +3172,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3178,7 +3185,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
