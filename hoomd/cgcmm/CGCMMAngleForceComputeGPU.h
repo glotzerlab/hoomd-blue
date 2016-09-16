@@ -7,8 +7,7 @@
 #include "CGCMMAngleForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
 
 /*! \file HarmonicAngleForceComputeGPU.h
     \brief Declares the HarmonicAngleForceGPU class
@@ -17,6 +16,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CGCMMANGLEFORCECOMPUTEGPU_H__
 #define __CGCMMANGLEFORCECOMPUTEGPU_H__
@@ -37,7 +38,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        CGCMMAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~CGCMMAngleForceComputeGPU();
 
@@ -56,7 +57,7 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar t_0, unsigned int cg_type, Scalar eps, Scalar sigma);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<Scalar2> m_params;           //!< k, t0 Parameters stored on the GPU
 
         // below are just for the CG-CMM angle potential
@@ -68,6 +69,6 @@ class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
     };
 
 //! Export the CGCMMAngleForceComputeGPU class to python
-void export_CGCMMAngleForceComputeGPU();
+void export_CGCMMAngleForceComputeGPU(pybind11::module& m);
 
 #endif

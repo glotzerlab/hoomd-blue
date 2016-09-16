@@ -441,17 +441,17 @@ class npt(_integration_method):
         # silently ignore z related degrees of freedom when running in 2d
         flags = 0;
         if x or all:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_x
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_x)
         if y or all:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_y
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_y)
         if (z or all) and not twod:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_z
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_z)
         if xy or all:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_xy
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_xy)
         if (xz or all) and not twod:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_xz
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_xz)
         if (yz or all) and not twod:
-            flags |= _md.TwoStepNPTMTK.baroFlags.baro_yz
+            flags |= int(_md.TwoStepNPTMTK.baroFlags.baro_yz)
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_method = _md.TwoStepNPTMTK(hoomd.context.current.system_definition,

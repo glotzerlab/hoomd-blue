@@ -12,8 +12,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepLangevin.h
@@ -31,9 +30,9 @@ using namespace std;
     \param suffix Suffix to attach to the end of log quantity names
 
 */
-TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -97,8 +96,6 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -375,11 +372,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     if (m_aniso)
         {
         // angular degrees of freedom
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
@@ -426,12 +418,12 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_TwoStepLangevin()
+void export_TwoStepLangevin(py::module& m)
     {
-    class_<TwoStepLangevin, boost::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepLangevin", init< boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ParticleGroup>,
-                            boost::shared_ptr<Variant>,
+    py::class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin", py::base<TwoStepLangevinBase>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
                             unsigned int,
                             bool,
                             Scalar,

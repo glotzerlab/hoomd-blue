@@ -6,7 +6,7 @@
 #include "EAMForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file EAMForceComputeGPU.h
     \brief Declares the class EAMForceComputeGPU
@@ -26,7 +26,7 @@ class EAMForceComputeGPU : public EAMForceCompute
     {
     public:
         //! Constructs the compute
-        EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+        EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
         //! Destructor
         virtual ~EAMForceComputeGPU();
@@ -46,13 +46,13 @@ class EAMForceComputeGPU : public EAMForceCompute
         EAMTexInterData eam_data;                   //!< Undocumented parameter
         EAMtex eam_tex_data;                        //!< Undocumented parameter
         Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        boost::scoped_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU();
+void export_EAMForceComputeGPU(pybind11::module& m);
 
 #endif

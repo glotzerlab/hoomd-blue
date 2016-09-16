@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Implements Langevin dynamics on the GPU
 /*! GPU accelerated version of TwoStepLangevin
 
@@ -26,9 +28,9 @@ class TwoStepLangevinGPU : public TwoStepLangevin
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepLangevinGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+        TwoStepLangevinGPU(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -51,6 +53,6 @@ class TwoStepLangevinGPU : public TwoStepLangevin
     };
 
 //! Exports the TwoStepLangevinGPU class to python
-void export_TwoStepLangevinGPU();
+void export_TwoStepLangevinGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_LANGEVIN_GPU_H__

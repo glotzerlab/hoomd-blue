@@ -18,9 +18,8 @@
 
 #include <string.h>
 #include <stdexcept>
-#include <boost/python.hpp>
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
 
 /*! Constructs the GSDDumpWriter. After construction, settings are set. No file operations are
     attempted until analyze() is called.
@@ -33,9 +32,9 @@ using namespace std;
 
     If the group does not include all particles, then topology information cannot be written to the file.
 */
-GSDDumpWriter::GSDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+GSDDumpWriter::GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              const std::string &fname,
-                             boost::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<ParticleGroup> group,
                              bool overwrite,
                              bool truncate)
     : Analyzer(sysdef), m_fname(fname), m_overwrite(overwrite),
@@ -780,10 +779,10 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         }
     }
 
-void export_GSDDumpWriter()
+void export_GSDDumpWriter(py::module& m)
     {
-    class_<GSDDumpWriter, boost::shared_ptr<GSDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("GSDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, boost::shared_ptr<ParticleGroup>, bool, bool>())
+    py::class_<GSDDumpWriter, std::shared_ptr<GSDDumpWriter> >(m,"GSDDumpWriter",py::base<Analyzer>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::string, std::shared_ptr<ParticleGroup>, bool, bool>())
         .def("setWriteAttribute", &GSDDumpWriter::setWriteAttribute)
         .def("setWriteProperty", &GSDDumpWriter::setWriteProperty)
         .def("setWriteMomentum", &GSDDumpWriter::setWriteMomentum)

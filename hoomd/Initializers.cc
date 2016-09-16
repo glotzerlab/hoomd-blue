@@ -16,9 +16,7 @@
 
 using namespace std;
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \file Initializers.cc
     \brief Defines a few initializers for setting up ParticleData instances
@@ -39,9 +37,9 @@ SimpleCubicInitializer::SimpleCubicInitializer(unsigned int M, Scalar spacing, c
     }
 
 /*! initialize a snapshot with a cubic crystal */
-boost::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > SimpleCubicInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
@@ -117,9 +115,9 @@ void RandomInitializer::setSeed(unsigned int seed)
     \note An exception is thrown if too many tries are made to find a spot where
         min_dist can be satisfied.
 */
-boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
     snapshot->global_box = m_box;
 
     SnapshotParticleData<Scalar>& pdata = snapshot->particle_data;
@@ -181,22 +179,4 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot()
 
     pdata.type_mapping.push_back(m_type_name);
     return snapshot;
-    }
-
-/////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
-
-
-void export_SimpleCubicInitializer()
-    {
-    class_< SimpleCubicInitializer >
-        ("SimpleCubicInitializer", init<unsigned int, Scalar, string>())
-    ;
-    }
-
-void export_RandomInitializer()
-    {
-    class_< RandomInitializer >
-        ("RandomInitializer", init<unsigned int, Scalar, Scalar, string>())
-    ;
     }

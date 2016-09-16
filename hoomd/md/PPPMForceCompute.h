@@ -16,8 +16,7 @@
 #include "hoomd/extern/kiss_fftnd.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
-#include <boost/bind.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 const Scalar EPS_HOC(1.0e-7);
 
@@ -29,9 +28,9 @@ class PPPMForceCompute : public ForceCompute
     {
     public:
         //! Constructor
-        PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
-            boost::shared_ptr<ParticleGroup> group);
+        PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
+            std::shared_ptr<ParticleGroup> group);
         virtual ~PPPMForceCompute();
 
         //! Set the parameters
@@ -73,8 +72,8 @@ class PPPMForceCompute : public ForceCompute
          */
         void computeBiasForces(unsigned int timestep);
 
-        boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-        boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
+        std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
+        std::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
 
         uint3 m_mesh_points;                //!< Number of sub-divisions along one coordinate
         uint3 m_global_dim;                 //!< Global grid dimensions
@@ -162,8 +161,6 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_y;   //!< Fourier transformed mesh times the influence function, y-component
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_z;   //!< Fourier transformed mesh times the influence function, z-component
 
-        boost::signals2::connection m_boxchange_connection; //!< Connection to ParticleData box change signal
-
         std::vector<std::string> m_log_names;           //!< Name of the log quantity
 
         bool m_dfft_initialized;                   //! True if host dfft has been initialized
@@ -188,6 +185,6 @@ class PPPMForceCompute : public ForceCompute
 
     };
 
-void export_PPPMForceCompute();
+void export_PPPMForceCompute(pybind11::module& m);
 
 #endif

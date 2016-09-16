@@ -20,7 +20,8 @@
 
 #include <string>
 #include <fstream>
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Calls a python functor object
 /*! On construction, CallbackAnalyzer stores a python object to be called every analyzer period.
@@ -32,8 +33,8 @@ class CallbackAnalyzer : public Analyzer
     {
     public:
         //! Construct the callback analyzer
-        CallbackAnalyzer(boost::shared_ptr<SystemDefinition> sysdef,
-                    boost::python::object callback);
+        CallbackAnalyzer(std::shared_ptr<SystemDefinition> sysdef,
+                    pybind11::object callback);
 
         //! Destructor
         ~CallbackAnalyzer();
@@ -44,10 +45,10 @@ class CallbackAnalyzer : public Analyzer
     private:
 
         ////! The callback function to be called at each analyzer period.
-        boost::python::object callback;
+        pybind11::object callback;
     };
 
 //! Exports the CallbackAnalyzer class to python
-void export_CallbackAnalyzer();
+void export_CallbackAnalyzer(pybind11::module& m);
 
 #endif

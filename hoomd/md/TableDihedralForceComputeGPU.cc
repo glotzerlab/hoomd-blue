@@ -6,10 +6,7 @@
 
 #include "TableDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -23,7 +20,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+TableDihedralForceComputeGPU::TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TableDihedralForceCompute(sysdef, table_width, log_suffix)
@@ -101,12 +98,11 @@ void TableDihedralForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_TableDihedralForceComputeGPU()
+void export_TableDihedralForceComputeGPU(py::module& m)
     {
-    class_<TableDihedralForceComputeGPU, boost::shared_ptr<TableDihedralForceComputeGPU>, bases<TableDihedralForceCompute>, boost::noncopyable >
-    ("TableDihedralForceComputeGPU",
-     init< boost::shared_ptr<SystemDefinition>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<TableDihedralForceComputeGPU, std::shared_ptr<TableDihedralForceComputeGPU> >(m, "TableDihedralForceComputeGPU", py::base<TableDihedralForceCompute>())
+     .def(py::init< std::shared_ptr<SystemDefinition>,
+                             unsigned int,
+                             const std::string& >())
+                            ;
     }

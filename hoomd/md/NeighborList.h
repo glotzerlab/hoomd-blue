@@ -10,8 +10,8 @@
 #include "hoomd/GPUFlags.h"
 #include "hoomd/Index1D.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
 
 /*! \file NeighborList.h
@@ -21,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __NEIGHBORLIST_H__
 #define __NEIGHBORLIST_H__
@@ -121,7 +123,7 @@ class NeighborList : public Compute
             };
 
         //! Constructs the compute
-        NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
+        NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff);
 
         //! Destructor
         virtual ~NeighborList();
@@ -351,7 +353,7 @@ class NeighborList : public Compute
         virtual void setDiameterShift(bool diameter_shift)
             {
             m_diameter_shift = diameter_shift;
-            m_rcut_signal();
+            m_rcut_signal.emit();
             forceUpdate();
             }
 
@@ -369,7 +371,7 @@ class NeighborList : public Compute
         virtual void setMaximumDiameter(Scalar d_max)
             {
             m_d_max = d_max;
-            m_rcut_signal();
+            m_rcut_signal.emit();
             forceUpdate();
             }
 
@@ -425,7 +427,7 @@ class NeighborList : public Compute
         //! Set the communicator to use
         /*! \param comm MPI communication class
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
         //! Returns true if the particle migration criterium is fulfilled
         /*! \param timestep The current timestep
@@ -443,16 +445,9 @@ class NeighborList : public Compute
             return m_last_updated_tstep == timestep && m_has_been_updated_once;
             }
 
-        /*! \param func Function to call when the cutoff radius changes
-            \return Connection to manage the signal/slot connection
-            Calls are performed by using boost::signals2. The function passed in
-            \a func will be called every time the NeighborList is notified of a change in cutoff radius
-            \note If the caller class is destroyed, it needs to disconnect the signal connection
-            via \b con.disconnect where \b con is the return value of this function.
-        */
-        boost::signals2::connection connectRCutChange(const boost::function<void ()> &func)
+        Nano::Signal<void ()>& getRCutChangeSignal()
             {
-            return m_rcut_signal.connect(func);
+            return m_rcut_signal;
             }
 
    protected:
@@ -486,15 +481,6 @@ class NeighborList : public Compute
         Index2D m_ex_list_indexer_tag;         //!< Indexer for accessing the by-tag exclusion list
         bool m_exclusions_set;                 //!< True if any exclusions have been set
         bool m_need_reallocate_exlist;         //!< True if global exclusion list needs to be reallocated
-
-        boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to max particle number change signal
-        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
-        #ifdef ENABLE_MPI
-        boost::signals2::connection m_migrate_request_connection; //!< Connection to trigger particle migration
-        boost::signals2::connection m_comm_flags_request;         //!< Connection to request ghost particle fields
-        boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
-        #endif
 
         //! Return true if we are supposed to do a distance check in this time step
         bool shouldCheckDistance(unsigned int timestep);
@@ -538,17 +524,14 @@ class NeighborList : public Compute
         #endif
 
     private:
-        boost::signals2::signal<void ()> m_rcut_signal;     //!< Signal that is triggered when the cutoff radius changes
+        Nano::Signal<void ()> m_rcut_signal;                //!< Signal that is triggered when the cutoff radius changes
 
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the rcut array changing
         bool m_rcut_changed;                                //!< Flag if the rcut array has changed
         //! Notify the NeighborList that the rcut has changed for delayed updating
         void slotRCutChange()
             {
             m_rcut_changed = true;
             }
-
-        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
 
         int64_t m_updates;              //!< Number of times the neighbor list has been updated
         int64_t m_forced_updates;       //!< Number of times the neighbor list has been foribly updated
@@ -589,6 +572,6 @@ class NeighborList : public Compute
     };
 
 //! Exports NeighborList to python
-void export_NeighborList();
+void export_NeighborList(pybind11::module& m);
 
 #endif

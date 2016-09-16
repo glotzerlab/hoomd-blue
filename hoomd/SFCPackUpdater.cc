@@ -12,10 +12,6 @@
 #include "SFCPackUpdater.h"
 #include "Communicator.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include <math.h>
 #include <stdexcept>
 #include <algorithm>
@@ -23,10 +19,11 @@ using namespace boost;
 #include <iostream>
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+SFCPackUpdater::SFCPackUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef), m_last_grid(0), m_last_dim(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdater" << endl;
@@ -46,7 +43,7 @@ SFCPackUpdater::SFCPackUpdater(boost::shared_ptr<SystemDefinition> sysdef)
         m_grid = 256;
 
     // register reallocate method with particle data maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&SFCPackUpdater::reallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
     }
 
 /*! reallocate the internal arrays
@@ -62,7 +59,7 @@ void SFCPackUpdater::reallocate()
 SFCPackUpdater::~SFCPackUpdater()
     {
     m_exec_conf->msg->notice(5) << "Destroying SFCPackUpdater" << endl;
-    m_max_particle_num_change_connection.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<SFCPackUpdater, &SFCPackUpdater::reallocate>(this);
     }
 
 /*! Performs the sort.
@@ -75,6 +72,18 @@ void SFCPackUpdater::update(unsigned int timestep)
     {
     m_exec_conf->msg->notice(6) << "SFCPackUpdater: particle sort" << std::endl;
 
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // make sure all particles that need to be local are
+        m_comm->forceMigrate();
+        m_comm->communicate(timestep);
+ 
+        // remove all ghost particles
+        m_pdata->removeAllGhostParticles();
+        }
+    #endif
+
     if (m_prof) m_prof->push(m_exec_conf, "SFCPack");
 
     // figure out the sort order we need to apply
@@ -86,7 +95,16 @@ void SFCPackUpdater::update(unsigned int timestep)
     // apply that sort order to the particles
     applySortOrder();
 
+    // trigger sort signal (this also forces particle migration)
     m_pdata->notifyParticleSort();
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // restore ghosts
+        m_comm->communicate(timestep);
+        }
+    #endif
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -594,10 +612,10 @@ void SFCPackUpdater::writeTraversalOrder(const std::string& fname, const vector<
         }
     }
 
-void export_SFCPackUpdater()
+void export_SFCPackUpdater(py::module& m)
     {
-    class_<SFCPackUpdater, boost::shared_ptr<SFCPackUpdater>, bases<Updater>, boost::noncopyable>
-    ("SFCPackUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<SFCPackUpdater, std::shared_ptr<SFCPackUpdater> >(m,"SFCPackUpdater",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setGrid", &SFCPackUpdater::setGrid)
     ;
     }

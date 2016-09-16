@@ -17,22 +17,19 @@
 
 using namespace std;
 
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
-#include <boost/python.hpp>
-using namespace boost::python;
 
 /*!
  * \param sysdef System definition
  * \param decomposition Domain decomposition
  */
-LoadBalancerGPU::LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<DomainDecomposition> decomposition)
+LoadBalancerGPU::LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<DomainDecomposition> decomposition)
     : LoadBalancer(sysdef, decomposition)
     {
     // allocate data connected to the maximum number of particles
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&LoadBalancerGPU::slotMaxNumChanged, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
 
     GPUArray<unsigned int> off_ranks(m_pdata->getMaxN(), m_exec_conf);
     m_off_ranks.swap(off_ranks);
@@ -46,7 +43,7 @@ LoadBalancerGPU::LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
 LoadBalancerGPU::~LoadBalancerGPU()
     {
     // disconnect from the signal
-    m_max_numchange_conn.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<LoadBalancerGPU, &LoadBalancerGPU::slotMaxNumChanged>(this);
     }
 
 void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts)
@@ -120,10 +117,10 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         }
     }
 
-void export_LoadBalancerGPU()
+void export_LoadBalancerGPU(py::module& m)
     {
-    class_<LoadBalancerGPU, boost::shared_ptr<LoadBalancerGPU>, bases<LoadBalancer>, boost::noncopyable>
-    ("LoadBalancerGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<DomainDecomposition> >())
+    py::class_<LoadBalancerGPU, std::shared_ptr<LoadBalancerGPU> >(m,"LoadBalancerGPU",py::base<LoadBalancer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
     ;
     }
 

@@ -7,8 +7,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/md/FIREEnergyMinimizer.h"
 
@@ -23,26 +22,25 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE EnergyMinimizerTests
-#include "boost_utf_configure.h"
+
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
-typedef boost::function<boost::shared_ptr<FIREEnergyMinimizer> (boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
+typedef std::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
 
 //! FIREEnergyMinimizer creator
-boost::shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar dt)
+std::shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)
     {
-    return boost::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group, dt));
+    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group, dt));
     }
 
 #ifdef ENABLE_CUDA
 //! FIREEnergyMinimizerGPU creator
-boost::shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group, Scalar dt)
+std::shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)
     {
-    return boost::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group, dt));
+    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group, dt));
     }
 #endif
 
@@ -357,13 +355,13 @@ double x_two_lj [] = {
 1.1227};
 
 //! Compares the output from one NVEUpdater to another
-void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 260;
     Scalar rho(Scalar(1.2));
     Scalar L = Scalar(pow((double)(N/rho), 1.0/3.0));
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 2, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
     PDataFlags flags;
@@ -380,11 +378,11 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
             pdata->setType(i,1);
         }
 
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.5), Scalar(0.3)));
-    boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(2.5), Scalar(0.3)));
+    std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(2.5));
     fc->setRcut(0, 1, Scalar(2.5));
     fc->setRcut(1, 1, Scalar(2.5));
@@ -413,7 +411,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    boost::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.05));
+    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.05));
     fire->setFtol(5.0);
     fire->addForceCompute(fc);
     fire->setMinSteps(10);
@@ -427,7 +425,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
 
     ComputeThermo ct(sysdef, group_all);
     ct.compute(max_step);
-    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
+    MY_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     fire->reset();
 
@@ -441,19 +439,19 @@ void fire_smallsystem_test(fire_creator fire_creator1, boost::shared_ptr<Executi
         fire->update(i);
 
     ct.compute(max_step+1);
-    MY_BOOST_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
+    MY_CHECK_CLOSE(ct.getPotentialEnergy()/Scalar(N), -7.75, (0.01/7.75)*100);
 
     //cerr << fire->computePotentialEnergy(max_step)/Scalar(N) << endl;
 
     }
 
-void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void fire_twoparticle_test(fire_creator fire_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 2;
     //Scalar rho(1.2);
     Scalar L = Scalar(20);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(N, BoxDim(L, L, L), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // enable the energy computation
     PDataFlags flags;
@@ -465,11 +463,11 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     pdata->setPosition(1,make_scalar3(2.0,0.0,0.0));
     pdata->setType(1,0);
 
-    boost::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
-    boost::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
+    std::shared_ptr<ParticleSelector> selector_one(new ParticleSelectorTag(sysdef, 1, 1));
+    std::shared_ptr<ParticleGroup> group_one(new ParticleGroup(sysdef, selector_one));
 
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.3)));
-    boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.3)));
+    std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
     fc->setRcut(0, 0, Scalar(3.0));
 
 
@@ -485,7 +483,7 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
     fc->setRcut(0,0,3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    boost::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.05));
+    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.05));
     fire->addForceCompute(fc);
     fire->setFtol(Scalar(5.0));
     fire->setEtol(Scalar(1e-7));
@@ -502,35 +500,35 @@ void fire_twoparticle_test(fire_creator fire_creator1, boost::shared_ptr<Executi
         Scalar posx = pdata->getPosition(1).x;
         diff += (posx- Scalar(x_two_lj[i]))*(posx- Scalar(x_two_lj[i]));
 
-        //MY_BOOST_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
+        //MY_CHECK_CLOSE(arrays.x[1], x_two_lj[i], 0.01);   // Trajectory overkill test!
         }
 
-    MY_BOOST_CHECK_SMALL(diff, 0.001);
+    MY_CHECK_SMALL(diff, 0.001);
 
     }
 
 //! Sees if a single particle's trajectory is being calculated correctly
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_twoparticle_test )
+UP_TEST( FIREEnergyMinimizer_twoparticle_test )
     {
-    fire_twoparticle_test(base_class_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    fire_twoparticle_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizer to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizer_smallsystem_test )
+UP_TEST( FIREEnergyMinimizer_smallsystem_test )
     {
-    fire_smallsystem_test(base_class_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    fire_smallsystem_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Sees if a single particle's trajectory is being calculated correctly
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_twoparticle_test )
+UP_TEST( FIREEnergyMinimizerGPU_twoparticle_test )
     {
-    fire_twoparticle_test(gpu_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    fire_twoparticle_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
-BOOST_AUTO_TEST_CASE( FIREEnergyMinimizerGPU_smallsystem_test )
+UP_TEST( FIREEnergyMinimizerGPU_smallsystem_test )
     {
-    fire_smallsystem_test(gpu_fire_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    fire_smallsystem_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

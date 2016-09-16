@@ -36,10 +36,10 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
 
-using namespace boost::python;
+
+
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,27 +48,27 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_convex_spheropolyhedron32()
+void export_convex_spheropolyhedron32(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoSpheropolyhedron32");
-    export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoImplicitSpheropolyhedron32");
-    export_ComputeFreeVolume< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeSpheropolyhedron32");
-    export_AnalyzerSDF< ShapeSpheropolyhedron<32> >("AnalyzerSDFSpheropolyhedron32");
-    export_UpdaterMuVT< ShapeSpheropolyhedron<32> >("UpdaterMuVTSpheropolyhedron32");
-    export_UpdaterMuVTImplicit< ShapeSpheropolyhedron<32> >("UpdaterMuVTImplicitSpheropolyhedron32");
+    export_IntegratorHPMCMono< ShapeSpheropolyhedron<32> >(m, "IntegratorHPMCMonoSpheropolyhedron32");
+    export_IntegratorHPMCMonoImplicit< ShapeSpheropolyhedron<32> >(m, "IntegratorHPMCMonoImplicitSpheropolyhedron32");
+    export_ComputeFreeVolume< ShapeSpheropolyhedron<32> >(m, "ComputeFreeVolumeSpheropolyhedron32");
+    export_AnalyzerSDF< ShapeSpheropolyhedron<32> >(m, "AnalyzerSDFSpheropolyhedron32");
+    export_UpdaterMuVT< ShapeSpheropolyhedron<32> >(m, "UpdaterMuVTSpheropolyhedron32");
+    export_UpdaterMuVTImplicit< ShapeSpheropolyhedron<32> >(m, "UpdaterMuVTImplicitSpheropolyhedron32");
 
-    export_ExternalFieldInterface<ShapeSpheropolyhedron<32> >("ExternalFieldSpheropolyhedron32");
-    export_LatticeField<ShapeSpheropolyhedron<32> >("ExternalFieldLatticeSpheropolyhedron32");
-    export_ExternalFieldComposite<ShapeSpheropolyhedron<32> >("ExternalFieldCompositeSpheropolyhedron32");
-    export_RemoveDriftUpdater<ShapeSpheropolyhedron<32> >("RemoveDriftUpdaterSpheropolyhedron32");
-    // export_ExternalFieldWall<ShapeSpheropolyhedron<32> >("WallSpheropolyhedron32");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron<32> >("UpdaterExternalFieldWallSpheropolyhedron32");
+    export_ExternalFieldInterface<ShapeSpheropolyhedron<32> >(m, "ExternalFieldSpheropolyhedron32");
+    export_LatticeField<ShapeSpheropolyhedron<32> >(m, "ExternalFieldLatticeSpheropolyhedron32");
+    export_ExternalFieldComposite<ShapeSpheropolyhedron<32> >(m, "ExternalFieldCompositeSpheropolyhedron32");
+    export_RemoveDriftUpdater<ShapeSpheropolyhedron<32> >(m, "RemoveDriftUpdaterSpheropolyhedron32");
+    // export_ExternalFieldWall<ShapeSpheropolyhedron<32> >(m, "WallSpheropolyhedron32");
+    // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron<32> >(m, "UpdaterExternalFieldWallSpheropolyhedron32");
 
     #ifdef ENABLE_CUDA
 
-    export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoGPUSpheropolyhedron32");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron<32> >("IntegratorHPMCMonoImplicitGPUSpheropolyhedron32");
-    export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<32> >("ComputeFreeVolumeGPUSpheropolyhedron32");
+    export_IntegratorHPMCMonoGPU< ShapeSpheropolyhedron<32> >(m, "IntegratorHPMCMonoGPUSpheropolyhedron32");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolyhedron<32> >(m, "IntegratorHPMCMonoImplicitGPUSpheropolyhedron32");
+    export_ComputeFreeVolumeGPU< ShapeSpheropolyhedron<32> >(m, "ComputeFreeVolumeGPUSpheropolyhedron32");
 
     #endif
     }

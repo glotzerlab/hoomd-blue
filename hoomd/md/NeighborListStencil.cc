@@ -14,12 +14,8 @@
 #include "hoomd/Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
-
 using namespace std;
-using namespace boost::python;
-
+namespace py = pybind11;
 /*!
  * \param sysdef System definition
  * \param r_cut Default cutoff radius
@@ -29,11 +25,11 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListStencil::NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
                                          Scalar r_cut,
                                          Scalar r_buff,
-                                         boost::shared_ptr<CellList> cl,
-                                         boost::shared_ptr<CellListStencil> cls)
+                                         std::shared_ptr<CellList> cl,
+                                         std::shared_ptr<CellListStencil> cls)
     : NeighborList(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true)
     {
@@ -41,11 +37,11 @@ NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sys
 
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     // construct the cell list stencil generator for the current cell list
     if (!m_cls)
-        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     m_cl->setComputeTDB(true);
@@ -55,13 +51,13 @@ NeighborListStencil::NeighborListStencil(boost::shared_ptr<SystemDefinition> sys
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListStencil::slotRCutChange, this));
+    getRCutChangeSignal().connect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
     }
 
 NeighborListStencil::~NeighborListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListStencil" << endl;
-    m_rcut_change_conn.disconnect();
+    getRCutChangeSignal().disconnect<NeighborListStencil, &NeighborListStencil::slotRCutChange>(this);
     }
 
 void NeighborListStencil::setRCut(Scalar r_cut, Scalar r_buff)
@@ -338,9 +334,9 @@ void NeighborListStencil::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListStencil()
+void export_NeighborListStencil(py::module& m)
     {
-    class_<NeighborListStencil, boost::shared_ptr<NeighborListStencil>, bases<NeighborList>, boost::noncopyable >
-        ("NeighborListStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+    py::class_<NeighborListStencil, std::shared_ptr<NeighborListStencil> >(m, "NeighborListStencil", py::base<NeighborList>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListStencil::setCellWidth);
     }

@@ -87,13 +87,13 @@ class param_dict(dict):
 
 class _param(object):
     def __init__(self, mc, typid):
-        self.__dict__.update(dict(_keys=['ignore_statistics', 'ignore_overlaps'], mc=mc, typid=typid, make_fn=None, is_set=False));
+        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False));
 
-    def ensure_list(self, li):
-        if(type(li) == numpy.ndarray):
-            return li.tolist();
-        else:
-            return list(li);
+    @classmethod
+    def ensure_list(cls, li):
+        # this will be slow if called many times but it is more robust.
+        ai = numpy.array(li);
+        return ai.tolist();
 
     def get_metadata(self):
         data = {}
@@ -108,6 +108,14 @@ class _param(object):
 
     def set(self, **params):
         self.is_set = True;
+
+        # backwards compatbility
+        if 'ignore_overlaps' in params:
+            # ugly workaround
+            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
+            # do not pass to C++
+            params.pop('ignore_overlaps',None)
+
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
@@ -121,10 +129,9 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
         # should we put this in the c++ side?
         return "sphere(r = {})".format(self.diameter)
 
-    def make_param(self, diameter, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, diameter, ignore_statistics=False):
         return self.make_fn(float(diameter)/2.0,
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -138,11 +145,10 @@ class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
         string = "convex polygon(vertices = {})".format(self.vertices);
         return string;
 
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0.0),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_spheropolygon_params(_hpmc.convex_spheropolygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -156,11 +162,10 @@ class convex_spheropolygon_params(_hpmc.convex_spheropolygon_param_proxy, _param
         string = "convex spheropolygon(sweep radius = {}, , vertices = {})".format(self.sweep_radius, self.vertices);
         return string;
 
-    def make_param(self, vertices, sweep_radius = 0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(sweep_radius),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -174,11 +179,10 @@ class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
         string = "simple polygon(vertices = {})".format(self.vertices);
         return string;
 
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_polyhedron_params(_param):
     def __init__(self, mc, index):
@@ -197,13 +201,12 @@ class convex_polyhedron_params(_param):
         sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_polyhedron_param_proxy", max_verts);
         return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
 
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, ignore_statistics=False):
         if self.mc.max_verts < len(vertices):
             raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(self.mc.max_verts,len(vertices)));
         return self.make_fn(self.ensure_list(vertices),
                             float(0),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_spheropolyhedron_params(_param):
     def __init__(self, mc, index):
@@ -222,14 +225,13 @@ class convex_spheropolyhedron_params(_param):
         sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_spheropolyhedron_param_proxy", max_verts);
         return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
 
-    def make_param(self, vertices, sweep_radius = 0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
         if self.mc.max_verts < len(vertices):
             raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(self.mc.max_verts,len(vertices)));
 
         return self.make_fn(self.ensure_list(vertices),
                             float(sweep_radius),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
@@ -243,7 +245,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {})".format(self.vertices, self.faces,self.sweep_radius);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False):
         face_offs = []
         face_verts = []
         offs = 0
@@ -257,14 +259,13 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         face_offs.append(offs)
 
         if sweep_radius < 0.0:
-            globals.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
 
         return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
                             float(sweep_radius),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
     def __init__(self, mc, index):
@@ -278,14 +279,13 @@ class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
         string = "faceted sphere(vertices = {}, normals = {}, offsets = {})".format(self.vertices, self.normals, self.offsets);
         return string;
 
-    def make_param(self, normals, offsets, vertices, diameter, origin=(0.0, 0.0, 0.0), ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, normals, offsets, vertices, diameter, origin=(0.0, 0.0, 0.0), ignore_statistics=False):
         return self.make_fn(self.ensure_list(normals),
                             self.ensure_list(offsets),
                             self.ensure_list(vertices),
                             float(diameter),
                             tuple(origin),
-                            bool(ignore_statistics),
-                            bool(ignore_overlaps));
+                            bool(ignore_statistics));
 
 class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
     def __init__(self, mc, index):
@@ -300,12 +300,11 @@ class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
         string = "sphinx(centers = {}, diameters = {}, diameter = {})".format(self.centers, self.diameters, self.diameter);
         return string;
 
-    def make_param(self, diameters, centers, ignore_overlaps=False, ignore_statistics=False, colors=None):
+    def make_param(self, diameters, centers, ignore_statistics=False, colors=None):
         self.colors = None if colors is None else self.ensure_list(colors);
         return self.make_fn(self.ensure_list(diameters),
                             self.ensure_list(centers),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class ellipsoid_params(_hpmc.ell_param_proxy, _param):
     def __init__(self, mc, index):
@@ -318,24 +317,23 @@ class ellipsoid_params(_hpmc.ell_param_proxy, _param):
         # should we put this in the c++ side?
         return "ellipsoid(a = {}, b = {}, c = {})".format(self.a, self.b, self.c)
 
-    def make_param(self, a, b, c, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, a, b, c, ignore_statistics=False):
         return self.make_fn(float(a),
                             float(b),
                             float(c),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
-class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
+class sphere_union_params(_param):
     def __init__(self, mc, index):
-        _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
+        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
-        self.make_fn = _hpmc.make_sphere_union_params;
+        self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
+        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_sphere_union_params", self.mc.max_members);
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {})\n".format(self.centers, self.orientations, self.diameter);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
@@ -354,8 +352,16 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, ignore_overlaps=False, ignore_statistics=False, colors=None):
-        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
+    @classmethod
+    def get_sized_class(cls, max_members):
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", max_members);
+        return type(cls.__name__ + str(max_members), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
+
+    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
@@ -363,5 +369,5 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return self.make_fn(self.ensure_list(members),
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            self.ensure_list(overlap),
+                            ignore_statistics);

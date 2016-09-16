@@ -28,7 +28,6 @@
 #include <iostream>
 #include <stdexcept>
 #include <algorithm>
-#include <boost/bind.hpp>
 #include <stdlib.h>
 
 //! Specifies where to acquire the data
@@ -203,17 +202,17 @@ template<class T> class GPUArray
         //! Constructs a NULL GPUArray
         GPUArray();
         //! Constructs a 1-D GPUArray
-        GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Constructs a 2-D GPUArray
-        GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GPUArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         virtual ~GPUArray();
 
 #ifdef ENABLE_CUDA
         //! Constructs a 1-D GPUArray
-        GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+        GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
         //! Constructs a 2-D GPUArray
-        GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
+        GPUArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
 #endif
 
         //! Copy constructor
@@ -312,7 +311,7 @@ template<class T> class GPUArray
 
         mutable T* h_data;      //!< Pointer to allocated host memory
 
-        mutable boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+        mutable std::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
     private:
         //! Helper function to allocate memory
         inline void allocate();
@@ -395,7 +394,7 @@ template<class T> GPUArray<T>::GPUArray() :
 /*! \param num_elements Number of elements to allocate in the array
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
+template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         m_mapped(false),
@@ -413,7 +412,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared
     \param height Number of rows to allocate in the 2D array
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
+template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_height(height), m_acquired(false), m_data_location(data_location::host),
 #ifdef ENABLE_CUDA
         m_mapped(false),
@@ -438,7 +437,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
     \param mapped True if we are using mapped-pinned memory
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
+template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
         m_num_elements(num_elements), m_pitch(num_elements), m_height(1), m_acquired(false), m_data_location(data_location::host),
         m_mapped(mapped),
         d_data(NULL),
@@ -455,7 +454,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, boost::shared
     \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
     \param mapped True if we are using mapped-pinned memory
 */
-template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, boost::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
+template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped) :
         m_height(height), m_acquired(false), m_data_location(data_location::host),
         m_mapped(mapped),
         d_data(NULL),

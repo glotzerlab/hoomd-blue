@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTTREE_H__
 #define __NEIGHBORLISTTREE_H__
 
@@ -39,7 +41,7 @@ class NeighborListTree : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                            Scalar r_cut,
                            Scalar r_buff);
 
@@ -76,16 +78,9 @@ class NeighborListTree : public NeighborList
             }
 
         bool m_box_changed;                                 //!< Flag if box size has changed
-        boost::signals2::connection m_boxchange_connection; //!< Connection to the ParticleData box size change signal
-
         bool m_max_num_changed;                             //!< Flag if the particle arrays need to be resized
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
-
-        bool m_remap_particles;                     //!< Flag if the particles need to remapped (triggered by sort)
-        boost::signals2::connection m_sort_conn;    //!< Local connection to the ParticleData sort signal
-
+        bool m_remap_particles;                             //!< Flag if the particles need to remapped (triggered by sort)
         bool m_type_changed;                                //!< Flag if the number of types has changed
-        boost::signals2::connection m_num_type_change_conn; //!< Connection to the ParticleData number of types
 
         // we use stl vectors here because these tree data structures should *never* be
         // accessed on the GPU, they were optimized for the CPU with SIMD support
@@ -115,6 +110,6 @@ class NeighborListTree : public NeighborList
     };
 
 //! Exports NeighborListTree to python
-void export_NeighborListTree();
+void export_NeighborListTree(pybind11::module& m);
 
 #endif // __NEIGHBORLISTTREE_H__

@@ -9,7 +9,11 @@
 #include "ComputeFreeVolume.h"
 #include "Moves.h"
 
-#include <boost/random.hpp>
+#include <random>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -26,14 +30,14 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     {
     public:
         //! Constructor
-        UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+        UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
             unsigned int seed,
             unsigned int npartition);
 
     protected:
-        boost::random::poisson_distribution<unsigned int, Scalar> m_poisson;   //!< Poisson distribution
-        boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
+        std::poisson_distribution<unsigned int> m_poisson;   //!< Poisson distribution
+        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
@@ -147,11 +151,11 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape> will be exported
 */
-template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name)
+template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterMuVTImplicit<Shape>, boost::shared_ptr< UpdaterMuVTImplicit<Shape> >, boost::python::bases<UpdaterMuVT<Shape> >, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-            boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
+    pybind11::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> > >(m, name.c_str(), pybind11::base<UpdaterMuVT<Shape> >())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+            std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
           ;
     }
 
@@ -162,8 +166,8 @@ template < class Shape > void export_UpdaterMuVTImplicit(const std::string& name
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
 template<class Shape>
-UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
+UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
     unsigned int seed,
     unsigned int npartition)
     : UpdaterMuVT<Shape>(sysdef, mc_implicit,seed,npartition), m_mc_implicit(mc_implicit)
@@ -430,13 +434,14 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         lnboltzmann += lnb;
         }
 
-    // zero overlapping depletants after removal
-    unsigned int n_overlap = 0;
-
     // number of depletants to insert
     unsigned int n_insert = 0;
 
     #ifdef ENABLE_MPI
+
+    // zero overlapping depletants after removal
+    unsigned int n_overlap = 0;
+
     if (this->m_gibbs)
         {
         unsigned int other = this->m_gibbs_other;
@@ -577,6 +582,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
         for (unsigned int k = 0; k < n_insert; ++k)
@@ -651,7 +659,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
                                     Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
 
-                                    if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                    if (h_overlaps.data[overlap_idx(type,type_d)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                         && test_overlap(r_ij, shape_test, shape_j, err_count))
                                         {
@@ -691,9 +699,10 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                         // old particle shape
-                        Shape shape_old(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_old(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                        if (!(shape_test.ignoreOverlaps() && shape_old.ignoreOverlaps())
+                        if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape_test, shape_old)
                             && test_overlap(r_ij, shape_test, shape_old, err_count))
                             {
@@ -702,7 +711,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                             // new particle shape
                             Shape shape_new(quat<Scalar>(orientation_j), h_params.data[new_type]);
 
-                            if (!(!(shape_test.ignoreOverlaps() && shape_new.ignoreOverlaps())
+                            if (!(h_overlaps.data[overlap_idx(type_d,new_type)]
                                 && check_circumsphere_overlap(r_ij, shape_test, shape_new)
                                 && test_overlap(r_ij, shape_test, shape_new, err_count)))
                                 {
@@ -773,6 +782,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
         for (unsigned int k = 0; k < n_insert; ++k)
@@ -844,9 +856,10 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                                     // put particles in coordinate system of particle i
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                    if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                    if (h_overlaps.data[overlap_idx(type_d,typ_j)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                         && test_overlap(r_ij, shape_test, shape_j, err_count))
                                         {
@@ -871,7 +884,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                 // checking the (0,0,0) image is sufficient
                 Shape shape(orientation, h_params.data[type]);
                 vec3<Scalar> r_ij = pos - pos_test;
-                if (!(shape_test.ignoreOverlaps() && shape.ignoreOverlaps())
+                if (h_overlaps.data[overlap_idx(type, type_d)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
                     && test_overlap(r_ij, shape_test, shape, err_count))
                     {
@@ -944,6 +957,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
         for (unsigned int k = 0; k < n_insert; ++k)
@@ -1022,7 +1038,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                                     unsigned int type = __scalar_as_int(postype_j.w);
                                     Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
 
-                                    if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                    if (h_overlaps.data[overlap_idx(type_d, type)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                         && test_overlap(r_ij, shape_test, shape_j, err_count))
                                         {
@@ -1057,9 +1073,10 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                 // only need to consider (0,0,0) image
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test;
 
-                Shape shape(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                Shape shape(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                if (!(shape_test.ignoreOverlaps() && shape.ignoreOverlaps())
+                if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
                     && test_overlap(r_ij, shape_test, shape, err_count))
                     {
@@ -1135,6 +1152,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
         for (unsigned int k = 0; k < n_insert; ++k)
@@ -1196,9 +1216,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                     && test_overlap(r_ij, shape_test, shape_j, err_count))
                                     {
@@ -1230,7 +1251,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
 
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
                     vec3<Scalar> r_ij = pos - pos_test_image;
-                    if (!(shape_test.ignoreOverlaps() && shape.ignoreOverlaps())
+                    if (h_overlaps.data[overlap_idx(type_d, type)]
                         && check_circumsphere_overlap(r_ij, shape_test, shape)
                         && test_overlap(r_ij, shape_test, shape, err_count))
                         {
@@ -1289,6 +1310,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
         for (unsigned int k = 0; k < n_insert; ++k)
@@ -1350,9 +1374,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                     && test_overlap(r_ij, shape_test, shape_j, err_count))
                                     {
@@ -1402,8 +1427,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
     unsigned int n = 0;
     if (lambda>Scalar(0.0))
         {
-        boost::random::poisson_distribution<unsigned int, Scalar> poisson =
-            boost::random::poisson_distribution<unsigned int, Scalar>(lambda);
+        std::poisson_distribution<unsigned int> poisson =
+            std::poisson_distribution<unsigned int>(lambda);
 
         // combine four seeds
         std::vector<unsigned int> seed_seq(4);
@@ -1415,10 +1440,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
         #else
         seed_seq[3] = 0;
         #endif
-        boost::random::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
 
         // RNG for poisson distribution
-        boost::random::mt19937 rng_poisson(seed);
+        std::mt19937 rng_poisson(seed);
 
         n = poisson(rng_poisson);
         }
@@ -1448,6 +1473,9 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
 
         // access parameters
         ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         bool overlap = false;
 
@@ -1558,9 +1586,10 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_old - pos_test_image_old;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                     && test_overlap(r_ij, shape_test, shape_j, err_count))
                                     {
@@ -1625,9 +1654,10 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                     // put particles in coordinate system of particle i
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                    if (!(shape_test.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                    if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                          && check_circumsphere_overlap(r_ij, shape_test, shape_j)
                                          && test_overlap(r_ij, shape_test, shape_j, err_count))
                                          {

@@ -3,8 +3,7 @@
 
 #include "IntegratorHPMC.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include "hoomd/VectorMath.h"
 #include <sstream>
@@ -18,7 +17,7 @@ using namespace std;
 namespace hpmc
 {
 
-IntegratorHPMC::IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int seed)
     : Integrator(sysdef, 0.005), m_seed(seed),  m_move_ratio(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL)
@@ -44,7 +43,7 @@ IntegratorHPMC::IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
       }
 
     // Connect to number of types change signal
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&IntegratorHPMC::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
 
     resetStats();
     }
@@ -52,11 +51,7 @@ IntegratorHPMC::IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
 IntegratorHPMC::~IntegratorHPMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorHPMC" << endl;
-
-    if (m_num_type_change_connection.connected())
-        {
-        m_num_type_change_connection.disconnect();
-        }
+    m_pdata->getNumTypesChangeSignal().disconnect<IntegratorHPMC, &IntegratorHPMC::slotNumTypesChange>(this);
     }
 
 
@@ -297,10 +292,10 @@ hpmc_counters_t IntegratorHPMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_IntegratorHPMC()
+void export_IntegratorHPMC(py::module& m)
     {
-    class_<IntegratorHPMC, boost::shared_ptr< IntegratorHPMC >, bases<Integrator>, boost::noncopyable>
-    ("IntegratorHPMC", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+   py::class_<IntegratorHPMC, std::shared_ptr< IntegratorHPMC > >(m, "IntegratorHPMC", py::base<Integrator>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("setD", &IntegratorHPMC::setD)
     .def("setA", &IntegratorHPMC::setA)
     .def("setMoveRatio", &IntegratorHPMC::setMoveRatio)
@@ -318,7 +313,7 @@ void export_IntegratorHPMC()
     .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
     ;
 
-    class_< hpmc_counters_t >("hpmc_counters_t")
+   py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
     .def_readwrite("translate_accept_count", &hpmc_counters_t::translate_accept_count)
     .def_readwrite("translate_reject_count", &hpmc_counters_t::translate_reject_count)
     .def_readwrite("rotate_accept_count", &hpmc_counters_t::rotate_accept_count)

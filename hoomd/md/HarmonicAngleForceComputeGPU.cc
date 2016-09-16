@@ -12,17 +12,13 @@
 
 #include "HarmonicAngleForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 using namespace std;
 
 /*! \param sysdef System to compute angle forces on
 */
-HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicAngleForceComputeGPU::HarmonicAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : HarmonicAngleForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -108,9 +104,9 @@ void HarmonicAngleForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicAngleForceComputeGPU()
+void export_HarmonicAngleForceComputeGPU(py::module& m)
     {
-    class_<HarmonicAngleForceComputeGPU, boost::shared_ptr<HarmonicAngleForceComputeGPU>, bases<HarmonicAngleForceCompute>, boost::noncopyable >
-    ("HarmonicAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicAngleForceComputeGPU, std::shared_ptr<HarmonicAngleForceComputeGPU> >(m, "HarmonicAngleForceComputeGPU", py::base<HarmonicAngleForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -12,14 +12,12 @@
 
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <memory>
 
 #ifdef ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
-
 
 #include "Messenger.h"
 
@@ -30,6 +28,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 //! Forward declaration
@@ -56,7 +56,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration : boost::noncopyable
+struct ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode
@@ -71,13 +71,13 @@ struct ExecutionConfiguration : boost::noncopyable
                            int gpu_id=-1,
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>(),
+                           std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
                            unsigned int n_ranks = 0);
 
     ~ExecutionConfiguration();
 
 #ifdef ENABLE_MPI
-    //! Returns the boost MPI communicator
+    //! Returns the MPI communicator
     MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
@@ -93,7 +93,7 @@ struct ExecutionConfiguration : boost::noncopyable
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
-    boost::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
+    std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
     bool isCUDAEnabled() const
@@ -256,6 +256,8 @@ private:
 #endif
 
 //! Exports ExecutionConfiguration to python
-void export_ExecutionConfiguration();
+#ifndef NVCC
+void export_ExecutionConfiguration(pybind11::module& m);
+#endif
 
 #endif

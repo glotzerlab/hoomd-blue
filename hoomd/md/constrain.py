@@ -418,3 +418,47 @@ class rigid(_constraint_force):
     def update_coeffs(self):
         # validate copies of rigid bodies
         self.create_bodies(False)
+
+class oneD(_constraint_force):
+    R""" Constrain particles to move along a specific direction only
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
+        constraint_vector (List): [x,y,z] list indicating the direction that the particles are restricted to
+
+    :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain
+    them to only move along a given vector. 
+
+    Example::
+
+        constrain.oneD(group=groupA, constraint_vector=[1,0,0])
+
+    .. versionadded:: 2.1
+    """
+    def __init__(self, group, constraint_vector=[0,0,1]):
+        
+        if (constraint_vector[0]**2 + constraint_vector[1]**2 + constraint_vector[2]**2) < 1e-10:
+            raise RuntimeError("The one dimension constraint vector is zero");
+
+        constraint_vector = _hoomd.make_scalar3(constraint_vector[0], constraint_vector[1], constraint_vector[2]);
+
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        _constraint_force.__init__(self);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.OneDConstraint(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);
+        else:
+            self.cpp_force = _md.OneDConstraintGPU(hoomd.context.current.system_definition, group.cpp_group, constraint_vector);
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # store metadata
+        self.group = group
+        self.constraint_vector = constraint_vector
+        self.metadata_fields = ['group','constraint_vector']
+
+
+

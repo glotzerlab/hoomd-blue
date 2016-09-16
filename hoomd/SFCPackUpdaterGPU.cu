@@ -124,6 +124,7 @@ __global__ void gpu_apply_sorted_order_kernel(
         Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
+        unsigned int virial_pitch,
         const Scalar4 *d_net_force,
         Scalar4 *d_net_force_alt,
         const Scalar4 *d_net_torque,
@@ -150,7 +151,12 @@ __global__ void gpu_apply_sorted_order_kernel(
     d_orientation_alt[idx] = d_orientation[old_idx];
     d_angmom_alt[idx] = d_angmom[old_idx];
     d_inertia_alt[idx] = d_inertia[old_idx];
-    d_net_virial_alt[idx] = d_net_virial[old_idx];
+    d_net_virial_alt[0*virial_pitch+idx] = d_net_virial[0*virial_pitch+old_idx];
+    d_net_virial_alt[1*virial_pitch+idx] = d_net_virial[1*virial_pitch+old_idx];
+    d_net_virial_alt[2*virial_pitch+idx] = d_net_virial[2*virial_pitch+old_idx];
+    d_net_virial_alt[3*virial_pitch+idx] = d_net_virial[3*virial_pitch+old_idx];
+    d_net_virial_alt[4*virial_pitch+idx] = d_net_virial[4*virial_pitch+old_idx];
+    d_net_virial_alt[5*virial_pitch+idx] = d_net_virial[5*virial_pitch+old_idx];
     d_net_force_alt[idx] = d_net_force[old_idx];
     d_net_torque_alt[idx] = d_net_torque[old_idx];
 
@@ -189,6 +195,7 @@ void gpu_apply_sorted_order(
         Scalar3 *d_inertia_alt,
         const Scalar *d_net_virial,
         Scalar *d_net_virial_alt,
+        unsigned int virial_pitch,
         const Scalar4 *d_net_force,
         Scalar4 *d_net_force_alt,
         const Scalar4 *d_net_torque,
@@ -226,6 +233,7 @@ void gpu_apply_sorted_order(
         d_inertia_alt,
         d_net_virial,
         d_net_virial_alt,
+        virial_pitch,
         d_net_force,
         d_net_force_alt,
         d_net_torque,

@@ -3,24 +3,20 @@
 
 #include "EAMForceCompute.h"
 
-#include <boost/python.hpp>
 #include <vector>
 using namespace std;
-using namespace boost;
-using namespace boost::python;
 #include <stdexcept>
+namespace py = pybind11;
 
 /*! \file EAMForceCompute.cc
     \brief Defines the EAMForceCompute class
 */
 
-using namespace std;
-
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
     \param type_of_file Undocumented parameter
 */
-EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : ForceCompute(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
@@ -38,13 +34,13 @@ EAMForceCompute::EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef, cha
     assert(m_ntypes > 0);
 
     // connect to the ParticleData to receive notifications when the number of particle types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(bind(&EAMForceCompute::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 EAMForceCompute::~EAMForceCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying EAMForceCompute" << endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
     }
 
 /*
@@ -488,7 +484,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(flops, mem_transfer);
     }
 
-void EAMForceCompute::set_neighbor_list(boost::shared_ptr<NeighborList> nlist)
+void EAMForceCompute::set_neighbor_list(std::shared_ptr<NeighborList> nlist)
     {
     m_nlist = nlist;
     assert(m_nlist);
@@ -497,11 +493,10 @@ Scalar EAMForceCompute::get_r_cut()
     {
     return m_r_cut;
     }
-void export_EAMForceCompute()
+void export_EAMForceCompute(py::module& m)
     {
-    scope in_eam = class_<EAMForceCompute, boost::shared_ptr<EAMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("EAMForceCompute", init< boost::shared_ptr<SystemDefinition>, char*, int>())
-
+    py::class_<EAMForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, char*, int>())
     .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
     .def("get_r_cut", &EAMForceCompute::get_r_cut)
     ;

@@ -19,19 +19,16 @@
 #include <iostream>
 using namespace std;
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
-using namespace boost;
+#include <memory>
 
 /*! \param sysdef System to compute forces on
     \post The Compute is initialized and all memory needed for the forces is allocated
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
+ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
@@ -48,10 +45,10 @@ ForceCompute::ForceCompute(boost::shared_ptr<SystemDefinition> sysdef) : Compute
     m_virial_pitch = m_virial.getPitch();
 
     // connect to the ParticleData to recieve notifications when particles change order in memory
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ForceCompute::setParticlesSorted, this));
+     m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ForceCompute::reallocate, this));
+     m_pdata->getMaxParticleNumberChangeSignal().connect<ForceCompute, &ForceCompute::reallocate>(this);
 
     // reset external virial
     for (unsigned int i = 0; i < 6; ++i)
@@ -76,8 +73,8 @@ void ForceCompute::reallocate()
 */
 ForceCompute::~ForceCompute()
     {
-    m_sort_connection.disconnect();
-    m_max_particle_num_change_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<ForceCompute, &ForceCompute::reallocate>(this);
     }
 
 /*! Sums the total potential energy calculated by the last call to compute() and returns it.
@@ -106,7 +103,7 @@ Scalar ForceCompute::calcEnergySum()
 
 /*! Sums the potential energy of a particle group calculated by the last call to compute() and returns it.
 */
-Scalar ForceCompute::calcEnergyGroup(boost::shared_ptr<ParticleGroup> group)
+Scalar ForceCompute::calcEnergyGroup(std::shared_ptr<ParticleGroup> group)
     {
     unsigned int group_size = group->getNumMembers();
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::read);
@@ -275,27 +272,10 @@ Scalar ForceCompute::getEnergy(unsigned int tag)
     return result;
     }
 
-//! Wrapper class for wrapping pure virtual methodos of ForceCompute in python
-class ForceComputeWrap : public ForceCompute, public wrapper<ForceCompute>
+void export_ForceCompute(py::module& m)
     {
-    public:
-        //! Constructor
-        /*! \param sysdef Particle data passed to the base class */
-        ForceComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : ForceCompute(sysdef) { }
-    protected:
-        //! Calls the overidden ForceCompute::computeForces()
-        /*! \param timestep parameter to pass on to the overidden method
-         */
-        void computeForces(unsigned int timestep)
-            {
-            this->get_override("computeForces")(timestep);
-            }
-    };
-
-void export_ForceCompute()
-    {
-    class_< ForceComputeWrap, boost::shared_ptr<ForceComputeWrap>, bases<Compute>, boost::noncopyable >
-    ("ForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceCompute, std::shared_ptr<ForceCompute> >(m,"ForceCompute",py::base<Compute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("getForce", &ForceCompute::getForce)
     .def("getTorque", &ForceCompute::getTorque)
     .def("getVirial", &ForceCompute::getVirial)

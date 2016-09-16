@@ -10,14 +10,10 @@
 #include "CachedAllocator.h"
 #endif
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include <algorithm>
 #include <iostream>
 using namespace std;
+namespace py = pybind11;
 
 /*! \file ParticleGroup.cc
     \brief Defines the ParticleGroup and related classes
@@ -28,7 +24,7 @@ using namespace std;
 
 /*! \param sysdef System the particles are to be selected from
 */
-ParticleSelector::ParticleSelector(boost::shared_ptr<SystemDefinition> sysdef)
+ParticleSelector::ParticleSelector(std::shared_ptr<SystemDefinition> sysdef)
     : m_sysdef(sysdef), m_pdata(sysdef->getParticleData())
     {
     assert(m_sysdef);
@@ -51,7 +47,7 @@ bool ParticleSelector::isSelected(unsigned int tag) const
 
 /*! \param sysdef System the particles are to be selected from
 */
-ParticleSelectorAll::ParticleSelectorAll(boost::shared_ptr<SystemDefinition> sysdef)
+ParticleSelectorAll::ParticleSelectorAll(std::shared_ptr<SystemDefinition> sysdef)
     : ParticleSelector(sysdef)
     { }
 
@@ -72,7 +68,7 @@ bool ParticleSelectorAll::isSelected(unsigned int tag) const
     \param tag_min Minimum tag to select (inclusive)
     \param tag_max Maximum tag to select (inclusive)
 */
-ParticleSelectorTag::ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sysdef,
+ParticleSelectorTag::ParticleSelectorTag(std::shared_ptr<SystemDefinition> sysdef,
                                          unsigned int tag_min,
                                          unsigned int tag_max)
     : ParticleSelector(sysdef), m_tag_min(tag_min), m_tag_max(tag_max)
@@ -105,7 +101,7 @@ bool ParticleSelectorTag::isSelected(unsigned int tag) const
     \param typ_min Minimum type id to select (inclusive)
     \param typ_max Maximum type id to select (inclusive)
 */
-ParticleSelectorType::ParticleSelectorType(boost::shared_ptr<SystemDefinition> sysdef,
+ParticleSelectorType::ParticleSelectorType(std::shared_ptr<SystemDefinition> sysdef,
                                            unsigned int typ_min,
                                            unsigned int typ_max)
     : ParticleSelector(sysdef), m_typ_min(typ_min), m_typ_max(typ_max)
@@ -151,7 +147,7 @@ bool ParticleSelectorType::isSelected(unsigned int tag) const
 /*! \param sysdef System the particles are to be selected from
     \param rigid true selects particles that are in rigid bodies, false selects particles that are not part of a body
 */
-ParticleSelectorRigid::ParticleSelectorRigid(boost::shared_ptr<SystemDefinition> sysdef,
+ParticleSelectorRigid::ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef,
                                              bool rigid)
     : ParticleSelector(sysdef), m_rigid(rigid)
     {
@@ -192,7 +188,7 @@ bool ParticleSelectorRigid::isSelected(unsigned int tag) const
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorRigidCenter
 
-ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(boost::shared_ptr<SystemDefinition> sysdef)
+ParticleSelectorRigidCenter::ParticleSelectorRigidCenter(std::shared_ptr<SystemDefinition> sysdef)
     :ParticleSelector(sysdef)
     {
     }
@@ -227,7 +223,7 @@ bool ParticleSelectorRigidCenter::isSelected(unsigned int tag) const
 //////////////////////////////////////////////////////////////////////////////
 // ParticleSelectorCuboid
 
-ParticleSelectorCuboid::ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
+ParticleSelectorCuboid::ParticleSelectorCuboid(std::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max)
     :ParticleSelector(sysdef), m_min(min), m_max(max)
     {
     // make a quick check on the sanity of the input data
@@ -277,8 +273,8 @@ bool ParticleSelectorCuboid::isSelected(unsigned int tag) const
 
     Particles where criteria falls within the range [min,max] (inclusive) are added to the group.
 */
-ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<ParticleSelector> selector,
+ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<ParticleSelector> selector,
     bool update_tags)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
@@ -303,13 +299,13 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
     updateMemberTags(true);
 
     // connect to the particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
+    m_pdata->getParticleSortSignal().connect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
 
     // connect updateMemberTags() method to maximum particle number change signal
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
     }
 
 /*! \param sysdef System definition to build the group from
@@ -317,7 +313,7 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef,
 
     All particles specified in \a member_tags will be added to the group.
 */
-ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags)
+ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags)
     : m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
@@ -339,6 +335,21 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
             }
         }
 
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // do a simple sanity check
+        unsigned int nptl = member_tags.size();
+        bcast(nptl, 0, m_exec_conf->getMPICommunicator());
+
+        if (nptl != member_tags.size())
+            {
+            m_exec_conf->msg->error() << "group.*: Member tag list is inconsistent among MPI ranks." << std::endl;
+            throw std::runtime_error("Error creating ParticleGroup\n");
+            }
+        }
+    #endif
+ 
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
     sort(sorted_member_tags.begin(), sorted_member_tags.end());
@@ -377,13 +388,13 @@ ParticleGroup::ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const s
     rebuildIndexList();
 
     // connect to the particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(bind(&ParticleGroup::slotParticleSort, this));
+    m_pdata->getParticleSortSignal().connect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
 
     // connect reallocate() method to maximum particle number change signal
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&ParticleGroup::slotReallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
 
     // connect updateMemberTags() method to maximum particle number change signal
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&ParticleGroup::slotGlobalParticleNumChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
     }
 
 ParticleGroup::~ParticleGroup()
@@ -391,9 +402,9 @@ ParticleGroup::~ParticleGroup()
     // disconnect the sort connection, but only if there was a particle data to connect it to in the first place
     if (m_pdata)
         {
-        m_sort_connection.disconnect();
-        m_max_particle_num_change_connection.disconnect();
-        m_global_particle_num_change_connection.disconnect();
+        m_pdata->getParticleSortSignal().disconnect<ParticleGroup, &ParticleGroup::slotParticleSort>(this);
+        m_pdata->getMaxParticleNumberChangeSignal().disconnect<ParticleGroup, &ParticleGroup::slotReallocate>(this);
+        m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ParticleGroup, &ParticleGroup::slotGlobalParticleNumChange>(this);
         }
     }
 
@@ -554,8 +565,8 @@ Scalar3 ParticleGroup::getCenterOfMass() const
     \returns A shared pointer to a newly created particle group that contains all the elements present in \a a and
     \a b
 */
-boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<ParticleGroup> a,
-                                                           boost::shared_ptr<ParticleGroup> b)
+std::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(std::shared_ptr<ParticleGroup> a,
+                                                           std::shared_ptr<ParticleGroup> b)
     {
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
@@ -593,7 +604,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
 
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
+    std::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
 
     // return the newly created group
     return new_group;
@@ -605,8 +616,8 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupUnion(boost::shared_ptr<Par
     \returns A shared pointer to a newly created particle group that contains only the elements present in both \a a and
     \a b
 */
-boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_ptr<ParticleGroup> a,
-                                                                  boost::shared_ptr<ParticleGroup> b)
+std::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(std::shared_ptr<ParticleGroup> a,
+                                                                  std::shared_ptr<ParticleGroup> b)
     {
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
@@ -641,7 +652,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
         }
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
+    std::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
 
     // return the newly created group
     return new_group;
@@ -653,8 +664,8 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupIntersection(boost::shared_
     \returns A shared pointer to a newly created particle group that contains only the elements present in \a a, and
     not any present in \a b
 */
-boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_ptr<ParticleGroup> a,
-                                                                boost::shared_ptr<ParticleGroup> b)
+std::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(std::shared_ptr<ParticleGroup> a,
+                                                                std::shared_ptr<ParticleGroup> b)
     {
     // vector to store the new list of tags
     vector<unsigned int> member_tags;
@@ -682,7 +693,7 @@ boost::shared_ptr<ParticleGroup> ParticleGroup::groupDifference(boost::shared_pt
 
 
     // create the new particle group
-    boost::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
+    std::shared_ptr<ParticleGroup> new_group(new ParticleGroup(a->m_sysdef, member_tags));
 
     // return the newly created group
     return new_group;
@@ -782,13 +793,13 @@ void ParticleGroup::rebuildIndexListGPU() const
     }
 #endif
 
-void export_ParticleGroup()
+void export_ParticleGroup(py::module& m)
     {
-    class_<ParticleGroup, boost::shared_ptr<ParticleGroup>, boost::noncopyable>
-            ("ParticleGroup", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector>, bool >())
-            .def(init<boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleSelector> >())
-            .def(init<boost::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
-            .def(init<>())
+    py::class_<ParticleGroup, std::shared_ptr<ParticleGroup> >(m,"ParticleGroup")
+            .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector>, bool >())
+            .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleSelector> >())
+            .def(py::init<std::shared_ptr<SystemDefinition>, const std::vector<unsigned int>& >())
+            .def(py::init<>())
             .def("getNumMembersGlobal", &ParticleGroup::getNumMembersGlobal)
             .def("getMemberTag", &ParticleGroup::getMemberTag)
             .def("getTotalMass", &ParticleGroup::getTotalMass)
@@ -799,32 +810,32 @@ void export_ParticleGroup()
             .def("updateMemberTags", &ParticleGroup::updateMemberTags)
             ;
 
-    class_<ParticleSelector, boost::shared_ptr<ParticleSelector>, boost::noncopyable>
-            ("ParticleSelector", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelector, std::shared_ptr<ParticleSelector> >(m,"ParticleSelector")
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
             .def("isSelected", &ParticleSelector::isSelected)
             ;
 
-    class_<ParticleSelectorAll, boost::shared_ptr<ParticleSelectorAll>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorAll", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelectorAll, std::shared_ptr<ParticleSelectorAll> >(m,"ParticleSelectorAll",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
 
-    class_<ParticleSelectorTag, boost::shared_ptr<ParticleSelectorTag>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorTag", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleSelectorTag, std::shared_ptr<ParticleSelectorTag> >(m,"ParticleSelectorTag",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    class_<ParticleSelectorType, boost::shared_ptr<ParticleSelectorType>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorType", init< boost::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
+    py::class_<ParticleSelectorType, std::shared_ptr<ParticleSelectorType> >(m,"ParticleSelectorType",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, unsigned int >())
         ;
 
-    class_<ParticleSelectorRigid, boost::shared_ptr<ParticleSelectorRigid>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorRigid", init< boost::shared_ptr<SystemDefinition>, bool >())
+    py::class_<ParticleSelectorRigid, std::shared_ptr<ParticleSelectorRigid> >(m,"ParticleSelectorRigid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, bool >())
         ;
 
-    class_<ParticleSelectorCuboid, boost::shared_ptr<ParticleSelectorCuboid>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorCuboid", init< boost::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
+    py::class_<ParticleSelectorCuboid, std::shared_ptr<ParticleSelectorCuboid> >(m,"ParticleSelectorCuboid",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition>, Scalar3, Scalar3 >())
         ;
 
-    class_<ParticleSelectorRigidCenter, boost::shared_ptr<ParticleSelectorRigidCenter>, bases<ParticleSelector>, boost::noncopyable>
-        ("ParticleSelectorRigidCenter", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<ParticleSelectorRigidCenter, std::shared_ptr<ParticleSelectorRigidCenter> >(m,"ParticleSelectorRigidCenter",py::base<ParticleSelector>())
+            .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

@@ -8,9 +8,8 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <functional>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -21,23 +20,26 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file gaussian_force_test.cc
     \brief Implements unit tests for PotentialPairGauss and descendants
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairGaussTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 //! Typedef'd PotentialPairGauss factory
-typedef boost::function<boost::shared_ptr<PotentialPairGauss> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                        boost::shared_ptr<NeighborList> nlist)> gaussforce_creator;
+typedef std::function<std::shared_ptr<PotentialPairGauss> (std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist)> gaussforce_creator;
 
 //! Test the ability of the gauss force compute to actually calucate forces
-void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void gauss_force_particle_test(gaussforce_creator gauss_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -47,16 +49,16 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     pdata_3->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_3->setPosition(1,make_scalar3(1.0,0.0,0.0));
     pdata_3->setPosition(2,make_scalar3(2.0,0.0,0.0));
 
-    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairGauss> fc_3 = gauss_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic sigma
@@ -73,27 +75,27 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     unsigned int pitch = virial_array_1.getPitch();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, -0.622542302888418, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_1.data[0].x, -0.622542302888418, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, 0.155635575722105/2.0, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+0]
                                        +h_virial_1.data[3*pitch+0]
                                        +h_virial_1.data[5*pitch+0]), 0.103757050481403, tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, 0.155635575722105, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
+    MY_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, 0.155635575722105, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+1]
                                        +h_virial_1.data[3*pitch+1]
                                        +h_virial_1.data[5*pitch+1]), 0.103757050481403*2, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, 0.622542302888418, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, 0.155635575722105/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_1.data[2].x, 0.622542302888418, tol);
+    MY_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[2].w, 0.155635575722105/2.0, tol);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_1.data[0*pitch+2]
                                        +h_virial_1.data[3*pitch+2]
                                        +h_virial_1.data[5*pitch+2]), 0.103757050481403, tol);
     }
@@ -124,13 +126,13 @@ void gauss_force_particle_test(gaussforce_creator gauss_creator, boost::shared_p
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, 0.622542302888418, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, -0.622542302888418, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].x, 0.622542302888418, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].x, -0.622542302888418, tol);
     }
     }
 
 //! Tests the ability of a PotentialPairGauss to handle periodic boundary conditions
-void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void gauss_force_periodic_test(gaussforce_creator gauss_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
@@ -138,8 +140,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     // test +x, -x, +y, -y, +z, and -z independantly
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
-    boost::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 3, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();
     pdata_6->setFlags(~PDataFlags(0));
 
     pdata_6->setPosition(0, make_scalar3(-9.6,0.0,0.0));
@@ -156,8 +158,8 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     pdata_6->setType(4,2);
     pdata_6->setType(5,1);
 
-    boost::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
+    std::shared_ptr<NeighborListTree> nlist_6(new NeighborListTree(sysdef_6, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairGauss> fc_6 = gauss_creator(sysdef_6, nlist_6);
     fc_6->setRcut(0, 0, Scalar(1.3));
     fc_6->setRcut(0, 1, Scalar(1.3));
     fc_6->setRcut(0, 2, Scalar(1.3));
@@ -186,50 +188,50 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
     ArrayHandle<Scalar4> h_force_3(force_array_3,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_3(virial_array_3,access_location::host,access_mode::read);
     // particle 0 should be pushed right
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[0].x, 2.224298403625553*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+0]
+    MY_CHECK_CLOSE(h_force_3.data[0].x, 2.224298403625553*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[0].z, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+0]
                                        +h_virial_3.data[3*pitch+0]
                                        +h_virial_3.data[5*pitch+0]), 0.296573120483407*0.8, tol);
 
     // particle 1 should be pushed left
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[1].x, -2.224298403625553*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+1]
+    MY_CHECK_CLOSE(h_force_3.data[1].x, -2.224298403625553*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[1].z, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+1]
                                        +h_virial_3.data[3*pitch+1]
                                        +h_virial_3.data[5*pitch+1]), 0.296573120483407*0.8, tol);
 
     // particle 2 should be pushed up
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[2].y, 3.336447605438329*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[2].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+2]
+    MY_CHECK_CLOSE(h_force_3.data[2].y, 3.336447605438329*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[2].x, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[2].z, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+2]
                                        +h_virial_3.data[3*pitch+2]
                                        +h_virial_3.data[5*pitch+2]), 0.444859680725111*0.8, tol);
 
     // particle 3 should be pushed down
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[3].y, -3.336447605438329*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[3].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[3].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+3]
+    MY_CHECK_CLOSE(h_force_3.data[3].y, -3.336447605438329*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[3].x, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[3].z, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+3]
                                        +h_virial_3.data[3*pitch+3]
                                        +h_virial_3.data[5*pitch+3]), 0.444859680725111*0.8, tol);
 
     // particle 4 should be pushed forward
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[4].z, 5.560746009063882*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[4].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[4].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+4]
+    MY_CHECK_CLOSE(h_force_3.data[4].z, 5.560746009063882*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[4].x, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[4].y, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+4]
                                        +h_virial_3.data[3*pitch+4]
                                        +h_virial_3.data[5*pitch+4]),  0.741432801208518*0.8, tol);
 
     // particle 3 should be pushed back
-    MY_BOOST_CHECK_CLOSE(h_force_3.data[5].z, -5.560746009063882*0.8, tol);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[5].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_3.data[5].y, tol_small);
-    MY_BOOST_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+5]
+    MY_CHECK_CLOSE(h_force_3.data[5].z, -5.560746009063882*0.8, tol);
+    MY_CHECK_SMALL(h_force_3.data[5].x, tol_small);
+    MY_CHECK_SMALL(h_force_3.data[5].y, tol_small);
+    MY_CHECK_CLOSE(Scalar(1./3.)*(h_virial_3.data[0*pitch+5]
                                        +h_virial_3.data[3*pitch+5]
                                        +h_virial_3.data[5*pitch+5]),  0.741432801208518*0.8, tol);
     }
@@ -238,21 +240,21 @@ void gauss_force_periodic_test(gaussforce_creator gauss_creator, boost::shared_p
 //! Unit test a comparison between 2 LJForceComputes on a "real" system
 void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
                                  gaussforce_creator gauss_creator2,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                 std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairGauss> fc1 = gauss_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairGauss> fc2 = gauss_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -302,32 +304,32 @@ void gauss_force_comparison_test(gaussforce_creator gauss_creator1,
     deltape2 /= double(pdata->getN());
     for (unsigned int i = 0; i < 6; i++)
         deltav2[i] /= double(pdata->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
 //! Test the ability of the gauss force compute to compute forces with different shift modes
-void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void gauss_force_shift_test(gaussforce_creator gauss_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 2-particle test is just to get a plot of the potential and force vs r cut
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
     pdata_2->setFlags(~PDataFlags(0));
 
     pdata_2->setPosition(0,make_scalar3(0.0,0.0,0.0));
     pdata_2->setPosition(1,make_scalar3(2.8,0.0,0.0));
-    boost::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
-    boost::shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
+    std::shared_ptr<NeighborListTree> nlist_2(new NeighborListTree(sysdef_2, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<PotentialPairGauss> fc_no_shift = gauss_creator(sysdef_2, nlist_2);
     fc_no_shift->setShiftMode(PotentialPairGauss::no_shift);
     fc_no_shift->setRcut(0, 0, Scalar(3.0));
-    boost::shared_ptr<PotentialPairGauss> fc_shift = gauss_creator(sysdef_2, nlist_2);
+    std::shared_ptr<PotentialPairGauss> fc_shift = gauss_creator(sysdef_2, nlist_2);
     fc_shift->setShiftMode(PotentialPairGauss::shift);
     fc_shift->setRcut(0, 0, Scalar(3.0));
 
@@ -348,10 +350,10 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar4> h_force_6(force_array_6,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_6(virial_array_6,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_CLOSE(h_force_6.data[0].x, -0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_6.data[0].w, 0.019841094744370/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_6.data[1].x, 0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_6.data[1].w, 0.019841094744370/2.0, tol);
+    MY_CHECK_CLOSE(h_force_6.data[0].x, -0.055555065284237, tol);
+    MY_CHECK_CLOSE(h_force_6.data[0].w, 0.019841094744370/2.0, tol);
+    MY_CHECK_CLOSE(h_force_6.data[1].x, 0.055555065284237, tol);
+    MY_CHECK_CLOSE(h_force_6.data[1].w, 0.019841094744370/2.0, tol);
 
     GPUArray<Scalar4>& force_array_7 =  fc_shift->getForceArray();
     GPUArray<Scalar>& virial_array_7 =  fc_shift->getVirialArray();
@@ -359,10 +361,10 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar> h_virial_7(virial_array_7,access_location::host,access_mode::read);
 
     // shifted just has pe shifted by a given amount
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[0].x, -0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[0].w, 0.008732098206128/2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[1].x, 0.055555065284237, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_7.data[1].w, 0.008732098206128/2.0, tol);
+    MY_CHECK_CLOSE(h_force_7.data[0].x, -0.055555065284237, tol);
+    MY_CHECK_CLOSE(h_force_7.data[0].w, 0.008732098206128/2.0, tol);
+    MY_CHECK_CLOSE(h_force_7.data[1].x, 0.055555065284237, tol);
+    MY_CHECK_CLOSE(h_force_7.data[1].w, 0.008732098206128/2.0, tol);
     }
 
     // check once again to verify that nothing fish happens past r_cut
@@ -382,86 +384,86 @@ void gauss_force_shift_test(gaussforce_creator gauss_creator, boost::shared_ptr<
     ArrayHandle<Scalar4> h_force_9(force_array_9,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_9(virial_array_9,access_location::host,access_mode::read);
 
-    MY_BOOST_CHECK_SMALL(h_force_9.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[0].w, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[1].w, tol_small);
 
     // shifted just has pe shifted by a given amount
-    MY_BOOST_CHECK_SMALL(h_force_9.data[0].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[0].w, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_9.data[1].w, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[0].x, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[0].w, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_9.data[1].w, tol_small);
     }
     }
 
 //! LJForceCompute creator for unit tests
-boost::shared_ptr<PotentialPairGauss> base_class_gauss_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                        boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairGauss> base_class_gauss_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
+    return std::shared_ptr<PotentialPairGauss>(new PotentialPairGauss(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairGaussGPU creator for unit tests
-boost::shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairGaussGPU> gpu_gauss_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairGaussGPU> gauss(new PotentialPairGaussGPU(sysdef, nlist));
     return gauss;
     }
 #endif
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( GaussForce_particle )
+//! test case for particle test on CPU
+UP_TEST( GaussForce_particle )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_particle_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    gauss_force_particle_test(gauss_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for periodic test on CPU
-BOOST_AUTO_TEST_CASE( GaussForce_periodic )
+//! test case for periodic test on CPU
+UP_TEST( GaussForce_periodic )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_periodic_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    gauss_force_periodic_test(gauss_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( GaussForce_shift )
+//! test case for particle test on CPU
+UP_TEST( GaussForce_shift )
     {
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_shift_test(gauss_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    gauss_force_shift_test(gauss_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( GaussForceGPU_particle )
+//! test case for particle test on GPU
+UP_TEST( GaussForceGPU_particle )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_particle_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    gauss_force_particle_test(gauss_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for periodic test on the GPU
-BOOST_AUTO_TEST_CASE( GaussForceGPU_periodic )
+//! test case for periodic test on the GPU
+UP_TEST( GaussForceGPU_periodic )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_periodic_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    gauss_force_periodic_test(gauss_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for shift test on GPU
-BOOST_AUTO_TEST_CASE( GaussForceGPU_shift )
+//! test case for shift test on GPU
+UP_TEST( GaussForceGPU_shift )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
-    gauss_force_shift_test(gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    gauss_force_shift_test(gauss_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( GaussForceGPU_compare )
+//! test case for comparing GPU output to base class output
+UP_TEST( GaussForceGPU_compare )
     {
     gaussforce_creator gauss_creator_gpu = bind(gpu_gauss_creator, _1, _2);
     gaussforce_creator gauss_creator_base = bind(base_class_gauss_creator, _1, _2);
-    gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    gauss_force_comparison_test(gauss_creator_base, gauss_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

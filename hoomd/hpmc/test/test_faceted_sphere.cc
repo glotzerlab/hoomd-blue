@@ -4,24 +4,21 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE ShapeFacetedSphere
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
 #include "hoomd/hpmc/ShapeFacetedSphere.h"
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
-#include <boost/test/unit_test.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 using namespace hpmc;
 
 unsigned int err_count;
 
-BOOST_AUTO_TEST_CASE( construction )
+UP_TEST( construction )
     {
     // parameters
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
@@ -39,23 +36,23 @@ BOOST_AUTO_TEST_CASE( construction )
 
     // construct and check
     ShapeFacetedSphere a(o, p);
-    MY_BOOST_CHECK_CLOSE(a.orientation.s, o.s, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
-    MY_BOOST_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
+    MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
+    MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
+    MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
+    MY_CHECK_CLOSE(a.orientation.v.z, o.v.z, tol);
 
-    MY_BOOST_CHECK_CLOSE(a.params.diameter, 2.0*radius, tol);
-    BOOST_CHECK(a.params.insphere_radius==0);
+    MY_CHECK_CLOSE(a.params.diameter, 2.0*radius, tol);
+    UP_ASSERT(a.params.insphere_radius==0);
 
-    BOOST_CHECK(!a.hasOrientation());
+    UP_ASSERT(!a.hasOrientation());
 
-    BOOST_CHECK(a.params.verts.N == 0);
-    BOOST_CHECK(a.params.additional_verts.N == 0);
+    UP_ASSERT(a.params.verts.N == 0);
+    UP_ASSERT(a.params.additional_verts.N == 0);
 
-    MY_BOOST_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
+    MY_CHECK_CLOSE(a.getCircumsphereDiameter(), 2.5, tol);
     }
 
-BOOST_AUTO_TEST_CASE( overlap )
+UP_TEST( overlap )
     {
     // parameters
     vec3<Scalar> r_i;
@@ -86,26 +83,26 @@ BOOST_AUTO_TEST_CASE( overlap )
 
     ShapeFacetedSphere b(o, p2);
     r_j = vec3<Scalar>(5,-2,-1);
-    BOOST_CHECK(!test_overlap(r_j - r_i, a,b,err_count));
-    BOOST_CHECK(!test_overlap(r_i - r_j, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_j - r_i, a,b,err_count));
+    UP_ASSERT(!test_overlap(r_i - r_j, b,a,err_count));
 
     ShapeFacetedSphere c(o, p2);
     r_j = vec3<Scalar>(3.9,2,3);
-    BOOST_CHECK(test_overlap(r_j - r_i, a,c,err_count));
-    BOOST_CHECK(test_overlap(r_i - r_j, c,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,c,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, c,a,err_count));
 
     ShapeFacetedSphere d(o, p2);
     r_j = vec3<Scalar>(1,-0.8,3);
-    BOOST_CHECK(test_overlap(r_j - r_i, a,d,err_count));
-    BOOST_CHECK(test_overlap(r_i - r_j, d,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,d,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, d,a,err_count));
 
     ShapeFacetedSphere e(o, p2);
     r_j = vec3<Scalar>(1,2,0.1);
-    BOOST_CHECK(test_overlap(r_j - r_i, a,e,err_count));
-    BOOST_CHECK(test_overlap(r_i - r_j, e,a,err_count));
+    UP_ASSERT(test_overlap(r_j - r_i, a,e,err_count));
+    UP_ASSERT(test_overlap(r_i - r_j, e,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_boundaries )
+UP_TEST( overlap_boundaries )
     {
     // parameters
     quat<Scalar> o;
@@ -128,18 +125,18 @@ BOOST_AUTO_TEST_CASE( overlap_boundaries )
 
     ShapeFacetedSphere a(o, p);
     ShapeFacetedSphere b(o, p);
-    BOOST_CHECK(!test_overlap(rij,a,b,err_count));
-    BOOST_CHECK(!test_overlap(-rij,b,a,err_count));
+    UP_ASSERT(!test_overlap(rij,a,b,err_count));
+    UP_ASSERT(!test_overlap(-rij,b,a,err_count));
 
     vec3<Scalar> pos_c(-9.1,0,0);
     rij = pos_c - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
     ShapeFacetedSphere c(o, p);
-    BOOST_CHECK(test_overlap(rij,a,c,err_count));
-    BOOST_CHECK(test_overlap(-rij,c,a,err_count));
+    UP_ASSERT(test_overlap(rij,a,c,err_count));
+    UP_ASSERT(test_overlap(-rij,c,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_faceted )
+UP_TEST( overlap_faceted )
     {
     // parameters
     vec3<Scalar> r_i;
@@ -173,16 +170,16 @@ BOOST_AUTO_TEST_CASE( overlap_faceted )
 
     ShapeFacetedSphere b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.85,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.75,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     p2.N = 1;
     p2.offset[0] = -.3;
@@ -196,8 +193,8 @@ BOOST_AUTO_TEST_CASE( overlap_faceted )
         p2.n[0].y = sin(phi);
         p2.n[0].z = 0.0;
         r_ij = vec3<Scalar>(0.81,0,0);
-        BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-        BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+        UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+        UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
         }
 
     p2.n[0].x = -1;
@@ -211,8 +208,8 @@ BOOST_AUTO_TEST_CASE( overlap_faceted )
             Scalar y = -5.0+0.1*i;
             Scalar z = -5.0+0.1*j;
             r_ij = vec3<Scalar>(.6001,y,z);
-            BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-            BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+            UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+            UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
             }
 
     // place b close to a along x, with facing facets, then rotate slightly around z (1deg)
@@ -223,8 +220,8 @@ BOOST_AUTO_TEST_CASE( overlap_faceted )
         p2.n[0].y = -sin(phi);
         p2.n[0].z = 0.0;
         r_ij = vec3<Scalar>(.61,0,0);
-        BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-        BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+        UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+        UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
         }
 
     // get a vertex on the intersection circle of sphere a
@@ -237,18 +234,18 @@ BOOST_AUTO_TEST_CASE( overlap_faceted )
     r_ij = v+v*fast::rsqrt(dot(v,v))*Scalar(0.3001);
     p2.n[0] = -v*fast::rsqrt(dot(v,v));
     p2.offset[0] = -.3;
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     // place particle b along that axis, with patch normal to it,
     // barely overlapping
     r_ij = v+v*fast::rsqrt(dot(v,v))*Scalar(0.2999);
     p2.n[0] = -v*fast::rsqrt(dot(v,v));
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_faceted_twofacets )
+UP_TEST( overlap_faceted_twofacets )
     {
     // parameters
     vec3<Scalar> r_i;
@@ -290,27 +287,27 @@ BOOST_AUTO_TEST_CASE( overlap_faceted_twofacets )
 
     ShapeFacetedSphere b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(1,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.5+0.905*0.5,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.5+0.895*0.5,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.5,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_faceted_threefacets )
+UP_TEST( overlap_faceted_threefacets )
     {
     // parameters
     quat<Scalar> o(1,vec3<Scalar>(0,0,0));
@@ -360,35 +357,35 @@ BOOST_AUTO_TEST_CASE( overlap_faceted_threefacets )
 
     ShapeFacetedSphere b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(0,0,2);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,1);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,0.5+0.905*0.5);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,0.5+0.895*0.5);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,0.5);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,-.99);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0,0,-1.01);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
     }
 
-BOOST_AUTO_TEST_CASE( overlap_faceted_offset )
+UP_TEST( overlap_faceted_offset )
     {
     // parameters
     quat<Scalar> o(1,vec3<Scalar>(0,0,0));
@@ -420,36 +417,36 @@ BOOST_AUTO_TEST_CASE( overlap_faceted_offset )
 
     ShapeFacetedSphere b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(.76,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.74,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     p.offset[0] = 0;
 
     r_ij = vec3<Scalar>(.51,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(0.49,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
 
     p.offset[0] = .25;
 
     r_ij = vec3<Scalar>(.26,0,0);
-    BOOST_CHECK(!test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(!test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(!test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(!test_overlap(-r_ij, b,a,err_count));
 
     r_ij = vec3<Scalar>(.24,0,0);
-    BOOST_CHECK(test_overlap(r_ij, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ij, b,a,err_count));
+    UP_ASSERT(test_overlap(r_ij, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
     }
 
 #include "hoomd/extern/saruprng.h"
-BOOST_AUTO_TEST_CASE( random_support_test )
+UP_TEST( random_support_test )
     {
     detail::faceted_sphere_params p;
     p.diameter = 1.0;
@@ -494,11 +491,11 @@ BOOST_AUTO_TEST_CASE( random_support_test )
 
         vec3<OverlapReal> s = support(n);
         //printf("%f %f %f\n", s.x, s.y, s.z);
-        BOOST_CHECK(dot(s,s) <= 0.5);
+        UP_ASSERT(dot(s,s) <= 0.5);
         }
     }
 
-BOOST_AUTO_TEST_CASE( random_support_test_2 )
+UP_TEST( random_support_test_2 )
     {
     detail::faceted_sphere_params p;
     p.diameter = 1.0;
@@ -542,11 +539,11 @@ BOOST_AUTO_TEST_CASE( random_support_test_2 )
 
         vec3<OverlapReal> s = support(n);
         //printf("%f %f %f\n", s.x, s.y, s.z);
-        BOOST_CHECK(dot(s,s) <= 0.5);
+        UP_ASSERT(dot(s,s) <= 0.5);
         }
     }
 
-BOOST_AUTO_TEST_CASE( overlap_special_case )
+UP_TEST( overlap_special_case )
     {
     // parameters
     BoxDim box(100);
@@ -583,6 +580,6 @@ BOOST_AUTO_TEST_CASE( overlap_special_case )
     vec3<Scalar> r_a(-0.1410365402699,-0.3096362948418,-0.04636116325855);
     vec3<Scalar> r_b(-0.7674461603165,-0.5918425917625,-0.3122854232788);
     vec3<Scalar> r_ab = r_b-r_a;
-    BOOST_CHECK(test_overlap(r_ab, a,b,err_count));
-    BOOST_CHECK(test_overlap(-r_ab,a,b,err_count));
+    UP_ASSERT(test_overlap(r_ab, a,b,err_count));
+    UP_ASSERT(test_overlap(-r_ab,a,b,err_count));
     }

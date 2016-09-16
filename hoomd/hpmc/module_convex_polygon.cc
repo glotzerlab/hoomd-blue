@@ -36,10 +36,10 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
 
-using namespace boost::python;
+
+
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,26 +48,26 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_convex_polygon()
+void export_convex_polygon(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeConvexPolygon >("IntegratorHPMCMonoConvexPolygon");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitConvexPolygon");
-    export_ComputeFreeVolume< ShapeConvexPolygon >("ComputeFreeVolumeConvexPolygon");
-    export_AnalyzerSDF< ShapeConvexPolygon >("AnalyzerSDFConvexPolygon");
-    export_UpdaterMuVT< ShapeConvexPolygon >("UpdaterMuVTConvexPolygon");
-    export_UpdaterMuVTImplicit< ShapeConvexPolygon >("UpdaterMuVTImplicitConvexPolygon");
+    export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
+    export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitConvexPolygon");
+    export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
+    export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
+    export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
+    export_UpdaterMuVTImplicit< ShapeConvexPolygon >(m, "UpdaterMuVTImplicitConvexPolygon");
 
-    export_ExternalFieldInterface<ShapeConvexPolygon>("ExternalFieldConvexPolygon");
-    export_LatticeField<ShapeConvexPolygon>("ExternalFieldLatticeConvexPolygon");
-    export_ExternalFieldComposite<ShapeConvexPolygon>("ExternalFieldCompositeConvexPolygon");
-    export_RemoveDriftUpdater<ShapeConvexPolygon>("RemoveDriftUpdaterConvexPolygon");
-    // export_ExternalFieldWall<ShapeConvexPolygon>("WallConvexPolygon");
-    // export_UpdaterExternalFieldWall<ShapeConvexPolygon>("UpdaterExternalFieldWallConvexPolygon");
+    export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
+    export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");
+    export_ExternalFieldComposite<ShapeConvexPolygon>(m, "ExternalFieldCompositeConvexPolygon");
+    export_RemoveDriftUpdater<ShapeConvexPolygon>(m, "RemoveDriftUpdaterConvexPolygon");
+    // export_ExternalFieldWall<ShapeConvexPolygon>(m, "WallConvexPolygon");
+    // export_UpdaterExternalFieldWall<ShapeConvexPolygon>(m, "UpdaterExternalFieldWallConvexPolygon");
 
     #ifdef ENABLE_CUDA
-    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >("IntegratorHPMCMonoGPUConvexPolygon");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >("IntegratorHPMCMonoImplicitGPUConvexPolygon");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >("ComputeFreeVolumeGPUConvexPolygon");
+    export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitGPUConvexPolygon");
+    export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
     #endif
     }
 

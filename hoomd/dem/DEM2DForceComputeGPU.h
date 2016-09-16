@@ -7,8 +7,8 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #include "DEM2DForceCompute.h"
 #include "DEM2DForceGPU.cuh"
@@ -37,8 +37,8 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
     {
     public:
         //! Constructs the compute
-        DEM2DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
+        DEM2DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
             Scalar r_cut, Potential potential);
 
         //! Destructor
@@ -46,7 +46,7 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
 
         //! Set the vertices for a particle type
         virtual void setParams(unsigned int type,
-            const boost::python::list &vertices);
+            const pybind11::list &vertices);
 
         //! Set parameters for the builtin autotuner
         virtual void setAutotunerParams(bool enable, unsigned int period)
@@ -58,7 +58,7 @@ class DEM2DForceComputeGPU : public DEM2DForceCompute<Real, Real4, Potential>
     protected:
         GPUArray<Real2> m_vertices;     //!< Vertices for all shapes
         GPUArray<unsigned int> m_num_shape_vertices;    //!< Number of vertices for each shape
-        boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

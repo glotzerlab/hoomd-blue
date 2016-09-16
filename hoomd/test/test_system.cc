@@ -7,9 +7,10 @@
 
 #include <iostream>
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE SystemClassTest
-#include "boost_utf_configure.h"
+
+#include "upp11_config.h"
+HOOMD_UP_MAIN();
+
 
 #include <math.h>
 #include "hoomd/System.h"
@@ -17,8 +18,6 @@
 #include <stdexcept>
 #include <string>
 #include <iostream>
-
-using namespace boost::python;
 
 /*! \file system_test.cc
     \brief Unit tests for System
@@ -34,7 +33,7 @@ class DummyAnalyzer : public Analyzer
     {
     public:
         //! Constructs a named analyzer
-        DummyAnalyzer(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyAnalyzer(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Analyzer(sysdef), m_name(name)
             {
             }
@@ -59,7 +58,7 @@ class DummyUpdater : public Integrator
         // this derives from Integrator so the unit tests can use them in setIntegrator
     public:
         //! Constructs a named analyzer
-        DummyUpdater(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyUpdater(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Integrator(sysdef, 0.0), m_name(name)
             {
             }
@@ -83,7 +82,7 @@ class DummyCompute : public Compute
     {
     public:
         //! Constructs a named analyzer
-        DummyCompute(boost::shared_ptr<SystemDefinition> sysdef, const string& name)
+        DummyCompute(std::shared_ptr<SystemDefinition> sysdef, const string& name)
                 : Compute(sysdef), m_name(name)
             {
             }
@@ -103,15 +102,15 @@ class DummyCompute : public Compute
     };
 
 //! Tests the add, get, and set routines in System
-BOOST_AUTO_TEST_CASE( getter_setter_tests )
+UP_TEST( getter_setter_tests )
     {
-    boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
+    std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
 
     cout << "Running getter_setter_tests, expect error messages to be printed to the screen as this tests error checking in System" << endl;
 
     // create two analyzers to test adding
-    boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
-    boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+    std::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
+    std::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
 
     // add them both to a System
     System sys(sysdef, 0);
@@ -128,11 +127,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer1"), analyzer1);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -142,11 +141,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)10);
     except = false;
     try
         {
@@ -156,16 +155,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.setAnalyzerPeriod("analyzer1", 15, -1);
     sys.setAnalyzerPeriod("analyzer2", 8, -1);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
-    BOOST_CHECK_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getAnalyzerPeriod("analyzer1"), (unsigned int)15);
 
     // remove the analyzers 1 by one and make sure they don't exist
     sys.removeAnalyzer("analyzer1");
-    BOOST_CHECK_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
+    MY_ASSERT_EQUAL(sys.getAnalyzer("analyzer2"), analyzer2);
     except = false;
     try
         {
@@ -175,7 +174,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeAnalyzer("analyzer2");
     except = false;
@@ -187,12 +186,12 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ************ Updaters
     // create two updaters to test adding
-    boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
-    boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
+    std::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
+    std::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
 
     // add them both to a System
     sys.addUpdater(updater1, "updater1", 10, -1);
@@ -208,11 +207,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater1"), updater1);
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater1"), updater1);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -222,11 +221,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // test the get and set period functions
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)105);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)10);
     except = false;
     try
         {
@@ -236,16 +235,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.setUpdaterPeriod("updater1", 15, -1);
     sys.setUpdaterPeriod("updater2", 8, -1);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
-    BOOST_CHECK_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater2"), (unsigned int)8);
+    UP_ASSERT_EQUAL(sys.getUpdaterPeriod("updater1"), (unsigned int)15);
 
     // remove the updaters 1 by one and make sure they don't exist
     sys.removeUpdater("updater1");
-    BOOST_CHECK_EQUAL(sys.getUpdater("updater2"), updater2);
+    MY_ASSERT_EQUAL(sys.getUpdater("updater2"), updater2);
     except = false;
     try
         {
@@ -255,7 +254,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeUpdater("updater2");
     except = false;
@@ -267,12 +266,12 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ********* Computes
     // create two updaters to test adding
-    boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
-    boost::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
+    std::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
+    std::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
 
     // add them both to a System
     sys.addCompute(compute1, "compute1");
@@ -288,11 +287,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // check the get method
-    BOOST_CHECK_EQUAL(sys.getCompute("compute1"), compute1);
-    BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute1"), compute1);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -302,11 +301,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // remove the computes 1 by one and make sure they don't exist
     sys.removeCompute("compute1");
-    BOOST_CHECK_EQUAL(sys.getCompute("compute2"), compute2);
+    MY_ASSERT_EQUAL(sys.getCompute("compute2"), compute2);
     except = false;
     try
         {
@@ -316,7 +315,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     sys.removeCompute("compute2");
     except = false;
@@ -328,16 +327,16 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
         {
         except = true;
         }
-    BOOST_CHECK(except);
+    UP_ASSERT(except);
 
     // ************ Integrator
-    boost::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
-    boost::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
+    std::shared_ptr< Integrator > integrator1(new DummyUpdater(sysdef, "integrator1"));
+    std::shared_ptr< Integrator > integrator2(new DummyUpdater(sysdef, "integrator2"));
 
     sys.setIntegrator(integrator1);
-    BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator1);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator1);
     sys.setIntegrator(integrator2);
-    BOOST_CHECK_EQUAL(sys.getIntegrator(), integrator2);
+    MY_ASSERT_EQUAL(sys.getIntegrator(), integrator2);
     }
 
 
@@ -348,7 +347,7 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
 /*! Unfortunately, there is no way to automatically test these. A human will have to
     observe the output and verify that it is correct
 */
-/*BOOST_AUTO_TEST_CASE( run_tests )
+/*UP_TEST( run_tests )
     {
     Py_Initialize();
     #ifdef ENABLE_CUDA
@@ -356,11 +355,11 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     #endif
 
     // setup the system to run
-    boost::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
+    std::shared_ptr< SystemDefinition > sysdef(new SystemDefinition(10, BoxDim(10)));
         // create two analyzers to test adding
-    boost::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
-    boost::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
-    boost::shared_ptr< Analyzer > analyzer3(new DummyAnalyzer(pdata, "analyzer3"));
+    std::shared_ptr< Analyzer > analyzer1(new DummyAnalyzer(sysdef, "analyzer1"));
+    std::shared_ptr< Analyzer > analyzer2(new DummyAnalyzer(sysdef, "analyzer2"));
+    std::shared_ptr< Analyzer > analyzer3(new DummyAnalyzer(pdata, "analyzer3"));
 
     // add them both to a System
     System sys(sysdef, 0);
@@ -371,9 +370,9 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     sys.setAnalyzerPeriodVariable("analyzer3", eval("lambda n: n**2"));
 
     // create two updaters to test adding
-    boost::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
-    boost::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
-    boost::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
+    std::shared_ptr< Updater > updater1(new DummyUpdater(sysdef, "updater1"));
+    std::shared_ptr< Updater > updater2(new DummyUpdater(sysdef, "updater2"));
+    std::shared_ptr< Updater > updater3(new DummyUpdater(pdata, "updater3"));
 
     // add them both to a System
     sys.addUpdater(updater1, "updater1", 5, -1);
@@ -383,15 +382,15 @@ BOOST_AUTO_TEST_CASE( getter_setter_tests )
     sys.setUpdaterPeriodVariable("updater3", eval("lambda n: 0.5 * 10**n"));
 
     // create two updaters to test adding
-    boost::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
-    boost::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
+    std::shared_ptr< Compute > compute1(new DummyCompute(sysdef, "compute1"));
+    std::shared_ptr< Compute > compute2(new DummyCompute(sysdef, "compute2"));
 
     // add them both to a System
     sys.addCompute(compute1, "compute1");
     sys.addCompute(compute2, "compute2");
 
     // create an integrator and add it to the system
-    boost::shared_ptr< Integrator > integrator(new DummyUpdater(sysdef, "integrator"));
+    std::shared_ptr< Integrator > integrator(new DummyUpdater(sysdef, "integrator"));
     sys.setIntegrator(integrator);
 
     cout << "First run: no profiling, statsPeriod = 10 s" << endl;

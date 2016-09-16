@@ -12,18 +12,16 @@
 #include "../DEM3DForceCompute.h"
 #include "../DEM3DForceComputeGPU.h"
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
-void export_NF_WCA_3D()
+void export_NF_WCA_3D(py::module& m)
     {
     typedef WCAPotential<Scalar, Scalar4, NoFriction<Scalar> > WCA;
     typedef DEM3DForceCompute<Scalar, Scalar4, WCA> WCA_DEM_3D;
 
-    class_<WCA_DEM_3D, boost::shared_ptr<WCA_DEM_3D>, bases<ForceCompute>, boost::noncopyable >
-        ("WCADEM3D", init< boost::shared_ptr<SystemDefinition>,
-        boost::shared_ptr<NeighborList>, Scalar, WCA>())
+    py::class_<WCA_DEM_3D, std::shared_ptr<WCA_DEM_3D> >(m, "WCADEM3D", py::base<ForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_3D::setParams)
         .def("setRcut", &WCA_DEM_3D::setRcut)
         ;
@@ -31,10 +29,8 @@ void export_NF_WCA_3D()
 #ifdef ENABLE_CUDA
     typedef DEM3DForceComputeGPU<Scalar, Scalar4, WCA> WCA_DEM_3D_GPU;
 
-    class_<WCA_DEM_3D_GPU, boost::shared_ptr<WCA_DEM_3D_GPU>,
-           bases<WCA_DEM_3D>, boost::noncopyable >
-        ("WCADEM3DGPU", init< boost::shared_ptr<SystemDefinition>,
-        boost::shared_ptr<NeighborList>, Scalar, WCA>())
+    py::class_<WCA_DEM_3D_GPU, std::shared_ptr<WCA_DEM_3D_GPU> >(m, "WCADEM3DGPU", py::base<WCA_DEM_3D>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar, WCA>())
         .def("setParams", &WCA_DEM_3D_GPU::setParams)
         .def("setRcut", &WCA_DEM_3D_GPU::setRcut)
         .def("setAutotunerParams", &WCA_DEM_3D_GPU::setAutotunerParams)

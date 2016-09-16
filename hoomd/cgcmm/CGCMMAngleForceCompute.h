@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -18,6 +18,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CGCMMANGLEFORCECOMPUTE_H__
 #define __CGCMMANGLEFORCECOMPUTE_H__
@@ -32,7 +34,7 @@ class CGCMMAngleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        CGCMMAngleForceCompute(boost::shared_ptr<SystemDefinition> pdata);
+        CGCMMAngleForceCompute(std::shared_ptr<SystemDefinition> pdata);
 
         //! Destructor
         ~CGCMMAngleForceCompute();
@@ -74,13 +76,13 @@ class CGCMMAngleForceCompute : public ForceCompute
         Scalar cgPow1[4];  //!< list of 1st powers for CG-CMM angles
         Scalar cgPow2[4];  //!< list of 2nd powers for CG-CMM angles
 
-        boost::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
+        std::shared_ptr<AngleData> m_CGCMMAngle_data; //!< Angle data to use in computing angles
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the BondForceCompute class to python
-void export_CGCMMAngleForceCompute();
+void export_CGCMMAngleForceCompute(pybind11::module& m);
 
 #endif

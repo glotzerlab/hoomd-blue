@@ -9,12 +9,9 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
 #include "HPMCPrecisionSetup.h"
-
 #include "IntegratorHPMCMono.h"
 
-#include <boost/python.hpp>
 
 /*! \file ComputeFreeVolume.h
     \brief Defines the template class for an approximate free volume integration
@@ -24,6 +21,9 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 
 namespace hpmc
 {
@@ -37,9 +37,9 @@ class ComputeFreeVolume : public Compute
     {
     public:
         //! Construct the integrator
-        ComputeFreeVolume(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             boost::shared_ptr<CellList> cl,
+        ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                             std::shared_ptr<CellList> cl,
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
@@ -78,8 +78,8 @@ class ComputeFreeVolume : public Compute
         virtual void compute(unsigned int timestep);
 
     protected:
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
-        boost::shared_ptr<CellList> m_cl;                        //!< The cell list
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;              //!< The parent integrator
+        std::shared_ptr<CellList> m_cl;                        //!< The cell list
 
         unsigned int m_type;                                     //!< Type of depletant particle to generate
         unsigned int m_n_sample;                                 //!< Number of sampling depletants to generate
@@ -91,9 +91,9 @@ class ComputeFreeVolume : public Compute
 
 
 template< class Shape >
-ComputeFreeVolume< Shape >::ComputeFreeVolume(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    boost::shared_ptr<CellList> cl,
+ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                                                    std::shared_ptr<CellList> cl,
                                                     unsigned int seed,
                                                     std::string suffix)
     : Compute(sysdef), m_mc(mc), m_cl(cl), m_type(0), m_n_sample(0), m_seed(seed), m_suffix(suffix)
@@ -146,8 +146,11 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         const BoxDim& box = m_pdata->getBox();
 
-        // access parameters
+        // access parameters and interaction matrix
         ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
         // generate n_sample random test depletants in the global box
         unsigned int n_sample = m_n_sample;
@@ -208,9 +211,10 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                                if (!(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[overlap_idx(m_type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                     && test_overlap(r_ij, shape_i, shape_j, err_count))
                                     {
@@ -293,12 +297,12 @@ Scalar ComputeFreeVolume<Shape>::getLogValue(const std::string& quantity, unsign
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_ComputeFreeVolume(const std::string& name)
+template < class Shape > void export_ComputeFreeVolume(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolume<Shape>, boost::shared_ptr< ComputeFreeVolume<Shape> >, boost::python::bases< Compute >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<IntegratorHPMCMono<Shape> >,
-                boost::shared_ptr<CellList>,
+     pybind11::class_<ComputeFreeVolume<Shape>, std::shared_ptr< ComputeFreeVolume<Shape> > >(m, name.c_str(), pybind11::base< Compute >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<IntegratorHPMCMono<Shape> >,
+                std::shared_ptr<CellList>,
                 unsigned int,
                 std::string >())
         .def("setNumSamples", &ComputeFreeVolume<Shape>::setNumSamples)
@@ -309,4 +313,3 @@ template < class Shape > void export_ComputeFreeVolume(const std::string& name)
 } // end namespace hpmc
 
 #endif // __COMPUTE_FREE_VOLUME__H__
-

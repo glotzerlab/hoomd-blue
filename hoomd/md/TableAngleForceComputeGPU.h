@@ -29,7 +29,7 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
     {
     public:
         //! Constructs the compute
-        TableAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        TableAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int table_width,
                           const std::string& log_suffix="");
 
@@ -48,7 +48,7 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
             }
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
 
         //! Actually compute the forces
@@ -56,6 +56,6 @@ class TableAngleForceComputeGPU : public TableAngleForceCompute
     };
 
 //! Exports the TableAngleForceComputeGPU class to python
-void export_TableAngleForceComputeGPU();
+void export_TableAngleForceComputeGPU(pybind11::module& m);
 
 #endif
