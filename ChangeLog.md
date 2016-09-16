@@ -2,7 +2,7 @@
 
 [TOC]
 
-## v2.1.0
+# v2.1.0
 
 Not yet released
 
@@ -39,6 +39,13 @@ Not yet released
 * fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
 * fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 
+## v2.0.4
+
+Not yet released
+
+* Fix a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
+* Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
+#
 ## v2.0.3
 
 Released 2016/08/30
