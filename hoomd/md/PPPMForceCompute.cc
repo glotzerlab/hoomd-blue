@@ -766,6 +766,11 @@ void PPPMForceCompute::assignParticles()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -781,10 +786,6 @@ void PPPMForceCompute::assignParticles()
             // ignore, error will be thrown elsewhere (in CellList)
             continue;
             }
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
@@ -1046,6 +1047,10 @@ void PPPMForceCompute::interpolateForces()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -1063,10 +1068,6 @@ void PPPMForceCompute::interpolateForces()
             }
 
         Scalar3 force = make_scalar3(0.0,0.0,0.0);
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
