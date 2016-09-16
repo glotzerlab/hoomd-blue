@@ -78,6 +78,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
 
     // access net force and torque acting on constituent particles
     ArrayHandle<Scalar4> d_net_force(m_pdata->getNetForce(), access_location::device, access_mode::readwrite);
@@ -119,6 +120,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                     d_body_orientation.data,
                     d_body_len.data,
                     d_body.data,
+                    d_tag.data,
                     m_flag.getDeviceFlags(),
                     d_net_force.data,
                     d_net_torque.data,
@@ -161,6 +163,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                         d_body_orientation.data,
                         d_net_force.data,
                         d_net_virial.data,
+                        d_body.data,
+                        d_tag.data,
                         nmol,
                         m_pdata->getN(),
                         n_bodies_per_block,
