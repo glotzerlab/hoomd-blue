@@ -2,6 +2,10 @@
 
 [TOC]
 
+## v2.0.4
+
+* Match logged quantitites between MPI and non-MPI runs on first time step
+
 ## v2.0.3
 
 Released 2016/08/30
