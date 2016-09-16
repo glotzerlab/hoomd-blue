@@ -453,6 +453,9 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
         // make sure we start off with a migration substep, so that
         // any old ghost particles are invalidated
         m_comm->forceMigrate();
+
+        // communicate here, to run before the Logger
+        m_comm->communicate(m_cur_tstep);
         }
     #endif
 
