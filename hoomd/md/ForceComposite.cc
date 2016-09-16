@@ -693,7 +693,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_torque.data,0, sizeof(Scalar4)*m_pdata->getN());
     memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
-    unsigned int nptl_local = m_pdata->getN();
+    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
     unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -703,6 +703,7 @@ void ForceComposite::computeForces(unsigned int timestep)
         compute_virial = true;
         }
 
+    // loop over all molecules, also incomplete ones
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
         unsigned int len = h_molecule_length.data[ibody];
@@ -717,7 +718,6 @@ void ForceComposite::computeForces(unsigned int timestep)
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        // do not compute force on ghost particles
         if (central_idx >= nptl_local) continue;
 
         // the central ptl must be present
@@ -730,13 +730,6 @@ void ForceComposite::computeForces(unsigned int timestep)
         // body type
         unsigned int type = __scalar_as_int(postype.w);
 
-        if (len != h_body_len.data[type] + 1)
-            {
-            m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                << std::endl << std::endl;
-            throw std::runtime_error("Error computing composite particle forces.\n");
-            }
-
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
@@ -748,68 +741,78 @@ void ForceComposite::computeForces(unsigned int timestep)
 
             // force and torque on particle
             Scalar4 net_force = h_net_force.data[idxj];
+            Scalar4 net_torque = h_net_torque.data[idxj];
             vec3<Scalar> f(net_force);
 
-            // sum up center of mass force
-            h_force.data[central_idx].x += f.x;
-            h_force.data[central_idx].y += f.y;
-            h_force.data[central_idx].z += f.z;
-
-            // sum up energy
-            h_force.data[central_idx].w += h_net_force.data[idxj].w;
-
             // zero net energy on constituent ptls to avoid double counting
-            // also zero net force for consistency
+            // also zero net force and torque for consistency
             h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
-
-            // fetch relative position from rigid body definition
-            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
-
-            // rotate into space frame
-            vec3<Scalar> dr_space = rotate(orientation, dr);
-
-            // torque = r x f
-            vec3<Scalar> delta_torque(cross(dr_space,f));
-            h_torque.data[central_idx].x += delta_torque.x;
-            h_torque.data[central_idx].y += delta_torque.y;
-            h_torque.data[central_idx].z += delta_torque.z;
-
-            /* from previous rigid body implementation: Access Torque elements from a single particle. Right now I will am assuming that the particle
-                and rigid body reference frames are the same. Probably have to rotate first.
-             */
-            Scalar4 net_torque = h_net_torque.data[idxj];
-            h_torque.data[central_idx].x += net_torque.x;
-            h_torque.data[central_idx].y += net_torque.y;
-            h_torque.data[central_idx].z += net_torque.z;
-
-            // zero net torqe on constituent particle
             h_net_torque.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
 
-            if (compute_virial)
+            // only add forces for local central particles
+            if (central_idx < m_pdata->getN())
                 {
-                // sum up virial
-                Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
-                Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
-                Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
-                Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
-                Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
-                Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+                // if the central particle is local, the molecule should be complete
+                if (len != h_body_len.data[type] + 1)
+                    {
+                    m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
+                        << std::endl << std::endl;
+                    throw std::runtime_error("Error computing composite particle forces.\n");
+                    }
 
-                // zero net virial
-                h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
+                // sum up center of mass force
+                h_force.data[central_idx].x += f.x;
+                h_force.data[central_idx].y += f.y;
+                h_force.data[central_idx].z += f.z;
 
-                // subtract intra-body virial prt
-                h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
-                h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
-                h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
-                h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
-                h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
-                h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                // sum up energy
+                h_force.data[central_idx].w += net_force.w;
+
+                // fetch relative position from rigid body definition
+                vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
+
+                // rotate into space frame
+                vec3<Scalar> dr_space = rotate(orientation, dr);
+
+                // torque = r x f
+                vec3<Scalar> delta_torque(cross(dr_space,f));
+                h_torque.data[central_idx].x += delta_torque.x;
+                h_torque.data[central_idx].y += delta_torque.y;
+                h_torque.data[central_idx].z += delta_torque.z;
+
+                /* from previous rigid body implementation: Access Torque elements from a single particle. Right now I will am assuming that the particle
+                    and rigid body reference frames are the same. Probably have to rotate first.
+                 */
+                h_torque.data[central_idx].x += net_torque.x;
+                h_torque.data[central_idx].y += net_torque.y;
+                h_torque.data[central_idx].z += net_torque.z;
+
+                if (compute_virial)
+                    {
+                    // sum up virial
+                    Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
+                    Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
+                    Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
+                    Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
+                    Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
+                    Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+
+                    // zero net virial
+                    h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
+
+                    // subtract intra-body virial prt
+                    h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
+                    h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
+                    h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
+                    h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
+                    h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
+                    h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                    }
                 }
             }
         }
