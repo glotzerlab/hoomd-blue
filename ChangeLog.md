@@ -2,6 +2,12 @@
 
 [TOC]
 
+## v2.0.4
+
+*Bug fixes*
+
+* charge.pppm() computed invalid forces
+
 ## v2.0.3
 
 Released 2016/08/30
