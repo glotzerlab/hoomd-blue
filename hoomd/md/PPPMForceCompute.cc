@@ -41,6 +41,7 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
       m_box_changed(false),
       m_q(0.0),
       m_q2(0.0),
+      m_body_energy(0.0),
       m_kiss_fft_initialized(false),
       m_dfft_initialized(false)
     {
@@ -58,6 +59,8 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     m_rcut = Scalar(0.0);
     m_order = 0;
     m_alpha = Scalar(0.0);
+
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::slotGlobalParticleNumberChange>(this);
     }
 
 void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int nz,
@@ -138,6 +141,8 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
 
 PPPMForceCompute::~PPPMForceCompute()
     {
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::slotGlobalParticleNumberChange>(this);
+
     if (m_kiss_fft_initialized)
         {
         free(m_kiss_fft);
@@ -1198,6 +1203,9 @@ Scalar PPPMForceCompute::computePE()
         //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
 
+    // apply rigid body correction
+    sum += m_body_energy;
+
     // store this rank's contribution as external potential energy
     m_external_energy = sum;
 
@@ -1227,7 +1235,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->push("PPPM");
 
-    if (m_need_initialize)
+    if (m_need_initialize || m_ptls_added_removed)
         {
         if (!m_params_set)
             {
@@ -1243,7 +1251,15 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         setupCoeffs();
 
         computeInfluenceFunction();
+
+        if (m_nlist->getFilterBody())
+            {
+            m_exec_conf->msg->notice(2) << "PPPM: calculating rigid body correction (N^2)" << std::endl;
+            computeBodyCorrection();
+            }
+
         m_need_initialize = false;
+        m_ptls_added_removed = false;
         }
 
     bool ghost_cell_num_changed = false;
@@ -1355,6 +1371,76 @@ void PPPMForceCompute::computeVirial()
     if (m_prof) m_prof->pop();
     }
 
+//! The real space form of the long-range interaction part, for exclusions
+inline void eval_pppm_real_space(Scalar alpha, Scalar kappa, Scalar rsq, Scalar &pair_eng, Scalar &force_divr)
+    {
+    const Scalar sqrtpi = sqrt(M_PI);
+
+    Scalar r = sqrtf(rsq);
+    Scalar expfac = fast::exp(-alpha*r);
+    Scalar arg1 = kappa * r - alpha/Scalar(2.0)/kappa;
+    Scalar arg2 = kappa * r + alpha/Scalar(2.0)/kappa;
+    Scalar erffac = (::erf(arg1)*expfac + expfac - ::erfc(arg2)*exp(alpha*r))/(Scalar(2.0)*r);
+
+    pair_eng = erffac;
+    force_divr = -(expfac*Scalar(2.0)*kappa/sqrtpi*fast::exp(-arg1*arg1)
+        - Scalar(0.5)*alpha*(expfac*::erfc(arg1)+fast::exp(alpha*r)*::erfc(arg2)) - erffac)/rsq;
+    }
+
+void PPPMForceCompute::computeBodyCorrection()
+    {
+    if (m_prof) m_prof->push("rigid body correction");
+
+    // do an N^2 search over particles, subtracting the real-space long-range part from the PPPM energy
+    unsigned int nptl = m_pdata->getN();
+    unsigned int nghost = m_pdata->getNGhosts();
+
+    // access particle data
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getBox();
+
+    m_body_energy = Scalar(0.0);
+
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int i = m_group->getMemberIndex(group_idx);
+
+        unsigned int ibody = h_body.data[i];
+        vec3<Scalar> posi(h_postype.data[i]);
+        Scalar qi(h_charge.data[i]);
+
+        for (unsigned int j = 0; j < nptl + nghost; ++j)
+            {
+            // strictly we would have to check if j is member of the group
+            // assuming that rigid bodies are completely included here
+
+            unsigned jbody = h_body.data[j];
+            vec3<Scalar> posj(h_postype.data[j]);
+            Scalar qj(h_charge.data[j]);
+
+            if (i != j && ibody != NO_BODY && ibody == jbody)
+                {
+                Scalar3 dx = box.minImage(vec_to_scalar3(posi-posj));
+                Scalar rsq = dot(dx,dx);
+
+                Scalar force_divr(0.0);
+                Scalar pair_eng(0.0);
+
+                // compute correction
+                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                // subtract
+                m_body_energy -= Scalar(0.5)*qi*qj*pair_eng;
+                }
+            }
+        }
+    if (m_prof) m_prof->pop();
+    }
+
 void PPPMForceCompute::fixExclusions()
     {
     unsigned int group_size = m_group->getNumMembers();
@@ -1397,7 +1483,6 @@ void PPPMForceCompute::fixExclusions()
         Scalar qi = h_charge.data[idx];
 
         unsigned int n_neigh = d_n_ex.data[idx];
-        const Scalar sqrtpi = sqrt(M_PI);
         unsigned int cur_j = 0;
 
         for (unsigned int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -1414,20 +1499,20 @@ void PPPMForceCompute::fixExclusions()
 
             // apply periodic boundary conditions:
             dx = box.minImage(dx);
-
             Scalar rsq = dot(dx, dx);
-            Scalar r = sqrtf(rsq);
-            Scalar qiqj = qi * qj;
-            Scalar expfac = fast::exp(-m_alpha*r);
-            Scalar arg1 = m_kappa * r - m_alpha/Scalar(2.0)/m_kappa;
-            Scalar arg2 = m_kappa * r + m_alpha/Scalar(2.0)/m_kappa;
-            Scalar erffac = (::erf(arg1)*expfac + expfac - ::erfc(arg2)*exp(m_alpha*r))/(Scalar(2.0)*r);
 
-            Scalar force_divr = qiqj * (expfac*Scalar(2.0)*m_kappa/sqrtpi*fast::exp(-arg1*arg1)
-                - Scalar(0.5)*m_alpha*(expfac*::erfc(arg1)+fast::exp(m_alpha*r)*::erfc(arg2)) - erffac)/rsq;
+            Scalar pair_eng(0.0);
+            Scalar force_divr(0.0);
+
+            Scalar qiqj = qi*qj;
+
+            // evaluate the long-range pair potential
+            eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
 
             // subtract long-range part of pair-interaction
-            Scalar pair_eng = -qiqj * erffac;
+            force_divr = -qiqj * force_divr;
+            pair_eng = -qiqj * pair_eng;
+
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
             virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;

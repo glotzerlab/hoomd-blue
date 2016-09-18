@@ -580,6 +580,9 @@ Scalar PPPMForceComputeGPU::computePE()
         //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
 
+    // apply rigid body correction
+    sum += m_body_energy;
+
     // store this rank's contribution as external potential energy
     m_external_energy = sum;
 

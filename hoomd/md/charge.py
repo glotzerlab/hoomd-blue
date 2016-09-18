@@ -228,9 +228,6 @@ class pppm(force._force):
         if self.nlist.cpp_nlist.getDiameterShift():
             hoomd.context.msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
 
-        if self.nlist.cpp_nlist.getFilterBody():
-            hoomd.context.msg.warning("Neighbor body filtering is enabled, PPPM energy may be not correct\n");
-
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)
     lpry = rms(hy, yprd, N, order, kappa, q2)

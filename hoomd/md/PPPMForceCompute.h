@@ -63,6 +63,31 @@ class PPPMForceCompute : public ForceCompute
         //! Get sum of squares of charges
         Scalar getQ2Sum();
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        /*! \param timestep Current time step
+        */
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+            {
+            CommFlags flags = ForceCompute::getRequestedCommFlags(timestep);
+            bool correct_body = m_nlist->getFilterBody();
+
+            if(m_nlist->getExclusionsSet() || correct_body)
+                {
+                // need ghost particle charge
+                flags[comm_flag::charge] = 1;
+
+                if (correct_body)
+                    {
+                    flags[comm_flag::body] = 1;
+                    }
+                }
+
+            return flags;
+            }
+        #endif
+
+
     protected:
         /*! Compute the biased forces for this collective variable.
             The force that is written to the force arrays must be
@@ -104,6 +129,15 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<Scalar> m_rho_coeff;       //!< Coefficients for computing the grid based charge density
         GPUArray<Scalar> m_gf_b;            //!< Green function coefficients
 
+        Scalar m_body_energy;                      //!< Energy correction due to rigid body exclusions
+        bool m_ptls_added_removed;          //!< True if global particle number changed
+
+        //! Helper function to be called when particle number changes
+        void slotGlobalParticleNumberChange()
+            {
+            m_ptls_added_removed = true;
+            }
+
         //! Helper function to be called when box changes
         void setBoxChange()
             {
@@ -139,6 +173,9 @@ class PPPMForceCompute : public ForceCompute
 
         //! Setup coefficients
         virtual void setupCoeffs();
+
+        //! Compute rigid body correction
+        virtual void computeBodyCorrection();
 
     private:
         kiss_fftnd_cfg m_kiss_fft;         //!< The FFT configuration
