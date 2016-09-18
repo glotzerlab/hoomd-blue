@@ -1423,7 +1423,9 @@ void PPPMForceCompute::computeBodyCorrection()
             vec3<Scalar> posj(h_postype.data[j]);
             Scalar qj(h_charge.data[j]);
 
-            if (i != j && ibody != NO_BODY && ibody == jbody)
+            Scalar qiqj = qi*qj;
+
+            if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
                 {
                 Scalar3 dx = box.minImage(vec_to_scalar3(posi-posj));
                 Scalar rsq = dot(dx,dx);
@@ -1435,7 +1437,7 @@ void PPPMForceCompute::computeBodyCorrection()
                 eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
 
                 // subtract
-                m_body_energy -= Scalar(0.5)*qi*qj*pair_eng;
+                m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
                 }
             }
         }
@@ -1507,12 +1509,15 @@ void PPPMForceCompute::fixExclusions()
 
             Scalar qiqj = qi*qj;
 
-            // evaluate the long-range pair potential
-            eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+            if (qiqj != Scalar(0.0))
+                {
+                // evaluate the long-range pair potential
+                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
 
-            // subtract long-range part of pair-interaction
-            force_divr = -qiqj * force_divr;
-            pair_eng = -qiqj * pair_eng;
+                // subtract long-range part of pair-interaction
+                force_divr = -qiqj * force_divr;
+                pair_eng = -qiqj * pair_eng;
+                }
 
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
