@@ -42,6 +42,7 @@ PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
       m_q(0.0),
       m_q2(0.0),
       m_body_energy(0.0),
+      m_ptls_added_removed(false),
       m_kiss_fft_initialized(false),
       m_dfft_initialized(false)
     {
