@@ -19,6 +19,7 @@ Not yet released
 * md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
 * `use_charge` option for pair.reaction_field
 * md.charge.pppm() takes a Debye screening length as an optional parameter
+* md.charge.pppm() now computes the rigid body correction to the PPPM energy
 
 *Deprecated*
 
