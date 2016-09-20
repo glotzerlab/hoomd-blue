@@ -128,6 +128,8 @@ endif()
 if (ENABLE_CUDA)
     if(${CUDA_VERSION} VERSION_LESS 7.5)
         set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
+    elseif(${CUDA_VERSION} VERSION_GREATER 7.5)
+        set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
     else()
         if (NOT CUSOLVER_AVAILABLE)
             # message at first time

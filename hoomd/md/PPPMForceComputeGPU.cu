@@ -193,7 +193,7 @@ void gpu_bin_particles(const unsigned int N,
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
-    gpu_bin_particles_kernel<<<N/run_block_size+1, run_block_size>>>(N,
+    gpu_bin_particles_kernel<<<group_size/run_block_size+1, run_block_size>>>(N,
              d_postype,
              d_particle_bins,
              d_n_cell,
@@ -1058,7 +1058,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
     Scalar result;
     int mult_fact = 2*order + 1;
 
-    // assign particle to cell and next neighbors
+    // back-interpolate forces from neighboring mesh points
     for (int l = nlower; l <= nupper; ++l)
         {
         result = Scalar(0.0);
@@ -1169,7 +1169,10 @@ void gpu_compute_forces(const unsigned int N,
     cudaBindTexture(0, inv_fourier_mesh_tex_y, d_inv_fourier_mesh_y, sizeof(cufftComplex)*num_cells);
     cudaBindTexture(0, inv_fourier_mesh_tex_z, d_inv_fourier_mesh_z, sizeof(cufftComplex)*num_cells);
 
-    gpu_compute_forces_kernel<<<N/run_block_size+1,run_block_size>>>(N,
+    // reset force array for ALL particles
+    cudaMemset(d_force, 0, sizeof(Scalar4)*N);
+
+    gpu_compute_forces_kernel<<<group_size/run_block_size+1,run_block_size>>>(N,
              d_postype,
              d_force,
              grid_dim,
