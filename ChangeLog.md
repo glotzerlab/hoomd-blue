@@ -2,8 +2,12 @@
 
 [TOC]
 
-## v2.0.4.
+## v2.0.4
 
+Not yet released
+
+* Fix a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
+* Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 * Fix a bug where PPPM interactions on CPU where not computed correctly
 
 ## v2.0.3
