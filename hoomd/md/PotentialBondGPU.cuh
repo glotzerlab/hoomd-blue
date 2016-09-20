@@ -133,8 +133,14 @@ __global__ void gpu_compute_bond_forces_kernel(Scalar4 *d_force,
         (typename evaluator::param_type *)(&s_data[0]);
 
     // load in per bond type parameters
-    if (threadIdx.x < n_bond_type)
-       s_params[threadIdx.x] = d_params[threadIdx.x];
+    for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
+        {
+        if (cur_offset + threadIdx.x < n_bond_type)
+            {
+            s_params[cur_offset + threadIdx.x] = d_params[cur_offset + threadIdx.x];
+            }
+        }
+
     __syncthreads();
 
     if (idx >= N)

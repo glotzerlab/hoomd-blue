@@ -23,7 +23,7 @@ namespace getardump{
 
     typedef SnapshotSystemData<Scalar> SystemSnapshot;
     std::shared_ptr<SystemSnapshot> takeSystemSnapshot(
-        std::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool);
+        std::shared_ptr<SystemDefinition>, bool, bool, bool, bool, bool, bool, bool, bool);
 
     /// Known operation modes
     enum GetarDumpMode {
@@ -58,6 +58,9 @@ namespace getardump{
         ImproperNames,
         ImproperTags,
         ImproperTypes,
+        PairNames,
+        PairTags,
+        PairTypes,
         Mass,
         MomentInertia,
         Orientation,
@@ -76,6 +79,7 @@ namespace getardump{
         NeedAngle,
         NeedDihedral,
         NeedImproper,
+        NeedPair,
         NeedRigid,
         NeedIntegrator};
 
@@ -144,6 +148,9 @@ namespace getardump{
 
                 if(prop == ImproperNames || prop == ImproperTags || prop == ImproperTypes)
                     m_prefix += "improper/";
+
+                if(prop == PairNames || prop == PairTags || prop == PairTypes)
+                    m_prefix += "pair/";
 
                 if(behavior == gtar::Discrete)
                     {

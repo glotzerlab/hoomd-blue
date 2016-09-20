@@ -177,6 +177,10 @@ appropriately to store the number needed for each type of bond.
 * `snapshot.dihedrals.group` is Nx4
 * `snapshot.impropers.group` is Nx4
 
+.. rubric:: Special pairs
+
+Special pairs are exactly handled like bonds. The snapshot entry is called **pairs**.
+
 .. rubric:: Constraints
 
 Pairwise distance constraints are added and removed like bonds. They are defined between two particles.
@@ -727,6 +731,8 @@ class system_data(hoomd.meta._metadata):
         diehdrals (:py:class:`hoomd.data.diehdral_data_proxy`)
         impropers (:py:class:`hoomd.data.dihedral_data_proxy`)
         constraint (:py:class:`hoomd.data.constraint_data_proxy`)
+        pairs (:py:class:`hoomd.data.bond_data_proxy`)
+            .. versionadded:: 2.1
     """
 
     def __init__(self, sysdef):
@@ -737,6 +743,7 @@ class system_data(hoomd.meta._metadata):
         self.dihedrals = dihedral_data(sysdef.getDihedralData());
         self.impropers = dihedral_data(sysdef.getImproperData());
         self.constraints = constraint_data(sysdef.getConstraintData());
+        self.pairs = bond_data(sysdef.getPairData());
 
         # base class constructor
         hoomd.meta._metadata.__init__(self)
@@ -744,6 +751,7 @@ class system_data(hoomd.meta._metadata):
     def take_snapshot(self,
                       particles=True,
                       bonds=False,
+                      pairs=False,
                       integrators=False,
                       all=False,
                       dtype='float'):
@@ -752,6 +760,9 @@ class system_data(hoomd.meta._metadata):
         Args:
             particles (bool): When True, particle data is included in the snapshot.
             bonds (bool): When true, bond, angle, dihedral, improper and constraint data is included.
+            pairs (bool): When true, special pair data is included
+                .. versionadded:: 2.1
+
             integrators (bool): When true, integrator data is included the snapshot.
             all (bool): When true, the entire system state is saved in the snapshot.
             dtype (str): Datatype for the snapshot numpy arrays. Must be either 'float' or 'double'.
@@ -776,13 +787,14 @@ class system_data(hoomd.meta._metadata):
         if all is True:
                 particles=True
                 bonds=True
+                pairs=True
                 integrators=True
 
         # take the snapshot
         if dtype == 'float':
-            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_float(particles,bonds,bonds,bonds,bonds,bonds,integrators,pairs)
         elif dtype == 'double':
-            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,integrators)
+            cpp_snapshot = self.sysdef.takeSnapshot_double(particles,bonds,bonds,bonds,bonds,bonds,integrators,pairs)
         else:
             raise ValueError("dtype must be float or double");
 
@@ -892,6 +904,7 @@ class system_data(hoomd.meta._metadata):
         data['dihedrals'] = self.dihedrals
         data['impropers'] = self.impropers
         data['constraints'] = self.constraints
+        data['pairs'] = self.pairs
 
         data['timestep'] = hoomd.context.current.system.getCurrentTimeStep()
         return data
@@ -2180,7 +2193,7 @@ def set_snapshot_box(snapshot, box):
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
 _hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
 
-def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], dtype='float'):
+def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], pair_types=[], dtype='float'):
     R""" Make an empty snapshot.
 
     Args:
@@ -2191,6 +2204,8 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
         angle_types (list): Angle type names (may be zero length).
         dihedral_types (list): Dihedral type names (may be zero length).
         improper_types (list): Improper type names (may be zero length).
+        pair_types(list): Special pair type names (may be zero length).
+            .. versionadded:: 2.1
         dtype (str): Data type for the real valued numpy arrays in the snapshot. Must be either 'float' or 'double'.
 
     Examples::
@@ -2234,6 +2249,7 @@ def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], d
     snapshot.angles.types = angle_types;
     snapshot.dihedrals.types = dihedral_types;
     snapshot.impropers.types = improper_types;
+    snapshot.pairs.types = pair_types;
 
     return snapshot;
 

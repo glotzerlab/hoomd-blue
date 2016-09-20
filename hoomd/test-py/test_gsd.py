@@ -68,6 +68,14 @@ class gsd_write_tests (unittest.TestCase):
             self.snapshot.constraints.group[0] = [0, 1]
             self.snapshot.constraints.value[0] = 2.5
 
+            # special pairs
+            self.snapshot.pairs.types = ['p1', 'p2'];
+            self.snapshot.pairs.resize(2);
+            self.snapshot.pairs.typeid[:] = [0, 1];
+            self.snapshot.pairs.group[0] = [0, 1];
+            self.snapshot.pairs.group[1] = [2, 3];
+
+
         self.s = init.read_snapshot(self.snapshot);
 
         context.current.sorter.set_params(grid=8)
@@ -219,6 +227,14 @@ class gsd_read_tests (unittest.TestCase):
             self.snapshot.constraints.group[0] = [0, 1]
             self.snapshot.constraints.value[0] = 2.5
 
+            # pairs
+            self.snapshot.pairs.types = ['p1', 'p2'];
+            self.snapshot.pairs.resize(2);
+            self.snapshot.pairs.typeid[:] = [0, 1];
+            self.snapshot.pairs.group[0] = [0, 1];
+            self.snapshot.pairs.group[1] = [2, 3];
+
+
         self.s = init.read_snapshot(self.snapshot);
         context.current.sorter.set_params(grid=8)
 
@@ -275,6 +291,12 @@ class gsd_read_tests (unittest.TestCase):
             numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
             numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
 
+            self.assertEqual(snap.pairs.N, self.snapshot.pairs.N);
+            self.assertEqual(snap.pairs.types, self.snapshot.pairs.types);
+            numpy.testing.assert_array_equal(snap.pairs.typeid, self.snapshot.pairs.typeid);
+            numpy.testing.assert_array_equal(snap.pairs.group, self.snapshot.pairs.group);
+
+
     # test changing the order particles
     def test_remove(self):
         # remove particle so that tag 2 points to no particle, and particle tags are no longer contiguous
@@ -330,6 +352,12 @@ class gsd_read_tests (unittest.TestCase):
             self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
             numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
             numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
+
+            self.assertEqual(snap.pairs.N, self.snapshot.pairs.N);
+            self.assertEqual(snap.pairs.types, self.snapshot.pairs.types);
+            numpy.testing.assert_array_equal(snap.pairs.typeid, self.snapshot.pairs.typeid);
+            numpy.testing.assert_array_equal(snap.pairs.group, self.snapshot.pairs.group);
+
 
     # tests init.read_gsd
     def test_read_gsd(self):

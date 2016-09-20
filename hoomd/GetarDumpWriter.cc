@@ -25,10 +25,10 @@ namespace getardump{
     // Wrapper function
     shared_ptr<SystemSnapshot> takeSystemSnapshot(
         shared_ptr<SystemDefinition> sysdef, bool particles, bool bonds,
-        bool angles, bool dihedrals, bool impropers, bool rigid, bool integrator)
+        bool angles, bool dihedrals, bool impropers, bool pairs, bool rigid, bool integrator)
         {
         return sysdef->takeSnapshot<Scalar>(particles, bonds, angles, dihedrals,
-            impropers, rigid, integrator);
+            impropers, rigid, integrator, pairs);
         }
 
 // greatest common denominator, using Euclid's algorithm
@@ -124,6 +124,16 @@ namespace getardump{
                     default:
                         break;
                     }
+            case NeedPair:
+                switch(prop)
+                    {
+                    case PairNames:
+                    case PairTags:
+                    case PairTypes:
+                        return true;
+                    default:
+                        break;
+                    }
             case NeedRigid:
                 switch(prop)
                     {
@@ -200,6 +210,12 @@ namespace getardump{
             case ImproperTags:
                 return string("tag.u32");
             case ImproperTypes:
+                return string("type.u32");
+            case PairNames:
+                return string("type_names.json");
+            case PairTags:
+                return string("tag.u32");
+            case PairTypes:
                 return string("type.u32");
             case Mass:
                 return string("mass.f32");
@@ -311,7 +327,7 @@ namespace getardump{
                 m_archive.reset(new GTAR(filename, openMode));
             }
 
-        m_systemSnap = takeSystemSnapshot(m_sysdef, true, true, true, true, true, true, true);
+        m_systemSnap = takeSystemSnapshot(m_sysdef, true, true, true, true, true, true, true, true);
         }
 
     GetarDumpWriter::~GetarDumpWriter()
@@ -344,7 +360,7 @@ namespace getardump{
             m_systemSnap = takeSystemSnapshot(m_sysdef,
                 neededSnapshots[NeedPData], neededSnapshots[NeedBond],
                 neededSnapshots[NeedAngle], neededSnapshots[NeedDihedral],
-                neededSnapshots[NeedImproper], neededSnapshots[NeedRigid],
+                neededSnapshots[NeedImproper], neededSnapshots[NeedPair], neededSnapshots[NeedRigid],
                 neededSnapshots[NeedIntegrator]);
 
 #ifdef ENABLE_MPI
@@ -554,6 +570,25 @@ namespace getardump{
             writer.writeIndividual<vector<unsigned int>::iterator, uint32_t>(
                 desc.getFormattedPath(timestep), begin, end, desc.m_compression);
             }
+        else if(desc.m_prop == PairNames)
+            {
+            string json(makeTypeList(m_systemSnap->pair_data.type_mapping));
+            writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
+            }
+        else if(desc.m_prop == PairTags)
+            {
+            GroupTagIterator<2> begin(m_systemSnap->pair_data.groups.begin());
+            GroupTagIterator<2> end(m_systemSnap->pair_data.groups.end());
+            writer.writeIndividual<GroupTagIterator<2>, uint32_t>(
+                desc.getFormattedPath(timestep), begin, end, desc.m_compression);
+            }
+        else if(desc.m_prop == PairTypes)
+            {
+            vector<unsigned int>::iterator begin(m_systemSnap->pair_data.type_id.begin());
+            vector<unsigned int>::iterator end(m_systemSnap->pair_data.type_id.end());
+            writer.writeIndividual<vector<unsigned int>::iterator, uint32_t>(
+                desc.getFormattedPath(timestep), begin, end, desc.m_compression);
+            }
         else if(desc.m_prop == Mass)
             {
             vector<Scalar>::iterator begin(m_systemSnap->particle_data.mass.begin());
@@ -753,6 +788,11 @@ namespace getardump{
         else if(desc.m_prop == ImproperNames)
             {
             string json(makeTypeList(m_systemSnap->improper_data.type_mapping));
+            writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
+            }
+        else if(desc.m_prop == PairNames)
+            {
+            string json(makeTypeList(m_systemSnap->pair_data.type_mapping));
             writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
             }
         else

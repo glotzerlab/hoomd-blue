@@ -497,6 +497,7 @@ class gsd(hoomd.analyze._analyzer):
         * dihedrals/
         * impropers/
         * constraints/
+        * pairs/
 
     See https://bitbucket.org/glotzer/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
 

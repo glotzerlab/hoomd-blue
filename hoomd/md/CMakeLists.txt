@@ -61,6 +61,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
+                EvaluatorSpecialPairLJ.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
                 EvaluatorConstraintSphere.h
@@ -181,6 +182,7 @@ endif()
 set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
+                      AllDriverPotentialSpecialPairGPU.cu
                       AllDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
@@ -280,6 +282,7 @@ set(files __init__.py
           pair.py
           update.py
           wall.py
+          special_pair.py
     )
 
 install(FILES ${files}

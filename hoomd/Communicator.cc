@@ -1085,7 +1085,8 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_angle_comm(*this, m_sysdef->getAngleData()),
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
             m_improper_comm(*this, m_sysdef->getImproperData()),
-            m_constraint_comm(*this, m_sysdef->getConstraintData())
+            m_constraint_comm(*this, m_sysdef->getConstraintData()),
+            m_pair_comm(*this, m_sysdef->getPairData())
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1140,6 +1141,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     m_constraints_changed = true;
     m_sysdef->getConstraintData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setConstraintsChanged>(this);
 
+    m_pairs_changed = true;
+    m_sysdef->getPairData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setPairsChanged>(this);
+
     // allocate memory
     GPUArray<unsigned int> neighbors(NEIGH_MAX,m_exec_conf);
     m_neighbors.swap(neighbors);
@@ -1173,6 +1177,7 @@ Communicator::~Communicator()
     m_sysdef->getDihedralData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setDihedralsChanged>(this);
     m_sysdef->getImproperData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setImpropersChanged>(this);
     m_sysdef->getConstraintData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setConstraintsChanged>(this);
+    m_sysdef->getPairData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setPairsChanged>(this);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1392,6 +1397,10 @@ void Communicator::migrateParticles()
         // Bonds
         m_bond_comm.migrateGroups(m_bonds_changed, true);
         m_bonds_changed = false;
+
+        // Special pairs
+        m_pair_comm.migrateGroups(m_pairs_changed, true);
+        m_pairs_changed = false;
 
         // Angles
         m_angle_comm.migrateGroups(m_angles_changed, true);
@@ -1617,6 +1626,9 @@ void Communicator::exchangeGhosts()
 
     // bonds
     m_bond_comm.markGhostParticles(m_plan, mask);
+
+    // special pairs
+    m_pair_comm.markGhostParticles(m_plan, mask);
 
     // angles
     m_angle_comm.markGhostParticles(m_plan,mask);

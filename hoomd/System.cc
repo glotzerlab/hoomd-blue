@@ -694,6 +694,11 @@ void System::setupProfiling()
         m_integrator->setProfiler(m_profiler);
     m_sysdef->getParticleData()->setProfiler(m_profiler);
     m_sysdef->getBondData()->setProfiler(m_profiler);
+    m_sysdef->getPairData()->setProfiler(m_profiler);
+    m_sysdef->getAngleData()->setProfiler(m_profiler);
+    m_sysdef->getDihedralData()->setProfiler(m_profiler);
+    m_sysdef->getImproperData()->setProfiler(m_profiler);
+    m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
     vector<analyzer_item>::iterator analyzer;
