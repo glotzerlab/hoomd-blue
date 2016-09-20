@@ -1,4 +1,3 @@
-
 file(GLOB_RECURSE _extern_headers
      RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
      *.h *.cuh *.hpp)
@@ -37,8 +36,11 @@ MACRO(copy_header file)
 ENDMACRO(copy_header)
 
 foreach(file ${_extern_headers})
+    if (COPY_HEADERS)
     # copy headers into build directory
     copy_header(${file})
+    endif()
+
     # install into installation target
     if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
@@ -61,8 +63,11 @@ ENDMACRO(copy_cereal_header)
 
 
 foreach(file ${_cereal_headers})
+    if (COPY_HEADERS)
     # copy headers into build directory
     copy_cereal_header(${file})
+    endif()
+
     # install into installation target
     if (CMAKE_MAJOR_VERSION VERSION_GREATER 2)
     get_filename_component(dir ${file} DIRECTORY)
@@ -73,4 +78,6 @@ foreach(file ${_cereal_headers})
     list(APPEND _cereal_installed_headers include/${file})
 endforeach()
 
+if (COPY_HEADERS)
 add_custom_target(copy_extern ALL DEPENDS ${_extern_headers} ${_cereal_installed_headers})
+endif()
