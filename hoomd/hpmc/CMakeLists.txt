@@ -187,6 +187,8 @@ foreach(file ${files})
     copy_file(${file})
 endforeach()
 
+add_custom_target(copy_hpmc ALL DEPENDS ${files})
+
 # copy python modules to the build directory to make it a working python package
 MACRO(copy_header file)
     add_custom_command (
@@ -209,7 +211,7 @@ foreach(file ${_hpmc_headers})
     copy_header(${file})
 endforeach()
 
-add_custom_target(copy_hpmc ALL DEPENDS ${files} ${_hpmc_headers})
+add_custom_target(copy_hpmc_headers ALL DEPENDS ${_hpmc_headers})
 endif()
 
 if (BUILD_TESTING)

@@ -93,6 +93,8 @@ foreach(file ${files})
     copy_file(${file})
 endforeach()
 
+add_custom_target(copy_${PACKAGE_NAME} ALL DEPENDS ${files})
+
 # copy python modules to the build directory to make it a working python package
 MACRO(copy_header file)
     add_custom_command (
@@ -115,7 +117,7 @@ foreach(file ${_${PACKAGE_NAME}_headers})
     copy_header(${file})
 endforeach()
 
-add_custom_target(copy_${PACKAGE_NAME} ALL DEPENDS ${files} ${_${PACKAGE_NAME}_headers})
+add_custom_target(copy_${PACKAGE_NAME}_headers ALL DEPENDS ${_${PACKAGE_NAME}_headers})
 endif()
 
 if (BUILD_TESTING)

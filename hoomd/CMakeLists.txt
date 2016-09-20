@@ -265,6 +265,8 @@ MACRO(copy_header file)
     )
 ENDMACRO(copy_header)
 
+add_custom_target(copy_hoomd ALL DEPENDS ${files})
+
 # install headers in installation target
 install(FILES ${_hoomd_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd
@@ -276,7 +278,7 @@ foreach(file ${_hoomd_headers})
     copy_header(${file})
 endforeach()
 
-add_custom_target(copy_hoomd ALL DEPENDS ${files} ${_hoomd_headers})
+add_custom_target(copy_hoomd_headers ALL DEPENDS ${_hoomd_headers})
 endif()
 
 add_subdirectory(extern)
