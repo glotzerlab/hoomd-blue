@@ -20,13 +20,16 @@ namespace py = pybind11;
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
     : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
       m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
-      m_molecule_idx(m_exec_conf)
+      m_molecule_idx(m_exec_conf), m_dirty(true)
     {
+    // connect to the ParticleData to recieve notifications when particles change order in memory
+    m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
 //! Destructor
 MolecularForceCompute::~MolecularForceCompute()
     {
+    m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
 void MolecularForceCompute::initMolecules()
