@@ -23,7 +23,7 @@ MuellerPlatheFlow::MuellerPlatheFlow(std::shared_ptr<SystemDefinition> sysdef,
                                      const unsigned int min_slab,
                                      const unsigned int max_slab)
     :Updater(sysdef), m_group(group),m_slab_direction(slab_direction),m_flow_direction(flow_direction)
-    ,m_flow_epsilon(1e-2), m_flow_target(flow_target)
+    ,m_flow_target(flow_target),m_flow_epsilon(1e-2)
     ,m_N_slabs(N_slabs),m_min_slab(min_slab),m_max_slab(max_slab)
     ,m_exchanged_momentum(0),m_has_min_slab(true),m_has_max_slab(true)
     ,m_needs_orthorhombic_check(true)
@@ -67,7 +67,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
         this->verify_orthorhombic_box();
 
     const BoxDim&box= m_pdata->getBox();
-    double area;
+    double area=1.; //Init to shut up compiler warning
     switch(m_slab_direction)
       {
       case flow_enum::X: area = box.getL().y * box.getL().z;
@@ -244,7 +244,7 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
         const unsigned int j = m_group->getMemberIndex(group_idx);
         if( j < m_pdata->getN() )
             {
-            unsigned int index;
+            unsigned int index=0; //Init to shut up compiler warning
             switch(m_slab_direction)
                 {
                 case flow_enum::X: index = (( (h_pos.data[j].x)/gl_box.getL().x + .5) * this->get_N_slabs());
@@ -259,7 +259,7 @@ void MuellerPlatheFlow::search_min_max_velocity(void)
             assert( index < this->get_N_slabs());
             if( index == this->get_max_slab() || index == this->get_min_slab())
                 {
-                Scalar vel;
+                Scalar vel=0; //Init to shut up compiler warning
                 switch(m_flow_direction)
                     {
                     case flow_enum::X: vel = h_vel.data[j].x;break;
