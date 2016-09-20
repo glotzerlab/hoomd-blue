@@ -4,8 +4,10 @@
 
 ## v2.0.4
 
-*Bug fixes*
+Not yet released
 
+* Fix a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
+* Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 * charge.pppm() computed invalid forces
 
 ## v2.0.3
