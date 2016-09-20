@@ -402,7 +402,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar r_buff = m_nlist->getRBuff();
+        Scalar r_buff = m_nlist->getRBuff()/2.0;
 
         const BoxDim& box = m_pdata->getBox();
         Scalar3 cell_width = box.getNearestPlaneDistance() /
@@ -1365,6 +1365,9 @@ void PPPMForceCompute::fixExclusions()
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
+
+    // reset force for ALL particles
+    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
 
     ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
