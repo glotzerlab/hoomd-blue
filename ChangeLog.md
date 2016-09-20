@@ -2,6 +2,13 @@
 
 [TOC]
 
+## v2.0.4
+
+Not yet released
+
+* Fix a bug where the potential energy is misreported in MPI simulations with constrain.rigid()
+* Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
+
 ## v2.0.3
 
 Released 2016/08/30
