@@ -160,7 +160,7 @@ class charge_pppm_screening_test(unittest.TestCase):
         all = group.all()
         nl = md.nlist.cell()
         c = md.charge.pppm(all, nlist = nl);
-        c.set_params(Nx=128, Ny=128, Nz=128, order=6, rcut=1.5, alpha=0.5);
+        c.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=1.5, alpha=0.5);
         log = analyze.log(quantities = ['potential_energy'], period = 1, filename=None);
         md.integrate.mode_standard(dt=0.0);
         md.integrate.nve(all);
