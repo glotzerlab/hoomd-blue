@@ -9,9 +9,8 @@
 #include "TwoStepBerendsenGPU.cuh"
 #endif
 
-#include <boost/python.hpp>
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepBerendsen.cc
     \brief Definition of Berendsen thermostat
@@ -26,11 +25,11 @@ using namespace boost::python;
     \param tau Berendsen time constant
     \param T Temperature set point
 */
-TwoStepBerendsen::TwoStepBerendsen(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<ParticleGroup> group,
-                                   boost::shared_ptr<ComputeThermo> thermo,
+TwoStepBerendsen::TwoStepBerendsen(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<ParticleGroup> group,
+                                   std::shared_ptr<ComputeThermo> thermo,
                                    Scalar tau,
-                                   boost::shared_ptr<Variant> T)
+                                   std::shared_ptr<Variant> T)
     : IntegrationMethodTwoStep(sysdef, group), m_thermo(thermo), m_tau(tau), m_T(T),
       m_warned_aniso(false)
     {
@@ -147,14 +146,14 @@ void TwoStepBerendsen::integrateStepTwo(unsigned int timestep)
 
     }
 
-void export_Berendsen()
+void export_Berendsen(py::module& m)
     {
-    class_<TwoStepBerendsen, boost::shared_ptr<TwoStepBerendsen>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-    ("TwoStepBerendsen", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<ParticleGroup>,
-                         boost::shared_ptr<ComputeThermo>,
+    py::class_<TwoStepBerendsen, std::shared_ptr<TwoStepBerendsen> >(m, "TwoStepBerendsen", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                         std::shared_ptr<ParticleGroup>,
+                         std::shared_ptr<ComputeThermo>,
                          Scalar,
-                         boost::shared_ptr<Variant>
+                         std::shared_ptr<Variant>
                          >())
         .def("setT", &TwoStepBerendsen::setT)
         .def("setTau", &TwoStepBerendsen::setTau)

@@ -22,9 +22,16 @@ def _get_sized_entry(base, max_n):
         The selected class with a maximum n greater than or equal to *max_n*.
     """
 
-    # Hack - predefine the possible sizes. This could be possibly better by determining the sizes by inspecting
-    # _hpmc.__dict__. But this works for now, it just requires updating if the C++ module is changed.
-    sizes=[8,16,32,64,128]
+    # inspect _hpmc.__dict__ for base class name + integer suffix
+    sizes=[]
+    for cls in _hpmc.__dict__:
+        if cls.startswith(base):
+            # append only suffixes that convert to ints
+            try:
+                sizes.append(int(cls.split(base)[1]))
+            except:
+                pass
+    sizes = sorted(sizes)
 
     if max_n > sizes[-1]:
         raise ValueError("Maximum value must be less than or equal to {0}".format(sizes[-1]));
@@ -36,6 +43,131 @@ def _get_sized_entry(base, max_n):
             break;
 
     return _hpmc.__dict__["{0}{1}".format(base, size)];
+
+class interaction_matrix:
+    R""" Define pairwise interaction matrix
+
+    All shapes use :py:class:`interaction_matrix` to define the interaction matrix between different
+    pairs of particles indexed by type. The set of pair coefficients is a symmetric
+    matrix defined over all possible pairs of particle types.
+
+    By default, all elements of the interaction matrix are 1, that means that overlaps
+    are checked between all pairs of types. To disable overlap checking for a specific
+    type pair, set the coefficient for that pair to 0.
+
+    Access the interaction matrix with a saved integrator object like so::
+
+        from hoomd import hpmc
+
+        mc = hpmc.integrate.some_shape(arguments...)
+        mv.overlap_checks.set('A', 'A', enable=False)
+        mc.overlap_checks.set('A', 'B', enable=True)
+        mc.overlap_checks.set('B', 'B', enable=False)
+
+    .. versionadded:: 2.1
+    """
+
+    ## \internal
+    # \brief Initializes the class
+    # \details
+    # The main task to be performed during initialization is just to init some variables
+    # \param self Python required class instance variable
+    def __init__(self):
+        self.values = {};
+
+    ## \internal
+    # \brief Return a compact representation of the pair coefficients
+    def get_metadata(self):
+        # return list for easy serialization
+        l = []
+        for (a,b) in self.values:
+            item = dict()
+            item['typei'] = a
+            item['typej'] = b
+            item['enable'] = self.values[(a,b)]
+            l.append(item)
+        return l
+
+    ## \var values
+    # \internal
+    # \brief Contains the matrix of set values in a dictionary
+
+    def set(self, a, b, enable):
+        R""" Sets parameters for one type pair.
+
+        Args:
+            a (str): First particle type in the pair (or a list of type names)
+            b (str): Second particle type in the pair (or a list of type names)
+            enable: Set to True to enable overlap checks for this pair, False otherwise
+
+        By default, all interaction matrix elements are set to 'True'.
+
+        It is not an error, to specify matrix elements for particle types that do not exist in the simulation.
+
+        There is no need to specify matrix elements for both pairs 'A', 'B' and 'B', 'A'. Specifying
+        only one is sufficient.
+
+        To set the same elements between many particle types, provide a list of type names instead of a single
+        one. All pairs between the two lists will be set to the same parameters.
+
+        Examples::
+
+            interaction_matrix.set('A', 'A', False);
+            interaction_matrix.set('B', 'B', False);
+            interaction_matrix.set('A', 'B', True);
+            interaction_matrix.set(['A', 'B', 'C', 'D'], 'F', True);
+            interaction_matrix.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
+
+
+        """
+        hoomd.util.print_status_line();
+
+        # listify the inputs
+        if isinstance(a, str):
+            a = [a];
+        if isinstance(b, str):
+            b = [b];
+
+        for ai in a:
+            for bi in b:
+                self.set_single(ai, bi, enable);
+
+    ## \internal
+    # \brief Sets a single parameter
+    def set_single(self, a, b, enable):
+        a = str(a);
+        b = str(b);
+
+        # create the pair if it hasn't been created it
+        if (not (a,b) in self.values) and (not (b,a) in self.values):
+            self.values[(a,b)] = bool(enable);
+        else:
+            # Find the pair to update
+            if (a,b) in self.values:
+                cur_pair = (a,b);
+            elif (b,a) in self.values:
+                cur_pair = (b,a);
+            else:
+                hoomd.context.msg.error("Bug detected in integrate.interaction_matrix(). Please report\n");
+                raise RuntimeError("Error setting matrix elements");
+
+            self.values[cur_pair] = bool(enable)
+
+    ## \internal
+    # \brief Try to get a single pair coefficient
+    # \detail
+    # \param a First name in the type pair
+    # \param b Second name in the type pair
+    def get(self,a,b):
+        if (a,b) in self.values:
+            cur_pair = (a,b);
+        elif (b,a) in self.values:
+            cur_pair = (b,a);
+        else:
+            return None
+
+        return self.values[cur_pair];
+
 
 class mode_hpmc(_integrator):
     R""" Base class HPMC integrator.
@@ -56,7 +188,10 @@ class mode_hpmc(_integrator):
         # setup the shape parameters
         self.shape_param = data.param_dict(self); # must call initialize_shape_params() after the cpp_integrator is created.
 
-        #initialize list to check fl params
+        # setup interaction matrix
+        self.overlap_checks = interaction_matrix()
+
+        #initialize list to check implicit params
         if self.implicit:
             self.implicit_params=list()
 
@@ -74,6 +209,7 @@ class mode_hpmc(_integrator):
         for key in self.shape_param.keys():
             shape_dict[key] = self.shape_param[key].get_metadata();
         data['shape_param'] = shape_dict;
+        data['overlap_checks'] = self.overlap_checks.get_metadata()
         return data
 
     ## \internal
@@ -93,6 +229,50 @@ class mode_hpmc(_integrator):
             if not self.shape_param[name].is_set:
                 hoomd.context.msg.error("Particle type {} has not been set!\n".format(name));
                 raise RuntimeError("Error running integrator");
+
+        # backwards compatibility
+        if not hasattr(self,'has_printed_warning'):
+            self.has_printed_warning = False
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        first_warning = False
+        for (i,type_i) in enumerate(type_names):
+            if hasattr(self.shape_param[type_i],'ignore_overlaps') and self.shape_param[type_i].ignore_overlaps is not None:
+                if not self.has_printed_warning and not first_warning:
+                    hoomd.context.msg.warning("ignore_overlaps is deprecated. Use mc.overlap_checks.set() instead.\n")
+                    first_warning = True
+                for (j, type_j) in enumerate(type_names):
+                    if hasattr(self.shape_param[type_j],'ignore_overlaps') and self.shape_param[type_j].ignore_overlaps is not None:
+                        enable = not (self.shape_param[type_i].ignore_overlaps and self.shape_param[type_j].ignore_overlaps)
+                        if not self.has_printed_warning:
+                            hoomd.context.msg.warning("Setting overlap checks for type pair ({}, {}) to {}\n".format(type_i,type_j, enable))
+
+                        hoomd.util.quiet_status()
+                        self.overlap_checks.set(type_i, type_j, enable)
+                        hoomd.util.unquiet_status()
+
+        self.has_printed_warning = True
+
+        # setup new interaction matrix elements to default
+        for i in range(0,ntypes):
+            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            for j in range(0,ntypes):
+                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
+                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
+                    # by default, perform overlap checks
+                    hoomd.util.quiet_status()
+                    self.overlap_checks.set(type_name_i, type_name_j, True)
+                    hoomd.util.unquiet_status()
+
+        # set overlap matrix on C++ side
+        for (i,type_i) in enumerate(type_names):
+            for (j,type_j) in enumerate(type_names):
+                check = self.overlap_checks.get(type_i, type_j)
+                if check is None:
+                    hoomd.context.msg.error("Interaction matrix element ({},{}) not set!\n".format(type_i, type_j))
+                    raise RuntimeError("Error running integrator");
+                self.cpp_integrator.setOverlapChecks(i,j,check)
 
         # check that particle orientations are normalized
         if not self.cpp_integrator.checkParticleOrientations():
@@ -154,14 +334,29 @@ class mode_hpmc(_integrator):
             shape_param_type = data.convex_polyhedron_params.get_sized_class(self.max_verts);
         elif isinstance(self, convex_spheropolyhedron):
             shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
+        elif isinstance(self, sphere_union):
+            shape_param_type = data.sphere_union_params.get_sized_class(self.max_members);
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
+
         # setup the coefficient options
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
             type_name = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             if not type_name in self.shape_param.keys(): # only add new keys
                 self.shape_param.update({ type_name: shape_param_type(self, i) });
+
+        # setup the interaction matrix elements
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        for i in range(0,ntypes):
+            type_name_i = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            for j in range(0,ntypes):
+                type_name_j = hoomd.context.current.system_definition.getParticleData().getNameByType(j);
+                if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
+                    # by default, perform overlap checks
+                    hoomd.util.quiet_status()
+                    self.overlap_checks.set(type_name_i, type_name_j, True)
+                    hoomd.util.unquiet_status()
 
     def set_params(self,
                    d=None,
@@ -237,12 +432,12 @@ class mode_hpmc(_integrator):
             mc.shape_param.set(...)
             overlap_map = np.asarray(mc.map_overlaps())
         """
-    
+
         self.update_forces()
         N = hoomd.context.current.system_definition.getParticleData().getMaximumTag() + 1;
         overlap_map = self.cpp_integrator.mapOverlaps();
         return list(zip(*[iter(overlap_map)]*N))
-            
+
 
     def count_overlaps(self):
         R""" Count the number of overlaps.
@@ -451,8 +646,11 @@ class sphere(mode_hpmc):
     Sphere parameters:
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Examples::
 
@@ -531,8 +729,11 @@ class convex_polygon(mode_hpmc):
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance (e.g.
           don't put the origin right next to an edge).
 
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -601,8 +802,11 @@ class convex_spheropolygon(mode_hpmc):
           don't put the origin right next to an edge).
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Useful cases:
 
@@ -686,8 +890,11 @@ class simple_polygon(mode_hpmc):
         * The origin doesn't necessarily need to be inside the shape.
         * The origin centered circle that encloses all vertices should be of minimal size for optimal performance.
 
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -757,8 +964,11 @@ class polyhedron(mode_hpmc):
 
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -857,8 +1067,11 @@ class convex_polyhedron(mode_hpmc):
         * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
           don't put the origin right next to a face).
 
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -956,8 +1169,11 @@ class faceted_sphere(mode_hpmc):
     * *diameter* (**required**) - diameter of sphere
     * *vertices* (**required**) - list of vertices for intersection polyhedron
     * *origin* (**required**) - origin vector
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         Planes must not be coplanar.
@@ -1042,8 +1258,11 @@ class sphinx(mode_hpmc):
 
     * *diameters* - diameters of spheres (positive OR negative real numbers)
     * *centers* - centers of spheres in local coordinate frame
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Quick Example::
 
@@ -1139,8 +1358,11 @@ class convex_spheropolyhedron(mode_hpmc):
         - Two vertices and a non-zero radius R define a prolate spherocylinder.
 
     * *sweep_radius* (**default: 0.0**) - the radius of the sphere swept around the edges of the polygon (distance units) - **optional**
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1233,8 +1455,11 @@ class ellipsoid(mode_hpmc):
     * *a* (**required**) - principle axis a of the ellipsoid (radius in the x direction) (distance units)
     * *b* (**required**) - principle axis b of the ellipsoid (radius in the y direction) (distance units)
     * *c* (**required**) - principle axis c of the ellipsoid (radius in the z direction) (distance units)
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1286,7 +1511,7 @@ class ellipsoid(mode_hpmc):
     # \internal
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
-        return 'ellipsoid {0} {1} {2}'.format(param['a'], param['b'], param['c']);
+        return 'ellipsoid {0} {1} {2}'.format(param.a, param.b, param.c);
 
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
@@ -1298,13 +1523,22 @@ class sphere_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        max_members (int): Set the maximum number of members in the sphere union
+            * .. versionadded:: 2.1
 
     Sphere union parameters:
 
     * *diameters* (**required**) - list of diameters of the spheres (distance units).
     * *centers* (**required**) - list of centers of constituent spheres in particle coordinates.
-    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*.
+    * *overlap* (**default: 1 for all spheres**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+
+        * .. versionadded:: 2.1
+
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
 
     Example::
 
@@ -1322,7 +1556,7 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=8):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1331,16 +1565,16 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1349,7 +1583,11 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        self.max_members = max_members;
         self.initialize_shape_params();
+
+        # meta data
+        self.metadata_fields = ['max_members']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

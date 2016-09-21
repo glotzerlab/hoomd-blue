@@ -7,14 +7,17 @@
 /*! \file ExternalField.h
     \brief Declaration of ExternalField base class
 */
-#include <boost/python.hpp>
-
 
 #include "hoomd/Compute.h"
 #include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
 #include "hoomd/VectorMath.h"
+#include "hoomd/HOOMDMPI.h"
 
 #include "ExternalField.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -24,40 +27,41 @@ the external field will take in a list of either positions or orientations that
 are the reference values. the i-th reference point will correspond to the particle
 with tag i.
 */
-inline void pthon_list_to_vector_scalar3(const boost::python::list& r0, std::vector<Scalar3>& ret, unsigned int ndim)
+inline void python_list_to_vector_scalar3(const pybind11::list& r0, std::vector<Scalar3>& ret, unsigned int ndim)
     {
     // validate input type and rank
-    boost::python::ssize_t n = boost::python::len(r0);
+    pybind11::ssize_t n = pybind11::len(r0);
     ret.resize(n);
-    for ( boost::python::ssize_t i=0; i<n; i++)
+    for ( pybind11::ssize_t i=0; i<n; i++)
         {
-        boost::python::ssize_t d = boost::python::len(r0[i]);
+        pybind11::ssize_t d = pybind11::len(r0[i]);
+        pybind11::list r0_tuple = pybind11::cast<pybind11::list >(r0[i]);
         if( d < ndim )
             {
             throw std::runtime_error("dimension of the list does not match the dimension of the simulation.");
             }
-        Scalar x = boost::python::extract<Scalar>(r0[i][0]), y = boost::python::extract<Scalar>(r0[i][1]), z = 0.0;
+        Scalar x = pybind11::cast<Scalar>(r0_tuple[0]), y = pybind11::cast<Scalar>(r0_tuple[1]), z = 0.0;
         if(d == 3)
             {
-            z = boost::python::extract<Scalar>(r0[i][2]);
+            z = pybind11::cast<Scalar>(r0_tuple[2]);
             }
         ret[i] = make_scalar3(x, y, z);
         }
     }
 
-inline void pthon_list_to_vector_scalar4(const boost::python::list& r0, std::vector<Scalar4>& ret)
+inline void python_list_to_vector_scalar4(const pybind11::list& r0, std::vector<Scalar4>& ret)
     {
     // validate input type and rank
-    boost::python::ssize_t n = boost::python::len(r0);
+    pybind11::ssize_t n = pybind11::len(r0);
     ret.resize(n);
-    for ( boost::python::ssize_t i=0; i<n; i++)
+    for ( pybind11::ssize_t i=0; i<n; i++)
         {
-        // boost::python::tuple r0_tuple = boost::python::extract<boost::python::tuple >(r0[i]);
+        pybind11::list r0_tuple = pybind11::cast<pybind11::list >(r0[i]);
 
-        ret[i] = make_scalar4(  boost::python::extract<Scalar>(r0[i][0]),
-                                boost::python::extract<Scalar>(r0[i][1]),
-                                boost::python::extract<Scalar>(r0[i][2]),
-                                boost::python::extract<Scalar>(r0[i][3]));
+        ret[i] = make_scalar4(  pybind11::cast<Scalar>(r0_tuple[0]),
+                                pybind11::cast<Scalar>(r0_tuple[1]),
+                                pybind11::cast<Scalar>(r0_tuple[2]),
+                                pybind11::cast<Scalar>(r0_tuple[3]));
         }
     }
 
@@ -69,7 +73,7 @@ class LatticeReferenceList
         LatticeReferenceList() : m_N(0) {}
 
         template<class InputIterator >
-        LatticeReferenceList(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        LatticeReferenceList(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             {
             initialize(first, last, pdata, exec_conf);
             }
@@ -77,7 +81,7 @@ class LatticeReferenceList
         ~LatticeReferenceList() {}
 
         template <class InputIterator>
-        void initialize(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        void initialize(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             {
             m_N = std::distance(first, last);
             if( m_N > 0 )
@@ -91,7 +95,7 @@ class LatticeReferenceList
         const GPUArray< ScalarType >& getReferenceArray() { return m_reference; }
 
         template <class InputIterator>
-        void setReferences(InputIterator first, InputIterator last, const boost::shared_ptr<ParticleData> pdata, boost::shared_ptr<const ExecutionConfiguration> exec_conf)
+        void setReferences(InputIterator first, InputIterator last, const std::shared_ptr<ParticleData> pdata, std::shared_ptr<const ExecutionConfiguration> exec_conf)
         {
             size_t numPoints = std::distance(first, last);
             if(!numPoints)
@@ -100,7 +104,7 @@ class LatticeReferenceList
                 return;
                 }
 
-            if(!exec_conf || !pdata || pdata->getN() != numPoints)
+            if(!exec_conf || !pdata || pdata->getNGlobal() != numPoints)
                 {
                 if(exec_conf) exec_conf->msg->error() << "Check pointers and initialization list" << std::endl;
                 throw std::runtime_error("Error setting LatticeReferenceList");
@@ -155,12 +159,12 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
     using ExternalFieldMono<Shape>::m_exec_conf;
     using ExternalFieldMono<Shape>::m_sysdef;
     public:
-        ExternalFieldLattice(  boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::python::list r0,
+        ExternalFieldLattice(  std::shared_ptr<SystemDefinition> sysdef,
+                                        pybind11::list r0,
                                         Scalar k,
-                                        boost::python::list q0,
+                                        pybind11::list q0,
                                         Scalar q,
-                                        boost::python::list symRotations
+                                        pybind11::list symRotations
                                     ) : ExternalFieldMono<Shape>(sysdef), m_k(k), m_q(q), m_Energy(0)
             {
             m_ProvidedQuantities.push_back(LATTICE_ENERGY_LOG_NAME);
@@ -171,11 +175,11 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_ProvidedQuantities.push_back(LATTICE_NUM_SAMPLES_LOG_NAME);
             // Connect to the BoxChange signal
             m_box = m_pdata->getBox();
-            m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&ExternalFieldLattice<Shape>::scaleReferencePoints, this));
+            m_pdata->getBoxChangeSignal().template connect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
             setReferences(r0, q0);
 
             std::vector<Scalar4> rots;
-            pthon_list_to_vector_scalar4(symRotations, rots);
+            python_list_to_vector_scalar4(symRotations, rots);
             bool identityFound = false;
             quat<Scalar> identity(1, vec3<Scalar>(0, 0, 0));
             Scalar tol = 1e-5;
@@ -189,14 +193,12 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 {
                 m_symmetry.push_back(identity);
                 }
-
-
             reset(0); // initializes all of the energy logging parameters.
             }
 
         ~ExternalFieldLattice()
         {
-            m_boxchange_connection.disconnect();
+            m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldLattice<Shape>, &ExternalFieldLattice<Shape>::scaleReferencePoints>(this);
         }
 
         Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
@@ -302,16 +304,91 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             return fast::exp(old_U-new_U);
             }
 
-        void setReferences(const boost::python::list& r0, const boost::python::list& q0)
+        void setReferences(const pybind11::list& r0, const pybind11::list& q0)
             {
             unsigned int ndim = m_sysdef->getNDimensions();
             std::vector<Scalar3> lattice_positions;
-            pthon_list_to_vector_scalar3(r0, lattice_positions, ndim);
+            std::vector<Scalar> pbuffer;
+            std::vector<Scalar4> lattice_orientations;
+            std::vector<Scalar> qbuffer;
+            #ifdef ENABLE_MPI
+            unsigned int psz = 0, qsz = 0;
+
+            if ( this->m_exec_conf->isRoot() )
+                {
+                python_list_to_vector_scalar3(r0, lattice_positions, ndim);
+                python_list_to_vector_scalar4(q0, lattice_orientations);
+                psz = lattice_positions.size();
+                qsz = lattice_orientations.size();
+                }
+            if( this->m_pdata->getDomainDecomposition())
+                {
+                if(psz)
+                    {
+                    pbuffer.resize(3*psz, 0.0);
+                    for(size_t i = 0; i < psz; i++)
+                        {
+                        pbuffer[3*i] = lattice_positions[i].x;
+                        pbuffer[3*i+1] = lattice_positions[i].y;
+                        pbuffer[3*i+2] = lattice_positions[i].z;
+                        }
+                    }
+                if(qsz)
+                    {
+                    qbuffer.resize(4*qsz, 0.0);
+                    for(size_t i = 0; i < qsz; i++)
+                        {
+                        qbuffer[4*i] = lattice_orientations[i].x;
+                        qbuffer[4*i+1] = lattice_orientations[i].y;
+                        qbuffer[4*i+2] = lattice_orientations[i].z;
+                        qbuffer[4*i+3] = lattice_orientations[i].w;
+                        }
+                    }
+                MPI_Bcast(&psz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+                if(psz)
+                    {
+                    if(!pbuffer.size())
+                        pbuffer.resize(3*psz, 0.0);
+                    MPI_Bcast(&pbuffer.front(), 3*psz, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+                    if(!lattice_positions.size())
+                        {
+                        lattice_positions.resize(psz, make_scalar3(0.0, 0.0, 0.0));
+                        for(size_t i = 0; i < psz; i++)
+                            {
+                            lattice_positions[i].x = pbuffer[3*i];
+                            lattice_positions[i].y = pbuffer[3*i+1];
+                            lattice_positions[i].z = pbuffer[3*i+2];
+                            }
+                        }
+                    }
+                MPI_Bcast(&qsz, 1, MPI_UNSIGNED, 0, m_exec_conf->getMPICommunicator());
+                if(qsz)
+                    {
+                    if(!qbuffer.size())
+                        qbuffer.resize(4*qsz, 0.0);
+                    MPI_Bcast(&qbuffer.front(), 4*qsz, MPI_HOOMD_SCALAR, 0, m_exec_conf->getMPICommunicator());
+                    if(!lattice_orientations.size())
+                        {
+                        lattice_orientations.resize(qsz, make_scalar4(0, 0, 0, 0));
+                        for(size_t i = 0; i < qsz; i++)
+                            {
+                            lattice_orientations[i].x = qbuffer[4*i];
+                            lattice_orientations[i].y = qbuffer[4*i+1];
+                            lattice_orientations[i].z = qbuffer[4*i+2];
+                            lattice_orientations[i].w = qbuffer[4*i+3];
+                            }
+                        }
+                    }
+                }
+
+            #else
+            python_list_to_vector_scalar3(r0, lattice_positions, ndim);
+            python_list_to_vector_scalar4(q0, lattice_orientations);
+            #endif
+
             if( lattice_positions.size() )
                 m_latticePositions.setReferences(lattice_positions.begin(), lattice_positions.end(), m_pdata, m_exec_conf);
 
-            std::vector<Scalar4> lattice_orientations;
-            pthon_list_to_vector_scalar4(q0, lattice_orientations);
             if( lattice_orientations.size() )
                 m_latticeOrientations.setReferences(lattice_orientations.begin(), lattice_orientations.end(), m_pdata, m_exec_conf);
             }
@@ -401,6 +478,29 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_num_samples = 0;
             }
 
+        Scalar getEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            return m_Energy;
+        }
+        Scalar getAvgEnergy(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            return m_EnergySum/double(m_num_samples);
+        }
+        Scalar getSigma(unsigned int timestep)
+        {
+            compute(timestep);
+            if( !m_num_samples )
+                return 0.0;
+            Scalar first_moment = m_EnergySum/double(m_num_samples);
+            Scalar second_moment = m_EnergySqSum/double(m_num_samples);
+            return sqrt(second_moment - (first_moment*first_moment));
+        }
+
+
     protected:
 
         // These could be a little redundant. think about this more later.
@@ -409,13 +509,13 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             ArrayHandle<unsigned int> h_tags(m_pdata->getTags(), access_location::host, access_mode::read);
             int3 dummy = make_int3(0,0,0);
             vec3<Scalar> origin(m_pdata->getOrigin());
-            const BoxDim& box = this->m_pdata->getBox();
+            const BoxDim& box = this->m_pdata->getGlobalBox();
             vec3<Scalar> r0(m_latticePositions.getReference(h_tags.data[index]));
             r0 *= scale;
             Scalar3 t = vec_to_scalar3(position - origin);
             box.wrap(t, dummy);
             vec3<Scalar> shifted_pos(t);
-            vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - shifted_pos)));
+            vec3<Scalar> dr = vec3<Scalar>(box.minImage(vec_to_scalar3(r0 - position + origin)));
             return m_k*dot(dr,dr);
             }
 
@@ -482,24 +582,26 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
         unsigned int                    m_num_samples;
 
         std::vector<std::string>        m_ProvidedQuantities;
-        boost::signals2::connection     m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
         BoxDim                          m_box;              //!< Save the last known box;
     };
 
 template<class Shape>
-void export_LatticeField(std::string name)
+void export_LatticeField(pybind11::module& m, std::string name)
     {
-    class_<ExternalFieldLattice<Shape>, boost::shared_ptr< ExternalFieldLattice<Shape> >, bases< ExternalFieldMono<Shape>, Compute >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::python::list, Scalar, boost::python::list, Scalar, boost::python::list>())
+   pybind11::class_<ExternalFieldLattice<Shape>, std::shared_ptr< ExternalFieldLattice<Shape> > >(m, name.c_str(), pybind11::base< ExternalFieldMono<Shape> >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, pybind11::list, Scalar, pybind11::list, Scalar, pybind11::list>())
     .def("setReferences", &ExternalFieldLattice<Shape>::setReferences)
     .def("setParams", &ExternalFieldLattice<Shape>::setParams)
     .def("reset", &ExternalFieldLattice<Shape>::reset)
     .def("clearPositions", &ExternalFieldLattice<Shape>::clearPositions)
     .def("clearOrientations", &ExternalFieldLattice<Shape>::clearOrientations)
+    .def("getEnergy", &ExternalFieldLattice<Shape>::getEnergy)
+    .def("getAvgEnergy", &ExternalFieldLattice<Shape>::getAvgEnergy)
+    .def("getSigma", &ExternalFieldLattice<Shape>::getSigma)
     ;
     }
 
-void export_LatticeFields();
+void export_LatticeFields(pybind11::module& m);
 
 } // namespace hpmc
 

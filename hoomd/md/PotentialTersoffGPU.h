@@ -7,7 +7,7 @@
 
 #ifdef ENABLE_CUDA
 
-#include <boost/bind.hpp>
+#include <memory>
 
 #include "PotentialTersoff.h"
 #include "PotentialTersoffGPU.cuh"
@@ -38,8 +38,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
     {
     public:
         //! Construct the potential
-        PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<NeighborList> nlist,
+        PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<NeighborList> nlist,
                             const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialTersoffGPU();
@@ -56,7 +56,7 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
@@ -64,8 +64,8 @@ class PotentialTersoffGPU : public PotentialTersoff<evaluator>
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                                boost::shared_ptr<NeighborList> nlist,
+PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                                std::shared_ptr<NeighborList> nlist,
                                                                 const std::string& log_suffix)
     : PotentialTersoff<evaluator>(sysdef, nlist, log_suffix)
     {
@@ -156,16 +156,11 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoffGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialTersoff<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialTersoffGPU(const std::string& name)
+template < class T, class Base > void export_PotentialTersoffGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-              ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+    ;
     }
 
 #endif // ENABLE_CUDA

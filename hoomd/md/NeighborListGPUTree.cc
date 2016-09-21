@@ -11,10 +11,7 @@
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -22,7 +19,7 @@ using namespace boost;
 
 using namespace std;
 
-NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
@@ -37,9 +34,9 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
         throw runtime_error("BVH tree neighbor list not supported by device");
         }
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListGPUTree::slotNumTypesChanged, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListGPUTree::slotBoxChanged, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListGPUTree::slotMaxNumChanged, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
     m_tuner_morton.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_morton_codes", this->m_exec_conf));
     m_tuner_merge.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_merge_particles", this->m_exec_conf));
@@ -59,9 +56,9 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
 NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << endl;
-    m_num_type_change_conn.disconnect();
-    m_boxchange_connection.disconnect();
-    m_max_numchange_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
@@ -493,7 +490,7 @@ void NeighborListGPUTree::sortMortonCodes()
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
- 
+
         /*
          * Always allocate at least 4 bytes. In CUB 1.4.1, sorting N < the tile size (which I believe is a thread block)
          * does not require any temporary storage, and tmp_storage_bytes returns 0. But, d_tmp_storage must be not NULL
@@ -820,9 +817,8 @@ void NeighborListGPUTree::traverseTree()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUTree()
+void export_NeighborListGPUTree(py::module& m)
     {
-    class_<NeighborListGPUTree, boost::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    py::class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree", py::base<NeighborListGPU>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
-

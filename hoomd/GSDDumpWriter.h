@@ -9,7 +9,7 @@
 #include "ParticleGroup.h"
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "hoomd/extern/gsd.h"
 
 /*! \file GSDDumpWriter.h
@@ -19,6 +19,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Analyzer for writing out GSD dump files
 /*! GSDDumpWriter writes out the current state of the system to a GSD file
@@ -34,9 +36,9 @@ class GSDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        GSDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+        GSDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
-                      boost::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ParticleGroup> group,
                       bool overwrite=false,
                       bool truncate=false);
 
@@ -81,7 +83,7 @@ class GSDDumpWriter : public Analyzer
         bool m_write_topology;              //!< True if topology should be written
         gsd_handle m_handle;                //!< Handle to the file
 
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
 
         //! Write a type mapping out to the file
         void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);
@@ -106,13 +108,14 @@ class GSDDumpWriter : public Analyzer
                            AngleData::Snapshot& angle,
                            DihedralData::Snapshot& dihedral,
                            ImproperData::Snapshot& improper,
-                           ConstraintData::Snapshot& constraint);
+                           ConstraintData::Snapshot& constraint,
+                           PairData::Snapshot& pair);
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
     };
 
 //! Exports the GSDDumpWriter class to python
-void export_GSDDumpWriter();
+void export_GSDDumpWriter(pybind11::module& m);
 
 #endif

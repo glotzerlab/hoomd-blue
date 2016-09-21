@@ -21,19 +21,20 @@
 #include "GPUFlags.h"
 #include "LoadBalancer.h"
 #include "Autotuner.h"
-#include <boost/signals2.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! GPU implementation of dynamic load balancing
 class LoadBalancerGPU : public LoadBalancer
     {
     public:
         //! Constructor
-        LoadBalancerGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<DomainDecomposition> decomposition);
+        LoadBalancerGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<DomainDecomposition> decomposition);
 
         //! Destructor
         virtual ~LoadBalancerGPU();
-    
+
         //! Set autotuner parameters
         /*!
          * \param enable Enable/disable autotuning
@@ -57,15 +58,13 @@ class LoadBalancerGPU : public LoadBalancer
         virtual void countParticlesOffRank(std::map<unsigned int, unsigned int>& cnts);
 
     private:
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to max particle number change signal
-
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size counting particles
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size counting particles
         GPUArray<unsigned int> m_off_ranks;     //!< Array to hold the ranks of particles that have moved
         GPUFlags<unsigned int> m_n_off_rank;    //!< Device flag to count the total number of particles off rank
     };
 
 //! Export the LoadBalancerGPU to python
-void export_LoadBalancerGPU();
+void export_LoadBalancerGPU(pybind11::module& m);
 
 #endif // __LOADBALANCERGPU_H__
 

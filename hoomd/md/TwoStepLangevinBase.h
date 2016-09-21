@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Base class for Langevin equation based integration method
 /*! HOOMD implements Langevin dynamics and Brownian dynamics. Both are based on the same equation of motion, but the
     latter assumes an overdamped regime while the former assumes underdamped. This base class store and manages
@@ -29,9 +31,9 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<ParticleGroup> group,
-                            boost::shared_ptr<Variant> T,
+        TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
+                            std::shared_ptr<ParticleGroup> group,
+                            std::shared_ptr<Variant> T,
                             unsigned int seed,
                             bool use_lambda,
                             Scalar lambda);
@@ -39,7 +41,7 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
 
         //! Set a new temperature
         /*! \param T new temperature to set */
-        void setT(boost::shared_ptr<Variant> T)
+        void setT(std::shared_ptr<Variant> T)
             {
             m_T = T;
             }
@@ -50,7 +52,7 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
         void setGamma_r(unsigned int typ, Scalar gamma_r);
 
     protected:
-        boost::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
+        std::shared_ptr<Variant> m_T;   //!< The Temperature of the Stochastic Bath
         unsigned int m_seed;              //!< The seed for the RNG of the Stochastic Bath
         bool m_use_lambda;                //!< flag to enable gamma to be a scaled version of the diameter
         Scalar m_lambda;                  //!< Scale factor to apply to diameter to get gamma
@@ -60,13 +62,9 @@ class TwoStepLangevinBase : public IntegrationMethodTwoStep
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TwoStepLangevinBase class to python
-void export_TwoStepLangevinBase();
+void export_TwoStepLangevinBase(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_LANGEVIN_BASE__

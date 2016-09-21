@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPUSTENCIL_H__
 #define __NEIGHBORLISTGPUSTENCIL_H__
 
@@ -31,11 +33,11 @@ class NeighborListGPUStencil : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                Scalar r_cut,
                                Scalar r_buff,
-                               boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
-                               boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
+                               std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
+                               std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
 
         //! Destructor
         virtual ~NeighborListGPUStencil();
@@ -73,16 +75,15 @@ class NeighborListGPUStencil : public NeighborListGPU
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
         unsigned int m_last_tuned_timestep;     //!< Last tuning timestep
 
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
-        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        std::shared_ptr<CellList> m_cl;   //!< The cell list
+        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
         bool m_override_cell_width;                 //!< Flag to override the cell width
 
         //! Update the stencil radius
         void updateRStencil();
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
         bool m_needs_restencil;                             //!< Flag for updating the stencil
         void slotRCutChange()
             {
@@ -92,8 +93,6 @@ class NeighborListGPUStencil : public NeighborListGPU
         //! Sort the particles by type
         void sortTypes();
         GPUArray<unsigned int> m_pid_map;                   //!< Particle indexes sorted by type
-        boost::signals2::connection m_max_numchange_conn;   //!< Connection to the maximum number of particles changing
-        boost::signals2::connection m_sort_conn;            //!< Connection to the ParticleData sort signal
         bool m_needs_resort;                                //!< Flag to resort the particles
         void slotParticleSort()
             {
@@ -107,6 +106,6 @@ class NeighborListGPUStencil : public NeighborListGPU
     };
 
 //! Exports NeighborListGPUStencil to python
-void export_NeighborListGPUStencil();
+void export_NeighborListGPUStencil(pybind11::module& m);
 
 #endif // __NEIGHBORLISTGPUSTENCIL_H__

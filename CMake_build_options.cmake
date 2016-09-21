@@ -53,3 +53,5 @@ if (ENABLE_DOXYGEN)
         endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
     endif ()
 endif ()
+
+option(COPY_HEADERS "Copy the headers into the build directories for plugins" off)

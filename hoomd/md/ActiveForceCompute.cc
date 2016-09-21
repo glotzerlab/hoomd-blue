@@ -7,11 +7,10 @@
 
 #include "ActiveForceCompute.h"
 
-#include <boost/python.hpp>
 #include <vector>
-using namespace boost::python;
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
@@ -27,10 +26,10 @@ using namespace std;
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        py::list f_lst,
                                         bool orientation_link,
                                         bool orientation_reverse_link,
                                         Scalar rotation_diff,
@@ -51,13 +50,13 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         }
 
     vector<Scalar3> c_f_lst;
-    boost::python::tuple tmp_force;
+    py::tuple tmp_force;
     for (unsigned int i = 0; i < len(f_lst); i++)
         {
-        tmp_force = extract<boost::python::tuple>(f_lst[i]);
+        tmp_force = py::cast<py::tuple>(f_lst[i]);
         if (len(tmp_force) !=3)
             throw runtime_error("Non-3D force given for ActiveForceCompute");
-        c_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
+        c_f_lst.push_back( make_scalar3(py::cast<Scalar>(tmp_force[0]), py::cast<Scalar>(tmp_force[1]), py::cast<Scalar>(tmp_force[2])));
         }
 
     if (c_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
@@ -102,7 +101,7 @@ ActiveForceCompute::~ActiveForceCompute()
 */
 void ActiveForceCompute::setForces()
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
@@ -160,7 +159,7 @@ void ActiveForceCompute::setForces()
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -303,8 +302,8 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
             {
             rotationalDiffusion(timestep); // apply rotational diffusion to active particles
             }
-	    setForces(); // set forces for particles
-	    }
+        setForces(); // set forces for particles
+        }
 
     #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -316,19 +315,10 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
     }
 
 
-void export_ActiveForceCompute()
+void export_ActiveForceCompute(py::module& m)
     {
-    class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, bool, bool, Scalar,
+                    Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

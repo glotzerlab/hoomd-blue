@@ -20,10 +20,11 @@
 #include "SFCPackUpdaterGPU.cuh"
 #include "GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <vector>
 #include <utility>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __SFCPACK_UPDATER_GPU_H__
 #define __SFCPACK_UPDATER_GPU_H__
@@ -37,7 +38,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     {
     public:
         //! Constructor
-        SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~SFCPackUpdaterGPU();
@@ -49,9 +50,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     private:
         GPUArray<unsigned int> m_gpu_particle_bins;    //!< Particle bins
         GPUArray<unsigned int> m_gpu_sort_order;       //!< Generated sort order of the particles
-
-        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the maximum particle number change signal of particle data
-
+        
         //! Helper function that actually performs the sort
         virtual void getSortedOrder2D();
 
@@ -65,7 +64,7 @@ class SFCPackUpdaterGPU : public SFCPackUpdater
     };
 
 //! Export the SFCPackUpdaterGPU class to python
-void export_SFCPackUpdaterGPU();
+void export_SFCPackUpdaterGPU(pybind11::module& m);
 
 #endif // __SFC_PACK_UPDATER_GPU_H_
 

@@ -12,14 +12,15 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ANALYZER_H__
 #define __ANALYZER_H__
 
 #include "Profiler.h"
 #include "SystemDefinition.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <memory>
 
 /*! \ingroup hoomd_lib
     @{
@@ -52,21 +53,21 @@
 
     \ingroup analyzers
 */
-class Analyzer : boost::noncopyable
+class Analyzer
     {
     public:
         //! Constructs the analyzer and associates it with the ParticleData
-        Analyzer(boost::shared_ptr<SystemDefinition> sysdef);
+        Analyzer(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Analyzer() {};
 
         //! Abstract method that performs the analysis
         /*! Derived classes will implement this method to calculate their results
             \param timestep Current time step of the simulation
             */
-        virtual void analyze(unsigned int timestep) = 0;
+        virtual void analyze(unsigned int timestep){}
 
         //! Sets the profiler for the analyzer to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -74,27 +75,21 @@ class Analyzer : boost::noncopyable
 
             Derived classes should override this to set the parameters of their autotuners.
         */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            }
+        virtual void setAutotunerParams(bool enable, unsigned int period){}
 
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Analyzers' printStats functions at the end of a run
             so the user can see useful information
         */
-        virtual void printStats()
-            {
-            }
+        virtual void printStats(){}
 
         //! Reset stat counters
         /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
-        virtual void resetStats()
-            {
-            }
+        virtual void resetStats(){}
 
         //! Get needed pdata flags
         /*! Not all fields in ParticleData are computed by default. When derived classes need one of these optional
@@ -105,7 +100,7 @@ class Analyzer : boost::noncopyable
             return PDataFlags(0);
             }
 
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf()
+        std::shared_ptr<const ExecutionConfiguration> getExecConf()
             {
             return m_exec_conf;
             }
@@ -114,25 +109,25 @@ class Analyzer : boost::noncopyable
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this analyzer is to use
 
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator to use
 #endif
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Export the Analyzer class to python
-void export_Analyzer();
+void export_Analyzer(pybind11::module& m);
 
 #endif

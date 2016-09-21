@@ -21,6 +21,8 @@
 #endif
 
 using namespace std;
+namespace py = pybind11;
+
 
 //! Names of bonded groups
 char name_bond_data[] = "bond";
@@ -28,6 +30,7 @@ char name_angle_data[] = "angle";
 char name_dihedral_data[] = "dihedral";
 char name_improper_data[] = "improper";
 char name_constraint_data[] = "constraint";
+char name_pair_data[] = "pair";
 
 /*
  * Implementation of BondedGroupData methods
@@ -39,7 +42,7 @@ char name_constraint_data[] = "constraint";
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
-    boost::shared_ptr<ParticleData> pdata,
+    std::shared_ptr<ParticleData> pdata,
     unsigned int n_group_types)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
@@ -47,12 +50,13 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
         << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty, this));
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+            &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
 
@@ -88,15 +92,15 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
  */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
-    boost::shared_ptr<ParticleData> pdata,
+    std::shared_ptr<ParticleData> pdata,
     const Snapshot& snapshot)
     : m_exec_conf(pdata->getExecConf()), m_pdata(pdata), m_n_groups(0), m_n_ghost(0), m_nglobal(0), m_groups_dirty(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing BondedGroupData (" << name << ") " << endl;
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty,
-        this));
+    m_pdata->getParticleSortSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -112,8 +116,8 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
         {
-        m_pdata->connectSingleParticleMove(
-            boost::bind(&BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups, this, _1, _2, _3));
+        m_pdata->getSingleParticleMoveSignal().template connect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+            &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
         }
     #endif
     }
@@ -122,10 +126,11 @@ BondedGroupData<group_size, Group, name, has_type_mapping>::BondedGroupData(
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
 BondedGroupData<group_size, Group, name, has_type_mapping>::~BondedGroupData()
     {
-    m_sort_connection.disconnect();
+    m_pdata->getParticleSortSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::setDirty>(this);
     #ifdef ENABLE_MPI
-    if (m_particle_move_connection.connected())
-        m_particle_move_connection.disconnect();
+    m_pdata->getSingleParticleMoveSignal().template disconnect<BondedGroupData<group_size, Group, name, has_type_mapping>,
+        &BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGroups>(this);
     #endif
     }
 
@@ -419,7 +424,7 @@ unsigned int BondedGroupData<group_size, Group, name, has_type_mapping>::addBond
     m_nglobal++;
 
     // notifiy observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
 
     return tag;
@@ -640,7 +645,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::removeBondedGro
     m_nglobal--;
 
     // notifiy observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
     }
 
@@ -1206,21 +1211,21 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::moveParticleGro
         }
 
     // notify observers
-    m_group_num_change_signal();
+    m_group_num_change_signal.emit();
     notifyGroupReorder();
     }
 #endif
 
 template<class T, typename Group>
-void export_BondedGroupData(std::string name, std::string snapshot_name, bool export_struct)
+    void export_BondedGroupData(py::module& m, std::string name, std::string snapshot_name, bool export_struct)
     {
     // export group structure
     if (export_struct)
-        Group::export_to_python();
+        Group::export_to_python(m);
 
-    scope outer = class_<T, boost::shared_ptr<T> , boost::noncopyable>(name.c_str(),
-        init<boost::shared_ptr<ParticleData>, unsigned int>())
-        .def(init<boost::shared_ptr<ParticleData>, const typename T::Snapshot& >())
+    py::class_<T, std::shared_ptr<T> >(m,name.c_str())
+        .def(py::init<std::shared_ptr<ParticleData>, unsigned int>())
+        .def(py::init<std::shared_ptr<ParticleData>, const typename T::Snapshot& >())
         .def("initializeFromSnapshot", &T::initializeFromSnapshot)
         .def("takeSnapshot", &T::takeSnapshot)
         .def("getN", &T::getN)
@@ -1241,38 +1246,26 @@ void export_BondedGroupData(std::string name, std::string snapshot_name, bool ex
         {
         // has a type mapping
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, boost::shared_ptr<Snapshot> >
-            (snapshot_name.c_str(), init<unsigned int>())
-            .add_property("typeid", &Snapshot::getTypeNP)
-            .add_property("group", &Snapshot::getBondedTagsNP)
-            .add_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
+        py::class_<Snapshot, std::shared_ptr<Snapshot> >(m, snapshot_name.c_str())
+            .def(py::init<unsigned int>())
+            .def_property_readonly("typeid", &Snapshot::getTypeNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership)
+            .def_property("types", &Snapshot::getTypes, &Snapshot::setTypes)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
-
-        // boost 1.60.0 compatibility
-        #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< boost::shared_ptr<T> >();
-        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
-        #endif
         }
     else
         {
         // has Scalar values
         typedef typename T::Snapshot Snapshot;
-        class_<Snapshot, boost::shared_ptr<Snapshot> >
-            (snapshot_name.c_str(), init<unsigned int>())
-            .add_property("value", &Snapshot::getValueNP)
-            .add_property("group", &Snapshot::getBondedTagsNP)
+        py::class_<Snapshot, std::shared_ptr<Snapshot> >(m,snapshot_name.c_str())
+            .def(py::init<unsigned int>())
+            .def_property_readonly("value", &Snapshot::getValueNP, py::return_value_policy::take_ownership)
+            .def_property_readonly("group", &Snapshot::getBondedTagsNP, py::return_value_policy::take_ownership)
             .def("resize", &Snapshot::resize)
             .def_readonly("N", &Snapshot::size)
             ;
-
-        // boost 1.60.0 compatibility
-        #if (BOOST_VERSION == 106000)
-        register_ptr_to_python< boost::shared_ptr<T> >();
-        register_ptr_to_python< boost::shared_ptr<Snapshot> >();
-        #endif
         }
    }
 
@@ -1324,20 +1317,20 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::repli
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypeNP()
     {
     assert(has_type_mapping);
-    return num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size());
+    return py::object(num_util::makeNumFromData(&(this->type_id[0]), this->type_id.size()), false);
     }
 
 /*! \returns a numpy array that wraps the value data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getValueNP()
     {
     assert(!has_type_mapping);
-    return num_util::makeNumFromData(&(this->val[0]), this->val.size());
+    return py::object(num_util::makeNumFromData(&(this->val[0]), this->val.size()), false);
     }
 
 
@@ -1345,23 +1338,23 @@ PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-PyObject* BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
+py::object BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getBondedTagsNP()
     {
     std::vector<intp> dims(2);
     dims[0] = this->groups.size();
     dims[1] = group_size;
-    return num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims);
+    return py::object(num_util::makeNumFromData((unsigned int*)&(this->groups[0]), dims), false);
     }
 
 /*! \returns A python list of type names
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-boost::python::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
+py::list BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::getTypes()
     {
-    boost::python::list types;
+    py::list types;
 
     for (unsigned int i = 0; i < this->type_mapping.size(); i++)
-        types.append(str(this->type_mapping[i]));
+        types.append(py::str(this->type_mapping[i]));
 
     return types;
     }
@@ -1369,26 +1362,29 @@ boost::python::list BondedGroupData<group_size, Group, name, has_type_mapping>::
 /*! \param types Python list of type names to set
 */
 template<unsigned int group_size, typename Group, const char *name, bool has_type_mapping>
-void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(boost::python::list types)
+void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTypes(py::list types)
     {
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        this->type_mapping[i] = extract<string>(types[i]);
+        this->type_mapping[i] = py::cast<string>(types[i]);
     }
 
 //! Explicit template instantiations
 template class BondedGroupData<2, Bond, name_bond_data>;
-template void export_BondedGroupData<BondData,Bond>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<BondData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<3, Angle, name_angle_data>;
-template void export_BondedGroupData<AngleData,Angle>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<AngleData,Angle>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_dihedral_data>;
-template void export_BondedGroupData<DihedralData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<DihedralData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<4, Dihedral, name_improper_data>;
-template void export_BondedGroupData<ImproperData,Dihedral>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<ImproperData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
 template class BondedGroupData<2, Constraint, name_constraint_data, false>;
-template void export_BondedGroupData<ConstraintData,Constraint>(std::string name,std::string snapshot_name, bool export_struct);
+template void export_BondedGroupData<ConstraintData,Constraint>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
+
+template class BondedGroupData<2, Bond, name_pair_data>;
+template void export_BondedGroupData<PairData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);

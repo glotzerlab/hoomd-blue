@@ -7,30 +7,28 @@
 
 #include <iostream>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "hoomd/md/ZeroMomentumUpdater.h"
 
 #include <math.h>
 
 using namespace std;
-using namespace boost;
 
-//! label the boost test module
-#define BOOST_TEST_MODULE ZeroMomentumUpdaterTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 /*! \file zero_momentum_updater_test.cc
     \brief Unit tests for the ZeroMomentumUpdater class
     \ingroup unit_tests
 */
 
-//! boost test case to verify proper operation of ZeroMomentumUpdater
-BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
+//! test case to verify proper operation of ZeroMomentumUpdater
+UP_TEST( ZeroMomentumUpdater_basic )
     {
     // create a simple particle data to test with
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(2, BoxDim(1000.0), 4));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -43,7 +41,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     }
 
     // construct the updater and make sure everything is set properly
-    boost::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
+    std::shared_ptr<ZeroMomentumUpdater> zerop(new ZeroMomentumUpdater(sysdef));
 
     // run the updater and check the new temperature
     zerop->update(0);
@@ -72,8 +70,7 @@ BOOST_AUTO_TEST_CASE( ZeroMomentumUpdater_basic )
     Scalar avg_py = sum_py / Scalar(pdata->getN());
     Scalar avg_pz = sum_pz / Scalar(pdata->getN());
 
-    MY_BOOST_CHECK_SMALL(avg_px, tol_small);
-    MY_BOOST_CHECK_SMALL(avg_py, tol_small);
-    MY_BOOST_CHECK_SMALL(avg_pz, tol_small);
+    MY_CHECK_SMALL(avg_px, tol_small);
+    MY_CHECK_SMALL(avg_py, tol_small);
+    MY_CHECK_SMALL(avg_pz, tol_small);
     }
-

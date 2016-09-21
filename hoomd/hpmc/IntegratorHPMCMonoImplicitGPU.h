@@ -13,8 +13,6 @@
 
 #include "hoomd/GPUVector.h"
 
-#include <boost/python.hpp>
-
 /*! \file IntegratorHPMCMonoImplicitGPU.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent on the GPU
     \note This header cannot be compiled by nvcc
@@ -23,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc
 {
@@ -40,8 +40,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
     {
     public:
         //! Construct the integrator
-        IntegratorHPMCMonoImplicitGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                              boost::shared_ptr<CellList> cl,
+        IntegratorHPMCMonoImplicitGPU(std::shared_ptr<SystemDefinition> sysdef,
+                              std::shared_ptr<CellList> cl,
                               unsigned int seed);
         //! Destructor
         virtual ~IntegratorHPMCMonoImplicitGPU();
@@ -77,7 +77,7 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
             }
 
     protected:
-        boost::shared_ptr<CellList> m_cl;           //!< Cell list
+        std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep
         Index2D m_cell_set_indexer;           //!< Indexer into the cell set array
         uint3 m_last_dim;                     //!< Dimensions of the cell list on the last call to update
@@ -91,10 +91,10 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
-        boost::scoped_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
-        boost::scoped_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
+        std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
+        std::unique_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
         mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
 
 
@@ -142,8 +142,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
     */
 
 template< class Shape >
-IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                                   boost::shared_ptr<CellList> cl,
+IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                                   std::shared_ptr<CellList> cl,
                                                                    unsigned int seed)
     : IntegratorHPMCMonoImplicit<Shape>(sysdef, seed), m_cl(cl), m_cell_set_order(seed+this->m_exec_conf->getRank())
     {
@@ -391,8 +391,9 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle< unsigned int > d_excell_idx(this->m_excell_idx, access_location::device, access_mode::readwrite);
         ArrayHandle< unsigned int > d_excell_size(this->m_excell_size, access_location::device, access_mode::readwrite);
 
-        // access the parameters
+        // access the parameters and interaction matrix
         ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
         // access the move sizes by type
         ArrayHandle<Scalar> d_d(this->m_d, access_location::device, access_mode::read);
@@ -504,6 +505,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         this->m_seed + this->m_exec_conf->getRank(),
                         d_d.data,
                         d_a.data,
+                        d_overlaps.data,
+                        this->m_overlap_idx,
                         this->m_move_ratio,
                         timestep,
                         this->m_sysdef->getNDimensions(),
@@ -584,8 +587,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 this->m_pdata->getN(),
                                 this->m_pdata->getNTypes(),
                                 this->m_seed + this->m_exec_conf->getRank(),
-                                d_d.data,
-                                d_a.data,
+                                d_overlaps.data,
+                                this->m_overlap_idx,
                                 timestep,
                                 this->m_sysdef->getNDimensions(),
                                 box,
@@ -675,8 +678,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 this->m_pdata->getN(),
                                 this->m_pdata->getNTypes(),
                                 this->m_seed + this->m_exec_conf->getRank(),
-                                d_d.data,
-                                d_a.data,
+                                d_overlaps.data,
+                                this->m_overlap_idx,
                                 timestep,
                                 this->m_sysdef->getNDimensions(),
                                 box,
@@ -884,10 +887,10 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<IntegratorHPMCMonoImplicitGPU<Shape>, boost::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> >, boost::python::bases< IntegratorHPMCMonoImplicit<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList>, unsigned int >())
+     pybind11::class_<IntegratorHPMCMonoImplicitGPU<Shape>, std::shared_ptr< IntegratorHPMCMonoImplicitGPU<Shape> > >(m, name.c_str(), pybind11::base< IntegratorHPMCMonoImplicit<Shape> >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList>, unsigned int >())
         ;
     }
 
@@ -896,4 +899,3 @@ template < class Shape > void export_IntegratorHPMCMonoImplicitGPU(const std::st
 #endif // ENABLE_CUDA
 
 #endif // __HPMC_MONO_IMPLICIT_GPU_H__
-

@@ -8,8 +8,7 @@
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "QuaternionMath.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -24,7 +23,7 @@ using namespace std;
     \param p p component of field
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(boost::shared_ptr<SystemDefinition> sysdef, Scalar field_x=0.0,Scalar field_y=0.0, Scalar field_z=0.0,Scalar p=0.0)
+ConstExternalFieldDipoleForceCompute::ConstExternalFieldDipoleForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar field_x=0.0,Scalar field_y=0.0, Scalar field_z=0.0,Scalar p=0.0)
         : ForceCompute(sysdef)
     {
     setParams(field_x,field_y,field_z,p);
@@ -96,11 +95,10 @@ void ConstExternalFieldDipoleForceCompute::computeForces(unsigned int timestep)
 
     }
 
-void export_ConstExternalFieldDipoleForceCompute()
+void export_ConstExternalFieldDipoleForceCompute(py::module& m)
     {
-    class_< ConstExternalFieldDipoleForceCompute, boost::shared_ptr<ConstExternalFieldDipoleForceCompute>,
-            bases<ForceCompute>, boost::noncopyable >
-    ("ConstExternalFieldDipoleForceCompute", init< boost::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
+    py::class_< ConstExternalFieldDipoleForceCompute, std::shared_ptr<ConstExternalFieldDipoleForceCompute> >(m, "ConstExternalFieldDipoleForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar,Scalar,Scalar,Scalar >())
     .def("setParams", &ConstExternalFieldDipoleForceCompute::setParams)
     ;
     }

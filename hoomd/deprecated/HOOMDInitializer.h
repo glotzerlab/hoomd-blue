@@ -15,14 +15,13 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/BondedGroupData.h"
 #include "hoomd/extern/xmlParser.h"
-#include "hoomd/BondedGroupData.h"
 
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __HOOMD_INITIALIZER_H__
 #define __HOOMD_INITIALIZER_H__
@@ -52,7 +51,7 @@ class HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data
-        HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+        HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          const std::string &fname,
                          bool wrap_coordinates = false);
 
@@ -63,7 +62,7 @@ class HOOMDInitializer
         virtual void setTimeStep(unsigned int ts);
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
+        virtual std::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! simple vec for storing particle data
         struct vec
@@ -132,6 +131,8 @@ class HOOMDInitializer
         void parseBodyNode(const XMLNode& node);
         //! Helper function to parse the bonds node
         void parseBondNode(const XMLNode& node);
+        //! Helper function to parse the pairs node
+        void parsePairNode(const XMLNode& node);
         //! Helper function to parse the angle node
         void parseAngleNode(const XMLNode& node);
         //! Helper function to parse the dihedral node
@@ -159,8 +160,10 @@ class HOOMDInitializer
         unsigned int getDihedralTypeId(const std::string& name);
         //! Helper function for identifying the improper type id
         unsigned int getImproperTypeId(const std::string& name);
+        //! Helper function for identifying the pair type id
+        unsigned int getPairTypeId(const std::string& name);
 
-        std::map< std::string, boost::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
+        std::map< std::string, std::function< void (const XMLNode&) > > m_parser_map; //!< Map for dispatching parsers based on node type
 
         BoxDim m_box;   //!< Simulation box read from the file
         bool m_box_read;    //!< Stores the box we read in
@@ -182,6 +185,8 @@ class HOOMDInitializer
         std::vector< unsigned int > m_dihedral_types; //!< Dihedral types read in from the file
         std::vector< ImproperData::members_t > m_impropers;  //!< Improper read in from the file
         std::vector< unsigned int > m_improper_types; //!< Improper read in from the file
+        std::vector< PairData::members_t > m_pairs;  //!< Pair read in from the file
+        std::vector< unsigned int > m_pair_types; //!< Pair read in from the file
         std::vector< ConstraintData::members_t > m_constraints;  //!< Constraint read in from the file
         std::vector< Scalar > m_constraint_distances;//!< Constraint distances
         unsigned int m_timestep;                     //!< The time stamp
@@ -191,17 +196,18 @@ class HOOMDInitializer
         std::vector<std::string> m_angle_type_mapping;    //!< The created mapping between angle types and ids
         std::vector<std::string> m_dihedral_type_mapping; //!< The created mapping between dihedral types and ids
         std::vector<std::string> m_improper_type_mapping; //!< The created mapping between improper types and ids
+        std::vector<std::string> m_pair_type_mapping; //!< The created mapping between pair types and ids
 
         std::vector<Scalar4> m_orientation;             //!< Orientation of each particle
         std::vector<Scalar3> m_moment_inertia;       //!< Moments of inertia for each particle
         std::vector<Scalar4> m_angmom;               //!< Angular momenta
         std::string m_xml_version;                  //!< Version of XML file
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         bool m_wrap;                                     //!< If true, wrap input coordinates into box
     };
 
 //! Exports HOOMDInitializer to python
-void export_HOOMDInitializer();
+void export_HOOMDInitializer(pybind11::module& m);
 
 #endif

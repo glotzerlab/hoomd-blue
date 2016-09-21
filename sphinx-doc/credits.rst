@@ -86,6 +86,8 @@ Jens Glaser, University of Michigan
  * pair.reaction_field
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
+ * hpmc interaction_matrix
+ * special_pair framework
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -149,10 +151,15 @@ Matthew Spellings, Univeristy of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
+ * External components in hoomd 2.x
 
 James Proctor, University of Michigan
  * Refactor external potential framework
  * Wall potentials
+ * boost python to pybind11 conversion
+ * boost unit_test to upp11 conversion
+ * boost signals to Nano::Signals conversion
+ * Removal of misc boost library calls
 
 Chengyu Dai, University of Michigan
  * Rewrite integrate.brownian with 3D rotational updates
@@ -171,6 +178,13 @@ Vyas Ramasubramani, University of Michigan
 
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
+
+Bryan VanSaders, University of Michigan
+ * constrain.oneD
+
+Ludwig Schneider, Georg-August Univeristy Goettingen
+  * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+
 
 HPMC developers
 ---------------
@@ -564,11 +578,76 @@ libgetar is used to read and write GTAR files. Used under the MIT license::
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 
+pybind11 is used to provide python bindings for C++ classes. Used under the BSD license::
+
+    Copyright (c) 2016 Wenzel Jakob <wenzel.jakob@epfl.ch>, All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    1. Redistributions of source code must retain the above copyright notice, this
+       list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright notice,
+       this list of conditions and the following disclaimer in the documentation
+       and/or other materials provided with the distribution.
+
+    3. Neither the name of the copyright holder nor the names of its contributors
+       may be used to endorse or promote products derived from this software
+       without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    You are under no obligation whatsoever to provide any bug fixes, patches, or
+    upgrades to the features, functionality or performance of the source code
+    ("Enhancements") to anyone; however, if you choose to make your Enhancements
+    available either publicly, or directly to the author of this software, without
+    imposing a separate written license agreement for such Enhancements, then you
+    hereby grant the following license: a non-exclusive, royalty-free perpetual
+    license to install, use, modify, prepare derivative works, incorporate into
+    other computer software, distribute, and sublicense such enhancements or
+    derivative works thereof, in binary and source code form.
+
+cereal is used to serialize C++ objects for transmission over MPI. Used under the BSD license::
+
+    Copyright (c) 2014, Randolph Voorhies, Shane Grant
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of cereal nor the
+          names of its contributors may be used to endorse or promote products
+          derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL RANDOLPH VOORHIES OR SHANE GRANT BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 Libraries
 ---------
 
 HOOMD-blue links to the following libraries:
 
- * boost - Used under the Boost Software License, Version 1.0 (http://www.boost.org/LICENSE_1_0.txt)
  * python - Used under the Python license (http://www.python.org/psf/license/)
  * cuFFT - Used under the NVIDIA CUDA toolkit license (http://docs.nvidia.com/cuda/eula/index.html)

@@ -7,10 +7,7 @@
 
 #include "TablePotentialGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 #include <stdexcept>
 
 /*! \file TablePotentialGPU.cc
@@ -24,8 +21,8 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TablePotentialGPU::TablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                     boost::shared_ptr<NeighborList> nlist,
+TablePotentialGPU::TablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                     std::shared_ptr<NeighborList> nlist,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : TablePotential(sysdef, nlist, table_width, log_suffix)
@@ -107,13 +104,12 @@ void TablePotentialGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_TablePotentialGPU()
+void export_TablePotentialGPU(py::module& m)
     {
-    class_<TablePotentialGPU, boost::shared_ptr<TablePotentialGPU>, bases<TablePotential>, boost::noncopyable >
-    ("TablePotentialGPU",
-     init< boost::shared_ptr<SystemDefinition>,
-     boost::shared_ptr<NeighborList>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<TablePotentialGPU, std::shared_ptr<TablePotentialGPU> >(m, "TablePotentialGPU", py::base<TablePotential>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                                std::shared_ptr<NeighborList>,
+                                unsigned int,
+                                const std::string& >())
+                                ;
     }

@@ -15,13 +15,12 @@
 #include "Profiler.h"
 #include "System.h"
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 #include <algorithm>
-#include <functional>
 
 //! Constructor
-CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<DomainDecomposition> decomposition)
+CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<DomainDecomposition> decomposition)
     : Communicator(sysdef, decomposition),
       m_max_stages(1),
       m_num_stages(0),
@@ -30,7 +29,8 @@ CommunicatorGPU::CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
       m_angle_comm(*this, m_sysdef->getAngleData()),
       m_dihedral_comm(*this, m_sysdef->getDihedralData()),
       m_improper_comm(*this, m_sysdef->getImproperData()),
-      m_constraint_comm(*this, m_sysdef->getConstraintData())
+      m_constraint_comm(*this, m_sysdef->getConstraintData()),
+      m_pair_comm(*this, m_sysdef->getPairData())
     {
     // default value
     #ifndef ENABLE_MPI_CUDA
@@ -430,7 +430,7 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
 
 //! Constructor
 template<class group_data>
-CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata)
+CommunicatorGPU::GroupCommunicatorGPU<group_data>::GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, std::shared_ptr<group_data> gdata)
     : m_gpu_comm(gpu_comm), m_exec_conf(m_gpu_comm.m_exec_conf), m_gdata(gdata),
       m_ghost_group_begin(m_exec_conf), m_ghost_group_end(m_exec_conf),m_ghost_group_idx_adj(m_exec_conf),
       m_ghost_group_neigh(m_exec_conf), m_ghost_group_plan(m_exec_conf), m_neigh_counts(m_exec_conf)
@@ -517,7 +517,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
             ArrayHandle<unsigned int> d_rtag(m_gpu_comm.m_pdata->getRTags(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_scan(m_scan, access_location::device, access_mode::overwrite);
 
-            boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+            std::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
             ArrayHandle<unsigned int> d_cart_ranks(decomposition->getCartRanks(), access_location::device, access_mode::read);
 
             Index3D di = decomposition->getDomainIndexer();
@@ -1440,7 +1440,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
 
                 // update reverse-lookup table
                 gpu_compute_ghost_rtags(first_idx,
-                    n_recv_ghost_groups_tot[stage],
+                    n_keep,
                     d_group_tag.data + first_idx,
                     d_group_rtag.data);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -1469,7 +1469,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::markGhostParticles(
         ArrayHandle<Scalar4> d_pos(m_gpu_comm.m_pdata->getPositions(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_plan(plans, access_location::device, access_mode::readwrite);
 
-        boost::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
+        std::shared_ptr<DomainDecomposition> decomposition = m_gpu_comm.m_pdata->getDomainDecomposition();
         ArrayHandle<unsigned int> d_cart_ranks_inv(decomposition->getInverseCartRanks(), access_location::device, access_mode::read);
         Index3D di = decomposition->getDomainIndexer();
         uint3 my_pos = decomposition->getGridPos();
@@ -1534,6 +1534,10 @@ void CommunicatorGPU::migrateParticles()
         // Bonds
         m_bond_comm.migrateGroups(m_bonds_changed, true);
         m_bonds_changed = false;
+
+        // Special pairs
+        m_pair_comm.migrateGroups(m_pairs_changed, true);
+        m_pairs_changed = false;
 
         // Angles
         m_angle_comm.migrateGroups(m_angles_changed, true);
@@ -1779,6 +1783,8 @@ void CommunicatorGPU::removeGhostParticleTags()
     {
     if (m_last_flags[comm_flag::tag])
         {
+        m_exec_conf->msg->notice(9) << "CommunicatorGPU: removing " << m_ghosts_added << " ghost particles " << std::endl;
+
         // Reset reverse lookup tags of old ghost atoms
         ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
@@ -1840,15 +1846,20 @@ void CommunicatorGPU::exchangeGhosts()
             {
             // compute plans for all particles, including already received ghosts
             ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+            ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
             ArrayHandle<unsigned int> d_ghost_plan(m_ghost_plan, access_location::device, access_mode::overwrite);
 
             ArrayHandle<Scalar> d_r_ghost(m_r_ghost, access_location::device, access_mode::read);
+            ArrayHandle<Scalar> d_r_ghost_body(m_r_ghost_body, access_location::device, access_mode::read);
 
             gpu_make_ghost_exchange_plan(d_ghost_plan.data,
                                          m_pdata->getN()+m_pdata->getNGhosts(),
                                          d_pos.data,
+                                         d_body.data,
                                          m_pdata->getBox(),
                                          d_r_ghost.data,
+                                         d_r_ghost_body.data,
+                                         m_r_ghost_max,
                                          m_pdata->getNTypes(),
                                          m_comm_mask[stage]);
 
@@ -1860,6 +1871,9 @@ void CommunicatorGPU::exchangeGhosts()
 
         // bonds
         m_bond_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
+
+        // special pairs
+        m_pair_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
 
         // angles
         m_angle_comm.markGhostParticles(m_ghost_plan,m_comm_mask[stage]);
@@ -3129,7 +3143,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_send_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3142,7 +3156,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar4),
                             MPI_BYTE,
                             neighbor,
-                            2,
+                            3,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3158,7 +3172,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_send_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3171,7 +3185,7 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
                             6*m_n_recv_ghosts[stage][ineigh]*sizeof(Scalar),
                             MPI_BYTE,
                             neighbor,
-                            3,
+                            4,
                             m_mpi_comm,
                             &req);
                         m_reqs.push_back(req);
@@ -3249,12 +3263,11 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
     }
 
  //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU()
+void export_CommunicatorGPU(py::module& m)
     {
-    boost::python::class_<CommunicatorGPU, boost::python::bases<Communicator>, boost::shared_ptr<CommunicatorGPU>, boost::noncopyable>("CommunicatorGPU",
-           boost::python::init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
-            .def("setMaxStages",&CommunicatorGPU::setMaxStages)
+    py::class_<CommunicatorGPU, std::shared_ptr<CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
+        .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >())
+        .def("setMaxStages",&CommunicatorGPU::setMaxStages)
     ;
     }
 

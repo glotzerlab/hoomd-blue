@@ -12,17 +12,12 @@
 
 #include "HarmonicDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \param sysdef System to compute bond forces on
 */
-HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicDihedralForceComputeGPU::HarmonicDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : HarmonicDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -107,9 +102,9 @@ void HarmonicDihedralForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicDihedralForceComputeGPU()
+void export_HarmonicDihedralForceComputeGPU(py::module& m)
     {
-    class_<HarmonicDihedralForceComputeGPU, boost::shared_ptr<HarmonicDihedralForceComputeGPU>, bases<HarmonicDihedralForceCompute>, boost::noncopyable >
-    ("HarmonicDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicDihedralForceComputeGPU, std::shared_ptr<HarmonicDihedralForceComputeGPU> >(m, "HarmonicDihedralForceComputeGPU", py::base<HarmonicDihedralForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

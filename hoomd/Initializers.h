@@ -34,7 +34,7 @@ class SimpleCubicInitializer
         virtual ~SimpleCubicInitializer() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
+        virtual std::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
     private:
         unsigned int m_M;   //!< Number of particles wide to make the box
@@ -57,7 +57,7 @@ class RandomInitializer
         virtual ~RandomInitializer() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
+        virtual std::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! Sets the random seed to use in the generation
         void setSeed(unsigned int seed);
@@ -69,10 +69,5 @@ class RandomInitializer
         BoxDim m_box;               //!< Box to put the particles in
         std::string m_type_name;    //!< Name of the particle type created
     };
-
-//! Exports the SimpleCubicInitializer class to python
-void export_SimpleCubicInitializer();
-//! Exports the RandomInitializer class to python
-void export_RandomInitializer();
 
 #endif

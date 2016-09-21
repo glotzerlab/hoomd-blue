@@ -11,17 +11,15 @@
 #include "CellList.h"
 #include "Communicator.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
 #include <algorithm>
 
-using namespace boost;
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
+
 
 /*! \param sysdef system to compute the cell list of
 */
-CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
+CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
       m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
       m_compute_adj_list(true)
@@ -43,15 +41,15 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
 
-    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
+    m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellList" << endl;
-    m_sort_connection.disconnect();
-    m_boxchange_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().disconnect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 //! Round down to the nearest multiple
@@ -264,7 +262,7 @@ void CellList::initializeWidth()
                                   (L.z + Scalar(2.0)*m_ghost_width.z) / Scalar(m_dim.z));
 
     // signal that the width has changed
-    m_width_change();
+    m_width_change.emit();
 
     if (m_prof)
         m_prof->pop();
@@ -670,17 +668,17 @@ void CellList::printStats()
     }
 
 
-void export_CellList()
+void export_CellList(py::module& m)
     {
-    class_<CellList, boost::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
-        ("CellList", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, return_internal_reference<>())
+        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)
         ;

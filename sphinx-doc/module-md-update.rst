@@ -12,6 +12,7 @@ md.update
     md.update.enforce2d
     md.update.rescale_temp
     md.update.zero_momentum
+    md.update.mueller_plathe_flow
 
 .. rubric:: Details
 

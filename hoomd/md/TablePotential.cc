@@ -5,11 +5,7 @@
 // Maintainer: joaander
 #include "TablePotential.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <stdexcept>
 
@@ -24,8 +20,8 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
-                               boost::shared_ptr<NeighborList> nlist,
+TablePotential::TablePotential(std::shared_ptr<SystemDefinition> sysdef,
+                               std::shared_ptr<NeighborList> nlist,
                                unsigned int table_width,
                                const std::string& log_suffix)
         : ForceCompute(sysdef), m_nlist(nlist), m_table_width(table_width)
@@ -59,14 +55,14 @@ TablePotential::TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
     m_log_name = std::string("pair_table_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TablePotential::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<TablePotential, &TablePotential::slotNumTypesChange>(this);
     }
 
 TablePotential::~TablePotential()
     {
     m_exec_conf->msg->notice(5) << "Destroying TablePotential" << endl;
 
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<TablePotential, &TablePotential::slotNumTypesChange>(this);
     }
 
 void TablePotential::slotNumTypesChange()
@@ -347,10 +343,10 @@ void TablePotential::computeForces(unsigned int timestep)
     }
 
 //! Exports the TablePotential class to python
-void export_TablePotential()
+void export_TablePotential(py::module& m)
     {
-    class_<TablePotential, boost::shared_ptr<TablePotential>, bases<ForceCompute>, boost::noncopyable >
-    ("TablePotential", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, unsigned int, const std::string& >())
+    py::class_<TablePotential, std::shared_ptr<TablePotential> >(m, "TablePotential", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, unsigned int, const std::string& >())
     .def("setTable", &TablePotential::setTable)
     ;
     }

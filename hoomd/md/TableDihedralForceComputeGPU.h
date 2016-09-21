@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 #define __TABLEDIHEDRALFORCECOMPUTEGPU_H__
 
@@ -29,7 +31,7 @@ class TableDihedralForceComputeGPU : public TableDihedralForceCompute
     {
     public:
         //! Constructs the compute
-        TableDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        TableDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                           unsigned int table_width,
                           const std::string& log_suffix="");
 
@@ -48,13 +50,13 @@ class TableDihedralForceComputeGPU : public TableDihedralForceCompute
             }
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
         GPUArray<unsigned int> m_flags;       //!< Flags set during the kernel execution
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the TableDihedralForceComputeGPU class to python
-void export_TableDihedralForceComputeGPU();
+void export_TableDihedralForceComputeGPU(pybind11::module& m);
 
 #endif

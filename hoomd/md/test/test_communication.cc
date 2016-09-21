@@ -4,16 +4,14 @@
 
 #ifdef ENABLE_MPI
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE CommunicationTests
-
 // this has to be included after naming the test module
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN()
 
 #include "hoomd/System.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/bind.hpp>
+#include <memory>
+#include <functional>
 
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/Communicator.h"
@@ -33,31 +31,31 @@
 #define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 //! Typedef for function that creates the Communnicator on the CPU or GPU
-typedef boost::function<boost::shared_ptr<Communicator> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
+typedef std::function<std::shared_ptr<Communicator> (std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition)> communicator_creator;
 
-boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<DomainDecomposition> decomposition);
+std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<DomainDecomposition> decomposition);
 
 #ifdef ENABLE_CUDA
-boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition);
+std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition);
 #endif
 
-void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                const BoxDim& box,
-                               boost::shared_ptr<DomainDecomposition> decomposition)
+                               std::shared_ptr<DomainDecomposition> decomposition)
 {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -68,7 +66,7 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -112,76 +110,76 @@ void test_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_co
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
     // check that every domain has exactly one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle ended up in the domain to where it belongs
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // check that the positions have been transferred correctly
     Scalar3 pos = pdata->getPosition(0);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
-    BOOST_CHECK_CLOSE(pos.x, 0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x, 0.5, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(4);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(5);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(6);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z,  0.5, tol);
 
     pos = pdata->getPosition(7);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
-void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf)
 {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -192,7 +190,7 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
         {
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
 
@@ -239,84 +237,84 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     SnapshotParticleData<Scalar> snap(8);
     pdata->takeSnapshot(snap);
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
     std::vector<Scalar> cum_frac_x = decomposition->getCumulativeFractions(0);
-    MY_BOOST_CHECK_SMALL(cum_frac_x[0], tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_x[1], 0.5, tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_x[2], 1.0, tol);
+    MY_CHECK_SMALL(cum_frac_x[0], tol);
+    MY_CHECK_CLOSE(cum_frac_x[1], 0.5, tol);
+    MY_CHECK_CLOSE(cum_frac_x[2], 1.0, tol);
 
     std::vector<Scalar> cum_frac_y = decomposition->getCumulativeFractions(1);
-    MY_BOOST_CHECK_SMALL(cum_frac_y[0], tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_y[1], 0.35, tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_y[2], 1.0, tol);
+    MY_CHECK_SMALL(cum_frac_y[0], tol);
+    MY_CHECK_CLOSE(cum_frac_y[1], 0.35, tol);
+    MY_CHECK_CLOSE(cum_frac_y[2], 1.0, tol);
 
     std::vector<Scalar> cum_frac_z = decomposition->getCumulativeFractions(2);
-    MY_BOOST_CHECK_SMALL(cum_frac_z[0], tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_z[1], 0.8, tol);
-    MY_BOOST_CHECK_CLOSE(cum_frac_z[2], 1.0, tol);
+    MY_CHECK_SMALL(cum_frac_z[0], tol);
+    MY_CHECK_CLOSE(cum_frac_z[1], 0.8, tol);
+    MY_CHECK_CLOSE(cum_frac_z[2], 1.0, tol);
 
     pdata->setDomainDecomposition(decomposition);
 
     // check that periodic flags are correctly set on the box
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().x, 0);
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().y, 0);
-    BOOST_CHECK_EQUAL(pdata->getBox().getPeriodic().z, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().x, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(pdata->getBox().getPeriodic().z, 0);
 
     pdata->initializeFromSnapshot(snap);
 
     // check that every domain has exactly one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle ended up in the domain to where it belongs
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // check that the positions have been transferred correctly
     Scalar3 pos = pdata->getPosition(0);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y, -0.75, tol);
+    CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(1);
-    BOOST_CHECK_CLOSE(pos.x, 0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+    CHECK_CLOSE(pos.x, 0.5, tol);
+    CHECK_CLOSE(pos.y, -0.75, tol);
+    CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(2);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y,  -0.25, tol);
+    CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(3);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.9, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y,  -0.25, tol);
+    CHECK_CLOSE(pos.z, -0.9, tol);
 
     pos = pdata->getPosition(4);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y, -0.75, tol);
+    CHECK_CLOSE(pos.z,  0.9, tol);
 
     pos = pdata->getPosition(5);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.75, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y, -0.75, tol);
+    CHECK_CLOSE(pos.z,  0.9, tol);
 
     pos = pdata->getPosition(6);
-    BOOST_CHECK_CLOSE(pos.x, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+    CHECK_CLOSE(pos.x, -0.5, tol);
+    CHECK_CLOSE(pos.y,  -0.25, tol);
+    CHECK_CLOSE(pos.z,  0.9, tol);
 
     pos = pdata->getPosition(7);
-    BOOST_CHECK_CLOSE(pos.x,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.25, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.9, tol);
+    CHECK_CLOSE(pos.x,  0.5, tol);
+    CHECK_CLOSE(pos.y,  -0.25, tol);
+    CHECK_CLOSE(pos.z,  0.9, tol);
 
 
     // test that the simulation boxes are correct for each rank
@@ -328,27 +326,27 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
     // box size should be fractional width of global box
     if (my_pos.x == 0)
         {
-        BOOST_CHECK_CLOSE(L.x, global_L.x * fxs[0], tol);
+        CHECK_CLOSE(L.x, global_L.x * fxs[0], tol);
         }
     else
         {
-        BOOST_CHECK_CLOSE(L.x, global_L.x * (Scalar(1.0) - fxs[0]), tol);
+        CHECK_CLOSE(L.x, global_L.x * (Scalar(1.0) - fxs[0]), tol);
         }
     if (my_pos.y == 0)
         {
-        BOOST_CHECK_CLOSE(L.y, global_L.y * fys[0], tol);
+        CHECK_CLOSE(L.y, global_L.y * fys[0], tol);
         }
     else
         {
-        BOOST_CHECK_CLOSE(L.y, global_L.y * (Scalar(1.0) - fys[0]), tol);
+        CHECK_CLOSE(L.y, global_L.y * (Scalar(1.0) - fys[0]), tol);
         }
     if (my_pos.z == 0)
         {
-        BOOST_CHECK_CLOSE(L.z, global_L.z * fzs[0], tol);
+        CHECK_CLOSE(L.z, global_L.z * fzs[0], tol);
         }
     else
         {
-        BOOST_CHECK_CLOSE(L.z, global_L.z * (Scalar(1.0) - fzs[0]), tol);
+        CHECK_CLOSE(L.z, global_L.z * (Scalar(1.0) - fzs[0]), tol);
         }
 
     // box lower bound should be shifted if rank isn't the first slice along the dim
@@ -360,23 +358,23 @@ void test_balanced_domain_decomposition(boost::shared_ptr<ExecutionConfiguration
         check_lo.y += fys[0] * global_L.y;
     if (my_pos.z > 0)
         check_lo.z += fzs[0] * global_L.z;
-    BOOST_CHECK_CLOSE(lo.x, check_lo.x, tol);
-    BOOST_CHECK_CLOSE(lo.y, check_lo.y, tol);
-    BOOST_CHECK_CLOSE(lo.z, check_lo.z, tol);
+    CHECK_CLOSE(lo.x, check_lo.x, tol);
+    CHECK_CLOSE(lo.y, check_lo.y, tol);
+    CHECK_CLOSE(lo.z, check_lo.z, tol);
     }
 
 //! Test particle migration of Communicator
-void test_communicator_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_communicator_migrate(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf,
     BoxDim dest_box)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -387,7 +385,7 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)),false);
@@ -403,9 +401,9 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(),2,2,2));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(),2,2,2));
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -415,17 +413,17 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     comm->migrateParticles();
 
     // check that every domain has exactly one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle stayed where it was
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(0.1,-0.5,-0.5)),false);
@@ -448,63 +446,63 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     comm->migrateParticles();
 
     // check that every particle has ended up in the right domain
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 7);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
 
     // check positions
     Scalar3 pos = pdata->getPosition(0);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x,  0.1, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.2, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x, -0.2, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.2, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.3, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x,  0.2, tol);
+    CHECK_CLOSE(pos.y,  0.3, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.3, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
+    CHECK_CLOSE(pos.x,  -0.5, tol);
+    CHECK_CLOSE(pos.y,  -0.3, tol);
+    CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(4);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.3, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
+    CHECK_CLOSE(pos.x,  0.1, tol);
+    CHECK_CLOSE(pos.y, -0.3, tol);
+    CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(5);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.2, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.4, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
+    CHECK_CLOSE(pos.x, -0.2, tol);
+    CHECK_CLOSE(pos.y,  0.4, tol);
+    CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(6);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.6, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.1, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
+    CHECK_CLOSE(pos.x,  0.6, tol);
+    CHECK_CLOSE(pos.y,  0.1, tol);
+    CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(7);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.6, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.1, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.2, tol);
+    CHECK_CLOSE(pos.x, -0.6, tol);
+    CHECK_CLOSE(pos.y, -0.1, tol);
+    CHECK_CLOSE(pos.z, -0.2, tol);
 
     //
     // check that that particles are correctly wrapped across the boundary
@@ -534,103 +532,103 @@ void test_communicator_migrate(communicator_creator comm_creator, boost::shared_
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         }
 
     // check that every particle has ended up in the right domain
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
 
     // check positions (taking into account that particles should have been wrapped)
     pos = pdata->getPosition(0);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  -0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x,  -0.9, tol);
+    CHECK_CLOSE(pos.y, -0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(1);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, 0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x, 0.9, tol);
+    CHECK_CLOSE(pos.y,  0.5, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(2);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.2, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.7, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.5, tol);
+    CHECK_CLOSE(pos.x,  0.2, tol);
+    CHECK_CLOSE(pos.y,  -0.7, tol);
+    CHECK_CLOSE(pos.z, -0.5, tol);
 
     pos = pdata->getPosition(3);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  -0.5, tol);
-    BOOST_CHECK_CLOSE(pos.y,   0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.2, tol);
+    CHECK_CLOSE(pos.x,  -0.5, tol);
+    CHECK_CLOSE(pos.y,   0.5, tol);
+    CHECK_CLOSE(pos.z,  0.2, tol);
 
     pos = pdata->getPosition(4);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.1, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.3, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.4, tol);
+    CHECK_CLOSE(pos.x,  0.1, tol);
+    CHECK_CLOSE(pos.y, -0.3, tol);
+    CHECK_CLOSE(pos.z, -0.4, tol);
 
     pos = pdata->getPosition(5);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.4, tol);
-    BOOST_CHECK_CLOSE(pos.z,-0.75, tol);
+    CHECK_CLOSE(pos.x,  0.9, tol);
+    CHECK_CLOSE(pos.y,  0.4, tol);
+    CHECK_CLOSE(pos.z,-0.75, tol);
 
     pos = pdata->getPosition(6);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.7, tol);
-    BOOST_CHECK_CLOSE(pos.y,  0.1, tol);
-    BOOST_CHECK_CLOSE(pos.z,-0.95, tol);
+    CHECK_CLOSE(pos.x, -0.7, tol);
+    CHECK_CLOSE(pos.y,  0.1, tol);
+    CHECK_CLOSE(pos.z,-0.95, tol);
 
     pos = pdata->getPosition(7);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.6, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.1, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.5, tol);
+    CHECK_CLOSE(pos.x, -0.6, tol);
+    CHECK_CLOSE(pos.y, -0.1, tol);
+    CHECK_CLOSE(pos.z,  0.5, tol);
     }
 
 //! Test particle migration of Communicator
-void test_communicator_balanced_migrate(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf,
+void test_communicator_balanced_migrate(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf,
     BoxDim dest_box)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -641,7 +639,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3(-0.5,-0.75,0.25)),false);
     pdata->setPosition(1, TO_TRICLINIC(make_scalar3( 0.5,-0.75,0.25)),false);
@@ -663,9 +661,9 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     fys[0] = Scalar(0.25);
     fzs[0] = Scalar(0.75);
 
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, pdata->getBox().getL(), fxs, fys, fzs));
 
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -675,17 +673,17 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     comm->migrateParticles();
 
     // check that every domain has exactly one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // check that every particle stayed where it was
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 7);
 
     // Now move particle 0 into domain 1
     pdata->setPosition(0, TO_TRICLINIC(make_scalar3( 0.51,-0.751,0.251)),false);
@@ -705,76 +703,76 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.51,-0.751,0.251)),false);
 
     // validate that placing the particle would send it to the ranks that we expect
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(0)), 1);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(1)), 2);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(2)), 3);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(3)), 4);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(4)), 5);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
-    BOOST_CHECK_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(0)), 1);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(1)), 2);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(2)), 3);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(3)), 4);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(4)), 5);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(5)), 6);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(6)), 7);
+    UP_ASSERT_EQUAL(decomposition->placeParticle(pdata->getGlobalBox(), pdata->getPosition(7)), 0);
 
     // migrate atoms
     comm->migrateParticles();
 
     // check that every particle has ended up in the right domain
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 4);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 5);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 7);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 5);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 7);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 0);
 
     // check positions
     Scalar3 pos = pdata->getPosition(0);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x,  0.51, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(1);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x, -0.51, tol);
+    CHECK_CLOSE(pos.y, -0.251, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(2);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x,  0.51, tol);
+    CHECK_CLOSE(pos.y,  -0.251, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(3);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+    CHECK_CLOSE(pos.x,  -0.51, tol);
+    CHECK_CLOSE(pos.y,  -0.751, tol);
+    CHECK_CLOSE(pos.z,  0.751, tol);
 
     pos = pdata->getPosition(4);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+    CHECK_CLOSE(pos.x,  0.51, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z,  0.751, tol);
 
     pos = pdata->getPosition(5);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+    CHECK_CLOSE(pos.x, -0.51, tol);
+    CHECK_CLOSE(pos.y,  -0.251, tol);
+    CHECK_CLOSE(pos.z,  0.751, tol);
 
     pos = pdata->getPosition(6);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y,  -0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.751, tol);
+    CHECK_CLOSE(pos.x,  0.51, tol);
+    CHECK_CLOSE(pos.y,  -0.251, tol);
+    CHECK_CLOSE(pos.z,  0.751, tol);
 
     pos = pdata->getPosition(7);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x, -0.51, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     //
     // check that that particles are correctly wrapped across the boundary
@@ -804,89 +802,89 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, boost
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
             break;
         }
 
     // check that every particle has ended up in the right domain
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(0), 0);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(1), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(2), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(3), 6);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(4), 1);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(5), 3);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(6), 2);
-    BOOST_CHECK_EQUAL(pdata->getOwnerRank(7), 4);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(0), 0);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(1), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(2), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(3), 6);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(4), 1);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(5), 3);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(6), 2);
+    UP_ASSERT_EQUAL(pdata->getOwnerRank(7), 4);
 
     // check positions (taking into account that particles should have been wrapped)
     pos = pdata->getPosition(0);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  -0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x,  -0.9, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(1);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, 0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x, 0.9, tol);
+    CHECK_CLOSE(pos.y, -0.251, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(2);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, 0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.7, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.251, tol);
+    CHECK_CLOSE(pos.x, 0.51, tol);
+    CHECK_CLOSE(pos.y, -0.7, tol);
+    CHECK_CLOSE(pos.z, 0.251, tol);
 
     pos = pdata->getPosition(3);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, 0.5, tol);
-    BOOST_CHECK_CLOSE(pos.z, 0.751, tol);
+    CHECK_CLOSE(pos.x, -0.51, tol);
+    CHECK_CLOSE(pos.y, 0.5, tol);
+    CHECK_CLOSE(pos.z, 0.751, tol);
 
     pos = pdata->getPosition(4);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, 0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z, -0.4, tol);
+    CHECK_CLOSE(pos.x, 0.51, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z, -0.4, tol);
 
     pos = pdata->getPosition(5);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x,  0.9, tol);
-    BOOST_CHECK_CLOSE(pos.y,-0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z,-0.75, tol);
+    CHECK_CLOSE(pos.x,  0.9, tol);
+    CHECK_CLOSE(pos.y,-0.251, tol);
+    CHECK_CLOSE(pos.z,-0.75, tol);
 
     pos = pdata->getPosition(6);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.7, tol);
-    BOOST_CHECK_CLOSE(pos.y,-0.251, tol);
-    BOOST_CHECK_CLOSE(pos.z,-0.95, tol);
+    CHECK_CLOSE(pos.x, -0.7, tol);
+    CHECK_CLOSE(pos.y,-0.251, tol);
+    CHECK_CLOSE(pos.z,-0.95, tol);
 
     pos = pdata->getPosition(7);
     pos = FROM_TRICLINIC(pos);
-    BOOST_CHECK_CLOSE(pos.x, -0.51, tol);
-    BOOST_CHECK_CLOSE(pos.y, -0.751, tol);
-    BOOST_CHECK_CLOSE(pos.z,  0.7, tol);
+    CHECK_CLOSE(pos.x, -0.51, tol);
+    CHECK_CLOSE(pos.y, -0.751, tol);
+    CHECK_CLOSE(pos.z,  0.7, tol);
     }
 
 
@@ -905,18 +903,18 @@ struct ghost_layer_width
 
 //! Test ghost particle communication
 void test_communicator_ghosts(communicator_creator comm_creator,
-                              boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                              std::shared_ptr<ExecutionConfiguration> exec_conf,
                               const BoxDim& dest_box,
-                              boost::shared_ptr<DomainDecomposition> decomposition,
+                              std::shared_ptr<DomainDecomposition> decomposition,
                               Scalar3 origin)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(16,          // number of particles
                                                              dest_box, // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -927,7 +925,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
     BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
@@ -963,8 +961,8 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-//     boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+//     std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -972,39 +970,39 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
     // width of ghost layer
     ghost_layer_width g(Scalar(0.05)*ref_box.getL().x);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g, _1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 6);
+            UP_ASSERT_EQUAL(pdata->getN(), 6);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 4);
+            UP_ASSERT_EQUAL(pdata->getN(), 4);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -1024,216 +1022,216 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         switch (exec_conf->getRank())
             {
             case 0:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.05 + origin.x,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.5,tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
+                CHECK_CLOSE(cmp.x, 0.05 + origin.x,tol);
+                CHECK_CLOSE(cmp.y, -0.5,tol);
+                CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
             case 1:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.02 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.5, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 break;
             case 2:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 6);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 6);
 
                 rtag = h_global_rtag.data[9];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.05 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.05 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x,  0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
                 break;
             case 3:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5,tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x,tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.5,tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
 
                 break;
             case 4:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 5:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 6:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.01 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.05 + origin.z, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
 
             case 7:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, -0.05 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.03 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.001 + origin.z, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
+                CHECK_CLOSE(cmp.x, 0.01 + origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.0123 + origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.09 + origin.z, tol);
                 break;
             }
         }
@@ -1242,7 +1240,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     // this should reset the number of ghost particles
     comm->migrateParticles();
 
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     //
     // check handling of periodic boundary conditions
@@ -1274,28 +1272,28 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 7);
+            UP_ASSERT_EQUAL(pdata->getN(), 7);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         }
 
@@ -1311,245 +1309,245 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         switch (exec_conf->getRank())
             {
             case 0:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -1.0001, tol);
+                CHECK_CLOSE(cmp.x, -1.01, tol);
+                CHECK_CLOSE(cmp.y, -1.001, tol);
+                CHECK_CLOSE(cmp.z, -1.0001, tol);
                 break;
 
             case 1:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 5);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
+                CHECK_CLOSE(cmp.y, -0.95, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  1.03, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.99, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x,  1.03, tol);
+                CHECK_CLOSE(cmp.y, -0.99, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.003, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.999, tol);
+                CHECK_CLOSE(cmp.x, 1.003, tol);
+                CHECK_CLOSE(cmp.y,-0.998, tol);
+                CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
+                CHECK_CLOSE(cmp.x, 1.04, tol);
+                CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-0.50, tol);
 
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.99, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
+                CHECK_CLOSE(cmp.x, 0.99, tol);
+                CHECK_CLOSE(cmp.y,-1.001, tol);
+                CHECK_CLOSE(cmp.z,-1.0001, tol);
                 break;
 
             case 2:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 7);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 7);
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
+                CHECK_CLOSE(cmp.y,  1.05, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[9];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.04, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y,  1.04, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  -0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.97, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y,  -0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-0.97, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.97, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.97, tol);
+                CHECK_CLOSE(cmp.y,  1.01, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.997, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.002, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.999, tol);
+                CHECK_CLOSE(cmp.x, -0.997, tol);
+                CHECK_CLOSE(cmp.y,  1.002, tol);
+                CHECK_CLOSE(cmp.z, -0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.96, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.50, tol);
+                CHECK_CLOSE(cmp.x, -0.96, tol);
+                CHECK_CLOSE(cmp.y, -0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
+                CHECK_CLOSE(cmp.x, -1.01, tol);
+                CHECK_CLOSE(cmp.y, 0.999, tol);
+                CHECK_CLOSE(cmp.z,-1.0001, tol);
                break;
 
             case 3:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 5);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 5);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.02+origin.x, tol);
+                CHECK_CLOSE(cmp.y,  1.05, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  1.03, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x,  1.03, tol);
+                CHECK_CLOSE(cmp.y,  1.01, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.003, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 1.002, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.999, tol);
+                CHECK_CLOSE(cmp.x, 1.003, tol);
+                CHECK_CLOSE(cmp.y, 1.002, tol);
+                CHECK_CLOSE(cmp.z,-0.999, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.04, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.50, tol);
+                CHECK_CLOSE(cmp.x, 1.04, tol);
+                CHECK_CLOSE(cmp.y,-0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.99, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.0001, tol);
+                CHECK_CLOSE(cmp.x, 0.99, tol);
+                CHECK_CLOSE(cmp.y, 0.999, tol);
+                CHECK_CLOSE(cmp.z,-1.0001, tol);
                 break;
 
             case 4:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,  1.03, tol);
+                CHECK_CLOSE(cmp.x, -0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,  1.03, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.997, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
-                BOOST_CHECK_CLOSE(cmp.z, 1.001, tol);
+                CHECK_CLOSE(cmp.x,-0.997, tol);
+                CHECK_CLOSE(cmp.y,-0.998, tol);
+                CHECK_CLOSE(cmp.z, 1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.099, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -1.02, tol);
-                BOOST_CHECK_CLOSE(cmp.z,  0.50, tol);
+                CHECK_CLOSE(cmp.x,-1.099, tol);
+                CHECK_CLOSE(cmp.y, -1.02, tol);
+                CHECK_CLOSE(cmp.z,  0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
+                CHECK_CLOSE(cmp.x,-1.01, tol);
+                CHECK_CLOSE(cmp.y,-1.001, tol);
+                CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 5:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 3);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 3);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,1.003, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.998, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
+                CHECK_CLOSE(cmp.x,1.003, tol);
+                CHECK_CLOSE(cmp.y,-0.998, tol);
+                CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,0.901, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.02, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.50, tol);
+                CHECK_CLOSE(cmp.x,0.901, tol);
+                CHECK_CLOSE(cmp.y,-1.02, tol);
+                CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,0.99, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
+                CHECK_CLOSE(cmp.x,0.99, tol);
+                CHECK_CLOSE(cmp.y,-1.001, tol);
+                CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 6:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 4);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 4);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.03, tol);
+                CHECK_CLOSE(cmp.x,-0.5, tol);
+                CHECK_CLOSE(cmp.y,-0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,1.03, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.997, tol);
-                BOOST_CHECK_CLOSE(cmp.y,1.002, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
+                CHECK_CLOSE(cmp.x,-0.997, tol);
+                CHECK_CLOSE(cmp.y,1.002, tol);
+                CHECK_CLOSE(cmp.z,1.001, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.099, tol);
-                BOOST_CHECK_CLOSE(cmp.y,0.98, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.50, tol);
+                CHECK_CLOSE(cmp.x,-1.099, tol);
+                CHECK_CLOSE(cmp.y,0.98, tol);
+                CHECK_CLOSE(cmp.z,0.50, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.01, tol);
-                BOOST_CHECK_CLOSE(cmp.y,0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.9999, tol);
+                CHECK_CLOSE(cmp.x,-1.01, tol);
+                CHECK_CLOSE(cmp.y,0.999, tol);
+                CHECK_CLOSE(cmp.z,0.9999, tol);
                 break;
 
             case 7:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,1.003, tol);
-                BOOST_CHECK_CLOSE(cmp.y,1.002, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.001, tol);
+                CHECK_CLOSE(cmp.x,1.003, tol);
+                CHECK_CLOSE(cmp.y,1.002, tol);
+                CHECK_CLOSE(cmp.z,1.001, tol);
                 break;
             }
         }
@@ -1642,229 +1640,229 @@ void test_communicator_ghosts(communicator_creator comm_creator,
             {
             case 0:
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -1.15, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.988, tol);
+                CHECK_CLOSE(cmp.x, -1.15, tol);
+                CHECK_CLOSE(cmp.y, -0.999, tol);
+                CHECK_CLOSE(cmp.z, -0.988, tol);
                 break;
 
             case 1:
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.12, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.6, tol);
+                CHECK_CLOSE(cmp.x, -0.12, tol);
+                CHECK_CLOSE(cmp.y, -1.05, tol);
+                CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  1.19, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.92, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
+                CHECK_CLOSE(cmp.x,  1.19, tol);
+                CHECK_CLOSE(cmp.y, -0.92, tol);
+                CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.98,  tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.100, tol);
+                CHECK_CLOSE(cmp.x, 0.98,  tol);
+                CHECK_CLOSE(cmp.y,-1.05, tol);
+                CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
+                CHECK_CLOSE(cmp.x, 1.11, tol);
+                CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-0.99, tol);
 
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.85, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
+                CHECK_CLOSE(cmp.x, 0.85, tol);
+                CHECK_CLOSE(cmp.y,-0.999, tol);
+                CHECK_CLOSE(cmp.z,-0.988, tol);
                 break;
 
             case 2:
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.12, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.6, tol);
+                CHECK_CLOSE(cmp.x, -0.12, tol);
+                CHECK_CLOSE(cmp.y,  0.95, tol);
+                CHECK_CLOSE(cmp.z, -0.6, tol);
 
                 rtag = h_global_rtag.data[9];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.03+origin.x, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.91, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.3, tol);
+                CHECK_CLOSE(cmp.x, -0.03+origin.x, tol);
+                CHECK_CLOSE(cmp.y,  0.91, tol);
+                CHECK_CLOSE(cmp.z, -0.3, tol);
 
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.02, tol);
+                CHECK_CLOSE(cmp.x, -0.11, tol);
+                CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-1.02, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.81, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.08, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
+                CHECK_CLOSE(cmp.x, -0.81, tol);
+                CHECK_CLOSE(cmp.y,  1.08, tol);
+                CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -1.02, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -1.100, tol);
+                CHECK_CLOSE(cmp.x, -1.02, tol);
+                CHECK_CLOSE(cmp.y,  0.95, tol);
+                CHECK_CLOSE(cmp.z, -1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.89, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.99, tol);
+                CHECK_CLOSE(cmp.x, -0.89, tol);
+                CHECK_CLOSE(cmp.y,  0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z, -0.99, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -1.15, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
+                CHECK_CLOSE(cmp.x, -1.15, tol);
+                CHECK_CLOSE(cmp.y, 1.001, tol);
+                CHECK_CLOSE(cmp.z,-0.988, tol);
                break;
 
             case 3:
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -.12, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.6, tol);
+                CHECK_CLOSE(cmp.x, -.12, tol);
+                CHECK_CLOSE(cmp.y, 0.95, tol);
+                CHECK_CLOSE(cmp.z,-0.6, tol);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,  1.19, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  1.08, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.2, tol);
+                CHECK_CLOSE(cmp.x,  1.19, tol);
+                CHECK_CLOSE(cmp.y,  1.08, tol);
+                CHECK_CLOSE(cmp.z, -0.2, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.98, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-1.100, tol);
+                CHECK_CLOSE(cmp.x, 0.98, tol);
+                CHECK_CLOSE(cmp.y, 0.95, tol);
+                CHECK_CLOSE(cmp.z,-1.100, tol);
 
                 rtag = h_global_rtag.data[13];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 1.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.99, tol);
+                CHECK_CLOSE(cmp.x, 1.11, tol);
+                CHECK_CLOSE(cmp.y, 0.005+origin.y, tol);
+                CHECK_CLOSE(cmp.z,-0.99, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.85, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,-0.988, tol);
+                CHECK_CLOSE(cmp.x, 0.85, tol);
+                CHECK_CLOSE(cmp.y, 1.001, tol);
+                CHECK_CLOSE(cmp.z,-0.988, tol);
                 break;
 
             case 4:
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,  0.98, tol);
+                CHECK_CLOSE(cmp.x, -0.11, tol);
+                CHECK_CLOSE(cmp.y,  0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,  0.98, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.02, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z, 0.90, tol);
+                CHECK_CLOSE(cmp.x,-1.02, tol);
+                CHECK_CLOSE(cmp.y,-1.05, tol);
+                CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.877, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.879, tol);
-                BOOST_CHECK_CLOSE(cmp.z,  0.90, tol);
+                CHECK_CLOSE(cmp.x,-0.877, tol);
+                CHECK_CLOSE(cmp.y,-0.879, tol);
+                CHECK_CLOSE(cmp.z,  0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.15, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z, 1.012, tol);
+                CHECK_CLOSE(cmp.x,-1.15, tol);
+                CHECK_CLOSE(cmp.y,-0.999, tol);
+                CHECK_CLOSE(cmp.z, 1.012, tol);
                 break;
 
             case 5:
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,0.98, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-1.05, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.900, tol);
+                CHECK_CLOSE(cmp.x,0.98, tol);
+                CHECK_CLOSE(cmp.y,-1.05, tol);
+                CHECK_CLOSE(cmp.z,0.900, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,1.123, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.879, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.90, tol);
+                CHECK_CLOSE(cmp.x,1.123, tol);
+                CHECK_CLOSE(cmp.y,-0.879, tol);
+                CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,0.85, tol);
-                BOOST_CHECK_CLOSE(cmp.y,-0.999, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.012, tol);
+                CHECK_CLOSE(cmp.x,0.85, tol);
+                CHECK_CLOSE(cmp.y,-0.999, tol);
+                CHECK_CLOSE(cmp.z,1.012, tol);
                 break;
 
             case 6:
                 rtag = h_global_rtag.data[10];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.11, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.01+origin.y, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.98, tol);
+                CHECK_CLOSE(cmp.x,-0.11, tol);
+                CHECK_CLOSE(cmp.y, 0.01+origin.y, tol);
+                CHECK_CLOSE(cmp.z,0.98, tol);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.02, tol);
-                BOOST_CHECK_CLOSE(cmp.y, 0.95, tol);
-                BOOST_CHECK_CLOSE(cmp.z, 0.90, tol);
+                CHECK_CLOSE(cmp.x,-1.02, tol);
+                CHECK_CLOSE(cmp.y, 0.95, tol);
+                CHECK_CLOSE(cmp.z, 0.90, tol);
 
                 rtag = h_global_rtag.data[14];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-0.877, tol);
-                BOOST_CHECK_CLOSE(cmp.y,1.121, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.90, tol);
+                CHECK_CLOSE(cmp.x,-0.877, tol);
+                CHECK_CLOSE(cmp.y,1.121, tol);
+                CHECK_CLOSE(cmp.z,0.90, tol);
 
                 rtag = h_global_rtag.data[15];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,-1.15, tol);
-                BOOST_CHECK_CLOSE(cmp.y,1.001, tol);
-                BOOST_CHECK_CLOSE(cmp.z,1.012, tol);
+                CHECK_CLOSE(cmp.x,-1.15, tol);
+                CHECK_CLOSE(cmp.y,1.001, tol);
+                CHECK_CLOSE(cmp.z,1.012, tol);
                 break;
 
             case 7:
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x,0.980, tol);
-                BOOST_CHECK_CLOSE(cmp.y,0.950, tol);
-                BOOST_CHECK_CLOSE(cmp.z,0.900, tol);
+                CHECK_CLOSE(cmp.x,0.980, tol);
+                CHECK_CLOSE(cmp.y,0.950, tol);
+                CHECK_CLOSE(cmp.z,0.900, tol);
                 break;
             }
         }
@@ -1872,17 +1870,17 @@ void test_communicator_ghosts(communicator_creator comm_creator,
 
 //! Test particle communication for covalently bonded ghosts
 void test_communicator_bond_exchange(communicator_creator comm_creator,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                      const BoxDim& box,
-                                     boost::shared_ptr<DomainDecomposition> decomposition)
+                                     std::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -1893,7 +1891,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
@@ -1909,7 +1907,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
     // now bond these particles together, forming a cube
 
-    boost::shared_ptr<BondData> bdata(sysdef->getBondData());
+    std::shared_ptr<BondData> bdata(sysdef->getBondData());
 
     bdata->addBondedGroup(Bond(0,0,1));  // bond 0
     bdata->addBondedGroup(Bond(0,0,2));  // bond 1
@@ -1931,11 +1929,11 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     bdata->takeSnapshot(bdata_snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -1946,24 +1944,24 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     bdata->initializeFromSnapshot(bdata_snap);
 
     // we should have one particle
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
 
     // and zero ghost particles
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
 
     // check global number of bonds
-    BOOST_CHECK_EQUAL(bdata->getNGlobal(), 12);
+    UP_ASSERT_EQUAL(bdata->getNGlobal(), 12);
 
     // every domain should have three bonds
-    BOOST_CHECK_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // exchange ghost particles
     comm->migrateParticles();
 
     // check that nothing has changed
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
-    BOOST_CHECK_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // now move particle 0 to box 1
     pdata->setPosition(0, make_scalar3(.3, -0.4, -0.4),false);
@@ -1975,297 +1973,297 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
         {
         case 0:
             // box 0 should have zero particles and 0 bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 0);
-            BOOST_CHECK_EQUAL(bdata->getN(), 0);
+            UP_ASSERT_EQUAL(pdata->getN(), 0);
+            UP_ASSERT_EQUAL(bdata->getN(), 0);
 
                 {
                 // we should not own any bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should have two particles and 5 bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
-            BOOST_CHECK_EQUAL(bdata->getN(), 5);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(bdata->getN(), 5);
 
                 {
                 // we should own bonds 0-4
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[1] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[2] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[3] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[4] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[0]],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].tag[0],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[0]].tag[1],1);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[0]],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[0]].tag[1],1);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
                 }
             break;
         case 2:
             // box 2 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[5] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[6] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[1]],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[1]],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[1]].tag[1],2);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
                 }
             break;
         case 3:
             // box 3 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[3] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[5] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[7] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[3]],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[3]],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[3]].tag[1],3);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[5]],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[5]],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[5]].tag[1],3);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
                 }
             break;
          case 4:
             // box 4 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[2] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[8] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[9] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[2]],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[2]],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[0],0);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[2]].tag[1],4);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
                 }
             break;
          case 5:
             // box 5 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[4] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[8] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[10] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[4]],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[4]],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[0],1);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[4]].tag[1],5);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[8]],8);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[8]],8);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[8]].tag[1],5);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
                 }
             break;
         case 6:
             // box 6 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[6] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[9] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[6]],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[6]],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[0],2);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[6]].tag[1],6);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[9]],9);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[9]],9);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[0],4);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[9]].tag[1],6);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         case 7:
             // box 7 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_REQUIRE(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[7] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_REQUIRE(h_rtag.data[10] < bdata->getN());
-                BOOST_REQUIRE(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 ArrayHandle<BondData::members_t> h_bonds(bdata->getMembersArray(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_tag(bdata->getTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[7]],7);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[7]],7);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[0],3);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[7]].tag[1],7);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[10]],10);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[10]],10);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[0],5);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[10]].tag[1],7);
 
-                BOOST_CHECK_EQUAL(h_tag.data[h_rtag.data[11]],11);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
-                BOOST_CHECK_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
+                UP_ASSERT_EQUAL(h_tag.data[h_rtag.data[11]],11);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[0],6);
+                UP_ASSERT_EQUAL(h_bonds.data[h_rtag.data[11]].tag[1],7);
                 }
             break;
         }
@@ -2276,8 +2274,8 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     comm->migrateParticles();
 
     // check that old state has been restored
-    BOOST_CHECK_EQUAL(pdata->getN(), 1);
-    BOOST_CHECK_EQUAL(bdata->getN(), 3);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(bdata->getN(), 3);
 
     // swap ptl 0 and 1
     pdata->setPosition(0, make_scalar3(.4, -0.4, -0.4),false);
@@ -2288,49 +2286,49 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     switch(exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own three bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
 
             break;
         case 1:
             // box 1 should own three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
@@ -2348,188 +2346,188 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     switch(exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should have three bonds
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
 
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 6,9,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
                 }
             break;
         case 2:
             // box 2 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 1,5,6
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[6] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] < bdata->getN());
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 3:
             // box 3 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 3,5,7
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] < bdata->getN());
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] < bdata->getN());
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 4:
             // box 4 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 2,8,9
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[9] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] < bdata->getN());
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
          case 5:
             // box 5 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 4,8,10
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] < bdata->getN());
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] < bdata->getN());
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
                 }
             break;
         case 6:
             // box 6 should own three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 0-2
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[1] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[2] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[11] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[0] < bdata->getN());
+                UP_ASSERT(h_rtag.data[1] < bdata->getN());
+                UP_ASSERT(h_rtag.data[2] < bdata->getN());
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[11] == GROUP_NOT_LOCAL);
 
                 }
             break;
 
         case 7:
             // box 7 should have three bonds
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
-            BOOST_CHECK_EQUAL(bdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(bdata->getN(), 3);
 
                 {
                 // we should own bonds 7,10,11
                 ArrayHandle<unsigned int> h_rtag(bdata->getRTags(), access_location::host, access_mode::read);
 
-                BOOST_CHECK(h_rtag.data[0] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[1] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[2] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[3] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[4] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[5] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[6] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[7] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[8] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[9] == GROUP_NOT_LOCAL);
-                BOOST_CHECK(h_rtag.data[10] < bdata->getN());
-                BOOST_CHECK(h_rtag.data[11] < bdata->getN());
+                UP_ASSERT(h_rtag.data[0] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[1] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[2] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[3] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[4] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[5] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[6] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[7] < bdata->getN());
+                UP_ASSERT(h_rtag.data[8] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[9] == GROUP_NOT_LOCAL);
+                UP_ASSERT(h_rtag.data[10] < bdata->getN());
+                UP_ASSERT(h_rtag.data[11] < bdata->getN());
 
                 }
             break;
@@ -2540,17 +2538,17 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
 
 //! Test particle communication for covalently bonded ghosts
 void test_communicator_bonded_ghosts(communicator_creator comm_creator,
-                                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     std::shared_ptr<ExecutionConfiguration> exec_conf,
                                      const BoxDim& box,
-                                     boost::shared_ptr<DomainDecomposition> decomposition)
+                                     std::shared_ptr<DomainDecomposition> decomposition)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2561,7 +2559,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle slightly away from the middle of every box (in direction towards
@@ -2577,7 +2575,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
     // now bond these particles together, forming a cube
 
-    boost::shared_ptr<BondData> bdata(sysdef->getBondData());
+    std::shared_ptr<BondData> bdata(sysdef->getBondData());
 
     bdata->addBondedGroup(Bond(0,0,1));  // bond type, tag a, tag b
     bdata->addBondedGroup(Bond(0,0,2));
@@ -2599,7 +2597,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     bdata->takeSnapshot(snap_bdata);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     // communicate tags, necessary for gpu bond table
     CommFlags flags(0);
@@ -2608,7 +2606,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2618,7 +2616,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     bdata->initializeFromSnapshot(snap_bdata);
 
     // we should have zero ghost particles
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),  0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),  0);
 
     // migrate particles (to initialize bond rank table)
     comm->migrateParticles();
@@ -2632,7 +2630,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         ArrayHandle<unsigned int> h_n_bonds(bdata->getNGroupsArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(pdata->getTags(), access_location::host, access_mode::read);
 
-        BOOST_CHECK_EQUAL(h_n_bonds.data[0],3);
+        UP_ASSERT_EQUAL(h_n_bonds.data[0],3);
         unsigned int pitch = bdata->getGPUTableIndexer().getW();
 
         unsigned int sorted_tags[3];
@@ -2649,44 +2647,44 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
         switch (rank)
             {
             case 0:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 2);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 4);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 2);
+                UP_ASSERT_EQUAL(sorted_tags[2], 4);
                 break;
             case 1:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 3);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 5);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 3);
+                UP_ASSERT_EQUAL(sorted_tags[2], 5);
                 break;
             case 2:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 3);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 3);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             case 3:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 2);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 2);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 4:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 0);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 5);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 0);
+                UP_ASSERT_EQUAL(sorted_tags[1], 5);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             case 5:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 1);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 4);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 1);
+                UP_ASSERT_EQUAL(sorted_tags[1], 4);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 6:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 2);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 4);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 7);
+                UP_ASSERT_EQUAL(sorted_tags[0], 2);
+                UP_ASSERT_EQUAL(sorted_tags[1], 4);
+                UP_ASSERT_EQUAL(sorted_tags[2], 7);
                 break;
             case 7:
-                BOOST_CHECK_EQUAL(sorted_tags[0], 3);
-                BOOST_CHECK_EQUAL(sorted_tags[1], 5);
-                BOOST_CHECK_EQUAL(sorted_tags[2], 6);
+                UP_ASSERT_EQUAL(sorted_tags[0], 3);
+                UP_ASSERT_EQUAL(sorted_tags[1], 5);
+                UP_ASSERT_EQUAL(sorted_tags[2], 6);
                 break;
             }
         }
@@ -2707,11 +2705,11 @@ CommFlags comm_flag_request(unsigned int timestep)
 
 void test_communicator_compare(communicator_creator comm_creator_1,
                                  communicator_creator comm_creator_2,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_1,
-                                 boost::shared_ptr<ExecutionConfiguration> exec_conf_2,
+                                 std::shared_ptr<ExecutionConfiguration> exec_conf_1,
+                                 std::shared_ptr<ExecutionConfiguration> exec_conf_2,
                                  const BoxDim& box,
-                                 boost::shared_ptr<DomainDecomposition> decomposition_1,
-                                 boost::shared_ptr<DomainDecomposition> decomposition_2)
+                                 std::shared_ptr<DomainDecomposition> decomposition_1,
+                                 std::shared_ptr<DomainDecomposition> decomposition_2)
 
     {
     if (exec_conf_1->getRank() == 0)
@@ -2719,7 +2717,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
 
     unsigned int n = 1000;
     // create a system with eight particles
-    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(n,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2727,7 +2725,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              0,           // number of dihedral types
                                                              exec_conf_1));
-    boost::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
+    std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(n,           // number of particles
                                                              box,         // box dimensions
                                                              1,           // number of particle types
                                                              1,           // number of bond types
@@ -2736,8 +2734,8 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                                                              0,           // number of dihedral types
                                                              exec_conf_2));
 
-    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    boost::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
+    std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    std::shared_ptr<ParticleData> pdata_2 = sysdef_2->getParticleData();
 
     Scalar3 lo = pdata_1->getBox().getLo();
     Scalar3 L = pdata_1->getBox().getL();
@@ -2754,13 +2752,13 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         }
 
     // setup communicators
-    boost::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
-    boost::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
+    std::shared_ptr<Communicator> comm_1 = comm_creator_1(sysdef_1, decomposition_1);
+    std::shared_ptr<Communicator> comm_2 = comm_creator_2(sysdef_2, decomposition_2);
 
     // width of ghost layer
     ghost_layer_width g(0.2);
-    comm_1->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
-    comm_2->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm_1->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
+    comm_2->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     pdata_1->setDomainDecomposition(decomposition_1);
     pdata_2->setDomainDecomposition(decomposition_2);
@@ -2770,21 +2768,21 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     pdata_2->initializeFromSnapshot(snap);
 
     // Create ConstForceComputes
-//    boost::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
-//    boost::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    std::shared_ptr<ConstForceCompute> fc_1(new ConstForceCompute(sysdef_1, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
+//    std::shared_ptr<ConstForceCompute> fc_2(new ConstForceCompute(sysdef_2, Scalar(-0.3), Scalar(0.2), Scalar(-0.123)));
 
-    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
-    boost::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
+    std::shared_ptr<ParticleSelector> selector_all_2(new ParticleSelectorTag(sysdef_2, 0, pdata_2->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_2(new ParticleGroup(sysdef_2, selector_all_2));
 
-    boost::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
-    boost::shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
+    std::shared_ptr<TwoStepNVE> two_step_nve_1(new TwoStepNVE(sysdef_1, group_all_1));
+    std::shared_ptr<TwoStepNVE> two_step_nve_2(new TwoStepNVE(sysdef_2, group_all_2));
 
     Scalar deltaT=0.001;
-    boost::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
-    boost::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up_2(new IntegratorTwoStep(sysdef_2, deltaT));
     nve_up_1->addIntegrationMethod(two_step_nve_1);
     nve_up_2->addIntegrationMethod(two_step_nve_2);
 
@@ -2798,11 +2796,11 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         pdata_2->setVelocity(tag, make_scalar3(0.01,0.02,0.03));
         }
 
-    comm_1->addMigrateRequest(bind(&migrate_request,_1));
-    comm_2->addMigrateRequest(bind(&migrate_request,_1));
+    comm_1->getMigrateSignal().connect<migrate_request>();
+    comm_2->getMigrateSignal().connect<migrate_request>();
 
-    comm_1->addCommFlagsRequest(bind(&comm_flag_request, _1));
-    comm_2->addCommFlagsRequest(bind(&comm_flag_request, _1));
+    comm_1->getCommFlagsRequestSignal().connect<comm_flag_request>();
+    comm_2->getCommFlagsRequestSignal().connect<comm_flag_request>();
 
     nve_up_1->setCommunicator(comm_1);
     nve_up_2->setCommunicator(comm_2);
@@ -2816,7 +2814,7 @@ void test_communicator_compare(communicator_creator comm_creator_1,
         if (! (step % 100)) exec_conf_1->msg->notice(1) << "Step " << step << std::endl;
 
         // both communicators should replicate the same number of ghosts
-        BOOST_CHECK_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
+        UP_ASSERT_EQUAL(pdata_1->getNGhosts(), pdata_2->getNGhosts());
 
             {
             ArrayHandle<unsigned int> h_rtag_1(pdata_1->getRTags(), access_location::host, access_mode::read);
@@ -2834,19 +2832,19 @@ void test_communicator_compare(communicator_creator comm_creator_1,
                     has_ghost_2 = true;
 
                 //  particle is either in both systems' ghost layers or in none
-                BOOST_REQUIRE((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
+                UP_ASSERT((has_ghost_1 && has_ghost_2) || (!has_ghost_1 && !has_ghost_2));
 
                 if (has_ghost_1 && has_ghost_2)
                     {
                     Scalar tol_rough = .1;
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_rough);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_rough);
-                    BOOST_CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_rough);
+                    CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].x, h_pos_2.data[h_rtag_2.data[i]].x,tol_rough);
+                    CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].y, h_pos_2.data[h_rtag_2.data[i]].y,tol_rough);
+                    CHECK_CLOSE(h_pos_1.data[h_rtag_1.data[i]].z, h_pos_2.data[h_rtag_2.data[i]].z,tol_rough);
                     }
                 }
             }
        // error out on first time step where test fails
-       BOOST_REQUIRE(!err);
+       UP_ASSERT(!err);
 
        nve_up_1->update(step);
        nve_up_2->update(step);
@@ -2857,15 +2855,15 @@ void test_communicator_compare(communicator_creator comm_creator_1,
     }
 
 //! Test ghost particle communication
-void test_communicator_ghost_fields(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghost_fields(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight + 1 one ptls (1 ptl in ghost layer)
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(9,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              1,           // number of particle types
                                                              0,           // number of bond types
@@ -2875,7 +2873,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
                                                              exec_conf));
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -2903,8 +2901,8 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -2912,39 +2910,39 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
 
     // width of ghost layer
     ghost_layer_width g(0.1);
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<ghost_layer_width, &ghost_layer_width::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 2);
+            UP_ASSERT_EQUAL(pdata->getN(), 2);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -2975,29 +2973,29 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
         switch (exec_conf->getRank())
             {
             case 0:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
 
             case 1:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                CHECK_CLOSE(h_pos.data[rtag].x, -0.05,tol);
+                CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
+                CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
 
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, 1.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, 2.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, 3.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 4.0,tol); // mass
+                CHECK_CLOSE(h_vel.data[rtag].x, 1.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].y, 2.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].z, 3.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].w, 4.0,tol); // mass
 
-                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
-                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
+                CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
+                CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
 
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 97.0,tol);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 98.0,tol);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 99.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].x, 97.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].y, 98.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].z, 99.0,tol);
                 break;
 
             case 2:
@@ -3006,7 +3004,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
             case 5:
             case 6:
             case 7:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }
@@ -3035,26 +3033,26 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
         switch (exec_conf->getRank())
             {
             case 1:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
-                BOOST_CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                CHECK_CLOSE(h_pos.data[rtag].x, -0.13,tol);
+                CHECK_CLOSE(h_pos.data[rtag].y, -0.5,tol);
+                CHECK_CLOSE(h_pos.data[rtag].z, -0.5,tol);
 
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].x, -3.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].y, -2.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].z, -1.0,tol);
-                BOOST_CHECK_CLOSE(h_vel.data[rtag].w, 0.1,tol); // mass
+                CHECK_CLOSE(h_vel.data[rtag].x, -3.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].y, -2.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].z, -1.0,tol);
+                CHECK_CLOSE(h_vel.data[rtag].w, 0.1,tol); // mass
 
                 // charge and diameter should be unchanged
-                BOOST_CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
-                BOOST_CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
+                CHECK_CLOSE(h_charge.data[rtag], 5.0,tol);
+                CHECK_CLOSE(h_diameter.data[rtag], 6.0,tol);
 
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].x, 22.0,tol);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].y, 23.0,tol);
-                BOOST_CHECK_CLOSE(h_orientation.data[rtag].z, 24.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].x, 22.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].y, 23.0,tol);
+                CHECK_CLOSE(h_orientation.data[rtag].z, 24.0,tol);
                 break;
 
             case 0:
@@ -3064,7 +3062,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, boost::sh
             case 5:
             case 6:
             case 7:
-                BOOST_CHECK_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }
@@ -3109,15 +3107,15 @@ struct two_type_ghost_layer
     };
 
 //! Test setting the ghost layer width
-void test_communicator_ghost_layer_width(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void test_communicator_ghost_layer_width(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // just create some system
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(8,          // number of particles
                                                              BoxDim(2.0), // box dimensions
                                                              2,           // number of particle types
                                                              0,           // number of bond types
@@ -3127,7 +3125,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
                                                              exec_conf));
 
 
-    boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+    std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
 
     // Set initial atom positions
     // place one particle in the middle of every box (outside the ghost layer)
@@ -3149,8 +3147,8 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3167,57 +3165,57 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, boos
     // exchange ghosts
     comm->exchangeGhosts();
 
-    BOOST_CHECK_SMALL(comm->getGhostLayerMaxWidth(), tol_small);
+    CHECK_SMALL(comm->getGhostLayerMaxWidth(), tol_small);
 
     // width of ghost layer
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_1,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_1>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
+    CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_2,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_2>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
+    CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.0123, tol);
 
-    comm->addGhostLayerWidthRequest(bind(&ghost_layer_width_request_3,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<&ghost_layer_width_request_3>();
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
-    BOOST_CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.1, tol);
+    CHECK_CLOSE(comm->getGhostLayerMaxWidth(), 0.1, tol);
 
     // check that when using two types, only one gets updated
     two_type_ghost_layer g(Scalar(0.05), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g);
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
         {
         ArrayHandle<Scalar> h_r_ghost(comm->getGhostLayerWidth(), access_location::host, access_mode::read);
-        BOOST_CHECK_CLOSE(h_r_ghost.data[0], 0.1, tol);
-        BOOST_CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
+        CHECK_CLOSE(h_r_ghost.data[0], 0.1, tol);
+        CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
         }
 
     // now update the other type
     two_type_ghost_layer g2(Scalar(0.3), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g2,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g2);
     pdata->removeAllGhostParticles();
     comm->exchangeGhosts();
         {
         ArrayHandle<Scalar> h_r_ghost(comm->getGhostLayerWidth(), access_location::host, access_mode::read);
-        BOOST_CHECK_CLOSE(h_r_ghost.data[0], 0.3, tol);
-        BOOST_CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
+        CHECK_CLOSE(h_r_ghost.data[0], 0.3, tol);
+        CHECK_CLOSE(h_r_ghost.data[1], 0.2, tol);
         }
     }
 
 //! Test per-type ghost layer
-void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
+void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf, const BoxDim& dest_box)
     {
     // this test needs to be run on eight processors
     int size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
-    BOOST_REQUIRE_EQUAL(size,8);
+    UP_ASSERT_EQUAL(size,8);
 
     // create a system with fourteen particles
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(14,          // number of particles
                                                              dest_box, // box dimensions
                                                              2,           // number of particle types
                                                              0,           // number of bond types
@@ -3228,7 +3226,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
 
 
 
-   boost::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
+   std::shared_ptr<ParticleData> pdata(sysdef->getParticleData());
    BoxDim ref_box = BoxDim(2.0);
 
     // Set initial atom positions
@@ -3276,8 +3274,8 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
     pdata->takeSnapshot(snap);
 
     // initialize a 2x2x2 domain decomposition on processor with rank 0
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
-    boost::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,  pdata->getBox().getL()));
+    std::shared_ptr<Communicator> comm = comm_creator(sysdef, decomposition);
 
     pdata->setDomainDecomposition(decomposition);
 
@@ -3285,39 +3283,39 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
 
     // width of ghost layer
     two_type_ghost_layer g(Scalar(0.1), Scalar(0.2));
-    comm->addGhostLayerWidthRequest(bind(&two_type_ghost_layer::get,g,_1));
+    comm->getGhostLayerWidthRequestSignal().connect<two_type_ghost_layer, &two_type_ghost_layer::get>(g);
 
     // Check number of particles
     switch (exec_conf->getRank())
         {
         case 0:
-            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 1:
-            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 2:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 3:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 4:
-            BOOST_CHECK_EQUAL(pdata->getN(), 3);
+            UP_ASSERT_EQUAL(pdata->getN(), 3);
             break;
         case 5:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 6:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         case 7:
-            BOOST_CHECK_EQUAL(pdata->getN(), 1);
+            UP_ASSERT_EQUAL(pdata->getN(), 1);
             break;
         }
 
     // we should have zero ghosts before the exchange
-    BOOST_CHECK_EQUAL(pdata->getNGhosts(),0);
+    UP_ASSERT_EQUAL(pdata->getNGhosts(),0);
 
     // set ghost exchange flags for position
     CommFlags flags(0);
@@ -3337,105 +3335,92 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, boost:
         switch (exec_conf->getRank())
             {
             case 0:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[12];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.5,tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.5,tol);
-                BOOST_CHECK_CLOSE(cmp.z, 0.05,tol);
+                CHECK_CLOSE(cmp.x, -0.5,tol);
+                CHECK_CLOSE(cmp.y, -0.5,tol);
+                CHECK_CLOSE(cmp.z, 0.05,tol);
 
                 break;
             case 1:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 2);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 2);
 
                 rtag = h_global_rtag.data[8];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.02, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.02, tol);
+                CHECK_CLOSE(cmp.y, -0.5, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
 
                 rtag = h_global_rtag.data[9];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, -0.03, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, -0.03, tol);
+                CHECK_CLOSE(cmp.y, -0.5, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
                 break;
             case 2:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 3:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 1);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 1);
 
                 rtag = h_global_rtag.data[11];
-                BOOST_CHECK(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
+                UP_ASSERT(rtag >= pdata->getN() && rtag < pdata->getN()+pdata->getNGhosts());
                 cmp = FROM_TRICLINIC(h_pos.data[rtag]);
-                BOOST_CHECK_CLOSE(cmp.x, 0.5, tol);
-                BOOST_CHECK_CLOSE(cmp.y, -0.12, tol);
-                BOOST_CHECK_CLOSE(cmp.z, -0.5, tol);
+                CHECK_CLOSE(cmp.x, 0.5, tol);
+                CHECK_CLOSE(cmp.y, -0.12, tol);
+                CHECK_CLOSE(cmp.z, -0.5, tol);
                 break;
             case 4:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 5:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 6:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             case 7:
-                BOOST_REQUIRE_EQUAL(pdata->getNGhosts(), 0);
+                UP_ASSERT_EQUAL(pdata->getNGhosts(), 0);
                 break;
             }
         }
     }
 
 //! Communicator creator for unit tests
-boost::shared_ptr<Communicator> base_class_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<DomainDecomposition> decomposition)
+std::shared_ptr<Communicator> base_class_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return boost::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
+    return std::shared_ptr<Communicator>(new Communicator(sysdef, decomposition) );
     }
 
 #ifdef ENABLE_CUDA
-boost::shared_ptr<Communicator> gpu_communicator_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                  boost::shared_ptr<DomainDecomposition> decomposition)
+std::shared_ptr<Communicator> gpu_communicator_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                  std::shared_ptr<DomainDecomposition> decomposition)
     {
-    return boost::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
+    return std::shared_ptr<Communicator>(new CommunicatorGPU(sysdef, decomposition) );
     }
 #endif
 
-boost::shared_ptr<ExecutionConfiguration> exec_conf;
-
-// test fixture to initialize exec_conf only once
-struct Fx
-    {
-    Fx()
-        {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-        }
-    ~Fx()
-        {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
-        }
-    };
-
-BOOST_FIXTURE_TEST_SUITE(cpu_tests, Fx)
+UP_SUITE_BEGIN(cpu_tests);
 
 //! Tests particle distribution
-BOOST_AUTO_TEST_CASE( DomainDecomposition_test )
+UP_TEST( DomainDecomposition_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
     BoxDim box(2.0);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
 //! Tests balanced particle distribution on CPU
-BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
+UP_TEST( BalancedDomainDecomposition_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3443,15 +3428,17 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
 
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_migrate_test )
+UP_TEST( communicator_migrate_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
     test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
@@ -3463,8 +3450,10 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test )
     test_communicator_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test )
+UP_TEST( communicator_balanced_migrate_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
     test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(2.0));
@@ -3476,8 +3465,10 @@ BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test )
     test_communicator_balanced_migrate(communicator_creator_base, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
+UP_TEST( communicator_ghosts_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
 
     /////////////////////
@@ -3489,7 +3480,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 1
@@ -3498,7 +3489,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 2
@@ -3507,7 +3498,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
 
@@ -3524,7 +3515,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3533,7 +3524,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3542,18 +3533,20 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test )
         test_communicator_ghosts(communicator_creator_base,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
+UP_TEST( communicator_bonded_ghosts_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3561,18 +3554,20 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
+UP_TEST( communicator_bond_exchange_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     // balanced version
@@ -3580,59 +3575,56 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_base,exec_conf, box, decomposition);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test )
+UP_TEST( communicator_ghost_fields_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_base, exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test )
+UP_TEST( communicator_ghost_layer_width_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghost_layer_width(communicator_creator_base, exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test )
+UP_TEST( communicator_ghost_layer_per_type_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
 
-BOOST_AUTO_TEST_SUITE_END()
+UP_SUITE_END();
 
 #ifdef ENABLE_CUDA
 
-// test fixture to initialize exec_conf only once
-struct FxGPU
-    {
-    FxGPU()
-        {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
-        }
-    ~FxGPU()
-        {
-        exec_conf = boost::shared_ptr<ExecutionConfiguration>();
-        }
-    };
-
-BOOST_FIXTURE_TEST_SUITE(gpu_tests, FxGPU)
+UP_SUITE_BEGIN(gpu_tests);
 
 //! Tests particle distribution on GPU
-BOOST_AUTO_TEST_CASE( DomainDecomposition_test_GPU )
+UP_TEST( DomainDecomposition_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     BoxDim box(2.0);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
     test_domain_decomposition(exec_conf, box, decomposition);
     }
 
 //! Tests balanced particle distribution on GPU
-BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
+UP_TEST( BalancedDomainDecomposition_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     BoxDim box(2.0);
 
     // first test the fallback to the uniform grid using the standard DomainDecomposition test
@@ -3640,15 +3632,17 @@ BOOST_AUTO_TEST_CASE( BalancedDomainDecomposition_test_GPU )
     fxs[0] = Scalar(0.5); fxs[1] = Scalar(0.5);
     fys[0] = Scalar(0.25); fys[1] = Scalar(0.75);
     fzs[0] = Scalar(0.4); fzs[1] = Scalar(0.2); fzs[2] = Scalar(0.4);
-    boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fxs, fys, fzs));
     test_domain_decomposition(exec_conf, box, decomposition);
 
     // then test the balanced decomposition in the test for nonuniform particles and decomposition
     test_balanced_domain_decomposition(exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
+UP_TEST( communicator_migrate_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
@@ -3660,8 +3654,10 @@ BOOST_AUTO_TEST_CASE( communicator_migrate_test_GPU )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test_GPU )
+UP_TEST( communicator_balanced_migrate_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // cubic box
     test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0));
@@ -3673,8 +3669,10 @@ BOOST_AUTO_TEST_CASE( communicator_balanced_migrate_test_GPU )
     test_communicator_balanced_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3));
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
+UP_TEST( communicator_ghosts_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
 
     /////////////////////
@@ -3686,7 +3684,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 1
@@ -3695,7 +3693,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
     // triclinic box 2
@@ -3704,7 +3702,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL())),
                                  make_scalar3(0.0,0.0,0.0));
         }
 
@@ -3721,7 +3719,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 1
@@ -3730,7 +3728,7 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     // triclinic box 2
@@ -3739,18 +3737,20 @@ BOOST_AUTO_TEST_CASE( communicator_ghosts_test_GPU )
         test_communicator_ghosts(communicator_creator_gpu,
                                  exec_conf,
                                  box,
-                                 boost::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
+                                 std::shared_ptr<DomainDecomposition>(new DomainDecomposition(exec_conf,box.getL(), fx, fy, fz)),
                                  origin);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
+UP_TEST( communicator_bonded_ghosts_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3758,18 +3758,20 @@ BOOST_AUTO_TEST_CASE( communicator_bonded_ghosts_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bonded_ghosts(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
+UP_TEST( communicator_bond_exchange_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     // uniform version
         {
         BoxDim box(2.0);
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL()));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     // balanced version
@@ -3777,43 +3779,51 @@ BOOST_AUTO_TEST_CASE( communicator_bond_exchange_test_GPU )
         BoxDim box(2.0);
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.52; fy[0] = 0.48; fz[0] = 0.54;
-        boost::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, box.getL(), fx, fy, fz));
         test_communicator_bond_exchange(communicator_creator_gpu, exec_conf, box, decomposition);
         }
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_fields_test_GPU )
+UP_TEST( communicator_ghost_fields_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_fields(communicator_creator_gpu, exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_layer_width_test_GPU )
+UP_TEST( communicator_ghost_layer_width_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     test_communicator_ghost_layer_width(communicator_creator_gpu, exec_conf);
     }
 
-BOOST_AUTO_TEST_CASE( communicator_ghost_layer_per_type_test_GPU )
+UP_TEST( communicator_ghost_layer_per_type_test_GPU)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_ghosts_per_type(communicator_creator_base, exec_conf,BoxDim(2.0));
     }
 
-BOOST_AUTO_TEST_CASE ( communicator_compare_test )
+UP_TEST ( communicator_compare_test)
     {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
     communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
     communicator_creator communicator_creator_cpu = bind(base_class_communicator_creator, _1, _2);
 
-    boost::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
-    boost::shared_ptr<ExecutionConfiguration> exec_conf_2 = exec_conf;
+    std::shared_ptr<ExecutionConfiguration> exec_conf_1(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf_2 = exec_conf;
 
     // uniform case: compare cpu and gpu
         {
         BoxDim box(2.0);
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL()));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
 
@@ -3823,8 +3833,8 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.55; fy[0] = 0.45; fz[0] = 0.7;
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL(), fx, fy, fz));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(), fx, fy, fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_gpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
 
@@ -3834,12 +3844,12 @@ BOOST_AUTO_TEST_CASE ( communicator_compare_test )
         vector<Scalar> fx(1), fy(1), fz(1);
         fx[0] = 0.5; fy[0] = 0.5; fz[0] = 0.5;
 
-        boost::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
-        boost::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
+        std::shared_ptr<DomainDecomposition> decomposition_1(new DomainDecomposition(exec_conf_1,box.getL()));
+        std::shared_ptr<DomainDecomposition> decomposition_2(new DomainDecomposition(exec_conf_2,box.getL(),fx,fy,fz));
         test_communicator_compare(communicator_creator_cpu, communicator_creator_cpu, exec_conf_1, exec_conf_2, box, decomposition_1, decomposition_2);
         }
     }
-BOOST_AUTO_TEST_SUITE_END()
+UP_SUITE_END();
 
 #endif
 

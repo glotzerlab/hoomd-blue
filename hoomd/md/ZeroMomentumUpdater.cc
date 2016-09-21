@@ -10,18 +10,16 @@
 
 #include "ZeroMomentumUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include <iostream>
 #include <math.h>
 #include <stdexcept>
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \param sysdef System to zero the momentum of
 */
-ZeroMomentumUpdater::ZeroMomentumUpdater(boost::shared_ptr<SystemDefinition> sysdef)
+ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysdef)
         : Updater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing ZeroMomentumUpdater" << endl;
@@ -98,9 +96,9 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_ZeroMomentumUpdater()
+void export_ZeroMomentumUpdater(py::module& m)
     {
-    class_<ZeroMomentumUpdater, boost::shared_ptr<ZeroMomentumUpdater>, bases<Updater>, boost::noncopyable>
-    ("ZeroMomentumUpdater", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<ZeroMomentumUpdater, std::shared_ptr<ZeroMomentumUpdater> >(m, "ZeroMomentumUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

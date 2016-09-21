@@ -4,31 +4,41 @@
 #ifndef __MODULES__
 #define __MODULES__
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 
-void export_sphere();
-void export_convex_polygon();
-void export_simple_polygon();
-void export_spheropolygon();
-void export_polyhedron();
-void export_ellipsoid();
-void export_faceted_sphere();
-void export_sphinx();
-void export_union_sphere();
-void export_convex_polyhedron8();
-void export_convex_polyhedron16();
-void export_convex_polyhedron32();
-void export_convex_polyhedron64();
-void export_convex_polyhedron128();
+void export_sphere(pybind11::module& m);
+void export_convex_polygon(pybind11::module& m);
+void export_simple_polygon(pybind11::module& m);
+void export_spheropolygon(pybind11::module& m);
+void export_polyhedron(pybind11::module& m);
+void export_ellipsoid(pybind11::module& m);
+void export_faceted_sphere(pybind11::module& m);
+void export_sphinx(pybind11::module& m);
+void export_union_sphere8(pybind11::module& m);
+void export_union_sphere16(pybind11::module& m);
+void export_union_sphere32(pybind11::module& m);
+void export_union_sphere64(pybind11::module& m);
+void export_union_sphere128(pybind11::module& m);
+void export_union_sphere256(pybind11::module& m);
+void export_union_sphere512(pybind11::module& m);
+void export_convex_polyhedron8(pybind11::module& m);
+void export_convex_polyhedron16(pybind11::module& m);
+void export_convex_polyhedron32(pybind11::module& m);
+void export_convex_polyhedron64(pybind11::module& m);
+void export_convex_polyhedron128(pybind11::module& m);
 
-void export_convex_spheropolyhedron8();
-void export_convex_spheropolyhedron16();
-void export_convex_spheropolyhedron32();
-void export_convex_spheropolyhedron64();
-void export_convex_spheropolyhedron128();
+void export_convex_spheropolyhedron8(pybind11::module& m);
+void export_convex_spheropolyhedron16(pybind11::module& m);
+void export_convex_spheropolyhedron32(pybind11::module& m);
+void export_convex_spheropolyhedron64(pybind11::module& m);
+void export_convex_spheropolyhedron128(pybind11::module& m);
 
-void export_external_fields();
+void export_external_fields(pybind11::module& m);
 }
 
 #endif // __MODULES__

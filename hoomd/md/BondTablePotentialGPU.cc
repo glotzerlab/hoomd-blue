@@ -6,11 +6,7 @@
 
 #include "BondTablePotentialGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
+namespace py = pybind11;
 #include <stdexcept>
 
 /*! \file BondTablePotentialGPU.cc
@@ -23,7 +19,7 @@ using namespace std;
     \param table_width Width the tables will be in memory
     \param log_suffix Name given to this instance of the table potential
 */
-BondTablePotentialGPU::BondTablePotentialGPU(boost::shared_ptr<SystemDefinition> sysdef,
+BondTablePotentialGPU::BondTablePotentialGPU(std::shared_ptr<SystemDefinition> sysdef,
                                      unsigned int table_width,
                                      const std::string& log_suffix)
     : BondTablePotential(sysdef, table_width, log_suffix)
@@ -120,12 +116,11 @@ void BondTablePotentialGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_BondTablePotentialGPU()
+void export_BondTablePotentialGPU(py::module& m)
     {
-    class_<BondTablePotentialGPU, boost::shared_ptr<BondTablePotentialGPU>, bases<BondTablePotential>, boost::noncopyable >
-    ("BondTablePotentialGPU",
-     init< boost::shared_ptr<SystemDefinition>,
-     unsigned int,
-     const std::string& >())
-    ;
+    py::class_<BondTablePotentialGPU, std::shared_ptr<BondTablePotentialGPU> >(m, "BondTablePotentialGPU", py::base<BondTablePotential>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                            unsigned int,
+                            const std::string& >())
+                            ;
     }

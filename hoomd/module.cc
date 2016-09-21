@@ -64,11 +64,8 @@
 #include "HOOMDVersion.h"
 #include "hoomd/extern/num_util.h"
 
-#include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-
-using namespace boost::python;
-namespace bnp=boost::python::numeric;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
 
 #include <iostream>
 #include <sstream>
@@ -123,20 +120,20 @@ int get_num_procs()
     }
 
 //! Get the hoomd version as a tuple
-object get_hoomd_version_tuple()
+pybind11::object get_hoomd_version_tuple()
     {
-    return boost::python::make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
+    return pybind11::make_tuple(HOOMD_VERSION_MAJOR, HOOMD_VERSION_MINOR, HOOMD_VERSION_PATCH);
     }
 
 //! Get the CUDA version as a tuple
-object get_cuda_version_tuple()
+pybind11::object get_cuda_version_tuple()
     {
     #ifdef ENABLE_CUDA
     int major = CUDA_VERSION / 1000;
     int minor = CUDA_VERSION / 10 % 100;
-    return boost::python::make_tuple(major, minor);
+    return pybind11::make_tuple(major, minor);
     #else
-    return boost::python::make_tuple(0,0);
+    return pybind11::make_tuple(0,0);
     #endif
     }
 
@@ -259,7 +256,7 @@ void finalize_mpi()
 #endif
 
 //! Abort MPI runs
-void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
     if(exec_conf->getNRanksGlobal() > 1)
@@ -273,195 +270,124 @@ void abort_mpi(boost::shared_ptr<ExecutionConfiguration> exec_conf)
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-BOOST_PYTHON_MODULE(_hoomd)
+PYBIND11_PLUGIN(_hoomd)
     {
+    pybind11::module m("_hoomd");
+
     #ifdef ENABLE_MPI
     // initialize MPI early
     initialize_mpi();
 
     // register clean-up function
     Py_AtExit(finalize_mpi);
-    def("get_mpi_proc_name", get_mpi_proc_name);
+    m.def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
     // setup needed for numpy
     my_import_array();
-    bnp::array::set_module_and_type("numpy", "ndarray");
 
-    def("abort_mpi", abort_mpi);
-    def("mpi_barrier_world", mpi_barrier_world);
+    m.def("abort_mpi", abort_mpi);
+    m.def("mpi_barrier_world", mpi_barrier_world);
 
-    def("hoomd_compile_flags", &hoomd_compile_flags);
-    def("output_version_info", &output_version_info);
-    def("get_hoomd_version", &get_hoomd_version);
+    m.def("hoomd_compile_flags", &hoomd_compile_flags);
+    m.def("output_version_info", &output_version_info);
+    m.def("get_hoomd_version", &get_hoomd_version);
 
-    def("get_num_procs", &get_num_procs);
-    scope().attr("__version__") = get_hoomd_version_tuple();
-    scope().attr("__git_sha1__") = HOOMD_GIT_SHA1;
-    scope().attr("__git_refspec__") = HOOMD_GIT_REFSPEC;
-    scope().attr("__cuda_version__") = get_cuda_version_tuple();
-    scope().attr("__compiler_version__") = get_compiler_version();
+    m.def("get_num_procs", &get_num_procs);
+    m.attr("__version__") = get_hoomd_version_tuple();
+    m.attr("__git_sha1__") = pybind11::str(HOOMD_GIT_SHA1);
+    m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
+    m.attr("__cuda_version__") = get_cuda_version_tuple();
+    m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
 
-    def("is_MPI_available", &is_MPI_available);
+    m.def("is_MPI_available", &is_MPI_available);
 
-    def("cuda_profile_start", &cuda_profile_start);
-    def("cuda_profile_stop", &cuda_profile_stop);
+    m.def("cuda_profile_start", &cuda_profile_start);
+    m.def("cuda_profile_stop", &cuda_profile_stop);
 
-    class_<std::vector<Scalar> >("std_vector_scalar")
-    .def(vector_indexing_suite<std::vector<Scalar> >())
-    ;
-
-    class_<std::vector<string> >("std_vector_string")
-    .def(vector_indexing_suite<std::vector<string> >())
-    ;
-
-    class_< std::vector<unsigned int> >("std_vector_uint")
-    .def(vector_indexing_suite<std::vector<unsigned int> >())
-    ;
-
-    // data structures
-    class_<std::vector<int> >("std_vector_int")
-    .def(vector_indexing_suite<std::vector<int> >());
-
-    class_<std::vector<Scalar3> >("std_vector_scalar3")
-    .def(vector_indexing_suite<std::vector<Scalar3> >());
-
-    class_<std::vector<Scalar4> >("std_vector_scalar4")
-    .def(vector_indexing_suite<std::vector<Scalar4> >());
+    pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
+    pybind11::bind_vector<string>(m,"std_vector_string");
+    pybind11::bind_vector<unsigned int>(m,"std_vector_uint");
+    pybind11::bind_vector<int>(m,"std_vector_int");
+    pybind11::bind_vector<Scalar3>(m,"std_vector_scalar3");
+    pybind11::bind_vector<Scalar4>(m,"std_vector_scalar4");
 
     InstallSIGINTHandler();
 
     // utils
-    export_hoomd_math_functions();
-    export_ClockSource();
-    export_Profiler();
+    export_hoomd_math_functions(m);
+    export_ClockSource(m);
+    export_Profiler(m);
 
     // data structures
-    export_BoxDim();
-    export_ParticleData();
-    export_SnapshotParticleData();
-    export_ExecutionConfiguration();
-    export_SystemDefinition();
-    export_SnapshotSystemData();
-    export_BondedGroupData<BondData,Bond>("BondData","BondDataSnapshot");
-    export_BondedGroupData<AngleData,Angle>("AngleData","AngleDataSnapshot");
-    export_BondedGroupData<DihedralData,Dihedral>("DihedralData","DihedralDataSnapshot");
-    export_BondedGroupData<ImproperData,Dihedral>("ImproperData","ImproperDataSnapshot",false);
-    export_BondedGroupData<ConstraintData,Constraint>("ConstraintData","ConstraintDataSnapshot");
+    export_BoxDim(m);
+    export_ParticleData(m);
+    export_SnapshotParticleData(m);
+    export_ExecutionConfiguration(m);
+    export_SystemDefinition(m);
+    export_SnapshotSystemData(m);
+    export_BondedGroupData<BondData,Bond>(m,"BondData","BondDataSnapshot");
+    export_BondedGroupData<AngleData,Angle>(m,"AngleData","AngleDataSnapshot");
+    export_BondedGroupData<DihedralData,Dihedral>(m,"DihedralData","DihedralDataSnapshot");
+    export_BondedGroupData<ImproperData,Dihedral>(m,"ImproperData","ImproperDataSnapshot",false);
+    export_BondedGroupData<ConstraintData,Constraint>(m,"ConstraintData","ConstraintDataSnapshot");
+    export_BondedGroupData<PairData,Bond>(m,"PairData","PairDataSnapshot",false);
 
     // initializers
-    export_GSDReader();
-    getardump::export_GetarInitializer();
+    export_GSDReader(m);
+    getardump::export_GetarInitializer(m);
 
     // computes
-    export_Compute();
-    export_ComputeThermo();
-    export_CellList();
-    export_CellListStencil();
-    export_ForceCompute();
-    export_ForceConstraint();
-    export_ConstForceCompute();
+    export_Compute(m);
+    export_ComputeThermo(m);
+    export_CellList(m);
+    export_CellListStencil(m);
+    export_ForceCompute(m);
+    export_ForceConstraint(m);
+    export_ConstForceCompute(m);
 
 #ifdef ENABLE_CUDA
-    export_CellListGPU();
-    export_ComputeThermoGPU();
+    export_CellListGPU(m);
+    export_ComputeThermoGPU(m);
 #endif
 
     // analyzers
-    export_Analyzer();
-    export_IMDInterface();
-    export_DCDDumpWriter();
-    getardump::export_GetarDumpWriter();
-    export_GSDDumpWriter();
-    export_Logger();
-    export_CallbackAnalyzer();
-    export_ParticleGroup();
+    export_Analyzer(m);
+    export_IMDInterface(m);
+    export_DCDDumpWriter(m);
+    getardump::export_GetarDumpWriter(m);
+    export_GSDDumpWriter(m);
+    export_Logger(m);
+    export_CallbackAnalyzer(m);
+    export_ParticleGroup(m);
 
     // updaters
-    export_Updater();
-    export_Integrator();
-    export_BoxResizeUpdater();
-    export_SFCPackUpdater();
+    export_Updater(m);
+    export_Integrator(m);
+    export_BoxResizeUpdater(m);
+    export_SFCPackUpdater(m);
 #ifdef ENABLE_CUDA
-    export_SFCPackUpdaterGPU();
+    export_SFCPackUpdaterGPU(m);
 #endif
 
 #ifdef ENABLE_MPI
-    export_Communicator();
-    export_DomainDecomposition();
-    export_LoadBalancer();
+    export_Communicator(m);
+    export_DomainDecomposition(m);
+    export_LoadBalancer(m);
 #ifdef ENABLE_CUDA
-    export_CommunicatorGPU();
-    export_LoadBalancerGPU();
+    export_CommunicatorGPU(m);
+    export_LoadBalancerGPU(m);
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
 
     // system
-    export_System();
+    export_System(m);
 
     // variant
-    export_Variant();
+    export_Variant(m);
 
     // messenger
-    export_Messenger();
+    export_Messenger(m);
 
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr< IMDInterface > >();
-    register_ptr_to_python< boost::shared_ptr< DCDDumpWriter > >();
-    register_ptr_to_python< boost::shared_ptr< Logger > >();
-    register_ptr_to_python< boost::shared_ptr< CallbackAnalyzer > >();
-    register_ptr_to_python< boost::shared_ptr< DomainDecomposition > >();
-    register_ptr_to_python< boost::shared_ptr< CellList > >();
-    register_ptr_to_python< boost::shared_ptr< CellListStencil > >();
-    register_ptr_to_python< boost::shared_ptr< ForceConstraint > >();
-    register_ptr_to_python< boost::shared_ptr< ConstForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ExecutionConfiguration > >();
-    register_ptr_to_python< boost::shared_ptr< SystemDefinition > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleData > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<float> > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotParticleData<double> > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleGroup > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelector > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelectorAll > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelectorTag > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelectorType > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelectorRigid > >();
-    register_ptr_to_python< boost::shared_ptr< ParticleSelectorCuboid > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<float> > >();
-    register_ptr_to_python< boost::shared_ptr< SnapshotSystemData<double> > >();
-    register_ptr_to_python< boost::shared_ptr< System > >();
-    register_ptr_to_python< boost::shared_ptr< Integrator > >();
-    register_ptr_to_python< boost::shared_ptr< SFCPackUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< double2 > >();
-    register_ptr_to_python< boost::shared_ptr< double3 > >();
-    register_ptr_to_python< boost::shared_ptr< double4 > >();
-    register_ptr_to_python< boost::shared_ptr< float2 > >();
-    register_ptr_to_python< boost::shared_ptr< float3 > >();
-    register_ptr_to_python< boost::shared_ptr< float4 > >();
-    register_ptr_to_python< boost::shared_ptr< uint2 > >();
-    register_ptr_to_python< boost::shared_ptr< uint3 > >();
-    register_ptr_to_python< boost::shared_ptr< uint4 > >();
-    register_ptr_to_python< boost::shared_ptr< int2 > >();
-    register_ptr_to_python< boost::shared_ptr< int3 > >();
-    register_ptr_to_python< boost::shared_ptr< int4 > >();
-    register_ptr_to_python< boost::shared_ptr< char3 > >();
-    register_ptr_to_python< boost::shared_ptr< Variant > >();
-    register_ptr_to_python< boost::shared_ptr< VariantConst > >();
-    register_ptr_to_python< boost::shared_ptr< VariantLinear > >();
-    register_ptr_to_python< boost::shared_ptr< Messenger > >();
-
-    #ifdef ENABLE_CUDA
-    #ifdef ENABLE_MPI
-    register_ptr_to_python< boost::shared_ptr< LoadBalancerGPU > >();
-    register_ptr_to_python< boost::shared_ptr< CommunicatorGPU > >();
-    #endif
-    register_ptr_to_python< boost::shared_ptr< CellListGPU > >();
-    #endif
-
-    #ifdef ENABLE_MPI
-    register_ptr_to_python< boost::shared_ptr< Communicator > >();
-    register_ptr_to_python< boost::shared_ptr< LoadBalancer > >();
-    #endif
-    #endif
+    return m.ptr();
     }

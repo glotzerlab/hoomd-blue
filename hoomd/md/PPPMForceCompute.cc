@@ -3,7 +3,7 @@
 
 #include "PPPMForceCompute.h"
 
-using namespace boost::python;
+namespace py = pybind11;
 
 bool is_pow2(unsigned int n)
     {
@@ -23,9 +23,9 @@ const Scalar cpu_sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0
     \param nz Number of cells along third axis
     \param mode Per-type modes to multiply density
  */
-PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
-    boost::shared_ptr<ParticleGroup> group)
+PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<ParticleGroup> group)
     : ForceCompute(sysdef),
       m_nlist(nlist),
       m_group(group),
@@ -45,7 +45,7 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
       m_dfft_initialized(false)
     {
 
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&PPPMForceCompute::setBoxChange, this));
+    m_pdata->getBoxChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
@@ -149,7 +149,7 @@ PPPMForceCompute::~PPPMForceCompute()
         dfft_destroy_plan(m_dfft_plan_inverse);
         }
     #endif
-    m_boxchange_connection.disconnect();
+    m_pdata->getBoxChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     }
 
 //! Compute auxillary table for influence function
@@ -1505,11 +1505,10 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-void export_PPPMForceCompute()
+void export_PPPMForceCompute(py::module& m)
     {
-    class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>,
-            boost::shared_ptr<NeighborList>, boost::shared_ptr<ParticleGroup> >())
+    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)

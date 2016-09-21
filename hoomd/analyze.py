@@ -313,6 +313,9 @@ class log(_analyzer):
 
       - **dihedral_harmonic_energy** (:py:class:`hoomd.md.dihedral.harmonic`) - Total harmonic dihedral potential energy (in energy units)
 
+    - Special pair interactions
+      - **special_pair_lj_energy** (:py:class:`hoomd.md.special_pair.lj`) - Total energy of special pair interactions (in energy units)
+
     - External potentials
 
       - **external_periodic_energy** (:py:class:`hoomd.md.external.periodic`) - Total periodic potential energy (in energy units)

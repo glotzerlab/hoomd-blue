@@ -11,17 +11,11 @@
 #include "NeighborList.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/python.hpp>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
-
-using namespace boost::python;
-
-#include <boost/bind.hpp>
+namespace py = pybind11;
 
 #include <iostream>
 #include <stdexcept>
 
-using namespace boost;
 using namespace std;
 
 /*! \file NeighborList.cc
@@ -36,7 +30,7 @@ using namespace std;
         but the list will not be computed until compute is called.
     \post The storage mode defaults to half
 */
-NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
+NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_cut, Scalar r_buff)
     : Compute(sysdef), m_typpair_idx(m_pdata->getNTypes()), m_rcut_max_max(_r_cut), m_rcut_min(_r_cut),
       m_r_buff(r_buff), m_d_max(1.0), m_filter_body(false), m_diameter_shift(false), m_storage_mode(half),
       m_rcut_changed(true), m_updates(0), m_forced_updates(0), m_dangerous_updates(0), m_force_update(true),
@@ -132,18 +126,18 @@ NeighborList::NeighborList(boost::shared_ptr<SystemDefinition> sysdef, Scalar _r
     m_ex_list_indexer_tag = Index2D(m_ex_list_tag.getPitch(), 1);
 
     // connect to particle sort to force rebuild
-    m_sort_connection = m_pdata->connectParticleSort(bind(&NeighborList::forceUpdate, this));
+    m_pdata->getParticleSortSignal().connect<NeighborList, &NeighborList::forceUpdate>(this);
 
     // connect to max particle change to resize neighborlist arrays
-    m_max_particle_num_change_connection = m_pdata->connectMaxParticleNumberChange(bind(&NeighborList::reallocate, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborList, &NeighborList::reallocate>(this);
 
     // connect to type change to resize type data arrays
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborList::reallocateTypes, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborList, &NeighborList::reallocateTypes>(this);
 
-    m_global_particle_num_change_connection = m_pdata->connectGlobalParticleNumberChange(bind(&NeighborList::slotGlobalParticleNumberChange, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
     // connect locally to the rcut changing signal
-    m_rcut_change_conn = connectRCutChange(bind(&NeighborList::slotRCutChange, this));
+    getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
     // allocate m_update_periods tracking info
     m_update_periods.resize(100);
@@ -177,7 +171,7 @@ void NeighborList::reallocateTypes()
     m_Nmax.resize(m_pdata->getNTypes());
     m_conditions.resize(m_pdata->getNTypes());
 
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
@@ -185,20 +179,20 @@ NeighborList::~NeighborList()
     {
     m_exec_conf->msg->notice(5) << "Destroying Neighborlist" << endl;
 
-    m_sort_connection.disconnect();
-    m_max_particle_num_change_connection.disconnect();
-    m_global_particle_num_change_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<NeighborList, &NeighborList::forceUpdate>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborList, &NeighborList::reallocate>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 #ifdef ENABLE_MPI
-    if (m_migrate_request_connection.connected())
-        m_migrate_request_connection.disconnect();
-    if (m_comm_flags_request.connected())
-        m_comm_flags_request.disconnect();
-    if (m_ghost_layer_width_request.connected())
-        m_ghost_layer_width_request.disconnect();
+    if (m_comm)
+        {
+        m_comm->getMigrateSignal().disconnect<NeighborList, &NeighborList::peekUpdate>(this);
+        m_comm->getCommFlagsRequestSignal().disconnect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        m_comm->getGhostLayerWidthRequestSignal().disconnect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
+        }
 #endif
 
-    m_num_type_change_conn.disconnect();
-    m_rcut_change_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(this);
+    getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
 
 /*! Updates the neighborlist if it has not yet been updated this times step
@@ -331,13 +325,13 @@ void NeighborList::setRCutPair(unsigned int typ1, unsigned int typ2, Scalar r_cu
         throw std::runtime_error("Error changing NeighborList parameters");
         }
 
-	// stash the potential rcuts, r_list will be computed on next forced update
+    // stash the potential rcuts, r_list will be computed on next forced update
     ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::readwrite);
     h_r_cut.data[m_typpair_idx(typ1, typ2)] = r_cut;
     h_r_cut.data[m_typpair_idx(typ2, typ1)] = r_cut;
 
     // signal the change in rcut
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
@@ -353,17 +347,17 @@ void NeighborList::setRBuff(Scalar r_buff)
         m_exec_conf->msg->error() << "nlist: Requested buffer radius is less than zero" << endl;
         throw runtime_error("Error changing NeighborList parameters");
         }
-    m_rcut_signal();
+    m_rcut_signal.emit();
     forceUpdate();
     }
 
 void NeighborList::updateRList()
-	{
-	// only need a read on the real cutoff
-	ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
+    {
+    // only need a read on the real cutoff
+    ArrayHandle<Scalar> h_r_cut(m_r_cut, access_location::host, access_mode::read);
 
-	// now we need to read and write on the r_list
-	ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
+    // now we need to read and write on the r_list
+    ArrayHandle<Scalar> h_r_listsq(m_r_listsq, access_location::host, access_mode::overwrite);
 
     // update the maximum cutoff of all those set so far
     ArrayHandle<Scalar> h_rcut_max(m_rcut_max, access_location::host, access_mode::readwrite);
@@ -403,7 +397,7 @@ void NeighborList::updateRList()
 
     // rcut has been updated to the latest values now
     m_rcut_changed = false;
-	}
+    }
 
 /*! \returns an estimate of the number of neighbors per particle
     This mean-field estimate may be very bad dending on how clustered particles are.
@@ -606,7 +600,7 @@ void NeighborList::countExclusions()
 */
 void NeighborList::addExclusionsFromBonds()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
 
     // access bond data by snapshot
     BondData::Snapshot snapshot;
@@ -640,7 +634,7 @@ void NeighborList::addExclusionsFromBonds()
 */
 void NeighborList::addExclusionsFromAngles()
     {
-    boost::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
+    std::shared_ptr<AngleData> angle_data = m_sysdef->getAngleData();
 
     // access angle data by snapshot
     AngleData::Snapshot snapshot;
@@ -673,7 +667,7 @@ void NeighborList::addExclusionsFromAngles()
 */
 void NeighborList::addExclusionsFromDihedrals()
     {
-    boost::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
+    std::shared_ptr<DihedralData> dihedral_data = m_sysdef->getDihedralData();
 
     // access dihedral data by snapshot
     DihedralData::Snapshot snapshot;
@@ -706,7 +700,7 @@ void NeighborList::addExclusionsFromDihedrals()
 */
 void NeighborList::addExclusionsFromConstraints()
     {
-    boost::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
+    std::shared_ptr<ConstraintData> constraint_data = m_sysdef->getConstraintData();
 
     // access constraint data by snapshot
     ConstraintData::Snapshot snapshot;
@@ -768,7 +762,7 @@ bool NeighborList::isExcluded(unsigned int tag1, unsigned int tag2)
  */
 void NeighborList::addOneThreeExclusionsFromTopology()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
@@ -847,7 +841,7 @@ void NeighborList::addOneThreeExclusionsFromTopology()
  */
 void NeighborList::addOneFourExclusionsFromTopology()
     {
-    boost::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = m_sysdef->getBondData();
     const unsigned int myNAtoms = m_pdata->getRTags().size();
     const unsigned int MAXNBONDS = 7+1; //! assumed maximum number of bonds per atom plus one entry for the number of bonds.
     const unsigned int nBonds = bond_data->getNGlobal();
@@ -1397,16 +1391,15 @@ void NeighborList::growExclusionList()
 
 #ifdef ENABLE_MPI
 //! Set the communicator to use
-void NeighborList::setCommunicator(boost::shared_ptr<Communicator> comm)
+void NeighborList::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     if (!m_comm)
         {
         // only add the migrate request on the first call
         assert(comm);
-
-        m_migrate_request_connection = comm->addMigrateRequest(bind(&NeighborList::peekUpdate, this, _1));
-        m_comm_flags_request = comm->addCommFlagsRequest(bind(&NeighborList::getRequestedCommFlags, this, _1));
-        m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(bind(&NeighborList::getGhostLayerWidth, this, _1));
+        comm->getMigrateSignal().connect<NeighborList, &NeighborList::peekUpdate>(this);
+        comm->getCommFlagsRequestSignal().connect<NeighborList, &NeighborList::getRequestedCommFlags>(this);
+        comm->getGhostLayerWidthRequestSignal().connect<NeighborList, &NeighborList::getGhostLayerWidth>(this);
         }
 
     Compute::setCommunicator(comm);
@@ -1428,47 +1421,48 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     }
 #endif
 
-void export_NeighborList()
+void export_NeighborList(py::module& m)
     {
-    scope in_nlist = class_<NeighborList, boost::shared_ptr<NeighborList>, bases<Compute>, boost::noncopyable >
-                     ("NeighborList", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
-                     .def("setRCut", &NeighborList::setRCut)
-                     .def("setRCutPair", &NeighborList::setRCutPair)
-                     .def("setRBuff", &NeighborList::setRBuff)
-                     .def("setEvery", &NeighborList::setEvery)
-                     .def("setStorageMode", &NeighborList::setStorageMode)
-                     .def("addExclusion", &NeighborList::addExclusion)
-                     .def("clearExclusions", &NeighborList::clearExclusions)
-                     .def("countExclusions", &NeighborList::countExclusions)
-                     .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
-                     .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
-                     .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
-                     .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
-                     .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
-                     .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
-                     .def("setFilterBody", &NeighborList::setFilterBody)
-                     .def("getFilterBody", &NeighborList::getFilterBody)
-                     .def("setDiameterShift", &NeighborList::setDiameterShift)
-                     .def("getDiameterShift", &NeighborList::getDiameterShift)
-                     .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
-                     .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
-                     .def("getMaxRCut", &NeighborList::getMaxRCut)
-                     .def("getMinRCut", &NeighborList::getMinRCut)
-                     .def("getMaxRList", &NeighborList::getMaxRList)
-                     .def("getMinRList", &NeighborList::getMinRList)
-                     .def("forceUpdate", &NeighborList::forceUpdate)
-                     .def("estimateNNeigh", &NeighborList::estimateNNeigh)
-                     .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
-                     .def("getNumUpdates", &NeighborList::getNumUpdates)
-                     .def("getNumExclusions", &NeighborList::getNumExclusions)
-                     .def("wantExclusions", &NeighborList::wantExclusions)
+    py::class_<NeighborList, std::shared_ptr<NeighborList> > nlist(m, "NeighborList", py::base<Compute>());
+    nlist.def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+        .def("setRCut", &NeighborList::setRCut)
+        .def("setRCutPair", &NeighborList::setRCutPair)
+        .def("setRBuff", &NeighborList::setRBuff)
+        .def("setEvery", &NeighborList::setEvery)
+        .def("setStorageMode", &NeighborList::setStorageMode)
+        .def("addExclusion", &NeighborList::addExclusion)
+        .def("clearExclusions", &NeighborList::clearExclusions)
+        .def("countExclusions", &NeighborList::countExclusions)
+        .def("addExclusionsFromBonds", &NeighborList::addExclusionsFromBonds)
+        .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
+        .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
+        .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
+        .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
+        .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
+        .def("setFilterBody", &NeighborList::setFilterBody)
+        .def("getFilterBody", &NeighborList::getFilterBody)
+        .def("setDiameterShift", &NeighborList::setDiameterShift)
+        .def("getDiameterShift", &NeighborList::getDiameterShift)
+        .def("setMaximumDiameter", &NeighborList::setMaximumDiameter)
+        .def("getMaximumDiameter", &NeighborList::getMaximumDiameter)
+        .def("getMaxRCut", &NeighborList::getMaxRCut)
+        .def("getMinRCut", &NeighborList::getMinRCut)
+        .def("getMaxRList", &NeighborList::getMaxRList)
+        .def("getMinRList", &NeighborList::getMinRList)
+        .def("forceUpdate", &NeighborList::forceUpdate)
+        .def("estimateNNeigh", &NeighborList::estimateNNeigh)
+        .def("getSmallestRebuild", &NeighborList::getSmallestRebuild)
+        .def("getNumUpdates", &NeighborList::getNumUpdates)
+        .def("getNumExclusions", &NeighborList::getNumExclusions)
+        .def("wantExclusions", &NeighborList::wantExclusions)
 #ifdef ENABLE_MPI
-                     .def("setCommunicator", &NeighborList::setCommunicator)
+        .def("setCommunicator", &NeighborList::setCommunicator)
 #endif
                      ;
 
-    enum_<NeighborList::storageMode>("storageMode")
-    .value("half", NeighborList::half)
-    .value("full", NeighborList::full)
+    py::enum_<NeighborList::storageMode>(nlist, "storageMode")
+        .value("half", NeighborList::storageMode::half)
+        .value("full", NeighborList::storageMode::full)
+        .export_values()
     ;
     }

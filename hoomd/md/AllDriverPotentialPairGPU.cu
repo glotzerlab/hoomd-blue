@@ -127,7 +127,7 @@ cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
     }
 
 cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
-                                                const Scalar2 *d_params)
+                                                const Scalar3 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,
                                                      d_params);

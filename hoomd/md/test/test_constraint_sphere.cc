@@ -7,9 +7,8 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <functional>
+#include <memory>
 
 #include "hoomd/md/IntegratorTwoStep.h"
 #include "hoomd/md/TwoStepLangevin.h"
@@ -21,35 +20,34 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file constraint_sphere_test.cc
     \brief Implements unit tests for ConstraintSphere and descendants
     \ingroup unit_tests
 */
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE ConstraintSphereTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 //! Typedef'd class factory
-typedef boost::function<boost::shared_ptr<ConstraintSphere> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<ParticleGroup> group,
+typedef std::function<std::shared_ptr<ConstraintSphere> (std::shared_ptr<SystemDefinition> sysdef,
+                                                      std::shared_ptr<ParticleGroup> group,
                                                       Scalar3 P,
                                                       Scalar r)> cs_creator_t;
 
 //! Run a BD simulation on 6 particles and validate the constraints
-void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void constraint_sphere_tests(cs_creator_t cs_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     Scalar3 P = make_scalar3(1.0f, 2.0f, 3.0f);
     Scalar r = 10.0f;
 
     // Build a 6 particle system with all particles starting at the 6 "corners" of a sphere centered
     // at P with radius r. Use a huge box so boundary conditions don't come into play
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, BoxDim(1000000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -68,12 +66,12 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
 
     // run the particles in a BD simulation with a constraint force applied and verify that the constraint is always
     // satisfied
-    boost::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
-    boost::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0, false, false));
-    boost::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(Temp));
+    std::shared_ptr<TwoStepLangevin> two_step_bdnvt(new TwoStepLangevin(sysdef, group_all, T_variant, 123, 0, 0.0, false, false));
+    std::shared_ptr<IntegratorTwoStep> bdnvt_up(new IntegratorTwoStep(sysdef, deltaT));
     bdnvt_up->addIntegrationMethod(two_step_bdnvt);
 
-    boost::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
+    std::shared_ptr<ConstraintSphere> cs = cs_creator(sysdef, group_all, P, r);
     bdnvt_up->addForceConstraint(cs);
     bdnvt_up->prepRun(0);
 
@@ -91,7 +89,7 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
             V.z = pos.z - P.z;
 
             Scalar current_r = sqrt(V.x*V.x + V.y*V.y + V.z*V.z);
-            MY_BOOST_CHECK_CLOSE(current_r, r, loose_tol);
+            MY_CHECK_CLOSE(current_r, r, loose_tol);
             }
 
         }
@@ -99,38 +97,37 @@ void constraint_sphere_tests(cs_creator_t cs_creator, boost::shared_ptr<Executio
 
 
 //! ConstraintSphere factory for the unit tests
-boost::shared_ptr<ConstraintSphere> base_class_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                   boost::shared_ptr<ParticleGroup> group,
+std::shared_ptr<ConstraintSphere> base_class_cs_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<ParticleGroup> group,
                                                    Scalar3 P,
                                                    Scalar r)
     {
-    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
+    return std::shared_ptr<ConstraintSphere>(new ConstraintSphere(sysdef, group, P, r));
     }
 
 #ifdef ENABLE_CUDA
 //! ConstraintSphereGPU factory for the unit tests
-boost::shared_ptr<ConstraintSphere> gpu_cs_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                   boost::shared_ptr<ParticleGroup> group,
+std::shared_ptr<ConstraintSphere> gpu_cs_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<ParticleGroup> group,
                                                    Scalar3 P,
                                                    Scalar r)
     {
-    return boost::shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
+    return std::shared_ptr<ConstraintSphere>(new ConstraintSphereGPU(sysdef, group, P, r));
     }
 #endif
 
 //! Basic test for the base class
-BOOST_AUTO_TEST_CASE( BDUpdater_tests )
+UP_TEST( BDUpdater_tests )
     {
     cs_creator_t cs_creator = bind(base_class_cs_creator, _1, _2, _3, _4);
-    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Basic test for the GPU class
-BOOST_AUTO_TEST_CASE( BDUpdaterGPU_tests )
+UP_TEST( BDUpdaterGPU_tests )
     {
     cs_creator_t cs_creator = bind(gpu_cs_creator, _1, _2, _3, _4);
-    constraint_sphere_tests(cs_creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    constraint_sphere_tests(cs_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif
-

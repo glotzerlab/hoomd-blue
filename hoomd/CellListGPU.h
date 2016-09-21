@@ -15,6 +15,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __CELLLISTGPU_H__
 #define __CELLLISTGPU_H__
 
@@ -27,7 +29,7 @@ class CellListGPU : public CellList
     {
     public:
         //! Construct a cell list
-        CellListGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        CellListGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~CellListGPU() { };
 
@@ -46,12 +48,12 @@ class CellListGPU : public CellList
         //! Compute the cell list
         virtual void computeCellList();
 
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
 
         mgpu::ContextPtr m_mgpu_context;      //!< moderngpu context
     };
 
 //! Exports CellListGPU to python
-void export_CellListGPU();
+void export_CellListGPU(pybind11::module& m);
 
 #endif

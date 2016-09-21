@@ -9,7 +9,7 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/GPUArray.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file TablePotential.h
     \brief Declares the TablePotential class
@@ -18,6 +18,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __TABLEPOTENTIAL_H__
 #define __TABLEPOTENTIAL_H__
@@ -60,8 +62,8 @@ class TablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute
-        TablePotential(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<NeighborList> nlist,
+        TablePotential(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<NeighborList> nlist,
                        unsigned int table_width,
                        const std::string& log_suffix="");
 
@@ -83,7 +85,7 @@ class TablePotential : public ForceCompute
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         unsigned int m_table_width;                 //!< Width of the tables in memory
         unsigned int m_ntypes;                      //!< Store the number of particle types
         GPUArray<Scalar2> m_tables;                  //!< Stored V and F tables
@@ -95,13 +97,9 @@ class TablePotential : public ForceCompute
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
     };
 
 //! Exports the TablePotential class to python
-void export_TablePotential();
+void export_TablePotential(pybind11::module& m);
 
 #endif

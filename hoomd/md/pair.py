@@ -2341,9 +2341,17 @@ class reaction_field(pair):
        V_{\mathrm{RF}}(r) = \varepsilon \left[ \frac{1}{r} +
            \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
 
-    The reaction field potential does not require charge or diameter to be set. Two parameters,
+    By default, the reaction field potential does not require charge or diameter to be set. Two parameters,
     :math:`\varepsilon` and :math:`\epsilon_{RF}` are needed. If :math:`epsilon_{RF}` is specified as zero,
     it will represent infinity.
+
+    If *use_charge* is set to True, the following formula is evaluated instead:
+    .. math::
+
+       V_{\mathrm{RF}}(r) = q_i q_j \varepsilon \left[ \frac{1}{r} +
+           \frac{(\epsilon_{RF}-1) r^2}{(2 \epsilon_{RF} + 1) r_c^3} \right]
+
+    where :math:`q_i` and :math:`q_j` are the charges of the particle pair.
 
     See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
@@ -2356,6 +2364,11 @@ class reaction_field(pair):
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}` - *r_on* (in units of distance)
       - *optional*: defaults to the global r_cut specified in the pair command
+    - *use_charge* (boolean), evaluate potential using particle charges
+      - *optional*: defaults to False
+
+    .. versionadded:: 2.1
+
 
     Example::
 
@@ -2364,6 +2377,7 @@ class reaction_field(pair):
         reaction_field.pair_coeff.set('A', 'A', epsilon=1.0, eps_rf=1.0)
         reaction_field.pair_coeff.set('A', 'B', epsilon=-1.0, eps_rf=0.0)
         reaction_field.pair_coeff.set('B', 'B', epsilon=1.0, eps_rf=0.0)
+        reaction_field.pair_coeff.set(system.particles.types, system.particles.types, epsilon=1.0, eps_rf=0.0, use_charge=True)
 
     """
     def __init__(self, r_cut, nlist, name=None):
@@ -2386,10 +2400,12 @@ class reaction_field(pair):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
         # setup the coefficent options
-        self.required_coeffs = ['epsilon', 'eps_rf'];
+        self.required_coeffs = ['epsilon', 'eps_rf', 'use_charge'];
+        self.pair_coeff.set_default_coeff('use_charge', False)
 
     def process_coeff(self, coeff):
         epsilon = coeff['epsilon'];
         eps_rf = coeff['eps_rf'];
+        use_charge = coeff['use_charge']
 
-        return _hoomd.make_scalar2(epsilon, eps_rf);
+        return _hoomd.make_scalar3(epsilon, eps_rf, _hoomd.int_as_scalar(int(use_charge)));

@@ -20,8 +20,9 @@
 #include <vector>
 #include <map>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/random.hpp>
+#include <memory>
+#include <random>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __RANDOM_GENERATOR_H__
 #define __RANDOM_GENERATOR_H__
@@ -58,7 +59,7 @@ class GeneratedParticles
             };
 
         //! Constructor
-        GeneratedParticles(boost::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
+        GeneratedParticles(std::shared_ptr<const ExecutionConfiguration> exec_conf, unsigned int n_particles, const BoxDim& box, const std::map< std::string, Scalar >& radii);
         //! Empty constructor
         /*! Included so that GeneratedParticles can be stored in a vector.
         */
@@ -85,7 +86,7 @@ class GeneratedParticles
     private:
         friend class RandomGenerator;
 
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         std::vector<particle> m_particles;                  //!< The generated particles
         BoxDim m_box;                                       //!< Box the particles are in
         std::vector< std::vector<unsigned int> > m_bins;    //!< Bins the particles are placed in for efficient distance checks
@@ -141,7 +142,7 @@ class ParticleGenerator
             a ParticleGenerator must always generate the same number of particles
             each time it is called.
         */
-        virtual unsigned int getNumToGenerate()=0;
+        virtual unsigned int getNumToGenerate() { return 0; }
 
         //! Actually generate the requested particles
         /*! \param particles Place generated particles here after a GeneratedParticles::canPlace() check
@@ -151,7 +152,7 @@ class ParticleGenerator
             call it to generate the particles. Particles should be placed at indices
             \a start_idx, \a start_idx + 1, ... \a start_idx + getNumToGenerate()-1
         */
-        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx)=0;
+        virtual void generateParticles(GeneratedParticles& particles, std::mt19937& rnd, unsigned int start_idx) {}
     };
 
 //! Generates random polymers
@@ -163,7 +164,7 @@ class PolymerParticleGenerator : public ParticleGenerator
     {
     public:
         //! Constructor
-        PolymerParticleGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+        PolymerParticleGenerator(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  Scalar bond_len,
                                  const std::vector<std::string>& types,
                                  const std::vector<unsigned int>& bond_a,
@@ -179,10 +180,10 @@ class PolymerParticleGenerator : public ParticleGenerator
             }
 
         //! Generates a single polymer
-        virtual void generateParticles(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int start_idx);
+        virtual void generateParticles(GeneratedParticles& particles, std::mt19937& rnd, unsigned int start_idx);
 
     private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration for messaging
         Scalar m_bond_len;                  //!< Bond length
         std::vector<std::string> m_types;   //!< Particle types for each polymer bead
         std::vector<unsigned int> m_bond_a; //!< First particle in the bond pair
@@ -192,7 +193,7 @@ class PolymerParticleGenerator : public ParticleGenerator
         unsigned int m_dimensions;          //!< Number of dimensions
 
         //! helper function to place particles recursively
-        bool generateNextParticle(GeneratedParticles& particles, boost::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
+        bool generateNextParticle(GeneratedParticles& particles, std::mt19937& rnd, unsigned int i, unsigned int start_idx, const GeneratedParticles::particle& prev_particle);
 
     };
 
@@ -222,7 +223,7 @@ class RandomGenerator
     {
     public:
         //! Set the parameters
-        RandomGenerator(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+        RandomGenerator(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                         const BoxDim& box,
                         unsigned int seed,
                         unsigned int dimensions);
@@ -231,24 +232,24 @@ class RandomGenerator
         virtual ~RandomGenerator() { }
 
         //! initializes a snapshot with the particle data
-        virtual boost::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
+        virtual std::shared_ptr< SnapshotSystemData<Scalar> > getSnapshot() const;
 
         //! Sets the separation radius for a particle
         void setSeparationRadius(std::string type, Scalar radius);
 
         //! Adds a generator
-        void addGenerator(unsigned int repeat, boost::shared_ptr<ParticleGenerator> generator);
+        void addGenerator(unsigned int repeat, std::shared_ptr<ParticleGenerator> generator);
 
         //! Place the particles
         void generate();
 
     private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         BoxDim m_box;                                       //!< Precalculated box
         unsigned int m_seed;                                //!< Random seed to use
         GeneratedParticles m_data;                          //!< Actual particle data genreated
         std::map< std::string, Scalar > m_radii;            //!< Separation radii accessed by particle type
-        std::vector< boost::shared_ptr<ParticleGenerator> > m_generators;   //!< Generators to place particles
+        std::vector< std::shared_ptr<ParticleGenerator> > m_generators;   //!< Generators to place particles
         std::vector< unsigned int > m_generator_repeat;     //!< Repeat count for each generator
         std::vector<std::string> m_type_mapping;            //!< The created mapping between particle types and ids
         std::vector<std::string> m_bond_type_mapping;       //!< The created mapping between bond types and ids
@@ -261,6 +262,6 @@ class RandomGenerator
     };
 
 //! Exports RandomGenerator and related classes to python
-void export_RandomGenerator();
+void export_RandomGenerator(pybind11::module& m);
 
 #endif

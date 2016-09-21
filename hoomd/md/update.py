@@ -207,3 +207,120 @@ class constraint_ellipsoid(_updater):
         self.ry = ry
         self.rz = rz
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
+
+class mueller_plathe_flow(_updater):
+    R""" Direction Enum X for this class"""
+    X = _md.MuellerPlatheFlow.Direction.X
+    R""" Direction Enum X for this class"""
+    Y = _md.MuellerPlatheFlow.Direction.Y
+    R""" Direction Enum X for this class"""
+    Z = _md.MuellerPlatheFlow.Direction.Z
+
+    R""" Updater class for a shear flow according
+    to an algorithm published by Mueller Plathe.:
+
+     "Florian Mueller-Plathe. Reversing the perturbation in nonequilibrium molecular dynamics:
+     An easy way to calculate the shear viscosity of fluids. Phys. Rev. E, 59:4894-4898, May 1999."
+
+    The simulation box is divided in a number of slabs.
+    Two distinct slabs of those are chosen. The "max" slab searched for the
+    max. velocity componend in flow direction, the "min" is searched for the min. velocity component.
+    Afterwards, both velocity components are swapped.
+
+    This introduces a momentum flow, which drives the flow. The strength of this flow,
+    can be controlled by the flow_target variant, which defines the integrated target momentum
+    flow. The searching and swapping is repeated until the target is reached. Depending on the target sign,
+    the "max" and "min" slap might be swapped.
+
+    Args:
+        group (:py:mod:`hoomd.group`): Group for which the update will be set
+        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
+        slab_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
+        flow_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction of the flow. In [0,2] (X,Y,Z).
+        n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
+        max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
+        min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
+
+    .. attention::
+        * This updater has to be always applied every timestep.
+        * This updater works currently only with orthorhombic boxes.
+
+    .. note:
+        If you set this updater with unrealistic values, it algorithm might not terminate,
+        because your desired flow target can not be achieved.
+
+    .. versionadded:: v2.1
+
+    Examples::
+
+        #const integrated flow with 0.1 slope for max 1e8 timesteps
+        const_flow = hoomd.variant.linear_interp( [(0,0),(1e8,0.1*1e8)] )
+        #velocity gradient in z direction and shear flow in x direction.
+        update.mueller_plathe_flow(all,const_flow,md.update.mueller_plathe_flow.Z,md.update.mueller_plathe_flow.X,100)
+
+    """
+    def __init__(self, group,flow_target,slab_direction,flow_direction,n_slabs,max_slab=-1,min_slab=-1):
+        hoomd.util.print_status_line();
+        period=1 # This updater has to be applied every timestep
+        assert (n_slabs > 0 ),"Invalid negative number of slabs."
+        if min_slab < 0:
+            min_slab = 0
+        if max_slab < 0:
+            max_slab = n_slabs/2
+
+        assert (max_slab>-1 and max_slab < n_slabs),"Invalid max_slab in [0,"+str(n_slabs)+")."
+        assert (min_slab>-1 and min_slab < n_slabs),"Invalid min_slab in [0,"+str(n_slabs)+")."
+        assert (min_slab != max_slab),"Invalid min/max slabs. Both have the same value."
+
+        # initialize the base class
+        _updater.__init__(self);
+
+        self._flow_target = hoomd.variant._setup_variant_input(flow_target);
+
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_updater = _md.MuellerPlatheFlow(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+        else:
+            self.cpp_updater = _md.MuellerPlatheFlowGPU(hoomd.context.current.system_definition, group.cpp_group,flow_target.cpp_variant,slab_direction,flow_direction,n_slabs,min_slab,max_slab);
+
+        self.setupUpdater(period);
+
+    def get_n_slabs(self):
+        R""" Get the number of slabs."""
+        return self.cpp_updater.getNSlabs()
+
+    def get_min_slab(self):
+        R""" Get the slab id of min velocity search."""
+        return self.cpp_updater.getMinSlab()
+
+    def get_max_slab(self):
+        R""" Get the slab id of max velocity search."""
+        return self.cpp_updater.getMaxSlab()
+
+    def get_flow_epsilon(self):
+        R""" Get the tolerance between target flow and actual achieved flow."""
+        return self.cpp_updater.getFlowEpsilon()
+
+    def set_flow_epsilon(self,epsilon):
+        R""" Set the tolerance between target flow and actual achieved flow.
+
+           Args:
+           epsilon (float): New tolerance for the deviation of actual and achieved flow.
+
+        """
+        hoomd.util.print_status_line();
+        return self.cpp_updater.setFlowEpsilon(float(epsilon))
+
+    def get_summed_exchanged_momentum(self):
+        R"""Returned the summed up exchanged velocity of the full simulation."""
+        return self.cpp_updater.getSummedExchangedMomentum()
+
+
+    def has_min_slab(self):
+        R"""Returns, whether this MPI instance is part of the min slab."""
+        return self.cpp_updater.hasMinSlab()
+
+    def has_max_slab(self):
+        R"""Returns, whether this MPI instance is part of the max slab."""
+        return self.cpp_updater.hasMaxSlab()
