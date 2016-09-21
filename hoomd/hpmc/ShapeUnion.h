@@ -250,28 +250,25 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 }
             else
                 {
-                if (level_a < level_b)
+                if (a.members.tree.isLeaf(cur_node_a))
                     {
-                    if (a.members.tree.isLeaf(cur_node_a))
-                        {
-                        unsigned int end_node = cur_node_b;
-                        b.members.tree.advanceNode(end_node, true);
-                        if (test_subtree(dr, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b, end_node)) return true;
-                        }
-                    else
+                    unsigned int end_node = cur_node_b;
+                    b.members.tree.advanceNode(end_node, true);
+                    if (test_subtree(dr, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b, end_node)) return true;
+                    }
+                else if (b.members.tree.isLeaf(cur_node_b))
+                    {
+                    unsigned int end_node = cur_node_a;
+                    a.members.tree.advanceNode(end_node, true);
+                    if (test_subtree(-dr, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a, end_node)) return true;
+                    }
+                else
+                    {
+                    if (level_a < level_b)
                         {
                         // descend into a's tree
                         cur_node_a = a.members.tree.getLeftChild(cur_node_a);
                         continue;
-                        }
-                    }
-                else
-                    {
-                    if (b.members.tree.isLeaf(cur_node_b))
-                        {
-                        unsigned int end_node = cur_node_a;
-                        a.members.tree.advanceNode(end_node, true);
-                        if (test_subtree(-dr, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a, end_node)) return true;
                         }
                     else
                         {
@@ -286,6 +283,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // move up in tandem fashion
         detail::moveUp(a.members.tree, cur_node_a, b.members.tree, cur_node_b);
         } // end while
+
     return false;
     }
 

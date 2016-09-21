@@ -32,6 +32,7 @@ Not yet released
 * Shorter compile time for HPMC GPU kernels
 * Include symlinked external components in the build process.
 * Add template for external components.
+* Optimized dense depletant simulations with HPMC on CPU
 
 *Bug fixes*
 

@@ -576,9 +576,19 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 unsigned int free_volume_count = 0;
                 unsigned int overlap_count = 0;
 
-                #pragma omp parallel for reduction(+ : lnb, n_overlap_checks, overlap_err_count, insert_count, reinsert_count, free_volume_count, overlap_count) reduction(max: zero) if (n>0) schedule(dynamic)
+                volatile bool flag=false;
+
+                #pragma omp parallel for reduction(+ : lnb, n_overlap_checks, overlap_err_count, insert_count, reinsert_count, free_volume_count, overlap_count) reduction(max: zero) shared(flag) if (n>0) schedule(dynamic)
                 for (unsigned int k = 0; k < n; ++k)
                     {
+                    if (flag)
+                        {
+                        #ifndef _OPENMP
+                        break;
+                        #else
+                        continue;
+                        #endif
+                        }
                     insert_count++;
 
                     // generate a random depletant coordinate and orientation in the sphere around the new position
@@ -595,111 +605,123 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         orientation_test, h_params.data[m_type]);
                     Shape shape_test(orientation_test, h_params.data[m_type]);
 
-                    // check against overlap with old position
                     detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0,0,0));
 
-                    bool overlap_old = false;
+                    bool overlap_depletant = false;
 
-                    // All image boxes (including the primary)
-                    const unsigned int n_images = this->m_image_list.size();
+                    // Check if the new configuration of particle i generates an overlap
                     for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                         {
                         vec3<Scalar> pos_test_image = pos_test + this->m_image_list[cur_image];
                         detail::AABB aabb = aabb_test_local;
                         aabb.translate(pos_test_image);
 
-                        // stackless search
-                        for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        vec3<Scalar> r_ij = pos_i - pos_test_image;
+
+                        n_overlap_checks++;
+
+                        // check circumsphere overlap
+                        OverlapReal rsq = dot(r_ij,r_ij);
+                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                        if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)]
+                            && circumsphere_overlap
+                            && test_overlap(r_ij, shape_test, shape_i, overlap_err_count))
                             {
-                            if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                                {
-                                if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
-                                    {
-                                    for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                                        {
-                                        // read in its position and orientation
-                                        unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                        Scalar4 postype_j;
-                                        Scalar4 orientation_j;
-
-                                        // load the old position and orientation of the j particle
-                                        postype_j = h_postype.data[j];
-                                        orientation_j = h_orientation.data[j];
-
-                                        // put particles in coordinate system of particle i
-                                        vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
-
-                                        n_overlap_checks++;
-
-                                        // check circumsphere overlap
-                                        OverlapReal rsq = dot(r_ij,r_ij);
-                                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                                        bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                        if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
-                                            && circumsphere_overlap
-                                            && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
-                                            {
-                                            // depletant is ignored for any overlap in the old configuration
-                                            overlap_old = true;
-                                            break;
-                                            }
-                                        }
-                                    }
-                                }
-                            else
-                                {
-                                // skip ahead
-                                cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
-                                }
-
-                            if (overlap_old)
-                                break;
-                            }  // end loop over AABB nodes
-
-                        if (overlap_old)
+                            overlap_depletant = true;
+                            overlap_count++;
                             break;
-                        } // end loop over images
+                            }
+                        }
 
-                    bool overlap_depletant = false;
-
-                    if (!overlap_old)
+                    if (overlap_depletant)
                         {
-                        free_volume_count++;
+                        // check against overlap with old position
+                        bool overlap_old = false;
 
-                        // Finally, check if the new configuration of particle i generates an overlap
+                        // All image boxes (including the primary)
+                        const unsigned int n_images = this->m_image_list.size();
                         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> pos_test_image = pos_test + this->m_image_list[cur_image];
                             detail::AABB aabb = aabb_test_local;
                             aabb.translate(pos_test_image);
 
-                            vec3<Scalar> r_ij = pos_i - pos_test_image;
-
-                            n_overlap_checks++;
-
-                            // check circumsphere overlap
-                            OverlapReal rsq = dot(r_ij,r_ij);
-                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                            if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)]
-                                && circumsphere_overlap
-                                && test_overlap(r_ij, shape_test, shape_i, overlap_err_count))
+                            // stackless search
+                            for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                                 {
-                                overlap_depletant = true;
-                                overlap_count++;
-                                }
+                                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                                    {
+                                    if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                        {
+                                        for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                            {
+                                            // read in its position and orientation
+                                            unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                            Scalar4 postype_j;
+                                            Scalar4 orientation_j;
+
+                                            // load the old position and orientation of the j particle
+                                            postype_j = h_postype.data[j];
+                                            orientation_j = h_orientation.data[j];
+
+                                            // put particles in coordinate system of particle i
+                                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
+
+                                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+
+                                            n_overlap_checks++;
+
+                                            // check circumsphere overlap
+                                            OverlapReal rsq = dot(r_ij,r_ij);
+                                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                                            if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
+                                                && circumsphere_overlap
+                                                && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
+                                                {
+                                                // depletant is ignored for any overlap in the old configuration
+                                                overlap_old = true;
+                                                break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                else
+                                    {
+                                    // skip ahead
+                                    cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
+                                    }
+
+                                if (overlap_old)
+                                    break;
+                                }  // end loop over AABB nodes
+
+                            if (overlap_old)
+                                break;
+                            } // end loop over images
+
+                        if (!overlap_old)
+                            {
+                            free_volume_count++;
+                            }
+                        else
+                            {
+                            // the depletant overlap doesn't count since it was already overlapping
+                            // in the old configuration
+                            overlap_depletant = false;
                             }
                         }
 
                     if (overlap_depletant && !m_n_trial)
                         {
                         zero = 1;
+                        // break out of loop
+                        flag = true;
                         }
                     else if (overlap_depletant && m_n_trial)
                         {
@@ -788,7 +810,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         else
                             {
                             zero = 1;
-                            //break;
+                            // break out of loop
+                            flag = true;
                             }
                         } // end if depletant overlap
 
