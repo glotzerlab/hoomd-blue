@@ -108,7 +108,8 @@ class GSDDumpWriter : public Analyzer
                            AngleData::Snapshot& angle,
                            DihedralData::Snapshot& dihedral,
                            ImproperData::Snapshot& improper,
-                           ConstraintData::Snapshot& constraint);
+                           ConstraintData::Snapshot& constraint,
+                           PairData::Snapshot& pair);
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);

@@ -347,7 +347,7 @@ void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
-    if(rank == dest) //Quick exit, if dest is src
+    if(rank == static_cast<int>(dest) ) //Quick exit, if dest is src
       return;
     char *buf = NULL;
     int recv_count;
@@ -380,7 +380,7 @@ void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
     {
     int rank;
     MPI_Comm_rank(mpi_comm, &rank);
-    if( rank == src ) //Quick exit if src is dest.
+    if( rank == static_cast<int>(src) ) //Quick exit if src is dest.
       return;
 
     int recv_count;

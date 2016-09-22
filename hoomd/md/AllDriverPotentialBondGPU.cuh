@@ -22,5 +22,4 @@ cudaError_t gpu_compute_harmonic_forces(const bond_args_t& bond_args,
 cudaError_t gpu_compute_fene_forces(const bond_args_t& bond_args,
                                     const Scalar4 *d_params,
                                     unsigned int *d_flags);
-
 #endif

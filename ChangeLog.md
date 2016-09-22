@@ -16,6 +16,7 @@ Not yet released
 * Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
 * Add constrain.oned to constrain particles to move in one dimension
 * hpmc.integrate.sphere_union() now takes max_members as an optional argument, allowing to use GPU memory more efficiently
+* add special_pair.lj() to support scaled 1-4 (or other) exclusions in all-atom force fields
 * md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
 * `use_charge` option for pair.reaction_field
 * md.charge.pppm() takes a Debye screening length as an optional parameter
@@ -36,6 +37,7 @@ Not yet released
 
 *Bug fixes*
 * fix invalid mesh energy in non-neutral systems with charge.pppm()
+* Fix invalid forces in simulations with many bond types (on GPU)
 * fix rare cases where analyze.log() would report a wrong pressure
 * fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
 * fix a bug where the potential energy is misreported on the first step with constrain.rigid()

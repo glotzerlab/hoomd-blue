@@ -205,6 +205,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     // access the particle data
     ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_overlaps(this->m_mc->getInteractionMatrix(), access_location::device, access_mode::read);
+
+    const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
     ArrayHandle<typename Shape::param_type> d_params(this->m_mc->getParams(), access_location::device, access_mode::read);
@@ -249,7 +252,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    group_size,
                                                    this->m_pdata->getMaxN(),
                                                    d_n_overlap_all.data,
-                                                   this->m_cl->getGhostWidth());
+                                                   this->m_cl->getGhostWidth(),
+                                                   d_overlaps.data,
+                                                   overlap_idx);
 
 
         // invoke kernel for counting total overlap volume

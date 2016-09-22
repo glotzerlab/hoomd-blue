@@ -103,6 +103,8 @@ foreach(file ${files})
     copy_file(${file})
 endforeach()
 
+add_custom_target(copy_dem ALL DEPENDS ${files})
+
 # copy python modules to the build directory to make it a working python package
 MACRO(copy_header file)
     add_custom_command (
@@ -119,12 +121,14 @@ install(FILES ${_dem_headers}
         DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/dem
        )
 
+if (COPY_HEADERS)
 # copy headers into build directory
 foreach(file ${_dem_headers})
     copy_header(${file})
 endforeach()
 
-add_custom_target(copy_dem ALL DEPENDS ${files} ${_dem_headers})
+add_custom_target(copy_dem_headers ALL DEPENDS ${_dem_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

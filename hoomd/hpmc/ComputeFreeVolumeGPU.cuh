@@ -59,7 +59,9 @@ struct hpmc_free_volume_args_t
                 const unsigned int _group_size,
                 const unsigned int _max_n,
                 unsigned int *_d_n_overlap_all,
-                const Scalar3 _ghost_width
+                const Scalar3 _ghost_width,
+                const unsigned int *_d_check_overlaps,
+                Index2D _overlap_idx
                 )
                 : n_sample(_n_sample),
                   type(_type),
@@ -85,7 +87,9 @@ struct hpmc_free_volume_args_t
                   group_size(_group_size),
                   max_n(_max_n),
                   d_n_overlap_all(_d_n_overlap_all),
-                  ghost_width(_ghost_width)
+                  ghost_width(_ghost_width),
+                  d_check_overlaps(_d_check_overlaps),
+                  overlap_idx(_overlap_idx)
         {
         };
 
@@ -114,6 +118,8 @@ struct hpmc_free_volume_args_t
     const unsigned int max_n;         //!< Maximum size of pdata arrays
     unsigned int *d_n_overlap_all;    //!< Total number of depletants in overlap volume
     const Scalar3 ghost_width;       //!< Width of ghost layer
+    const unsigned int *d_check_overlaps;   //!< Interaction matrix
+    Index2D overlap_idx;              //!< Interaction matrix indexer
     };
 
 template< class Shape >
@@ -173,6 +179,7 @@ __device__ inline unsigned int compute_cell_idx(const Scalar3 p,
     \param d_n_overlap_all Total overlap counter (output value)
     \param ghost_width Width of ghost layer
     \param d_params Per-type shape parameters
+    \param d_overlaps Per-type pair interaction matrix
 */
 template< class Shape >
 __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
@@ -195,6 +202,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      const BoxDim box,
                                      unsigned int *d_n_overlap_all,
                                      Scalar3 ghost_width,
+                                     const unsigned int *d_check_overlaps,
+                                     Index2D overlap_idx,
                                      const typename Shape::param_type *d_params)
     {
     unsigned int group = threadIdx.z;
@@ -219,7 +228,9 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
+    unsigned int *s_check_overlaps = (unsigned int *) (s_params + num_types);
 
+    unsigned int ntyppairs = overlap_idx.getNumElements();
     // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
@@ -233,9 +244,17 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                 ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
                 }
             }
+
+        for (unsigned int cur_offset = 0; cur_offset < ntyppairs; cur_offset += block_size)
+            {
+            if (cur_offset + tidx < ntyppairs)
+                {
+                s_check_overlaps[cur_offset + tidx] = d_check_overlaps[cur_offset + tidx];
+                }
+            }
         }
 
-    unsigned int *s_overlap = (unsigned int *)(&s_params[num_types]);
+    unsigned int *s_overlap = (unsigned int *)(&s_check_overlaps[ntyppairs]);
     __shared__ unsigned int s_n_overlap;
 
     if (master)
@@ -247,7 +266,6 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         {
         s_n_overlap = 0;
         }
-
 
     __syncthreads();
 
@@ -307,7 +325,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
                 Scalar4 postype_j = texFetchScalar4(d_postype, free_volume_postype_tex, j);
                 Scalar4 orientation_j = make_scalar4(1,0,0,0);
-                Shape shape_j(quat<Scalar>(orientation_j), s_params[__scalar_as_int(postype_j.w)]);
+                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                Shape shape_j(quat<Scalar>(orientation_j), s_params[typ_j]);
                 if (shape_j.hasOrientation())
                     shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation, free_volume_orientation_tex, j));
 
@@ -323,7 +342,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                     {
                     // circumsphere overlap
                     unsigned int err_count;
-                    if (test_overlap(r_ij, shape_i, shape_j, err_count))
+                    if (s_check_overlaps[overlap_idx(typ_j, type)] && test_overlap(r_ij, shape_i, shape_j, err_count))
                         {
                         atomicAdd(&s_overlap[group],1);
                         break;
@@ -348,7 +367,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
     __syncthreads();
 
-    if (master && group == 0)
+    if (master && group == 0 && s_n_overlap)
         {
         // final tally into global mem
         atomicAdd(d_n_overlap_all, s_n_overlap);
@@ -416,7 +435,8 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         grid.x = 65535;
         }
 
-    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int);
+    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
+        + args.overlap_idx.getNumElements()*sizeof(unsigned int);
 
     gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes>>>(
                                                      args.n_sample,
@@ -439,6 +459,8 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      args.box,
                                                      args.d_n_overlap_all,
                                                      args.ghost_width,
+                                                     args.d_check_overlaps,
+                                                     args.overlap_idx,
                                                      d_params);
 
     return cudaSuccess;

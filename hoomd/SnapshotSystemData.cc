@@ -43,6 +43,8 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
         improper_data.replicate(n,old_n);
     if (has_constraint_data)
         constraint_data.replicate(n,old_n);
+    if (has_pair_data)
+        pair_data.replicate(n,old_n);
     }
 
 template <class Real>
@@ -72,6 +74,7 @@ void export_SnapshotSystemData(py::module& m)
     .def_readonly("dihedrals", &SnapshotSystemData<float>::dihedral_data)
     .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
     .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
+    .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
     .def("replicate", &SnapshotSystemData<float>::replicate)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
@@ -86,6 +89,7 @@ void export_SnapshotSystemData(py::module& m)
     .def_readonly("dihedrals", &SnapshotSystemData<double>::dihedral_data)
     .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
     .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
+    .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)
     .def("replicate", &SnapshotSystemData<double>::replicate)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
