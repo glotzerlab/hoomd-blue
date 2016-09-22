@@ -171,11 +171,11 @@ class charge_pppm_screening_test(unittest.TestCase):
 
         self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.609801173210144, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.6117382645606995, 3)
 
         self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.609801173210144, 5)
+        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.6117382645606995, 3)
 
         pe = log.query('potential_energy')
         self.assertAlmostEqual(pe,-0.4572266042,2)
