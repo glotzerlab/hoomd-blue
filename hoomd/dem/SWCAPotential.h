@@ -61,7 +61,7 @@ class SWCAPotential
          */
         DEVICE inline bool withinCutoff(Real rsq, Real r_cut_sq)
             {
-            return rsq < r_cut_sq;
+            return pow((sqrt(rsq)-m_delta),2) < r_cut_sq;
             }
 
         //! Test if potential needs the diameter
