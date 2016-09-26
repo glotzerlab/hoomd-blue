@@ -46,7 +46,7 @@ namespace hpmc
 
     \ingroup shape
 */
-struct ell_params : aligned_struct
+struct ell_params : param_base
     {
     OverlapReal x;                      //!< x semiaxis of the ellipsoid
     OverlapReal y;                      //!< y semiaxis of the ellipsoid

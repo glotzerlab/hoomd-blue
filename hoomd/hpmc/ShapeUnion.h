@@ -35,7 +35,7 @@ namespace detail
 
 //! Data structure for shape composed of a union of multiple shapes
 template<class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes>
-struct union_params : aligned_struct
+struct union_params : param_base
     {
     typedef GPUTree<max_n_nodes,capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
@@ -44,6 +44,19 @@ struct union_params : aligned_struct
     DEVICE union_params()
         : N(0)
         { }
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param load If true, copy data to pointer, otherwise increment only
+     */
+    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        {
+        tree.load_shared(ptr, load);
+        //mpos.load_shared(ptr, load);
+        //morientation.load_shared(ptr, load);
+        //mparams.load_shared(ptr, load);
+        //moverlap.load_shared(ptr, load);
+        }
 
     #ifndef NVCC
     //! Shape constructor

@@ -57,7 +57,7 @@ const unsigned int MAX_POLY3D_CAPACITY=4;
 //! Data structure for general polytopes
 /*! \ingroup hpmc_data_structs */
 
-struct poly3d_data : aligned_struct
+struct poly3d_data : param_base
     {
     poly3d_verts<MAX_POLY3D_VERTS> verts;                             //!< Holds parameters of convex hull
     unsigned int face_offs[MAX_POLY3D_FACES+1];     //!< Offset of every face in the list of vertices per face
@@ -95,7 +95,7 @@ struct ShapePolyhedron
     typedef detail::GPUTree<detail::MAX_POLY3D_NODES,detail::MAX_POLY3D_CAPACITY> gpu_tree_type;
 
     //! Define the parameter type
-    typedef struct{
+    typedef struct : public param_base {
         detail::poly3d_data data;
         gpu_tree_type tree;
         }

@@ -38,7 +38,7 @@ const unsigned int MAX_POLY2D_VERTS=64;
 
 //! Data structure for polygon vertices
 /*! \ingroup hpmc_data_structs */
-struct poly2d_verts : aligned_struct
+struct poly2d_verts : param_base
     {
     //! Default constructor initializes zero values.
     DEVICE poly2d_verts()

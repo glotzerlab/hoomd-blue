@@ -9,11 +9,12 @@
 #include <algorithm>
 #endif
 
-#undef DEVICE
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 //! A device-side, fixed-size array memory-managed through cudaMallocManaged
@@ -83,27 +84,47 @@ class ManagedArray
             }
 
         //! random access operator
-        DEVICE T& operator[](unsigned int i)
+        HOSTDEVICE T& operator[](unsigned int i)
             {
             return data[i];
             }
 
         //! random access operator (const version)
-        DEVICE const T& operator[](unsigned int i) const
+        HOSTDEVICE const T& operator[](unsigned int i) const
             {
             return data[i];
             }
 
         //! Get pointer to array data
-        DEVICE T * get()
+        HOSTDEVICE T * get()
             {
             return data;
             }
 
         //! Get pointer to array data (const version)
-        DEVICE const T* get() const
+        HOSTDEVICE const T* get() const
             {
             return data;
+            }
+
+        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+            {
+            if (load)
+                {
+                unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+
+                // copy int-wise for better performance
+                for (unsigned int i = 0; i < size_int; i++)
+                    {
+                    ((int *)ptr)[i] = ((int *)data)[i];
+                    }
+
+                // redirect data ptr
+                data = (T *) ptr;
+                }
+
+            // increment pointer
+            ptr += N*sizeof(T);
             }
 
     protected:
@@ -123,7 +144,7 @@ class ManagedArray
         #endif
 
     private:
-        T *data;            //!< Data pointer
-        unsigned int N;     //!< Number of data elements
-        unsigned int managed;       //!< True if we are CUDA managed
+        mutable T *data;       //!< Data pointer
+        unsigned int N;        //!< Number of data elements
+        unsigned int managed;  //!< True if we are CUDA managed
     };

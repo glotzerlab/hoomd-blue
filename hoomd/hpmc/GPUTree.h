@@ -6,12 +6,13 @@
 #ifndef __GPU_TREE_H__
 #define __GPU_TREE_H__
 
-// need to declare these class methods with __device__ qualifiers when building in nvcc
-// DEVICE is __host__ __device__ when included in nvcc and blank when included into the host compiler
+// need to declare these class methods with appropriate qualifiers when building in nvcc
 #ifdef NVCC
 #define DEVICE __device__
+#define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
+#define HOSTDEVICE
 #endif
 
 #ifndef NVCC
@@ -58,6 +59,8 @@ class GPUTree
 
             // allocate
             m_num_nodes = tree.getNumNodes();
+
+            std::cout << m_num_nodes << " nodes " << std::endl;
             m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
             m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);
@@ -189,6 +192,26 @@ class GPUTree
             obb.lengths = m_lengths[idx];
             obb.rotation = m_rotation[idx];
             return obb;
+            }
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param load If true, copy data to pointer, otherwise increment only
+         */
+        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+            {
+            m_center.load_shared(ptr, load);
+            m_lengths.load_shared(ptr, load);
+            m_rotation.load_shared(ptr, load);
+
+            m_level.load_shared(ptr, load);
+            m_isleft.load_shared(ptr, load);
+            m_parent.load_shared(ptr, load);
+            m_rcl.load_shared(ptr, load);
+            m_left.load_shared(ptr, load);
+            m_skip.load_shared(ptr, load);
+
+            m_particles.load_shared(ptr, load);
             }
 
     protected:

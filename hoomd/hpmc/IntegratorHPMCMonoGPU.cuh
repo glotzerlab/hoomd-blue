@@ -163,7 +163,7 @@ cudaError_t gpu_hpmc_excell(unsigned int *d_excell_idx,
                             const unsigned int block_size);
 
 template< class Shape >
-cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *d_params);
+cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *params);
 
 cudaError_t gpu_hpmc_shift(Scalar4 *d_postype,
                            int3 *d_image,
@@ -397,6 +397,12 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                 }
             }
         }
+
+    // initialize extra shared mem
+    char *s_extra = (char *)(s_type_group + n_groups);
+
+    for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
+        s_params[cur_type].load_shared(s_extra, true);
 
     // initialize the shared memory array for communicating overlaps
     if (master && group == 0)
@@ -759,7 +765,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     \ingroup hpmc_kernels
 */
 template< class Shape >
-cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *d_params)
+cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *params)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
@@ -800,11 +806,22 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         group_size--;
         }
 
+    // determine dynamically requested shared memory
+    char *ptr_begin = nullptr;
+    char *ptr =  ptr_begin;
+    for (unsigned int i = 0; i < args.num_types; ++i)
+        {
+        char *begin = ptr;
+        params[i].load_shared(ptr,false);
+        }
+    unsigned int extra_bytes = ptr - ptr_begin;
+
     unsigned int n_groups = block_size / group_size / args.stride;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                                 block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                                 args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
-                                args.overlap_idx.getNumElements() * sizeof(unsigned int);
+                                args.overlap_idx.getNumElements() * sizeof(unsigned int) +
+                                extra_bytes;
 
     if (args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -827,7 +844,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                        block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                        args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
-                       args.overlap_idx.getNumElements() * sizeof(unsigned int);
+                       args.overlap_idx.getNumElements() * sizeof(unsigned int) +
+                       extra_bytes;
         }
 
     // setup the grid to run the kernel
@@ -904,7 +922,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                                                  args.d_active_cell_ptl_idx,
                                                                  args.d_active_cell_accept,
                                                                  args.d_active_cell_move_type_translate,
-                                                                 d_params,
+                                                                 params,
                                                                  block_size);
 
     return cudaSuccess;

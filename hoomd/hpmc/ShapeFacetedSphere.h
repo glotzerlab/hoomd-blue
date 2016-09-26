@@ -52,7 +52,7 @@ const unsigned int MAX_SPHERE_VERTICES = MAX_SPHERE_FACETS*(MAX_SPHERE_FACETS-1)
 
 //! Data structure for intersection planes
 /*! \ingroup hpmc_data_structs */
-struct faceted_sphere_params : aligned_struct
+struct faceted_sphere_params : param_base
     {
     poly3d_verts<MAX_FPOLY3D_VERTS> verts;           //!< Vertices of the polyhedron
     poly3d_verts<MAX_FPOLY3D_VERTS> additional_verts;//!< Vertices of the polyhedron edge-sphere intersection

@@ -37,7 +37,7 @@ namespace detail
 //! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
 /*! \ingroup hpmc_data_structs */
 template<unsigned int max_verts>
-struct poly3d_verts : aligned_struct
+struct poly3d_verts : param_base
 
     {
     //! Default constructor initializes zero values.
