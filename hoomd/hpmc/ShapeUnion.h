@@ -8,6 +8,8 @@
 #include "ShapeSpheropolyhedron.h"
 #include "GPUTree.h"
 
+#include "hoomd/ManagedArray.h"
+
 #ifndef __SHAPE_UNION_H__
 #define __SHAPE_UNION_H__
 
@@ -24,6 +26,7 @@
 #include <iostream>
 #endif
 
+
 namespace hpmc
 {
 
@@ -37,14 +40,31 @@ struct union_params : aligned_struct
     typedef GPUTree<max_n_nodes,capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
 
-    unsigned int N;                          //!< Number of member shapes
-    vec3<Scalar> mpos[max_n_members];        //!< Position vectors of member shapes
-    quat<Scalar> morientation[max_n_members];//!< Orientation of member shapes
-    mparam_type mparams[max_n_members];      //!< Parameters of member shapes
-    unsigned int moverlap[max_n_members];    //!< only check overlaps for which moverlap[i] & moverlap[j] 
-    OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
-    unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
+    //! Default constructor
+    DEVICE union_params()
+        : N(0)
+        { }
+
+    #ifndef NVCC
+    //! Shape constructor
+    union_params(unsigned int _N, bool _managed)
+        : N(_N)
+        {
+        mpos = ManagedArray<vec3<Scalar> >(N,_managed);
+        morientation = ManagedArray<quat<Scalar> >(N,_managed);
+        mparams = ManagedArray<mparam_type>(N,_managed);
+        moverlap = ManagedArray<unsigned int>(N,_managed);
+        }
+    #endif
+
     gpu_tree_type tree;                      //!< OBB tree for constituent shapes
+    ManagedArray<vec3<Scalar> > mpos;         //!< Position vectors of member shapes
+    ManagedArray<quat<Scalar> > morientation; //!< Orientation of member shapes
+    ManagedArray<mparam_type> mparams;        //!< Parameters of member shapes
+    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j] 
+    OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
+    unsigned int N;                           //!< Number of member shapes
+    unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
     } __attribute__((aligned(32)));
 
 } // end namespace detail

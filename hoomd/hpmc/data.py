@@ -265,7 +265,8 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
                             float(sweep_radius),
-                            ignore_statistics);
+                            ignore_statistics,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
     def __init__(self, mc, index):
@@ -370,4 +371,5 @@ class sphere_union_params(_param):
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
                             self.ensure_list(overlap),
-                            ignore_statistics);
+                            ignore_statistics,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());

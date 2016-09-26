@@ -18,6 +18,8 @@
 #include <sstream>
 #endif
 
+#include "hoomd/ManagedArray.h"
+
 namespace hpmc
 {
 
@@ -43,8 +45,9 @@ class GPUTree
         #ifndef NVCC
         //! Constructor
         /*! \param tree OBBTree to construct from
+         *  \param managed True if we use CUDA managed memory
          */
-        GPUTree(const obb_tree_type &tree)
+        GPUTree(const obb_tree_type &tree, bool managed=false)
             {
             if (tree.getNumNodes() >= max_nodes)
                 {
@@ -52,6 +55,19 @@ class GPUTree
                 oss << "GPUTree: Too many nodes (" << tree.getNumNodes() << " > " << max_nodes << ")" << std::endl;
                 throw std::runtime_error(oss.str());
                 }
+
+            // allocate
+            m_num_nodes = tree.getNumNodes();
+            m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
+            m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
+            m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);
+            m_level = ManagedArray<unsigned int>(m_num_nodes,managed);
+            m_isleft = ManagedArray<unsigned int>(m_num_nodes,managed);
+            m_parent = ManagedArray<unsigned int>(m_num_nodes,managed);
+            m_rcl = ManagedArray<unsigned int>(m_num_nodes,managed);
+            m_particles = ManagedArray<int>(m_num_nodes*capacity, managed);
+            m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
+            m_skip = ManagedArray<unsigned int>(m_num_nodes, managed);
 
             // load data from AABTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
@@ -75,7 +91,6 @@ class GPUTree
                         }
                     }
                 }
-            m_num_nodes = tree.getNumNodes();
 
             // update auxillary information for tandem traversal
             updateRCL(0, tree, 0, true, m_num_nodes, 0);
@@ -197,20 +212,21 @@ class GPUTree
         #endif
 
     private:
-        vec3<OverlapReal> m_center[max_nodes];
-        vec3<OverlapReal> m_lengths[max_nodes];
-        rotmat3<OverlapReal> m_rotation[max_nodes];
+        ManagedArray<vec3<OverlapReal> > m_center;
+        ManagedArray<vec3<OverlapReal> > m_lengths;
+        ManagedArray<rotmat3<OverlapReal> > m_rotation;
 
-        unsigned int m_level[max_nodes];              //!< Depth
-        bool m_isleft[max_nodes];                     //!< True if this node is a left node
-        unsigned int m_parent[max_nodes];             //!< Pointer to parent
-        unsigned int m_rcl[max_nodes];                //!< Right child level
+        ManagedArray<unsigned int> m_level;   //!< Depth
+        ManagedArray<unsigned int> m_isleft;  //!< True if this node is a left node
+        ManagedArray<unsigned int> m_parent;  //!< Pointer to parent
+        ManagedArray<unsigned int> m_rcl;     //!< Right child level
 
-        int m_particles[max_nodes*node_capacity];     //!< Stores the nodes' indices
+        ManagedArray<int> m_particles;        //!< Stores the leaf nodes' indices
 
-        unsigned int m_left[max_nodes];               //!< Left nodes
-        unsigned int m_skip[max_nodes];               //!< Skip intervals
-        unsigned int m_num_nodes;                     //!< Number of nodes in the tree
+        ManagedArray<unsigned int> m_left;    //!< Left nodes
+        ManagedArray<unsigned int> m_skip;    //!< Skip intervals
+
+        unsigned int m_num_nodes;             //!< Number of nodes in the tree
     };
 
 //! Test a subtree against a leaf node during a tandem traversal

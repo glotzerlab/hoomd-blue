@@ -151,7 +151,8 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
 
 //! Helper function to build poly3d_data from python
 inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
-                             pybind11::list face_offs, OverlapReal R, bool ignore_stats)
+                             pybind11::list face_offs, OverlapReal R, bool ignore_stats,
+                             std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     if (len(verts) > MAX_POLY3D_VERTS)
         throw std::runtime_error("Too many polyhedron vertices");
@@ -244,7 +245,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
 
     ShapePolyhedron::gpu_tree_type::obb_tree_type tree;
     tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
-    result.tree = ShapePolyhedron::gpu_tree_type(tree);
+    result.tree = ShapePolyhedron::gpu_tree_type(tree, exec_conf->isCUDAEnabled());
     free(obbs);
 
     // set the diameter
@@ -393,11 +394,11 @@ typename ShapeUnion<Shape, max_n_members>::param_type make_union_params(pybind11
                                                 pybind11::list positions,
                                                 pybind11::list orientations,
                                                 pybind11::list overlap,
-                                                bool ignore_stats)
+                                                bool ignore_stats,
+                                                std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    typename ShapeUnion<Shape, max_n_members>::param_type result;
+    typename ShapeUnion<Shape, max_n_members>::param_type result(len(_members), exec_conf->isCUDAEnabled());
 
-    result.N = len(_members);
     if (result.N > max_n_members)
         {
         throw std::runtime_error("Too many constituent particles");
@@ -460,7 +461,7 @@ typename ShapeUnion<Shape, max_n_members>::param_type make_union_params(pybind11
     typename gpu_tree_type::obb_tree_type tree;
     tree.buildTree(obbs, result.N);
     free(obbs);
-    result.tree = gpu_tree_type(tree);
+    result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
 
     return result;
     }

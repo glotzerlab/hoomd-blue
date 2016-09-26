@@ -15,9 +15,7 @@ class managed_allocator
         //! Default constructor
         managed_allocator()
             : m_use_device(false)
-            {
-            std::cout << "Default constructor" << std::endl;
-            }
+            { }
 
         //! Ctor
         managed_allocator(bool use_device)
@@ -25,6 +23,9 @@ class managed_allocator
             { }
 
         using value_type = T;
+        using propagate_on_container_copy_assignment = std::true_type;
+        using propagate_on_container_move_assignment = std::true_type;
+        using propagate_on_container_swap = std::true_type;
 
         value_type *allocate(std::size_t n)
             {
@@ -51,6 +52,33 @@ class managed_allocator
             return result;
             }
 
+        // Static version
+        static value_type *allocate(std::size_t n, bool use_device)
+            {
+            value_type *result = nullptr;
+
+            #ifdef ENABLE_CUDA
+            if (use_device)
+                {
+                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                if (error != cudaSuccess)
+                    {
+                    throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                    }
+                }
+            else
+            #endif
+                {
+                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating aligned memory");
+                    }
+                }
+            return result;
+            }
+
+
         void deallocate(value_type *ptr, std::size_t)
             {
             #ifdef ENABLE_CUDA
@@ -68,6 +96,26 @@ class managed_allocator
                 free(ptr);
                 }
             }
+
+        //! Static version
+        static void deallocate(value_type *ptr, std::size_t, bool use_device)
+            {
+            #ifdef ENABLE_CUDA
+            if (use_device)
+                {
+                cudaError_t error = cudaFree(ptr);
+                if (error != cudaSuccess)
+                    {
+                    throw std::runtime_error("managed_allocator: Error freeing managed memory");
+                    }
+                }
+            else
+            #endif
+                {
+                free(ptr);
+                }
+            }
+
 
         bool usesDevice() const { return m_use_device; };
 
