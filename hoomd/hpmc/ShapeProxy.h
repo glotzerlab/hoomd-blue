@@ -434,13 +434,13 @@ typename ShapeUnion<Shape, max_n_members>::param_type make_union_params(pybind11
         {
         typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
         pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
-        vec3<Scalar> pos = vec3<Scalar>(pybind11::cast<Scalar>(positions_i[0]), pybind11::cast<Scalar>(positions_i[1]), pybind11::cast<Scalar>(positions_i[2]));
+        vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(positions_i[0]), pybind11::cast<OverlapReal>(positions_i[1]), pybind11::cast<OverlapReal>(positions_i[2]));
         pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
-        Scalar s = pybind11::cast<Scalar>(orientations_i[0]);
-        Scalar x = pybind11::cast<Scalar>(orientations_i[1]);
-        Scalar y = pybind11::cast<Scalar>(orientations_i[2]);
-        Scalar z = pybind11::cast<Scalar>(orientations_i[3]);
-        quat<Scalar> orientation(s, vec3<Scalar>(x,y,z));
+        OverlapReal s = pybind11::cast<OverlapReal>(orientations_i[0]);
+        OverlapReal x = pybind11::cast<OverlapReal>(orientations_i[1]);
+        OverlapReal y = pybind11::cast<OverlapReal>(orientations_i[2]);
+        OverlapReal z = pybind11::cast<OverlapReal>(orientations_i[3]);
+        quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
         result.mparams[i] = param;
         result.mpos[i] = pos;
         result.morientation[i] = orientation;

@@ -261,6 +261,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     this->m_tuner_excell_block_size->end();
 
+    // on the first iteration, shape parameters are updated
+    bool first = true;
+
     // loop over cell sets in a shuffled order
     this->m_cell_set_order.shuffle(timestep);
     for (unsigned int i = 0; i < this->m_nselect * particles_per_cell; i++)
@@ -308,13 +311,16 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 group_size,
                                                                 this->m_hasOrientation,
                                                                 this->m_pdata->getMaxN(),
-                                                                this->m_exec_conf->dev_prop),
+                                                                this->m_exec_conf->dev_prop,
+                                                                first),
                                             params.data());
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 
             this->m_tuner_update->end();
+
+            first = false;
             }
         }
 

@@ -455,6 +455,9 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
         unsigned int n_reinsert = 0;
 
+        // on first iteration, synchronize GPU execution stream and update shape parameters
+        bool first = true;
+
         for (unsigned int i = 0; i < this->m_nselect*particles_per_cell; i++)
             {
             // loop over cell sets in a shuffled order
@@ -520,6 +523,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         this->m_hasOrientation,
                         this->m_pdata->getMaxN(),
                         this->m_exec_conf->dev_prop,
+                        first,
                         (lambda_max > 0.0) ? d_active_cell_ptl_idx.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_accept.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_move_type_translate.data : 0),
@@ -529,6 +533,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                     CHECK_CUDA_ERROR();
 
                 this->m_tuner_update->end();
+
+                first = false;
 
                 if (lambda_max > Scalar(0.0))
                     {

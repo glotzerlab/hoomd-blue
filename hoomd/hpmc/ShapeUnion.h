@@ -63,16 +63,16 @@ struct union_params : param_base
     union_params(unsigned int _N, bool _managed)
         : N(_N)
         {
-        mpos = ManagedArray<vec3<Scalar> >(N,_managed);
-        morientation = ManagedArray<quat<Scalar> >(N,_managed);
+        mpos = ManagedArray<vec3<OverlapReal> >(N,_managed);
+        morientation = ManagedArray<quat<OverlapReal> >(N,_managed);
         mparams = ManagedArray<mparam_type>(N,_managed);
         moverlap = ManagedArray<unsigned int>(N,_managed);
         }
     #endif
 
     gpu_tree_type tree;                      //!< OBB tree for constituent shapes
-    ManagedArray<vec3<Scalar> > mpos;         //!< Position vectors of member shapes
-    ManagedArray<quat<Scalar> > morientation; //!< Orientation of member shapes
+    ManagedArray<vec3<OverlapReal> > mpos;         //!< Position vectors of member shapes
+    ManagedArray<quat<OverlapReal> > morientation; //!< Orientation of member shapes
     ManagedArray<mparam_type> mparams;        //!< Parameters of member shapes
     ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j] 
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
@@ -184,7 +184,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
-    vec3<Scalar> r_ab = rotate(conj(b.orientation),vec3<Scalar>(dr));
+    vec3<OverlapReal> r_ab = rotate(conj(quat<OverlapReal>(b.orientation)),vec3<OverlapReal>(dr));
 
     //! Param type of the member shapes
     typedef typename Shape::param_type mparam_type;
@@ -196,9 +196,9 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         if (ishape == -1) break;
 
         const mparam_type& params_i = a.members.mparams[ishape];
-        const quat<Scalar> q_i = conj(b.orientation)*a.orientation * a.members.morientation[ishape];
+        const quat<OverlapReal> q_i = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
         Shape shape_i(q_i, params_i);
-        vec3<Scalar> pos_i(rotate(conj(b.orientation)*a.orientation,a.members.mpos[ishape])-r_ab);
+        vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
         unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
@@ -208,14 +208,14 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             if (jshape == -1) break;
 
             const mparam_type& params_j = b.members.mparams[jshape];
-            const quat<Scalar> q_j = b.members.morientation[jshape];
+            const quat<OverlapReal> q_j = b.members.morientation[jshape];
             Shape shape_j(q_j, params_j);
             unsigned int overlap_j = b.members.moverlap[jshape];
 
             unsigned int err =0;
             if (overlap_i & overlap_j)
                 {
-                vec3<Scalar> r_ij = b.members.mpos[jshape] - pos_i;
+                vec3<OverlapReal> r_ij = b.members.mpos[jshape] - pos_i;
                 if (test_overlap(r_ij, shape_i, shape_j, err))
                     {
                     return true;
