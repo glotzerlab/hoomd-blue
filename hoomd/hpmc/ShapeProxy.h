@@ -505,15 +505,15 @@ public:
     //!Ignore flag for acceptance statistics
     bool getIgnoreStatistics() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return (m_access(h_params.data[m_typeid]).ignore & IGNORE_STATS);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return (m_access(params[m_typeid]).ignore & IGNORE_STATS);
         }
 
     void setIgnoreStatistics(bool stat)
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        if(stat)    m_access(h_params.data[m_typeid]).ignore |= IGNORE_STATS;
-        else        m_access(h_params.data[m_typeid]).ignore &= ~IGNORE_STATS;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        if(stat)    m_access(params[m_typeid]).ignore |= IGNORE_STATS;
+        else        m_access(params[m_typeid]).ignore &= ~IGNORE_STATS;
         }
 
 protected:
@@ -536,8 +536,8 @@ public:
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return OverlapReal(2.0)*m_access(h_params.data[m_typeid]).radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return OverlapReal(2.0)*m_access(params[m_typeid]).radius;
         }
 };
 
@@ -555,20 +555,20 @@ public:
 
     OverlapReal getX()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).x;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).x;
         }
 
     OverlapReal getY()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).y;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).y;
         }
 
     OverlapReal getZ()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).z;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).z;
         }
 };
 
@@ -586,14 +586,14 @@ public:
 
     pybind11::list getVerts() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly2d_verts_to_python(m_access(h_params.data[m_typeid]));
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly2d_verts_to_python(m_access(params[m_typeid]));
         }
 
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).sweep_radius;
         }
 };
 
@@ -612,14 +612,14 @@ public:
 
     pybind11::list getVerts() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]));
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]));
         }
 
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).sweep_radius;
         }
 
 };
@@ -638,16 +638,16 @@ public:
 
     pybind11::list getVerts()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]).verts);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]).verts);
         }
 
     pybind11::list getFaces()
         {
         pybind11::list faces;
         // populate faces.
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         for(size_t i = 0; i < param.n_faces; i++)
             {
             pybind11::list face;
@@ -662,8 +662,8 @@ public:
 
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).verts.sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).verts.sweep_radius;
         }
 };
 
@@ -683,14 +683,14 @@ public:
 
     pybind11::list getVerts()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]).verts);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]).verts);
         }
 
     pybind11::list getNormals()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list normals;
         for(size_t i = 0; i < param.N; i++ ) normals.append(vec3_to_python(param.n[i]));
         return normals;
@@ -698,22 +698,22 @@ public:
 
     pybind11::list getOrigin()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return vec3_to_python(param.origin);
         }
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.diameter;
         }
 
     pybind11::list getOffsets()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list offsets;
         for(size_t i = 0; i < param.N; i++) offsets.append(pybind11::cast<Scalar>(param.offset[i]));
         return offsets;
@@ -736,8 +736,8 @@ public:
 
     pybind11::list getCenters()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list centers;
         for(size_t i = 0; i < param.N; i++) centers.append(vec3_to_python(param.center[i]));
         return centers;
@@ -745,8 +745,8 @@ public:
 
     pybind11::list getDiameters()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list diams;
         for(size_t i = 0; i < param.N; i++) diams.append(pybind11::cast<Scalar>(param.diameter[i]));
         return diams;
@@ -754,8 +754,8 @@ public:
 
     OverlapReal getCircumsphereDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.circumsphereDiameter;
         }
 };
@@ -805,8 +805,8 @@ public:
         {}
     pybind11::list getPositions()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list pos;
         for(size_t i = 0; i < param.N; i++) pos.append(vec3_to_python(param.mpos[i]));
         return pos;
@@ -814,8 +814,8 @@ public:
 
     pybind11::list getOrientations()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         pybind11::list orient;
         for(size_t i = 0; i < param.N; i++)
             orient.append(quat_to_python(param.morientation[i]));
@@ -824,8 +824,8 @@ public:
 
     std::vector< std::shared_ptr< proxy_type > > getMembers()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         std::vector< std::shared_ptr< proxy_type > > members;
         for(size_t i = 0; i < param.N; i++)
             {
@@ -839,8 +839,8 @@ public:
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.diameter;
         }
 };

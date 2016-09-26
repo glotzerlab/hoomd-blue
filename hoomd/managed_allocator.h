@@ -1,0 +1,89 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+//! Class to perform cudaMallocManaged allocations
+//! Adapted from github.com/jaredhoberock/managed_allocator
+
+#pragma once
+
+#include <cuda_runtime.h>
+
+template<class T>
+class managed_allocator
+    {
+    public:
+        //! Default constructor
+        managed_allocator()
+            : m_use_device(false)
+            {
+            std::cout << "Default constructor" << std::endl;
+            }
+
+        //! Ctor
+        managed_allocator(bool use_device)
+            : m_use_device(use_device)
+            { }
+
+        using value_type = T;
+
+        value_type *allocate(std::size_t n)
+            {
+            value_type *result = nullptr;
+
+            #ifdef ENABLE_CUDA
+            if (m_use_device)
+                {
+                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                if (error != cudaSuccess)
+                    {
+                    throw std::runtime_error("managed_allocator: Error allocating managed memory");
+                    }
+                }
+            else
+            #endif
+                {
+                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating aligned memory");
+                    }
+                }
+            return result;
+            }
+
+        void deallocate(value_type *ptr, std::size_t)
+            {
+            #ifdef ENABLE_CUDA
+            if (m_use_device)
+                {
+                cudaError_t error = cudaFree(ptr);
+                if (error != cudaSuccess)
+                    {
+                    throw std::runtime_error("managed_allocator: Error freeing managed memory");
+                    }
+                }
+            else
+            #endif
+                {
+                free(ptr);
+                }
+            }
+
+        bool usesDevice() const { return m_use_device; };
+
+    private:
+        bool m_use_device; //!< Whether to use cudaMallocManaged
+    };
+
+template<class T, class U>
+bool operator==(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs)
+    {
+    return lhs.usesDevice() == rhs.usesDevice();
+    }
+
+template<class T, class U>
+bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs)
+    {
+    return lhs.usesDevice() != rhs.usesDevice();
+    }
+
