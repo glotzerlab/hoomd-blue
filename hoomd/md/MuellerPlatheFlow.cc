@@ -66,7 +66,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
     if( m_needs_orthorhombic_check)
         this->verify_orthorhombic_box();
 
-    const BoxDim&box= m_pdata->getBox();
+    const BoxDim&box= m_pdata->getGlobalBox();
     double area=1.; //Init to shut up compiler warning
     switch(m_slab_direction)
       {
@@ -329,7 +329,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
 void MuellerPlatheFlow::verify_orthorhombic_box(void) throw(runtime_error)
     {
     bool valid = true;
-    const BoxDim box = m_pdata->getBox();
+    const BoxDim box = m_pdata->getGlobalBox();
     valid &= fabs(box.getTiltFactorXY()) < 1e-7;
     valid &= fabs(box.getTiltFactorXZ()) < 1e-7;
     valid &= fabs(box.getTiltFactorYZ()) < 1e-7;
