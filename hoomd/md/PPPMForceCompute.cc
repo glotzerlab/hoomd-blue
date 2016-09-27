@@ -402,7 +402,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar r_buff = m_nlist->getRBuff();
+        Scalar r_buff = m_nlist->getRBuff()/2.0;
 
         const BoxDim& box = m_pdata->getBox();
         Scalar3 cell_width = box.getNearestPlaneDistance() /
@@ -764,6 +764,11 @@ void PPPMForceCompute::assignParticles()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -779,10 +784,6 @@ void PPPMForceCompute::assignParticles()
             // ignore, error will be thrown elsewhere (in CellList)
             continue;
             }
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
@@ -1044,6 +1045,10 @@ void PPPMForceCompute::interpolateForces()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -1061,10 +1066,6 @@ void PPPMForceCompute::interpolateForces()
             }
 
         Scalar3 force = make_scalar3(0.0,0.0,0.0);
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
@@ -1364,6 +1365,9 @@ void PPPMForceCompute::fixExclusions()
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
+
+    // reset force for ALL particles
+    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
 
     ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
