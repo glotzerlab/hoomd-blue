@@ -943,6 +943,12 @@ class ewald(pair):
 
         return _hoomd.make_scalar2(kappa, alpha)
 
+    def set_params(self, coeff):
+        """ :py:class:`ewald` has no energy shift modes """
+
+        raise RuntimeError('Not implemented for DPD Conservative');
+        return;
+
 def _table_eval(r, rmin, rmax, V, F, width):
     dr = (rmax - rmin) / float(width-1);
     i = int(round((r - rmin)/dr))
@@ -1509,9 +1515,9 @@ class dpd_conservative(pair):
         gamma = 0;
         return _hoomd.make_scalar2(a, gamma);
 
-    ## Not implemented for dpd_conservative
-    #
     def set_params(self, coeff):
+        """ :py:class:`dpd_conservative` has no energy shift modes """
+
         raise RuntimeError('Not implemented for DPD Conservative');
         return;
 
@@ -1917,6 +1923,12 @@ class zbl(pair):
         else:
             aF = 1.0;
         return _hoomd.make_scalar2(Zsq, aF);
+
+    def set_params(self, coeff):
+        """ :py:class:`ZBL` has no energy shift modes """
+
+        raise RuntimeError('Not implemented for DPD Conservative');
+        return;
 
 class tersoff(pair):
     R""" Tersoff Potential.
