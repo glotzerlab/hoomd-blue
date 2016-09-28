@@ -11,6 +11,7 @@ Not yet released
 * charge.pppm() computed invalid forces
 * Fix a bug where PPPM interactions on CPU where not computed correctly
 * Fix dpd and dpdlj set_params
+* Fix diameter handling in DEM shifted WCA potential
 
 ## v2.0.3
 
