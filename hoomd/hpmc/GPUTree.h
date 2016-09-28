@@ -78,7 +78,7 @@ class GPUTree
             m_num_nodes = tree.getNumNodes();
 
             // update auxillary information for tandem traversal
-            updateRCL(0, tree, 0, true, 0, 0);
+            updateRCL(0, tree, 0, true, m_num_nodes, 0);
             }
         #endif
 
