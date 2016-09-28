@@ -1409,7 +1409,7 @@ class dpd(pair):
         # change the parameters
         if kT is not None:
             # setup the variant inputs
-            kT = variant._setup_variant_input(kT);
+            kT = hoomd.variant._setup_variant_input(kT);
             self.cpp_force.setT(kT.cpp_variant);
 
     def process_coeff(self, coeff):
@@ -1632,7 +1632,7 @@ class dpdlj(pair):
 
         # set the temperature
         # setup the variant inputs
-        kT = variant._setup_variant_input(kT);
+        kT = hoomd.variant._setup_variant_input(kT);
         self.cpp_force.setT(kT.cpp_variant);
 
     def set_params(self, kT=None, mode=None):
