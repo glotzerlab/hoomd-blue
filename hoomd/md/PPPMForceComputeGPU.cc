@@ -572,10 +572,16 @@ Scalar PPPMForceComputeGPU::computePE()
 
     if (m_exec_conf->getRank()==0)
         {
-        // add correction on rank 0
-        sum -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
-        sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
+        // subtract self-energy on rank 0 (see Frenkel and Smit, and Salin and Caillol)
+        sum -= m_q2 * (m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
+            - Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
+
+        // k = 0 term already accounted for by exclude_dc
+        //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
+
+    // apply rigid body correction
+    sum += m_body_energy;
 
     // store this rank's contribution as external potential energy
     m_external_energy = sum;
@@ -635,6 +641,7 @@ void PPPMForceComputeGPU::computeInfluenceFunction()
                                    pdim,
                                    EPS_HOC,
                                    m_kappa,
+                                   m_alpha,
                                    d_gf_b.data,
                                    m_order,
                                    block_size);
@@ -653,8 +660,8 @@ void PPPMForceComputeGPU::fixExclusions()
 
     ArrayHandle<unsigned int> d_exlist(m_nlist->getExListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_n_ex(m_nlist->getNExArray(), access_location::device, access_mode::read);
-    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::readwrite);
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
 
@@ -674,6 +681,7 @@ void PPPMForceComputeGPU::fixExclusions()
                    d_exlist.data,
                    nex,
                    m_kappa,
+                   m_alpha,
                    d_index_array.data,
                    group_size,
                    m_block_size,

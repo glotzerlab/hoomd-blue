@@ -210,6 +210,8 @@ static void kf_bfly_generic(
 
     kiss_fft_cpx * scratch = (kiss_fft_cpx*)KISS_FFT_TMP_ALLOC(sizeof(kiss_fft_cpx)*p);
 
+    // see http://sourceforge.net/p/kissfft/bugs/9/
+    #pragma omp critical
     for ( u=0; u<m; ++u ) {
         k=u;
         for ( q1=0 ; q1<p ; ++q1 ) {
@@ -252,7 +254,9 @@ void kf_work(
 #ifdef _OPENMP
     // use openmp extensions at the 
     // top-level (not recursive)
-    if (fstride==1 && p<=5)
+//    if (fstride==1 && p<=5)
+//  see http://sourceforge.net/p/kissfft/bugs/10/
+    if (fstride==1 && p<=5 && m!=1)
     {
         int k;
 

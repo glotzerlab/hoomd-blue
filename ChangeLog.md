@@ -19,6 +19,8 @@ Not yet released
 * add special_pair.lj() to support scaled 1-4 (or other) exclusions in all-atom force fields
 * md.update.mueller_plathe_flow(): Method to create shear flows in MD simulations.
 * `use_charge` option for pair.reaction_field
+* md.charge.pppm() takes a Debye screening length as an optional parameter
+* md.charge.pppm() now computes the rigid body correction to the PPPM energy
 
 *Deprecated*
 
@@ -35,10 +37,11 @@ Not yet released
 * Optimized dense depletant simulations with HPMC on CPU
 
 *Bug fixes*
-
+* fix invalid mesh energy in non-neutral systems with charge.pppm()
 * Fix invalid forces in simulations with many bond types (on GPU)
 * fix rare cases where analyze.log() would report a wrong pressure
 * fix possible illegal memory access when using constrain.rigid() in GPU MPI simulations
+* fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 
 ## v2.0.4
 
