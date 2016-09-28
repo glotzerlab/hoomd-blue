@@ -10,6 +10,7 @@ Not yet released
 * Fix a bug where the potential energy is misreported on the first step with constrain.rigid()
 * charge.pppm() computed invalid forces
 * Fix a bug where PPPM interactions on CPU where not computed correctly
+* Fix dpd and dpdlj set_params
 
 ## v2.0.3
 
