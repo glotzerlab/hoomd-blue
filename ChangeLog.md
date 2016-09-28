@@ -2,7 +2,7 @@
 
 [TOC]
 
-# v2.1.0
+## v2.1.0
 
 Not yet released
 
