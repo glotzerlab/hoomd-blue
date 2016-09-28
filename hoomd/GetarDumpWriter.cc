@@ -879,6 +879,22 @@ namespace getardump{
             }
         }
 
+    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, int timestep)
+        {
+        bool dynamic(timestep >= 0);
+        gtar::Record rec("", name, "", gtar::Constant, gtar::UInt8, gtar::Text);
+
+        if(dynamic)
+            {
+            std::ostringstream conv;
+            conv << timestep;
+
+            rec = gtar::Record("", name, conv.str(), gtar::Discrete, gtar::UInt8, gtar::Text);
+            }
+
+        m_archive->writeString(rec.getPath(), contents, gtar::FastCompress);
+        }
+
     void export_GetarDumpWriter(py::module& m)
         {
         py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter", py::base<Analyzer>())
@@ -887,6 +903,7 @@ namespace getardump{
             .def("getPeriod", &GetarDumpWriter::getPeriod)
             .def("setPeriod", &GetarDumpWriter::setPeriod)
             .def("removeDump", &GetarDumpWriter::removeDump)
+            .def("writeStr", &GetarDumpWriter::writeStr)
         ;
 
 

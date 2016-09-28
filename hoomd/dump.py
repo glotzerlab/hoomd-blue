@@ -11,6 +11,7 @@ each command writes.
 from collections import namedtuple;
 from hoomd import _hoomd
 import hoomd;
+import json;
 import os;
 import sys;
 
@@ -380,6 +381,14 @@ class getar(hoomd.analyze._analyzer):
 
         if _register:
             self.setupAnalyzer(self.cpp_analyzer.getPeriod());
+
+    def writeJSON(self, name, contents, dynamic=True):
+        if dynamic:
+            timestep = hoomd.context.current.system.getCurrentTimeStep()
+        else:
+            timestep = -1
+
+        self.cpp_analyzer.writeStr(name, json.dumps(contents), timestep)
 
     @classmethod
     def simple(cls, filename, period, mode='w', static=[], dynamic=[], high_precision=False):
