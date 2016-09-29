@@ -327,6 +327,45 @@ class mode_hpmc(_integrator):
             shapedef = self.format_param_pos(self.shape_param[type_list[i]]);
             pos.set_def(type_list[i], shapedef + ' ' + color)
 
+    def get_type_shapes(self):
+        """ Get all the types of shapes in the current simulation
+        Returns:
+            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.shape_param.get(typename)
+            dim = hoomd.context.current.system_definition.getNDimensions()
+            # Currently can't trivially pull the radius for nonspherical shapes
+            if isinstance(self, convex_polygon) or isinstance(self, simple_polygon):
+                result.append(dict(type='Polygon',
+                                       rounding_radius=0,
+                                       vertices=shape.vertices))
+            elif isinstance(self, convex_polyhedron):
+                result.append(dict(type='ConvexPolyhedron',
+                                       rounding_radius=0,
+                                       vertices=shape.vertices))
+            elif isinstance(self, convex_spheropolyhedron):
+                result.append(dict(type='ConvexPolyhedron',
+                                       rounding_radius=shape.sweep_radius,
+                                       vertices=shape.vertices))
+            elif isinstance(self, sphere):
+                # Need to add logic to figure out whether this is 2D or not
+                if dim == 3:
+                    result.append(dict(type='Sphere',
+                                       diameter=shape.diameter))
+                else:
+                    result.append(dict(type='Disk',
+                                       diameter=shape.diameter))
+            else:
+                raise NotImplementedError("You are using a shape type that is not implemented! If you want it, please modify the hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function")
+
+        return result
+
     def initialize_shape_params(self):
         shape_param_type = None;
         # have to have a few extra checks becuase the sized class don't actually exist yet.
