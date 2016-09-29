@@ -54,7 +54,7 @@ class basic(unittest.TestCase):
         system = hoomd.init.read_snapshot(snap);
         nl = hoomd.md.nlist.cell();
 
-        potential = hoomd.dem.pair.SWCA(nlist=nl, radius=.8)
+        potential = hoomd.dem.pair.WCA(nlist=nl, radius=.8)
 
         potential.setParams('A', [[1, 0], [0, 1], [-1, -1]], center=False);
         potential.setParams('B', [(0, 0)], center=False);
@@ -79,7 +79,7 @@ class basic(unittest.TestCase):
         system = hoomd.init.read_snapshot(snap);
         nl = hoomd.md.nlist.cell();
 
-        potential = hoomd.dem.pair.SWCA(nlist=nl, radius=.8)
+        potential = hoomd.dem.pair.WCA(nlist=nl, radius=.8)
 
         potential.setParams('A', [[1, 0, 0], [0, 1, 0], [-1, -1, 0]], [[0, 1, 2]],
                             center=False);
