@@ -150,6 +150,30 @@ class getar(hoomd.analyze._analyzer):
        "viz_aniso_dynamic", "viz_dynamic, orientation"
        "viz_aniso_all", "viz_static, viz_aniso_dynamic"
 
+    **Particle-related metadata**
+
+    Metadata about particle shape (for later visualization or use in
+    restartable scripts) can be stored in a simple form through
+    :py:func:`hoomd.dump.getar.writeJSON`, which encodes JSON records
+    as strings and stores them inside the dump file. Currently,
+    classes inside :py:mod:`hoomd.dem` and :py:mod:`hoomd.hpmc` are
+    equipped with `get_type_shapes()` methods which can provide
+    per-particle-type shape information as a list.
+
+    Example::
+
+        dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+            static=['viz_static'],
+            dynamic=['viz_aniso_dynamic'])
+
+        dem_wca = hoomd.dem.WCA(nlist, radius=0.5)
+        dem_wca.setParams('A', vertices=vertices, faces=faces)
+        dump.writeJSON('type_shapes.json', dem_wca.get_type_shapes())
+
+        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
+        dump.writeJSON('type_shapes.json', mc.get_type_shapes(), dynamic=True)
+
     """
 
     class DumpProp(namedtuple('DumpProp', ['name', 'highPrecision', 'compression'])):
@@ -383,6 +407,23 @@ class getar(hoomd.analyze._analyzer):
             self.setupAnalyzer(self.cpp_analyzer.getPeriod());
 
     def writeJSON(self, name, contents, dynamic=True):
+        """Encodes the given JSON-encodable object as a string and writes it
+        (immediately) as a quantity with the given name. If dynamic is
+        True, writes the record as a dynamic record with the current
+        timestep.
+
+        Args:
+            name (str): Name of the record to save
+            contents (JSON): Any datatype encodable by the :py:mod:`json` module
+            dynamic (bool): If True, dump a dynamic quantity with the current timestep; otherwise, dump a static quantity
+
+        Example::
+
+            dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+                static=['viz_static'], dynamic=['viz_dynamic'])
+            dump.writeJSON('params.json', dict(temperature=temperature, pressure=pressure))
+            dump.writeJSON('metadata.json', hoomd.meta.dump_metadata())
+        """
         if dynamic:
             timestep = hoomd.context.current.system.getCurrentTimeStep()
         else:
