@@ -721,11 +721,11 @@ class sphere(mode_hpmc):
         result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        dim = hoomd.context.current.system_definition.getNDimensions()
 
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
             # Need to add logic to figure out whether this is 2D or not
             if dim == 3:
                 result.append(dict(type='Sphere',
