@@ -34,14 +34,6 @@ class pair_ewald_tests (unittest.TestCase):
         ewald = md.pair.ewald(r_cut=3.0, nlist = self.nl);
         self.assertRaises(RuntimeError, ewald.update_coeffs);
 
-    # test set params
-    def test_set_params(self):
-        ewald = md.pair.ewald(r_cut=3.0, nlist = self.nl);
-        ewald.set_params(mode="no_shift");
-        ewald.set_params(mode="shift");
-        ewald.set_params(mode="xplor");
-        self.assertRaises(RuntimeError, ewald.set_params, mode="blah");
-
     # test nlist subscribe
     def test_nlist_subscribe(self):
         ewald = md.pair.ewald(r_cut=2.5, nlist = self.nl);
@@ -76,7 +68,6 @@ class test_pair_reaction_field_potential(unittest.TestCase):
 
         # basic test case
         ewald.pair_coeff.set('A','A', kappa=1.3, alpha=0.7)
-        ewald.set_params(mode="no_shift")
 
         md.integrate.mode_standard(dt=0)
         nve = md.integrate.nve(group = group.all())
