@@ -254,15 +254,6 @@ namespace getardump{
             /// Called every timestep
             void analyze(unsigned int timestep);
 
-            /// Write any GetarDumpDescription for the given timestep
-            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
-            /// Write an individual GetarDumpDescription for the given timestep
-            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
-            /// Write a uniform GetarDumpDescription for the given timestep
-            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
-            /// Write a text GetarDumpDescription for the given timestep
-            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
-
             /// Calculate the correct period for all of the properties
             /// activated on this analyzer
             unsigned int getPeriod() const;
@@ -275,7 +266,21 @@ namespace getardump{
             void removeDump(Property prop, gtar::Resolution res, gtar::Behavior behavior,
                 bool highPrecision);
 
+            /// Write a quantity with the given name using the given
+            /// string, as a dynamic property with the given timestep
+            /// (timesteps <0 indicate to dump a static quantity)
+            void writeStr(const std::string &name, const std::string &contents, int timestep);
+
         private:
+            /// Write any GetarDumpDescription for the given timestep
+            void write(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            /// Write an individual GetarDumpDescription for the given timestep
+            void writeIndividual(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            /// Write a uniform GetarDumpDescription for the given timestep
+            void writeUniform(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+            /// Write a text GetarDumpDescription for the given timestep
+            void writeText(gtar::GTAR::BulkWriter &writer, const GetarDumpDescription &desc, unsigned int timestep);
+
             /// File archive interface
             std::shared_ptr<gtar::GTAR> m_archive;
             /// Stored properties to dump
