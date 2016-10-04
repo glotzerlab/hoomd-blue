@@ -16,7 +16,7 @@ class param_dict(dict):
     Parameters are specified per particle type. Every HPMC integrator has a member shape_param that can read and
     set parameters of the shapes.
 
-    :py:class:`shape_param` can be used as a dictionary to access parameters by type. You can read individual parameters
+    :py:class:`param_dict` can be used as a dictionary to access parameters by type. You can read individual parameters
     or set parameters with :py:meth:`set`.
 
     Example::

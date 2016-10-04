@@ -128,7 +128,7 @@ class coeff:
         these coefficients for, see the corresponding documentation.
 
         All possible type pairs as defined in the simulation box must be specified before
-        executing :py:class:`run()`. You will receive an error if you fail to do so. It is not an error,
+        executing :py:class:`hoomd.run()`. You will receive an error if you fail to do so. It is not an error,
         however, to specify coefficients for particle types that do not exist in the simulation.
         This can be useful in defining a force field for many different types of particles even
         when some simulations only include a subset.
@@ -335,7 +335,7 @@ class pair(force._force):
     :math:`r_{\mathrm{cut}}` for those pairs that interact via WCA in order to enable shifting of the WCA potential
     to 0 at the cuttoff.
 
-    The following coefficients must be set per unique pair of particle types. See :py:mod:`hoomd.pair` for information
+    The following coefficients must be set per unique pair of particle types. See :py:mod:`hoomd.md.pair` for information
     on how to set coefficients:
 
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
@@ -508,8 +508,8 @@ class pair(force._force):
         R""" Compute the energy between two sets of particles.
 
         Args:
-            tags1 (ndarray<int32>): a numpy array of particle tags in the first group
-            tags2 (ndarray<int32>): a numpy array of particle tags in the second group
+            tags1 (``ndarray<int32>``): a numpy array of particle tags in the first group
+            tags2 (``ndarray<int32>``): a numpy array of particle tags in the second group
 
         .. math::
 
@@ -885,7 +885,7 @@ class ewald(pair):
                             = & 0 & r \ge r_{\mathrm{cut}} \\
         \end{eqnarray*}
 
-    The Ewald potential is designed to be used in conjunction with :py:class:`charge.pppm`.
+    The Ewald potential is designed to be used in conjunction with :py:class:`hoomd.md.charge.pppm`.
 
     See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
@@ -1925,7 +1925,7 @@ class zbl(pair):
         return _hoomd.make_scalar2(Zsq, aF);
 
     def set_params(self, coeff):
-        """ :py:class:`ZBL` has no energy shift modes """
+        """ :py:class:`zbl` has no energy shift modes """
 
         raise RuntimeError('Not implemented for DPD Conservative');
         return;

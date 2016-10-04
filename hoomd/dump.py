@@ -85,6 +85,7 @@ class dcd(hoomd.analyze._analyzer):
         self.metadata_fields = ['filename','period','group']
 
     def enable(self):
+        """ The DCD dump writer cannot be re-enabled """
         hoomd.util.print_status_line();
 
         if self.enabled == False:
@@ -511,9 +512,9 @@ class gsd(hoomd.analyze._analyzer):
     To save on space, GSD does not write values that are all set at defaults. So if
     all masses are left set at the default of 1.0, mass will not take up any space in
     the file. To save even more on space, flag fields as static (the default) and
-    dump.gsd will only write them out to frame 0. When reading data from frame *i*,
+    :py:class:`gsd` will only write them out to frame 0. When reading data from frame *i*,
     any data field not present will be read from frame 0. This makes every single frame
-    of a GSD file fully specified and simulations initialized with init.read_gsd() can
+    of a GSD file fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can
     select any frame of the file.
 
     The **static** option applies to groups of fields:
@@ -552,14 +553,14 @@ class gsd(hoomd.analyze._analyzer):
     See https://bitbucket.org/glotzer/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
 
     If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    specifying a group to write out. :py:class:`dump.gsd` will write out all of the particles in the group in ascending
-    tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.gsd` will not write the topology fields.
+    specifying a group to write out. :py:class:`gsd` will write out all of the particles in the group in ascending
+    tag order. When the group is not :py:func:`hoomd.group.all()`, :py:class:`gsd` will not write the topology fields.
 
-    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`dump.gsd` to write a new frame 0
+    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`gsd` to write a new frame 0
     to the file every period steps.
 
-    dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
-    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`dump.gsd` writes dynamic quantities to every frame.
+    :py:class:`gsd` writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
+    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`gsd` writes dynamic quantities to every frame.
     The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
     In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
     save that information in a trajectory for later access. Particle momentum are always changing, but the default is

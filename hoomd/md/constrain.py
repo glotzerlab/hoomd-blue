@@ -168,7 +168,7 @@ class sphere(_constraint_force):
 
     :py:class:`sphere` specifies that forces will be applied to all particles in the given group to constrain
     them to a sphere. Currently does not work with Brownian or Langevin dynamics (:py:class:`hoomd.md.integrate.brownian`
-    and :py:class:`integrate.langevin`).
+    and :py:class:`hoomd.md.integrate.langevin`).
 
     Example::
 
@@ -424,10 +424,10 @@ class oneD(_constraint_force):
 
     Args:
         group (:py:mod:`hoomd.group`): Group on which to apply the constraint.
-        constraint_vector (List): [x,y,z] list indicating the direction that the particles are restricted to
+        constraint_vector (list): [x,y,z] list indicating the direction that the particles are restricted to
 
     :py:class:`oneD` specifies that forces will be applied to all particles in the given group to constrain
-    them to only move along a given vector. 
+    them to only move along a given vector.
 
     Example::
 
@@ -436,7 +436,7 @@ class oneD(_constraint_force):
     .. versionadded:: 2.1
     """
     def __init__(self, group, constraint_vector=[0,0,1]):
-        
+
         if (constraint_vector[0]**2 + constraint_vector[1]**2 + constraint_vector[2]**2) < 1e-10:
             raise RuntimeError("The one dimension constraint vector is zero");
 

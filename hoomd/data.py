@@ -728,7 +728,7 @@ class system_data(hoomd.meta._metadata):
         particles (:py:class:`hoomd.data.particle_data_proxy`)
         bonds (:py:class:`hoomd.data.bond_data_proxy`)
         angles (:py:class:`hoomd.data.angle_data_proxy`)
-        diehdrals (:py:class:`hoomd.data.diehdral_data_proxy`)
+        diehdrals (:py:class:`hoomd.data.dihedral_data_proxy`)
         impropers (:py:class:`hoomd.data.dihedral_data_proxy`)
         constraint (:py:class:`hoomd.data.constraint_data_proxy`)
         pairs (:py:class:`hoomd.data.bond_data_proxy`)

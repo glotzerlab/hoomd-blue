@@ -95,7 +95,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         profile limit_hours (float): If not None, limit this run to a given number of hours.
         limit_multiple (int): When stopping the run due to walltime limits, only stop when the time step is a
                               multiple of limit_multiple.
-        callback (python callable): Sets a Python function to be called regularly during a run.
+        callback (callable): Sets a Python function to be called regularly during a run.
         callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
         quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
@@ -204,11 +204,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 def run_upto(step, **keywords):
     """Runs the simulation up to a given time step number.
 
-
     Args:
 
         step (int): Final time step of the simulation which to run
-        keywords (see below): Catch for all keyword arguments to pass on to :py:func:`run()`
+        keywords: Catch for all keyword arguments to pass on to :py:func:`run()`
 
     :py:func:`run_upto()` runs the simulation, but only until it reaches the given time step. If the simulation has already
     reached the specified step, a message is printed and no simulation steps are run.
