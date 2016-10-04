@@ -24,7 +24,7 @@ import platform;
 # Returns True if a previous init.create* or init.read* command has completed successfully and initialized the system.
 # Returns False otherwise.
 def is_initialized():
-    if hoomd.context.current.system is None:
+    if hoomd.context.current is None or hoomd.context.current.system is None:
         return False;
     else:
         return True;

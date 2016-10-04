@@ -25,7 +25,13 @@ CLOCK_START = time.clock()
 # \note This is initialized to a default messenger on load so that python code may have a unified path for sending
 # messages
 msg = _hoomd.Messenger();
-msg.openPython();
+
+# only use python stdout/stderr in non-mpi runs
+if not (  'OMPI_COMM_WORLD_RANK' in os.environ
+        or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
+        or 'PMI_RANK' in os.environ
+        or 'ALPS_APP_PE' in os.environ):
+    msg.openPython();
 
 ## Global bibliography
 bib = None;
