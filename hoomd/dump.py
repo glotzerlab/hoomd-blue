@@ -415,7 +415,7 @@ class getar(hoomd.analyze._analyzer):
 
         Args:
             name (str): Name of the record to save
-            contents (JSON): Any datatype encodable by the :py:mod:`json` module
+            contents (str): Any datatype encodable by the :py:mod:`json` module
             dynamic (bool): If True, dump a dynamic quantity with the current timestep; otherwise, dump a static quantity
 
         Example::
