@@ -462,15 +462,18 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
     Scalar m_k;
+    Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
     ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
     {
         (*m_reference_shape) = shape;
+        detail::mass_properties<Shape> mp(*m_reference_shape);
+        m_volume = mp.getVolume();
     }
 };
 
-template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {/* Empty base template will fail on export to python. */ };
+/*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };
 
 template <>
 class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
@@ -486,30 +489,25 @@ public:
         Scalar x_old = shape_old.x/shape_old.y;
         return m_k*(log(x_old)*log(x_old) - log(x_new)*log(x_new)); // -\beta dH
         }
-};
+};*/
 
-template<unsigned int max_verts>
-class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >
+template<class Shape>
+class ShapeSpring : public ShapeSpringBase< Shape >
 {
-    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
-    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_reference_shape;
+    using ShapeSpringBase< Shape >::m_k;
+    using ShapeSpringBase< Shape >::m_reference_shape;
+    using ShapeSpringBase< Shape >::m_volume;
 public:
-    ShapeSpring(Scalar k, typename ShapeConvexPolyhedron<max_verts>::param_type ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
+    ShapeSpring(Scalar k, typename Shape::param_type ref ) : ShapeSpringBase< Shape  >(k, ref)
         {
         }
-    Scalar operator()(const unsigned int& N, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
+    Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<max_verts> > fn;
-        Scalar U_old = 0.0, U_new = 0.0;
-        for(unsigned int i = 0; i < m_reference_shape->N; i++)
-            {
-            vec3<Scalar> v_old(shape_old.x[i], shape_old.y[i], shape_old.z[i]), v_new(shape_new.x[i], shape_new.y[i], shape_new.z[i]), v_ref(m_reference_shape->x[i], m_reference_shape->y[i], m_reference_shape->z[i]), dro, drn;
-            dro = v_old - v_ref;
-            drn = v_new - v_ref;
-            U_old += m_k*dot(dro, dro);
-            U_new += m_k*dot(drn, drn);
-            }
-        return (U_old - U_new) + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
+        AlchemyLogBoltzmannFunction< Shape > fn;
+        Scalar dv;
+        detail::mass_properties<Shape> mp(shape_new);
+        dv = mp.getVolume()-m_volume;
+        return (m_k*(dv*dv) ) + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
