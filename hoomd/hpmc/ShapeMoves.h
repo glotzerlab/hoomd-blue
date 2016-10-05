@@ -439,6 +439,7 @@ public:
           Matrix3f F(3,3), Fbar(3,3);
           Matrix3f eps(3,3), E(3,3);
           
+          // TODO: Define I as global?        
           I << 1.0, 0.0, 0.0,
                0.0, 1.0, 0.0,
                0.0, 0.0, 1.0;  
@@ -448,9 +449,9 @@ public:
             for (int j=0;j<3;j++)
             {
               alpha(i,j) =  rng.s(-a_max, a_max);;
-              //F(i,j) = I(i,j) + alpha(i,j); 
             }
           }
+
         F = I + alpha;
         Fbar = F / pow(F.determinant(),1.0/3.0);
         eps = 0.5*(Fbar.transpose() + Fbar) - I ; 
@@ -458,9 +459,9 @@ public:
 
         for(unsigned int i = 0; i < param.N; i++)
             {
-            param.x[i] = F(1,1)*param.x[i] + F(1,2)*param.y[i] + F(1,3)*param.z[i];
-            param.y[i] = F(2,1)*param.x[i] + F(1,2)*param.y[i] + F(2,3)*param.z[i];
-            param.z[i] = F(3,1)*param.x[i] + F(3,2)*param.y[i] + F(3,3)*param.z[i];
+            param.x[i] = Fbar(1,1)*param.x[i] + Fbar(1,2)*param.y[i] + Fbar(1,3)*param.z[i];
+            param.y[i] = Fbar(2,1)*param.x[i] + Fbar(2,2)*param.y[i] + Fbar(2,3)*param.z[i];
+            param.z[i] = Fbar(3,1)*param.x[i] + Fbar(3,2)*param.y[i] + Fbar(3,3)*param.z[i];
 
             vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
             //dsq = fmax(dsq, dot(vert, vert));
@@ -542,12 +543,25 @@ public:
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
+          using Eigen::Matrix3f;
+        
+          AlchemyLogBoltzmannFunction< Shape > fn;
+          //Scalar dv;
+          Scalar e_ddot_e = 0.0;
+          detail::mass_properties<Shape> mp(shape_new);
+          //dv = mp.getVolume()-m_volume;
+          e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) + 
+                     eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) + 
+                     eps(3,1)*eps(1,3) + eps(3,2)*eps(2,3) + eps(3,3)*eps(3,3) ;
 
-        AlchemyLogBoltzmannFunction< Shape > fn;
-        Scalar dv;
-        detail::mass_properties<Shape> mp(shape_new);
-        dv = mp.getVolume()-m_volume;
-        return (m_k*(dv*dv) ) + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
+        /*  for (unsigned int i=0; i<3;i++)
+          { 
+           for (unsigned int j=0; j<3;i++)
+           {
+              eps_ddot += eps(i,j)*eps(j,i) 
+           }
+          } */
+          return m_k * e_ddot_e + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
