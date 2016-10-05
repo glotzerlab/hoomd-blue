@@ -535,6 +535,7 @@ template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
 {
     using ShapeSpringBase< Shape >::m_k;
+    
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
 public:
@@ -543,8 +544,8 @@ public:
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-          using Eigen::Matrix3f;
-        
+          //using Eigen::Matrix3f;
+                 
           AlchemyLogBoltzmannFunction< Shape > fn;
           //Scalar dv;
           Scalar e_ddot_e = 0.0;
@@ -561,7 +562,7 @@ public:
               eps_ddot += eps(i,j)*eps(j,i) 
            }
           } */
-          return m_k * e_ddot_e + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
+          return m_k*e_ddot_e*m_volume + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
