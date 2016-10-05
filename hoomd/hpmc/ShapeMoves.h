@@ -4,6 +4,7 @@
 #include <hoomd/extern/saruprng.h>
 #include "ShapeUtils.h"
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/Eigen/Dense>
 
 namespace hpmc {
 
@@ -341,6 +342,8 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
         scale_max = (1.0+movesize);
         scale_min = 1.0/scale_max;
         }
+                 // () name of perator and second (...) are the parameters
+                 //  You can overload the () operator to call your object as if it was a function
     void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
         {
         Scalar sx, sy, sz;
@@ -391,7 +394,7 @@ public:
 
 template<class Shape, class RNG>
 class elastic_shape_move_function : public shape_move_function<Shape, RNG>
-{
+{  // Derived class from shape_move_function base class
     // using shape_move_function<Shape, RNG>::m_shape;
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
@@ -413,9 +416,10 @@ public:
     //! construct is called at the beginning of every update()
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
         {
+        using Eigen::Matrix3f;
         unsigned int move_type_select = rng.u32() & 0xffff;
         // Saru rng(m_select_ratio, m_seed, timestep);
-        if( move_type_select < m_select_ratio)
+        /*if( move_type_select < m_select_ratio)
             {
             scale<Shape, RNG> move(m_step_size[type_id], false);
             move(shape, rng); // always make the move
@@ -426,7 +430,42 @@ public:
             move(shape, rng); // always make the move
             }
         m_mass_props[type_id].updateParam(shape, false); // update allows caching since for some shapes a full compute is not necessary.
-        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
+        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); */
+        
+        // look for Saru
+        //
+          Matrix3f I(3,3);
+          Matrix3f alpha(3,3);
+          Matrix3f F(3,3), Fbar(3,3);
+          Matrix3f eps(3,3), E(3,3);
+          
+          I << 1.0, 0.0, 0.0,
+               0.0, 1.0, 0.0,
+               0.0, 0.0, 1.0;  
+          
+          for(int i=0;i<3;i++)
+          { 
+            for (int j=0;j<3;j++)
+            {
+              alpha(i,j) =  rng.s(-a_max, a_max);;
+              //F(i,j) = I(i,j) + alpha(i,j); 
+            }
+          }
+        F = I + alpha;
+        Fbar = F / pow(F.determinant(),1.0/3.0);
+        eps = 0.5*(Fbar.transpose() + Fbar) - I ; 
+        //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
+
+        for(unsigned int i = 0; i < param.N; i++)
+            {
+            param.x[i] = F(1,1)*param.x[i] + F(1,2)*param.y[i] + F(1,3)*param.z[i];
+            param.y[i] = F(2,1)*param.x[i] + F(1,2)*param.y[i] + F(2,3)*param.z[i];
+            param.z[i] = F(3,1)*param.x[i] + F(3,2)*param.y[i] + F(3,3)*param.z[i];
+
+            vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
+            //dsq = fmax(dsq, dot(vert, vert));
+            }
+
         }
 
     //! advance whenever the proposed move is accepted.
@@ -503,6 +542,7 @@ public:
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
+
         AlchemyLogBoltzmannFunction< Shape > fn;
         Scalar dv;
         detail::mass_properties<Shape> mp(shape_new);
