@@ -6,6 +6,9 @@
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
 
+// ensure that HOOMDMath.h is the first thing included
+#include "HOOMDMath.h"
+
 #ifdef ENABLE_MPI
 #include <mpi.h>
 #endif

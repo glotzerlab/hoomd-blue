@@ -18,6 +18,7 @@
 #ifndef __LOADBALANCERGPU_H__
 #define __LOADBALANCERGPU_H__
 
+#include "HOOMDMath.h"
 #include "GPUFlags.h"
 #include "LoadBalancer.h"
 #include "Autotuner.h"
