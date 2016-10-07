@@ -69,7 +69,7 @@ class lattice_field(_external):
     Example::
 
         mc = hpmc.integrate.sphere(seed=415236);
-        hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+        hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
         log = analyze.log(quantities=['lattice_energy'], period=100, filename='log.dat', overwrite=True);
 
     """
@@ -125,7 +125,7 @@ class lattice_field(_external):
         Example::
 
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
             lattice.set_references(position=bcc_lattice)
 
         """
@@ -144,7 +144,7 @@ class lattice_field(_external):
         Example::
 
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
             ks = np.linspace(1000, 0.01, 100);
             for k in ks:
               lattice.set_params(k=k, q=0.0);
@@ -163,7 +163,7 @@ class lattice_field(_external):
         Example::
 
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
             ks = np.linspace(1000, 0.01, 100);
             for k in ks:
               lattice.set_params(k=k, q=0.0);
@@ -181,7 +181,7 @@ class lattice_field(_external):
                 This is a collective call and must be called on all ranks.
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=1000.0);
             run(20000)
             eng = lattice.get_energy()
         """
@@ -195,7 +195,7 @@ class lattice_field(_external):
 
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
             run(20000)
             avg_eng = lattice.get_average_energy() //  should be about 1.5kT
 
@@ -210,7 +210,7 @@ class lattice_field(_external):
 
         Example::
             mc = hpmc.integrate.sphere(seed=415236);
-            lattice = hpmc.compute.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
+            lattice = hpmc.field.lattice_field(mc=mc, position=fcc_lattice, k=exp(15));
             run(20000)
             sig_eng = lattice.get_sigma_energy()
 

@@ -8,7 +8,6 @@ set(TEST_LIST
     test_constraint_sphere
     test_dipole_force
     test_enforce2d_updater
-    test_ewald_force
     test_external_periodic
     test_fenebond_force
     test_fire_energy_minimizer

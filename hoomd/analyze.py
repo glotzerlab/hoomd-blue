@@ -288,7 +288,7 @@ class log(_analyzer):
 
       - **pair_dpd_energy** (:py:class:`hoomd.md.pair.dpd`) - Total DPD conservative potential energy (in energy units)
       - **pair_dpdlj_energy** (:py:class:`hoomd.md.pair.dpdlj`) - Total DPDLJ conservative potential energy (in energy units)
-      - **pair_eam_energy** (:py:class:`hoomd.md.pair.eam`) - Total EAM potential energy (in energy units)
+      - **pair_eam_energy** (:py:class:`hoomd.metal.pair.eam`) - Total EAM potential energy (in energy units)
       - **pair_ewald_energy** (:py:class:`hoomd.md.pair.ewald`) - Short ranged part of the electrostatic energy (in energy units)
       - **pair_gauss_energy** (:py:class:`hoomd.md.pair.gauss`) - Total Gaussian potential energy (in energy units)
       - **pair_lj_energy** (:py:class:`hoomd.md.pair.lj`) - Total Lennard-Jones potential energy (in energy units)

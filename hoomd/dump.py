@@ -11,6 +11,7 @@ each command writes.
 from collections import namedtuple;
 from hoomd import _hoomd
 import hoomd;
+import json;
 import os;
 import sys;
 
@@ -84,6 +85,7 @@ class dcd(hoomd.analyze._analyzer):
         self.metadata_fields = ['filename','period','group']
 
     def enable(self):
+        """ The DCD dump writer cannot be re-enabled """
         hoomd.util.print_status_line();
 
         if self.enabled == False:
@@ -148,6 +150,30 @@ class getar(hoomd.analyze._analyzer):
        "viz_all", "viz_static, viz_dynamic"
        "viz_aniso_dynamic", "viz_dynamic, orientation"
        "viz_aniso_all", "viz_static, viz_aniso_dynamic"
+
+    **Particle-related metadata**
+
+    Metadata about particle shape (for later visualization or use in
+    restartable scripts) can be stored in a simple form through
+    :py:func:`hoomd.dump.getar.writeJSON`, which encodes JSON records
+    as strings and stores them inside the dump file. Currently,
+    classes inside :py:mod:`hoomd.dem` and :py:mod:`hoomd.hpmc` are
+    equipped with `get_type_shapes()` methods which can provide
+    per-particle-type shape information as a list.
+
+    Example::
+
+        dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+            static=['viz_static'],
+            dynamic=['viz_aniso_dynamic'])
+
+        dem_wca = hoomd.dem.WCA(nlist, radius=0.5)
+        dem_wca.setParams('A', vertices=vertices, faces=faces)
+        dump.writeJSON('type_shapes.json', dem_wca.get_type_shapes())
+
+        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
+        dump.writeJSON('type_shapes.json', mc.get_type_shapes(), dynamic=True)
 
     """
 
@@ -381,6 +407,31 @@ class getar(hoomd.analyze._analyzer):
         if _register:
             self.setupAnalyzer(self.cpp_analyzer.getPeriod());
 
+    def writeJSON(self, name, contents, dynamic=True):
+        """Encodes the given JSON-encodable object as a string and writes it
+        (immediately) as a quantity with the given name. If dynamic is
+        True, writes the record as a dynamic record with the current
+        timestep.
+
+        Args:
+            name (str): Name of the record to save
+            contents (str): Any datatype encodable by the :py:mod:`json` module
+            dynamic (bool): If True, dump a dynamic quantity with the current timestep; otherwise, dump a static quantity
+
+        Example::
+
+            dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+                static=['viz_static'], dynamic=['viz_dynamic'])
+            dump.writeJSON('params.json', dict(temperature=temperature, pressure=pressure))
+            dump.writeJSON('metadata.json', hoomd.meta.dump_metadata())
+        """
+        if dynamic:
+            timestep = hoomd.context.current.system.getCurrentTimeStep()
+        else:
+            timestep = -1
+
+        self.cpp_analyzer.writeStr(name, json.dumps(contents), timestep)
+
     @classmethod
     def simple(cls, filename, period, mode='w', static=[], dynamic=[], high_precision=False):
         """Create a :py:class:`getar` dump object with a simpler interface.
@@ -461,9 +512,9 @@ class gsd(hoomd.analyze._analyzer):
     To save on space, GSD does not write values that are all set at defaults. So if
     all masses are left set at the default of 1.0, mass will not take up any space in
     the file. To save even more on space, flag fields as static (the default) and
-    dump.gsd will only write them out to frame 0. When reading data from frame *i*,
+    :py:class:`gsd` will only write them out to frame 0. When reading data from frame *i*,
     any data field not present will be read from frame 0. This makes every single frame
-    of a GSD file fully specified and simulations initialized with init.read_gsd() can
+    of a GSD file fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can
     select any frame of the file.
 
     The **static** option applies to groups of fields:
@@ -502,14 +553,14 @@ class gsd(hoomd.analyze._analyzer):
     See https://bitbucket.org/glotzer/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
 
     If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    specifying a group to write out. :py:class:`dump.gsd` will write out all of the particles in the group in ascending
-    tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.gsd` will not write the topology fields.
+    specifying a group to write out. :py:class:`gsd` will write out all of the particles in the group in ascending
+    tag order. When the group is not :py:func:`hoomd.group.all()`, :py:class:`gsd` will not write the topology fields.
 
-    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`dump.gsd` to write a new frame 0
+    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`gsd` to write a new frame 0
     to the file every period steps.
 
-    dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
-    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`dump.gsd` writes dynamic quantities to every frame.
+    :py:class:`gsd` writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
+    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`gsd` writes dynamic quantities to every frame.
     The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
     In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
     save that information in a trajectory for later access. Particle momentum are always changing, but the default is

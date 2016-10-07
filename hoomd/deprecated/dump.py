@@ -31,8 +31,8 @@ class xml(hoomd.analyze._analyzer):
     All values are written in native HOOMD-blue units, see :ref:`page-units` for more information.
 
     If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    specifying a group to write out. :py:class:`dump.xml` will write out all of the particles in *group* in ascending
-    tag order. When the group is not :py:func:`group.all()`, :py:class:`dump.xml` will not write the topology fields
+    specifying a group to write out. :py:class:`xml` will write out all of the particles in *group* in ascending
+    tag order. When the group is not :py:func:`hoomd.group.all()`, :py:class:`xml` will not write the topology fields
     (bond, angle, dihedral, improper, constraint).
 
     Examples::
@@ -122,7 +122,7 @@ class xml(hoomd.analyze._analyzer):
         Args:
             all (bool): (if True) Enables the output of all optional parameters below
             vis (bool): (if True) Enables options commonly used for visualization.
-            - Specifically, vis=True sets position, mass, diameter, type, body, bond, angle, dihedral, improper, charge
+              - Specifically, vis=True sets position, mass, diameter, type, body, bond, angle, dihedral, improper, charge
             position (bool): (if set) Set to True/False to enable/disable the output of particle positions in the xml file
             image (bool): (if set) Set to True/False to enable/disable the output of particle images in the xml file
             velocity (bool): (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
@@ -152,7 +152,7 @@ class xml(hoomd.analyze._analyzer):
 
         .. attention::
             The simulation topology (bond, angle, dihedral, improper, constraint) cannot be output when
-            the group for :py:class:`dump.xml` is not :py:class:`hoomd.group.all`. An error will
+            the group for :py:class:`xml` is not :py:class:`hoomd.group.all`. An error will
             be raised.
         """
 
@@ -290,7 +290,7 @@ class pos(hoomd.analyze._analyzer):
     The file is opened on initialization and a new frame is appended every \a period steps.
 
     Warning:
-        :py:class:`dump.pos` is not restart compatible. It always overwrites the file on initialization.
+        :py:class:`pos` is not restart compatible. It always overwrites the file on initialization.
 
     Examples::
 
@@ -325,6 +325,13 @@ class pos(hoomd.analyze._analyzer):
         self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
 
     def set_def(self, typ, shape):
+        R""" Set a pos def string for a given type
+
+        Args:
+            typ (str): Type name to set shape def
+            shape (str): Shape def string to set
+
+        """
         v = hoomd.context.current.system_definition.getParticleData().getTypeByName(typ);
         self.cpp_analyzer.setDef(v, shape)
 

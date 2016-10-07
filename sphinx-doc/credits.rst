@@ -189,7 +189,7 @@ Ludwig Schneider, Georg-August Univeristy Goettingen
 HPMC developers
 ---------------
 
-The following people contributed to the :py:mod:`hpmc` package.
+The following people contributed to the :py:mod:`hoomd.hpmc` package.
 
 * Joshua Anderson, University of Michigan - Lead developer
     * Vision
@@ -267,7 +267,7 @@ Vyas Ramasubramani, University of Michigan
 DEM developers
 --------------
 
-The following people contributed to the :py:mod:`dem` package.
+The following people contributed to the :py:mod:`hoomd.dem` package.
 
 * Matthew Spellings, University of Michigan - Lead developer
 * Ryan Marson, University of Michigan

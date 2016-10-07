@@ -20,8 +20,8 @@ namespace py = pybind11;
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false),
-      m_aniso_mode(Automatic)
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
+    m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
     }
@@ -346,30 +346,30 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
-    if (m_first_step)
-        {
-        m_first_step = false;
-        m_prepared = true;
+    m_prepared = true;
 
 #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            // force particle migration and ghost exchange
-            m_comm->forceMigrate();
+    if (m_comm)
+        {
+        // force particle migration and ghost exchange
+        m_comm->forceMigrate();
 
-            // perform communication
-            m_comm->communicate(timestep);
-            }
+        // perform communication
+        m_comm->communicate(timestep);
+        }
 #endif
 
-        // net force is always needed
-        computeNetForce(timestep);
+        // compute the net force on all particles
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+        computeNetForceGPU(timestep+1);
+    else
+#endif
+        computeNetForce(timestep+1);
 
-        // but the accelerations only need to be calculated if the restart is not valid
-        if (!isValidRestart())
-            computeAccelerations(timestep);
-        }
+    // but the accelerations only need to be calculated if the restart is not valid
+    if (!isValidRestart())
+        computeAccelerations(timestep);
     }
 
 /*! Return the combined flags of all integration methods.

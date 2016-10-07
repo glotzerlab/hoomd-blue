@@ -1,5 +1,5 @@
 md.special_pair
---------------
+---------------
 
 .. rubric:: Overview
 

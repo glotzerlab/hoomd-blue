@@ -209,13 +209,6 @@ class constraint_ellipsoid(_updater):
         self.metadata_fields = ['group','P', 'rx', 'ry', 'rz']
 
 class mueller_plathe_flow(_updater):
-    R""" Direction Enum X for this class"""
-    X = _md.MuellerPlatheFlow.Direction.X
-    R""" Direction Enum X for this class"""
-    Y = _md.MuellerPlatheFlow.Direction.Y
-    R""" Direction Enum X for this class"""
-    Z = _md.MuellerPlatheFlow.Direction.Z
-
     R""" Updater class for a shear flow according
     to an algorithm published by Mueller Plathe.:
 
@@ -235,8 +228,8 @@ class mueller_plathe_flow(_updater):
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
         flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
-        slab_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction perpendicular to the slabs. In [0,2] (X,Y,Z).
-        flow_direction (:py:mod:`hoomd.md.MuellerPlatheFlow.Direction`): Direction of the flow. In [0,2] (X,Y,Z).
+        slab_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction perpendicular to the slabs..
+        flow_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction of the flow..
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.
         max_slab (int): Id < n_slabs where the max velocity component is search for. If set < 0 the value is set to its default n_slabs/2.
         min_slab (int): Id < n_slabs where the min velocity component is search for. If set < 0 the value is set to its default 0.
@@ -324,3 +317,12 @@ class mueller_plathe_flow(_updater):
     def has_max_slab(self):
         R"""Returns, whether this MPI instance is part of the max slab."""
         return self.cpp_updater.hasMaxSlab()
+
+    X = _md.MuellerPlatheFlow.Direction.X
+    R""" Direction Enum X for this class"""
+
+    Y = _md.MuellerPlatheFlow.Direction.Y
+    R""" Direction Enum Y for this class"""
+
+    Z = _md.MuellerPlatheFlow.Direction.Z
+    R""" Direction Enum Z for this class"""

@@ -117,7 +117,6 @@ class IntegratorTwoStep : public Integrator
 
         std::vector< std::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
 
-        bool m_first_step;            //!< True before the first call to update()
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator

@@ -39,8 +39,8 @@ class cgcmm(hoomd.md.force._force):
         V_{\mathrm{LJ}}(r) = \frac{3\sqrt{3}}{2} \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
                                                                \alpha \left( \frac{\sigma}{r} \right)^{4} \right]
 
-    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
-    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+    See :py:class:`hoomd.md.pair.pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <hoomd.md.pair.coeff.set>` to set potential coefficients.
 
     The following coefficients must be set per unique pair of particle types:
 
