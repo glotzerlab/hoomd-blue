@@ -400,6 +400,7 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
+    Eigen::Matrix3f m_eps;
 public:
     elastic_shape_move_function(
                                     unsigned int ntypes,
@@ -452,10 +453,10 @@ public:
             }
           }
 
-        F = I + alpha;
-        Fbar = F / pow(F.determinant(),1.0/3.0);
-        eps = 0.5*(Fbar.transpose() + Fbar) - I ; 
-        //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
+         F = I + alpha;
+         Fbar = F / pow(F.determinant(),1.0/3.0);
+         eps = 0.5*(Fbar.transpose() + Fbar) - I ; 
+         //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
 
         for(unsigned int i = 0; i < param.N; i++)
             {
@@ -466,9 +467,11 @@ public:
             vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
             //dsq = fmax(dsq, dot(vert, vert));
             }
-
+        m_eps = eps;
         }
-
+        Matrix3f getEps(){
+           return m_eps;
+         }
     //! advance whenever the proposed move is accepted.
     // void advance(unsigned int timestep){ /* Nothing to do. */ }
 
@@ -538,19 +541,21 @@ class ShapeSpring : public ShapeSpringBase< Shape >
     
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
+    std::shared_ptr<elastic_shape_move> m_shape_move;
 public:
-    ShapeSpring(Scalar k, typename Shape::param_type ref ) : ShapeSpringBase< Shape  >(k, ref)
+    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move> P) : ShapeSpringBase< Shape  >(k, ref ) , m_shape_move(P)
         {
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
           //using Eigen::Matrix3f;
-                 
+          Eigen::Matrix3f eps;
           AlchemyLogBoltzmannFunction< Shape > fn;
           //Scalar dv;
           Scalar e_ddot_e = 0.0;
           detail::mass_properties<Shape> mp(shape_new);
           //dv = mp.getVolume()-m_volume;
+          eps =m_shape_move->getEps();
           e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) + 
                      eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) + 
                      eps(3,1)*eps(1,3) + eps(3,2)*eps(2,3) + eps(3,3)*eps(3,3) ;
