@@ -6,7 +6,9 @@
 
 #pragma once
 
+#ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
+#endif
 
 template<class T>
 class managed_allocator
