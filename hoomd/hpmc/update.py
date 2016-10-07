@@ -1019,7 +1019,7 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, [self.mc.shape_class.make_param(**shape_params)]);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def scale_shear_shape_move(self, stepsize, move_ratio=0.5):
+    def elastic_shape_move(self, stepsize, move_ratio=0.5):
         R"""
         Enable scale and shear shape move and set parameters. Changes a particle shape by
         scaling the particle and shearing the particle.
@@ -1317,6 +1317,7 @@ class elastic_shape(shape_update):
     def __init__(   self,
                     stiffness,
                     reference,
+                    stepsize,
                     **params):
         hoomd.util.print_status_line();
         # initialize base class
@@ -1324,11 +1325,12 @@ class elastic_shape(shape_update):
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
+        self.elastic_shape_move(stepsize);
 
         if isinstance(self.mc, integrate.convex_polyhedron):
             clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
-            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape);
+            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape, self.move_cpp);
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
@@ -1336,3 +1338,5 @@ class elastic_shape(shape_update):
         ref_shape = self.mc.shape_class.make_param(**reference);
         self.boltzmann_function = clss(stiffness, ref_shape);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
+        del self.vertex_shape_move
+        del self.python_shape_move
