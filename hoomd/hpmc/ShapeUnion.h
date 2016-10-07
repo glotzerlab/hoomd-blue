@@ -34,10 +34,10 @@ namespace detail
 {
 
 //! Data structure for shape composed of a union of multiple shapes
-template<class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes>
+template<class Shape, unsigned int capacity>
 struct union_params : param_base
     {
-    typedef GPUTree<max_n_nodes,capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
+    typedef GPUTree<capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
 
     //! Default constructor
@@ -91,18 +91,12 @@ struct union_params : param_base
     two composite particles. The two particles overlap if any of their member shapes overlap.
 
     ShapeUnion stores an internal OBB tree for fast overlap checks.
-
-    To estimate the maximum number of nodes, we assume that the tree is maximally unbalanced,
-    i.e. every second leaf is (almost) empty. Then n_leaf_max = max_n_members/capacity*2 and
-    max_n_nodes = n_leaf_max*2-1.
 */
-template<class Shape, unsigned int max_n_members=8,
-     unsigned int capacity=8,
-     unsigned int max_n_nodes=(max_n_members/capacity*2)*2-1 >
+template<class Shape, unsigned int capacity=8>
 struct ShapeUnion
     {
     //! Define the parameter type
-    typedef typename detail::union_params<Shape, max_n_members, capacity, max_n_nodes> param_type;
+    typedef typename detail::union_params<Shape, capacity> param_type;
 
     //! Initialize a sphere_union
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
@@ -166,9 +160,9 @@ struct ShapeUnion
 
     \ingroup shape
 */
-template <class Shape, unsigned int max_n_members>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape, max_n_members>& a,
-    const ShapeUnion<Shape, max_n_members> &b)
+template <class Shape>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
+    const ShapeUnion<Shape> &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -177,10 +171,10 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-template<class Shape, unsigned int max_n_members, unsigned int capacity,unsigned int max_n_nodes >
+template<class Shape, unsigned int capacity>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
-                                             const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& a,
-                                             const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& b,
+                                             const ShapeUnion<Shape, capacity>& a,
+                                             const ShapeUnion<Shape, capacity>& b,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
@@ -236,10 +230,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     \ingroup shape
 */
 
-template <class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes >
+template <class Shape, unsigned int capacity >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& a,
-                                const ShapeUnion<Shape, max_n_members, capacity, max_n_nodes>& b,
+                                const ShapeUnion<Shape, capacity >& a,
+                                const ShapeUnion<Shape, capacity >& b,
                                 unsigned int& err)
 {
     vec3<Scalar> dr(r_ab);

@@ -28,7 +28,7 @@ namespace detail
 {
 
 //! Adapter class to AABTree for query on the GPU
-template<unsigned int max_nodes, unsigned int node_capacity>
+template<unsigned int node_capacity>
 class GPUTree
     {
     public:
@@ -50,17 +50,9 @@ class GPUTree
          */
         GPUTree(const obb_tree_type &tree, bool managed=false)
             {
-            if (tree.getNumNodes() >= max_nodes)
-                {
-                std::ostringstream oss;
-                oss << "GPUTree: Too many nodes (" << tree.getNumNodes() << " > " << max_nodes << ")" << std::endl;
-                throw std::runtime_error(oss.str());
-                }
-
             // allocate
             m_num_nodes = tree.getNumNodes();
 
-            std::cout << m_num_nodes << " nodes " << std::endl;
             m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
             m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);

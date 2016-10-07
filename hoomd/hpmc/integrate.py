@@ -341,8 +341,6 @@ class mode_hpmc(_integrator):
             shape_param_type = data.convex_polyhedron_params.get_sized_class(self.max_verts);
         elif isinstance(self, convex_spheropolyhedron):
             shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
-        elif isinstance(self, sphere_union):
-            shape_param_type = data.sphere_union_params.get_sized_class(self.max_members);
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
 
@@ -1630,7 +1628,7 @@ class sphere_union(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_members (int): Set the maximum number of members in the sphere union
-            * .. versionadded:: 2.1
+            * .. deprecated:: 2.2
 
     Sphere union parameters:
 
@@ -1662,8 +1660,11 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None):
         hoomd.util.print_status_line();
+
+        if max_members is not None:
+            hoomd.context.msg.warning("max_members is deprecated and unnecessary. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1671,16 +1672,16 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1689,11 +1690,7 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_members = max_members;
         self.initialize_shape_params();
-
-        # meta data
-        self.metadata_fields = ['max_members']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

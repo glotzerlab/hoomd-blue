@@ -92,7 +92,7 @@ static __device__ int warp_reduce(int val, int width)
 */
 struct ShapePolyhedron
     {
-    typedef detail::GPUTree<detail::MAX_POLY3D_NODES,detail::MAX_POLY3D_CAPACITY> gpu_tree_type;
+    typedef detail::GPUTree<detail::MAX_POLY3D_CAPACITY> gpu_tree_type;
 
     //! Define the parameter type
     typedef struct : public param_base {
