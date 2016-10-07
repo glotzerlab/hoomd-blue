@@ -322,7 +322,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_past_first_run(false)
     {
     // allocate the parameter storage
-    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
