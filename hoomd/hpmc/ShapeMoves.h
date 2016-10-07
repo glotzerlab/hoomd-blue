@@ -401,6 +401,7 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
     Eigen::Matrix3f m_eps;
+    Scalar a_max;
 public:
     elastic_shape_move_function(
                                     unsigned int ntypes,
@@ -414,8 +415,8 @@ public:
         }
 
     void prepare(unsigned int timestep) { /* Nothing to do. */ }
-    //! construct is called at the beginning of every update()
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+    //! construct is called at the beginning of every update()                                            # param was shape - Luis
+    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
         {
         using Eigen::Matrix3f;
         unsigned int move_type_select = rng.u32() & 0xffff;
@@ -469,7 +470,7 @@ public:
             }
         m_eps = eps;
         }
-        Matrix3f getEps(){
+        Eigen::Matrix3f getEps(){
            return m_eps;
          }
     //! advance whenever the proposed move is accepted.
@@ -543,7 +544,7 @@ class ShapeSpring : public ShapeSpringBase< Shape >
     using ShapeSpringBase< Shape >::m_volume;
     std::shared_ptr<elastic_shape_move> m_shape_move;
 public:
-    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move> P) : ShapeSpringBase< Shape  >(k, ref ) , m_shape_move(P)
+    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move> P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
