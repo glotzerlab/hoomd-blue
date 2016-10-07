@@ -265,7 +265,7 @@ class test_basic_io(unittest.TestCase):
 
             hoomd.run(1);
 
-            dump.writeJSON('test.json', dict(testQuantity=14), True)
+            dump.writeJSON('test.json', dict(testQuantity=hoomd.comm.get_rank()), True)
 
             dump.close();
             dump.disable();
@@ -279,5 +279,5 @@ class test_basic_io(unittest.TestCase):
     def tearDown(self):
         hoomd.comm.barrier_all();
 
-if __name__ == '__main__' and gtar is not None:
+if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v']);
