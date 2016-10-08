@@ -146,7 +146,7 @@ class GPUTree
             return (m_left[idx] == OBB_INVALID_NODE);
             }
 
-        DEVICE inline int getParticle(unsigned int node, unsigned int i) const
+        DEVICE inline unsigned int getParticle(unsigned int node, unsigned int i) const
             {
             return m_particles[m_leaf_ptr[node]+i];
             }

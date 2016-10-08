@@ -553,7 +553,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
     for (unsigned int i= 0; i< na; i++)
         {
-        int iface = a.tree.getParticle(cur_node_a, i);
+        unsigned int iface = a.tree.getParticle(cur_node_a, i);
 
         // loop through faces of cur_node_b
         for (unsigned int j= 0; j< nb; j++)
@@ -561,7 +561,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             unsigned int nverts_b, offs_b;
             bool intersect = false;
 
-            int jface = b.tree.getParticle(cur_node_b, j);
+            unsigned int jface = b.tree.getParticle(cur_node_b, j);
 
             // Load number of face vertices
             unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
