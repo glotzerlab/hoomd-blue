@@ -548,19 +548,20 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     const OverlapReal abs_tol(1e-7);
 
     // loop through faces of cur_node_a
-    for (unsigned int i= 0; i< ShapePolyhedron::gpu_tree_type::capacity; i++)
+    unsigned int na = a.tree.getNumParticles(cur_node_a);
+    unsigned int nb = b.tree.getNumParticles(cur_node_b);
+
+    for (unsigned int i= 0; i< na; i++)
         {
         int iface = a.tree.getParticle(cur_node_a, i);
-        if (iface == -1) break;
 
         // loop through faces of cur_node_b
-        for (unsigned int j= 0; j< ShapePolyhedron::gpu_tree_type::capacity; j++)
+        for (unsigned int j= 0; j< nb; j++)
             {
             unsigned int nverts_b, offs_b;
             bool intersect = false;
 
             int jface = b.tree.getParticle(cur_node_b, j);
-            if (jface == -1) break;
 
             // Load number of face vertices
             unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];

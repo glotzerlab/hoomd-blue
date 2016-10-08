@@ -184,10 +184,12 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     typedef typename Shape::param_type mparam_type;
 
     // loop through shape of cur_node_a
-    for (unsigned int i= 0; i < capacity; i++)
+    unsigned int na = a.members.tree.getNumParticles(cur_node_a);
+    unsigned int nb = b.members.tree.getNumParticles(cur_node_b);
+
+    for (unsigned int i= 0; i < na; i++)
         {
         int ishape = a.members.tree.getParticle(cur_node_a, i);
-        if (ishape == -1) break;
 
         const mparam_type& params_i = a.members.mparams[ishape];
         const quat<OverlapReal> q_i = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
@@ -196,10 +198,9 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         unsigned int overlap_i = a.members.moverlap[ishape];
 
         // loop through shapes of cur_node_b
-        for (unsigned int j= 0; j < capacity; j++)
+        for (unsigned int j= 0; j < nb; j++)
             {
             int jshape = b.members.tree.getParticle(cur_node_b, j);
-            if (jshape == -1) break;
 
             const mparam_type& params_j = b.members.mparams[jshape];
             const quat<OverlapReal> q_j = b.members.morientation[jshape];

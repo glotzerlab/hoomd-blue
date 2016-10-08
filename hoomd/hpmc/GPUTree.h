@@ -60,9 +60,11 @@ class GPUTree
             m_isleft = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_parent = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_rcl = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_particles = ManagedArray<int>(m_num_nodes*capacity, managed);
             m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_skip = ManagedArray<unsigned int>(m_num_nodes, managed);
+            m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes+1, managed);
+
+            unsigned int n = 0;
 
             // load data from AABTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
@@ -74,16 +76,19 @@ class GPUTree
                 m_rotation[i] = tree.getNodeOBB(i).rotation;
                 m_lengths[i] = tree.getNodeOBB(i).lengths;
 
-               for (unsigned int j = 0; j < capacity; ++j)
+                m_leaf_ptr[i] = n;
+                n += tree.getNodeNumParticles(i);
+                }
+
+            m_leaf_ptr[tree.getNumNodes()] = n;
+
+            m_particles = ManagedArray<unsigned int>(n, managed);
+
+            for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
+                {
+                for (unsigned int j = 0; j < tree.getNodeNumParticles(i); ++j)
                     {
-                    if (j < tree.getNodeNumParticles(i))
-                        {
-                        m_particles[i*capacity+j] = tree.getNodeParticle(i,j);
-                        }
-                    else
-                        {
-                        m_particles[i*capacity+j] = -1;
-                        }
+                    m_particles[m_leaf_ptr[i]+j] = tree.getNodeParticle(i,j);
                     }
                 }
 
@@ -143,8 +148,14 @@ class GPUTree
 
         DEVICE inline int getParticle(unsigned int node, unsigned int i) const
             {
-            return m_particles[node*capacity+i];
+            return m_particles[m_leaf_ptr[node]+i];
             }
+
+        DEVICE inline int getNumParticles(unsigned int node) const
+            {
+            return m_leaf_ptr[node+1] - m_leaf_ptr[node];
+            }
+
 
         DEVICE inline unsigned int getLevel(unsigned int node) const
             {
@@ -203,6 +214,7 @@ class GPUTree
             m_left.load_shared(ptr, load);
             m_skip.load_shared(ptr, load);
 
+            m_leaf_ptr.load_shared(ptr, load);
             m_particles.load_shared(ptr, load);
             }
 
@@ -236,7 +248,8 @@ class GPUTree
         ManagedArray<unsigned int> m_parent;  //!< Pointer to parent
         ManagedArray<unsigned int> m_rcl;     //!< Right child level
 
-        ManagedArray<int> m_particles;        //!< Stores the leaf nodes' indices
+        ManagedArray<unsigned int> m_leaf_ptr; //!< Pointer to leaf node contents
+        ManagedArray<unsigned int> m_particles;        //!< Stores the leaf nodes' indices
 
         ManagedArray<unsigned int> m_left;    //!< Left nodes
         ManagedArray<unsigned int> m_skip;    //!< Skip intervals
