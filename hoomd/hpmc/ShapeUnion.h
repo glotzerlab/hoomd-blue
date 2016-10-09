@@ -52,10 +52,10 @@ struct union_params : param_base
     HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
         {
         tree.load_shared(ptr, load);
-        //mpos.load_shared(ptr, load);
+        mpos.load_shared(ptr, load);
         //morientation.load_shared(ptr, load);
-        //mparams.load_shared(ptr, load);
-        //moverlap.load_shared(ptr, load);
+        mparams.load_shared(ptr, load);
+        moverlap.load_shared(ptr, load);
         }
 
     #ifndef NVCC
@@ -192,8 +192,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
         unsigned int ishape = a.members.tree.getParticle(cur_node_a, i);
 
         const mparam_type& params_i = a.members.mparams[ishape];
-        const quat<OverlapReal> q_i = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
-        Shape shape_i(q_i, params_i);
+        Shape shape_i(quat<Scalar>(), params_i);
+        if (shape_i.hasOrientation())
+            shape_i.orientation = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation) * a.members.morientation[ishape];
+
         vec3<OverlapReal> pos_i(rotate(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),a.members.mpos[ishape])-r_ab);
         unsigned int overlap_i = a.members.moverlap[ishape];
 
@@ -203,8 +205,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
             unsigned int jshape = b.members.tree.getParticle(cur_node_b, j);
 
             const mparam_type& params_j = b.members.mparams[jshape];
-            const quat<OverlapReal> q_j = b.members.morientation[jshape];
-            Shape shape_j(q_j, params_j);
+            Shape shape_j(quat<Scalar>(), params_j);
+            if (shape_j.hasOrientation())
+                shape_j.orientation = b.members.morientation[jshape];
+
             unsigned int overlap_j = b.members.moverlap[jshape];
 
             unsigned int err =0;
