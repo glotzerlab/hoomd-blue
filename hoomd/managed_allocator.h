@@ -10,6 +10,8 @@
 #include <cuda_runtime.h>
 #endif
 
+#include <iostream>
+
 template<class T>
 class managed_allocator
     {
@@ -39,6 +41,7 @@ class managed_allocator
                 cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
                 }
@@ -65,6 +68,7 @@ class managed_allocator
                 cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error allocating managed memory");
                     }
                 }
@@ -89,6 +93,7 @@ class managed_allocator
                 cudaError_t error = cudaFree(ptr);
                 if (error != cudaSuccess)
                     {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }
@@ -108,6 +113,7 @@ class managed_allocator
                 cudaError_t error = cudaFree(ptr);
                 if (error != cudaSuccess)
                     {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
                     throw std::runtime_error("managed_allocator: Error freeing managed memory");
                     }
                 }
