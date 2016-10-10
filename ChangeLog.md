@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.1.1
+
+Not yet released
+
+*Bug fixes*
+
+* Fix force.active memory allocation bug
+
 ## v2.1.0
 
 Released 2016/10/04
