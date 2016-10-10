@@ -405,7 +405,7 @@ class getar(hoomd.analyze._analyzer):
                                                 int(self._dynamic[prop]));
 
         if _register:
-            self.setupAnalyzer(self.cpp_analyzer.getPeriod());
+            self.setupAnalyzer(int(self.cpp_analyzer.getPeriod()));
 
     def writeJSON(self, name, contents, dynamic=True):
         """Encodes the given JSON-encodable object as a string and writes it
