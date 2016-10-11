@@ -271,7 +271,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
     cell. Otherwise, extremely non-uniform cell lengths (i.e. avg 1, max 4) don't cause massive performance degradation.
 
     **Indexing**
-        - threadIdx.z indexes the current group in the block
+        - threadIdx.y indexes the current group in the block
         - threadIdx.x is the offset within the current group
         - blockIdx.x runs enough blocks so that all active cells are covered
 
@@ -629,7 +629,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
         if (master && group == 0)
             s_still_searching = 0;
 
-        unsigned int tidx_1d = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+        unsigned int tidx_1d = threadIdx.x+blockDim.x*threadIdx.y;  // z component is for Shape parallelism
 
         // max_queue_size is always <= block size, so we just need an if here
         if (tidx_1d < min(s_queue_size, max_queue_size))
@@ -830,8 +830,9 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     unsigned int n_groups = block_size / group_size / stride;
+    unsigned int max_queue_size = n_groups*group_size;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
-                                block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                                max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                                 args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
                                 args.overlap_idx.getNumElements() * sizeof(unsigned int) +
                                 extra_bytes;
@@ -858,8 +859,9 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
             }
 
         n_groups = block_size / group_size / stride;
+        max_queue_size = n_groups*group_size;
         shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
-                       block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                       max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                        min_shared_bytes;
         }
 
@@ -938,7 +940,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                                                  args.d_active_cell_accept,
                                                                  args.d_active_cell_move_type_translate,
                                                                  params,
-                                                                 block_size);
+                                                                 max_queue_size);
 
     return cudaSuccess;
     }
