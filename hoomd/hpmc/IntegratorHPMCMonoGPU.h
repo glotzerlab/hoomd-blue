@@ -114,19 +114,18 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         {
         for (unsigned int block_size =dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size +=dev_prop.warpSize)
             {
-            unsigned int s=1;
-            while (s <= (unsigned int)dev_prop.warpSize)
+            for (unsigned int group_size=1; group_size <= (unsigned int)dev_prop.warpSize; group_size++)
                 {
                 unsigned int stride = 1;
-                while (stride <=dev_prop.warpSize/s)
+                while (stride <= (unsigned int) dev_prop.maxThreadsDim[2] && (block_size % stride) == 0)
                     {
                     // for parallel overlap checks, use 3d-layout where blockDim.z is limited
-                    if (block_size/s/stride <= (unsigned int) dev_prop.maxThreadsDim[2])
-                        valid_params.push_back(block_size*1000000 + stride*100 + s);
+                    if ((block_size % group_size) == 0)
+                        valid_params.push_back(block_size*1000000 + stride*100 + group_size);
 
+                    // increment stride in powers of two
                     stride*=2;
                     }
-                s = s * 2;
                 }
             }
         }

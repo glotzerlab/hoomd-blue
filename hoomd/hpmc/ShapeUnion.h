@@ -295,13 +295,10 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 unsigned int& err)
     {
     #ifdef NVCC
-    unsigned int offset = threadIdx.x;
-    unsigned int stride = blockDim.x;
+    for (unsigned int cur_leaf_a = threadIdx.z; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += blockDim.z)
     #else
-    unsigned int offset = 0;
-    unsigned int stride = 1;
+    for (unsigned int cur_leaf_a = 0; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a++)
     #endif
-    for (unsigned int cur_leaf_a = offset; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += stride)
         {
         unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
         if (query_node(cur_node_a, r_ab, a, b)) return true;
