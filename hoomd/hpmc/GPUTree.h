@@ -40,7 +40,7 @@ class GPUTree
 
         //! Empty constructor
         GPUTree()
-            : m_num_nodes(0)
+            : m_num_nodes(0), m_num_leaves(0)
             { }
 
         #ifndef NVCC
@@ -65,6 +65,7 @@ class GPUTree
             m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes+1, managed);
 
             unsigned int n = 0;
+            m_num_leaves = 0;
 
             // load data from AABTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
@@ -78,9 +79,23 @@ class GPUTree
 
                 m_leaf_ptr[i] = n;
                 n += tree.getNodeNumParticles(i);
-                }
 
+                if (m_left[i] == OBB_INVALID_NODE)
+                    {
+                    m_num_leaves++;
+                    }
+                }
             m_leaf_ptr[tree.getNumNodes()] = n;
+
+            m_leaf_obb_ptr = ManagedArray<unsigned int>(m_num_leaves, managed);
+            m_num_leaves = 0;
+            for (unsigned int i =0; i < tree.getNumNodes(); ++i)
+                {
+                if (m_left[i] == OBB_INVALID_NODE)
+                    {
+                    m_leaf_obb_ptr[m_num_leaves++] = i;
+                    }
+                }
 
             m_particles = ManagedArray<unsigned int>(n, managed);
 
@@ -144,6 +159,18 @@ class GPUTree
         DEVICE inline bool isLeaf(unsigned int idx) const
             {
             return (m_left[idx] == OBB_INVALID_NODE);
+            }
+
+        //! Return the ith leaf node
+        DEVICE inline unsigned int getLeafNode(unsigned int i) const
+            {
+            return m_leaf_obb_ptr[i];
+            }
+
+        //! Return the number of leaf nodes
+        DEVICE inline unsigned int getNumLeaves() const
+            {
+            return m_num_leaves;
             }
 
         DEVICE inline unsigned int getParticle(unsigned int node, unsigned int i) const
@@ -215,6 +242,7 @@ class GPUTree
             m_skip.load_shared(ptr, load);
 
             m_leaf_ptr.load_shared(ptr, load);
+            m_leaf_obb_ptr.load_shared(ptr, load);
             m_particles.load_shared(ptr, load);
             }
 
@@ -249,12 +277,14 @@ class GPUTree
         ManagedArray<unsigned int> m_rcl;     //!< Right child level
 
         ManagedArray<unsigned int> m_leaf_ptr; //!< Pointer to leaf node contents
+        ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs
         ManagedArray<unsigned int> m_particles;        //!< Stores the leaf nodes' indices
 
         ManagedArray<unsigned int> m_left;    //!< Left nodes
         ManagedArray<unsigned int> m_skip;    //!< Skip intervals
 
         unsigned int m_num_nodes;             //!< Number of nodes in the tree
+        unsigned int m_num_leaves;            //!< Number of leaf nodes
     };
 
 //! Test a subtree against a leaf node during a tandem traversal

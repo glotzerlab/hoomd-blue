@@ -51,11 +51,11 @@ struct union_params : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
         {
-        tree.load_shared(ptr, load);
-        mpos.load_shared(ptr, load);
+//        tree.load_shared(ptr, load);
+//        mpos.load_shared(ptr, load);
         //morientation.load_shared(ptr, load);
-        mparams.load_shared(ptr, load);
-        moverlap.load_shared(ptr, load);
+//        mparams.load_shared(ptr, load);
+//        moverlap.load_shared(ptr, load);
         }
 
     #ifndef NVCC
@@ -234,87 +234,70 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
 
     \ingroup shape
 */
+template <class Shape, unsigned int capacity >
+DEVICE inline bool query_node(unsigned int cur_node_a,
+                            const vec3<Scalar>& r_ab,
+                            const ShapeUnion<Shape, capacity >& a,
+                            const ShapeUnion<Shape, capacity >& b)
+{
+    vec3<Scalar> dr(r_ab);
+
+    unsigned int cur_node_b =0;
+
+    unsigned int stack[64];
+    unsigned int *stack_ptr = stack;
+    *stack_ptr++ = b.members.tree.getNumNodes(); //push
+
+    hpmc::detail::OBB obb_a = a.members.tree.getOBB(cur_node_a);
+    // rotate and translate a's obb into b's body frame
+    obb_a.affineTransform(conj(b.orientation)*a.orientation,
+        rotate(conj(b.orientation),-dr));
+
+    do
+        {
+        unsigned int child_l = b.members.tree.getLeftChild(cur_node_b);
+        unsigned int child_r = child_l;
+        b.members.tree.advanceNode(child_r, true);
+
+        bool overlap_l = detail::overlap(obb_a, b.members.tree.getOBB(child_l));
+        bool overlap_r = detail::overlap(obb_a, b.members.tree.getOBB(child_r));
+
+        if (overlap_l && b.members.tree.isLeaf(child_l))
+            {
+            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_l)) return true;
+            }
+        if (overlap_r && b.members.tree.isLeaf(child_r))
+            {
+            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_r)) return true;
+            } 
+        
+        bool traverse_l = (overlap_l && !b.members.tree.isLeaf(child_l));
+        bool traverse_r = (overlap_r && !b.members.tree.isLeaf(child_r));
+
+        if (!traverse_l && !traverse_r)
+            cur_node_b = *--stack_ptr; // pop
+        else
+            {
+            cur_node_b = traverse_l ? child_l : child_r;
+            if (traverse_l && traverse_r)
+                *stack_ptr++ = child_r; // push
+            } 
+        } while (cur_node_b != b.members.tree.getNumNodes());
+
+    return false;
+    }
 
 template <class Shape, unsigned int capacity >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape, capacity >& a,
                                 const ShapeUnion<Shape, capacity >& b,
                                 unsigned int& err)
-{
-    vec3<Scalar> dr(r_ab);
-
-    unsigned int cur_node_a = 0;
-    unsigned int cur_node_b =0;
-
-    unsigned int old_cur_node_a = UINT_MAX;
-    unsigned int old_cur_node_b = UINT_MAX;
-
-    unsigned int level_a = 0;
-    unsigned int level_b = 0;
-
-    hpmc::detail::OBB obb_a;
-    hpmc::detail::OBB obb_b;
-
-    while (cur_node_a < a.members.tree.getNumNodes() && cur_node_b < b.members.tree.getNumNodes())
+    {
+    for (unsigned int cur_leaf_a = 0; cur_leaf_a < a.members.tree.getNumLeaves(); ++cur_leaf_a)
         {
-        if (old_cur_node_a != cur_node_a)
-            {
-            obb_a = a.members.tree.getOBB(cur_node_a);
-            level_a = a.members.tree.getLevel(cur_node_a);
-
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-dr));
-            old_cur_node_a = cur_node_a;
-            }
-        if (old_cur_node_b != cur_node_b)
-            {
-            obb_b = b.members.tree.getOBB(cur_node_b);
-            level_b = b.members.tree.getLevel(cur_node_b);
-            old_cur_node_b = cur_node_b;
-            }
-
-        if (detail::overlap(obb_a, obb_b))
-            {
-            if (a.members.tree.isLeaf(cur_node_a) && b.members.tree.isLeaf(cur_node_b))
-                {
-                if (test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b)) return true;
-                }
-            else
-                {
-                if (a.members.tree.isLeaf(cur_node_a))
-                    {
-                    unsigned int end_node = cur_node_b;
-                    b.members.tree.advanceNode(end_node, true);
-                    if (test_subtree(dr, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b, end_node)) return true;
-                    }
-                else if (b.members.tree.isLeaf(cur_node_b))
-                    {
-                    unsigned int end_node = cur_node_a;
-                    a.members.tree.advanceNode(end_node, true);
-                    if (test_subtree(-dr, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a, end_node)) return true;
-                    }
-                else
-                    {
-                    if (level_a < level_b)
-                        {
-                        // descend into a's tree
-                        cur_node_a = a.members.tree.getLeftChild(cur_node_a);
-                        continue;
-                        }
-                    else
-                        {
-                        // descend into b's tree
-                        cur_node_b = b.members.tree.getLeftChild(cur_node_b);
-                        continue;
-                        }
-                    }
-                }
-            } // end if overlap
-
-        // move up in tandem fashion
-        detail::moveUp(a.members.tree, cur_node_a, b.members.tree, cur_node_b);
-        } // end while
+        unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
+        if (query_node(cur_node_a, r_ab, a, b)) return true;
+        }
 
     return false;
     }
