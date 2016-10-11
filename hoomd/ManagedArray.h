@@ -112,17 +112,28 @@ class ManagedArray
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
             // align to size of data type
-            ptr = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~(sizeof(T) - 1));
+            uintptr_t addr =  (uintptr_t)ptr;
+            if (addr % sizeof(T) != 0) addr += sizeof(T) - addr % sizeof(T);
+            ptr = (char *)addr;
 
             if (load)
                 {
+                #if defined (__CUDA_ARCH__)
                 unsigned int size_int = (sizeof(T)*N)/sizeof(int);
 
-                // copy int-wise for better performance
-                for (unsigned int i = 0; i < size_int; i++)
+                unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+                unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+                for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
                     {
-                    ((int *)ptr)[i] = ((int *)data)[i];
+                    if (cur_offset + tidx < size_int)
+                        {
+                        ((int *)ptr)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
+                        }
                     }
+
+                __syncthreads();
+                #endif
 
                 // redirect data ptr
                 data = (T *) ptr;

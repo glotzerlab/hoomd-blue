@@ -401,6 +401,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
             }
         }
 
+    __syncthreads();
+
     // initialize extra shared mem
     char *s_extra = (char *)(s_type_group + n_groups);
 
