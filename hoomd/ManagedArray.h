@@ -9,6 +9,8 @@
 #include <algorithm>
 #endif
 
+#include <memory>
+
 #ifdef NVCC
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
@@ -109,6 +111,9 @@ class ManagedArray
 
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
+            // align to size of data type
+            ptr = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~(sizeof(T) - 1));
+
             if (load)
                 {
                 unsigned int size_int = (sizeof(T)*N)/sizeof(int);
