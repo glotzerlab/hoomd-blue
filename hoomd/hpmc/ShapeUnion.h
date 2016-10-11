@@ -51,11 +51,11 @@ struct union_params : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
         {
-//        tree.load_shared(ptr, load);
-//        mpos.load_shared(ptr, load);
+        tree.load_shared(ptr, load);
+        //mpos.load_shared(ptr, load);
         //morientation.load_shared(ptr, load);
-//        mparams.load_shared(ptr, load);
-//        moverlap.load_shared(ptr, load);
+        //mparams.load_shared(ptr, load);
+        moverlap.load_shared(ptr, load);
         }
 
     #ifndef NVCC
@@ -92,7 +92,7 @@ struct union_params : param_base
 
     ShapeUnion stores an internal OBB tree for fast overlap checks.
 */
-template<class Shape, unsigned int capacity=8>
+template<class Shape, unsigned int capacity=4>
 struct ShapeUnion
     {
     //! Define the parameter type
@@ -145,7 +145,7 @@ struct ShapeUnion
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return false; }
+    HOSTDEVICE static bool isParallel() { return true; }
 
     quat<Scalar> orientation;    //!< Orientation of the particle
 
@@ -253,26 +253,27 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
     obb_a.affineTransform(conj(b.orientation)*a.orientation,
         rotate(conj(b.orientation),-dr));
 
+    const detail::GPUTree<capacity>& tree_b = b.members.tree;
     do
         {
-        unsigned int child_l = b.members.tree.getLeftChild(cur_node_b);
+        unsigned int child_l = tree_b.getLeftChild(cur_node_b);
         unsigned int child_r = child_l;
-        b.members.tree.advanceNode(child_r, true);
+        tree_b.advanceNode(child_r, true);
 
-        bool overlap_l = detail::overlap(obb_a, b.members.tree.getOBB(child_l));
-        bool overlap_r = detail::overlap(obb_a, b.members.tree.getOBB(child_r));
+        bool overlap_l = detail::overlap(obb_a, tree_b.getOBB(child_l));
+        bool overlap_r = detail::overlap(obb_a, tree_b.getOBB(child_r));
 
-        if (overlap_l && b.members.tree.isLeaf(child_l))
+        if (overlap_l && tree_b.isLeaf(child_l))
             {
             if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_l)) return true;
             }
-        if (overlap_r && b.members.tree.isLeaf(child_r))
+        if (overlap_r && tree_b.isLeaf(child_r))
             {
             if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_r)) return true;
             } 
         
-        bool traverse_l = (overlap_l && !b.members.tree.isLeaf(child_l));
-        bool traverse_r = (overlap_r && !b.members.tree.isLeaf(child_r));
+        bool traverse_l = (overlap_l && !tree_b.isLeaf(child_l));
+        bool traverse_r = (overlap_r && !tree_b.isLeaf(child_r));
 
         if (!traverse_l && !traverse_r)
             cur_node_b = *--stack_ptr; // pop
@@ -282,7 +283,7 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
             if (traverse_l && traverse_r)
                 *stack_ptr++ = child_r; // push
             } 
-        } while (cur_node_b != b.members.tree.getNumNodes());
+        } while (cur_node_b != tree_b.getNumNodes());
 
     return false;
     }
@@ -293,7 +294,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape, capacity >& b,
                                 unsigned int& err)
     {
-    for (unsigned int cur_leaf_a = 0; cur_leaf_a < a.members.tree.getNumLeaves(); ++cur_leaf_a)
+    #ifdef NVCC
+    unsigned int offset = threadIdx.x;
+    unsigned int stride = blockDim.x;
+    #else
+    unsigned int offset = 0;
+    unsigned int stride = 1;
+    #endif
+    for (unsigned int cur_leaf_a = offset; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += stride)
         {
         unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
         if (query_node(cur_node_a, r_ab, a, b)) return true;

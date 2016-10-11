@@ -230,20 +230,20 @@ class GPUTree
          */
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
-            m_center.load_shared(ptr, load);
-            m_lengths.load_shared(ptr, load);
-            m_rotation.load_shared(ptr, load);
+//            m_center.load_shared(ptr, load);
+//            m_lengths.load_shared(ptr, load);
+//            m_rotation.load_shared(ptr, load);
 
-            m_level.load_shared(ptr, load);
-            m_isleft.load_shared(ptr, load);
-            m_parent.load_shared(ptr, load);
-            m_rcl.load_shared(ptr, load);
+//            m_level.load_shared(ptr, load);
+//            m_isleft.load_shared(ptr, load);
+//            m_parent.load_shared(ptr, load);
+//            m_rcl.load_shared(ptr, load);
             m_left.load_shared(ptr, load);
             m_skip.load_shared(ptr, load);
 
-            m_leaf_ptr.load_shared(ptr, load);
-            m_leaf_obb_ptr.load_shared(ptr, load);
-            m_particles.load_shared(ptr, load);
+//            m_leaf_ptr.load_shared(ptr, load);
+//            m_leaf_obb_ptr.load_shared(ptr, load);
+//            m_particles.load_shared(ptr, load);
             }
 
     protected:
