@@ -58,7 +58,7 @@ void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::stri
     {
     pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> > >
     (m, name.c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
-    .def(pybind11::init< Scalar, typename Shape::param_type,std::shared_ptr<elastic_shape_move> >())
+    .def(pybind11::init< Scalar, typename Shape::param_type,std::shared_ptr<elastic_shape_move_function<Shape, Saru> > >())
     ;
     }
 
@@ -112,8 +112,8 @@ template void export_ConstantShapeMove< ShapeSphere >(pybind11::module& m, const
 
 template void export_ShapeMoveInterface< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_ShapeLogBoltzmann< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_ScaleShearShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
-template void export_ShapeSpringLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
+// template void export_ScaleShearShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
+// template void export_ShapeSpringLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_AlchemyLogBoltzmannFunction< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_UpdaterShape< ShapeEllipsoid >(pybind11::module& m, const std::string& name);
 template void export_PythonShapeMove< ShapeEllipsoid >(pybind11::module& m, const std::string& name);

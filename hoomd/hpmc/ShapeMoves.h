@@ -401,6 +401,7 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
     Eigen::Matrix3f m_eps;
+    Eigen::Matrix3f m_Fbar;
     Scalar a_max;
 public:
     elastic_shape_move_function(
@@ -412,6 +413,7 @@ public:
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+        m_Fbar = Eigen::Matrix3f::Identity();
         }
 
     void prepare(unsigned int timestep) { /* Nothing to do. */ }
@@ -419,7 +421,7 @@ public:
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
         {
         using Eigen::Matrix3f;
-        unsigned int move_type_select = rng.u32() & 0xffff;
+        // unsigned int move_type_select = rng.u32() & 0xffff;
         // Saru rng(m_select_ratio, m_seed, timestep);
         /*if( move_type_select < m_select_ratio)
             {
@@ -456,9 +458,10 @@ public:
 
          F = I + alpha;
          Fbar = F / pow(F.determinant(),1.0/3.0);
-         eps = 0.5*(Fbar.transpose() + Fbar) - I ; 
+         m_Fbar = Fbar*m_Fbar;
+         eps = 0.5*(m_Fbar.transpose() + m_Fbar) - I ; 
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
-
+        
         for(unsigned int i = 0; i < param.N; i++)
             {
             param.x[i] = Fbar(1,1)*param.x[i] + Fbar(1,2)*param.y[i] + Fbar(1,3)*param.z[i];
@@ -542,21 +545,21 @@ class ShapeSpring : public ShapeSpringBase< Shape >
     
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
-    std::shared_ptr<elastic_shape_move> m_shape_move;
+    //using elastic_shape_move_function<Shape, Saru>;
+    std::shared_ptr<elastic_shape_move_function<Shape, Saru> > m_shape_move;
 public:
-    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move> P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
     Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
           //using Eigen::Matrix3f;
-          Eigen::Matrix3f eps;
+          Eigen::Matrix3f eps = m_shape_move->getEps();
           AlchemyLogBoltzmannFunction< Shape > fn;
           //Scalar dv;
           Scalar e_ddot_e = 0.0;
           detail::mass_properties<Shape> mp(shape_new);
           //dv = mp.getVolume()-m_volume;
-          eps =m_shape_move->getEps();
           e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) + 
                      eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) + 
                      eps(3,1)*eps(1,3) + eps(3,2)*eps(2,3) + eps(3,3)*eps(3,3) ;
