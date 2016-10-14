@@ -1336,7 +1336,7 @@ class elastic_shape(shape_update):
             raise RuntimeError("Error initializing compute.elastic_shape");
 
         ref_shape = self.mc.shape_class.make_param(**reference);
-        self.boltzmann_function = clss(stiffness, ref_shape);
+        self.boltzmann_function = clss(stiffness, ref_shape, self.cpp_move);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
         del self.vertex_shape_move
         del self.python_shape_move

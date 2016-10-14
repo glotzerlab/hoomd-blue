@@ -571,6 +571,7 @@ public:
               eps_ddot += eps(i,j)*eps(j,i) 
            }
           } */
+
           return m_k*e_ddot_e*m_volume + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
