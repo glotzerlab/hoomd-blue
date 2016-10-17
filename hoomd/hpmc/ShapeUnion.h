@@ -295,14 +295,87 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 unsigned int& err)
     {
     #ifdef NVCC
+    // Parallel tree traversal
     for (unsigned int cur_leaf_a = threadIdx.z; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += blockDim.z)
-    #else
-    for (unsigned int cur_leaf_a = 0; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a++)
-    #endif
         {
         unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
         if (query_node(cur_node_a, r_ab, a, b)) return true;
         }
+    #else
+    // Tandem tree traversal
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b =0;
+
+    unsigned int old_cur_node_a = UINT_MAX;
+    unsigned int old_cur_node_b = UINT_MAX;
+
+    unsigned int level_a = 0;
+    unsigned int level_b = 0;
+
+    hpmc::detail::OBB obb_a;
+    hpmc::detail::OBB obb_b;
+
+    while (cur_node_a < a.members.tree.getNumNodes() && cur_node_b < b.members.tree.getNumNodes())
+        {
+        if (old_cur_node_a != cur_node_a)
+            {
+            obb_a = a.members.tree.getOBB(cur_node_a);
+            level_a = a.members.tree.getLevel(cur_node_a);
+
+            // rotate and translate a's obb into b's body frame
+            obb_a.affineTransform(conj(b.orientation)*a.orientation,
+                rotate(conj(b.orientation),-r_ab));
+            old_cur_node_a = cur_node_a;
+            }
+        if (old_cur_node_b != cur_node_b)
+            {
+            obb_b = b.members.tree.getOBB(cur_node_b);
+            level_b = b.members.tree.getLevel(cur_node_b);
+            old_cur_node_b = cur_node_b;
+            }
+
+        if (detail::overlap(obb_a, obb_b))
+            {
+            if (a.members.tree.isLeaf(cur_node_a) && b.members.tree.isLeaf(cur_node_b))
+                {
+                if (test_narrow_phase_overlap(r_ab, a, b, cur_node_a, cur_node_b)) return true;
+                }
+            else
+                {
+                if (a.members.tree.isLeaf(cur_node_a))
+                    {
+                    unsigned int end_node = cur_node_b;
+                    b.members.tree.advanceNode(end_node, true);
+                    if (test_subtree(r_ab, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b, end_node)) return true;
+                    }
+                else if (b.members.tree.isLeaf(cur_node_b))
+                    {
+                    unsigned int end_node = cur_node_a;
+                    a.members.tree.advanceNode(end_node, true);
+                    if (test_subtree(-r_ab, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a, end_node)) return true;
+                    }
+                else
+                    {
+                    if (level_a < level_b)
+                        {
+                        // descend into a's tree
+                        cur_node_a = a.members.tree.getLeftChild(cur_node_a);
+                        continue;
+                        }
+                    else
+                        {
+                        // descend into b's tree
+                        cur_node_b = b.members.tree.getLeftChild(cur_node_b);
+                        continue;
+                        }
+                    }
+                }
+            } // end if overlap
+
+        // move up in tandem fashion
+        detail::moveUp(a.members.tree, cur_node_a, b.members.tree, cur_node_b);
+        } // end while
+    #endif
 
     return false;
     }
