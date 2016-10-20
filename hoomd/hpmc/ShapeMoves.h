@@ -414,6 +414,7 @@ public:
         m_step_size.resize(ntypes, stepsize);
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
         m_Fbar = Eigen::Matrix3f::Identity();
+        m_determinantInertiaTensor = 1.0;
         }
 
     void prepare(unsigned int timestep) { /* Nothing to do. */ }
@@ -452,7 +453,7 @@ public:
           { 
             for (int j=0;j<3;j++)
             {
-              alpha(i,j) =  rng.s(-a_max, a_max);;
+              alpha(i,j) =  rng.s(-a_max, a_max);
             }
           }
 
