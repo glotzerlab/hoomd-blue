@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 #include "hoomd/Integrator.h"
 #include "HPMCPrecisionSetup.h"
@@ -198,6 +199,25 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return ghost_width;
             }
 
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            CommFlags flags(0);
+            flags[comm_flag::position] = 1;
+            flags[comm_flag::tag] = 1;
+
+            std::ostringstream o;
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
+            if (m_hasOrientation)
+                {
+                flags[comm_flag::orientation] = 1;
+                o << "orientation ";
+                }
+
+            m_exec_conf->msg->notice(9) << o.str() << std::endl;
+            return flags;
+            }
+
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
             {
@@ -229,17 +249,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                CommFlags flags(0);
-                flags[comm_flag::position] = 1;
-                flags[comm_flag::tag] = 1;
-
-                if (m_hasOrientation)
-                    flags[comm_flag::orientation] = 1;
-
-                // we need tags
-                flags[comm_flag::tag] = 1;
-
-                m_comm->setFlags(flags);
+                // this is kludgy but necessary since we are calling the communications methods directly
+                m_comm->setFlags(getCommFlags(0));
 
                 if (migrate)
                     m_comm->migrateParticles();
