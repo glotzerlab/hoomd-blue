@@ -282,13 +282,13 @@ class IntegratorHPMC : public Integrator
             return Scalar(0.0);
             }
 
+        #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
         virtual CommFlags getCommFlags(unsigned int)
             {
             return CommFlags(0);
             }
 
-        #ifdef ENABLE_MPI
         //! Set the MPI communicator
         /*! \param comm the communicator
             This method is overridden so that we can register with the signal to set the ghost layer width.

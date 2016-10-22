@@ -199,6 +199,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             return ghost_width;
             }
 
+        #ifdef ENABLE_MPI
         //! Return the requested communication flags for ghost particles
         virtual CommFlags getCommFlags(unsigned int)
             {
@@ -217,6 +218,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             m_exec_conf->msg->notice(9) << o.str() << std::endl;
             return flags;
             }
+        #endif
 
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
