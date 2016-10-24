@@ -296,7 +296,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     {
     #ifdef NVCC
     // Parallel tree traversal
-    for (unsigned int cur_leaf_a = threadIdx.z; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += blockDim.z)
+    for (unsigned int cur_leaf_a = threadIdx.x; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += blockDim.x)
         {
         unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
         if (query_node(cur_node_a, r_ab, a, b)) return true;

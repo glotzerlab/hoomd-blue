@@ -326,11 +326,11 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (Shape::isParallel())
         {
         // use 3d thread block layout
-        group = threadIdx.y;
-        offset = threadIdx.x;
-        group_size = blockDim.x;
-        master = (offset == 0 && threadIdx.z == 0);
-        n_groups = blockDim.y;
+        group = threadIdx.z;
+        offset = threadIdx.y;
+        group_size = blockDim.y;
+        master = (offset == 0 && threadIdx.x == 0);
+        n_groups = blockDim.z;
         }
     else
         {
@@ -629,7 +629,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
         if (master && group == 0)
             s_still_searching = 0;
 
-        unsigned int tidx_1d = threadIdx.x+blockDim.x*threadIdx.y;  // z component is for Shape parallelism
+        unsigned int tidx_1d = offset + group_size*group;  // z component is for Shape parallelism
 
         // max_queue_size is always <= block size, so we just need an if here
         if (tidx_1d < min(s_queue_size, max_queue_size))
@@ -808,7 +808,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
 
     unsigned int stride = min(block_size, args.stride);
 
-    while ((block_size%(stride*group_size)) != 0)
+    while (stride*group_size > block_size)
         {
         group_size--;
         }
@@ -829,7 +829,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         extra_bytes = ptr - ptr_begin;
         }
 
-    unsigned int n_groups = block_size / group_size / stride;
+    unsigned int n_groups = block_size / (group_size * stride);
     unsigned int max_queue_size = n_groups*group_size;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                                 max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
@@ -853,12 +853,12 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         group_size = args.group_size;
 
         stride = min(block_size, args.stride);
-        while ((block_size%(stride*group_size)) != 0)
+        while (stride*group_size > block_size)
             {
             group_size--;
             }
 
-        n_groups = block_size / group_size / stride;
+        n_groups = block_size / (group_size * stride);
         max_queue_size = n_groups*group_size;
         shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                        max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
@@ -870,7 +870,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     if (Shape::isParallel())
         {
         // use three-dimensional thread-layout with blockDim.z < 64
-        threads = dim3(group_size, n_groups, stride);
+        threads = dim3(stride, group_size, n_groups);
         }
     else
         {
