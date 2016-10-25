@@ -341,6 +341,8 @@ class mode_hpmc(_integrator):
             shape_param_type = data.convex_polyhedron_params.get_sized_class(self.max_verts);
         elif isinstance(self, convex_spheropolyhedron):
             shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
+        elif isinstance(self, sphere_union):
+            shape_param_type = data.sphere_union_params.get_sized_class(self.capacity);
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
 
@@ -1620,6 +1622,10 @@ class ellipsoid(mode_hpmc):
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
+    This shape uses an internal OBB tree for fast collision queries.
+    Depending on the number of constituent spheres in the tree, different values of the number of spheres per leaf
+    node may yield different optimal performance. The capacity of leaf nodes is configurable.
+
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1629,6 +1635,8 @@ class sphere_union(mode_hpmc):
         implicit (bool): Flag to enable implicit depletants.
         max_members (int): Set the maximum number of members in the sphere union
             * .. deprecated:: 2.2
+        capacity (int): Set to the number of constituent spheres per leaf node
+        * .. versionadded:: 2.2
 
     Sphere union parameters:
 
@@ -1660,7 +1668,7 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4):
         hoomd.util.print_status_line();
 
         if max_members is not None:
@@ -1672,16 +1680,16 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', capacity)(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', capacity)(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1690,7 +1698,11 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        self.capacity = capacity
         self.initialize_shape_params();
+
+        # meta data
+        self.metadata_fields = ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

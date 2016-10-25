@@ -115,7 +115,7 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
         for (unsigned int block_size =dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size +=dev_prop.warpSize)
             {
             unsigned int s=1;
-            while (s <= dev_prop.warpSize) 
+            while (s <= (unsigned int)dev_prop.warpSize)
                 {
                 unsigned int stride = 1;
                 while (stride <= block_size)

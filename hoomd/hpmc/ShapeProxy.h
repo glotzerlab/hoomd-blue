@@ -389,15 +389,15 @@ sphinx3d_params make_sphinx3d_params(pybind11::list diameters, pybind11::list ce
     }
 
 //! Templated helper function to build shape union params from constituent shape params
-template<class Shape>
-typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members,
+template<class Shape, unsigned int capacity>
+typename ShapeUnion<Shape,capacity>::param_type make_union_params(pybind11::list _members,
                                         pybind11::list positions,
                                         pybind11::list orientations,
                                         pybind11::list overlap,
                                         bool ignore_stats,
                                         std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    typename ShapeUnion<Shape>::param_type result(len(_members), exec_conf->isCUDAEnabled());
+    typename ShapeUnion<Shape,capacity>::param_type result(len(_members), exec_conf->isCUDAEnabled());
 
     if (len(positions) != result.N)
         {
@@ -453,7 +453,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     result.diameter = diameter;
 
     // build tree and store GPU accessible version in parameter structure
-    typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
+    typedef typename ShapeUnion<Shape, capacity>::param_type::gpu_tree_type gpu_tree_type;
     typename gpu_tree_type::obb_tree_type tree;
     tree.buildTree(obbs, result.N);
     free(obbs);
@@ -760,8 +760,8 @@ public:
 template< class ShapeUnionType>
 struct get_member_type{};
 
-template<class BaseShape>
-struct get_member_type< ShapeUnion<BaseShape> >
+template<class BaseShape, unsigned int capacity>
+struct get_member_type< ShapeUnion<BaseShape, capacity> >
     {
     typedef typename BaseShape::param_type type;
     typedef BaseShape base_shape;
@@ -770,8 +770,8 @@ struct get_member_type< ShapeUnion<BaseShape> >
 template< typename Shape, typename ShapeUnionType, typename AccessType>
 struct get_member_proxy{};
 
-template<typename Shape, typename AccessType >
-struct get_member_proxy<Shape, ShapeUnion<ShapeSphere>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
+template<typename Shape, unsigned int capacity, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeSphere, capacity>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
 
 template< class ShapeUnionType >
@@ -1001,12 +1001,12 @@ void export_sphinx_proxy(pybind11::module& m, std::string class_name)
 
     }
 
-template<class Shape, class ExportFunction >
+template<class Shape, unsigned int capacity, class ExportFunction >
 void export_shape_union_proxy(pybind11::module& m, std::string class_name, ExportFunction& export_member_proxy)
     {
     using detail::shape_param_proxy;
     using detail::shape_union_param_proxy;
-    typedef ShapeUnion<Shape>                               ShapeType;
+    typedef ShapeUnion<Shape, capacity>                     ShapeType;
     typedef shape_param_proxy<ShapeType>                    proxy_base;
     typedef shape_union_param_proxy<ShapeType, ShapeType>   proxy_class;
 
@@ -1050,7 +1050,10 @@ void export_shape_params(pybind11::module& m)
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
     export_sphinx_proxy(m, "sphinx3d_param_proxy");
-    export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > >);
+    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy1", export_sphere_proxy<ShapeUnion<ShapeSphere, 1>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 1> > >);
+    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy2", export_sphere_proxy<ShapeUnion<ShapeSphere, 2>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 2> > >);
+    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy4", export_sphere_proxy<ShapeUnion<ShapeSphere, 4>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 4> > >);
+    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy8", export_sphere_proxy<ShapeUnion<ShapeSphere, 8>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 8> > >);
     }
 
 } // end namespace hpmc

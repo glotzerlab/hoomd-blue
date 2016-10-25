@@ -160,9 +160,9 @@ struct ShapeUnion
 
     \ingroup shape
 */
-template <class Shape>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
-    const ShapeUnion<Shape> &b)
+template <class Shape, unsigned int capacity>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape, capacity>& a,
+    const ShapeUnion<Shape, capacity> &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
