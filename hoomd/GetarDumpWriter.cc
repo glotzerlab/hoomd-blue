@@ -892,7 +892,11 @@ namespace getardump{
             rec = gtar::Record("", name, conv.str(), gtar::Discrete, gtar::UInt8, gtar::Text);
             }
 
-        m_archive->writeString(rec.getPath(), contents, gtar::FastCompress);
+#ifdef ENABLE_MPI
+        // only write on root rank
+        if (m_exec_conf->isRoot())
+            m_archive->writeString(rec.getPath(), contents, gtar::FastCompress);
+#endif
         }
 
     void export_GetarDumpWriter(py::module& m)

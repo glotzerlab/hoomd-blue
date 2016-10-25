@@ -262,7 +262,7 @@ class mode_hpmc(_integrator):
                 if self.overlap_checks.get(type_name_i, type_name_j) is None: # only add new pairs
                     # by default, perform overlap checks
                     hoomd.util.quiet_status()
-                    self.overlap_checks.set(type_name_i, type_name_j, True)
+                    self.overlap_checks.set(str(type_name_i), str(type_name_j), True)
                     hoomd.util.unquiet_status()
 
         # set overlap matrix on C++ side
@@ -329,7 +329,7 @@ class mode_hpmc(_integrator):
 
     def get_type_shapes(self):
         """ Get all the types of shapes in the current simulation
-        
+
         Since this behaves differently for different types of shapes, the default behavior just raises an exception. Subclasses can override this to properly return
         """
         raise NotImplementedError("You are using a shape type that is not implemented! If you want it, please modify the hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function")

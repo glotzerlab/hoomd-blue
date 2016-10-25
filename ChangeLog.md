@@ -2,6 +2,19 @@
 
 [TOC]
 
+## v2.1.1
+
+Released 2016/10/23
+
+*Bug fixes*
+
+* Fix `force.active` memory allocation bug
+* Quiet Python.h warnigns when building (python 2.7)
+* Allow multi-character particle types in HPMC (python 2.7)
+* Enable `dump.getar.writeJSON` in MPI
+* Allow the flow to change directions in `md.update.mueller_plathe_flow`
+* Fix critical bug in MPI communication when using HPMC integrators
+
 ## v2.1.0
 
 Released 2016/10/04

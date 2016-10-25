@@ -74,6 +74,20 @@ void MuellerPlatheFlow::update(unsigned int timestep)
       case flow_enum::Y: area = box.getL().x * box.getL().z;
       case flow_enum::Z: area = box.getL().y * box.getL().x;
       }
+
+    // Determine switch direction for this update call
+    // Switch outside while loop, to prevent oscilations around the target.
+    bool bigger_swap_needed = m_flow_target->getValue(timestep) > this->summed_exchanged_momentum()/area;
+    bigger_swap_needed &=  this->get_min_slab() > this->get_max_slab();
+    bool smaller_swap_needed = m_flow_target->getValue(timestep) < this->summed_exchanged_momentum()/area;
+    smaller_swap_needed &=  this->get_min_slab() < this->get_max_slab();
+
+    if( bigger_swap_needed || smaller_swap_needed
+        &&  fabs( m_flow_target->getValue(timestep) - this->summed_exchanged_momentum()/area ) > this->get_flow_epsilon())
+        this->swap_min_max_slab();
+    //Sign for summed exchanged momentum depends on hierachy of min and max slab.
+    const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
+
     unsigned int counter = 0;
     const unsigned int max_iteration = 100;
     while( fabs( m_flow_target->getValue(timestep) -
@@ -81,21 +95,17 @@ void MuellerPlatheFlow::update(unsigned int timestep)
            && counter < max_iteration)
         {
         counter++;
-        if( m_flow_target->getValue(timestep)*
-            this->summed_exchanged_momentum() < 0)
-            {
-            this->swap_min_max_slab();
-            }
 
         m_last_max_vel.x = m_last_max_vel.y = -INVALID_VEL;
         m_last_max_vel.z = __int_as_scalar(INVALID_TAG);
         m_last_min_vel.x = m_last_min_vel.y = INVALID_VEL;
         m_last_min_vel.z = __int_as_scalar(INVALID_TAG);
         search_min_max_velocity();
+
 #ifdef ENABLE_MPI
         mpi_exchange_velocity();
-
 #endif//ENABLE_MPI
+
         if( m_last_max_vel.x == -INVALID_VEL
             || static_cast<unsigned int>(__scalar_as_int(m_last_max_vel.z)) == INVALID_TAG
             || m_last_min_vel.x == -INVALID_VEL
@@ -110,7 +120,7 @@ void MuellerPlatheFlow::update(unsigned int timestep)
         else
             {
             update_min_max_velocity();
-            const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
+
             m_exchanged_momentum += sign * (m_last_max_vel.x - m_last_min_vel.x);
             }
         }
@@ -160,6 +170,7 @@ void MuellerPlatheFlow::swap_min_max_slab(void)
 #ifdef ENABLE_MPI
     std::swap( m_max_swap, m_min_swap);
 #endif//ENABLE_MPI
+    m_exec_conf->msg->notice(4)<<"MuellerPlatheUpdater swapped min/max slab: "<<this->get_min_slab()<<" "<<this->get_max_slab()<<endl;
     }
 
 void MuellerPlatheFlow::set_min_slab(const unsigned int min_slab)
