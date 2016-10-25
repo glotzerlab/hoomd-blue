@@ -254,6 +254,11 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
         rotate(conj(b.orientation),-dr));
 
     const detail::GPUTree<capacity>& tree_b = b.members.tree;
+
+    // need to handle trivial case separately
+    if (tree_b.getNumNodes() == 1)
+        return test_narrow_phase_overlap(dr, a, b, cur_node_a, 0);
+
     do
         {
         unsigned int child_l = tree_b.getLeftChild(cur_node_b);
