@@ -20,12 +20,6 @@
 #define DEVICE
 #endif
 
-#ifdef NVCC
-#define FORCEINLINE
-#else
-#define FORCEINLINE __attribute__((always_inline))
-#endif
-
 /*! \addtogroup vecmath
     @{
 */
@@ -887,7 +881,7 @@ DEVICE inline quat<Real>& operator -=(quat<Real>& a, const quat<Real>& b)
     (a.s * b.s − dot(a.v, b.v), a.s*b.v + b.s * a.v + cross(a.v, b.v)).
 */
 template < class Real >
-DEVICE inline FORCEINLINE quat<Real> operator*(const quat<Real>& a, const quat<Real>& b)
+DEVICE inline quat<Real> operator*(const quat<Real>& a, const quat<Real>& b)
     {
     return quat<Real>(a.s*b.s - dot(a.v, b.v),
                       a.s*b.v + b.s * a.v + cross(a.v,b.v));
@@ -986,7 +980,7 @@ DEVICE inline quat<Real>::quat(const rotmat3<Real>& r)
     \returns the vector rotated by the quaternion, equivalent to the vector component of a*b*conj(a);
 */
 template < class Real >
-DEVICE inline FORCEINLINE vec3<Real> rotate(const quat<Real>& a, const vec3<Real>& b)
+DEVICE inline vec3<Real> rotate(const quat<Real>& a, const vec3<Real>& b)
     {
     //quat<Real> result = a*b*conj(a);
     //return result.v;
