@@ -998,7 +998,7 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
 
     // need to handle trivial case separately
     if (tree_b.getNumNodes() == 1)
-        return test_narrow_phase_overlap(dr, a, b, cur_node_a, 0);
+        return detail::overlap(obb_a, tree_b.getOBB(0)) && test_narrow_phase_overlap(dr, a, b, cur_node_a, 0);
 
     do
         {
