@@ -55,7 +55,7 @@ class GPUTree
 
             m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
-            m_rotation = ManagedArray<quat<OverlapReal> >(m_num_nodes,managed);
+            m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);
             m_level = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_isleft = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_parent = ManagedArray<unsigned int>(m_num_nodes,managed);
@@ -269,7 +269,7 @@ class GPUTree
     private:
         ManagedArray<vec3<OverlapReal> > m_center;
         ManagedArray<vec3<OverlapReal> > m_lengths;
-        ManagedArray<quat<OverlapReal> > m_rotation;
+        ManagedArray<rotmat3<OverlapReal> > m_rotation;
 
         ManagedArray<unsigned int> m_level;   //!< Depth
         ManagedArray<unsigned int> m_isleft;  //!< True if this node is a left node

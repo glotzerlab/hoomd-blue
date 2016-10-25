@@ -403,7 +403,7 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
     unsigned int start_left = 0;
     unsigned int start_right = len;
 
-    rotmat3<OverlapReal> my_axes(conj(my_obb.rotation));
+    rotmat3<OverlapReal> my_axes(transpose(my_obb.rotation));
 
     // if there are only 2 obbs, put one on each side
     if (len == 2)

@@ -58,7 +58,7 @@ struct OBB
     {
     vec3<OverlapReal> lengths; // half-axes
     vec3<OverlapReal> center;
-    quat<OverlapReal> rotation;
+    rotmat3<OverlapReal> rotation;
 
     //! Default construct a 0 OBB
     DEVICE OBB() {}
@@ -91,7 +91,7 @@ struct OBB
         {
         std::vector< vec3<OverlapReal> > corners(8);
 
-        rotmat3<OverlapReal> r(conj(rotation));
+        rotmat3<OverlapReal> r(transpose(rotation));
         corners[0] = center + r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[1] = center - r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[2] = center + r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
@@ -107,7 +107,7 @@ struct OBB
     DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
         {
         center = ::rotate(q,center) + v;
-        rotation = q * rotation;
+        rotation = rotmat3<OverlapReal>(q) * rotation;
         }
 
     } __attribute__((aligned(32)));
@@ -125,13 +125,13 @@ struct OBB
 DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=false)
     {
     // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
+    rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
     // rotate translation into A's frame
-    t = rotate(conj(a.rotation),t);
+    t = transpose(a.rotation)*t;
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
@@ -276,14 +276,12 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
 
     // sort by descending eigenvalue, so split can occur along axis with largest covariance
-    OverlapReal sign(eigen_vec.determinant().real());
     if (eigen_val(0).real() < eigen_val(1).real())
         {
         std::swap(r.row0.x,r.row0.y);
         std::swap(r.row1.x,r.row1.y);
         std::swap(r.row2.x,r.row2.y);
         std::swap(eigen_val(1),eigen_val(0));
-        sign *= -1;
         }
 
     if (eigen_val(1).real() < eigen_val(2).real())
@@ -292,7 +290,6 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         std::swap(r.row1.y,r.row1.z);
         std::swap(r.row2.y,r.row2.z);
         std::swap(eigen_val(1),eigen_val(2));
-        sign *= -1;
         }
 
     if (eigen_val(0).real() < eigen_val(1).real())
@@ -301,16 +298,6 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         std::swap(r.row1.x,r.row1.y);
         std::swap(r.row2.x,r.row2.y);
         std::swap(eigen_val(1),eigen_val(0));
-        sign *= -1;
-        }
-
-    if (sign < OverlapReal(0.0))
-        {
-        // swap row two and three
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(eigen_val(1),eigen_val(2));
         }
 
     vec3<OverlapReal> axis[3];
@@ -318,7 +305,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
     axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
 
-    res.rotation = quat<OverlapReal>(r);
+    res.rotation = r;
 
     vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX,FLT_MAX,FLT_MAX);
     vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX,-FLT_MAX,-FLT_MAX);
