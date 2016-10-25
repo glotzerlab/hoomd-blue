@@ -56,10 +56,6 @@ class GPUTree
             m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
             m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);
-            m_level = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_isleft = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_parent = ManagedArray<unsigned int>(m_num_nodes,managed);
-            m_rcl = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_skip = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes+1, managed);
@@ -106,9 +102,6 @@ class GPUTree
                     m_particles[m_leaf_ptr[i]+j] = tree.getNodeParticle(i,j);
                     }
                 }
-
-            // update auxillary information for tandem traversal
-            updateRCL(0, tree, 0, true, m_num_nodes, 0);
             }
         #endif
 
@@ -184,29 +177,9 @@ class GPUTree
             }
 
 
-        DEVICE inline unsigned int getLevel(unsigned int node) const
-            {
-            return m_level[node];
-            }
-
         DEVICE inline unsigned int getLeftChild(unsigned int node) const
             {
             return m_left[node];
-            }
-
-        DEVICE inline bool isLeftChild(unsigned int node) const
-            {
-            return m_isleft[node];
-            }
-
-        DEVICE inline unsigned int getParent(unsigned int node) const
-            {
-            return m_parent[node];
-            }
-
-        DEVICE inline unsigned int getRCL(unsigned int node) const
-            {
-            return m_rcl[node];
             }
 
         DEVICE inline void advanceNode(unsigned int &cur_node, bool skip) const
@@ -234,10 +207,6 @@ class GPUTree
             m_lengths.load_shared(ptr, load);
             m_rotation.load_shared(ptr, load);
 
-//            m_level.load_shared(ptr, load);
-//            m_isleft.load_shared(ptr, load);
-//            m_parent.load_shared(ptr, load);
-//            m_rcl.load_shared(ptr, load);
             m_left.load_shared(ptr, load);
             m_skip.load_shared(ptr, load);
 
@@ -246,35 +215,10 @@ class GPUTree
             m_particles.load_shared(ptr, load);
             }
 
-    protected:
-        #ifndef NVCC
-        void updateRCL(unsigned int idx, const obb_tree_type& tree, unsigned int level, bool left,
-             unsigned int parent_idx, unsigned int rcl)
-            {
-            if (!isLeaf(idx))
-                {
-                unsigned int left_idx = tree.getNodeLeft(idx);;
-                unsigned int right_idx = tree.getNode(idx).right;
-
-                updateRCL(left_idx, tree, level+1, true, idx, 0);
-                updateRCL(right_idx, tree, level+1, false, idx, rcl+1);
-                }
-            m_level[idx] = level;
-            m_isleft[idx] = left;
-            m_parent[idx] = parent_idx;
-            m_rcl[idx] = rcl;
-            }
-        #endif
-
     private:
         ManagedArray<vec3<OverlapReal> > m_center;
         ManagedArray<vec3<OverlapReal> > m_lengths;
         ManagedArray<rotmat3<OverlapReal> > m_rotation;
-
-        ManagedArray<unsigned int> m_level;   //!< Depth
-        ManagedArray<unsigned int> m_isleft;  //!< True if this node is a left node
-        ManagedArray<unsigned int> m_parent;  //!< Pointer to parent
-        ManagedArray<unsigned int> m_rcl;     //!< Right child level
 
         ManagedArray<unsigned int> m_leaf_ptr; //!< Pointer to leaf node contents
         ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs
@@ -287,143 +231,6 @@ class GPUTree
         unsigned int m_num_leaves;            //!< Number of leaf nodes
     };
 
-//! Test a subtree against a leaf node during a tandem traversal
-template<class Shape, class Tree>
-DEVICE inline bool test_subtree(const vec3<OverlapReal>& r_ab,
-                                const Shape& s0,
-                                const Shape& s1,
-                                const Tree& tree_a,
-                                const Tree& tree_b,
-                                unsigned int leaf_node,
-                                unsigned int cur_node,
-                                unsigned int end_idx)
-    {
-    // get the obb of the leaf node
-    hpmc::detail::OBB obb = tree_a.getOBB(leaf_node);
-    obb.affineTransform(conj(quat<OverlapReal>(s1.orientation))*quat<OverlapReal>(s0.orientation),
-        rotate(conj(quat<OverlapReal>(s1.orientation)),-r_ab));
-
-    while (cur_node != end_idx)
-        {
-        hpmc::detail::OBB node_obb = tree_b.getOBB(cur_node);
-
-        bool skip = false;
-
-        if (detail::overlap(obb,node_obb))
-            {
-            if (tree_b.isLeaf(cur_node))
-                {
-                if (test_narrow_phase_overlap(r_ab, s0, s1, leaf_node, cur_node)) return true;
-                }
-            }
-        else
-            {
-            skip = true;
-            }
-        tree_b.advanceNode(cur_node, skip);
-        }
-    return false;
-    }
-
-//! Move up during a tandem traversal, alternating between trees a and b
-/*! Adapted from: "Stackless BVH Collision Detection for Physical Simulation" by
-    Jesper Damkjaer, damkjaer@diku.edu, http://image.diku.dk/projects/media/jesper.damkjaer.07.pdf
- */
-template<class Tree>
-DEVICE inline void moveUp(const Tree& tree_a, unsigned int& cur_node_a, const Tree& tree_b, unsigned int& cur_node_b)
-    {
-    unsigned int level_a = tree_a.getLevel(cur_node_a);
-    unsigned int level_b = tree_b.getLevel(cur_node_b);
-
-    if (level_a == level_b)
-        {
-        bool a_is_left_child = tree_a.isLeftChild(cur_node_a);
-        bool b_is_left_child = tree_b.isLeftChild(cur_node_b);
-        if (a_is_left_child)
-            {
-            tree_a.advanceNode(cur_node_a, true);
-            return;
-            }
-        if (!a_is_left_child && b_is_left_child)
-            {
-            cur_node_a = tree_a.getParent(cur_node_a);
-            tree_b.advanceNode(cur_node_b, true);
-            return;
-            }
-        if (!a_is_left_child && !b_is_left_child)
-            {
-            unsigned int rcl_a = tree_a.getRCL(cur_node_a);
-            unsigned int rcl_b = tree_b.getRCL(cur_node_b);
-            if (rcl_a <= rcl_b)
-                {
-                tree_a.advanceNode(cur_node_a, true);
-                // LevelUp
-                while (rcl_a)
-                    {
-                    cur_node_b = tree_b.getParent(cur_node_b);
-                    rcl_a--;
-                    }
-                }
-            else
-                {
-                // LevelUp
-                rcl_b++;
-                while (rcl_b)
-                    {
-                    cur_node_a = tree_a.getParent(cur_node_a);
-                    rcl_b--;
-                    }
-                tree_b.advanceNode(cur_node_b, true);
-                }
-            return;
-            }
-        } // end if level_a == level_b
-    else
-        {
-        bool a_is_left_child = tree_a.isLeftChild(cur_node_a);
-        bool b_is_left_child = tree_b.isLeftChild(cur_node_b);
-
-        if (b_is_left_child)
-            {
-            tree_b.advanceNode(cur_node_b, true);
-            return;
-            }
-        if (a_is_left_child)
-            {
-            tree_a.advanceNode(cur_node_a, true);
-            cur_node_b = tree_b.getParent(cur_node_b);
-            return;
-            }
-        if (!a_is_left_child && !b_is_left_child)
-            {
-            unsigned int rcl_a = tree_a.getRCL(cur_node_a);
-            unsigned int rcl_b = tree_b.getRCL(cur_node_b);
-
-            if (rcl_a <= rcl_b-1)
-                {
-                tree_a.advanceNode(cur_node_a, true);
-                // LevelUp
-                rcl_a++;
-                while (rcl_a)
-                    {
-                    cur_node_b = tree_b.getParent(cur_node_b);
-                    rcl_a--;
-                    }
-                }
-            else
-                {
-                // LevelUp
-                while (rcl_b)
-                    {
-                    cur_node_a = tree_a.getParent(cur_node_a);
-                    rcl_b--;
-                    }
-                tree_b.advanceNode(cur_node_b, true);
-                }
-            return;
-            }
-        }
-    }
 
 }; // end namespace detail
 

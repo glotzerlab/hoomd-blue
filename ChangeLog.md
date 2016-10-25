@@ -2,6 +2,12 @@
 
 [TOC]
 
+## v2.2.0
+
+*Bug fixes*
+
+* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+
 ## v2.1.1
 
 Released 2016/10/23

@@ -975,6 +975,61 @@ inline void output_obb(const detail::OBB& obb, std::string color)
     }
 #endif
 
+//! Query one OBB node against a tree
+DEVICE inline bool query_node(unsigned int cur_node_a,
+                            const vec3<Scalar>& r_ab,
+                            const ShapePolyhedron& a,
+                            const ShapePolyhedron& b)
+{
+    vec3<Scalar> dr(r_ab);
+
+    unsigned int cur_node_b =0;
+
+    unsigned int stack[64];
+    unsigned int *stack_ptr = stack;
+    *stack_ptr++ = b.tree.getNumNodes(); //push
+
+    hpmc::detail::OBB obb_a = a.tree.getOBB(cur_node_a);
+    // rotate and translate a's obb into b's body frame
+    obb_a.affineTransform(conj(b.orientation)*a.orientation,
+        rotate(conj(b.orientation),-dr));
+
+    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_b = b.tree;
+    do
+        {
+        unsigned int child_l = tree_b.getLeftChild(cur_node_b);
+        unsigned int child_r = child_l;
+        tree_b.advanceNode(child_r, true);
+
+        bool overlap_l = detail::overlap(obb_a, tree_b.getOBB(child_l));
+        bool overlap_r = detail::overlap(obb_a, tree_b.getOBB(child_r));
+
+        if (overlap_l && tree_b.isLeaf(child_l))
+            {
+            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_l)) return true;
+            }
+        if (overlap_r && tree_b.isLeaf(child_r))
+            {
+            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_r)) return true;
+            }
+
+        bool traverse_l = (overlap_l && !tree_b.isLeaf(child_l));
+        bool traverse_r = (overlap_r && !tree_b.isLeaf(child_r));
+
+        if (!traverse_l && !traverse_r)
+            cur_node_b = *--stack_ptr; // pop
+        else
+            {
+            cur_node_b = traverse_l ? child_l : child_r;
+            if (traverse_l && traverse_r)
+                *stack_ptr++ = child_r; // push
+            }
+        } while (cur_node_b != tree_b.getNumNodes());
+
+    return false;
+    }
+
+
 //! Polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -1013,100 +1068,31 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * b) the center of mass of one polyhedron is contained in the other
      */
 
-    unsigned int cur_node_a = 0;
-    unsigned int cur_node_b = 0;
+    #ifdef NVCC
+    // Parallel tree traversal
+    unsigned int offset = threadIdx.x;
+    unsigned int stride = blockDim.x;
+    #else
+    unsigned int offset = 0;
+    unsigned int stride = 1;
+    #endif
 
-    unsigned int old_cur_node_a = UINT_MAX;
-    unsigned int old_cur_node_b = UINT_MAX;
-    hpmc::detail::OBB obb_a;
-    hpmc::detail::OBB obb_b;
-
-    unsigned int level_a = 0;
-    unsigned int level_b = 0;
-
-    while (cur_node_a < a.tree.getNumNodes() && cur_node_b < b.tree.getNumNodes())
+    if (a.tree.getNumLeaves() <= b.tree.getNumLeaves())
         {
-        if (old_cur_node_a != cur_node_a)
+        for (unsigned int cur_leaf_a = offset; cur_leaf_a < a.tree.getNumLeaves(); cur_leaf_a += stride)
             {
-            obb_a = a.tree.getOBB(cur_node_a);
-            level_a = a.tree.getLevel(cur_node_a);
-
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),
-                rotate(conj(quat<OverlapReal>(b.orientation)),-dr));
-            old_cur_node_a = cur_node_a;
+            unsigned int cur_node_a = a.tree.getLeafNode(cur_leaf_a);
+            if (query_node(cur_node_a, dr, a, b)) return true;
             }
-        if (old_cur_node_b != cur_node_b)
+        }
+    else
+        {
+        for (unsigned int cur_leaf_b = offset; cur_leaf_b < b.tree.getNumLeaves(); cur_leaf_b += stride)
             {
-            obb_b = b.tree.getOBB(cur_node_b);
-            level_b = b.tree.getLevel(cur_node_b);
-            old_cur_node_b = cur_node_b;
+            unsigned int cur_node_b = b.tree.getLeafNode(cur_leaf_b);
+            if (query_node(cur_node_b, -dr, b, a)) return true;
             }
-
-        #ifdef DEBUG_OUTPUT
-        output_polys(a,b,conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation),
-            rotate(conj(quat<OverlapReal>(b.orientation)),-dr));
-        #endif
-
-        if (detail::overlap(obb_a, obb_b))
-            {
-            #ifdef DEBUG_OUTPUT
-            output_obb(obb_a, "ff0000ff");
-            output_obb(obb_b, "ff0000ff");
-
-            std::cout << "eof" << std::endl;
-            #endif
-
-            if (a.tree.isLeaf(cur_node_a) && b.tree.isLeaf(cur_node_b))
-                {
-                if (test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b)) return true;
-                }
-            else
-                {
-                if (level_a < level_b)
-                    {
-                    if (a.tree.isLeaf(cur_node_a))
-                        {
-                        unsigned int end_node = cur_node_b;
-                        b.tree.advanceNode(end_node, true);
-                        if (test_subtree(dr, a, b, a.tree, b.tree, cur_node_a, cur_node_b, end_node)) return true;
-                        }
-                    else
-                        {
-                        // descend into a's tree
-                        cur_node_a = a.tree.getLeftChild(cur_node_a);
-                        continue;
-                        }
-                    }
-                else
-                    {
-                    if (b.tree.isLeaf(cur_node_b))
-                        {
-                        unsigned int end_node = cur_node_a;
-                        a.tree.advanceNode(end_node, true);
-                        if (test_subtree(-dr, b, a, b.tree, a.tree, cur_node_b, cur_node_a, end_node)) return true;
-                        }
-                    else
-                        {
-                        // descend into b's tree
-                        cur_node_b = b.tree.getLeftChild(cur_node_b);
-                        continue;
-                        }
-                    }
-                }
-            } // end if overlap
-        #ifdef DEBUG_OUTPUT
-        else
-            {
-            output_obb(obb_a, "ffff0000");
-            output_obb(obb_b, "ff00ff00");
-            std::cout << "eof" << std::endl;
-            }
-        #endif
-
-        // move up in tandem
-        detail::moveUp(a.tree, cur_node_a, b.tree, cur_node_b);
-        } // end while
+        }
 
     // no intersecting edge, check if one polyhedron is contained in the other
 

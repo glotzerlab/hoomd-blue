@@ -270,8 +270,8 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
         if (overlap_r && tree_b.isLeaf(child_r))
             {
             if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_r)) return true;
-            } 
-        
+            }
+
         bool traverse_l = (overlap_l && !tree_b.isLeaf(child_l));
         bool traverse_r = (overlap_r && !tree_b.isLeaf(child_r));
 
@@ -282,7 +282,7 @@ DEVICE inline bool query_node(unsigned int cur_node_a,
             cur_node_b = traverse_l ? child_l : child_r;
             if (traverse_l && traverse_r)
                 *stack_ptr++ = child_r; // push
-            } 
+            }
         } while (cur_node_b != tree_b.getNumNodes());
 
     return false;
@@ -296,86 +296,29 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     {
     #ifdef NVCC
     // Parallel tree traversal
-    for (unsigned int cur_leaf_a = threadIdx.x; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += blockDim.x)
-        {
-        unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
-        if (query_node(cur_node_a, r_ab, a, b)) return true;
-        }
+    unsigned int offset = threadIdx.x;
+    unsigned int stride = blockDim.x;
     #else
-    // Tandem tree traversal
-    unsigned int cur_node_a = 0;
-    unsigned int cur_node_b =0;
-
-    unsigned int old_cur_node_a = UINT_MAX;
-    unsigned int old_cur_node_b = UINT_MAX;
-
-    unsigned int level_a = 0;
-    unsigned int level_b = 0;
-
-    hpmc::detail::OBB obb_a;
-    hpmc::detail::OBB obb_b;
-
-    while (cur_node_a < a.members.tree.getNumNodes() && cur_node_b < b.members.tree.getNumNodes())
-        {
-        if (old_cur_node_a != cur_node_a)
-            {
-            obb_a = a.members.tree.getOBB(cur_node_a);
-            level_a = a.members.tree.getLevel(cur_node_a);
-
-            // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-r_ab));
-            old_cur_node_a = cur_node_a;
-            }
-        if (old_cur_node_b != cur_node_b)
-            {
-            obb_b = b.members.tree.getOBB(cur_node_b);
-            level_b = b.members.tree.getLevel(cur_node_b);
-            old_cur_node_b = cur_node_b;
-            }
-
-        if (detail::overlap(obb_a, obb_b))
-            {
-            if (a.members.tree.isLeaf(cur_node_a) && b.members.tree.isLeaf(cur_node_b))
-                {
-                if (test_narrow_phase_overlap(r_ab, a, b, cur_node_a, cur_node_b)) return true;
-                }
-            else
-                {
-                if (a.members.tree.isLeaf(cur_node_a))
-                    {
-                    unsigned int end_node = cur_node_b;
-                    b.members.tree.advanceNode(end_node, true);
-                    if (test_subtree(r_ab, a, b, a.members.tree, b.members.tree, cur_node_a, cur_node_b, end_node)) return true;
-                    }
-                else if (b.members.tree.isLeaf(cur_node_b))
-                    {
-                    unsigned int end_node = cur_node_a;
-                    a.members.tree.advanceNode(end_node, true);
-                    if (test_subtree(-r_ab, b, a, b.members.tree, a.members.tree, cur_node_b, cur_node_a, end_node)) return true;
-                    }
-                else
-                    {
-                    if (level_a < level_b)
-                        {
-                        // descend into a's tree
-                        cur_node_a = a.members.tree.getLeftChild(cur_node_a);
-                        continue;
-                        }
-                    else
-                        {
-                        // descend into b's tree
-                        cur_node_b = b.members.tree.getLeftChild(cur_node_b);
-                        continue;
-                        }
-                    }
-                }
-            } // end if overlap
-
-        // move up in tandem fashion
-        detail::moveUp(a.members.tree, cur_node_a, b.members.tree, cur_node_b);
-        } // end while
+    unsigned int offset = 0;
+    unsigned int stride = 1;
     #endif
+
+    if (a.members.tree.getNumLeaves() <= b.members.tree.getNumLeaves())
+        {
+        for (unsigned int cur_leaf_a = offset; cur_leaf_a < a.members.tree.getNumLeaves(); cur_leaf_a += stride)
+            {
+            unsigned int cur_node_a = a.members.tree.getLeafNode(cur_leaf_a);
+            if (query_node(cur_node_a, r_ab, a, b)) return true;
+            }
+        }
+    else
+        {
+        for (unsigned int cur_leaf_b = offset; cur_leaf_b < b.members.tree.getNumLeaves(); cur_leaf_b += stride)
+            {
+            unsigned int cur_node_b = b.members.tree.getLeafNode(cur_leaf_b);
+            if (query_node(cur_node_b, -r_ab, b, a)) return true;
+            }
+        }
 
     return false;
     }
