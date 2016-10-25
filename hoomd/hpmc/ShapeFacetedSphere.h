@@ -66,8 +66,6 @@ struct faceted_sphere_params : param_base
                                                      //   First bit is ignore overlaps, Second bit is ignore statistics
     } __attribute__((aligned(32)));
 
-#define SMALL 1e-5
-
 //! Support function for ShapeFacetedSphere
 /* \ingroup minkowski
 */

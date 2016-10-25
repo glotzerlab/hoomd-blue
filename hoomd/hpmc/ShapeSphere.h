@@ -27,6 +27,8 @@
 #define HOSTDEVICE
 #endif
 
+#define SMALL 1e-5
+
 namespace hpmc
 {
 

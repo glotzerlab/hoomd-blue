@@ -29,15 +29,6 @@
 #endif
 
 #include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapePolyhedron.h"
-#include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
