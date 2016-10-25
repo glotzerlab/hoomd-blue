@@ -1198,6 +1198,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 nverts = s1.data.face_offs[jface + 1] - s1.data.face_offs[jface];
                 offs_b = s1.data.face_offs[jface];
 
+                if (nverts < 3) continue;
+
                 // Load vertex 0
                 vec3<OverlapReal> v_next_b;
                 unsigned int idx_v = s1.data.face_verts[offs_b];
