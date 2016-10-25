@@ -324,7 +324,7 @@ class ellipsoid_params(_hpmc.ell_param_proxy, _param):
                             float(c),
                             ignore_statistics);
 
-class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
+class sphere_union_params(_param):
     def __init__(self, mc, index):
         self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
@@ -345,9 +345,8 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
 
     @classmethod
     def get_sized_class(cls, capacity):
-        sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", max_capacity);
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", capacity);
         return type(cls.__name__ + str(capacity), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
--
 
     def get_metadata(self):
         data = {}

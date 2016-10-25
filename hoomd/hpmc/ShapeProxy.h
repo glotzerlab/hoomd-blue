@@ -1050,10 +1050,11 @@ void export_shape_params(pybind11::module& m)
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
     export_sphinx_proxy(m, "sphinx3d_param_proxy");
-    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy1", export_sphere_proxy<ShapeUnion<ShapeSphere, 1>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 1> > >);
-    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy2", export_sphere_proxy<ShapeUnion<ShapeSphere, 2>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 2> > >);
+    export_shape_union_proxy<ShapeSphere, 1>(m, "sphere_union_param_proxy1", export_sphere_proxy<ShapeUnion<ShapeSphere, 1>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 1> > >);
+    export_shape_union_proxy<ShapeSphere, 2>(m, "sphere_union_param_proxy2", export_sphere_proxy<ShapeUnion<ShapeSphere, 2>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 2> > >);
     export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy4", export_sphere_proxy<ShapeUnion<ShapeSphere, 4>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 4> > >);
-    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy8", export_sphere_proxy<ShapeUnion<ShapeSphere, 8>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 8> > >);
+    export_shape_union_proxy<ShapeSphere, 8>(m, "sphere_union_param_proxy8", export_sphere_proxy<ShapeUnion<ShapeSphere, 8>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 8> > >);
+    export_shape_union_proxy<ShapeSphere, 16>(m, "sphere_union_param_proxy16", export_sphere_proxy<ShapeUnion<ShapeSphere, 16>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 16> > >);
     }
 
 } // end namespace hpmc
