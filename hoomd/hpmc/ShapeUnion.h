@@ -52,9 +52,9 @@ struct union_params : param_base
     HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
         {
         tree.load_shared(ptr, load);
-        //mpos.load_shared(ptr, load);
+        mpos.load_shared(ptr, load);
         //morientation.load_shared(ptr, load);
-        //mparams.load_shared(ptr, load);
+        mparams.load_shared(ptr, load);
         moverlap.load_shared(ptr, load);
         }
 
