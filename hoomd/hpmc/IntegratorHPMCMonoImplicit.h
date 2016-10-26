@@ -8,6 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <random>
+#include <cfloat>
 
 #ifdef _OPENMP
 #include <omp.h>
