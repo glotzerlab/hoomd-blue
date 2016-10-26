@@ -111,7 +111,6 @@ class GPUTree
             return m_num_nodes;
             }
 
-        #if 0
         //! Fetch the next node in the tree and test against overlap
         /*! The method maintains it internal state in a user-supplied variable cur_node
          *
@@ -120,18 +119,16 @@ class GPUTree
          * \param particles List of particles returned (array of at least capacity length), -1 means no particle
          * \returns true if the current node overlaps and is a leaf node
          */
-        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node, int *particles) const
+        DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node) const
             {
-            OBB node_obb(m_lower[cur_node],m_upper[cur_node]);
+            OBB node_obb(getOBB(cur_node));
 
             bool leaf = false;
             if (overlap(node_obb, obb))
                 {
                 // is this node a leaf node?
-                if (m_left[cur_node] == INVALID_NODE)
+                if (m_left[cur_node] == OBB_INVALID_NODE)
                     {
-                    for (unsigned int i = 0; i < capacity; i++)
-                        particles[i] = m_particles[cur_node*capacity+i];
                     leaf = true;
                     }
                 }
@@ -146,7 +143,6 @@ class GPUTree
 
             return leaf;
             }
-        #endif
 
         //! Test if a given index is a leaf node
         DEVICE inline bool isLeaf(unsigned int idx) const

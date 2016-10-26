@@ -975,66 +975,6 @@ inline void output_obb(const detail::OBB& obb, std::string color)
     }
 #endif
 
-//! Query one OBB node against a tree
-DEVICE inline bool query_node(unsigned int cur_node_a,
-                            const vec3<Scalar>& r_ab,
-                            const ShapePolyhedron& a,
-                            const ShapePolyhedron& b)
-{
-    vec3<Scalar> dr(r_ab);
-
-    unsigned int cur_node_b =0;
-
-    unsigned int stack[64];
-    unsigned int *stack_ptr = stack;
-    *stack_ptr++ = b.tree.getNumNodes(); //push
-
-    hpmc::detail::OBB obb_a = a.tree.getOBB(cur_node_a);
-    // rotate and translate a's obb into b's body frame
-    obb_a.affineTransform(conj(b.orientation)*a.orientation,
-        rotate(conj(b.orientation),-dr));
-
-    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_b = b.tree;
-
-    // need to handle trivial case separately
-    if (tree_b.getNumNodes() == 1)
-        return detail::overlap(obb_a, tree_b.getOBB(0)) && test_narrow_phase_overlap(dr, a, b, cur_node_a, 0);
-
-    do
-        {
-        unsigned int child_l = tree_b.getLeftChild(cur_node_b);
-        unsigned int child_r = child_l;
-        tree_b.advanceNode(child_r, true);
-
-        bool overlap_l = detail::overlap(obb_a, tree_b.getOBB(child_l));
-        bool overlap_r = detail::overlap(obb_a, tree_b.getOBB(child_r));
-
-        if (overlap_l && tree_b.isLeaf(child_l))
-            {
-            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_l)) return true;
-            }
-        if (overlap_r && tree_b.isLeaf(child_r))
-            {
-            if (test_narrow_phase_overlap(dr, a, b, cur_node_a, child_r)) return true;
-            }
-
-        bool traverse_l = (overlap_l && !tree_b.isLeaf(child_l));
-        bool traverse_r = (overlap_r && !tree_b.isLeaf(child_r));
-
-        if (!traverse_l && !traverse_r)
-            cur_node_b = *--stack_ptr; // pop
-        else
-            {
-            cur_node_b = traverse_l ? child_l : child_r;
-            if (traverse_l && traverse_r)
-                *stack_ptr++ = child_r; // push
-            }
-        } while (cur_node_b != tree_b.getNumNodes());
-
-    return false;
-    }
-
-
 //! Polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -1082,20 +1022,44 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int stride = 1;
     #endif
 
-    if (a.tree.getNumLeaves() <= b.tree.getNumLeaves())
+    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_a = a.tree;
+    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_b = b.tree;
+
+    if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
-        for (unsigned int cur_leaf_a = offset; cur_leaf_a < a.tree.getNumLeaves(); cur_leaf_a += stride)
+        for (unsigned int cur_leaf_a = offset; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a += stride)
             {
-            unsigned int cur_node_a = a.tree.getLeafNode(cur_leaf_a);
-            if (query_node(cur_node_a, dr, a, b)) return true;
+            unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
+            hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+            // rotate and translate a's obb into b's body frame
+            obb_a.affineTransform(conj(b.orientation)*a.orientation,
+                rotate(conj(b.orientation),-r_ab));
+
+            unsigned cur_node_b = 0;
+            while (cur_node_b < tree_b.getNumNodes())
+                {
+                unsigned int query_node = cur_node_b;
+                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node)) return true;
+                }
             }
         }
     else
         {
-        for (unsigned int cur_leaf_b = offset; cur_leaf_b < b.tree.getNumLeaves(); cur_leaf_b += stride)
+        for (unsigned int cur_leaf_b = offset; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b += stride)
             {
-            unsigned int cur_node_b = b.tree.getLeafNode(cur_leaf_b);
-            if (query_node(cur_node_b, -dr, b, a)) return true;
+            unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
+            hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+            // rotate and translate b's obb into a's body frame
+            obb_b.affineTransform(conj(a.orientation)*b.orientation,
+                rotate(conj(a.orientation),r_ab));
+
+            unsigned cur_node_a = 0;
+            while (cur_node_a < tree_a.getNumNodes())
+                {
+                unsigned int query_node = cur_node_a;
+                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node)) return true;
+                }
             }
         }
 
