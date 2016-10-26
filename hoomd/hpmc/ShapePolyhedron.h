@@ -141,7 +141,7 @@ struct ShapePolyhedron
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return false; }
+    HOSTDEVICE static bool isParallel() { return true; }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
