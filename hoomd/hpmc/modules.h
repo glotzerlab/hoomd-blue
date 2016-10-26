@@ -24,6 +24,7 @@ void export_union_sphere2(pybind11::module& m);
 void export_union_sphere4(pybind11::module& m);
 void export_union_sphere8(pybind11::module& m);
 void export_union_sphere16(pybind11::module& m);
+void export_union_sphere32(pybind11::module& m);
 void export_convex_polyhedron8(pybind11::module& m);
 void export_convex_polyhedron16(pybind11::module& m);
 void export_convex_polyhedron32(pybind11::module& m);

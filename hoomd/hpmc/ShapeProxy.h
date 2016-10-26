@@ -1055,6 +1055,7 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy4", export_sphere_proxy<ShapeUnion<ShapeSphere, 4>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 4> > >);
     export_shape_union_proxy<ShapeSphere, 8>(m, "sphere_union_param_proxy8", export_sphere_proxy<ShapeUnion<ShapeSphere, 8>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 8> > >);
     export_shape_union_proxy<ShapeSphere, 16>(m, "sphere_union_param_proxy16", export_sphere_proxy<ShapeUnion<ShapeSphere, 16>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 16> > >);
+    export_shape_union_proxy<ShapeSphere, 32>(m, "sphere_union_param_proxy32", export_sphere_proxy<ShapeUnion<ShapeSphere, 32>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 32> > >);
     }
 
 } // end namespace hpmc
