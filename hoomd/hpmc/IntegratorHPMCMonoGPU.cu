@@ -199,9 +199,6 @@ cudaError_t gpu_hpmc_shift(Scalar4 *d_postype,
                                                          box,
                                                          shift);
 
-    // after this kernel we need to return control of cuda managed memory to the host
-    cudaDeviceSynchronize();
-
     return cudaSuccess;
     }
 
