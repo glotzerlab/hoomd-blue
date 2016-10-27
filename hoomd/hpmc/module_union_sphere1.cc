@@ -42,7 +42,7 @@ void export_union_sphere1(py::module& m)
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere, 1> >(m, "IntegratorHPMCMonoImplicitSphereUnion1");
     export_ComputeFreeVolume< ShapeUnion<ShapeSphere, 1> >(m, "ComputeFreeVolumeSphereUnion1");
     // export_AnalyzerSDF< ShapeUnion<ShapeSphere, 1, > >(m, "AnalyzerSDFSphereUnion");
-    export_UpdaterMuVT< ShapeUnion<ShapeSphere, 1> >(m, "UpdaterMuVTSphereUnion");
+    export_UpdaterMuVT< ShapeUnion<ShapeSphere, 1> >(m, "UpdaterMuVTSphereUnion1");
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere, 1> >(m, "UpdaterMuVTImplicitSphereUnion1");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeSphere, 1> >(m, "ExternalFieldSphereUnion1");
