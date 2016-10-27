@@ -811,6 +811,17 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
     if (isNull())
         return NULL;
 
+    #ifdef ENABLE_CUDA
+    if (m_managed && location == access_location::host)
+        {
+        if (m_exec_conf && m_exec_conf->isCUDAEnabled())
+            {
+            // synchronize regardless of current state
+            cudaDeviceSynchronize();
+            }
+        }
+    #endif
+
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)
         {
@@ -962,14 +973,6 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
         throw std::runtime_error("Error acquiring data");
         return NULL;
         }
-
-    #ifdef ENABLE_CUDA
-    if (m_managed && location == access_location::host)
-        {
-        // synchronize regardless of current state
-        cudaDeviceSynchronize();
-        }
-    #endif
     }
 
 /*! \post Memory on the host is resized, the newly allocated part of the array
