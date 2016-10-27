@@ -276,7 +276,9 @@ IntegratorHPMCMonoImplicitGPU< Shape >::~IntegratorHPMCMonoImplicitGPU()
 template< class Shape >
 void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
     {
-    // update poisson distributions (needs to come first, before GPU access to m_params)
+    IntegratorHPMC::update(timestep);
+
+    // update poisson distributions
     if (this->m_need_initialize_poisson)
         {
         this->updatePoissonParameters();
@@ -288,8 +290,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle<hpmc_implicit_counters_t> h_implicit_counters(this->m_implicit_count, access_location::host, access_mode::readwrite);
         this->m_implicit_count_step_start = h_implicit_counters.data[0];
         }
-
-    IntegratorHPMC::update(timestep);
 
     // check if we are below a minimum image convention box size
     BoxDim box = this->m_pdata->getBox();
