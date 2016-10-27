@@ -209,6 +209,21 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
 
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
+    unsigned int extra_bytes = 0;
+        {
+        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+
+        // determine dynamically requested shared memory
+        char *ptr_begin = nullptr;
+        char *ptr =  ptr_begin;
+        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+            {
+            h_params.data[i].load_shared(ptr,false);
+            }
+        extra_bytes = ptr - ptr_begin;
+        }
+
+
     // access the parameters
     ArrayHandle<typename Shape::param_type> d_params(this->m_mc->getParams(), access_location::device, access_mode::read);
 
@@ -254,8 +269,8 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    d_n_overlap_all.data,
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
-                                                   overlap_idx);
-
+                                                   overlap_idx,
+                                                   extra_bytes);
 
         // invoke kernel for counting total overlap volume
         detail::gpu_hpmc_free_volume<Shape> (free_volume_args, d_params.data);

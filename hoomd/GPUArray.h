@@ -65,7 +65,7 @@ struct access_mode
         {
         read,       //!< Data will be accessed read only
         readwrite,  //!< Data will be accessed for read and write
-        overwrite   //!< The data is to be completely overwritten during this aquire
+        overwrite   //!< The data is to be completely overwritten during this acquire
         };
     };
 
@@ -74,7 +74,7 @@ template<class T> class GPUArray;
 //! Handle to access the data pointer handled by GPUArray
 /*! The data in GPUArray is only accessible via ArrayHandle. The pointer is accessible for the lifetime of the
     ArrayHandle. When the ArrayHandle is destroyed, the GPUArray is notified that the data has been released. This
-    tracking mechanism provides for error checking that will cause code assertions to fail if the data is aquired
+    tracking mechanism provides for error checking that will cause code assertions to fail if the data is acquired
     more than once.
 
     ArrayHandle is intended to be used within a scope limiting its use. For example:
@@ -162,7 +162,7 @@ location specified when acquiring an ArrayHandle.
 GPUArray is fairly advanced, C++ wise. It is a template class, so GPUArray's of floats, float4's,
 uint2's, etc.. can be made. It comes with a copy constructor and = operator so you can (expensively)
 pass GPUArray's around in arguments or overwite one with another via assignment (inexpensive swaps can be
-performed with swap()). The ArrayHandle acquisition method guarantees that every aquired handle will be
+performed with swap()). The ArrayHandle acquisition method guarantees that every acquired handle will be
 released. About the only thing it \b doesn't do is prevent the user from writing to a pointer acquired
 with a read only mode.
 
@@ -175,7 +175,7 @@ When the data is accessed in the same location it was last written to, the point
 If the data is accessed in a different location, it will be copied before the pointer is returned.
 
 When the data is accessed in the \a read mode, it is assumed that the data will not be written to and
-thus there is no need to copy memory the next time the data is aquired somewhere else. Using the readwrite
+thus there is no need to copy memory the next time the data is acquired somewhere else. Using the readwrite
 mode specifies that the data is to be read and written to, necessitating possible copies to the desired location
 before the data can be accessed and again before the next access. If the data is to be completely overwritten
 \b without reading it first, then an expensive memory copy can be avoided by using the \a overwrite mode.
@@ -273,6 +273,12 @@ template<class T> class GPUArray
         //! Resize a 2D GPUArray
         virtual void resize(unsigned int width, unsigned int height);
 
+        //! Set the managed memory property
+        virtual void setManaged(bool managed)
+            {
+            m_managed = managed;
+            }
+
     protected:
         //! Clear memory starting from a given element
         /*! \param first The first element to clear
@@ -280,7 +286,7 @@ template<class T> class GPUArray
         inline void memclear(unsigned int first=0);
 
         //! Acquires the data pointer for use
-        inline T* aquire(const access_location::Enum location, const access_mode::Enum mode
+        inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
@@ -297,7 +303,7 @@ template<class T> class GPUArray
         mutable unsigned int m_pitch;                   //!< Pitch of the rows in elements
         mutable unsigned int m_height;                  //!< Number of allocated rows
 
-        mutable bool m_acquired;                //!< Tracks whether the data has been aquired
+        mutable bool m_acquired;                //!< Tracks whether the data has been acquired
         mutable data_location::Enum m_data_location;    //!< Tracks the current location of the data
 #ifdef ENABLE_CUDA
         mutable bool m_mapped;                          //!< True if we are using mapped memory
@@ -311,7 +317,10 @@ template<class T> class GPUArray
 
         mutable T* h_data;      //!< Pointer to allocated host memory
 
+        mutable bool m_managed;                         //!< True if this GPUArray contains deep pointers to managed memory regions
+
         mutable std::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+
     private:
         //! Helper function to allocate memory
         inline void allocate();
@@ -354,7 +363,7 @@ template<class T> class GPUArray
 */
 template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-        data(gpu_array.aquire(location, mode)), m_gpu_array(gpu_array)
+        data(gpu_array.acquire(location, mode)), m_gpu_array(gpu_array)
     {
     }
 
@@ -367,7 +376,7 @@ template<class T> ArrayHandle<T>::~ArrayHandle()
 #ifdef ENABLE_CUDA
 template<class T> ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArray<T>& gpu_array, const access_location::Enum location,
                                               const access_mode::Enum mode) :
-       data(gpu_array.aquire(location, mode, true)), m_gpu_array(gpu_array)
+       data(gpu_array.acquire(location, mode, true)), m_gpu_array(gpu_array)
     {
     }
 
@@ -387,7 +396,8 @@ template<class T> GPUArray<T>::GPUArray() :
         m_mapped(false),
         d_data(NULL),
 #endif
-        h_data(NULL)
+        h_data(NULL),
+        m_managed(false)
     {
     }
 
@@ -401,6 +411,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_p
         d_data(NULL),
 #endif
         h_data(NULL),
+        m_managed(false),
         m_exec_conf(exec_conf)
     {
     // allocate and clear memory
@@ -419,6 +430,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
         d_data(NULL),
 #endif
         h_data(NULL),
+        m_managed(false),
         m_exec_conf(exec_conf)
     {
     // make m_pitch the next multiple of 16 larger or equal to the given width
@@ -442,6 +454,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int num_elements, std::shared_p
         m_mapped(mapped),
         d_data(NULL),
         h_data(NULL),
+        m_managed(false),
         m_exec_conf(exec_conf)
     {
     // allocate and clear memory
@@ -459,6 +472,7 @@ template<class T> GPUArray<T>::GPUArray(unsigned int width, unsigned int height,
         m_mapped(mapped),
         d_data(NULL),
         h_data(NULL),
+        m_managed(false),
         m_exec_conf(exec_conf)
     {
     // make m_pitch the next multiple of 16 larger or equal to the given width
@@ -485,6 +499,7 @@ template<class T> GPUArray<T>::GPUArray(const GPUArray& from) : m_num_elements(f
         d_data(NULL),
 #endif
         h_data(NULL),
+        m_managed(from.m_managed),
         m_exec_conf(from.m_exec_conf)
     {
     // allocate and clear new memory the same size as the data in from
@@ -517,6 +532,9 @@ template<class T> GPUArray<T>& GPUArray<T>::operator=(const GPUArray& rhs)
 #ifdef ENABLE_CUDA
         m_mapped = rhs.m_mapped;
 #endif
+
+        m_managed = rhs.m_managed;
+
         // initialize state variables
         m_data_location = data_location::host;
 
@@ -549,7 +567,7 @@ b = c;
 */
 template<class T> void GPUArray<T>::swap(GPUArray& from)
     {
-    // this may work, but really shouldn't be done when aquired
+    // this may work, but really shouldn't be done when acquired
     assert(!m_acquired && !from.m_acquired);
     assert(&from != this);
 
@@ -564,6 +582,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from)
     std::swap(m_mapped, from.m_mapped);
 #endif
     std::swap(h_data, from.h_data);
+    std::swap(m_managed, from.m_managed);
     }
 
 //! Swap the pointers of two GPUArrays (const version)
@@ -583,6 +602,7 @@ template<class T> void GPUArray<T>::swap(GPUArray& from) const
     std::swap(m_mapped, from.m_mapped);
 #endif
     std::swap(h_data, from.h_data);
+    std::swap(m_managed, from.m_managed);
     }
 
 /*! \pre m_num_elements is set
@@ -771,13 +791,13 @@ template<class T> void GPUArray<T>::memcpyHostToDevice(bool async) const
     \param mode Mode to access the data with
     \param async True if array copying should be done async
 
-    aquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
+    acquire() is the workhorse of GPUArray. It tracks the internal state variable \a data_location and
     performs all host<->device memory copies as needed during the state changes given the
     specified access mode and location where the data is to be acquired.
 
-    aquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
+    acquire() cannot be directly called by the user class. Data must be accessed through ArrayHandle.
 */
-template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, const access_mode::Enum mode
+template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, const access_mode::Enum mode
 #ifdef ENABLE_CUDA
                                          , bool async
 #endif
@@ -866,11 +886,11 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         // check that a GPU is actually specified
         if (!m_exec_conf)
             {
-            throw std::runtime_error("Requesting device aquire, but we have no execution configuration");
+            throw std::runtime_error("Requesting device acquire, but we have no execution configuration");
             }
         if (!m_exec_conf->isCUDAEnabled())
             {
-            m_exec_conf->msg->error() << "Requesting device aquire, but no GPU in the Execution Configuration" << std::endl;
+            m_exec_conf->msg->error() << "Requesting device acquire, but no GPU in the Execution Configuration" << std::endl;
             throw std::runtime_error("Error acquiring data");
             }
 
@@ -942,6 +962,14 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
         throw std::runtime_error("Error acquiring data");
         return NULL;
         }
+
+    #ifdef ENABLE_CUDA
+    if (m_managed && location == access_location::host)
+        {
+        // synchronize regardless of current state
+        cudaDeviceSynchronize();
+        }
+    #endif
     }
 
 /*! \post Memory on the host is resized, the newly allocated part of the array

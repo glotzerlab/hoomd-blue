@@ -329,6 +329,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     // allocate the parameter storage
     GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
+    m_params.setManaged(true);
 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
