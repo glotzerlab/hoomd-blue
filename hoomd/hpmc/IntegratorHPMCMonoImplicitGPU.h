@@ -534,8 +534,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                 this->m_tuner_update->end();
 
-                first = false;
-
                 if (lambda_max > Scalar(0.0))
                     {
                     if (this->m_prof) this->m_prof->push(this->m_exec_conf,"Depletants");
@@ -625,6 +623,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 0, 0, 0, 0, 0,
                                 d_d_min.data,
                                 d_d_max.data,
+                                first,
                                 m_mgpu_context),
                             params.data());
 
@@ -720,6 +719,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_depletant_lnb.data,
                                 d_d_min.data,
                                 d_d_max.data,
+                                first,
                                 m_mgpu_context),
                             params.data());
 
@@ -734,6 +734,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
                     }
+
+                first = false;
                 } // end loop over cell sets
             } // end loop nselect*particles_per_cell
 
