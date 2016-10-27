@@ -746,19 +746,19 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
-    unsigned int *s_check_overlaps = (unsigned int *)(s_params + num_types);
+
+    Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
+    Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
+    unsigned int *s_check_overlaps = (unsigned int *)(s_pos_group + n_groups);
+    unsigned int *s_queue_j =   (unsigned int*)(s_check_overlaps + overlap_idx.getNumElements());
+    unsigned int *s_overlap =   (unsigned int*)(s_queue_j + max_queue_size);
+    unsigned int *s_queue_gid = (unsigned int*)(s_overlap + n_groups);
 
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
 
     __shared__ unsigned int s_n_overlap_checks;
     __shared__ unsigned int s_n_overlap_errors;
-
-    Scalar4 *s_orientation_group = (Scalar4*)(s_check_overlaps + overlap_idx.getNumElements());
-    Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
-    unsigned int *s_queue_j =   (unsigned int*)(s_pos_group + n_groups);
-    unsigned int *s_overlap =   (unsigned int*)(s_queue_j + max_queue_size);
-    unsigned int *s_queue_gid = (unsigned int*)(s_overlap + n_groups);
 
     // copy over parameters one int per thread for fast loads
         {
