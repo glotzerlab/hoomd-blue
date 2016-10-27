@@ -229,8 +229,9 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     extern __shared__ char s_data[];
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     unsigned int *s_check_overlaps = (unsigned int *) (s_params + num_types);
-
     unsigned int ntyppairs = overlap_idx.getNumElements();
+    unsigned int *s_overlap = (unsigned int *)(&s_check_overlaps[ntyppairs]);
+
     // copy over parameters one int per thread for fast loads
         {
         unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
@@ -254,7 +255,14 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
             }
         }
 
-    unsigned int *s_overlap = (unsigned int *)(&s_check_overlaps[ntyppairs]);
+    __syncthreads();
+
+    // initialize extra shared mem
+    char *s_extra = (char *)(s_overlap + n_groups);
+
+    for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
+        s_params[cur_type].load_shared(s_extra, true);
+
     __shared__ unsigned int s_n_overlap;
 
     if (master)
@@ -435,8 +443,20 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         grid.x = 65535;
         }
 
+    // required for memory coherency
+    cudaDeviceSynchronize();
+
+    // determine dynamically requested shared memory
+    char *ptr_begin = nullptr;
+    char *ptr =  ptr_begin;
+    for (unsigned int i = 0; i < args.num_types; ++i)
+        {
+        d_params[i].load_shared(ptr,false);
+        }
+    unsigned int extra_bytes = ptr - ptr_begin;
+
     unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
-        + args.overlap_idx.getNumElements()*sizeof(unsigned int);
+        + args.overlap_idx.getNumElements()*sizeof(unsigned int) + extra_bytes;
 
     gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes>>>(
                                                      args.n_sample,
