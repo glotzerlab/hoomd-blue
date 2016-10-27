@@ -412,7 +412,7 @@ class log(_analyzer):
             period = 1;
 
         # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.Logger(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.LogPlainTXT(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities

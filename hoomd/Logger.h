@@ -27,24 +27,21 @@
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
 
-//! Logs registered quantities to a delimited file
+//! Logs registered quantities and offers an interface for other classes to obtain these values.
 /*! \note design notes: Computes and Updaters have getProvidedLogQuantities and getLogValue. The first lists
     all quantities that the compute/updater provides (a list of strings). And getLogValue takes a string
     as an argument and returns a scalar.
 
-    Logger will open and overwrite its log file on construction. Any number of computes and updaters
-    can be registered with the Logger. It will track which quantities are provided. If any particular
-    quantity is registered twice, a warning is printed and the most recent registered source will take
-    effect. setLoggedQuantities will specify a list of quantities to log. When it is called, a header
-    is written to the file. Every call to analyze() will result in the computes for the logged quantities
-    being called and getLogValue called for each value to produce a line in the file. If a logged quantity
-    is not registered, a 0 is printed to the file and a warning to stdout.
+    Any number of computes and updaters can be registered with the
+    Logger. It will track which quantities are provided. If any
+    particular quantity is registered twice, a warning is printed and
+    the most recent registered source will take
+    effect. setLoggedQuantities will specify a list of quantities to
+    log. Every call to analyze() will result in the computes for the
+    logged quantities being called.
 
     The removeAll method can be used to clear all registered computes and updaters. hoomd_script will
     removeAll() and re-register all active computes and updaters before every run()
-
-    As an option, Logger can be initialized with no file. Such a logger will skip doing anything during
-    analyze() but is still available for getQuantity() operations.
 
     \ingroup analyzers
 */
@@ -52,37 +49,31 @@ class Logger : public Analyzer
     {
     public:
         //! Constructs a logger and opens the file
-        Logger(std::shared_ptr<SystemDefinition> sysdef,
-               const std::string& fname,
-               const std::string& header_prefix="",
-               bool overwrite=false);
+        Logger(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
-        ~Logger();
+        virtual ~Logger();
 
         //! Registers a compute
-        void registerCompute(std::shared_ptr<Compute> compute);
+        virtual void registerCompute(std::shared_ptr<Compute> compute);
 
         //! Registers an updater
-        void registerUpdater(std::shared_ptr<Updater> updater);
+        virtual void registerUpdater(std::shared_ptr<Updater> updater);
 
         //! Register a callback
-        void registerCallback(std::string name, pybind11::object callback);
+        virtual void registerCallback(std::string name, pybind11::object callback);
 
         //! Clears all registered computes and updaters
-        void removeAll();
+        virtual void removeAll();
 
         //! Selects which quantities to log
-        void setLoggedQuantities(const std::vector< std::string >& quantities);
-
-        //! Sets the delimiter to use between fields
-        void setDelimiter(const std::string& delimiter);
+        virtual void setLoggedQuantities(const std::vector< std::string >& quantities);
 
         //! Query the current value for a given quantity
-        Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
+        virtual Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
 
         //! Write out the data for the current timestep
-        void analyze(unsigned int timestep);
+        virtual void analyze(unsigned int timestep);
 
         //! Get needed pdata flags
         /*! Logger may potentially log any of the optional quantities, enable all of the bits.
@@ -97,17 +88,7 @@ class Logger : public Analyzer
             return flags;
             }
 
-    private:
-        //! The delimiter to put between columns in the file
-        std::string m_delimiter;
-        //! The output file name
-        std::string m_filename;
-        //! The prefix written at the beginning of the header line
-        std::string m_header_prefix;
-        //! Flag indicating this file is being appended to
-        bool m_appending;
-        //! The file we write out to
-        std::ofstream m_file;
+    protected:
         //! A map of computes indexed by logged quantity that they provide
         std::map< std::string, std::shared_ptr<Compute> > m_compute_quantities;
         //! A map of updaters indexed by logged quantity that they provide
@@ -122,16 +103,10 @@ class Logger : public Analyzer
         unsigned int m_cached_timestep;
         //! The values of the logged quantities at the last logger update.
         std::vector< Scalar > m_cached_quantities;
-        //! Flag to indicate whether we have initialized the file IO
-        bool m_is_initialized;
-        //! true if we are writing to the output file
-        bool m_file_output;
 
+    private:
         //! Helper function to get a value for a given quantity
         Scalar getValue(const std::string &quantity, int timestep);
-
-        //! Helper function to open output files
-        void openOutputFiles();
     };
 
 //! exports the Logger class to python

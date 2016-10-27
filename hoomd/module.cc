@@ -27,6 +27,7 @@
 #include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
+#include "LogPlainTXT.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -358,6 +359,7 @@ PYBIND11_PLUGIN(_hoomd)
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
     export_Logger(m);
+    export_LogPlainTXT(m);
     export_CallbackAnalyzer(m);
     export_ParticleGroup(m);
 
