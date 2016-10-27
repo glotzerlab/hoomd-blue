@@ -147,9 +147,9 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         const BoxDim& box = m_pdata->getBox();
 
         // access parameters and interaction matrix
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-
+        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
         // generate n_sample random test depletants in the global box
@@ -171,7 +171,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
 
-            Shape shape_i(quat<Scalar>(), params[m_type]);
+            Shape shape_i(quat<Scalar>(), h_params.data[m_type]);
             if (shape_i.hasOrientation())
                 {
                 shape_i.orientation = generateRandomOrientation(rng_i);
@@ -212,7 +212,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(m_type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)

@@ -598,10 +598,10 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // number of particles of that type
                 nptl_type = getNumParticlesType(type);
 
-                typename Shape::param_type param;
+                typename Shape::param_type params;
                     {
-                    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-                    param = params[type];
+                    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+                    params = h_params.data[type];
                     }
 
                 // Propose a random position uniformly in the box
@@ -611,7 +611,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 f.z = rng.template s<Scalar>();
                 vec3<Scalar> pos_test = vec3<Scalar>(m_pdata->getGlobalBox().makeCoordinates(f));
 
-                Shape shape_test(quat<Scalar>(), param);
+                Shape shape_test(quat<Scalar>(), params);
                 if (shape_test.hasOrientation())
                     {
                     // set particle orientation
@@ -1282,14 +1282,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     // check for overlaps
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-
+    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
     const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
-    Shape shape(orientation, params[type]);
+    Shape shape(orientation, h_params.data[type]);
 
     // Check particle against AABB tree for neighbors
     detail::AABB aabb_local = shape.getAABB(vec3<Scalar>(0,0,0));
@@ -1336,7 +1335,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
                         if (h_overlaps.data[overlap_idx(type, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)
@@ -1403,14 +1402,13 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
-
+    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
     const Index2D & overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
-    Shape shape(orientation, params[newtype]);
+    Shape shape(orientation, h_params.data[newtype]);
 
     // Check particle against AABB tree for neighbors
     detail::AABB aabb_local = shape.getAABB(vec3<Scalar>(0,0,0));
@@ -1457,7 +1455,7 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
                         if (h_overlaps.data[overlap_idx(typ_j, newtype)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)

@@ -140,9 +140,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     Scalar nominal_width = this->m_mc->getMaxDiameter();
         {
         // add range of test particle
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         quat<Scalar> o;
-        Shape tmp(o, params[this->m_type]);
+        Shape tmp(o, h_params.data[this->m_type]);
         nominal_width += tmp.getCircumsphereDiameter();
         }
 
@@ -210,7 +210,7 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+    ArrayHandle<typename Shape::param_type> d_params(this->m_mc->getParams(), access_location::device, access_mode::read);
 
         {
         // access counter
@@ -258,7 +258,7 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
 
 
         // invoke kernel for counting total overlap volume
-        detail::gpu_hpmc_free_volume<Shape> (free_volume_args, params.data());
+        detail::gpu_hpmc_free_volume<Shape> (free_volume_args, d_params.data);
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

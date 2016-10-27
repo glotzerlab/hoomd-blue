@@ -685,7 +685,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             // access particle data and system box
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-            const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
+            ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
 
             for(unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
@@ -694,7 +694,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 Scalar4 orientation_i = h_orientation.data[i];
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
                 int typ_i = __scalar_as_int(postype_i.w);
-                Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
+                Shape shape_i(quat<Scalar>(orientation_i), h_params.data[typ_i]);
                 numOverlaps += (unsigned int) (1 - int(boltzmann(i, pos_i, shape_i, pos_i, shape_i)));
                 if(early_exit && numOverlaps > 0)
                     {

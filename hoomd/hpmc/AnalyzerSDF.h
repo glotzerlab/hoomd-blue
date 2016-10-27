@@ -340,8 +340,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-
-    const std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+    ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -351,7 +350,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
-        Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
+        Shape shape_i(quat<Scalar>(orientation_i), h_params.data[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // construct the AABB around the particle's circumsphere
@@ -391,8 +390,8 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
                             int bin = computeBin(r_ij,
                                                  quat<Scalar>(orientation_i),
                                                  quat<Scalar>(orientation_j),
-                                                 params[__scalar_as_int(postype_i.w)],
-                                                 params[__scalar_as_int(postype_j.w)]);
+                                                 h_params.data[__scalar_as_int(postype_i.w)],
+                                                 h_params.data[__scalar_as_int(postype_j.w)]);
 
                             if (bin >= 0)
                                 min_bin = std::min(min_bin, bin);
