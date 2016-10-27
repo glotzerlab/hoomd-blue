@@ -1636,7 +1636,7 @@ class sphere_union(mode_hpmc):
         max_members (int): Set the maximum number of members in the sphere union
             * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent spheres per leaf node
-        * .. versionadded:: 2.2
+            * .. versionadded:: 2.2
 
     Sphere union parameters:
 

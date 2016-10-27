@@ -4,6 +4,14 @@
 
 ## v2.2.0
 
+*New features*
+* hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
+
+Deprecated*
+
+* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
+
+
 *Bug fixes*
 
 * hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
