@@ -155,6 +155,7 @@ void Logger::removeAll()
     {
     m_compute_quantities.clear();
     m_updater_quantities.clear();
+    m_callback_quantities.clear();
     }
 
 /*! \param quantities A list of quantities to log
