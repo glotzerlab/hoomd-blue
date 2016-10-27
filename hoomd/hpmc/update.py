@@ -524,7 +524,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.capacity);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -548,7 +548,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.capacity);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -700,7 +700,7 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.capacity);
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
