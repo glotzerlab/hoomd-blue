@@ -229,7 +229,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     ArrayHandle<hpmc_counters_t> d_counters(this->m_count_total, access_location::device, access_mode::readwrite);
 
     // access the parameters and interaction matrix
-    ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->getParams();
+
     ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
     // access the move sizes by type
@@ -311,8 +312,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 group_size,
                                                                 this->m_hasOrientation,
                                                                 this->m_pdata->getMaxN(),
-                                                                this->m_exec_conf->dev_prop),
-                                            d_params.data);
+                                                                this->m_exec_conf->dev_prop,
+                                                                first),
+                                            params.data());
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();

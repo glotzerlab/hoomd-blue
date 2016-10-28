@@ -392,7 +392,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle< unsigned int > d_excell_size(this->m_excell_size, access_location::device, access_mode::readwrite);
 
         // access the parameters and interaction matrix
-        ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->getParams();
         ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
         // access the move sizes by type
@@ -527,7 +527,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         (lambda_max > 0.0) ? d_active_cell_ptl_idx.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_accept.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_move_type_translate.data : 0),
-                    d_params.data);
+                    params.data());
 
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -625,7 +625,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_d_max.data,
                                 first,
                                 m_mgpu_context),
-                            d_params.data);
+                            params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
@@ -721,7 +721,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_d_max.data,
                                 first,
                                 m_mgpu_context),
-                            d_params.data);
+                            params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();

@@ -197,7 +197,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         //! Try inserting a depletant in a configuration such that it overlaps with the particle in the old (new) configuration
         inline bool insertDepletant(vec3<Scalar>& pos_depletant, const Shape& shape_depletant, unsigned int idx,
-            typename Shape::param_type *h_params, unsigned int *h_overlaps, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation,
+            typename Shape::param_type *params, unsigned int *h_overlaps, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation,
             vec3<Scalar>  pos_new, quat<Scalar>& orientation_new, const typename Shape::param_type& params_new,
             unsigned int &overlap_checks, unsigned int &overlap_err_count, bool &overlap_shape, bool new_config);
     };
@@ -260,11 +260,9 @@ void IntegratorHPMCMonoImplicit<Shape>::slotNumTypesChange()
 template< class Shape >
 void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
     {
-    ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
-
     // Depletant diameter
     quat<Scalar> o;
-    Shape shape_depletant(o, h_params.data[this->m_type]);
+    Shape shape_depletant(o, this->m_params[this->m_type]);
     m_d_dep = shape_depletant.getCircumsphereDiameter();
 
     // access GPUArrays
@@ -274,7 +272,7 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         // test sphere diameter and volume
-        Shape shape_i(quat<Scalar>(), h_params.data[i_type]);
+        Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar delta = shape_i.getCircumsphereDiameter()+m_d_dep;
         h_d_max.data[i_type] = delta;
 
@@ -321,9 +319,8 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
     if (m_n_R > Scalar(0.0))
         {
         // add range of depletion interaction
-        ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[m_type]);
+        Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
         }
 
@@ -412,8 +409,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
 
-        // access parameters and interaction matrix
-        ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
+        // access interaction matrix
         ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
 
         //access move sizes
@@ -442,7 +438,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             // make a trial move for i
             Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), h_params.data[typ_i]);
+            Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
 
@@ -517,7 +513,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                                 counters.overlap_checks++;
 
@@ -603,8 +599,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                     #endif
 
                     generateDepletant(m_rng_depletant[thread_idx], pos_i, h_d_max.data[typ_i], h_d_min.data[typ_i], pos_test,
-                        orientation_test, h_params.data[m_type]);
-                    Shape shape_test(orientation_test, h_params.data[m_type]);
+                        orientation_test, this->m_params[m_type]);
+                    Shape shape_test(orientation_test, this->m_params[m_type]);
 
                     detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0,0,0));
 
@@ -672,7 +668,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                             unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                            Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                                             n_overlap_checks++;
 
@@ -726,7 +722,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         }
                     else if (overlap_depletant && m_n_trial)
                         {
-                        const typename Shape::param_type& params_depletant = h_params.data[m_type];
+                        const typename Shape::param_type& params_depletant = this->m_params[m_type];
 
                         // Number of successful depletant insertions in new configuration
                         unsigned int n_success_new = 0;
@@ -762,10 +758,10 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                             reinsert_count++;
 
                             Shape shape_depletant_new(orientation_depletant_new, params_depletant);
-                            const typename Shape::param_type& params_i = h_params.data[__scalar_as_int(postype_i_old.w)];
+                            const typename Shape::param_type& params_i = this->m_params[__scalar_as_int(postype_i_old.w)];
 
                             bool overlap_shape = false;
-                            if (insertDepletant(pos_depletant_new, shape_depletant_new, i, h_params.data, h_overlaps.data, typ_i,
+                            if (insertDepletant(pos_depletant_new, shape_depletant_new, i, this->m_params.data(), h_overlaps.data, typ_i,
                                 h_postype.data, h_orientation.data, pos_i, shape_i.orientation, params_i,
                                 n_overlap_checks, overlap_err_count, overlap_shape, false))
                                 {
@@ -784,7 +780,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                 generateDepletantRestricted(m_rng_depletant[thread_idx], pos_i, h_d_max.data[typ_i], delta_insphere,
                                     pos_depletant_old, orientation_depletant_old, params_depletant, pos_i_old);
                                 Shape shape_depletant_old(orientation_depletant_old, params_depletant);
-                                if (insertDepletant(pos_depletant_old, shape_depletant_old, i, h_params.data, h_overlaps.data, typ_i,
+                                if (insertDepletant(pos_depletant_old, shape_depletant_old, i, this->m_params.data(), h_overlaps.data, typ_i,
                                     h_postype.data, h_orientation.data, pos_i, shape_i.orientation, params_i,
                                     n_overlap_checks, overlap_err_count, overlap_shape, true))
                                     {
@@ -1055,7 +1051,6 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletantRestricted(RNG& 
 /*! \param pos_depletant Depletant position
  * \param shape_depletant Depletant shape
  * \param idx Index of updated particle
- * \param h_params Parameter array
  * \param h_overlaps Interaction matrix
  * \param typ_i type of updated particle
  * \param h_orientation ion array
@@ -1066,7 +1061,7 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletantRestricted(RNG& 
  */
 template<class Shape>
 inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos_depletant,
-    const Shape& shape_depletant, unsigned int idx, typename Shape::param_type *h_params, unsigned int *h_overlaps,
+    const Shape& shape_depletant, unsigned int idx, typename Shape::param_type *params, unsigned int *h_overlaps,
     unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, vec3<Scalar>  pos_new, quat<Scalar>& orientation_new,
     const typename Shape::param_type& params_new, unsigned int &n_overlap_checks,
     unsigned int &overlap_err_count, bool& overlap_shape, bool new_config)
@@ -1200,7 +1195,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos
                             vec3<Scalar> pos_j(postype_j);
                             Scalar4 orientation_j = h_orientation[j];
                             unsigned int type = __scalar_as_int(postype_j.w);
-                            Shape shape_j(quat<Scalar>(orientation_j), h_params[type]);
+                            Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                             if (j == idx)
                                 {
