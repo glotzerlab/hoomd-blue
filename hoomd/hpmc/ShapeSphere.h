@@ -109,7 +109,18 @@ struct param_base
     /*! \param ptr Pointer to load data to (will be incremented)
         \param load If true, copy data to pointer, otherwise increment only
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const { }
+    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        {
+        // default implementation does nothing
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     };
 
 

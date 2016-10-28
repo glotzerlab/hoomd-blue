@@ -455,6 +455,12 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     // when other kernels are called
     cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
     CHECK_CUDA_ERROR();
+
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        // attach nested memory regions
+        this->m_params[i].attach_to_stream(m_stream);
+        }
     }
 
 //! Export this hpmc integrator to python

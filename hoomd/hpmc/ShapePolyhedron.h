@@ -59,6 +59,8 @@ const unsigned int MAX_POLY3D_CAPACITY=4;
 
 struct poly3d_data : param_base
     {
+    poly3d_data() : n_faces(0), ignore(0) {};
+
     poly3d_verts<MAX_POLY3D_VERTS> verts;                             //!< Holds parameters of convex hull
     unsigned int face_offs[MAX_POLY3D_FACES+1];     //!< Offset of every face in the list of vertices per face
     unsigned int face_verts[MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES]; //!< Ordered vertex IDs of every face
@@ -98,6 +100,24 @@ struct ShapePolyhedron
     typedef struct : public param_base {
         detail::poly3d_data data;
         gpu_tree_type tree;
+
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param load If true, copy data to pointer, otherwise increment only
+         */
+        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+            {
+            tree.load_shared(ptr, load);
+            }
+
+        #ifdef ENABLE_CUDA
+        //! Attach managed memory to CUDA stream
+        void attach_to_stream(cudaStream_t stream) const
+            {
+            // attach managed memory arrays to stream
+            tree.attach_to_stream(stream);
+            }
+        #endif
         }
         param_type;
 

@@ -193,6 +193,24 @@ class GPUTree
             return obb;
             }
 
+        #ifdef ENABLE_CUDA
+        //! Attach managed memory to CUDA stream
+        void attach_to_stream(cudaStream_t stream) const
+            {
+            // attach managed memory arrays to stream
+            m_center.attach_to_stream(stream);
+            m_lengths.attach_to_stream(stream);
+            m_rotation.attach_to_stream(stream);
+
+            m_left.attach_to_stream(stream);
+            m_skip.attach_to_stream(stream);
+
+            m_leaf_ptr.attach_to_stream(stream);
+            m_leaf_obb_ptr.attach_to_stream(stream);
+            m_particles.attach_to_stream(stream);
+            }
+        #endif
+
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
             \param load If true, copy data to pointer, otherwise increment only

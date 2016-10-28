@@ -58,6 +58,20 @@ struct union_params : param_base
         moverlap.load_shared(ptr, load);
         }
 
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // attach managed memory arrays to stream
+        tree.attach_to_stream(stream);
+
+        mpos.attach_to_stream(stream);
+        morientation.attach_to_stream(stream);
+        mparams.attach_to_stream(stream);
+        moverlap.attach_to_stream(stream);
+        }
+    #endif
+
     #ifndef NVCC
     //! Shape constructor
     union_params(unsigned int _N, bool _managed)

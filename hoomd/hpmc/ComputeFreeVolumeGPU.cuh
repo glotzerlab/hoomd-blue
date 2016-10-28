@@ -449,6 +449,15 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     // required for memory coherency
     cudaDeviceSynchronize();
 
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(args.stream, d_params, 0, cudaMemAttachSingle);
+    for (unsigned int i = 0; i < args.num_types; ++i)
+        {
+        // attach nested memory regions
+        d_params[i].attach_to_stream(args.stream);
+        }
+
     // determine dynamically requested shared memory
     char *ptr_begin = nullptr;
     char *ptr =  ptr_begin;

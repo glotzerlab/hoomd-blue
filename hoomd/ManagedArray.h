@@ -9,6 +9,10 @@
 #include <algorithm>
 #endif
 
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 #include <memory>
 
 #ifdef NVCC
@@ -108,6 +112,14 @@ class ManagedArray
             {
             return data;
             }
+
+        #ifdef ENABLE_CUDA
+        //! Attach managed memory to CUDA stream
+        void attach_to_stream(cudaStream_t stream) const
+            {
+            if (managed && data) cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
+            }
+        #endif
 
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
