@@ -228,20 +228,6 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
 
     ArrayHandle<hpmc_counters_t> d_counters(this->m_count_total, access_location::device, access_mode::readwrite);
 
-    unsigned int extra_bytes = 0;
-        {
-        ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
-
-        // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
-        char *ptr =  ptr_begin;
-        for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
-            {
-            h_params.data[i].load_shared(ptr,false);
-            }
-        extra_bytes = ptr - ptr_begin;
-        }
-
     // access the parameters and interaction matrix
     ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
@@ -274,6 +260,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     this->m_tuner_excell_block_size->end();
+
+    // on the first iteration, shape parameters are updated
+    bool first = true;
 
     // loop over cell sets in a shuffled order
     this->m_cell_set_order.shuffle(timestep);
@@ -322,14 +311,15 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 group_size,
                                                                 this->m_hasOrientation,
                                                                 this->m_pdata->getMaxN(),
-                                                                this->m_exec_conf->dev_prop,
-                                                                extra_bytes),
+                                                                this->m_exec_conf->dev_prop),
                                             d_params.data);
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 
             this->m_tuner_update->end();
+
+            first = false;
             }
         }
 

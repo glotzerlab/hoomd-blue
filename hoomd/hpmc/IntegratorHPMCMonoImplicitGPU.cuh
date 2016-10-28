@@ -96,7 +96,7 @@ struct hpmc_implicit_args_t
                 float *_d_depletant_lnb,
                 const Scalar *_d_d_min,
                 const Scalar *_d_d_max,
-                unsigned int _extra_bytes,
+                bool _update_shape_param,
                 mgpu::ContextPtr _mgpu_context
                 )
                 : d_postype(_d_postype),
@@ -153,7 +153,7 @@ struct hpmc_implicit_args_t
                   d_depletant_lnb(_d_depletant_lnb),
                   d_d_min(_d_d_min),
                   d_d_max(_d_d_max),
-                  extra_bytes(_extra_bytes),
+                  update_shape_param(_update_shape_param),
                   mgpu_context(_mgpu_context)
         {
         };
@@ -212,7 +212,7 @@ struct hpmc_implicit_args_t
     float *d_depletant_lnb;            //!< logarithm of configurational bias weight, per depletant
     const Scalar *d_d_min;             //!< Minimum insertion diameter for depletants (per type)
     const Scalar *d_d_max;             //!< Maximum insertion diameter for depletants (per type)
-    unsigned int extra_bytes;          //!< Extra shared memory bytes for all shape parameters
+    bool update_shape_param;           //!< True if this is the first iteration
     mgpu::ContextPtr mgpu_context;    //!< ModernGPU context
     };
 
@@ -1476,7 +1476,23 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
     unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type))
         + args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-    shared_bytes += args.extra_bytes;
+    static unsigned int extra_bytes = UINT_MAX;
+    if (extra_bytes == UINT_MAX || args.update_shape_param)
+        {
+        // required for memory coherency
+        cudaDeviceSynchronize();
+
+        // determine dynamically requested shared memory
+        char *ptr_begin = nullptr;
+        char *ptr =  ptr_begin;
+        for (unsigned int i = 0; i < args.num_types; ++i)
+            {
+            d_params[i].load_shared(ptr,false);
+            }
+        extra_bytes = ptr - ptr_begin;
+        }
+
+    shared_bytes += extra_bytes;
 
     dim3 threads;
     if (Shape::isParallel())
@@ -1604,10 +1620,26 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
         // setup the grid to run the kernel
         unsigned int n_groups = block_size / group_size / stride;
 
+        static unsigned int extra_bytes = UINT_MAX;
+        if (extra_bytes == UINT_MAX || args.update_shape_param)
+            {
+            // required for memory coherency
+            cudaDeviceSynchronize();
+
+            // determine dynamically requested shared memory
+            char *ptr_begin = nullptr;
+            char *ptr =  ptr_begin;
+            for (unsigned int i = 0; i < args.num_types; ++i)
+                {
+                d_params[i].load_shared(ptr,false);
+                }
+            extra_bytes = ptr - ptr_begin;
+            }
+
         unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
                                     block_size*sizeof(unsigned int)*2 +
                                     args.num_types * (sizeof(typename Shape::param_type)) +
-                                    args.overlap_idx.getNumElements() * sizeof(unsigned int) + args.extra_bytes;
+                                    args.overlap_idx.getNumElements() * sizeof(unsigned int) + extra_bytes;
 
         while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
             {
@@ -1625,7 +1657,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
                            block_size*sizeof(unsigned int)*2 +
                            args.num_types * (sizeof(typename Shape::param_type)) +
-                           args.overlap_idx.getNumElements() * sizeof(unsigned int) + args.extra_bytes;
+                           args.overlap_idx.getNumElements() * sizeof(unsigned int) + extra_bytes;
             }
 
         // reset counters

@@ -148,7 +148,7 @@ class ManagedArray
             #ifdef ENABLE_CUDA
             if (managed)
                 {
-                cudaError_t error = cudaMallocManaged(&data, N*sizeof(T), cudaMemAttachGlobal);
+                cudaError_t error = cudaMallocManaged(&data, n*sizeof(T), cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -158,7 +158,7 @@ class ManagedArray
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &data, 32, N*sizeof(T));
+                int retval = posix_memalign((void **) &data, 32, n*sizeof(T));
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
