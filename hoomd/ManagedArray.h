@@ -4,6 +4,8 @@
 #pragma once
 
 #ifndef NVCC
+#include "managed_allocator.h"
+
 #include <algorithm>
 #endif
 
@@ -145,46 +147,14 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            #ifdef ENABLE_CUDA
-            if (managed)
-                {
-                cudaError_t error = cudaMallocManaged(&data, n*sizeof(T), cudaMemAttachGlobal);
-                if (error != cudaSuccess)
-                    {
-                    std::cerr << cudaGetErrorString(error) << std::endl;
-                    throw std::runtime_error("managed_allocator: Error allocating managed memory");
-                    }
-                }
-            else
-            #endif
-                {
-                int retval = posix_memalign((void **) &data, 32, n*sizeof(T));
-                if (retval != 0)
-                    {
-                    throw std::runtime_error("Error allocating aligned memory");
-                    }
-                }
+            data = managed_allocator<T>::allocate(N, managed);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                #ifdef ENABLE_CUDA
-                if (managed)
-                    {
-                    cudaError_t error = cudaFree(data);
-                    if (error != cudaSuccess)
-                        {
-                        std::cerr << cudaGetErrorString(error) << std::endl;
-                        throw std::runtime_error("managed_allocator: Error freeing managed memory");
-                        }
-                    }
-                else
-                #endif
-                    {
-                    free(data);
-                    }
+                managed_allocator<T>::deallocate(data, N, managed);
                 }
             }
         #endif
