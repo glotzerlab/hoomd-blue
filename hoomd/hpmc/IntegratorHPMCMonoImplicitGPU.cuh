@@ -97,7 +97,8 @@ struct hpmc_implicit_args_t
                 const Scalar *_d_d_min,
                 const Scalar *_d_d_max,
                 bool _update_shape_param,
-                mgpu::ContextPtr _mgpu_context
+                mgpu::ContextPtr _mgpu_context,
+                cudaStream_t _stream
                 )
                 : d_postype(_d_postype),
                   d_orientation(_d_orientation),
@@ -154,7 +155,8 @@ struct hpmc_implicit_args_t
                   d_d_min(_d_d_min),
                   d_d_max(_d_d_max),
                   update_shape_param(_update_shape_param),
-                  mgpu_context(_mgpu_context)
+                  mgpu_context(_mgpu_context),
+                  stream(_stream)
         {
         };
 
@@ -214,6 +216,7 @@ struct hpmc_implicit_args_t
     const Scalar *d_d_max;             //!< Maximum insertion diameter for depletants (per type)
     bool update_shape_param;           //!< True if this is the first iteration
     mgpu::ContextPtr mgpu_context;    //!< ModernGPU context
+    cudaStream_t stream;               //!< CUDA stream for kernel execution
     };
 
 template< class Shape >
@@ -1431,7 +1434,7 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
         {
         // (re-) initialize cuRAND
         unsigned int block_size = 512;
-        gpu_curand_implicit_setup<<<args.n_active_cells/block_size + 1,block_size>>>
+        gpu_curand_implicit_setup<<<args.n_active_cells/block_size + 1,block_size, 0, args.stream>>>
                                          (args.n_active_cells,
                                           args.seed,
                                           args.timestep,
@@ -1514,10 +1517,10 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
         }
 
     // reset counters
-    cudaMemsetAsync(args.d_overlap_cell,0, sizeof(unsigned int)*args.n_active_cells);
+    cudaMemsetAsync(args.d_overlap_cell,0, sizeof(unsigned int)*args.n_active_cells, args.stream);
 
     // check for newly generated overlaps with depletants
-    gpu_hpmc_implicit_count_overlaps_kernel<Shape><<<grid, threads, shared_bytes>>>(args.d_postype,
+    gpu_hpmc_implicit_count_overlaps_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
                                                                  args.d_orientation,
                                                                  args.d_postype_old,
                                                                  args.d_orientation_old,
@@ -1556,7 +1559,7 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
                                                                  d_params);
 
     // advance per-cell RNG states
-    cudaMemcpy(args.d_state_cell, args.d_state_cell_new, sizeof(curandState_t)*args.n_active_cells, cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(args.d_state_cell, args.d_state_cell_new, sizeof(curandState_t)*args.n_active_cells, cudaMemcpyDeviceToDevice, args.stream);
 
     // return total number of overlaps
     mgpu::Scan<mgpu::MgpuScanTypeExc>(args.d_overlap_cell, (int) args.n_active_cells, (unsigned int)0, mgpu::plus<unsigned int>(),
@@ -1661,10 +1664,10 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             }
 
         // reset counters
-        cudaMemsetAsync(args.d_n_success_forward,0, sizeof(unsigned int)*args.n_overlaps);
-        cudaMemsetAsync(args.d_n_overlap_shape_forward,0, sizeof(unsigned int)*args.n_overlaps);
-        cudaMemsetAsync(args.d_n_success_reverse,0, sizeof(unsigned int)*args.n_overlaps);
-        cudaMemsetAsync(args.d_n_overlap_shape_reverse,0, sizeof(unsigned int)*args.n_overlaps);
+        cudaMemsetAsync(args.d_n_success_forward,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
+        cudaMemsetAsync(args.d_n_overlap_shape_forward,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
+        cudaMemsetAsync(args.d_n_success_reverse,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
+        cudaMemsetAsync(args.d_n_overlap_shape_reverse,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
 
         dim3 threads;
         if (Shape::isParallel())
@@ -1686,7 +1689,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             }
 
         // check for newly generated overlaps with depletants
-        gpu_hpmc_implicit_reinsert_kernel<Shape><<<grid, threads, shared_bytes>>>(args.d_postype,
+        gpu_hpmc_implicit_reinsert_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
                                                                      args.d_orientation,
                                                                      args.d_postype_old,
                                                                      args.d_orientation_old,
@@ -1730,10 +1733,10 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
         block_size = 256;
 
         // reset flags
-        cudaMemsetAsync(args.d_n_success_zero,0, sizeof(unsigned int)*args.n_active_cells);
+        cudaMemsetAsync(args.d_n_success_zero,0, sizeof(unsigned int)*args.n_active_cells, args.stream);
 
         // compute logarithm of configurational bias weights per active cell
-        gpu_implicit_compute_weights_kernel<<<args.n_overlaps/block_size+1,block_size>>>(args.n_overlaps,
+        gpu_implicit_compute_weights_kernel<<<args.n_overlaps/block_size+1,block_size, 0, args.stream>>>(args.n_overlaps,
              args.d_n_success_forward,
              args.d_n_overlap_shape_forward,
              args.d_n_success_reverse,
@@ -1749,7 +1752,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
 
     // accept-reject on a per cell basis
     unsigned int block_size = 256;
-    gpu_implicit_accept_reject_kernel<Shape><<<args.n_active_cells/block_size + 1, block_size>>>(
+    gpu_implicit_accept_reject_kernel<Shape><<<args.n_active_cells/block_size + 1, block_size, 0, args.stream>>>(
         args.d_overlap_cell,
         args.n_active_cells,
         args.d_cell_set,

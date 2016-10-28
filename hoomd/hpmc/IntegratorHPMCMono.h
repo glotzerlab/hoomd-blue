@@ -391,6 +391,8 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+
+    updateCellWidth();
     }
 
 template <class Shape>

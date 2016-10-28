@@ -48,7 +48,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
-        virtual ~ComputeFreeVolumeGPU() { };
+        virtual ~ComputeFreeVolumeGPU();
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -74,6 +74,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
+
+        cudaStream_t m_stream;                //!< CUDA stream for kernel execution
 
         std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
@@ -127,6 +129,17 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     m_last_nmax = 0xffffffff;
 
     m_tuner_excell_block_size.reset(new Autotuner(32,1024,32, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
+
+    // create a cuda stream to ensure managed memory coherency
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+    }
+
+template<class Shape>
+ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
+    {
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 /*! \return the current free volume (by MC integration)
@@ -254,7 +267,8 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    d_n_overlap_all.data,
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
-                                                   overlap_idx);
+                                                   overlap_idx,
+                                                   m_stream);
 
 
         // invoke kernel for counting total overlap volume

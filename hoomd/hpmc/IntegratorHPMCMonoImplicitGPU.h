@@ -13,6 +13,8 @@
 
 #include "hoomd/GPUVector.h"
 
+#include <cuda_runtime.h>
+
 /*! \file IntegratorHPMCMonoImplicitGPU.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent on the GPU
     \note This header cannot be compiled by nvcc
@@ -117,6 +119,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUVector<unsigned int> m_n_success_reverse;                //!< Successful reverse-insertions
         GPUVector<unsigned int> m_n_overlap_shape_reverse;          //!< Forward-insertions
         GPUVector<float> m_depletant_lnb;                           //!< Configurational bias weights
+
+        cudaStream_t m_stream;                                  //! GPU kernel stream
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -254,8 +258,12 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
 
     m_poisson_dist_created.resize(this->m_pdata->getNTypes(), false);
 
+    // create a CUDA stream for kernel execution
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+
     // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(m_stream);
     }
 
 //! Destructor
@@ -271,6 +279,9 @@ IntegratorHPMCMonoImplicitGPU< Shape >::~IntegratorHPMCMonoImplicitGPU()
             curandDestroyDistribution(h_poisson_dist.data[type]);
             }
         }
+
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 template< class Shape >
@@ -524,6 +535,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         this->m_pdata->getMaxN(),
                         this->m_exec_conf->dev_prop,
                         first,
+                        m_stream,
                         (lambda_max > 0.0) ? d_active_cell_ptl_idx.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_accept.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_move_type_translate.data : 0),
@@ -624,7 +636,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
-                                m_mgpu_context),
+                                m_mgpu_context,
+                                m_stream),
                             params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -720,7 +733,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
-                                m_mgpu_context),
+                                m_mgpu_context,
+                                m_stream),
                             params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -888,6 +902,11 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
     IntegratorHPMCMonoImplicit<Shape>::updateCellWidth();
 
     this->m_cl->setNominalWidth(this->m_nominal_width);
+
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
     }
 
 

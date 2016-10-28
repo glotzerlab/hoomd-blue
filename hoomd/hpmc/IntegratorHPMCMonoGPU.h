@@ -7,6 +7,8 @@
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "hoomd/Autotuner.h"
 
+#include <cuda_runtime.h>
+
 /*! \file IntegratorHPMCMonoGPU.h
     \brief Defines the template class for HPMC on the GPU
     \note This header cannot be compiled by nvcc
@@ -34,7 +36,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
                               std::shared_ptr<CellList> cl,
                               unsigned int seed);
         //! Destructor
-        virtual ~IntegratorHPMCMonoGPU() { };
+        virtual ~IntegratorHPMCMonoGPU();
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -67,6 +69,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+
+        cudaStream_t m_stream;                //!< CUDA stream for update kernel
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -149,6 +153,19 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     m_tuner_update.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_update", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
+
+    // create a CUDA stream
+    // streams are used to ensure memory coherency until concurrent host-gpu access is fully supported (such as for compute 6.x devices
+    // with appropriate kernel drivers)
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+    }
+
+template< class Shape >
+IntegratorHPMCMonoGPU< Shape>::~IntegratorHPMCMonoGPU()
+    {
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 template< class Shape >
@@ -313,7 +330,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 this->m_hasOrientation,
                                                                 this->m_pdata->getMaxN(),
                                                                 this->m_exec_conf->dev_prop,
-                                                                first),
+                                                                first,
+                                                                m_stream),
                                             params.data());
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -432,6 +450,11 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
     this->m_nominal_width = this->getMaxDiameter();
     this->m_cl->setNominalWidth(this->m_nominal_width);
+
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
     }
 
 //! Export this hpmc integrator to python

@@ -70,6 +70,7 @@ struct hpmc_args_t
                 const unsigned int _max_n,
                 const cudaDeviceProp& _devprop,
                 bool _update_shape_param,
+                cudaStream_t _stream,
                 unsigned int *_d_active_cell_ptl_idx = NULL,
                 unsigned int *_d_active_cell_accept = NULL,
                 unsigned int *_d_active_cell_move_type_translate = NULL)
@@ -108,6 +109,7 @@ struct hpmc_args_t
                   max_n(_max_n),
                   devprop(_devprop),
                   update_shape_param(_update_shape_param),
+                  stream(_stream),
                   d_active_cell_ptl_idx(_d_active_cell_ptl_idx),
                   d_active_cell_accept(_d_active_cell_accept),
                   d_active_cell_move_type_translate(_d_active_cell_move_type_translate)
@@ -149,6 +151,7 @@ struct hpmc_args_t
     const unsigned int max_n;         //!< Maximum size of pdata arrays
     const cudaDeviceProp& devprop;    //!< CUDA device properties
     bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
+    cudaStream_t stream;              //!< The CUDA stream associated with the update kernel
     unsigned int *d_active_cell_ptl_idx; //!< Updated particle index per active cell (ignore if NULL)
     unsigned int *d_active_cell_accept;//!< =1 if active cell move has been accepted, =0 otherwise (ignore if NULL)
     unsigned int *d_active_cell_move_type_translate;//!< =1 if active cell move was a translation, =0 if rotation
@@ -908,7 +911,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     if (error != cudaSuccess)
         return error;
 
-    gpu_hpmc_mpmc_kernel<Shape><<<grid, threads, shared_bytes>>>(args.d_postype,
+    gpu_hpmc_mpmc_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
                                                                  args.d_orientation,
                                                                  args.d_counters,
                                                                  args.d_cell_idx,
