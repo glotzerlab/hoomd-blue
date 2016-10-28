@@ -38,6 +38,7 @@ set(_hoomd_sources Analyzer.cc
                    LoadBalancer.cc
                    Logger.cc
 		   LogPlainTXT.cc
+		   LogMatrix.cc
                    Messenger.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -112,6 +113,7 @@ set(_hoomd_headers
     LoadBalancer.h
     Logger.h
     LogPlainTXT.h
+    LogMatrix.h
     Messenger.h
     ParticleData.cuh
     ParticleData.h

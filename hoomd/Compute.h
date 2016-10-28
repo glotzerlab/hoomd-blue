@@ -23,6 +23,7 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/numpy.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -125,6 +126,33 @@ class Compute
             {
             return Scalar(0.0);
             }
+        //! Returns a list of log matrix quantities this compute calculates
+        /*! The base class implementation just returns an empty vector. Derived classes should override
+            this behavior and return a list of quantities that they log.
+
+            See LogMatrix for more information on what this is about.
+        */
+        virtual std::vector< std::string > getProvidedLogMatrixQuantities()
+            {
+            return std::vector< std::string >();
+            }
+
+        //! Calculates the requested log matrix and returns it
+        /*! \param quantity Name of the log quantity to get
+            \param timestep Current time step of the simulation
+
+            The base class just returns an empty shared_ptr. Derived classes should override this behavior and return
+            the calculated value for the given quantity. Only quantities listed in
+            the return value getProvidedLogMatrixQuantities() will be requested from
+            getLogMatrixValue().
+
+            See LogMatrix for more information on what this is about.
+        */
+        virtual std::shared_ptr<pybind11::array_t<Scalar> > getLogMatrix(const std::string& quantity, unsigned int timestep)
+            {
+            return std::shared_ptr<pybind11::array_t<Scalar> >();
+            }
+
 
         //! Force recalculation of compute
         /*! If this function is called, recalculation of the compute will be forced (even if had
