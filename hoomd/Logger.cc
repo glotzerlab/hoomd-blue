@@ -111,10 +111,7 @@ void Logger::removeAll()
 /*! \param quantities A list of quantities to log
 
     When analyze() is called, each quantitiy in the list will, in order, be requested
-    from the matching registered compute or updtaer and written to the file separated
-    by delimiters. After all quantities are written to the file a newline is written.
-
-    Each time setLoggedQuantities is called, a header listing the column names is also written.
+    from the matching registered compute or updater.
 */
 void Logger::setLoggedQuantities(const std::vector< std::string >& quantities)
     {
