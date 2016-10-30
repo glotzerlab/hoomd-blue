@@ -120,7 +120,9 @@ class ManagedArray
             if (managed && data)
                 {
                 cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
+                #if (CUDART_VERSION >= 8000)
                 cudaMemAdvise(data, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
+                #endif
                 }
             }
         #endif
