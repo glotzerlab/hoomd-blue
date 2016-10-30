@@ -117,7 +117,11 @@ class ManagedArray
         //! Attach managed memory to CUDA stream
         void attach_to_stream(cudaStream_t stream) const
             {
-            if (managed && data) cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
+            if (managed && data)
+                {
+                cudaStreamAttachMemAsync(stream, data, 0, cudaMemAttachSingle);
+                cudaMemAdvise(data, sizeof(T)*N, cudaMemAdviseSetReadMostly, 0);
+                }
             }
         #endif
 
