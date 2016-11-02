@@ -69,6 +69,9 @@ class Logger : public Analyzer
         //! Selects which quantities to log
         virtual void setLoggedQuantities(const std::vector< std::string >& quantities);
 
+        //! Returns the currently logged quantities
+        std::vector<std::string> getLoggedQuantities(void)const{return m_logged_quantities;}
+
         //! Query the current value for a given quantity
         virtual Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
 

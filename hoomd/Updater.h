@@ -127,9 +127,9 @@ class Updater
 
             See LogMatrix for more information on what this is about.
         */
-        virtual std::shared_ptr<pybind11::array_t<Scalar> > getLogMatrix(const std::string& quantity, unsigned int timestep)
+        virtual std::shared_ptr<pybind11::array > getLogMatrix(const std::string& quantity, unsigned int timestep)
             {
-            return std::shared_ptr<pybind11::array_t<Scalar> >();
+            return std::shared_ptr<pybind11::array >();
             }
 
         //! Print some basic stats to stdout

@@ -142,7 +142,7 @@ void LogMatrix::analyze(unsigned int timestep)
 
 /*! \param quantity Matrix to get
 */
-std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep, bool use_cache)
+std::shared_ptr<py::array > LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep, bool use_cache)
     {
     // update info in cache for later use
     if (!use_cache && timestep != m_cached_timestep)
@@ -159,13 +159,13 @@ std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrixQuantity(const std::st
             return m_cached_matrix_quantities[i];
 
     m_exec_conf->msg->warning() << "analyze.log: Log matrix quantity " << quantity << " is not registered, returning an empty pointer" << endl;
-    return std::shared_ptr<py::array_t<Scalar> >();
+    return std::shared_ptr<py::array >();
     }
 
 /*! \param quantity Matrix to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrix(const std::string &quantity, int timestep)
+std::shared_ptr<py::array > LogMatrix::getMatrix(const std::string &quantity, int timestep)
     {
     // check to see if the quantity exists in the compute list
     if (m_compute_matrix_quantities.count(quantity))
@@ -173,7 +173,7 @@ std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrix(const std::string &qu
         // update the compute
         m_compute_matrix_quantities[quantity]->compute(timestep);
         // get the log value
-        std::shared_ptr<py::array_t<Scalar> > return_ptr =
+        std::shared_ptr<py::array > return_ptr =
             m_compute_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
         if(return_ptr)
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
@@ -184,7 +184,7 @@ std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrix(const std::string &qu
     else if (m_updater_matrix_quantities.count(quantity))
         {
         // get the log value
-        std::shared_ptr<py::array_t<Scalar> > return_ptr =
+        std::shared_ptr<py::array > return_ptr =
             m_updater_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
         if(return_ptr)
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
@@ -197,24 +197,24 @@ std::shared_ptr<py::array_t<Scalar> > LogMatrix::getMatrix(const std::string &qu
         try
             {
             py::object rv = m_callback_matrix_quantities[quantity](timestep);
-            py::array_t<Scalar> extracted_rv = rv.cast<py::array_t<Scalar> >();
+            py::array extracted_rv = rv.cast<py::array >();
             //Obtain owner ship of return value, by using the copy constructor.
-            std::shared_ptr<py::array_t<Scalar> > extracted_ptr =
-                std::shared_ptr<py::array_t<Scalar> >(new py::array_t<Scalar>(extracted_rv));
+            std::shared_ptr<py::array > extracted_ptr =
+                std::shared_ptr<py::array >(new py::array(extracted_rv));
             return extracted_ptr;
             }
         catch (py::cast_error)
             {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                         << quantity << " no matrix obtainable from callback." << endl;
-            return std::shared_ptr<py::array_t<Scalar> >();
+            return std::shared_ptr<py::array >();
             }
         }
     else
         {
         m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                     << quantity << " no matrix obtainable." << endl;
-            return std::shared_ptr<py::array_t<Scalar> >();
+            return std::shared_ptr<py::array >();
         }
     }
 
@@ -223,6 +223,7 @@ void export_LogMatrix(py::module& m)
     py::class_<LogMatrix, std::shared_ptr<LogMatrix> >(m,"LogMatrix", py::base<Logger>())
     .def(py::init< std::shared_ptr<SystemDefinition> >())
     .def("setLoggedMatrixQuantities", &LogMatrix::setLoggedMatrixQuantities)
+    .def("getLoggedMatrixQuantities", &LogMatrix::getLoggedMatrixQuantities)
     .def("getMatrixQuantity", &LogMatrix::getMatrixQuantity)
     ;
     }

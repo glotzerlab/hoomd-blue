@@ -13,6 +13,7 @@ to see what they do.
 from hoomd import _hoomd;
 import hoomd;
 import sys;
+import numpy
 
 ## \internal
 # \brief Base class for analyzers
@@ -573,3 +574,243 @@ class callback(_analyzer):
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.CallbackAnalyzer(hoomd.context.current.system_definition, callback)
         self.setupAnalyzer(period, phase);
+
+
+_enable_h5py = False
+try:
+    import h5py
+    _enable_h5py = True
+except ImportError:
+    h5py_userwarning = "The current runtime does not support the h5py module."
+    h5py_userwarning += " Using the log_hdf5 is not possible."
+    pass
+
+class log_hdf5(_analyzer):
+    R"""
+    """
+
+    def __init__(self, filename, period, quantities=[],matrix_quantities=[], overwrite=False, phase=0):
+        hoomd.util.print_status_line()
+
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+        # store metadata
+        self.metadata_fields = ['filename','period']
+        self.filename = filename
+        self.period = period
+
+
+        if overwrite:
+            f= h5py.File(filename,"w")
+            f.close()
+
+        # initialize base class
+        _analyzer.__init__(self)
+
+        # create the c++ mirror class
+        self.cpp_analyzer = _hoomd.LogHDF5(hoomd.context.current.system_definition, self._write_hdf5);
+        self.setupAnalyzer(period, phase);
+
+        # set the logged quantities
+        hoomd.util.quiet_status()
+        self.set_params(quantities=quantities,matrix_quantities=matrix_quantities)
+        hoomd.util.unquiet_status()
+
+        # set the logged matrix quantities
+        matrix_quantity_list = _hoomd.std_vector_string();
+        for item in matrix_quantities:
+            matrix_quantity_list.append(str(item));
+        self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list);
+
+
+        # add the logger to the list of loggers
+        hoomd.context.current.loggers.append(self);
+
+    def set_params(self, quantities=None, matrix_quantities=None):
+        R""" Change the parameters of the log.
+        """
+        hoomd.util.print_status_line();
+
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+
+        if quantities is not None:
+            # set the logged quantities
+            quantity_list = _hoomd.std_vector_string();
+            for item in quantities:
+                quantity_list.append(str(item));
+            self.cpp_analyzer.setLoggedQuantities(quantity_list);
+
+        if matrix_quantities is not None:
+            # set the logged quantities
+            matrix_quantity_list = _hoomd.std_vector_string();
+            for item in matrix_quantities:
+                matrix_quantity_list.append(str(item));
+            self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list);
+
+
+    def query(self, quantity,matrix=False):
+        R""" Get the current value of a logged quantity.
+
+        """
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+        use_cache=True
+
+        if not matrix:
+            return self.cpp_analyzer.getQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
+        else:
+            return self.cpp_analyzer.getMatrixQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
+
+    def register_callback(self, name, callback,matrix=False):
+        R""" Register a callback to produce a logged quantity.
+
+        Args:
+            name (str): Name of the quantity
+            callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
+            matrix (bool): Is the callback a computing a numpy array matrix?
+
+        The callback method must take a single argument, the current timestep, and return a single floating point value to
+        be logged. If the callback returns a matrix quantity the return value must be a numpy array constant dimensions of
+        each call.
+
+        Note:
+            One callback can query the value of another, but logged quantities are evaluated in order from left to right.
+
+        Examples::
+
+            logger = analyze.log(filename='log.dat', quantities=['my_quantity', 'cosm'], period=100)
+            logger.register_callback('my_quantity', lambda timestep: timestep**2)
+            logger.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
+
+        """
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+        if not matrix:
+            self.cpp_analyzer.registerCallback(name, callback);
+        else:
+            self.cpp_analyzer.registerMatrixCallback(name, callback);
+
+
+    ## \internal
+    # \brief Re-registers all computes and updaters with the logger
+    def update_quantities(self):
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+        # remove all registered quantities
+        self.cpp_analyzer.removeAll();
+
+        # re-register all computes and updater
+        hoomd.context.current.system.registerLogger(self.cpp_analyzer);
+
+    def disable(self):
+        R""" Disable the logger.
+
+        Examples::
+
+            logger.disable()
+
+
+        Executing the disable command will remove the logger from the system.
+        Any :py:func:`hoomd.run()` command executed after disabling the logger will not use that
+        logger during the simulation. A disabled logger can be re-enabled
+        with :py:meth:`enable()`.
+        """
+        hoomd.util.print_status_line()
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+        hoomd.util.quiet_status()
+        _analyzer.disable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.remove(self)
+
+    def enable(self):
+        R""" Enables the logger
+
+        Examples::
+
+            logger.enable()
+
+        See :py:meth:`disable()`.
+        """
+        hoomd.util.print_status_line()
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+        hoomd.util.quiet_status()
+        _analyzer.enable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.append(self)
+
+    def _write_hdf5(self,timestep):
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+        new_array = self.cpp_analyzer.get_single_value_array()
+
+        f = h5py.File(self.filename,"a")
+        self._write_header(f)
+
+        data_set = f["/single_values"]
+        old_size = data_set.shape[0]
+
+        if data_set.shape[1] != new_array.shape[0]:
+            hoomd.context.msg.error("The number of logged quantities does not match with the number of quantities stored in the file.")
+            raise RuntimeError("Error write single values with log_hdf5.")
+
+        data_set.resize(old_size+1,axis=0)
+        data_set[old_size,] = new_array
+
+
+        f.close()
+        return timestep
+
+    def _write_header(self,f):
+        if not _enable_h5py:
+            hoomd.context.msg.error(h5py_userwarning)
+            raise RuntimeError("Unable to use log_hdf5")
+
+
+        quantities = self.cpp_analyzer.getLoggedQuantities()
+
+        if "single_values" in f:
+            data_set = f["single_values"]
+            if  data_set.shape[1] != len(quantities):
+                if data_set.shape[0] == 0:
+                    data_set.resize( (0,len(quantities)) )
+                    for key in data_set.attrs.keys():
+                        del data_set.attrs[key]
+                else:
+                    hoomd.context.msg.error("Changing the number of logged quantites is impossible"
+                                    " if there are already logged quantities.")
+                    raise RuntimeError("Error updating quantities with log_hdf5.")
+        else:
+            data_set = f.create_dataset("single_values",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
+
+        #Ensure quantities in the attribute match with new setting.
+        for i in range(len(quantities)):
+            try:
+                if i != data_set.attrs[quantities[i]]:
+                    hoomd.context.msg.error("Quantity "+quantities[i]+" is not stored in the correct position."
+                                            " stored: "+str(data_set.attrs[quantities[i]])+" new: "+str(i))
+                    raise RuntimeError("Error updating quantities with log_hdf5.")
+            except KeyError:
+                for key in data_set.attrs.keys():
+                    if data_set.attrs[key] == i:
+                        hoomd.context.msg.error("Quantity position is not vacant.")
+                        raise RuntimeError("Error updating quantities with log_hdf5.")
+                data_set.attrs[quantities[i]] = i

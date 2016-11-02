@@ -53,11 +53,16 @@ class LogMatrix : public Logger
         //! Selects which matrix quantities to log
         virtual void setLoggedMatrixQuantities(const std::vector< std::string >& quantities);
 
+        //! return all currently logged matrix quantities.
+        std::vector<std::string> getLoggedMatrixQuantities(void)const{return m_logged_matrix_quantities;}
+
         //! Query the current matrix for a given quantity
-        virtual std::shared_ptr<pybind11::array_t<Scalar> > getMatrixQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
+        virtual std::shared_ptr<pybind11::array > getMatrixQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);
 
         //! Cache the data for the current timestep
         virtual void analyze(unsigned int timestep);
+
+
 
     protected:
         //! A map of computes indexed by logged matrix quantity that they provide
@@ -71,11 +76,11 @@ class LogMatrix : public Logger
         //! Clock for the time log quantity
 
         //! The values of the logged quantities at the last logger update.
-        std::vector< std::shared_ptr< pybind11::array_t<Scalar> > > m_cached_matrix_quantities;
+        std::vector< std::shared_ptr< pybind11::array > > m_cached_matrix_quantities;
 
     private:
         //! Helper function to get a value for a given quantity
-        std::shared_ptr<pybind11::array_t<Scalar> > getMatrix(const std::string &quantity, int timestep);
+        std::shared_ptr<pybind11::array > getMatrix(const std::string &quantity, int timestep);
     };
 
 //! exports the LogMatrix class to python

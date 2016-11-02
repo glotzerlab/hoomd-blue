@@ -39,6 +39,7 @@ set(_hoomd_sources Analyzer.cc
                    Logger.cc
 		   LogPlainTXT.cc
 		   LogMatrix.cc
+		   LogHDF5.cc
                    Messenger.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -114,6 +115,7 @@ set(_hoomd_headers
     Logger.h
     LogPlainTXT.h
     LogMatrix.h
+    LogHDF5.h
     Messenger.h
     ParticleData.cuh
     ParticleData.h
