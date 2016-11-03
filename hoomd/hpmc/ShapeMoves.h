@@ -400,9 +400,9 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
-    Eigen::Matrix3f m_eps;
-    Eigen::Matrix3f m_Fbar;
-    Scalar a_max;
+    std::vector <Eigen::Matrix3f> m_eps;
+    std::vector <Eigen::Matrix3f> m_Fbar;
+    //Scalar a_max= 0.01;
 public:
     elastic_shape_move_function(
                                     unsigned int ntypes,
@@ -412,8 +412,10 @@ public:
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
+        m_eps.resize(ntypes, Eigen::Matrix3f::Identity());
+        m_Fbar.resize(ntypes, Eigen::Matrix3f::Identity());
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
-        m_Fbar = Eigen::Matrix3f::Identity();
+        //m_Fbar = Eigen::Matrix3f::Identity();
         m_determinantInertiaTensor = 1.0;
         }
 
@@ -453,16 +455,19 @@ public:
           { 
             for (int j=0;j<3;j++)
             {
-              alpha(i,j) =  rng.s(-a_max, a_max);
+              alpha(i,j) =  rng.s(-m_step_size[type_id], m_step_size[type_id]);
+              std::cout << alpha(i,j) << std::endl;
             }
           }
-
+         //std::cout << "alpha_max = " << a_max << std::endl;
          F = I + alpha;
+         std::cout << "det(F) = " << F.determinant() << std::endl;
          Fbar = F / pow(F.determinant(),1.0/3.0);
-         m_Fbar = Fbar*m_Fbar;
-         eps = 0.5*(m_Fbar.transpose() + m_Fbar) - I ; 
+         std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
+         m_Fbar[type_id] = Fbar*m_Fbar[type_id];
+         eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ; 
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
-        
+        std::cout << Fbar << std::endl;
         for(unsigned int i = 0; i < param.N; i++)
             {
             param.x[i] = Fbar(1,1)*param.x[i] + Fbar(1,2)*param.y[i] + Fbar(1,3)*param.z[i];
@@ -472,10 +477,10 @@ public:
             vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
             //dsq = fmax(dsq, dot(vert, vert));
             }
-        m_eps = eps;
+        m_eps[type_id] = eps;
         }
-        Eigen::Matrix3f getEps(){
-           return m_eps;
+        Eigen::Matrix3f getEps(unsigned int type_id){
+           return m_eps[type_id];
          }
     //! advance whenever the proposed move is accepted.
     // void advance(unsigned int timestep){ /* Nothing to do. */ }
@@ -492,14 +497,14 @@ template<class Shape>
 class ShapeLogBoltzmannFunction
 {
 public:
-    virtual Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
+    virtual Scalar operator()(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
 };
 
 template<class Shape>
 class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 {
 public:
-    virtual Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    virtual Scalar operator()(const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
         return (Scalar(N)/Scalar(2.0))*log(inew/iold);
         }
@@ -552,10 +557,10 @@ public:
     ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
-    Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
           //using Eigen::Matrix3f;
-          Eigen::Matrix3f eps = m_shape_move->getEps();
+          Eigen::Matrix3f eps = m_shape_move->getEps(type_id);
           AlchemyLogBoltzmannFunction< Shape > fn;
           //Scalar dv;
           Scalar e_ddot_e = 0.0;
@@ -572,8 +577,10 @@ public:
               eps_ddot += eps(i,j)*eps(j,i) 
            }
           } */
-
-          return m_k*e_ddot_e*m_volume + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
+          //std::cout << "Particle volume = " << m_volume << std::endl ; OK
+          std::cout << "Stiffness = " << m_k << std::endl ;
+          std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;  
+          return m_k*e_ddot_e*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 

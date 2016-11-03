@@ -228,6 +228,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 		// energy and moment of interia change.
 		log_boltz += (*m_log_boltz_function)(
 							h_ntypes.data[typ_i],           // number of particles of type typ_i
+                      					typ_i,
 							param,                          // new shape parameter
 							h_det.data[typ_i],              // new determinant
 							h_param_backup.data[typ_i],     // old shape parameter
