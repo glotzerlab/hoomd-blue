@@ -37,3 +37,4 @@ hoomd
    module-hoomd-update
    module-hoomd-util
    module-hoomd-variant
+   module-hoomd-hdf5

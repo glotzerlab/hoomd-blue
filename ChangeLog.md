@@ -2,6 +2,13 @@
 
 [TOC]
 
+## v2.2.0
+Not yet released
+
+*New Features*
+
+* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+
 ## v2.1.1
 
 Released 2016/10/23
