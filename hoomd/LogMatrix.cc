@@ -194,8 +194,6 @@ void export_LogMatrix(py::module& m)
     .def("setLoggedMatrixQuantities", &LogMatrix::setLoggedMatrixQuantities)
     .def("getLoggedMatrixQuantities", &LogMatrix::getLoggedMatrixQuantities)
     .def("registerMatrixCallback", &LogMatrix::registerMatrixCallback)
-        //Keep the memory management at c++ site
-        //.def("getMatrixQuantity", &LogMatrix::getMatrixQuantity,py::return_value_policy::reference)
-        .def("getMatrixQuantity", &LogMatrix::getMatrixQuantity,py::return_value_policy::copy)
+    .def("getMatrixQuantity", &LogMatrix::getMatrixQuantity,py::return_value_policy::copy)
     ;
     }
