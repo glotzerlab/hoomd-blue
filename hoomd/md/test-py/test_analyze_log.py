@@ -109,20 +109,17 @@ class analyze_log_query_tests (unittest.TestCase):
         hoomd.context.initialize();
 
 
-# test analyze.log_hdf5 with query
+# test hdf5.log with query
 class analyze_log_hdf5_query_tests (unittest.TestCase):
     def setUp(self):
+        print
         self.enable_hdf5 = False
         try:
-            import h5py
+            import hoomd.hdf5
             self.enable_hdf5 = True
         except:
-            print("Warning: no h5py module available. So no testing of the log_hdf5 class.")
-
-        if not self.enable_hdf5:
+            print("Warning no h5py available, so hdf5 is classes are unchecked.")
             return
-
-        print
         deprecated.init.create_random(N=100, phi_p=0.005);
         nl = hoomd.md.nlist.cell()
         self.pair = hoomd.md.pair.lj(r_cut=2.5, nlist = nl)
@@ -134,13 +131,16 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test_with_file(self):
+        if not self.enable_hdf5:
+            return
+
         if hoomd.comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.log');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
 
-        log = hoomd.analyze.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=self.tmp_file);
+        log = hoomd.hdf5.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=self.tmp_file);
         hoomd.run(11);
         t0 = log.query('timestep');
         U0 = log.query('potential_energy');
@@ -159,6 +159,9 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
         self.assertEqual(K0, K1);
 
     def tearDown(self):
+        if not self.enable_hdf5:
+            return
+
         self.pair = None;
         hoomd.context.initialize();
         if (hoomd.comm.get_rank()==0):
@@ -170,13 +173,12 @@ class analyze_log_hdf5_tests (unittest.TestCase):
         print
         self.enable_hdf5 = False
         try:
-            import h5py
+            import hoomd.hdf5
             self.enable_hdf5 = True
         except:
-            print("Warning: no h5py module available. So no testing of the log_hdf5 class.")
-
-        if not self.enable_hdf5:
+            print("Warning no h5py available, so hdf5 is classes are unchecked.")
             return
+
 
         deprecated.init.create_random(N=100, phi_p=0.05);
 
@@ -190,13 +192,19 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test(self):
-        hoomd.analyze.log_hdf5(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
+        if not self.enable_hdf5:
+            return
+
+        hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         hoomd.run(100);
 
     def test_matrix(self):
+        if not self.enable_hdf5:
+            return
+
         def callback(timestep):
             return numpy.random.rand(2,3)
-        ana = hoomd.analyze.log_hdf5(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
+        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
         ana.register_callback("mtest1",callback,matrix=True)
         ana.register_callback("mtest2",callback,matrix=True)
 
@@ -204,9 +212,12 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     # tests with phase
     def test_phase(self):
+        if not self.enable_hdf5:
+            return
+
         def callback(timestep):
             return numpy.random.rand(2,3)
-        ana = hoomd.analyze.log_hdf5(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file,phase=0);
+        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file,phase=0);
         ana.register_callback("mtest1",callback,matrix=True)
         ana.register_callback("mtest2",callback,matrix=True)
 
@@ -214,10 +225,13 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     # test set_params
     def test_set_params(self):
+        if not self.enable_hdf5:
+            return
+
         def callback(timestep):
             return numpy.random.rand(2,3)
 
-        ana = hoomd.analyze.log_hdf5(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
+        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
         ana.register_callback("mtest1",callback,matrix=True)
         ana.register_callback("mtest2",callback,matrix=True)
 
@@ -237,13 +251,19 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     # test the initialization checks
     def test_init_checks(self):
-        ana = hoomd.analyze.log_hdf5(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
+        if not self.enable_hdf5:
+            return
+
+        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
         ana.cpp_analyzer = None;
 
         self.assertRaises(RuntimeError, ana.enable);
         self.assertRaises(RuntimeError, ana.disable);
 
     def tearDown(self):
+        if not self.enable_hdf5:
+            return
+
         hoomd.context.initialize();
         if (hoomd.comm.get_rank()==0):
             os.remove(self.tmp_file);

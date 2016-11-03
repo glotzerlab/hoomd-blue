@@ -250,6 +250,7 @@ set(files analyze.py
           util.py
           variant.py
           lattice.py
+	  hdf5.py
     )
 
 install(FILES ${files}
