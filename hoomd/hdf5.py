@@ -18,13 +18,48 @@ try:
 except ImportError as error:
     h5py_userwarning = "The current runtime does not support the h5py module."
     h5py_userwarning += " Using the log_hdf5 is not possible."
-    #probably the hoomd context is not initialized, yet. So I use print.
-    print(h5py_userwarning)
+    hoomd.context.msg.error(h5py_userwarning)
     raise error
 
 class log(hoomd.analyze._analyzer):
-    R"""
-    Docu
+    R""" Log a number of calculated quantities or matrices to a hdf5 file.
+
+    Args:
+        filename(str): File to log the data
+        period(int):  Quantities are loggged every *period* time steps
+        quantities(list): Single value quantities to log.
+        matriy_quantities(list): Matrix quantities to log.
+        overwrite(bool): When False (the default) the existing log will be append. When True the file will be overwritten.
+        phase(int): When -1, start on the current time step. When >= 0 execute on steps where *(step +phase) % period == 0*.
+
+    For details on the loggable single values refer :py:class:`hoomd.analyze.log` for details.
+
+    The single values are combined in a single array 'single_values' in the hdf5 file.
+    The attributes list all the names of the logged quantities and there position in the file.
+
+    Matrix quantities are logged as a separate data set each in the file. The name of the data set
+    corresponds to the name of the quantity. The first dimension of the data set is counting the
+    logged time step. The other dimension correspond to the dimensions of the logged matrix.
+
+    Note:
+        The number and order of single value logs cannot change compared to data which is already
+        stored in the hdf5 file. As a result, if you append to a file make sure you are logging the
+        same values as before. In addition, also during a run with multiple `hoomd.run()` commands
+        the logged values can not change.
+    Note:
+        The dimensions of logged matrix quantities cannot change compared to a matrix with same name
+        stored in the file. This applies for appending files as well as during a single simulation
+        run.
+
+    Examples::
+
+            log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'],matrix_quantities = ['random_matrix'], period=100)
+            log.register_callback('my_quantity', lambda timestep: timestep**2)
+            log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
+            def random_matrix(timestep):
+                return numpy.random.rand(23,56)
+            log.register_callback('random_matrix',random_matrix,True)
+
     """
     def __init__(self, filename, period, quantities=[],matrix_quantities=[], overwrite=False, phase=0):
         hoomd.util.print_status_line()
@@ -62,6 +97,9 @@ class log(hoomd.analyze._analyzer):
 
     def set_params(self, quantities=None, matrix_quantities=None):
         R""" Change the parameters of the log.
+
+        Warning:
+           Do not change the number or order of logged single quantities compared to values stored in the file.
         """
         hoomd.util.print_status_line();
 
@@ -83,6 +121,9 @@ class log(hoomd.analyze._analyzer):
     def query(self, quantity,matrix=False):
         R""" Get the current value of a logged quantity.
 
+        Note:
+            Matrix quantities are not cached by the class, so calling this function multiple time,
+            may not be efficient.
         """
         use_cache=True # Log hdf5 does not support init w/o filename
         timestep = hoomd.context.current.system.getCurrentTimeStep()
