@@ -486,8 +486,9 @@ class log(_analyzer):
             name (str): Name of the quantity
             callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
 
-        The callback method must take a single argument, the current timestep, and return a single floating point value to
-        be logged.
+        The callback method must take a single argument, the current
+        timestep, and return a single floating point value to be
+        logged.
 
         Note:
             One callback can query the value of another, but logged quantities are evaluated in order from left to right.
@@ -609,7 +610,7 @@ class log_hdf5(_analyzer):
         _analyzer.__init__(self)
 
         # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.LogHDF5(hoomd.context.current.system_definition, self._write_hdf5);
+        self.cpp_analyzer = _hoomd.LogHDF5(hoomd.context.current.system_definition, self._write_hdf5)
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities
@@ -660,11 +661,12 @@ class log_hdf5(_analyzer):
             hoomd.context.msg.error(h5py_userwarning)
             raise RuntimeError("Unable to use log_hdf5")
         use_cache=True
+        timestep = hoomd.context.current.system.getCurrentTimeStep()
 
         if not matrix:
-            return self.cpp_analyzer.getQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
+            return self.cpp_analyzer.getQuantity(quantity, timestep, use_cache);
         else:
-            return self.cpp_analyzer.getMatrixQuantity(quantity, hoomd.context.current.system.getCurrentTimeStep(), use_cache);
+            return self.cpp_analyzer.getMatrixQuantity(quantity, timestep, use_cache)
 
     def register_callback(self, name, callback,matrix=False):
         R""" Register a callback to produce a logged quantity.
@@ -674,9 +676,10 @@ class log_hdf5(_analyzer):
             callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
             matrix (bool): Is the callback a computing a numpy array matrix?
 
-        The callback method must take a single argument, the current timestep, and return a single floating point value to
-        be logged. If the callback returns a matrix quantity the return value must be a numpy array constant dimensions of
-        each call.
+        The callback method must take a single argument, the current
+        timestep, and return a single floating point value to be
+        logged. If the callback returns a matrix quantity the return
+        value must be a numpy array constant dimensions of each call.
 
         Note:
             One callback can query the value of another, but logged quantities are evaluated in order from left to right.
@@ -774,7 +777,8 @@ class log_hdf5(_analyzer):
         old_size = data_set.shape[0]
 
         if data_set.shape[1] != new_array.shape[0]:
-            hoomd.context.msg.error("The number of logged single quantities does not match with the number of quantities stored in the file.")
+            hoomd.context.msg.error("The number of logged single quantities does not match"
+                                    " with the number of quantities stored in the file.")
             raise RuntimeError("Error write single values with log_hdf5.")
 
         data_set.resize(old_size+1,axis=0)

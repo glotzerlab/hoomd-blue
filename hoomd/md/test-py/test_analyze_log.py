@@ -14,16 +14,6 @@ import numpy
 class analyze_log_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.enable_hdf5 = False
-        try:
-            import h5py
-            self.enable_hdf5 = True
-        except:
-            print("Warning: no h5py module available. So no testing of the log_hdf5 class.")
-
-        if not self.enable_hdf5:
-            return
-
         deprecated.init.create_random(N=100, phi_p=0.05);
 
         hoomd.context.current.sorter.set_params(grid=8)
@@ -122,6 +112,16 @@ class analyze_log_query_tests (unittest.TestCase):
 # test analyze.log_hdf5 with query
 class analyze_log_hdf5_query_tests (unittest.TestCase):
     def setUp(self):
+        self.enable_hdf5 = False
+        try:
+            import h5py
+            self.enable_hdf5 = True
+        except:
+            print("Warning: no h5py module available. So no testing of the log_hdf5 class.")
+
+        if not self.enable_hdf5:
+            return
+
         print
         deprecated.init.create_random(N=100, phi_p=0.005);
         nl = hoomd.md.nlist.cell()
@@ -168,6 +168,16 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
 class analyze_log_hdf5_tests (unittest.TestCase):
     def setUp(self):
         print
+        self.enable_hdf5 = False
+        try:
+            import h5py
+            self.enable_hdf5 = True
+        except:
+            print("Warning: no h5py module available. So no testing of the log_hdf5 class.")
+
+        if not self.enable_hdf5:
+            return
+
         deprecated.init.create_random(N=100, phi_p=0.05);
 
         hoomd.context.current.sorter.set_params(grid=8)

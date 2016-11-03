@@ -25,14 +25,14 @@
 #ifndef __LOGMATRIX_H__
 #define __LOGMATRIX_H__
 
-//! Works like the base class Logger, but queries matrix quantities in addition to scalar once.
+//! Works like the base class Logger, but handles matrix quantities in addition to scalar once.
 /*!
     \ingroup analyzers
 */
 class LogMatrix : public Logger
     {
     public:
-        //! Constructs a logger and opens the file
+        //! Constructs a logMatrix
         LogMatrix(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
@@ -44,7 +44,7 @@ class LogMatrix : public Logger
         //! Registers an updater
         virtual void registerUpdater(std::shared_ptr<Updater> updater);
 
-        //! Register a callback
+        //! Register a callback for matrix quantities
         virtual void registerMatrixCallback(std::string name, pybind11::object callback);
 
         //! Clears all registered computes and updaters
@@ -56,7 +56,7 @@ class LogMatrix : public Logger
         //! return all currently logged matrix quantities.
         std::vector<std::string> getLoggedMatrixQuantities(void)const{return m_logged_matrix_quantities;}
 
-        //! Query the current matrix for a given quantity
+        //! Query the current matrix for a given quantity.
         virtual pybind11::array getMatrixQuantity(const std::string& quantity, unsigned int timestep);
 
         //! Cache the data for the current timestep

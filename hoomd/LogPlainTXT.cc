@@ -4,7 +4,7 @@
 
 // Maintainer: joaander
 
-/*! \file Logger.cc
+/*! \file LogPlainTXT.cc
     \brief Defines the Logger class
 */
 

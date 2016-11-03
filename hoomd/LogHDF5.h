@@ -16,6 +16,10 @@
 
 //! Logs registered quantities to an hdf5 file. At least it prepares data, such that the python class can write the data.
 /*!
+  Because it inherits from LogMatrix, which inherits from
+  Logger. This class offers access to single value variables and
+  matrix quantities.
+
     \ingroup analyzers
 */
 class LogHDF5 : public LogMatrix
@@ -34,15 +38,19 @@ class LogHDF5 : public LogMatrix
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
 
-        pybind11::array& getSingleValueArray(void){return m_single_value_array;}
+        //! Get numpy array containing all logged single values.
+        pybind11::array getSingleValueArray(void){return m_single_value_array;}
 
     private:
+        //! python function, which is called to write the data to disk.
         pybind11::function m_python_analyze;
+        //! python numpy array for all single values.
         pybind11::array m_single_value_array;
+        //! memory space of the numpy array m_single_value_array
         std::vector<Scalar> m_holder_array;
     };
 
-//! exports the Logger class to python
+//! exports the LogHDF5 class to python
 void export_LogHDF5(pybind11::module& m);
 
 #endif

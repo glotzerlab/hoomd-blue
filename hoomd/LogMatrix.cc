@@ -13,8 +13,6 @@
 
 namespace py = pybind11;
 
-
-#include <stdexcept>
 using namespace std;
 
 /*! \param sysdef Specified for Logger, but not used directly by LogMatrix
@@ -37,6 +35,7 @@ LogMatrix::~LogMatrix(void)
 */
 void LogMatrix::registerCompute(std::shared_ptr<Compute> compute)
     {
+    //Call base class for single value support.
     Logger::registerCompute(compute);
     vector< string > provided_matrix_quantities = compute->getProvidedLogMatrixQuantities();
 
@@ -62,6 +61,7 @@ void LogMatrix::registerCompute(std::shared_ptr<Compute> compute)
 */
 void LogMatrix::registerUpdater(std::shared_ptr<Updater> updater)
     {
+    //Call base class for single value support.
     Logger::registerUpdater(updater);
     vector< string > provided_matrix_quantities = updater->getProvidedLogMatrixQuantities();
 
@@ -87,6 +87,9 @@ void LogMatrix::registerUpdater(std::shared_ptr<Updater> updater)
     pybind11::array_t<Scalar> (numpy array) and accept
     the time step as an argument.
 */
+//A separate registerMatrixCallback function is needed, because every
+//callback can either produce a single value or a matrix, but not
+//both.
 void LogMatrix::registerMatrixCallback(std::string name, py::object callback)
     {
     // first check if this quantity is already set, printing a warning if so
@@ -117,12 +120,9 @@ void LogMatrix::removeAll(void)
 void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quantities)
     {
     m_logged_matrix_quantities = quantities;
-
-    // prepare or adjust storage for caching the logger properties.
-    m_cached_timestep = -1;
     }
 
-/*! \param timestep Time step to chache matrix data
+/*! \param timestep Time step
 */
 void LogMatrix::analyze(unsigned int timestep)
     {
@@ -130,9 +130,14 @@ void LogMatrix::analyze(unsigned int timestep)
     }
 
 /*! \param quantity Matrix to get
+    \param timestep Time step of the simulation
+  Matrix quantities are not cached, but recomputed every time. So no argument asking for cache.
 */
 py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep)
     {
+    //This function is in principle not neccessary, because matrix
+    //quantities are not cached. But I kept it to be consistent with
+    //the Logger interface.
     return this->getMatrix(quantity,timestep);
     }
 

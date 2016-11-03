@@ -48,7 +48,7 @@
 class Logger : public Analyzer
     {
     public:
-        //! Constructs a logger and opens the file
+        //! Constructs a logger
         Logger(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor

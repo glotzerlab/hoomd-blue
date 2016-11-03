@@ -2,11 +2,8 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
-/*! \file Logger.cc
-  \brief Defines the Logger class
+/*! \file LogHDF5.cc
+  \brief Defines the LogHDF5 class
 */
 
 #include "LogHDF5.h"
@@ -20,7 +17,7 @@ namespace py = pybind11;
 using namespace std;
 
 /*! \param sysdef Specified for LogMatrix, but not used directly by Logger
-  \param python_analyze Python object, which gets called at the end of LogHDF5::analyze().
+  \param python_analyze Python object, which gets called at the end of LogHDF5::analyze(). Accepts the timestep as argument and returns the timestep.
   Should obtain the prepared data and writes it via h5py to the file.
 */
 LogHDF5::LogHDF5(std::shared_ptr<SystemDefinition> sysdef,
@@ -57,8 +54,10 @@ void LogHDF5::analyze(unsigned int timestep)
 #endif
 
 
+    //Prepare the
     auto numpy_array_buf = m_single_value_array.request();
     assert( numpy_array_buf.shape[0] == m_logged_quantities.size());
+    assert( numpy_array_buf.itemsize == sizeof(Scalar));
     Scalar*const numpy_array_data = static_cast<Scalar*>(numpy_array_buf.ptr);
     //Prepare single value data in a single array.
     for(unsigned int i=0; i < m_logged_quantities.size(); i++)
@@ -78,9 +77,8 @@ void LogHDF5::setLoggedQuantities(const std::vector< std::string >& quantities)
     {
     Logger::setLoggedQuantities(quantities);
 
-    //Create a new numpy array of the correct size.
-    m_single_value_array = py::array();
     m_holder_array.resize(quantities.size());
+    //Create a new numpy array of the correct size.
     m_single_value_array = py::array(quantities.size(),m_holder_array.data());
     }
 
@@ -88,6 +86,6 @@ void export_LogHDF5(py::module& m)
     {
     py::class_<LogHDF5, std::shared_ptr<LogHDF5> >(m,"LogHDF5", py::base<LogMatrix>())
         .def(py::init< std::shared_ptr<SystemDefinition>, pybind11::function >())
-        .def("get_single_value_array",&LogHDF5::getSingleValueArray,py::return_value_policy::reference)
+        .def("get_single_value_array",&LogHDF5::getSingleValueArray,py::return_value_policy::copy)
         ;
     }

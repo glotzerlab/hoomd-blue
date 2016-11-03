@@ -17,7 +17,6 @@
 
 namespace py = pybind11;
 
-
 #include <stdexcept>
 #include <iomanip>
 using namespace std;
