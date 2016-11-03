@@ -438,21 +438,21 @@ public:
             }
         m_mass_props[type_id].updateParam(shape, false); // update allows caching since for some shapes a full compute is not necessary.
         m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); */
-        
+
         // look for Saru
         //
           Matrix3f I(3,3);
           Matrix3f alpha(3,3);
           Matrix3f F(3,3), Fbar(3,3);
           Matrix3f eps(3,3), E(3,3);
-          
-          // TODO: Define I as global?        
+
+          // TODO: Define I as global?
           I << 1.0, 0.0, 0.0,
                0.0, 1.0, 0.0,
-               0.0, 0.0, 1.0;  
-          
+               0.0, 0.0, 1.0;
+
           for(int i=0;i<3;i++)
-          { 
+          {
             for (int j=0;j<3;j++)
             {
               alpha(i,j) =  rng.s(-m_step_size[type_id], m_step_size[type_id]);
@@ -461,20 +461,22 @@ public:
           }
          //std::cout << "alpha_max = " << a_max << std::endl;
          F = I + alpha;
-         std::cout << "det(F) = " << F.determinant() << std::endl;
+        //  std::cout << "det(F) = " << F.determinant() << std::endl;
          Fbar = F / pow(F.determinant(),1.0/3.0);
-         std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
+        //  std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
          m_Fbar[type_id] = Fbar*m_Fbar[type_id];
-         eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ; 
+         eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
         std::cout << Fbar << std::endl;
         for(unsigned int i = 0; i < param.N; i++)
             {
-            param.x[i] = Fbar(1,1)*param.x[i] + Fbar(1,2)*param.y[i] + Fbar(1,3)*param.z[i];
-            param.y[i] = Fbar(2,1)*param.x[i] + Fbar(2,2)*param.y[i] + Fbar(2,3)*param.z[i];
-            param.z[i] = Fbar(3,1)*param.x[i] + Fbar(3,2)*param.y[i] + Fbar(3,3)*param.z[i];
-
-            vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
+            vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
+            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
+            param.x[i] = Fbar(0,0)*vert.x + Fbar(0,1)*vert.y + Fbar(0,2)*vert.z;
+            param.y[i] = Fbar(1,0)*vert.x + Fbar(1,1)*vert.y + Fbar(1,2)*vert.z;
+            param.z[i] = Fbar(2,0)*vert.x + Fbar(2,1)*vert.y + Fbar(2,2)*vert.z;
+            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
+            vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
             //dsq = fmax(dsq, dot(vert, vert));
             }
         m_eps[type_id] = eps;
@@ -548,7 +550,7 @@ template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
 {
     using ShapeSpringBase< Shape >::m_k;
-    
+
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
     //using elastic_shape_move_function<Shape, Saru>;
@@ -566,21 +568,22 @@ public:
           Scalar e_ddot_e = 0.0;
           detail::mass_properties<Shape> mp(shape_new);
           //dv = mp.getVolume()-m_volume;
-          e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) + 
-                     eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) + 
+          e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) +
+                     eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) +
                      eps(3,1)*eps(1,3) + eps(3,2)*eps(2,3) + eps(3,3)*eps(3,3) ;
 
         /*  for (unsigned int i=0; i<3;i++)
-          { 
+          {
            for (unsigned int j=0; j<3;i++)
            {
-              eps_ddot += eps(i,j)*eps(j,i) 
+              eps_ddot += eps(i,j)*eps(j,i)
            }
           } */
           //std::cout << "Particle volume = " << m_volume << std::endl ; OK
           std::cout << "Stiffness = " << m_k << std::endl ;
-          std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;  
-          return m_k*e_ddot_e*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+          std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
+          // This is still not what we want! How do we make it correct? 
+          return -m_k*e_ddot_e*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
