@@ -148,9 +148,9 @@ class Compute
 
             See LogMatrix for more information on what this is about.
         */
-        virtual std::shared_ptr<pybind11::array > getLogMatrix(const std::string& quantity, unsigned int timestep)
+        virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
             {
-            return std::shared_ptr<pybind11::array >();
+            return pybind11::array();
             }
 
 

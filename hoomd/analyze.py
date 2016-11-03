@@ -760,24 +760,72 @@ class log_hdf5(_analyzer):
             hoomd.context.msg.error(h5py_userwarning)
             raise RuntimeError("Unable to use log_hdf5")
 
-        new_array = self.cpp_analyzer.get_single_value_array()
-
         f = h5py.File(self.filename,"a")
-        self._write_header(f)
+        self._write_single_values(f,timestep)
+        self._write_matrix_values(f,timestep)
 
+        f.close()
+        return timestep
+
+    def _write_single_values(self,f,timestep):
+        self._write_header(f)
+        new_array = self.cpp_analyzer.get_single_value_array()
         data_set = f["/single_values"]
         old_size = data_set.shape[0]
 
         if data_set.shape[1] != new_array.shape[0]:
-            hoomd.context.msg.error("The number of logged quantities does not match with the number of quantities stored in the file.")
+            hoomd.context.msg.error("The number of logged single quantities does not match with the number of quantities stored in the file.")
             raise RuntimeError("Error write single values with log_hdf5.")
 
         data_set.resize(old_size+1,axis=0)
         data_set[old_size,] = new_array
 
+    def _write_matrix_values(self,f,timestep):
+        matrix_quantities = self.cpp_analyzer.getLoggedMatrixQuantities()
 
-        f.close()
-        return timestep
+        for q in matrix_quantities:
+            try:
+                new_matrix = self.cpp_analyzer.getMatrixQuantity(q,timestep)
+            except:
+                hoomd.context.msg.error("For quantity "+q+" no python type obtainable.")
+                raise RuntimeError("Error writing matrix quantity "+q)
+
+            if type(new_matrix) != numpy.ndarray :
+                hoomd.context.msg.error("For quantity "+q+" no matrix obtainable.")
+                raise RuntimeError("Error writing matrix quantity "+q)
+
+            zero_shape = True
+            for dim in new_matrix.shape:
+                if dim != 0:
+                    zero_shape = False
+            if zero_shape:
+                hoomd.context.msg.error("For quantity "+q+" matrix with zero shape obtained.")
+                raise RuntimeError("Error writing matrix quantity "+q)
+
+            if not q in f:
+                data_set = f.create_dataset(q,shape=(0,)+new_matrix.shape,maxshape=(None,)+new_matrix.shape)
+            else:
+                data_set = f[q]
+
+                #check compatibility of data in file and returned matrix
+                if len(new_matrix.shape) +1 != len(data_set.shape):
+                    msg = "Trying to log matrix "+q+", but dimensions are incompatible with "
+                    msg += "dimensions in file."
+                    hoomd.context.msg.error(msg)
+                    raise RuntimeError("Error writing matrix quntity "+q)
+
+                for i in range(len(new_matrix.shape)):
+                    if data_set.shape[i+1] != new_matrix.shape[i]:
+                        msg = "Trying to log matrix "+q+", but dimension "+str(i)+" is "
+                        msg += "incompatible with  dimension in file."
+                        hoomd.context.msg.error(msg)
+                        raise RuntimeError("Error writing matrix quantity "+q)
+
+            old_size = data_set.shape[0]
+
+            data_set.resize(old_size+1,axis=0)
+            data_set[old_size,] = new_matrix
+
 
     def _write_header(self,f):
         if not _enable_h5py:
