@@ -400,7 +400,7 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
-    std::vector <Eigen::Matrix3f> m_eps;
+    std::vector <Eigen::Matrix3f> m_Fbar_last;
     std::vector <Eigen::Matrix3f> m_Fbar;
     //Scalar a_max= 0.01;
 public:
@@ -412,14 +412,18 @@ public:
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
-        m_eps.resize(ntypes, Eigen::Matrix3f::Identity());
         m_Fbar.resize(ntypes, Eigen::Matrix3f::Identity());
+        m_Fbar_last.resize(ntypes, Eigen::Matrix3f::Identity());
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
         //m_Fbar = Eigen::Matrix3f::Identity();
         m_determinantInertiaTensor = 1.0;
         }
 
-    void prepare(unsigned int timestep) { /* Nothing to do. */ }
+    void prepare(unsigned int timestep)
+        {
+            // make a backup for the Fbar.
+            m_Fbar_last = m_Fbar;
+        }
     //! construct is called at the beginning of every update()                                            # param was shape - Luis
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
         {
@@ -464,8 +468,9 @@ public:
         //  std::cout << "det(F) = " << F.determinant() << std::endl;
          Fbar = F / pow(F.determinant(),1.0/3.0);
         //  std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
-         m_Fbar[type_id] = Fbar*m_Fbar[type_id];
-         eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
+        //
+        m_Fbar[type_id] = Fbar*m_Fbar[type_id];
+        // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
         std::cout << Fbar << std::endl;
         for(unsigned int i = 0; i < param.N; i++)
@@ -479,16 +484,26 @@ public:
             vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
             //dsq = fmax(dsq, dot(vert, vert));
             }
-        m_eps[type_id] = eps;
         }
-        Eigen::Matrix3f getEps(unsigned int type_id){
-           return m_eps[type_id];
-         }
+
+        Eigen::Matrix3f getEps(unsigned int type_id)
+            {
+            return 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - Eigen::Matrix3f::Identity();
+            }
+
+        Eigen::Matrix3f getEpsLast(unsigned int type_id)
+            {
+            return 0.5*(m_Fbar_last[type_id].transpose() + m_Fbar_last[type_id]) - Eigen::Matrix3f::Identity();
+            }
+
     //! advance whenever the proposed move is accepted.
     // void advance(unsigned int timestep){ /* Nothing to do. */ }
 
     //! retreat whenever the proposed move is rejected.
-    void retreat(unsigned int timestep){ /* Nothing to do. */ }
+    void retreat(unsigned int timestep)
+        {
+        m_Fbar = m_Fbar_last;
+        }
 
 protected:
     unsigned int            m_select_ratio;
@@ -561,29 +576,33 @@ public:
         }
     Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-          //using Eigen::Matrix3f;
-          Eigen::Matrix3f eps = m_shape_move->getEps(type_id);
-          AlchemyLogBoltzmannFunction< Shape > fn;
-          //Scalar dv;
-          Scalar e_ddot_e = 0.0;
-          detail::mass_properties<Shape> mp(shape_new);
-          //dv = mp.getVolume()-m_volume;
-          e_ddot_e = eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) + eps(1,3)*eps(3,1) +
-                     eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2) + eps(2,3)*eps(3,2) +
-                     eps(3,1)*eps(1,3) + eps(3,2)*eps(2,3) + eps(3,3)*eps(3,3) ;
+        //using Eigen::Matrix3f;
+        Eigen::Matrix3f eps = m_shape_move->getEps(type_id);
+        Eigen::Matrix3f eps_last = m_shape_move->getEpsLast(type_id);
+        AlchemyLogBoltzmannFunction< Shape > fn;
+        //Scalar dv;
+        Scalar e_ddot_e = 0.0, e_ddot_e_last = 0.0;
+        // detail::mass_properties<Shape> mp(shape_new);
+        //dv = mp.getVolume()-m_volume;
+        e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
+                 eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
+                 eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
 
+        e_ddot_e_last = eps_last(0,0)*eps_last(0,0) + eps_last(0,1)*eps_last(1,0) + eps_last(0,2)*eps_last(2,0) +
+                 eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
+                 eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
         /*  for (unsigned int i=0; i<3;i++)
-          {
-           for (unsigned int j=0; j<3;i++)
-           {
-              eps_ddot += eps(i,j)*eps(j,i)
-           }
-          } */
-          //std::cout << "Particle volume = " << m_volume << std::endl ; OK
-          std::cout << "Stiffness = " << m_k << std::endl ;
-          std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
-          // This is still not what we want! How do we make it correct? 
-          return -m_k*e_ddot_e*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        {
+        for (unsigned int j=0; j<3;i++)
+        {
+          eps_ddot += eps(i,j)*eps(j,i)
+        }
+        } */
+        //std::cout << "Particle volume = " << m_volume << std::endl ; OK
+        std::cout << "Stiffness = " << m_k << std::endl ;
+        std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
+        // This is still not what we want! How do we make it correct?
+        return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
