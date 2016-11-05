@@ -602,7 +602,8 @@ public:
         //std::cout << "Stiffness = " << m_k << std::endl ;
         //std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
         // This is still not what we want! How do we make it correct?
-        return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        //return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
