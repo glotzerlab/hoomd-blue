@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.2
+
+Not yet released
+
+* Other changes *
+
+* Drop support for compute 2.0 GPU devices
+
 ## v2.1.1
 
 Released 2016/10/23
