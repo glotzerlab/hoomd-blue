@@ -41,18 +41,18 @@ namespace detail
 
 //! maximum number of faces that can be stored
 /*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACES=128;
+const unsigned int MAX_POLY3D_FACES=25000;
 
 //! maximum number of vertices per face
 /*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACE_VERTS=4;
-const unsigned int MAX_POLY3D_VERTS = 128;
+const unsigned int MAX_POLY3D_FACE_VERTS=3;
+const unsigned int MAX_POLY3D_VERTS = 12000;
 
 //! Maximum number of OBB Tree nodes
-const unsigned int MAX_POLY3D_NODES=64;
+const unsigned int MAX_POLY3D_NODES=5000;
 
 //! Maximum number of faces per OBB tree leaf node
-const unsigned int MAX_POLY3D_CAPACITY=4;
+const unsigned int MAX_POLY3D_CAPACITY=8;
 
 //! Data structure for general polytopes
 /*! \ingroup hpmc_data_structs */
@@ -639,9 +639,11 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     bool collinear = false;
                     unsigned int face_idx_aux_a = face_idx_next;
                     vec3<OverlapReal> v_aux_a;
+                    unsigned int it = 0;
                     do
                         {
                         face_idx_aux_a++;
+                        it++;
                         face_idx_aux_a = (face_idx_aux_a == nverts_s0) ? 0 : face_idx_aux_a;
                         unsigned int idx_aux_a = s0.data.face_verts[offs_s0 + face_idx_aux_a];
                         v_aux_a.x = s0.data.verts.x[idx_aux_a];
@@ -650,7 +652,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                         v_aux_a = rotate(q,v_aux_a) + dr;
                         vec3<OverlapReal> c = cross(v_next_a - v_a, v_aux_a - v_a);
                         collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                        } while(collinear);
+                        } while(collinear  && it < nverts_s0);
 
                     bool overlap = false;
 
