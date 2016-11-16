@@ -1043,8 +1043,8 @@ UP_TEST( overlap_octahedron_sphere )
     set_radius(data_a);
 
     poly3d_data data_b;
-    data_b.verts.sweep_radius = 0.5;
     data_b.verts = detail::poly3d_verts(1,false);
+    data_b.verts.sweep_radius = 0.5;
     data_b.verts.x[0] = data_b.verts.y[0] = data_b.verts.z[0] = 0;
     data_b.n_faces = 1;
     data_b.face_offs[0] = 0;
