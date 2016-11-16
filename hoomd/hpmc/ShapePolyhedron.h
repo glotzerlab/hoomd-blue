@@ -45,7 +45,7 @@ const unsigned int MAX_POLY3D_FACES=25000;
 
 //! maximum number of vertices per face
 /*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACE_VERTS=3;
+const unsigned int MAX_POLY3D_FACE_VERTS=4;
 const unsigned int MAX_POLY3D_VERTS = 12000;
 
 //! Maximum number of OBB Tree nodes
