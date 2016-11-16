@@ -11,7 +11,6 @@
 #include "hoomd/extern/saruprngCUDA.h"
 
 #include <cassert>
-#include <vector>
 
 #include "HPMCCounters.h"
 
@@ -854,28 +853,28 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                        min_shared_bytes;
         }
 
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
-    static std::vector<typename Shape::param_type> h_params;
+    static unsigned int base_shared_bytes = UINT_MAX;
+    bool shared_bytes_changed = base_shared_bytes != shared_bytes;
+    if (shared_bytes_changed != base_shared_bytes)
+        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
 
-    if (args.update_shape_param)
+    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+    static unsigned int extra_bytes = UINT_MAX;
+    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
         {
         // required for memory coherency
         cudaDeviceSynchronize();
 
-        // copy over parameters
-        h_params.resize(args.num_types);
+        // determine dynamically requested shared memory
+        char *ptr_begin = nullptr;
+        char *ptr =  ptr_begin;
         for (unsigned int i = 0; i < args.num_types; ++i)
-            h_params[i] = params[i];
+            {
+            params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+            }
+        extra_bytes = ptr - ptr_begin;
         }
 
-    // determine dynamically requested shared memory
-    char *ptr_begin = nullptr;
-    char *ptr =  ptr_begin;
-    for (unsigned int i = 0; i < args.num_types; ++i)
-        {
-        h_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
-        }
-    unsigned int extra_bytes = ptr - ptr_begin;
     shared_bytes += extra_bytes;
 
     // setup the grid to run the kernel

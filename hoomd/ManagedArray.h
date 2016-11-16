@@ -3,9 +3,11 @@
 
 #pragma once
 
+#ifndef NVCC
 #include "managed_allocator.h"
 
 #include <algorithm>
+#endif
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -31,7 +33,7 @@ class ManagedArray
             : data(nullptr), N(0), managed(0)
             { }
 
-        #ifndef __CUDA_ARCH__
+        #ifndef NVCC
         ManagedArray(unsigned int _N, bool _managed)
             : N(_N), managed(_managed)
             {
@@ -44,7 +46,7 @@ class ManagedArray
 
         DEVICE virtual ~ManagedArray()
             {
-            #ifndef __CUDA_ARCH__
+            #ifndef NVCC
             deallocate();
             #endif
             }
@@ -53,7 +55,7 @@ class ManagedArray
         DEVICE ManagedArray(const ManagedArray<T>& other)
             : N(other.N), managed(other.managed)
             {
-            #ifndef __CUDA_ARCH__
+            #ifndef NVCC
             if (N > 0)
                 {
                 allocate();
@@ -67,14 +69,14 @@ class ManagedArray
         //! Assignment operator
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
-            #ifndef __CUDA_ARCH__
+            #ifndef NVCC
             deallocate();
             #endif
 
             N = other.N;
             managed = other.managed;
 
-            #ifndef __CUDA_ARCH__
+            #ifndef NVCC
             if (N > 0)
                 {
                 allocate();
@@ -163,7 +165,7 @@ class ManagedArray
             }
 
     protected:
-        #ifndef __CUDA_ARCH__
+        #ifndef NVCC
         void allocate()
             {
             data = managed_allocator<T>::allocate(N, managed);

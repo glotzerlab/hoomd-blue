@@ -39,7 +39,7 @@ class GPUTree
         enum { capacity = node_capacity } Enum;
 
         //! Empty constructor
-        DEVICE GPUTree()
+        GPUTree()
             : m_num_nodes(0), m_num_leaves(0)
             { }
 
