@@ -264,17 +264,12 @@ UP_TEST( overlap_faceted_twofacets )
     p.verts.diameter = 1.0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
     // this shape has two facets intersecting inside the sphere
     p.n[0] = vec3<OverlapReal>(1/sqrt(2),1/sqrt(2),0);
     p.offset[0] = -0.9*1/(2*sqrt(2));
     p.n[1] = vec3<OverlapReal>(1/sqrt(2),-1/sqrt(2),0);
     p.offset[1] = -0.9*1/(2*sqrt(2));
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
     ShapeFacetedSphere a(o, p);
 
     detail::faceted_sphere_params p2;
@@ -331,18 +326,13 @@ UP_TEST( overlap_faceted_threefacets )
     p.n[2] = vec3<OverlapReal>(sin(theta)*cos(2*phi),sin(theta)*sin(2*phi),cos(theta));
     p.offset[2] = -0.9*cos(theta)/2;
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
-    p.verts.N = 1;
+    p.verts = detail::poly3d_verts(1,false);
     p.verts.diameter = 1.0;
     p.verts.x[0] = 0;
     p.verts.y[0] = 0;
     p.verts.z[0] = 0.9/2;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     ShapeFacetedSphere a(o, p);
 
@@ -456,11 +446,6 @@ UP_TEST( random_support_test )
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
     // this shape has three facets coming together in a corner inside the sphere
     unsigned int n = 6;
     //p.N = n + 1;
@@ -475,7 +460,7 @@ UP_TEST( random_support_test )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     Saru rng;
 
@@ -505,11 +490,6 @@ UP_TEST( random_support_test_2 )
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
     // this shape has three facets coming together in a corner inside the sphere
     unsigned int n = 2;
     p.N = n;
@@ -523,7 +503,7 @@ UP_TEST( random_support_test_2 )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     Saru rng;
 
@@ -556,11 +536,6 @@ UP_TEST( overlap_special_case )
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
     unsigned int n = 2;
     p.N = n;
     OverlapReal phi(M_PI*20.0/180.0);
@@ -571,7 +546,7 @@ UP_TEST( overlap_special_case )
         p.offset[i] = 0;
         }
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     // place test spheres
     ShapeFacetedSphere a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);

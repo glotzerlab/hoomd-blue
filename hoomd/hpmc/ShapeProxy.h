@@ -154,9 +154,6 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(verts) > MAX_POLY3D_VERTS)
-        throw std::runtime_error("Too many polyhedron vertices");
-
     if (len(face_verts) > MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES)
         throw std::runtime_error("Too many polyhedron face vertices");
 
@@ -167,6 +164,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
 
     ShapePolyhedron::param_type result;
     result.data.ignore = ignore_stats;
+    result.data.verts = poly3d_verts(len(verts), exec_conf->isCUDAEnabled());
     result.data.verts.N = len(verts);
     result.data.verts.sweep_radius = R;
     result.data.n_faces = len(face_offs)-1;
@@ -191,7 +189,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         result.data.verts.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = len(verts); i < MAX_POLY3D_VERTS; i++)
+    for (unsigned int i = len(verts); i < result.data.verts.N; i++)
         {
         result.data.verts.x[i] = 0;
         result.data.verts.y[i] = 0;
@@ -255,13 +253,10 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     }
 
 //! Helper function to build poly3d_verts from python
-template<unsigned int max_verts>
-poly3d_verts<max_verts> make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats)
+poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
+                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(verts) > max_verts)
-        throw std::runtime_error("Too many polygon vertices");
-
-    poly3d_verts<max_verts> result;
+    poly3d_verts result(len(verts), exec_conf->isCUDAEnabled());
     result.N = len(verts);
     result.sweep_radius = sweep_radius;
     result.ignore = ignore_stats;
@@ -277,7 +272,7 @@ poly3d_verts<max_verts> make_poly3d_verts(pybind11::list verts, OverlapReal swee
         result.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = len(verts); i < max_verts; i++)
+    for (unsigned int i = len(verts); i < result.N; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -292,13 +287,11 @@ poly3d_verts<max_verts> make_poly3d_verts(pybind11::list verts, OverlapReal swee
 
 //! Helper function to build faceted_sphere_params from python
 faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list offsets,
-    pybind11::list vertices, Scalar diameter, pybind11::tuple origin, bool ignore_stats)
+    pybind11::list vertices, Scalar diameter, pybind11::tuple origin, bool ignore_stats,
+    std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     if (len(normals) > MAX_SPHERE_FACETS)
         throw std::runtime_error("Too many face normals");
-
-    if (len(vertices) > MAX_FPOLY3D_VERTS)
-        throw std::runtime_error("Too many vertices");
 
     if (len(offsets) != len(normals))
         throw std::runtime_error("Number of normals unequal number of offsets");
@@ -321,7 +314,7 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
         }
 
     // extract the vertices from the python list
-    result.verts=make_poly3d_verts<MAX_FPOLY3D_VERTS>(vertices, 0.0, false);
+    result.verts=make_poly3d_verts(vertices, 0.0, false, exec_conf);
 
     // set the diameter
     result.diameter = diameter;
@@ -350,7 +343,7 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
         }
 
     // add the edge-sphere vertices
-    ShapeFacetedSphere::initializeVertices(result);
+    ShapeFacetedSphere::initializeVertices(result, exec_conf->isCUDAEnabled());
 
     return result;
     }
@@ -461,12 +454,6 @@ typename ShapeUnion<Shape,capacity>::param_type make_union_params(pybind11::list
 
     return result;
     }
-
-template< typename ShapeParamType >
-struct get_max_verts { /* nothing here */ }; // will probably get an error if you use it with the wrong type.
-
-template< template<unsigned int> class ShapeParamType, unsigned int _max_verts >
-struct get_max_verts< ShapeParamType<_max_verts> > { static const unsigned int max_verts=_max_verts; };
 
 template< typename Shape >
 struct get_param_data_type { typedef typename Shape::param_type type; };
@@ -602,9 +589,8 @@ class poly3d_param_proxy : public shape_param_proxy<Shape, AccessType>
     using shape_param_proxy<Shape, AccessType>::m_access;
 protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
-    static const unsigned int max_verts = get_max_verts<param_type>::max_verts;
 public:
-    typedef poly3d_verts<max_verts> access_type;
+    typedef poly3d_verts access_type;
     poly3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc) {}
 
     pybind11::list getVerts() const
@@ -1035,17 +1021,9 @@ void export_shape_params(pybind11::module& m)
     export_poly2d_proxy<ShapeSpheropolygon>(m, "convex_spheropolygon_param_proxy", true);
     export_poly2d_proxy<ShapeSimplePolygon>(m, "simple_polygon_param_proxy", false);
 
-    export_poly3d_proxy< ShapeConvexPolyhedron<8> >(m, "convex_polyhedron_param_proxy8", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<16> >(m, "convex_polyhedron_param_proxy16", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<32> >(m, "convex_polyhedron_param_proxy32", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<64> >(m, "convex_polyhedron_param_proxy64", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<128> >(m, "convex_polyhedron_param_proxy128", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron >(m, "convex_polyhedron_param_proxy", false);
 
-    export_poly3d_proxy< ShapeSpheropolyhedron<8> >(m, "convex_spheropolyhedron_param_proxy8", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<16> >(m, "convex_spheropolyhedron_param_proxy16", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<32> >(m, "convex_spheropolyhedron_param_proxy32", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<64> >(m, "convex_spheropolyhedron_param_proxy64", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<128> >(m, "convex_spheropolyhedron_param_proxy128", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron >(m, "convex_spheropolyhedron_param_proxy", true);
 
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");

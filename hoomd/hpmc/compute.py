@@ -58,9 +58,9 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.ComputeFreeVolumeSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('ComputeFreeVolumeConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('ComputeFreeVolumeSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.ComputeFreeVolumeSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.ComputeFreeVolumeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -84,9 +84,9 @@ class free_volume(_compute):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.ComputeFreeVolumeGPUSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('ComputeFreeVolumeGPUConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('ComputeFreeVolumeGPUSpheropolyhedron',mc.max_verts);
+                cls = _hpmc.ComputeFreeVolumeGPUSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.ComputeFreeVolumeGPUEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):

@@ -21,15 +21,11 @@ using namespace std;
 using namespace hpmc::detail;
 
 unsigned int err_count;
-const unsigned int max_verts = 8;
 
 // helper function to compute poly radius
-poly3d_verts<max_verts> setup_verts(const vector< vec3<OverlapReal> > vlist)
+poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist)
     {
-    if (vlist.size() > max_verts)
-        throw runtime_error("Too many polygon vertices");
-
-    poly3d_verts<max_verts> result;
+    poly3d_verts result;
     result.N = vlist.size();
     result.ignore = 0;
 
@@ -43,7 +39,7 @@ poly3d_verts<max_verts> setup_verts(const vector< vec3<OverlapReal> > vlist)
         result.z[i] = vert.z;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < max_verts; i++)
+    for (unsigned int i = vlist.size(); i < result.N; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -65,9 +61,9 @@ UP_TEST( construction )
     vlist.push_back(vec3<Scalar>(1,0,0));
     vlist.push_back(vec3<Scalar>(0,1.25,0));
     vlist.push_back(vec3<Scalar>(0,0,1.1));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o, verts);
+    ShapeConvexPolyhedron a(o, verts);
 
     MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
     MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
@@ -98,10 +94,10 @@ UP_TEST( support )
     vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o, verts);
-    SupportFuncConvexPolyhedron<max_verts> sa = SupportFuncConvexPolyhedron<max_verts> (verts);
+    ShapeConvexPolyhedron a(o, verts);
+    SupportFuncConvexPolyhedron sa = SupportFuncConvexPolyhedron (verts);
     vec3<OverlapReal> v1, v2;
 
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -173,10 +169,10 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
     vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o, verts);
-    ShapeConvexPolyhedron<max_verts> b(o, verts);
+    ShapeConvexPolyhedron a(o, verts);
+    ShapeConvexPolyhedron b(o, verts);
 
     // zeroth test: exactly overlapping shapes
     r_ij =  vec3<Scalar>(0.0, 0.0, 0.0);
@@ -262,12 +258,12 @@ UP_TEST( overlap_cube_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o, verts);
+    ShapeConvexPolyhedron a(o, verts);
 
     // first test, separate squares by a large distance
-    ShapeConvexPolyhedron<max_verts> b(o, verts);
+    ShapeConvexPolyhedron b(o, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -367,12 +363,12 @@ UP_TEST( overlap_cube_rot1 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o_a, verts);
+    ShapeConvexPolyhedron a(o_a, verts);
 
     // first test, separate squares by a large distance
-    ShapeConvexPolyhedron<max_verts> b(o_b, verts);
+    ShapeConvexPolyhedron b(o_b, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -449,12 +445,12 @@ UP_TEST( overlap_cube_rot2 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o_b, verts);
+    ShapeConvexPolyhedron a(o_b, verts);
 
     // first test, separate cubes by a large distance
-    ShapeConvexPolyhedron<max_verts> b(o_a, verts);
+    ShapeConvexPolyhedron b(o_a, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -534,12 +530,12 @@ UP_TEST( overlap_cube_rot3 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist);
+    poly3d_verts verts = setup_verts(vlist);
 
-    ShapeConvexPolyhedron<max_verts> a(o_a, verts);
+    ShapeConvexPolyhedron a(o_a, verts);
 
     // first test, separate squares by a large distance
-    ShapeConvexPolyhedron<max_verts> b(o_b, verts);
+    ShapeConvexPolyhedron b(o_b, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));

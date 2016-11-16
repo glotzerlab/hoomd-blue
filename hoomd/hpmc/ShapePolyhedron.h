@@ -46,7 +46,6 @@ const unsigned int MAX_POLY3D_FACES=25000;
 //! maximum number of vertices per face
 /*! \ingroup hpmc_data_structs */
 const unsigned int MAX_POLY3D_FACE_VERTS=4;
-const unsigned int MAX_POLY3D_VERTS = 12000;
 
 //! Maximum number of OBB Tree nodes
 const unsigned int MAX_POLY3D_NODES=5000;
@@ -61,12 +60,28 @@ struct poly3d_data : param_base
     {
     poly3d_data() : n_faces(0), ignore(0) {};
 
-    poly3d_verts<MAX_POLY3D_VERTS> verts;                             //!< Holds parameters of convex hull
+    poly3d_verts verts;                             //!< Holds parameters of convex hull
     unsigned int face_offs[MAX_POLY3D_FACES+1];     //!< Offset of every face in the list of vertices per face
     unsigned int face_verts[MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES]; //!< Ordered vertex IDs of every face
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
-                                                    //   First bit is ignore overlaps, Second bit is ignore statistics
+
+     //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param load If true, copy data to pointer, otherwise increment only
+     */
+    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        {
+        verts.load_shared(ptr, load);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        verts.attach_to_stream(stream);
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 }; // end namespace detail
@@ -107,6 +122,7 @@ struct ShapePolyhedron
          */
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
+            data.load_shared(ptr, load);
             tree.load_shared(ptr, load);
             }
 
@@ -116,6 +132,7 @@ struct ShapePolyhedron
             {
             // attach managed memory arrays to stream
             tree.attach_to_stream(stream);
+            data.attach_to_stream(stream);
             }
         #endif
         }
@@ -1019,13 +1036,13 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
         {
-        if (!test_overlap(r_ab, ShapeSpheropolyhedron<detail::MAX_POLY3D_VERTS>(a.orientation,a.data.verts),
-               ShapeSpheropolyhedron<detail::MAX_POLY3D_VERTS>(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.verts),
+               ShapeSpheropolyhedron(b.orientation,b.data.verts),err)) return false;
         }
     else
         {
-        if (!test_overlap(r_ab, ShapeConvexPolyhedron<detail::MAX_POLY3D_VERTS>(a.orientation,a.data.verts),
-           ShapeConvexPolyhedron<detail::MAX_POLY3D_VERTS>(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.verts),
+           ShapeConvexPolyhedron(b.orientation,b.data.verts),err)) return false;
         }
 
     vec3<OverlapReal> dr = r_ab;

@@ -22,45 +22,10 @@
 
 namespace hpmc
 {
-template < unsigned int old_max_verts, unsigned int new_max_verts >
-detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
-    {
-    // restricting this cast from small arrays to larger ones ok because it can not invalidate
-    // any of the data. The otherway is not true and I don't want to worry about that
-    // right now.
-    #if  old_max_verts > new_max_verts
-        #error "must cast to a larger number of vertices"
-    #endif
-
-    // All data guaranteed to be valid because of static_assert above
-    detail::poly3d_verts<new_max_verts> verts;
-    verts.N = old_verts.N;
-    verts.diameter = old_verts.diameter;
-    verts.sweep_radius = old_verts.sweep_radius;
-    verts.ignore = old_verts.ignore;
-
-    // initialize because we have observed strange behaviour if we don't.
-    for (unsigned int i = 0; i < new_max_verts; i++)
-        {
-        if( i < old_verts.N )
-            {
-                verts.x[i] = old_verts.x[i];
-                verts.y[i] = old_verts.y[i];
-                verts.z[i] = old_verts.z[i];
-            }
-        else
-            {
-            verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-            }
-        }
-
-    return verts;
-    }
-
 struct SphereWall
     {
-    SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::poly3d_verts<1>) {}
-    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(r*r), inside(ins), origin(orig), verts(new detail::poly3d_verts<1>)
+    SphereWall() : rsq(0), inside(false), origin(0,0,0), verts(new detail::poly3d_verts(1,false)) {}
+    SphereWall(Scalar r, vec3<Scalar> orig, bool ins = true) : rsq(r*r), inside(ins), origin(orig), verts(new detail::poly3d_verts(1,false))
     {
         verts->N = 0; // case for sphere (can be 0 or 1)
         verts->diameter = r+r;
@@ -68,7 +33,7 @@ struct SphereWall
         verts->ignore = 0;
         // verts->x[0] = verts->y[0] = verts->z[0] = OverlapReal(0);
     }
-    SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::poly3d_verts<1>(*src.verts)) {}
+    SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::poly3d_verts(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
     void scale(const OverlapReal& alpha)
         {
@@ -81,13 +46,13 @@ struct SphereWall
     OverlapReal          rsq;
     bool            inside;
     vec3<OverlapReal>    origin;
-    std::shared_ptr<detail::poly3d_verts<1> >    verts;
+    std::shared_ptr<detail::poly3d_verts >    verts;
     };
 
 struct CylinderWall
     {
-    CylinderWall() : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts<2>) {}
-    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true) : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts<2>)
+    CylinderWall() : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts) {}
+    CylinderWall(Scalar r, vec3<Scalar> orig, vec3<Scalar> orient, bool ins = true) : rsq(0), inside(false), origin(0,0,0), orientation(origin), verts(new detail::poly3d_verts(2,false))
         {
 
         rsq = r*r;
@@ -113,7 +78,7 @@ struct CylinderWall
         // }
 
         }
-    CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::poly3d_verts<2>(*src.verts)) {}
+    CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::poly3d_verts(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
     void scale(const OverlapReal& alpha)
         {
@@ -126,7 +91,7 @@ struct CylinderWall
     bool            inside;
     vec3<OverlapReal>    origin;         // center of cylinder.
     vec3<OverlapReal>    orientation;    // (normal) vector pointing in direction of long axis of cylinder (sign of vector has no meaning)
-    std::shared_ptr<detail::poly3d_verts<2> >    verts;
+    std::shared_ptr<detail::poly3d_verts >    verts;
     };
 
 struct PlaneWall
@@ -186,8 +151,7 @@ DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall
     }
 
 // Spherical Walls and Convex Polyhedra
-template < unsigned int max_verts >
-DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron<max_verts>& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -233,8 +197,8 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
 
             quat<OverlapReal> q; // default is (1, 0, 0, 0)
             unsigned int err = 0;
-            ShapeSpheropolyhedron<max_verts> wall_shape(q, cast_poly3d_verts<1, max_verts>(*wall.verts));
-            ShapeSpheropolyhedron<max_verts> part_shape(shape.orientation, shape.verts);
+            ShapeSpheropolyhedron wall_shape(q, *wall.verts);
+            ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
 
 /*
             vec3<OverlapReal> dr = shifted_pos;
@@ -282,8 +246,7 @@ DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& 
     }
 
 // Cylindrical Walls and Convex Polyhedra
-template < unsigned int max_verts >
-DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron<max_verts>& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <CylinderWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <CylinderWall, ShapeConvexPolyhedron<max_verts> >
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -334,8 +297,8 @@ DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPoly
             r_ab = shifted_pos - proj;
             unsigned int err = 0;
             assert(shape.verts.sweep_radius == 0);
-            ShapeSpheropolyhedron<max_verts> wall_shape(quat<OverlapReal>(), cast_poly3d_verts<2, max_verts>(*wall.verts));
-            ShapeSpheropolyhedron<max_verts> part_shape(quat<OverlapReal>(shape.orientation), shape.verts);
+            ShapeSpheropolyhedron wall_shape(quat<OverlapReal>(), *wall.verts);
+            ShapeSpheropolyhedron part_shape(quat<OverlapReal>(shape.orientation), shape.verts);
             accept = !test_overlap(r_ab, wall_shape, part_shape, err);
             }
         }
@@ -353,8 +316,7 @@ DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall, 
     }
 
 // Plane Walls and Convex Polyhedra
-template < unsigned int max_verts >
-DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron<max_verts>& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <PlaneWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <PlaneWall, ShapeConvexPolyhedron<max_verts> >
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);

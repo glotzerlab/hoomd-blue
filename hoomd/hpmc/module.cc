@@ -80,26 +80,14 @@ PYBIND11_PLUGIN(_hpmc)
     export_union_sphere8(m);
     export_union_sphere16(m);
     export_union_sphere32(m);
-    export_convex_polyhedron8(m);
-    export_convex_polyhedron16(m);
-    export_convex_polyhedron32(m);
-    export_convex_polyhedron64(m);
-    export_convex_polyhedron128(m);
-    export_convex_spheropolyhedron8(m);
-    export_convex_spheropolyhedron16(m);
-    export_convex_spheropolyhedron32(m);
-    export_convex_spheropolyhedron64(m);
-    export_convex_spheropolyhedron128(m);
+    export_convex_polyhedron(m);
+    export_convex_spheropolyhedron(m);
 
     py::class_<sph_params, std::shared_ptr<sph_params> >(m, "sph_params");
     py::class_<ell_params, std::shared_ptr<ell_params> >(m, "ell_params");
     py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
-    py::class_< poly3d_verts<8>, std::shared_ptr< poly3d_verts<8> > >(m, "poly3d_verts8");
-    py::class_< poly3d_verts<16>, std::shared_ptr< poly3d_verts<16> > >(m, "poly3d_verts16");
-    py::class_< poly3d_verts<32>, std::shared_ptr< poly3d_verts<32> > >(m, "poly3d_verts32");
-    py::class_< poly3d_verts<64>, std::shared_ptr< poly3d_verts<64> > >(m, "poly3d_verts64");
-    py::class_< poly3d_verts<128>, std::shared_ptr< poly3d_verts<128> > >(m, "poly3d_verts128");
+    py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
     py::class_<ShapePolyhedron::param_type, std::shared_ptr<ShapePolyhedron::param_type> >(m, "poly3d_params");
     py::class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >(m, "faceted_sphere_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
@@ -113,11 +101,7 @@ PYBIND11_PLUGIN(_hpmc)
 
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
-    m.def("make_poly3d_verts8", &make_poly3d_verts<8>);
-    m.def("make_poly3d_verts16", &make_poly3d_verts<16>);
-    m.def("make_poly3d_verts32", &make_poly3d_verts<32>);
-    m.def("make_poly3d_verts64", &make_poly3d_verts<64>);
-    m.def("make_poly3d_verts128", &make_poly3d_verts<128>);
+    m.def("make_poly3d_verts", &make_poly3d_verts);
     m.def("make_ell_params", &make_ell_params);
     m.def("make_sph_params", &make_sph_params);
     m.def("make_faceted_sphere", &make_faceted_sphere);

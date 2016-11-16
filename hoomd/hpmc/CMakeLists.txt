@@ -21,16 +21,8 @@ set(_hpmc_sources   module.cc
                     module_union_sphere8.cc
                     module_union_sphere16.cc
                     module_union_sphere32.cc
-                    module_convex_polyhedron8.cc
-                    module_convex_polyhedron16.cc
-                    module_convex_polyhedron32.cc
-                    module_convex_polyhedron64.cc
-                    module_convex_polyhedron128.cc
-                    module_convex_spheropolyhedron8.cc
-                    module_convex_spheropolyhedron16.cc
-                    module_convex_spheropolyhedron32.cc
-                    module_convex_spheropolyhedron64.cc
-                    module_convex_spheropolyhedron128.cc
+                    module_convex_polyhedron.cc
+                    module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )
@@ -98,16 +90,8 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_union_sphere8.cu
                      all_kernels_union_sphere16.cu
                      all_kernels_union_sphere32.cu
-                     all_kernels_convex_polyhedron8.cu
-                     all_kernels_convex_polyhedron16.cu
-                     all_kernels_convex_polyhedron32.cu
-                     all_kernels_convex_polyhedron64.cu
-                     all_kernels_convex_polyhedron128.cu
-                     all_kernels_convex_spheropolyhedron8.cu
-                     all_kernels_convex_spheropolyhedron16.cu
-                     all_kernels_convex_spheropolyhedron32.cu
-                     all_kernels_convex_spheropolyhedron64.cu
-                     all_kernels_convex_spheropolyhedron128.cu
+                     all_kernels_convex_polyhedron.cu
+                     all_kernels_convex_spheropolyhedron.cu
                      )
 
 # quiet some warnings locally on files we can't modify

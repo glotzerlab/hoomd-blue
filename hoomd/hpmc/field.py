@@ -86,9 +86,9 @@ class lattice_field(_external):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.ExternalFieldLatticeSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('ExternalFieldLatticeConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('ExternalFieldLatticeSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.ExternalFieldLatticeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -251,9 +251,9 @@ class external_field_composite(_external):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.ExternalFieldCompositeSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('ExternalFieldCompositeConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.ExternalFieldCompositeConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('ExternalFieldCompositeSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.ExternalFieldCompositeSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.ExternalFieldCompositeEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -349,7 +349,7 @@ class wall(_external):
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('WallConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.WallConvexPolyhedron;
             else:
                 hoomd.context.msg.error("compute.wall: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.wall");

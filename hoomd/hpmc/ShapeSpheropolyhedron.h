@@ -40,14 +40,13 @@ namespace detail
 
     \ingroup minkowski
 */
-template<unsigned int max_verts>
 class SupportFuncSpheropolyhedron
     {
     public:
         //! Construct a support function for a convex spheropolyhedron
         /*! \param _verts Polyhedron vertices and additional parameters
         */
-        DEVICE SupportFuncSpheropolyhedron(const poly3d_verts<max_verts>& _verts)
+        DEVICE SupportFuncSpheropolyhedron(const poly3d_verts& _verts)
             : verts(_verts)
             {
             }
@@ -59,7 +58,7 @@ class SupportFuncSpheropolyhedron
         DEVICE vec3<OverlapReal> operator() (const vec3<OverlapReal>& n) const
             {
             // get the support function of the underlying convex polyhedron
-            vec3<OverlapReal> max_poly3d = SupportFuncConvexPolyhedron<max_verts>(verts)(n);
+            vec3<OverlapReal> max_poly3d = SupportFuncConvexPolyhedron(verts)(n);
             // add to that the support mapping of the sphere
             vec3<OverlapReal> max_sphere = (verts.sweep_radius * fast::rsqrt(dot(n,n))) * n;
 
@@ -67,7 +66,7 @@ class SupportFuncSpheropolyhedron
             }
 
     private:
-        const poly3d_verts<max_verts>& verts;        //!< Vertices of the polyhedron
+        const poly3d_verts& verts;        //!< Vertices of the polyhedron
     };
 
 }; // end namespace detail
@@ -90,11 +89,10 @@ class SupportFuncSpheropolyhedron
 
     \ingroup shape
 */
-template<unsigned int max_verts>
 struct ShapeSpheropolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts<max_verts> param_type;
+    typedef detail::poly3d_verts param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeSpheropolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -163,7 +161,7 @@ struct ShapeSpheropolyhedron
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
-    const detail::poly3d_verts<max_verts>& verts;     //!< Vertices
+    const detail::poly3d_verts& verts;     //!< Vertices
     };
 
 //! Check if circumspheres overlap
@@ -174,9 +172,8 @@ struct ShapeSpheropolyhedron
 
     \ingroup shape
 */
-template<unsigned int max_verts>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSpheropolyhedron<max_verts>& a,
-    const ShapeSpheropolyhedron<max_verts> &b)
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeSpheropolyhedron& a,
+    const ShapeSpheropolyhedron &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -194,18 +191,17 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 
     \ingroup shape
 */
-template<unsigned int max_verts>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                 const ShapeSpheropolyhedron<max_verts>& a,
-                                 const ShapeSpheropolyhedron<max_verts>& b,
+                                 const ShapeSpheropolyhedron& a,
+                                 const ShapeSpheropolyhedron& b,
                                  unsigned int& err)
     {
     vec3<OverlapReal> dr = r_ab;
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return xenocollide_3d(detail::SupportFuncSpheropolyhedron<max_verts>(a.verts),
-                          detail::SupportFuncSpheropolyhedron<max_verts>(b.verts),
+    return xenocollide_3d(detail::SupportFuncSpheropolyhedron(a.verts),
+                          detail::SupportFuncSpheropolyhedron(b.verts),
                           rotate(conj(quat<OverlapReal>(a.orientation)),dr),
                           conj(quat<OverlapReal>(a.orientation)) * quat<OverlapReal>(b.orientation),
                           DaDb/2.0,

@@ -74,8 +74,8 @@ UP_TEST( construction )
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
     poly3d_data data;
+    data.verts = detail::poly3d_verts(4,false);
     data.verts.sweep_radius=0.0f;
-    data.verts.N = 4;
     data.n_faces = 1;
     data.verts.x[0] = 0; data.verts.y[0] = 0; data.verts.z[0] = 0;
     data.verts.x[1] = 1; data.verts.y[1] = 0; data.verts.z[1] = 0;
@@ -132,9 +132,8 @@ UP_TEST( overlap_octahedron_no_rot )
 
     // build an octahedron
     poly3d_data data;
+    data.verts = detail::poly3d_verts(6,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data.verts.N = 6;
     UP_ASSERT(MAX_POLY3D_FACES >= 8);
     data.n_faces = 8;
 
@@ -249,9 +248,8 @@ UP_TEST( overlap_cube_no_rot )
 
     // build a cube
     poly3d_data data;
+    data.verts = detail::poly3d_verts(8,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -380,9 +378,8 @@ UP_TEST( overlap_cube_rot1 )
 
     // build a cube
     poly3d_data data;
+    data.verts = detail::poly3d_verts(8,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -488,9 +485,8 @@ UP_TEST( overlap_cube_rot2 )
 
     // build a cube
     poly3d_data data;
+    data.verts = detail::poly3d_verts(8,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -599,9 +595,8 @@ UP_TEST( overlap_cube_rot3 )
 
     // build a cube
     poly3d_data data;
+    data.verts = detail::poly3d_verts(8,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -734,9 +729,8 @@ UP_TEST( cubes_contained )
 
     // build a cube
     poly3d_data data_a;
+    data_a.verts = detail::poly3d_verts(8,false);
     data_a.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data_a.verts.N = 8;
     data_a.verts.x[0] = -0.5; data_a.verts.y[0] = -0.5; data_a.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data_a.verts.x[1] = 0.5; data_a.verts.y[1] = -0.5; data_a.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data_a.verts.x[2] = 0.5; data_a.verts.y[2] = 0.5; data_a.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -894,9 +888,8 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
 
     // build an octahedron
     poly3d_data data;
+    data.verts = detail::poly3d_verts(6,false);
     data.verts.sweep_radius = 0.1f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data.verts.N = 6;
     UP_ASSERT(MAX_POLY3D_FACES >= 8);
     data.n_faces = 8;
 
@@ -1017,9 +1010,8 @@ UP_TEST( overlap_octahedron_sphere )
 
     // build an octahedron
     poly3d_data data_a;
+    data_a.verts = detail::poly3d_verts(6,false);
     data_a.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data_a.verts.N = 6;
     UP_ASSERT(MAX_POLY3D_FACES >= 8);
     data_a.n_faces = 8;
 
@@ -1052,7 +1044,7 @@ UP_TEST( overlap_octahedron_sphere )
 
     poly3d_data data_b;
     data_b.verts.sweep_radius = 0.5;
-    data_b.verts.N = 1;
+    data_b.verts = detail::poly3d_verts(1,false);
     data_b.verts.x[0] = data_b.verts.y[0] = data_b.verts.z[0] = 0;
     data_b.n_faces = 1;
     data_b.face_offs[0] = 0;
