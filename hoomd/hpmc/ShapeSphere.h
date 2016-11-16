@@ -113,14 +113,6 @@ struct param_base
         {
         // default implementation does nothing
         }
-
-    #ifdef ENABLE_CUDA
-    //! Attach managed memory to CUDA stream
-    void attach_to_stream(cudaStream_t stream) const
-        {
-        // default implementation does nothing
-        }
-    #endif
     };
 
 
@@ -136,6 +128,14 @@ struct sph_params : param_base
     OverlapReal radius;                 //!< radius of sphere
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 struct ShapeSphere

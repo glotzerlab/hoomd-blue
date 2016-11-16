@@ -43,6 +43,14 @@ struct sphinx3d_params : param_base
     OverlapReal diameter[MAX_SPHERE_CENTERS];      //!< Sphere Diameters
     vec3<OverlapReal> center[MAX_SPHERE_CENTERS];  //!< Sphere Centers (in local frame)
     unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 }; // end namespace detail

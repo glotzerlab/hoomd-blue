@@ -53,6 +53,14 @@ struct poly2d_verts : param_base
             }
         }
 
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
+
     OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices
     OverlapReal y[MAX_POLY2D_VERTS];    //!< Y coordinate of vertices
     unsigned int N;                     //!< Number of vertices
