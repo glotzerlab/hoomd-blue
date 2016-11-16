@@ -154,18 +154,9 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(face_verts) > MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES)
-        throw std::runtime_error("Too many polyhedron face vertices");
-
-    if (len(face_offs) > MAX_POLY3D_FACES + 1)
-        throw std::runtime_error("Too many polyhedron faces");
-
-    // rounding radius
-
     ShapePolyhedron::param_type result;
+    result.data = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
     result.data.ignore = ignore_stats;
-    result.data.verts = poly3d_verts(len(verts), exec_conf->isCUDAEnabled());
-    result.data.verts.N = len(verts);
     result.data.verts.sweep_radius = R;
     result.data.n_faces = len(face_offs)-1;
 

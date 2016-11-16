@@ -60,9 +60,20 @@ struct poly3d_data : param_base
     {
     poly3d_data() : n_faces(0), ignore(0) {};
 
+    #ifndef NVCC
+    //! Constructor
+    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, bool _managed)
+        : n_faces(_n_faces)
+        {
+        verts = poly3d_verts(nverts, _managed);
+        face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
+        face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
+        }
+    #endif
+
     poly3d_verts verts;                             //!< Holds parameters of convex hull
-    unsigned int face_offs[MAX_POLY3D_FACES+1];     //!< Offset of every face in the list of vertices per face
-    unsigned int face_verts[MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES]; //!< Ordered vertex IDs of every face
+    ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
+    ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
 
@@ -73,6 +84,8 @@ struct poly3d_data : param_base
     HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
         {
         verts.load_shared(ptr, load);
+        face_offs.load_shared(ptr, load);
+        face_verts.load_shared(ptr, load);
         }
 
     #ifdef ENABLE_CUDA
@@ -80,6 +93,8 @@ struct poly3d_data : param_base
     void attach_to_stream(cudaStream_t stream) const
         {
         verts.attach_to_stream(stream);
+        face_offs.attach_to_stream(stream);
+        face_verts.attach_to_stream(stream);
         }
     #endif
     } __attribute__((aligned(32)));
@@ -122,8 +137,8 @@ struct ShapePolyhedron
          */
         HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
             {
-            data.load_shared(ptr, load);
             tree.load_shared(ptr, load);
+            data.load_shared(ptr, load);
             }
 
         #ifdef ENABLE_CUDA
