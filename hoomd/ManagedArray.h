@@ -127,12 +127,15 @@ class ManagedArray
             }
         #endif
 
-        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        //! Load dynamic data members into shared memory and increase pointer
+        /*! \param ptr Pointer to load data to (will be incremented)
+            \param load If true, copy data to pointer, otherwise increment only
+            \param ptr_max Maximum address in shared memory
+         */
+        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
             {
-            // align to size of data type
-            //uintptr_t addr =  (uintptr_t)ptr;
-            //if (addr % sizeof(T) != 0) addr += sizeof(T) - addr % sizeof(T);
-            //ptr = (char *)addr;
+            if (ptr + sizeof(T)*N >= ptr_max)
+                return;
 
             #if defined (__CUDA_ARCH__)
             if (load)

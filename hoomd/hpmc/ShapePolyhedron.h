@@ -80,12 +80,13 @@ struct poly3d_data : param_base
      //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
         \param load If true, copy data to pointer, otherwise increment only
+        \param ptr_max Maximum address in shared memory
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
         {
-        verts.load_shared(ptr, load);
-        face_offs.load_shared(ptr, load);
-        face_verts.load_shared(ptr, load);
+        verts.load_shared(ptr, load, ptr_max);
+        face_offs.load_shared(ptr, load, ptr_max);
+        face_verts.load_shared(ptr, load, ptr_max);
         }
 
     #ifdef ENABLE_CUDA
@@ -134,11 +135,13 @@ struct ShapePolyhedron
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
             \param load If true, copy data to pointer, otherwise increment only
+            \param ptr_max Maximum address in shared memory
+
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
             {
-            tree.load_shared(ptr, load);
-            data.load_shared(ptr, load);
+            tree.load_shared(ptr, load, ptr_max);
+            data.load_shared(ptr, load, ptr_max);
             }
 
         #ifdef ENABLE_CUDA

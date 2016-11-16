@@ -268,7 +268,8 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
                                                    overlap_idx,
-                                                   m_stream);
+                                                   m_stream,
+                                                   this->m_exec_conf->dev_prop);
 
 
         // invoke kernel for counting total overlap volume

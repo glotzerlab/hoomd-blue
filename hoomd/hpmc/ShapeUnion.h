@@ -48,14 +48,15 @@ struct union_params : param_base
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
         \param load If true, copy data to pointer, otherwise increment only
+        \param ptr_max Maximum address in shared memory
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
         {
-        tree.load_shared(ptr, load);
-        mpos.load_shared(ptr, load);
-        //morientation.load_shared(ptr, load);
-        mparams.load_shared(ptr, load);
-        moverlap.load_shared(ptr, load);
+        tree.load_shared(ptr, load, ptr_max);
+        mpos.load_shared(ptr, load, ptr_max);
+        mparams.load_shared(ptr, load, ptr_max);
+        moverlap.load_shared(ptr, load, ptr_max);
+        morientation.load_shared(ptr, load, ptr_max);
         }
 
     #ifdef ENABLE_CUDA

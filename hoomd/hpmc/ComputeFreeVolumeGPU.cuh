@@ -62,7 +62,8 @@ struct hpmc_free_volume_args_t
                 const Scalar3 _ghost_width,
                 const unsigned int *_d_check_overlaps,
                 Index2D _overlap_idx,
-                cudaStream_t _stream
+                cudaStream_t _stream,
+                const cudaDeviceProp& _devprop
                 )
                 : n_sample(_n_sample),
                   type(_type),
@@ -91,7 +92,8 @@ struct hpmc_free_volume_args_t
                   ghost_width(_ghost_width),
                   d_check_overlaps(_d_check_overlaps),
                   overlap_idx(_overlap_idx),
-                  stream(_stream)
+                  stream(_stream),
+                  devprop(_devprop)
         {
         };
 
@@ -123,6 +125,7 @@ struct hpmc_free_volume_args_t
     const unsigned int *d_check_overlaps;   //!< Interaction matrix
     Index2D overlap_idx;              //!< Interaction matrix indexer
     cudaStream_t stream;               //!< Stream for kernel execution
+    const cudaDeviceProp& devprop;    //!< CUDA device properties
     };
 
 template< class Shape >
@@ -207,7 +210,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
                                      Scalar3 ghost_width,
                                      const unsigned int *d_check_overlaps,
                                      Index2D overlap_idx,
-                                     const typename Shape::param_type *d_params)
+                                     const typename Shape::param_type *d_params,
+                                     unsigned int max_extra_bytes)
     {
     unsigned int group = threadIdx.z;
     unsigned int offset = threadIdx.y;
@@ -262,9 +266,10 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_overlap + n_groups);
+    char *s_extra_begin = s_extra;
 
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true);
+        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
 
     __shared__ unsigned int s_n_overlap;
 
@@ -425,9 +430,9 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
     static int sm = -1;
+    static cudaFuncAttributes attr;
     if (max_block_size == -1)
         {
-        cudaFuncAttributes attr;
         cudaFuncGetAttributes(&attr, gpu_hpmc_free_volume_kernel<Shape>);
         max_block_size = attr.maxThreadsPerBlock;
         sm = attr.binaryVersion;
@@ -446,8 +451,13 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         grid.x = 65535;
         }
 
+    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
+        + args.overlap_idx.getNumElements()*sizeof(unsigned int);
+
     // required for memory coherency
     cudaDeviceSynchronize();
+
+    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
 
     // attach the parameters to the kernel stream so that they are visible
     // when other kernels are called
@@ -463,12 +473,11 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
     char *ptr =  ptr_begin;
     for (unsigned int i = 0; i < args.num_types; ++i)
         {
-        d_params[i].load_shared(ptr,false);
+        d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
         }
     unsigned int extra_bytes = ptr - ptr_begin;
 
-    unsigned int shared_bytes = args.num_types * sizeof(typename Shape::param_type) + n_groups*sizeof(unsigned int)
-        + args.overlap_idx.getNumElements()*sizeof(unsigned int) + extra_bytes;
+    shared_bytes += extra_bytes;
 
     gpu_hpmc_free_volume_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(
                                                      args.n_sample,
@@ -493,7 +502,8 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
                                                      args.ghost_width,
                                                      args.d_check_overlaps,
                                                      args.overlap_idx,
-                                                     d_params);
+                                                     d_params,
+                                                     max_extra_bytes);
 
     // return control of managed memory
     cudaDeviceSynchronize();

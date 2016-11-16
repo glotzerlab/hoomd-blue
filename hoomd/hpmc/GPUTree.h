@@ -214,19 +214,20 @@ class GPUTree
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
             \param load If true, copy data to pointer, otherwise increment only
+            \param ptr_max Maximum address in shared memory
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load=true) const
+        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
             {
-            m_center.load_shared(ptr, load);
-            m_lengths.load_shared(ptr, load);
-            m_rotation.load_shared(ptr, load);
+            m_center.load_shared(ptr, load, ptr_max);
+            m_lengths.load_shared(ptr, load, ptr_max);
+            m_rotation.load_shared(ptr, load, ptr_max);
 
-            m_left.load_shared(ptr, load);
-            m_skip.load_shared(ptr, load);
+            m_left.load_shared(ptr, load, ptr_max);
+            m_skip.load_shared(ptr, load, ptr_max);
 
-            m_leaf_ptr.load_shared(ptr, load);
-            m_leaf_obb_ptr.load_shared(ptr, load);
-            m_particles.load_shared(ptr, load);
+            m_leaf_ptr.load_shared(ptr, load, ptr_max);
+            m_leaf_obb_ptr.load_shared(ptr, load, ptr_max);
+            m_particles.load_shared(ptr, load, ptr_max);
             }
 
     private:

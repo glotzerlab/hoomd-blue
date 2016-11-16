@@ -316,7 +316,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                                      unsigned int *d_active_cell_accept,
                                      unsigned int *d_active_cell_move_type_translate,
                                      const typename Shape::param_type *d_params,
-                                     unsigned int max_queue_size)
+                                     unsigned int max_queue_size,
+                                     unsigned int max_extra_bytes)
     {
     // flags to tell what type of thread we are
     bool active = true;
@@ -408,9 +409,10 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_type_group + n_groups);
+    char *s_extra_begin = s_extra;
 
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true);
+        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
 
     // initialize the shared memory array for communicating overlaps
     if (master && group == 0)
@@ -816,32 +818,15 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         group_size--;
         }
 
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param)
-        {
-        // required for memory coherency
-        cudaDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
-        char *ptr =  ptr_begin;
-        for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            params[i].load_shared(ptr,false);
-            }
-        extra_bytes = ptr - ptr_begin;
-        }
-
     unsigned int n_groups = block_size / (group_size * stride);
     unsigned int max_queue_size = n_groups*group_size;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
                                 max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                                 args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
-                                args.overlap_idx.getNumElements() * sizeof(unsigned int) +
-                                extra_bytes;
+                                args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     unsigned int min_shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
-               args.overlap_idx.getNumElements() * sizeof(unsigned int) + extra_bytes;
+               args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
     if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
@@ -867,6 +852,25 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                        max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                        min_shared_bytes;
         }
+
+    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
+    static unsigned int extra_bytes = UINT_MAX;
+    if (extra_bytes == UINT_MAX || args.update_shape_param)
+        {
+        // required for memory coherency
+        cudaDeviceSynchronize();
+
+        // determine dynamically requested shared memory
+        char *ptr_begin = nullptr;
+        char *ptr =  ptr_begin;
+        for (unsigned int i = 0; i < args.num_types; ++i)
+            {
+            params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+            }
+        extra_bytes = ptr - ptr_begin;
+        }
+
+    shared_bytes += extra_bytes;
 
     // setup the grid to run the kernel
     dim3 threads;
@@ -943,7 +947,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                                                  args.d_active_cell_accept,
                                                                  args.d_active_cell_move_type_translate,
                                                                  params,
-                                                                 max_queue_size);
+                                                                 max_queue_size,
+                                                                 max_extra_bytes);
 
     return cudaSuccess;
     }
