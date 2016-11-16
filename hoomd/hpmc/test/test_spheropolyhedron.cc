@@ -27,8 +27,7 @@ unsigned int err_count = 0;
 // helper function to compute poly radius
 poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
     {
-    poly3d_verts result;
-    result.N = vlist.size();
+    poly3d_verts result(vlist.size(), false);
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 

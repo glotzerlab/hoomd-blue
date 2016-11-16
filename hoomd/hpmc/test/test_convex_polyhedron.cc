@@ -25,8 +25,7 @@ unsigned int err_count;
 // helper function to compute poly radius
 poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist)
     {
-    poly3d_verts result;
-    result.N = vlist.size();
+    poly3d_verts result(vlist.size(),false);
     result.ignore = 0;
 
     // extract the verts from the python list and compute the radius on the way

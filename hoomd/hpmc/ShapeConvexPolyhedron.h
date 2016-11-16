@@ -53,9 +53,15 @@ struct poly3d_verts : param_base
     poly3d_verts(unsigned int _N, bool _managed)
         : N(_N)
         {
-        x = ManagedArray<OverlapReal>(N,_managed);
-        y = ManagedArray<OverlapReal>(N,_managed);
-        z = ManagedArray<OverlapReal>(N,_managed);
+        unsigned int align_size = 8; //for AVX
+        unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
+        x = ManagedArray<OverlapReal>(N_align,_managed);
+        y = ManagedArray<OverlapReal>(N_align,_managed);
+        z = ManagedArray<OverlapReal>(N_align,_managed);
+        for (unsigned int i = 0; i <  N_align; ++i)
+            {
+            x[i] = y[i] = z[i] = OverlapReal(0.0);
+            }
         }
     #endif
 
