@@ -11,6 +11,7 @@
 #include "hoomd/extern/saruprngCUDA.h"
 
 #include <cassert>
+#include <vector>
 
 #include "HPMCCounters.h"
 
@@ -854,22 +855,27 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - attr.sharedSizeBytes - shared_bytes;
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param)
+    static std::vector<typename Shape::param_type> h_params;
+
+    if (args.update_shape_param)
         {
         // required for memory coherency
         cudaDeviceSynchronize();
 
-        // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
-        char *ptr =  ptr_begin;
+        // copy over parameters
+        h_params.resize(args.num_types);
         for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
-            }
-        extra_bytes = ptr - ptr_begin;
+            h_params[i] = params[i];
         }
 
+    // determine dynamically requested shared memory
+    char *ptr_begin = nullptr;
+    char *ptr =  ptr_begin;
+    for (unsigned int i = 0; i < args.num_types; ++i)
+        {
+        h_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+        }
+    unsigned int extra_bytes = ptr - ptr_begin;
     shared_bytes += extra_bytes;
 
     // setup the grid to run the kernel
