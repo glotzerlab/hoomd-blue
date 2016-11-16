@@ -561,7 +561,8 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
                                               unsigned int cur_node_a,
-                                              unsigned int cur_node_b)
+                                              unsigned int cur_node_b,
+                                              unsigned int &err)
     {
     // An absolute tolerance.
     // Possible improvement: make this adaptive as a function of ratios of occuring length scales
@@ -643,7 +644,6 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     do
                         {
                         face_idx_aux_a++;
-                        it++;
                         face_idx_aux_a = (face_idx_aux_a == nverts_s0) ? 0 : face_idx_aux_a;
                         unsigned int idx_aux_a = s0.data.face_verts[offs_s0 + face_idx_aux_a];
                         v_aux_a.x = s0.data.verts.x[idx_aux_a];
@@ -652,7 +652,13 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                         v_aux_a = rotate(q,v_aux_a) + dr;
                         vec3<OverlapReal> c = cross(v_next_a - v_a, v_aux_a - v_a);
                         collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                        } while(collinear  && it < nverts_s0);
+                        } while(collinear  && ++it < nverts_s0);
+
+                    if (it == nverts_s0)
+                        {
+                        err++;
+                        return true;
+                        }
 
                     bool overlap = false;
 
@@ -1061,7 +1067,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node)) return true;
+                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err)) return true;
                 }
             }
         }
@@ -1080,7 +1086,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node)) return true;
+                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err)) return true;
                 }
             }
         }
