@@ -52,7 +52,7 @@ const unsigned int MAX_POLY3D_VERTS = 12000;
 const unsigned int MAX_POLY3D_NODES=5000;
 
 //! Maximum number of faces per OBB tree leaf node
-const unsigned int MAX_POLY3D_CAPACITY=8;
+const unsigned int MAX_POLY3D_CAPACITY=2;
 
 //! Data structure for general polytopes
 /*! \ingroup hpmc_data_structs */
