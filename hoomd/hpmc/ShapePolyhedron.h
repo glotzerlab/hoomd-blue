@@ -566,7 +566,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     {
     // An absolute tolerance.
     // Possible improvement: make this adaptive as a function of ratios of occuring length scales
-    const OverlapReal abs_tol(1e-7);
+    const OverlapReal abs_tol(1e-16);
 
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
@@ -595,7 +595,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             unsigned int nverts_s0 = nverts_a;
             unsigned int nverts_s1 = nverts_b;
 
-            if (nverts_a > 1 && nverts_b > 1)
+            if (nverts_a > 2 && nverts_b > 2)
                 {
                 // check collision between polygons
                 unsigned int offs_s0 = offs_a;
@@ -638,23 +638,21 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     v_next_a = rotate(q,v_next_a) + dr;
 
                     bool collinear = false;
-                    unsigned int face_idx_aux_a = face_idx_next;
-                    vec3<OverlapReal> v_aux_a;
-                    unsigned int it = 0;
+                    unsigned int face_idx_aux_a = face_idx_next + 1;
+                    vec3<OverlapReal> v_aux_a,c;
                     do
                         {
-                        face_idx_aux_a++;
                         face_idx_aux_a = (face_idx_aux_a == nverts_s0) ? 0 : face_idx_aux_a;
                         unsigned int idx_aux_a = s0.data.face_verts[offs_s0 + face_idx_aux_a];
                         v_aux_a.x = s0.data.verts.x[idx_aux_a];
                         v_aux_a.y = s0.data.verts.y[idx_aux_a];
                         v_aux_a.z = s0.data.verts.z[idx_aux_a];
                         v_aux_a = rotate(q,v_aux_a) + dr;
-                        vec3<OverlapReal> c = cross(v_next_a - v_a, v_aux_a - v_a);
+                        c = cross(v_next_a - v_a, v_aux_a - v_a);
                         collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                        } while(collinear  && ++it < nverts_s0);
+                        } while(collinear && ++face_idx_aux_a < nverts_s0);
 
-                    if (it == nverts_s0)
+                    if (collinear)
                         {
                         err++;
                         return true;
