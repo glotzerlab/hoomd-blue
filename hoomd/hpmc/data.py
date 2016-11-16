@@ -199,12 +199,12 @@ class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
     def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0),
-                            ignore_statistics
+                            ignore_statistics,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_spheropolyhedron_params(_hpmc.convex_sphereopolyhedron_param_proxy,_param):
+class convex_spheropolyhedron_params(_hpmc.convex_spheropolyhedron_param_proxy,_param):
     def __init__(self, mc, index):
-        _hpmc.convex_spheropolyhedron_param_proxy.___init__(self,mc.cpp_integrator, index); # we will add this base class later becuase of the size template.
+        _hpmc.convex_spheropolyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'sweep_radius'];
         self.make_fn = _hpmc.make_poly3d_verts;
