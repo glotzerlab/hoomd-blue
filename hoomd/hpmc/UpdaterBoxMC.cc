@@ -490,23 +490,18 @@ void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
         // Calculate Boltzmann factor
         double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
         double Boltzmann = exp(dBetaH);
-        double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
-                                      newL[1],
-                                      newL[2],
-                                      newShear[0],
-                                      newShear[1],
-                                      newShear[2],
-                                      timestep,
-                                      Boltzmann,
-                                      rng
-                                      );
-            }
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
+                                  newL[1],
+                                  newL[2],
+                                  newShear[0],
+                                  newShear[1],
+                                  newShear[2],
+                                  timestep,
+                                  Boltzmann,
+                                  rng
+                                  );
 
         if (accept)
             {
@@ -542,32 +537,27 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     newShear[2] = curBox.getTiltFactorYZ();
 
     // original volume
-    double V = curL[0] * curL[1];
-    if (Ndim == 3)
-        {
-        V *= curL[2];
-        }
-    // Aspect ratios
-    Scalar A1 = m_Volume_A1;
-    Scalar A2 = m_Volume_A2;
+    Scalar V = curBox.getVolume(Ndim==2);
 
     // Volume change
-    Scalar dV_max(m_Volume_delta);
+    Scalar dlnV_max(m_Volume_delta);
 
     // Choose a volume change
-    Scalar dV = rng.s(-dV_max, dV_max);
+    Scalar dlnV = rng.s(-dlnV_max, dlnV_max);
+
+    Scalar new_V = V*exp(dlnV);
 
     // perform isotropic volume change
     if (Ndim == 3)
         {
-        newL[0] = pow((A1 * A2 * (V + dV)),(1./3.));
-        newL[1] = A1 * newL[0];
-        newL[2] = A2 * newL[0];
+        newL[0] = curL[0]*pow(new_V/V,1./3.);
+        newL[1] = curL[1]*pow(new_V/V,1./3.);
+        newL[2] = curL[2]*pow(new_V/V,1./3.);
         }
     else // Ndim ==2
         {
-        newL[0] = pow((A1*(V+dV)),(1./2.));
-        newL[1] = A1 * newL[0];
+        newL[0] = curL[0]*pow(new_V/V,(1./2.));
+        newL[1] = curL[1]*pow(new_V/V,(1./2.));
         // newL[2] is already assigned to curL[2]
         }
 
@@ -577,32 +567,21 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
         }
     else
         {
-        // Calculate new volume
-        double Vnew = newL[0] * newL[1];
-        if (Ndim == 3)
-            {
-            Vnew *= newL[2];
-            }
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/V);
+        double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
         double Boltzmann = exp(dBetaH);
         double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
-                                      newL[1],
-                                      newL[2],
-                                      newShear[0],
-                                      newShear[1],
-                                      newShear[2],
-                                      timestep,
-                                      Boltzmann,
-                                      rng);
-            }
-
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
+                                  newL[1],
+                                  newL[2],
+                                  newShear[0],
+                                  newShear[1],
+                                  newShear[2],
+                                  timestep,
+                                  Boltzmann,
+                                  rng);
         if (accept)
             {
             m_count_total.volume_accept_count++;
