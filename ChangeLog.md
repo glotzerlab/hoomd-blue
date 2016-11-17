@@ -2,6 +2,12 @@
 
 [TOC]
 
+## v2.2.2
+
+*Bug fixes*
+
+* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+
 ## v2.1.1
 
 Released 2016/10/23
