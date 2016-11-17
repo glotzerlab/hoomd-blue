@@ -101,7 +101,7 @@ __device__ double myAtomicAdd(double* address, double val)
     }
 #else
 template<>
-__device__ float myAtomicAdd(float* address, float val)
+__device__ double myAtomicAdd(double* address, double val)
     {
     return atomicAdd(address, val);
     }
