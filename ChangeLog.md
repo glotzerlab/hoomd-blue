@@ -10,6 +10,10 @@ Not yet released
 
 * Drop support for compute 2.0 GPU devices
 
+* Support for logging in hdf5 format
+
+* Support for logging matrix observables
+
 ## v2.1.1
 
 Released 2016/10/23
