@@ -37,24 +37,12 @@ LogHDF5::~LogHDF5(void)
  */
 void LogHDF5::analyze(unsigned int timestep)
     {
-
     //Call the base class to cache all values.
     LogMatrix::analyze(timestep);
 
     if (m_prof) m_prof->push("LogHDF5");
 
-#ifdef ENABLE_MPI
-    // only output to file on root processor
-    if (m_comm)
-        if (! m_exec_conf->isRoot())
-            {
-            if (m_prof) m_prof->pop();
-            return;
-            }
-#endif
-
-
-    //Prepare the
+    //Prepare the single data
     auto numpy_array_buf = m_single_value_array.request();
     assert( numpy_array_buf.shape[0] == m_logged_quantities.size());
     assert( numpy_array_buf.itemsize == sizeof(Scalar));

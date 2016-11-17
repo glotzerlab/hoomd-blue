@@ -47,7 +47,6 @@ LogPlainTXT::LogPlainTXT(std::shared_ptr<SystemDefinition> sysdef,
 
 void LogPlainTXT::openOutputFiles()
     {
-    cout<<__FILE__<<":"<<__LINE__<<endl;
     // do nothing if we are not writing a file
     if (!m_file_output)
         return;

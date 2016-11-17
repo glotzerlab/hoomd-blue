@@ -12,6 +12,7 @@ from hoomd import _hoomd
 from hoomd.analyze import _analyzer
 import hoomd
 import numpy
+import os
 
 try:
     import h5py
@@ -70,8 +71,10 @@ class log(hoomd.analyze._analyzer):
         self.period = period
 
         if overwrite:
-            f= h5py.File(filename,"w")
-            f.close()
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
 
         # initialize base class
         _analyzer.__init__(self)
@@ -213,29 +216,37 @@ class log(hoomd.analyze._analyzer):
     ## \internal
     # \brief Writes all C++ side prepare data to hdf5 file.
     def _write_hdf5(self,timestep):
-        f = h5py.File(self.filename,"a")
+
+        f = None
+        if hoomd.comm.get_rank() == 0:
+            f = h5py.File(self.filename,"a")
+
         self._write_single_values(f,timestep)
         self._write_matrix_values(f,timestep)
 
-        f.close()
+        if f is not None:
+            f.close()
+
         return timestep
 
     ## \internal
     # \brief Writes the single values of the logger as a single array to the hdf5 file.
     def _write_single_values(self,f,timestep):
+        #Everything is MPI collective, except writing.
         # prepare and check file for single values
         self._write_header(f)
         new_array = self.cpp_analyzer.get_single_value_array()
-        data_set = f["/single_values"]
-        old_size = data_set.shape[0]
+        if f is not None: # Handle single values only on root.
+            data_set = f["/single_values"]
+            old_size = data_set.shape[0]
 
-        if data_set.shape[1] != new_array.shape[0]:
-            hoomd.context.msg.error("The number of logged single quantities does not match"
-                                    " with the number of quantities stored in the file.")
-            raise RuntimeError("Error write single values with log_hdf5.")
+            if data_set.shape[1] != new_array.shape[0]:
+                hoomd.context.msg.error("The number of logged single quantities does not match"
+                                        " with the number of quantities stored in the file.")
+                raise RuntimeError("Error write single values with log_hdf5.")
 
-        data_set.resize(old_size+1,axis=0)
-        data_set[old_size,] = new_array
+            data_set.resize(old_size+1,axis=0)
+            data_set[old_size,] = new_array
 
     ## \internal
     # \brief Writes the logged matrix quantities to file
@@ -245,78 +256,83 @@ class log(hoomd.analyze._analyzer):
         for q in matrix_quantities:
             #Obtain the numpy arrray from cpp class.
             try:
+                #This is called on every rank, but only root rank returns "correct data"
                 new_matrix = self.cpp_analyzer.getMatrixQuantity(q,timestep)
             except:
                 hoomd.context.msg.error("For quantity "+q+" no python type obtainable.")
                 raise RuntimeError("Error writing matrix quantity "+q)
 
-            #Check the returned object
-            if type(new_matrix) != numpy.ndarray :
-                hoomd.context.msg.error("For quantity "+q+" no matrix obtainable.")
-                raise RuntimeError("Error writing matrix quantity "+q)
-            zero_shape = True
-            for dim in new_matrix.shape:
-                if dim != 0:
-                    zero_shape = False
-            if zero_shape:
-                hoomd.context.msg.error("For quantity "+q+" matrix with zero shape obtained.")
-                raise RuntimeError("Error writing matrix quantity "+q)
+            if f != None: #Only the root rank further process the recieved data
 
-            if not q in f:
-                #Create a new container in hdf5 file, if not already existing.
-                data_set = f.create_dataset(q,shape=(0,)+new_matrix.shape,maxshape=(None,)+new_matrix.shape)
-            else:
-                data_set = f[q]
+                #Check the returned object
+                if type(new_matrix) != numpy.ndarray :
+                    hoomd.context.msg.error("For quantity "+q+" no matrix obtainable.")
+                    raise RuntimeError("Error writing matrix quantity "+q)
+                zero_shape = True
+                for dim in new_matrix.shape:
+                    if dim != 0:
+                        zero_shape = False
+                if zero_shape:
+                    hoomd.context.msg.error("For quantity "+q+" matrix with zero shape obtained.")
+                    raise RuntimeError("Error writing matrix quantity "+q)
 
-                #check compatibility of data in file and returned matrix
-                if len(new_matrix.shape) +1 != len(data_set.shape):
-                    msg = "Trying to log matrix "+q+", but dimensions are incompatible with "
-                    msg += "dimensions in file."
-                    hoomd.context.msg.error(msg)
-                    raise RuntimeError("Error writing matrix quntity "+q)
+                if not q in f:
+                    #Create a new container in hdf5 file, if not already existing.
+                    data_set = f.create_dataset(q,shape=(0,)+new_matrix.shape,maxshape=(None,)+new_matrix.shape)
+                else:
+                    data_set = f[q]
 
-                for i in range(len(new_matrix.shape)):
-                    if data_set.shape[i+1] != new_matrix.shape[i]:
-                        msg = "Trying to log matrix "+q+", but dimension "+str(i)+" is "
-                        msg += "incompatible with  dimension in file."
+                    #check compatibility of data in file and returned matrix
+                    if len(new_matrix.shape) +1 != len(data_set.shape):
+                        msg = "Trying to log matrix "+q+", but dimensions are incompatible with "
+                        msg += "dimensions in file."
                         hoomd.context.msg.error(msg)
-                        raise RuntimeError("Error writing matrix quantity "+q)
+                        raise RuntimeError("Error writing matrix quntity "+q)
 
-            old_size = data_set.shape[0]
+                    for i in range(len(new_matrix.shape)):
+                        if data_set.shape[i+1] != new_matrix.shape[i]:
+                            msg = "Trying to log matrix "+q+", but dimension "+str(i)+" is "
+                            msg += "incompatible with  dimension in file."
+                            hoomd.context.msg.error(msg)
+                            raise RuntimeError("Error writing matrix quantity "+q)
 
-            data_set.resize(old_size+1,axis=0)
-            data_set[old_size,] = new_matrix
+                old_size = data_set.shape[0]
+
+                data_set.resize(old_size+1,axis=0)
+                data_set[old_size,] = new_matrix
 
 
     ## \internal
     # \brief prepare and check the hdf5 file for single value dump
     def _write_header(self,f):
+
         quantities = self.cpp_analyzer.getLoggedQuantities()
 
-        if "single_values" in f:
-            data_set = f["single_values"]
-            if  data_set.shape[1] != len(quantities):
-                if data_set.shape[0] == 0:
-                    data_set.resize( (0,len(quantities)) )
-                    for key in data_set.attrs.keys():
-                        del data_set.attrs[key]
-                else:
-                    hoomd.context.msg.error("Changing the number of logged quantites is impossible"
-                                    " if there are already logged quantities.")
-                    raise RuntimeError("Error updating quantities with log_hdf5.")
-        else:
-            data_set = f.create_dataset("single_values",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
-
-        #Ensure quantities in the attribute match with new setting.
-        for i in range(len(quantities)):
-            try:
-                if i != data_set.attrs[quantities[i]]:
-                    hoomd.context.msg.error("Quantity "+quantities[i]+" is not stored in the correct position."
-                                            " stored: "+str(data_set.attrs[quantities[i]])+" new: "+str(i))
-                    raise RuntimeError("Error updating quantities with log_hdf5.")
-            except KeyError:
-                for key in data_set.attrs.keys():
-                    if data_set.attrs[key] == i:
-                        hoomd.context.msg.error("Quantity position is not vacant.")
+        if f is not None:
+            if "single_values" in f:
+                data_set = f["single_values"]
+                if  data_set.shape[1] != len(quantities):
+                    if data_set.shape[0] == 0:
+                        data_set.resize( (0,len(quantities)) )
+                        for key in data_set.attrs.keys():
+                            del data_set.attrs[key]
+                    else:
+                        hoomd.context.msg.error("Changing the number of logged quantites is impossible"
+                                        " if there are already logged quantities.")
                         raise RuntimeError("Error updating quantities with log_hdf5.")
-                data_set.attrs[quantities[i]] = i
+            else:
+                data_set = f.create_dataset("single_values",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
+
+            #Ensure quantities in the attribute match with new setting.
+            for i in range(len(quantities)):
+                try:
+                    if i != data_set.attrs[quantities[i]]:
+                        hoomd.context.msg.error("Quantity "+quantities[i]+" is not stored in the correct position."
+                                                " stored: "+str(data_set.attrs[quantities[i]])+" new: "+str(i))
+                        raise RuntimeError("Error updating quantities with log_hdf5.")
+                except KeyError:
+                    for key in data_set.attrs.keys():
+                        if data_set.attrs[key] == i:
+                            hoomd.context.msg.error("Quantity position is not vacant.")
+                            raise RuntimeError("Error updating quantities with log_hdf5.")
+                    data_set.attrs[quantities[i]] = i

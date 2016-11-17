@@ -10,6 +10,7 @@
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif
+#include <hoomd/extern/pybind/include/pybind11/numpy.h>
 
 namespace py = pybind11;
 
@@ -120,6 +121,14 @@ void LogMatrix::removeAll(void)
 void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quantities)
     {
     m_logged_matrix_quantities = quantities;
+    m_cached_matrix_quantities.resize(quantities.size());
+
+    //Init with empty arrays.
+    for(unsigned int i=0; i < m_cached_matrix_quantities.size(); i++)
+        {
+        PyObject* tmp = num_util::makeNum(0,num_util::getEnum<int>());
+        m_cached_matrix_quantities[i] = py::array(tmp,false);
+        }
     }
 
 /*! \param timestep Time step
@@ -127,24 +136,18 @@ void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quan
 void LogMatrix::analyze(unsigned int timestep)
     {
     Logger::analyze(timestep);
+
+    //Cache all matrices
+    for(unsigned int i=0; i < m_logged_matrix_quantities.size(); i++)
+        m_cached_matrix_quantities[i] = this->getMatrix( m_logged_matrix_quantities[i],timestep );
+
     }
 
-/*! \param quantity Matrix to get
-    \param timestep Time step of the simulation
-  Matrix quantities are not cached, but recomputed every time. So no argument asking for cache.
-*/
-py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep)
-    {
-    //This function is in principle not neccessary, because matrix
-    //quantities are not cached. But I kept it to be consistent with
-    //the Logger interface.
-    return this->getMatrix(quantity,timestep);
-    }
 
 /*! \param quantity Matrix to get
     \param timestep Time step to compute value for (needed for Compute classes)
 */
-py::array LogMatrix::getMatrix(const std::string &quantity, int timestep)
+py::array LogMatrix::getMatrix(const std::string &quantity, unsigned int timestep)
     {
     // check to see if the quantity exists in the compute list
     if (m_compute_matrix_quantities.count(quantity))
@@ -152,21 +155,25 @@ py::array LogMatrix::getMatrix(const std::string &quantity, int timestep)
         // update the compute
         m_compute_matrix_quantities[quantity]->compute(timestep);
         // get the log value
-        py::array ret = m_compute_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
-        if(ret)
+        py::array tmp = m_compute_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
+        if(!tmp)
+            {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
-                                        << quantity << " no matrix obtainable from compute." << endl;
-        return ret;
+                                        << quantity << " no matrix obtainable from Compute." << endl;
+            }
+        return tmp;
         }
     // check to see if the quantity exists in the updaters list
     else if (m_updater_matrix_quantities.count(quantity))
         {
         // get the log value
-        py::array ret = m_updater_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
-        if(ret)
+        py::array tmp = m_updater_matrix_quantities[quantity]->getLogMatrix(quantity, timestep);
+        if(!tmp)
+            {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
-                                        << quantity << " no matrix obtainable from updater." << endl;
-        return ret;
+                                        << quantity << " no matrix obtainable from Updater." << endl;
+            }
+        return tmp;
         }
     else if (m_callback_matrix_quantities.count(quantity))
         {
@@ -174,23 +181,36 @@ py::array LogMatrix::getMatrix(const std::string &quantity, int timestep)
         try
             {
             py::object rv = m_callback_matrix_quantities[quantity](timestep);
-            py::array extracted_rv = rv.cast<py::array >();
+            py::object extracted_rv = rv.cast<py::object >();
             return extracted_rv;
             }
         catch (py::cast_error)
             {
             m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                         << quantity << " no matrix obtainable from callback." << endl;
-            return py::array();
+            return py::object();
             }
         }
     else
         {
         m_exec_conf->msg->warning() << "analyze.log: Log matrix callback "
                                     << quantity << " no matrix obtainable." << endl;
-        return py::array();
+        return py::object();
         }
     }
+
+/*! \param quantity Matrix to get
+    \param timestep Time step to compute value for (needed for Compute classes)
+*/
+py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int timestep)
+    {
+    for(unsigned int i=0; i< m_logged_matrix_quantities.size(); i++)
+        if( m_logged_matrix_quantities[i] == quantity )
+            return m_cached_matrix_quantities[i];
+    m_exec_conf->msg->error() << "Matrix quantity " << quantity << " unknow to analyzer Unable to return."<<endl;
+    return py::array(num_util::makeNum(0,num_util::getEnum<char>()),false);
+    }
+
 
 void export_LogMatrix(py::module& m)
     {
@@ -199,6 +219,6 @@ void export_LogMatrix(py::module& m)
     .def("setLoggedMatrixQuantities", &LogMatrix::setLoggedMatrixQuantities)
     .def("getLoggedMatrixQuantities", &LogMatrix::getLoggedMatrixQuantities)
     .def("registerMatrixCallback", &LogMatrix::registerMatrixCallback)
-    .def("getMatrixQuantity", &LogMatrix::getMatrixQuantity,py::return_value_policy::copy)
+    .def("getMatrixQuantity", &LogMatrix::getMatrixQuantity, py::return_value_policy::take_ownership)
     ;
     }

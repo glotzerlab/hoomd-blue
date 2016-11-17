@@ -19,7 +19,6 @@
 #include <map>
 #include <fstream>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include <hoomd/extern/pybind/include/pybind11/numpy.h>
 #include <memory>
 
 #ifndef __LOGMATRIX_H__
@@ -56,7 +55,7 @@ class LogMatrix : public Logger
         //! return all currently logged matrix quantities.
         std::vector<std::string> getLoggedMatrixQuantities(void)const{return m_logged_matrix_quantities;}
 
-        //! Query the current matrix for a given quantity.
+        //! Query the cached matrix for a given quantity.
         virtual pybind11::array getMatrixQuantity(const std::string& quantity, unsigned int timestep);
 
         //! Cache the data for the current timestep
@@ -71,14 +70,11 @@ class LogMatrix : public Logger
         std::map< std::string, pybind11::object > m_callback_matrix_quantities;
         //! List of matrix quantities to log
         std::vector< std::string > m_logged_matrix_quantities;
-        //! Clock for the time log quantity
-
-        //! The values of the logged quantities at the last logger update.
-        std::vector< std::shared_ptr< pybind11::array > > m_cached_matrix_quantities;
-
+        //! Cached matrix quantities
+        std::vector< pybind11::array > m_cached_matrix_quantities;
     private:
-        //! Helper function to get a value for a given quantity
-        pybind11::array getMatrix(const std::string &quantity, int timestep);
+        //! Obtain the matrix qunatities for caching.
+        virtual pybind11::array getMatrix(const std::string& quantity, unsigned int timestep);
     };
 
 //! exports the LogMatrix class to python
