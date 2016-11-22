@@ -67,6 +67,7 @@ set(_hpmc_headers
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
+    triangle_triangle.h
     )
 
 # if (ENABLE_CUDA)

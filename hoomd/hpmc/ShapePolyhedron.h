@@ -590,6 +590,8 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
+#include "triangle_triangle.h"
+
 DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
@@ -613,7 +615,6 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
         for (unsigned int j= 0; j< nb; j++)
             {
             unsigned int nverts_b, offs_b;
-            bool intersect = false;
 
             unsigned int jface = b.tree.getParticle(cur_node_b, j);
 
@@ -625,215 +626,36 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             nverts_b = b.data.face_offs[jface + 1] - b.data.face_offs[jface];
             offs_b = b.data.face_offs[jface];
 
-            unsigned int nverts_s0 = nverts_a;
-            unsigned int nverts_s1 = nverts_b;
-
             if (nverts_a > 2 && nverts_b > 2)
                 {
-                // check collision between polygons
-                unsigned int offs_s0 = offs_a;
-                unsigned int offs_s1 = offs_b;
-
+                // check collision between triangles
                 vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
                 quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
-                // loop over edges of iface, then jface
-                for (unsigned int ivertab = 0; ivertab < nverts_a+nverts_b; ivertab++)
+
+                float U[3][3];
+                for (unsigned int ivert = 0; ivert < 3; ++ivert)
                     {
-                    const ShapePolyhedron &s0 = (ivertab < nverts_a ? a : b);
-                    const ShapePolyhedron &s1 = (ivertab < nverts_a ? b : a);
+                    unsigned int idx_a = a.data.face_verts[offs_a+ivert];
+                    vec3<float> v;
+                    v.x = a.data.verts.x[idx_a];
+                    v.y = a.data.verts.y[idx_a];
+                    v.z = a.data.verts.z[idx_a];
+                    v = rotate(q,v) + dr;
+                    U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
+                    }
 
-                    if (ivertab == nverts_a)
-                        {
-                        dr = rotate(conj(quat<OverlapReal>(a.orientation)),r_ab);
-                        q = conj(quat<OverlapReal>(a.orientation))*quat<OverlapReal>(b.orientation);
-                        nverts_s0 = nverts_b;
-                        nverts_s1 = nverts_a;
-                        offs_s0 = offs_b;
-                        offs_s1 = offs_a;
-                        }
+                float V[3][3];
+                for (unsigned int ivert = 0; ivert < 3; ++ivert)
+                    {
+                    unsigned int idx_b = b.data.face_verts[offs_b+ivert];
+                    vec3<float> v;
+                    v.x = b.data.verts.x[idx_b];
+                    v.y = b.data.verts.y[idx_b];
+                    v.z = b.data.verts.z[idx_b];
+                    V[ivert][0] = v.x; V[ivert][1] = v.y; V[ivert][2] = v.z;
+                    }
 
-                    unsigned int ivert = (ivertab < nverts_a ? ivertab : ivertab - nverts_a);
-
-                    unsigned int idx_a = s0.data.face_verts[offs_s0+ivert];
-                    vec3<OverlapReal> v_a;
-                    v_a.x = s0.data.verts.x[idx_a];
-                    v_a.y = s0.data.verts.y[idx_a];
-                    v_a.z = s0.data.verts.z[idx_a];
-                    v_a = rotate(q,v_a) + dr;
-
-                    // Load next vertex (t)
-                    unsigned face_idx_next = (ivert + 1 == nverts_s0) ? 0 : ivert + 1;
-                    unsigned int idx_next_a = s0.data.face_verts[offs_s0 + face_idx_next];
-                    vec3<OverlapReal> v_next_a;
-                    v_next_a.x = s0.data.verts.x[idx_next_a];
-                    v_next_a.y = s0.data.verts.y[idx_next_a];
-                    v_next_a.z = s0.data.verts.z[idx_next_a];
-                    v_next_a = rotate(q,v_next_a) + dr;
-
-                    bool collinear = false;
-                    unsigned int face_idx_aux_a = face_idx_next + 1;
-                    vec3<OverlapReal> v_aux_a,c;
-                    do
-                        {
-                        face_idx_aux_a = (face_idx_aux_a == nverts_s0) ? 0 : face_idx_aux_a;
-                        unsigned int idx_aux_a = s0.data.face_verts[offs_s0 + face_idx_aux_a];
-                        v_aux_a.x = s0.data.verts.x[idx_aux_a];
-                        v_aux_a.y = s0.data.verts.y[idx_aux_a];
-                        v_aux_a.z = s0.data.verts.z[idx_aux_a];
-                        v_aux_a = rotate(q,v_aux_a) + dr;
-                        c = cross(v_next_a - v_a, v_aux_a - v_a);
-                        collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                        } while(collinear && ++face_idx_aux_a < nverts_s0);
-
-                    if (collinear)
-                        {
-                        err++;
-                        return true;
-                        }
-
-                    bool overlap = false;
-
-                    // Load vertex 0
-                    vec3<OverlapReal> v_next_b;
-                    unsigned int idx_v = s1.data.face_verts[offs_s1];
-                    v_next_b.x = s1.data.verts.x[idx_v];
-                    v_next_b.y = s1.data.verts.y[idx_v];
-                    v_next_b.z = s1.data.verts.z[idx_v];
-
-                    // vertex 1
-                    idx_v = s1.data.face_verts[offs_s1 + 1];
-                    vec3<OverlapReal> v_b;
-                    v_b.x = s1.data.verts.x[idx_v];
-                    v_b.y = s1.data.verts.y[idx_v];
-                    v_b.z = s1.data.verts.z[idx_v];
-
-                    // vertex 2
-                    idx_v = s1.data.face_verts[offs_s1 + 2];
-                    vec3<OverlapReal> v_aux_b;
-                    v_aux_b.x = s1.data.verts.x[idx_v];
-                    v_aux_b.y = s1.data.verts.y[idx_v];
-                    v_aux_b.z = s1.data.verts.z[idx_v];
-
-                    OverlapReal det_h = det_4x4(v_next_b, v_b, v_aux_b, v_a);
-                    OverlapReal det_t = det_4x4(v_next_b, v_b, v_aux_b, v_next_a);
-
-                    // for edge i to intersect face j, it is a necessary condition that it intersects the supporting plane
-                    intersect = CHECK_ZERO(det_h,abs_tol) || CHECK_ZERO(det_t,abs_tol) || detail::signbit(det_h) != detail::signbit(det_t);
-
-                    if (intersect)
-                        {
-                        unsigned int n_intersect = 0;
-
-                        for (unsigned int jvert = 0; jvert < nverts_s1; ++jvert)
-                            {
-                            // Load vertex (p_i)
-                            unsigned int idx_v = s1.data.face_verts[offs_s1+jvert];
-                            vec3<OverlapReal> v_b;
-                            v_b.x = s1.data.verts.x[idx_v];
-                            v_b.y = s1.data.verts.y[idx_v];
-                            v_b.z = s1.data.verts.z[idx_v];
-
-                            // Load next vertex (p_i+1)
-                            unsigned int next_vert_b = (jvert + 1 == nverts_s1) ? 0 : jvert + 1;
-                            idx_v = s1.data.face_verts[offs_s1 + next_vert_b];
-                            vec3<OverlapReal> v_next_b;
-                            v_next_b.x = s1.data.verts.x[idx_v];
-                            v_next_b.y = s1.data.verts.y[idx_v];
-                            v_next_b.z = s1.data.verts.z[idx_v];
-
-                            // compute determinants in homogeneous coordinates
-                            OverlapReal det_s = det_4x4(v_a, v_next_a, v_aux_a, v_b);
-                            OverlapReal det_u = det_4x4(v_a, v_next_a, v_aux_a, v_next_b);
-                            OverlapReal det_v = det_4x4(v_a, v_next_a, v_b, v_next_b);
-
-                            if (CHECK_ZERO(det_u, abs_tol) && !CHECK_ZERO(det_s,abs_tol))
-                                {
-                                // the endpoint of this edge touches the fictitious plane
-                                // check if the next vertex of this face will be on the same side of the plane
-                                unsigned int idx_aux_b = (jvert + 2 >= nverts_s1) ? jvert + 2 - nverts_s1 : jvert + 2;
-                                idx_v = s1.data.face_verts[offs_s1 + idx_aux_b];
-                                vec3<OverlapReal> v_aux_b;
-                                v_aux_b.x = s1.data.verts.x[idx_v];
-                                v_aux_b.y = s1.data.verts.y[idx_v];
-                                v_aux_b.z = s1.data.verts.z[idx_v];
-
-                                OverlapReal det_w = det_4x4(v_a, v_next_a, v_aux_a, v_aux_b);
-                                if (CHECK_ZERO(det_w, abs_tol) || detail::signbit(det_w) == detail::signbit(det_s))
-                                    {
-                                    // the edge is reflected by the plane
-                                    if (test_vertex_line_segment_overlap(v_next_b, v_next_a, v_a, abs_tol))
-                                        {
-                                        overlap = true;
-                                        }
-                                    }
-                                // otherwise, ignore (to avoid double-counting of edges piercing the plane)
-                                }
-                            else if (CHECK_ZERO(det_v,abs_tol) || (CHECK_ZERO(det_s,abs_tol) && CHECK_ZERO(det_u,abs_tol)))
-                                {
-                                // iedge lies in the imaginary plane
-                                if (test_line_segment_overlap(v_a, v_b, v_next_a - v_a, v_next_b - v_b,abs_tol))
-                                    {
-                                    overlap = true;
-                                    }
-                                }
-                            else
-                                {
-                                /*
-                                 * odd-parity rule
-                                 */
-                                int v = detail::signbit(det_v) ? -1 : 1;
-
-                                if (CHECK_ZERO(det_s,abs_tol))
-                                    {
-                                    // the first point of this edge touches the fictitious plane
-                                    // check if the previous vertex of this face was on the plane
-                                    int idx_prev_b = ((int)jvert -1 < 0) ? nverts_s1 - 1: jvert -1;
-                                    idx_v = s1.data.face_verts[offs_s1 + idx_prev_b];
-                                    vec3<OverlapReal> v_prev_b;
-                                    v_prev_b.x = s1.data.verts.x[idx_v];
-                                    v_prev_b.y = s1.data.verts.y[idx_v];
-                                    v_prev_b.z = s1.data.verts.z[idx_v];
-
-                                    OverlapReal det_w = det_4x4(v_a, v_next_a, v_aux_a, v_prev_b);
-                                    if (CHECK_ZERO(det_w, abs_tol) || detail::signbit(det_w) == detail::signbit(det_u))
-                                        {
-                                        // the edge is reflected by the plane
-                                        if (test_vertex_line_segment_overlap(v_prev_b, v_next_a, v_a, abs_tol))
-                                            {
-                                            overlap = true;
-                                            }
-                                        }
-                                    else
-                                        {
-                                        // b's edge contacts the supporting plane of edgei
-                                        int u = detail::signbit(det_u) ? -1 : 1;
-                                        if (u*v < 0)
-                                            {
-                                            n_intersect++;
-                                            }
-                                        }
-                                    }
-                                else
-                                    {
-                                    int s = detail::signbit(det_s) ? -1 : 1;
-                                    int u = detail::signbit(det_u) ? -1 : 1;
-
-                                    if (s*u < 0 && s*v>0)
-                                        {
-                                        n_intersect++;
-                                        }
-                                    }
-                                }
-                            }
-
-                        overlap |= (n_intersect % 2);
-                        } // end if (intersect)
-                    if (overlap)
-                        {
-                        // overlap
-                        return true;
-                        }
-                    } // end loop over edges
+                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2])) return true;
                 }
 
             if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
@@ -868,17 +690,8 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     b1.y = b.data.verts.y[idx_b];
                     b1.z = b.data.verts.z[idx_b];
 
-                    // vertex 1 on b
-                    if (nverts_b == 2)
-                        {
-                        // degenerate
-                        idx_b = b.data.face_verts[offs_b];
-                        }
-                    else
-                        {
-                        idx_b = b.data.face_verts[offs_b + 1];
-                        }
-
+                    // vertex 2 on b
+                    idx_b = b.data.face_verts[offs_b + 2];
                     b2.x = b.data.verts.x[idx_b];
                     b2.y = b.data.verts.y[idx_b];
                     b2.z = b.data.verts.z[idx_b];
@@ -904,16 +717,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     a1 = rotate(q, a1) + dr;
 
                     // vertex 2 on a
-                    if (nverts_a == 2)
-                        {
-                        // degenerate
-                        idx_a = a.data.face_verts[offs_a];
-                        }
-                    else
-                        {
-                        idx_a = a.data.face_verts[offs_a + 2];
-                        }
-
+                    idx_a = a.data.face_verts[offs_a + 2];
                     a2.x = a.data.verts.x[idx_a];
                     a2.y = a.data.verts.y[idx_a];
                     a2.z = a.data.verts.z[idx_a];
@@ -950,6 +754,39 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             } // end loop over faces of b
         } // end loop over over faces of a
     return false;
+    }
+
+// From Real-time Collision Detection (Christer Ericson)
+//Given line pq and ccw triangle abc, return whether line pierces triangle. If
+//so, also return the barycentric coordinates (u,v,w) of the intersection point
+inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
+     vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c,
+    OverlapReal &u, OverlapReal &v, OverlapReal &w)
+    {
+    vec3<OverlapReal> pq = q - p;
+    vec3<OverlapReal> pa = a - p;
+    vec3<OverlapReal> pb = b - p;
+    vec3<OverlapReal> pc = c - p;
+
+    // Test if pq is inside the edges bc, ca and ab. Done by testing
+    // that the signed tetrahedral volumes, computed using scalar triple
+    // products, are all positive
+
+    vec3<OverlapReal> m = cross(pq, pc);
+    u = dot(pb,m);
+    m = cross(pq,pa);
+    v = dot(pc, m);
+    m = cross(pq,pb);
+    w = dot(pa,m);
+    if (detail::signbit(u) != detail::signbit(v) || detail::signbit(u) == detail::signbit(w)) return false;
+
+    // Compute the barycentric coordinates (u, v, w) determining the
+    // intersection point r, r = u*a + v*b + w*c
+    OverlapReal denom = 1.0f / (u + v + w);
+    u *= denom;
+    v *= denom;
+    w *= denom; // w = 1.0f - u - v;
+    return true;
     }
 
 #ifdef DEBUG_OUTPUT
@@ -1048,7 +885,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& b,
                                  unsigned int& err)
     {
-
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
         {
@@ -1124,27 +960,12 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     // no intersecting edge, check if one polyhedron is contained in the other
 
-    // since the origin must be contained within each shape, a zero separation is an overlap
-    const OverlapReal tol(1e-12);
-    if (dot(dr,dr) < tol) return true;
-
     // if shape(A) == shape(B), only consider intersections
     if (&a.data == &b.data) return false;
-
-    // a small rotation angle for perturbation
-    const OverlapReal eps_angle(0.123456);
-
-    // a relative translation amount for perturbation
-    const OverlapReal eps_trans(0.456789);
-
-    // An absolute tolerance.
-    // Possible improvement: make this adaptive as a function of ratios of occuring length scales
-    const OverlapReal abs_tol(1e-7);
 
     for (unsigned int ord = 0; ord < 2; ++ord)
         {
         // load pair of shapes
-        const ShapePolyhedron &s0 = (ord == 0) ? a : b;
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
 
         vec3<OverlapReal> v_a,v_next_a,v_aux_a;
@@ -1161,8 +982,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
         // Check if s0 is contained in s1 by shooting a ray from one of its origin
         // to a point 2*outside the circumsphere of b in direction of the origin separation
-
-
         if (ord == 0)
             {
             v_next_a = dr*(b.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr)));
@@ -1172,203 +991,50 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             v_next_a = -dr*a.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
             }
 
-       bool degenerate = false;
-       unsigned int perturb_count = 0;
-       const unsigned int MAX_PERTURB_COUNT = 10;
-       do
+        unsigned int n_overlap = 0;
+
+        // loop through faces
+        for (unsigned int jface = 0; jface < s1.data.n_faces; jface ++)
             {
-            degenerate = false;
-            unsigned int n_overlap = 0;
+            // fetch next face
+            unsigned int offs_b = s1.data.face_offs[jface];
 
-            // load a second, non-colinear vertex
-            bool collinear = false;
-            unsigned int aux_idx = 0;
-            do
+            if (s1.data.face_offs[jface + 1] - offs_b < 3) continue;
+
+            // Load vertex 0
+            vec3<OverlapReal> v_b[3];
+            unsigned int idx_v = s1.data.face_verts[offs_b];
+            v_b[0].x = s1.data.verts.x[idx_v];
+            v_b[0].y = s1.data.verts.y[idx_v];
+            v_b[0].z = s1.data.verts.z[idx_v];
+            v_b[0] = rotate(quat<OverlapReal>(s1.orientation),v_b[0]);
+
+            // vertex 1
+            idx_v = s1.data.face_verts[offs_b + 1];
+            v_b[1].x = s1.data.verts.x[idx_v];
+            v_b[1].y = s1.data.verts.y[idx_v];
+            v_b[1].z = s1.data.verts.z[idx_v];
+            v_b[1] = rotate(quat<OverlapReal>(s1.orientation),v_b[1]);
+
+            // vertex 2
+            idx_v = s1.data.face_verts[offs_b + 2];
+            v_b[2].x = s1.data.verts.x[idx_v];
+            v_b[2].y = s1.data.verts.y[idx_v];
+            v_b[2].z = s1.data.verts.z[idx_v];
+            v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
+
+            OverlapReal u,v,w;
+            if (IntersectLineTriangle(v_a, v_next_a, v_b[0], v_b[1], v_b[2],u,v,w))
                 {
-                v_aux_a.x = s0.data.verts.x[aux_idx];
-                v_aux_a.y = s0.data.verts.y[aux_idx];
-                v_aux_a.z = s0.data.verts.z[aux_idx];
-                v_aux_a = rotate(quat<OverlapReal>(s0.orientation),v_aux_a);
-
-                if (ord == 0)
-                    {
-                    v_aux_a -= dr;
-                    }
-                else
-                    {
-                    v_aux_a += dr;
-                    }
-
-                // check if collinear
-                vec3<OverlapReal> c = cross(v_next_a - v_a, v_aux_a - v_a);
-                collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                aux_idx++;
-                } while(collinear && aux_idx < s0.data.verts.N);
-
-            if (aux_idx == s0.data.verts.N)
-                {
-                err++;
-                return true;
+                n_overlap++;
                 }
-
-            // loop through faces
-            for (unsigned int jface = 0; jface < s1.data.n_faces; jface ++)
-                {
-                unsigned int nverts, offs_b;
-                bool intersect = false;
-
-                // fetch next face
-                nverts = s1.data.face_offs[jface + 1] - s1.data.face_offs[jface];
-                offs_b = s1.data.face_offs[jface];
-
-                if (nverts < 3) continue;
-
-                // Load vertex 0
-                vec3<OverlapReal> v_next_b;
-                unsigned int idx_v = s1.data.face_verts[offs_b];
-                v_next_b.x = s1.data.verts.x[idx_v];
-                v_next_b.y = s1.data.verts.y[idx_v];
-                v_next_b.z = s1.data.verts.z[idx_v];
-                v_next_b = rotate(quat<OverlapReal>(s1.orientation),v_next_b);
-
-                // vertex 1
-                idx_v = s1.data.face_verts[offs_b + 1];
-                vec3<OverlapReal> v_b;
-                v_b.x = s1.data.verts.x[idx_v];
-                v_b.y = s1.data.verts.y[idx_v];
-                v_b.z = s1.data.verts.z[idx_v];
-                v_b = rotate(quat<OverlapReal>(s1.orientation),v_b);
-
-                // vertex 2
-                idx_v = s1.data.face_verts[offs_b + 2];
-                vec3<OverlapReal> v_aux_b;
-                v_aux_b.x = s1.data.verts.x[idx_v];
-                v_aux_b.y = s1.data.verts.y[idx_v];
-                v_aux_b.z = s1.data.verts.z[idx_v];
-                v_aux_b = rotate(quat<OverlapReal>(s1.orientation),v_aux_b);
-
-                OverlapReal det_h = det_4x4(v_next_b, v_b, v_aux_b, v_a);
-                OverlapReal det_t = det_4x4(v_next_b, v_b, v_aux_b, v_next_a);
-
-                // for edge i to intersect face j, it is a necessary condition that it intersects the supporting plane
-                intersect = CHECK_ZERO(det_h,abs_tol) || CHECK_ZERO(det_t,abs_tol) || detail::signbit(det_h) != detail::signbit(det_t);
-
-                if (intersect)
-                    {
-                    bool overlap = false;
-                    unsigned int n_intersect = 0;
-
-                    for (unsigned int jvert = 0; jvert < nverts; ++jvert)
-                        {
-                        // Load vertex (p_i)
-                        unsigned int idx_v = s1.data.face_verts[offs_b+jvert];
-                        vec3<OverlapReal> v_b;
-                        v_b.x = s1.data.verts.x[idx_v];
-                        v_b.y = s1.data.verts.y[idx_v];
-                        v_b.z = s1.data.verts.z[idx_v];
-                        v_b = rotate(quat<OverlapReal>(s1.orientation),v_b);
-
-                        // Load next vertex (p_i+1)
-                        unsigned int next_vert_b = (jvert + 1 == nverts) ? 0 : jvert + 1;
-                        idx_v = s1.data.face_verts[offs_b + next_vert_b];
-                        vec3<OverlapReal> v_next_b;
-                        v_next_b.x = s1.data.verts.x[idx_v];
-                        v_next_b.y = s1.data.verts.y[idx_v];
-                        v_next_b.z = s1.data.verts.z[idx_v];
-                        v_next_b = rotate(quat<OverlapReal>(s1.orientation),v_next_b);
-
-                        // compute determinants in homogeneous coordinates
-                        OverlapReal det_s = det_4x4(v_a, v_next_a, v_aux_a, v_b);
-                        OverlapReal det_u = det_4x4(v_a, v_next_a, v_aux_a, v_next_b);
-                        OverlapReal det_v = det_4x4(v_a, v_next_a, v_b, v_next_b);
-
-                        if (CHECK_ZERO(det_u, abs_tol) ||CHECK_ZERO(det_s,abs_tol) || CHECK_ZERO(det_v,abs_tol))
-                            {
-                            degenerate = true;
-                            break;
-                            }
-                        /*
-                         * odd-parity rule
-                         */
-                        int v = detail::signbit(det_v) ? -1 : 1;
-
-                        int s = detail::signbit(det_s) ? -1 : 1;
-                        int u = detail::signbit(det_u) ? -1 : 1;
-
-                        if (s*u < 0 && s*v>0)
-                            {
-                            n_intersect++;
-                            }
-                        } // end loop over vertices
-
-                   if (degenerate)
-                        {
-                        break;
-                        }
-
-                   if (n_intersect % 2)
-                        {
-                        overlap = true;
-                        }
-                    if (overlap)
-                        {
-                        n_overlap++;
-                        }
-                    } // end if intersect
-                } // end loop over faces
-
-            if (! degenerate)
-                {
-                // apply odd parity rule
-                if (n_overlap % 2)
-                    {
-                    return true;
-                    }
-                }
-            else
-                {
-                // perturb the end point
-                v_next_a = rotate(quat<OverlapReal>::fromAxisAngle(v_aux_a, eps_angle), v_next_a);
-
-                // find the closest vertex to the origin of the first shape
-                OverlapReal min_dist(FLT_MAX);
-                vec3<OverlapReal> v_min;
-                for (unsigned int i = 0; i < s0.data.verts.N; ++i)
-                    {
-                    vec3<OverlapReal> v;
-                    v.x = s0.data.verts.x[i];
-                    v.y = s0.data.verts.y[i];
-                    v.z = s0.data.verts.z[i];
-
-                    v = rotate(quat<OverlapReal>(s0.orientation), v);
-                    OverlapReal d = fast::sqrt(dot(v,v));
-                    if (d < min_dist)
-                        {
-                        min_dist = d;
-                        v_min = v;
-                        }
-                    }
-
-                // perturb the origin of the ray along the direction of the closest vertex
-                if (ord == 0)
-                    {
-                    v_a += eps_trans*(v_min-v_a+dr)-dr;
-                    }
-                else
-                    {
-                    v_a += eps_trans*(v_min-v_a-dr)+dr;
-                    }
-
-                perturb_count ++;
-                if (perturb_count == MAX_PERTURB_COUNT)
-                    {
-                    err++;
-                    return true;
-                    }
-                }
-            } while (degenerate);
+            }
+        // apply odd parity rule
+        if (n_overlap % 2)
+            {
+            return true;
+            }
         }
-
     return false;
     }
 
