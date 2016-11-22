@@ -325,7 +325,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {}, capacity = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap, self.capacity);
         ct = 0;
         members = self.members;
         for m in members:
@@ -344,7 +344,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None):
+    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
             overlap = [1 for c in centers]
 
@@ -358,5 +358,5 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
                             self.ensure_list(overlap),
                             ignore_statistics,
-                            self.mc.capacity,
+                            capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());

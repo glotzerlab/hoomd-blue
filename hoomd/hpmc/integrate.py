@@ -1018,6 +1018,7 @@ class polyhedron(mode_hpmc):
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+        * .. versionadded:: 2.2
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1586,8 +1587,9 @@ class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
     This shape uses an internal OBB tree for fast collision queries.
-    Depending on the number of constituent spheres in the tree, different values of the number of spheres per leaf
-    node may yield different optimal performance. The capacity of leaf nodes is configurable.
+    Depending on the number of constituent spheres in the tree, different values of the number of
+    spheres per leaf node may yield different optimal performance.
+    The capacity of leaf nodes is configurable.
 
     Args:
         seed (int): Random number seed.
@@ -1598,8 +1600,6 @@ class sphere_union(mode_hpmc):
         implicit (bool): Flag to enable implicit depletants.
         max_members (int): Set the maximum number of members in the sphere union
             * .. deprecated:: 2.2
-        capacity (int): Set to the number of constituent spheres per leaf node
-            * .. versionadded:: 2.2
 
     Sphere union parameters:
 
@@ -1614,6 +1614,8 @@ class sphere_union(mode_hpmc):
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+    * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+        * .. versionadded:: 2.2
 
     Example::
 
@@ -1631,7 +1633,7 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None):
         hoomd.util.print_status_line();
 
         if max_members is not None:
@@ -1661,11 +1663,7 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.capacity = capacity
         self.initialize_shape_params();
-
-        # meta data
-        self.metadata_fields = ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
