@@ -2,7 +2,6 @@
 
 [TOC]
 
-<<<<<<< HEAD
 ## v2.2.0
 
 *New features*
@@ -11,7 +10,6 @@
 Deprecated*
 
 * HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
-
 
 *Bug fixes*
 

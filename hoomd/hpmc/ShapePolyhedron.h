@@ -763,7 +763,7 @@ inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
     v = dot(pc, m);
     m = cross(pq,pb);
     w = dot(pa,m);
-    if (detail::signbit(u) != detail::signbit(v) || detail::signbit(u) == detail::signbit(w)) return false;
+    if (detail::signbit(u) != detail::signbit(v) || detail::signbit(u) != detail::signbit(w)) return false;
 
     // Compute the barycentric coordinates (u, v, w) determining the
     // intersection point r, r = u*a + v*b + w*c
@@ -966,14 +966,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             }
 
         // Check if s0 is contained in s1 by shooting a ray from one of its origin
-        // to a point 2*outside the circumsphere of b in direction of the origin separation
+        // to a point outside the circumsphere of b in direction of the origin separation
         if (ord == 0)
             {
-            v_next_a = dr*(b.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr)));
+            v_next_a = v_a+dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
             }
         else
             {
-            v_next_a = -dr*a.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
+            v_next_a = v_a-dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
             }
 
         unsigned int n_overlap = 0;
