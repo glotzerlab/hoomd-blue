@@ -152,6 +152,7 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
 //! Helper function to build poly3d_data from python
 inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
+                             unsigned int leaf_capacity,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ShapePolyhedron::param_type result;
@@ -199,25 +200,13 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         result.data.face_verts[i] = j;
         }
 
-    hpmc::detail::OBB *obbs;
-    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*len(face_offs));
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned OBB memory.");
-        }
-
+    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[len(face_offs)];
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
     // construct bounding box tree
     for (unsigned int i = 0; i < len(face_offs)-1; ++i)
         {
         std::vector<vec3<OverlapReal> > face_vec;
-
-        unsigned int nverts = result.data.face_offs[i+1] - result.data.face_offs[i];
-        if (nverts > 3 && R != OverlapReal(0.0))
-            {
-            throw std::runtime_error("With finite rounding radii, only faces with <= 3 vertices are supported.\n");
-            }
 
         for (unsigned int j = result.data.face_offs[i]; j < result.data.face_offs[i+1]; ++j)
             {
@@ -232,10 +221,10 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         internal_coordinates.push_back(face_vec);
         }
 
-    ShapePolyhedron::gpu_tree_type::obb_tree_type tree;
-    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
+    OBBTree tree;
+    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1, leaf_capacity);
     result.tree = ShapePolyhedron::gpu_tree_type(tree, exec_conf->isCUDAEnabled());
-    free(obbs);
+    delete [] obbs;
 
     // set the diameter
     result.data.verts.diameter = 2*(sqrt(radius_sq)+result.data.verts.sweep_radius);
@@ -373,15 +362,16 @@ sphinx3d_params make_sphinx3d_params(pybind11::list diameters, pybind11::list ce
     }
 
 //! Templated helper function to build shape union params from constituent shape params
-template<class Shape, unsigned int capacity>
-typename ShapeUnion<Shape,capacity>::param_type make_union_params(pybind11::list _members,
+template<class Shape>
+typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members,
                                         pybind11::list positions,
                                         pybind11::list orientations,
                                         pybind11::list overlap,
                                         bool ignore_stats,
+                                        unsigned int leaf_capacity,
                                         std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    typename ShapeUnion<Shape,capacity>::param_type result(len(_members), exec_conf->isCUDAEnabled());
+    typename ShapeUnion<Shape>::param_type result(len(_members), exec_conf->isCUDAEnabled());
 
     if (len(positions) != result.N)
         {
@@ -399,12 +389,7 @@ typename ShapeUnion<Shape,capacity>::param_type make_union_params(pybind11::list
 
     result.ignore = ignore_stats;
 
-    hpmc::detail::OBB *obbs;
-    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*result.N);
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned OBB memory.");
-        }
+    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[result.N];
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
@@ -437,10 +422,10 @@ typename ShapeUnion<Shape,capacity>::param_type make_union_params(pybind11::list
     result.diameter = diameter;
 
     // build tree and store GPU accessible version in parameter structure
-    typedef typename ShapeUnion<Shape, capacity>::param_type::gpu_tree_type gpu_tree_type;
-    typename gpu_tree_type::obb_tree_type tree;
-    tree.buildTree(obbs, result.N);
-    free(obbs);
+    typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
+    OBBTree tree;
+    tree.buildTree(obbs, result.N, leaf_capacity);
+    delete [] obbs;
     result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
 
     return result;
@@ -737,8 +722,8 @@ public:
 template< class ShapeUnionType>
 struct get_member_type{};
 
-template<class BaseShape, unsigned int capacity>
-struct get_member_type< ShapeUnion<BaseShape, capacity> >
+template<class BaseShape>
+struct get_member_type< ShapeUnion<BaseShape> >
     {
     typedef typename BaseShape::param_type type;
     typedef BaseShape base_shape;
@@ -747,8 +732,8 @@ struct get_member_type< ShapeUnion<BaseShape, capacity> >
 template< typename Shape, typename ShapeUnionType, typename AccessType>
 struct get_member_proxy{};
 
-template<typename Shape, unsigned int capacity, typename AccessType >
-struct get_member_proxy<Shape, ShapeUnion<ShapeSphere, capacity>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
+template<typename Shape, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeSphere>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
 
 template< class ShapeUnionType >
@@ -978,12 +963,12 @@ void export_sphinx_proxy(pybind11::module& m, std::string class_name)
 
     }
 
-template<class Shape, unsigned int capacity, class ExportFunction >
+template<class Shape, class ExportFunction >
 void export_shape_union_proxy(pybind11::module& m, std::string class_name, ExportFunction& export_member_proxy)
     {
     using detail::shape_param_proxy;
     using detail::shape_union_param_proxy;
-    typedef ShapeUnion<Shape, capacity>                     ShapeType;
+    typedef ShapeUnion<Shape>                     ShapeType;
     typedef shape_param_proxy<ShapeType>                    proxy_base;
     typedef shape_union_param_proxy<ShapeType, ShapeType>   proxy_class;
 
@@ -1019,12 +1004,7 @@ void export_shape_params(pybind11::module& m)
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
     export_sphinx_proxy(m, "sphinx3d_param_proxy");
-    export_shape_union_proxy<ShapeSphere, 1>(m, "sphere_union_param_proxy1", export_sphere_proxy<ShapeUnion<ShapeSphere, 1>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 1> > >);
-    export_shape_union_proxy<ShapeSphere, 2>(m, "sphere_union_param_proxy2", export_sphere_proxy<ShapeUnion<ShapeSphere, 2>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 2> > >);
-    export_shape_union_proxy<ShapeSphere, 4>(m, "sphere_union_param_proxy4", export_sphere_proxy<ShapeUnion<ShapeSphere, 4>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 4> > >);
-    export_shape_union_proxy<ShapeSphere, 8>(m, "sphere_union_param_proxy8", export_sphere_proxy<ShapeUnion<ShapeSphere, 8>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 8> > >);
-    export_shape_union_proxy<ShapeSphere, 16>(m, "sphere_union_param_proxy16", export_sphere_proxy<ShapeUnion<ShapeSphere, 16>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 16> > >);
-    export_shape_union_proxy<ShapeSphere, 32>(m, "sphere_union_param_proxy32", export_sphere_proxy<ShapeUnion<ShapeSphere, 32>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 32> > >);
+    export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > > );
     }
 
 } // end namespace hpmc

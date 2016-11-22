@@ -39,20 +39,6 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of faces that can be stored
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACES=25000;
-
-//! maximum number of vertices per face
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACE_VERTS=4;
-
-//! Maximum number of OBB Tree nodes
-const unsigned int MAX_POLY3D_NODES=5000;
-
-//! Maximum number of faces per OBB tree leaf node
-const unsigned int MAX_POLY3D_CAPACITY=2;
-
 //! Data structure for general polytopes
 /*! \ingroup hpmc_data_structs */
 
@@ -125,7 +111,7 @@ static __device__ int warp_reduce(int val, int width)
 */
 struct ShapePolyhedron
     {
-    typedef detail::GPUTree<detail::MAX_POLY3D_CAPACITY> gpu_tree_type;
+    typedef detail::GPUTree gpu_tree_type;
 
     //! Define the parameter type
     typedef struct : public param_base {
@@ -916,8 +902,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int stride = 1;
     #endif
 
-    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_a = a.tree;
-    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_b = b.tree;
+    const detail::GPUTree& tree_a = a.tree;
+    const detail::GPUTree& tree_b = b.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {

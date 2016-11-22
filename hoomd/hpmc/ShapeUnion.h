@@ -34,10 +34,10 @@ namespace detail
 {
 
 //! Data structure for shape composed of a union of multiple shapes
-template<class Shape, unsigned int capacity>
+template<class Shape>
 struct union_params : param_base
     {
-    typedef GPUTree<capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
+    typedef GPUTree gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
 
     //! Default constructor
@@ -107,11 +107,11 @@ struct union_params : param_base
 
     ShapeUnion stores an internal OBB tree for fast overlap checks.
 */
-template<class Shape, unsigned int capacity=4>
+template<class Shape>
 struct ShapeUnion
     {
     //! Define the parameter type
-    typedef typename detail::union_params<Shape, capacity> param_type;
+    typedef typename detail::union_params<Shape> param_type;
 
     //! Initialize a sphere_union
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
@@ -175,9 +175,9 @@ struct ShapeUnion
 
     \ingroup shape
 */
-template <class Shape, unsigned int capacity>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape, capacity>& a,
-    const ShapeUnion<Shape, capacity> &b)
+template <class Shape>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
+    const ShapeUnion<Shape> &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -186,10 +186,10 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-template<class Shape, unsigned int capacity>
+template<class Shape>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
-                                             const ShapeUnion<Shape, capacity>& a,
-                                             const ShapeUnion<Shape, capacity>& b,
+                                             const ShapeUnion<Shape>& a,
+                                             const ShapeUnion<Shape>& b,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
@@ -240,10 +240,10 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     return false;
     }
 
-template <class Shape, unsigned int capacity >
+template <class Shape >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeUnion<Shape, capacity >& a,
-                                const ShapeUnion<Shape, capacity >& b,
+                                const ShapeUnion<Shape>& a,
+                                const ShapeUnion<Shape>& b,
                                 unsigned int& err)
     {
     #ifdef NVCC
@@ -255,8 +255,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int stride = 1;
     #endif
 
-    const detail::GPUTree<capacity>& tree_a = a.members.tree;
-    const detail::GPUTree<capacity>& tree_b = b.members.tree;
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {

@@ -28,16 +28,9 @@ namespace detail
 {
 
 //! Adapter class to AABTree for query on the GPU
-template<unsigned int node_capacity>
 class GPUTree
     {
     public:
-        #ifndef NVCC
-        typedef OBBTree<node_capacity> obb_tree_type;
-        #endif
-
-        enum { capacity = node_capacity } Enum;
-
         //! Empty constructor
         GPUTree()
             : m_num_nodes(0), m_num_leaves(0)
@@ -48,7 +41,7 @@ class GPUTree
         /*! \param tree OBBTree to construct from
          *  \param managed True if we use CUDA managed memory
          */
-        GPUTree(const obb_tree_type &tree, bool managed=false)
+        GPUTree(const OBBTree &tree, bool managed=false)
             {
             // allocate
             m_num_nodes = tree.getNumNodes();

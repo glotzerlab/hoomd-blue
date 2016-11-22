@@ -224,15 +224,15 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','sweep_radius'];
+        self._keys += ['vertices', 'faces','sweep_radius', 'capacity'];
         self.make_fn = _hpmc.make_poly3d_data;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {})".format(self.vertices, self.faces,self.sweep_radius);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {})".format(self.vertices, self.faces,self.sweep_radius, capacity);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, capacity=4):
         face_offs = []
         face_verts = []
         offs = 0
@@ -255,6 +255,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
                             self.ensure_list(face_offs),
                             float(sweep_radius),
                             ignore_statistics,
+                            capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
@@ -314,13 +315,13 @@ class ellipsoid_params(_hpmc.ell_param_proxy, _param):
                             float(c),
                             ignore_statistics);
 
-class sphere_union_params(_param):
+class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
     def __init__(self, mc, index):
-        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
+        _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
         self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
-        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_sphere_union_params", self.mc.capacity);
+        self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
         # should we put this in the c++ side?
@@ -332,11 +333,6 @@ class sphere_union_params(_param):
             string+="sphere-{}(d = {}){}".format(ct, m.diameter, end)
             ct+=1
         return string;
-
-    @classmethod
-    def get_sized_class(cls, capacity):
-        sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", capacity);
-        return type(cls.__name__ + str(capacity), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
 
     def get_metadata(self):
         data = {}
@@ -362,4 +358,5 @@ class sphere_union_params(_param):
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
                             self.ensure_list(overlap),
                             ignore_statistics,
+                            self.mc.capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
