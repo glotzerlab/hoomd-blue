@@ -332,7 +332,7 @@ DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max)
 // S2(t)=P2+t*(Q2-P2), returning s and t. Function result is squared
 // distance between between S1(s) and S2(t)
 DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, const vec3<OverlapReal>& q1,
-    const vec3<OverlapReal>& p2, const vec3<OverlapReal>& q2, OverlapReal &s, OverlapReal &t, vec3<OverlapReal> &c1, vec3<OverlapReal> &c2)
+    const vec3<OverlapReal>& p2, const vec3<OverlapReal>& q2, OverlapReal &s, OverlapReal &t, vec3<OverlapReal> &c1, vec3<OverlapReal> &c2, OverlapReal abs_tol)
     {
     vec3<OverlapReal> d1 = q1 - p1; // Direction vector of segment S1
     vec3<OverlapReal> d2 = q2 - p2; // Direction vector of segment S2
@@ -341,10 +341,8 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
     OverlapReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
     OverlapReal f = dot(d2, r);
 
-    const OverlapReal EPSILON(1e-6);
-
     // Check if either or both segments degenerate into points
-    if (a <= EPSILON && e <= EPSILON)
+    if (CHECK_ZERO(a,abs_tol) && CHECK_ZERO(e,abs_tol))
         {
         // Both segments degenerate into points
         s = t = OverlapReal(0.0);
@@ -353,7 +351,7 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
         return dot(c1 - c2, c1 - c2);
         }
 
-    if (a <= EPSILON) {
+    if (CHECK_ZERO(a, abs_tol)) {
         // First segment degenerates into a point
         s = OverlapReal(0.0);
         t = f / e; // s = 0 => t = (b*s + f) / e = f / e
@@ -362,7 +360,7 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
     else
         {
         OverlapReal c = dot(d1, r);
-        if (e <= EPSILON)
+        if (CHECK_ZERO(e, abs_tol))
             {
             // Second segment degenerates into a point
             t = OverlapReal(0.0);
@@ -510,49 +508,49 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     const vec3<OverlapReal> &c1,
     const vec3<OverlapReal> &a2,
     const vec3<OverlapReal> &b2,
-    const vec3<OverlapReal> &c2)
+    const vec3<OverlapReal> &c2,
+    OverlapReal abs_tol)
     {
     // nine pairs of edges
     OverlapReal dmin_sq(FLT_MAX);
 
-    vec3<OverlapReal> edge1, edge2;
     vec3<OverlapReal> p1, p2;
     OverlapReal s,t;
 
     OverlapReal dsq;
-    dsq = closestPtSegmentSegment(a1,b1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,b1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,b1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
@@ -932,7 +930,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
                 if (nverts_b > 1 && nverts_a > 1)
                     {
-                    dsqmin = shortest_distance_triangles(a0, a1, a2, b0, b1, b2);
+                    dsqmin = shortest_distance_triangles(a0, a1, a2, b0, b1, b2, abs_tol);
                     }
 
                 if (nverts_a == 1 && nverts_b == 1)
