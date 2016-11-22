@@ -599,9 +599,8 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               unsigned int cur_node_b,
                                               unsigned int &err)
     {
-    // An absolute tolerance.
-    // Possible improvement: make this adaptive as a function of ratios of occuring length scales
-    const OverlapReal abs_tol(1e-16);
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    const OverlapReal abs_tol(DaDb*1e-14);
 
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
