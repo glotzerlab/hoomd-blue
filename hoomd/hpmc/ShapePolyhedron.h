@@ -755,7 +755,7 @@ inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
 
     // Test if pq is inside the edges bc, ca and ab. Done by testing
     // that the signed tetrahedral volumes, computed using scalar triple
-    // products, are all positive
+    // products, are all of the same sign
 
     vec3<OverlapReal> m = cross(pq, pc);
     u = dot(pb,m);
