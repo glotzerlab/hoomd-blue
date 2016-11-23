@@ -744,7 +744,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 // From Real-time Collision Detection (Christer Ericson)
 //Given line pq and ccw triangle abc, return whether line pierces triangle. If
 //so, also return the barycentric coordinates (u,v,w) of the intersection point
-inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
+DEVICE inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
      vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c,
     OverlapReal &u, OverlapReal &v, OverlapReal &w)
     {

@@ -18,6 +18,15 @@
 #include <math.h>
 #define FABS(x) (float(fabs(x)))        /* implement as is fastest on your machine */
 
+// need to declare these class methods with __device__ qualifiers when building in nvcc
+// DEVICE is __device__ when included in nvcc and blank when included into the host compiler
+#ifdef NVCC
+#define DEVICE __device__
+#else
+#define DEVICE
+#include <iostream>
+#endif
+
 /* if USE_EPSILON_TEST is true then we do a check:
          if |dv|<EPSILON then dv=0.0;
    else no check is done (which is less robust)
@@ -111,7 +120,7 @@
   }                                         \
 }
 
-inline int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
+DEVICE inline int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
                      float U0[3],float U1[3],float U2[3])
 {
    float A[3];
@@ -197,7 +206,7 @@ inline int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
 
 
 
-inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
+DEVICE inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
                      float U0[3],float U1[3],float U2[3])
 {
   float E1[3],E2[3];
