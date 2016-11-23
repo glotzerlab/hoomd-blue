@@ -1157,17 +1157,16 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos
     DaDb = shape_depletant.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
     circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-    if (h_overlaps[this->m_overlap_idx(m_type, typ_i)]
-        && circumsphere_overlap && test_overlap(r_ij, shape_depletant, shape_i, overlap_err_count))
-        {
-        // if we are already overlapping in the other configuration, this doesn't count as an insertion
-        overlap_shape = false;
-        }
-
     // check for overlaps with neighboring particle's positions
     bool overlap=false;
 
-    if (overlap_shape)
+    if (h_overlaps[this->m_overlap_idx(m_type, typ_i)]
+        && circumsphere_overlap && test_overlap(r_ij, shape_depletant, shape_i, overlap_err_count))
+        {
+        overlap = true;
+        }
+
+    if (!overlap && overlap_shape)
         {
         // All image boxes (including the primary)
         const unsigned int n_images = this->m_image_list.size();
