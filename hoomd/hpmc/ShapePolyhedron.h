@@ -596,6 +596,30 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
         {
         unsigned int iface = a.tree.getParticle(cur_node_a, i);
 
+        // Load number of face vertices
+        unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
+        unsigned int offs_a = a.data.face_offs[iface];
+
+        float U[3][3];
+
+        if (nverts_a > 2)
+            {
+            // check collision between triangles
+            vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
+            quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
+
+            for (unsigned int ivert = 0; ivert < 3; ++ivert)
+                {
+                unsigned int idx_a = a.data.face_verts[offs_a+ivert];
+                vec3<float> v;
+                v.x = a.data.verts.x[idx_a];
+                v.y = a.data.verts.y[idx_a];
+                v.z = a.data.verts.z[idx_a];
+                v = rotate(q,v) + dr;
+                U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
+                }
+            }
+
         // loop through faces of cur_node_b
         for (unsigned int j= 0; j< nb; j++)
             {
@@ -603,32 +627,12 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
             unsigned int jface = b.tree.getParticle(cur_node_b, j);
 
-            // Load number of face vertices
-            unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
-            unsigned int offs_a = a.data.face_offs[iface];
-
             // fetch next face of particle b
             nverts_b = b.data.face_offs[jface + 1] - b.data.face_offs[jface];
             offs_b = b.data.face_offs[jface];
 
             if (nverts_a > 2 && nverts_b > 2)
                 {
-                // check collision between triangles
-                vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
-                quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
-
-                float U[3][3];
-                for (unsigned int ivert = 0; ivert < 3; ++ivert)
-                    {
-                    unsigned int idx_a = a.data.face_verts[offs_a+ivert];
-                    vec3<float> v;
-                    v.x = a.data.verts.x[idx_a];
-                    v.y = a.data.verts.y[idx_a];
-                    v.z = a.data.verts.z[idx_a];
-                    v = rotate(q,v) + dr;
-                    U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
-                    }
-
                 float V[3][3];
                 for (unsigned int ivert = 0; ivert < 3; ++ivert)
                     {
