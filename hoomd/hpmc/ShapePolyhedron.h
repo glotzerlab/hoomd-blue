@@ -759,11 +759,11 @@ inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
 
     vec3<OverlapReal> m = cross(pq, pc);
     u = dot(pb,m);
-    m = cross(pq,pa);
-    v = dot(pc, m);
+    v = -dot(pa, m);
+    if (detail::signbit(u) != detail::signbit(v)) return false;
     m = cross(pq,pb);
     w = dot(pa,m);
-    if (detail::signbit(u) != detail::signbit(v) || detail::signbit(u) != detail::signbit(w)) return false;
+    if (detail::signbit(u) != detail::signbit(w)) return false;
 
     // Compute the barycentric coordinates (u, v, w) determining the
     // intersection point r, r = u*a + v*b + w*c
@@ -946,14 +946,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     // no intersecting edge, check if one polyhedron is contained in the other
 
     // if shape(A) == shape(B), only consider intersections
-    if (&a.data == &b.data) return false;
+    if (&a.data == &b.data && dot(dr,dr) != OverlapReal(0.0) ) return false;
 
     for (unsigned int ord = 0; ord < 2; ++ord)
         {
         // load pair of shapes
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
 
-        vec3<OverlapReal> v_a,v_next_a,v_aux_a;
+        vec3<OverlapReal> v_a,v_next_a;
 
         // the origin vertex is (0,0,0), and must be contained in the shape
         if (ord == 0)
