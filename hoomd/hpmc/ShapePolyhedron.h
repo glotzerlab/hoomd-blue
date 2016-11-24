@@ -644,7 +644,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     V[ivert][0] = v.x; V[ivert][1] = v.y; V[ivert][2] = v.z;
                     }
 
-                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2])) return true;
+                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2],abs_tol)) return true;
                 }
 
             if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())

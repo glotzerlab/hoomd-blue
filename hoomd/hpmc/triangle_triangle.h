@@ -207,7 +207,7 @@ DEVICE inline int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3
 
 
 DEVICE inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
-                     float U0[3],float U1[3],float U2[3])
+                     float U0[3],float U1[3],float U2[3], float abs_tol)
 {
   float E1[3],E2[3];
   float N1[3],N2[3],d1,d2;
@@ -234,9 +234,9 @@ DEVICE inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
 
   /* coplanarity robustness check */
 #if USE_EPSILON_TEST==TRUE
-  if(FABS(du0)<EPSILON) du0=0.0;
-  if(FABS(du1)<EPSILON) du1=0.0;
-  if(FABS(du2)<EPSILON) du2=0.0;
+  if(FABS(du0)<abs_tol) du0=0.0;
+  if(FABS(du1)<abs_tol) du1=0.0;
+  if(FABS(du2)<abs_tol) du2=0.0;
 #endif
   du0du1=du0*du1;
   du0du2=du0*du2;
@@ -257,9 +257,9 @@ DEVICE inline int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
   dv2=DOT(N2,V2)+d2;
 
 #if USE_EPSILON_TEST==TRUE
-  if(FABS(dv0)<EPSILON) dv0=0.0;
-  if(FABS(dv1)<EPSILON) dv1=0.0;
-  if(FABS(dv2)<EPSILON) dv2=0.0;
+  if(FABS(dv0)<abs_tol) dv0=0.0;
+  if(FABS(dv1)<abs_tol) dv1=0.0;
+  if(FABS(dv2)<abs_tol) dv2=0.0;
 #endif
 
   dv0dv1=dv0*dv1;
