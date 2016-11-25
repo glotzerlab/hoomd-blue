@@ -177,6 +177,12 @@ class OBBTree
             return (m_nodes[node].particles[j]);
             }
 
+        //! Get the capacity of leaf nodes
+        unsigned int getLeafNodeCapacity() const
+            {
+            return m_leaf_capacity;
+            }
+
     private:
         OBBNode *m_nodes;                  //!< The nodes of the tree
         unsigned int m_num_nodes;           //!< Number of nodes

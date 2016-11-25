@@ -153,18 +153,20 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
 inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
                              unsigned int leaf_capacity,
+                             pybind11::tuple origin,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ShapePolyhedron::param_type result;
-    result.data = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
-    result.data.ignore = ignore_stats;
-    result.data.verts.sweep_radius = R;
-    result.data.n_faces = len(face_offs)-1;
+    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
+    result.ignore = ignore_stats;
+    result.verts.sweep_radius = R;
+    result.n_faces = len(face_offs)-1;
+    result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
 
     for (unsigned int i = 0; i < len(face_offs); i++)
         {
         unsigned int offs = pybind11::cast<unsigned int>(face_offs[i]);
-        result.data.face_offs[i] = offs;
+        result.face_offs[i] = offs;
         }
 
     // extract the verts from the python list and compute the radius on the way
@@ -176,28 +178,28 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         vert.x = pybind11::cast<OverlapReal>(v[0]);
         vert.y = pybind11::cast<OverlapReal>(v[1]);
         vert.z = pybind11::cast<OverlapReal>(v[2]);
-        result.data.verts.x[i] = vert.x;
-        result.data.verts.y[i] = vert.y;
-        result.data.verts.z[i] = vert.z;
+        result.verts.x[i] = vert.x;
+        result.verts.y[i] = vert.y;
+        result.verts.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = len(verts); i < result.data.verts.N; i++)
+    for (unsigned int i = len(verts); i < result.verts.N; i++)
         {
-        result.data.verts.x[i] = 0;
-        result.data.verts.y[i] = 0;
-        result.data.verts.z[i] = 0;
+        result.verts.x[i] = 0;
+        result.verts.y[i] = 0;
+        result.verts.z[i] = 0;
         }
 
     for (unsigned int i = 0; i < len(face_verts); i++)
         {
         unsigned int j = pybind11::cast<unsigned int>(face_verts[i]);
-        if (j >= result.data.verts.N)
+        if (j >= result.verts.N)
             {
             std::ostringstream oss;
             oss << "Invalid vertex index " << j << " specified" << std::endl;
             throw std::runtime_error(oss.str());
             }
-        result.data.face_verts[i] = j;
+        result.face_verts[i] = j;
         }
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[len(face_offs)];
@@ -208,26 +210,26 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         {
         std::vector<vec3<OverlapReal> > face_vec;
 
-        for (unsigned int j = result.data.face_offs[i]; j < result.data.face_offs[i+1]; ++j)
+        for (unsigned int j = result.face_offs[i]; j < result.face_offs[i+1]; ++j)
             {
             vec3<OverlapReal> v;
-            v.x = result.data.verts.x[result.data.face_verts[j]];
-            v.y = result.data.verts.y[result.data.face_verts[j]];
-            v.z = result.data.verts.z[result.data.face_verts[j]];
+            v.x = result.verts.x[result.face_verts[j]];
+            v.y = result.verts.y[result.face_verts[j]];
+            v.z = result.verts.z[result.face_verts[j]];
 
             face_vec.push_back(v);
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, result.data.verts.sweep_radius);
+        obbs[i] = hpmc::detail::compute_obb(face_vec, result.verts.sweep_radius);
         internal_coordinates.push_back(face_vec);
         }
 
     OBBTree tree;
-    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1, leaf_capacity);
-    result.tree = ShapePolyhedron::gpu_tree_type(tree, exec_conf->isCUDAEnabled());
+    tree.buildTree(obbs, internal_coordinates, result.verts.sweep_radius, len(face_offs)-1, leaf_capacity);
+    result.tree = GPUTree(tree, exec_conf->isCUDAEnabled());
     delete [] obbs;
 
     // set the diameter
-    result.data.verts.diameter = 2*(sqrt(radius_sq)+result.data.verts.sweep_radius);
+    result.verts.diameter = 2*(sqrt(radius_sq)+result.verts.sweep_radius);
 
     return result;
     }
@@ -450,9 +452,9 @@ template< >
 struct access < ShapePolyhedron >
     {
     template< class ParamType >
-    typename get_param_data_type<ShapePolyhedron>::type& operator()(ParamType& param) { return param.data; }
+    typename get_param_data_type<ShapePolyhedron>::type& operator()(ParamType& param) { return param; }
     template< class ParamType >
-    const typename get_param_data_type<ShapePolyhedron>::type& operator()(const ParamType& param) const  { return param.data; }
+    const typename get_param_data_type<ShapePolyhedron>::type& operator()(const ParamType& param) const  { return param; }
     };
 
 template < typename Shape , typename AccessType = access<Shape> >
@@ -619,10 +621,23 @@ public:
         return faces;
         }
 
+    pybind11::tuple getOrigin()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        vec3<OverlapReal> origin(m_access(params[m_typeid]).origin);
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
     OverlapReal getSweepRadius() const
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         return m_access(params[m_typeid]).verts.sweep_radius;
+        }
+
+    unsigned int getCapacity() const
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).tree.getLeafNodeCapacity();
         }
 };
 
@@ -919,7 +934,9 @@ void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("vertices", &proxy_class::getVerts)
     .def_property_readonly("faces", &proxy_class::getFaces)
+    .def_property_readonly("origin", &proxy_class::getOrigin)
     .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
+    .def_property_readonly("capacity", &proxy_class::getCapacity)
     ;
     }
 

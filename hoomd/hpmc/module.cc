@@ -83,7 +83,6 @@ PYBIND11_PLUGIN(_hpmc)
     py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
     py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
     py::class_< poly3d_verts, std::shared_ptr< poly3d_verts > >(m, "poly3d_verts");
-    py::class_<ShapePolyhedron::param_type, std::shared_ptr<ShapePolyhedron::param_type> >(m, "poly3d_params");
     py::class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >(m, "faceted_sphere_params");
     py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);

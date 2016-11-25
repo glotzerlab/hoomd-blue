@@ -1007,8 +1007,8 @@ class polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
-          don't put the origin right next to a face).
+        * The (0,0,0) centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+          don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
@@ -1018,6 +1018,8 @@ class polyhedron(mode_hpmc):
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+        * .. versionadded:: 2.2
+    * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
         * .. versionadded:: 2.2
 
     Warning:
@@ -1042,7 +1044,7 @@ class polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
             (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
-            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
+            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces, origin = (0,0,0));
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();

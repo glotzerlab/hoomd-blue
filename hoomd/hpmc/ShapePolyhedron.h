@@ -57,11 +57,13 @@ struct poly3d_data : param_base
         }
     #endif
 
+    GPUTree tree;                                   //!< Tree for fast locality lookups
     poly3d_verts verts;                             //!< Holds parameters of convex hull
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
+    vec3<OverlapReal> origin;                       //!< A point *inside* the surface
 
      //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
@@ -70,6 +72,7 @@ struct poly3d_data : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
         {
+        tree.load_shared(ptr, load, ptr_max);
         verts.load_shared(ptr, load, ptr_max);
         face_offs.load_shared(ptr, load, ptr_max);
         face_verts.load_shared(ptr, load, ptr_max);
@@ -79,6 +82,7 @@ struct poly3d_data : param_base
     //! Attach managed memory to CUDA stream
     void attach_to_stream(cudaStream_t stream) const
         {
+        tree.attach_to_stream(stream);
         verts.attach_to_stream(stream);
         face_offs.attach_to_stream(stream);
         face_verts.attach_to_stream(stream);
@@ -111,41 +115,12 @@ static __device__ int warp_reduce(int val, int width)
 */
 struct ShapePolyhedron
     {
-    typedef detail::GPUTree gpu_tree_type;
-
     //! Define the parameter type
-    typedef struct : public param_base {
-        detail::poly3d_data data;
-        gpu_tree_type tree;
-
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
-
-         */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
-            {
-            tree.load_shared(ptr, load, ptr_max);
-            data.load_shared(ptr, load, ptr_max);
-            }
-
-        #ifdef ENABLE_CUDA
-        //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
-            {
-            // attach managed memory arrays to stream
-            tree.attach_to_stream(stream);
-            data.attach_to_stream(stream);
-            }
-        #endif
-        }
-        param_type;
+    typedef detail::poly3d_data param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
-        : orientation(_orientation),
-        data(_params.data), tree(_params.tree)
+        : orientation(_orientation), data(_params), tree(_params.tree)
         {
         }
 
@@ -187,7 +162,7 @@ struct ShapePolyhedron
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_data& data;     //!< Vertices
-    const gpu_tree_type &tree;           //!< Tree for particle features
+    const detail::GPUTree &tree;           //!< Tree for particle features
     };
 
 DEVICE inline OverlapReal det_4x4(vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c, vec3<OverlapReal> d)
@@ -203,6 +178,7 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     vec3<OverlapReal> ac = c - a;
     vec3<OverlapReal> ap = p - a;
 
+    #if 1
     OverlapReal d1 = dot(ab, ap);
     OverlapReal d2 = dot(ac, ap);
     if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
@@ -247,6 +223,7 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     OverlapReal v = vb * denom;
     OverlapReal w = vc * denom;
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
+    #endif
 
     #if 0
     vec3<OverlapReal> bc = c - b;
@@ -273,7 +250,7 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
 
     // P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
     vec3<OverlapReal> n = cross(b-a, c-a);
-    vec3<OverlapReal> vc = dot(n, cross(a-p,b-p));
+    OverlapReal vc = dot(n, cross(a-p,b-p));
 
     // If P outside AB and within feature region of AB,
     // return projection of P onto AB
@@ -293,8 +270,8 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
 
     // If P outside CA and within feature region of CA,
     // return projection of P onto CA
-    if (vb <= OverlapREal(0.0) && tnom >= OverlapReal(0.0) && tdenom >= OverlapReal(0.0))
-        return a + tnom / (tnom + denom) * ac;
+    if (vb <= OverlapReal(0.0) && tnom >= OverlapReal(0.0) && tdenom >= OverlapReal(0.0))
+        return a + tnom / (tnom + tdenom) * ac;
 
     // P must project inside the face region. Compute Q using barycentric coordinates
     OverlapReal u = va / (va + vb + vc);
@@ -317,7 +294,7 @@ DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max)
 // Computes closest points C1 and C2 of S1(s)=P1+s*(Q1-P1) and
 // S2(t)=P2+t*(Q2-P2), returning s and t. Function result is squared
 // distance between between S1(s) and S2(t)
-DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, const vec3<OverlapReal>& q1,
+DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1, const vec3<OverlapReal>& q1,
     const vec3<OverlapReal>& p2, const vec3<OverlapReal>& q2, OverlapReal &s, OverlapReal &t, vec3<OverlapReal> &c1, vec3<OverlapReal> &c2, OverlapReal abs_tol)
     {
     vec3<OverlapReal> d1 = q1 - p1; // Direction vector of segment S1
@@ -377,12 +354,11 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
                 t = OverlapReal(0.0);
                 s = clamp(-c / a, OverlapReal(0.0), OverlapReal(1.0));
                 }
-             else
-                 if (t > OverlapReal(1.0))
-                    {
-                    t = OverlapReal(1.0);
-                    s = clamp((b - c) / a, OverlapReal(0.0), OverlapReal(1.0));
-                    }
+             else if (t > OverlapReal(1.0))
+                {
+                t = OverlapReal(1.0);
+                s = clamp((b - c) / a, OverlapReal(0.0), OverlapReal(1.0));
+                }
              }
         }
 
@@ -586,7 +562,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               unsigned int &err)
     {
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    const OverlapReal abs_tol(DaDb*1e-14);
+    const OverlapReal abs_tol(DaDb*1e-12);
 
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
@@ -602,12 +578,11 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
         float U[3][3];
 
+        vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
+        quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
+
         if (nverts_a > 2)
             {
-            // check collision between triangles
-            vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
-            quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
-
             for (unsigned int ivert = 0; ivert < 3; ++ivert)
                 {
                 unsigned int idx_a = a.data.face_verts[offs_a+ivert];
@@ -644,14 +619,15 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     V[ivert][0] = v.x; V[ivert][1] = v.y; V[ivert][2] = v.z;
                     }
 
-                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2],abs_tol)) return true;
+                // check collision between triangles
+                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2],abs_tol))
+                    {
+                    return true;
+                    }
                 }
 
             if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
                 {
-                vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
-                quat<OverlapReal> q = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation);
-
                 OverlapReal dsqmin(FLT_MAX);
 
                 // Load vertex 0 on a
@@ -748,8 +724,8 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 // From Real-time Collision Detection (Christer Ericson)
 //Given line pq and ccw triangle abc, return whether line pierces triangle. If
 //so, also return the barycentric coordinates (u,v,w) of the intersection point
-DEVICE inline bool IntersectLineTriangle(vec3<OverlapReal> p, vec3<OverlapReal> q,
-     vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c,
+DEVICE inline bool IntersectLineTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
+     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c,
     OverlapReal &u, OverlapReal &v, OverlapReal &w)
     {
     vec3<OverlapReal> pq = q - p;
@@ -957,27 +933,26 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // load pair of shapes
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
 
-        vec3<OverlapReal> v_a,v_next_a;
+        vec3<OverlapReal> p,q;
 
-        // the origin vertex is (0,0,0), and must be contained in the shape
         if (ord == 0)
             {
-            v_a = -dr;
+            p = -dr+rotate(quat<OverlapReal>(a.orientation),a.data.origin);
             }
         else
             {
-            v_a = dr;
+            p = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin);
             }
 
         // Check if s0 is contained in s1 by shooting a ray from one of its origin
-        // to a point outside the circumsphere of b in direction of the origin separation
+        // to a point outside the circumsphere of b in direction of the origin to center separation
         if (ord == 0)
             {
-            v_next_a = v_a+dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
+            q = p+dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
             }
         else
             {
-            v_next_a = v_a-dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
+            q = p-dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
             }
 
         unsigned int n_overlap = 0;
@@ -1013,7 +988,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
 
             OverlapReal u,v,w;
-            if (IntersectLineTriangle(v_a, v_next_a, v_b[0], v_b[1], v_b[2],u,v,w))
+            if (IntersectLineTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w))
                 {
                 n_overlap++;
                 }

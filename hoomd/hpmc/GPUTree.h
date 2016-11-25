@@ -33,7 +33,7 @@ class GPUTree
     public:
         //! Empty constructor
         GPUTree()
-            : m_num_nodes(0), m_num_leaves(0)
+            : m_num_nodes(0), m_num_leaves(0), m_leaf_capacity(0)
             { }
 
         #ifndef NVCC
@@ -95,6 +95,8 @@ class GPUTree
                     m_particles[m_leaf_ptr[i]+j] = tree.getNodeParticle(i,j);
                     }
                 }
+
+            m_leaf_capacity = tree.getLeafNodeCapacity();
             }
         #endif
 
@@ -223,6 +225,12 @@ class GPUTree
             m_particles.load_shared(ptr, load, ptr_max);
             }
 
+        //! Get the capacity of leaf nodes
+        unsigned int getLeafNodeCapacity() const
+            {
+            return m_leaf_capacity;
+            }
+
     private:
         ManagedArray<vec3<OverlapReal> > m_center;
         ManagedArray<vec3<OverlapReal> > m_lengths;
@@ -237,6 +245,7 @@ class GPUTree
 
         unsigned int m_num_nodes;             //!< Number of nodes in the tree
         unsigned int m_num_leaves;            //!< Number of leaf nodes
+        unsigned int m_leaf_capacity;         //!< Capacity of OBB leaf nodes
     };
 
 

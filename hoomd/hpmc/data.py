@@ -229,10 +229,10 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {})".format(self.vertices, self.faces,self.sweep_radius, capacity);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces,self.sweep_radius, capacity);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, capacity=4):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4):
         face_offs = []
         face_verts = []
         offs = 0
@@ -256,6 +256,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
                             float(sweep_radius),
                             ignore_statistics,
                             capacity,
+                            origin,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
