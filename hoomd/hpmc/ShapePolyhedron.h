@@ -945,14 +945,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             }
 
         // Check if s0 is contained in s1 by shooting a ray from one of its origin
-        // to a point outside the circumsphere of b in direction of the origin to center separation
+        // to a point outside the circumsphere of b  (factor of two to be safe)
         if (ord == 0)
             {
-            q = p+dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
+            q = OverlapReal(2.0)*dr*b.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
             }
         else
             {
-            q = p-dr*(a.getCircumsphereDiameter()+b.getCircumsphereDiameter())*fast::rsqrt(dot(dr,dr));
+            q = -OverlapReal(2.0)*dr*a.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
             }
 
         unsigned int n_overlap = 0;
