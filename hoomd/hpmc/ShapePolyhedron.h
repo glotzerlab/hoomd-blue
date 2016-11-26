@@ -722,35 +722,48 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     }
 
 // From Real-time Collision Detection (Christer Ericson)
-//Given line pq and ccw triangle abc, return whether line pierces triangle. If
-//so, also return the barycentric coordinates (u,v,w) of the intersection point
-DEVICE inline bool IntersectLineTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
+// Given segment pq and triangle abc, returns whether segment intersects
+// triangle and if so, also returns the barycentric coordinates (u,v,w)
+// of the intersection point
+DEVICE inline bool IntersectSegmentTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
      const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c,
-    OverlapReal &u, OverlapReal &v, OverlapReal &w)
+    OverlapReal &u, OverlapReal &v, OverlapReal &w, OverlapReal &t)
     {
-    vec3<OverlapReal> pq = q - p;
-    vec3<OverlapReal> pa = a - p;
-    vec3<OverlapReal> pb = b - p;
-    vec3<OverlapReal> pc = c - p;
+    vec3<OverlapReal> ab = b - a;
+    vec3<OverlapReal> ac = c - a;
+    vec3<OverlapReal> qp = p - q;
 
-    // Test if pq is inside the edges bc, ca and ab. Done by testing
-    // that the signed tetrahedral volumes, computed using scalar triple
-    // products, are all of the same sign
+    // Compute triangle normal. Can be precalculated or cached if
+    // intersecting multiple segments against the same triangle
+    vec3<OverlapReal> n = cross(ab, ac);
 
-    vec3<OverlapReal> m = cross(pq, pc);
-    u = dot(pb,m);
-    v = -dot(pa, m);
-    if (detail::signbit(u) != detail::signbit(v)) return false;
-    m = cross(pq,pb);
-    w = dot(pa,m);
-    if (detail::signbit(u) != detail::signbit(w)) return false;
+    // Compute denominator d. If d <= 0, segment is parallel to or points
+    // away from triangle, so exit early
+    float d = dot(qp, n);
+    if (d <= OverlapReal(0.0)) return false;
 
-    // Compute the barycentric coordinates (u, v, w) determining the
-    // intersection point r, r = u*a + v*b + w*c
-    OverlapReal denom = 1.0f / (u + v + w);
-    u *= denom;
-    v *= denom;
-    w *= denom; // w = 1.0f - u - v;
+    // Compute intersection t value of pq with plane of triangle. A ray
+    // intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
+    // dividing by d until intersection has been found to pierce triangle
+    vec3<OverlapReal> ap = p - a;
+    t = dot(ap, n);
+    if (t < OverlapReal(0.0)) return false;
+    if (t > d) return false; // For segment; exclude this code line for a ray test
+
+    // Compute barycentric coordinate components and test if within bounds
+    vec3<OverlapReal> e = cross(qp, ap);
+    v = dot(ac, e);
+    if (v < OverlapReal(0.0) || v > d) return false;
+    w = -dot(ab, e);
+    if (w < OverlapReal(0.0) || v + w > d) return false;
+
+    // Segment/ray intersects triangle. Perform delayed division and
+    // compute the last barycentric coordinate component
+    float ood = OverlapReal(1.0) / d;
+    t *= ood;
+    v *= ood;
+    w *= ood;
+    u = OverlapReal(1.0) - v - w;
     return true;
     }
 
@@ -987,8 +1000,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             v_b[2].z = s1.data.verts.z[idx_v];
             v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
 
-            OverlapReal u,v,w;
-            if (IntersectLineTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w))
+            OverlapReal u,v,w,t;
+            if (IntersectSegmentTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t))
                 {
                 n_overlap++;
                 }

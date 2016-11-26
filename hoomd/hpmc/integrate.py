@@ -992,7 +992,7 @@ class polyhedron(mode_hpmc):
     spheres per leaf node may yield different optimal performance.
     The capacity of leaf nodes is configurable.
 
-    Only triangle meshes and spheres are supported.
+    Only triangle meshes and spheres are supported. The mesh must be free of self-intersections.
 
     Args:
         seed (int): Random number seed.

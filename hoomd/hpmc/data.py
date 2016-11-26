@@ -250,13 +250,16 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         if sweep_radius < 0.0:
             hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
 
+        if len(origin) != 3:
+            hoomd.context.error("Origin must be a coordinate triple.\n")
+
         return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
                             float(sweep_radius),
                             ignore_statistics,
                             capacity,
-                            origin,
+                            self.ensure_list(origin),
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):

@@ -153,7 +153,7 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
 inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
                              unsigned int leaf_capacity,
-                             pybind11::tuple origin,
+                             pybind11::list origin,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ShapePolyhedron::param_type result;
