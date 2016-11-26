@@ -15,8 +15,6 @@
 #ifndef __SHAPE_POLYHEDRON_H__
 #define __SHAPE_POLYHEDRON_H__
 
-//#define DEBUG_OUTPUT
-
 /*! \file ShapePolyhedron.h
     \brief Defines the general polyhedron shape
 */
@@ -722,10 +720,10 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     }
 
 // From Real-time Collision Detection (Christer Ericson)
-// Given segment pq and triangle abc, returns whether segment intersects
+// Given ray pq and triangle abc, returns whether segment intersects
 // triangle and if so, also returns the barycentric coordinates (u,v,w)
 // of the intersection point
-DEVICE inline bool IntersectSegmentTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
+DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
      const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c,
     OverlapReal &u, OverlapReal &v, OverlapReal &w, OverlapReal &t)
     {
@@ -748,7 +746,7 @@ DEVICE inline bool IntersectSegmentTriangle(const vec3<OverlapReal>& p, const ve
     vec3<OverlapReal> ap = p - a;
     t = dot(ap, n);
     if (t < OverlapReal(0.0)) return false;
-    if (t > d) return false; // For segment; exclude this code line for a ray test
+//    if (t > d) return false; // For segment; exclude this code line for a ray test
 
     // Compute barycentric coordinate components and test if within bounds
     vec3<OverlapReal> e = cross(qp, ap);
@@ -766,88 +764,6 @@ DEVICE inline bool IntersectSegmentTriangle(const vec3<OverlapReal>& p, const ve
     u = OverlapReal(1.0) - v - w;
     return true;
     }
-
-#ifdef DEBUG_OUTPUT
-inline void output_polys(const ShapePolyhedron& a, const ShapePolyhedron& b, quat<OverlapReal> q, const vec3<Scalar> dr)
-    {
-    std::cout << "shape polyV " << a.data.verts.N << " ";
-    for (unsigned int i = 0; i < a.data.verts.N; ++i)
-        {
-        vec3<OverlapReal> v(a.data.verts.x[i], a.data.verts.y[i], a.data.verts.z[i]);
-        std::cout << v.x << " " << v.y << " " << v.z << " ";
-        }
-    std::cout << a.data.n_faces << " ";
-    for (unsigned int i = 0; i < a.data.n_faces; ++i)
-        {
-        unsigned int len = a.data.face_offs[i+1] - a.data.face_offs[i];
-        std::cout << len << " ";
-        for (unsigned int j = 0; j < len; ++j)
-            {
-            std::cout << a.data.face_verts[a.data.face_offs[i]+j] << " ";
-            }
-        }
-    quat<OverlapReal> q_a(q);
-    std::cout << "ffff0000 " << dr.x << " " << dr.y << " " << dr.z << " " << q_a.s << " " <<
-        q_a.v.x << " " << q_a.v.y << " " << q_a.v.z << std::endl;
-
-    std::cout << "shape polyV " << b.data.verts.N << " ";
-    for (unsigned int i = 0; i < b.data.verts.N; ++i)
-        {
-        std::cout << b.data.verts.x[i] << " " << b.data.verts.y[i] << " " << b.data.verts.z[i] << " ";
-        }
-    std::cout << b.data.n_faces << " ";
-    for (unsigned int i = 0; i < b.data.n_faces; ++i)
-        {
-        unsigned int len = b.data.face_offs[i+1] - b.data.face_offs[i];
-        std::cout << len << " ";
-        for (unsigned int j = 0; j < len; ++j)
-            {
-            std::cout << b.data.face_verts[b.data.face_offs[i]+j] << " ";
-            }
-        }
-    std::cout << "ff00ff00 " << 0 << " " << 0 << " " << 0 << " " << 1 << " " <<
-        0 << " " << 0 << " " << 0 << std::endl;
-    }
-
-inline void output_obb(const detail::OBB& obb, std::string color)
-    {
-    std::vector< vec3<OverlapReal> > corners(8);
-    std::vector< std::pair<unsigned int, unsigned int> > edges(12);
-    vec3<OverlapReal> ex(1,0,0);
-    vec3<OverlapReal> ey(0,1,0);
-    vec3<OverlapReal> ez(0,0,1);
-    corners[0] =  ex*obb.lengths.x + ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[1] =  OverlapReal(-1.0)*ex*obb.lengths.x + ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[2] =  ex*obb.lengths.x - ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[3] =  OverlapReal(-1.0)* ex*obb.lengths.x - ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[4] =  ex*obb.lengths.x + ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[5] =  OverlapReal(-1.0)* ex*obb.lengths.x + ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[6] =  ex*obb.lengths.x - ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[7] =  OverlapReal(-1.0)* ex*obb.lengths.x - ey*obb.lengths.y - ez*obb.lengths.z;
-
-    edges[0] = std::make_pair(0,1);
-    edges[1] = std::make_pair(0,2);
-    edges[2] = std::make_pair(0,4);
-    edges[3] = std::make_pair(1,3);
-    edges[4] = std::make_pair(1,5);
-    edges[5] = std::make_pair(2,3);
-    edges[6] = std::make_pair(2,6);
-    edges[7] = std::make_pair(3,7);
-    edges[8] = std::make_pair(4,5);
-    edges[9] = std::make_pair(4,6);
-    edges[10] = std::make_pair(5,7);
-    edges[11] = std::make_pair(6,7);
-
-    for (unsigned int i = 0; i < 12; ++i)
-        {
-        vec3<OverlapReal> r_a,r_b;
-        r_a = obb.center + obb.rotation*corners[edges[i].first];
-        r_b = obb.center + obb.rotation*corners[edges[i].second];
-        std::cout << "connection 0.1 " << color << " " << r_a.x << " " << r_a.y << " " << r_a.z
-            << " " << r_b.x << " " << r_b.y << " " << r_b.z << std::endl;
-        }
-    }
-#endif
 
 //! Polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
@@ -957,15 +873,18 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             p = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin);
             }
 
-        // Check if s0 is contained in s1 by shooting a ray from one of its origin
-        // to a point outside the circumsphere of b  (factor of two to be safe)
+        // Check if s0 is contained in s1 by shooting a ray from its origin
+        // in direction of origin separation
+        vec3<OverlapReal> n = rotate(quat<OverlapReal>(b.orientation),b.data.origin)-
+            rotate(quat<OverlapReal>(a.orientation),a.data.origin);
+
         if (ord == 0)
             {
-            q = OverlapReal(2.0)*dr*b.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
+            q = p + n;
             }
         else
             {
-            q = -OverlapReal(2.0)*dr*a.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
+            q = p - n;
             }
 
         unsigned int n_overlap = 0;
@@ -1001,7 +920,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
 
             OverlapReal u,v,w,t;
-            if (IntersectSegmentTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t))
+            if (IntersectRayTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t))
                 {
                 n_overlap++;
                 }
