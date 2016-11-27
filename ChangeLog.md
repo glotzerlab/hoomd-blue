@@ -9,6 +9,7 @@ Not yet released
 *Bug fixes*
 
 * Implicit depletants with spheres and faceted spheres gave wrong results
+* Implicit depletants with ntrial > 0 gave wrong results
 
 * Other changes *
 
