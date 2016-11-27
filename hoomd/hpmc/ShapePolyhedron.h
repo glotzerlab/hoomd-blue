@@ -723,6 +723,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 // Given ray pq and triangle abc, returns whether segment intersects
 // triangle and if so, also returns the barycentric coordinates (u,v,w)
 // of the intersection point
+// Note: the triangle is assumed to be oriented counter-clockwise when viewed from the direction of p
 DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
      const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c,
     OverlapReal &u, OverlapReal &v, OverlapReal &w, OverlapReal &t)
@@ -875,7 +876,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
         // Check if s0 is contained in s1 by shooting a ray from its origin
         // in direction of origin separation
-        vec3<OverlapReal> n = rotate(quat<OverlapReal>(b.orientation),b.data.origin)-
+        vec3<OverlapReal> n = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin)-
             rotate(quat<OverlapReal>(a.orientation),a.data.origin);
 
         if (ord == 0)
@@ -920,7 +921,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
 
             OverlapReal u,v,w,t;
-            if (IntersectRayTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t))
+
+            // Note: triangle need to be oriented counter-clockwise viewed from p
+            if (IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
                 {
                 n_overlap++;
                 }
