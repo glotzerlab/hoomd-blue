@@ -15,7 +15,6 @@ Deprecated*
 
 * hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
-* implicit depletants for spheres and faceted spheres applied wrong acceptance criterion
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check

@@ -280,7 +280,7 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
         Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
         // Minimum diameter of colloid sphere in which depletant can be inserted without overlapping with other colloids
-        Scalar d = std::max(0.0,Scalar(2.0)*shape_i.getInsphereRadius()-m_d_dep);
+        Scalar d = Scalar(2.0)*shape_i.getInsphereRadius();
 
         h_d_min.data[i_type] = d;
 
@@ -730,8 +730,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         // Number of allowed insertion trials (those which overlap with colloid at old position)
                         unsigned int n_overlap_shape_new = 0;
 
-                        // diameter (around origin) in which we are guaruanteed to intersect with no other shape
-                        Scalar delta_insphere = std::max(Scalar(2.0)*shape_i.getInsphereRadius()-m_d_dep,0.0);
+                        // diameter (around origin) in which we are guaruanteed to intersect with the shape
+                        Scalar delta_insphere = Scalar(2.0)*shape_i.getInsphereRadius();
 
                         // same for old reverse move. Because we have already sampled one successful insertion
                         // that overlaps with the colloid at the new position, we increment by one (super-detailed
