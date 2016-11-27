@@ -74,7 +74,6 @@ void Graph::DFSUtil(int v, bool *visited, std::vector<unsigned int>& cur_cc)
     std::list<int>::iterator i;
     for(i = adj[v].begin(); i != adj[v].end(); ++i)
         {
-        std::cout << "*i=" << *i << std::endl;
         if(!visited[*i])
             DFSUtil(*i, visited, cur_cc);
         }
@@ -497,7 +496,7 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
     m_G = detail::Graph(snap.size);
 
     m_ptl_reject.clear();
-    m_ptl_reject.resize(snap.size);
+    m_ptl_reject.resize(snap.size,false);
 
     // cluster according to overlap of excluded volume shells
     // loop over local particles
@@ -535,6 +534,9 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 
         // check for overlap at old position
         detail::AABB aabb_i = shape_i.getAABB(pos_i_old);
+
+        // if this cluster transformation is rejected
+        bool reject = false;
 
         // All image boxes (including the primary)
         const unsigned int n_images = m_image_list.size();
@@ -583,7 +585,12 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
                                 {
                                 // add edge to graph
                                 m_G.addEdge(i,j);
-                                std::cout << "old " << i << " " << j << std::endl;
+
+                                if (cur_image != 0)
+                                    {
+                                    // ptl interacts via PBC, do no transform its cluster
+                                    reject = true;
+                                    }
                                 }
 
                             } // end loop over AABB tree leaf
@@ -601,9 +608,6 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 
         // check for overlap at new position
         aabb_i = shape_i.getAABB(pos_i_new);
-
-        // if this cluster transformation is rejected
-        bool reject = false;
 
         // All image boxes (including the primary)
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -682,12 +686,6 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 
     m_G.connectedComponents(m_clusters);
 
-    for (auto it = m_clusters.begin(); it != m_clusters.end(); ++it)
-        {
-        for (auto itj = it->begin(); itj != it->end(); ++itj)
-            std::cout << *itj << " ";
-        std::cout << std::endl;
-        }
     if (m_prof) m_prof->pop();
     }
 
