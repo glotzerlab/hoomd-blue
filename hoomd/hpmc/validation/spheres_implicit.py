@@ -18,9 +18,11 @@ import itertools
 params = []
 params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list, ntrial_list))
 
+context.msg.notice(1,"{} parameters\n".format(len(params)))
+
 # choose a random state point
 import random
-p = random.randint(0,len(params)-1)
+p = int(option.get_user()[0])
 (seed, phi_c, eta_p_r, ntrial) = params[p]
 
 context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f} ntrial {}\n".format(p,seed, phi_c, eta_p_r, ntrial))
@@ -109,7 +111,7 @@ class implicit_test (unittest.TestCase):
         self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=1.0)
 
         self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
-        self.mc.set_params(d=0.1)
+        self.mc.set_params(d=0.1,a=0.1)
 
         self.system.particles.types.add('B')
         self.mc.set_params(depletant_type='B')
@@ -123,7 +125,7 @@ class implicit_test (unittest.TestCase):
         # no depletants during compression
         self.mc.set_params(nR=0)
 
-        mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4*d_sphere,0.5],gamma=1,target=0.4)
+        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4*d_sphere,0.5],gamma=1,target=0.3)
 
         # run for a bit to randomize
         run(1000);
@@ -141,7 +143,7 @@ class implicit_test (unittest.TestCase):
 
             # run until all overlaps are removed
             while overlaps > 0:
-                mc_tune.update()
+                self.mc_tune.update()
                 run(100, quiet=True);
                 overlaps = self.mc.count_overlaps();
                 context.msg.notice(1,"%d\n" % overlaps)
@@ -173,8 +175,8 @@ class implicit_test (unittest.TestCase):
         # max error 0.5%
         self.assertLessEqual(eta_p_err/eta_p_avg,0.005)
 
-        # check against reference value
-        self.assertAlmostEqual(eta_p_avg,eta_p_ref[(phi_c,eta_p_r)][0],3)
+        # check against reference value within 2*error
+        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),2*eta_p_err)
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
