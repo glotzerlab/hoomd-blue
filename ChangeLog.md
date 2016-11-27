@@ -6,6 +6,10 @@
 
 Not yet released
 
+*Bug fixes*
+
+* Implicit depletants with spheres and faceted spheres gave wrong results
+
 * Other changes *
 
 * Drop support for compute 2.0 GPU devices

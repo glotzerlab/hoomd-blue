@@ -281,7 +281,7 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
         Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
         // Minimum diameter of colloid sphere in which depletant can be inserted without overlapping with other colloids
-        Scalar d = Scalar(2.0)*shape_i.getInsphereRadius();
+        Scalar d = std::max(Scalar(2.0)*shape_i.getInsphereRadius()-m_d_dep,0.0);
 
         h_d_min.data[i_type] = d;
 
