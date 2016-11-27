@@ -686,6 +686,10 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 
     m_G.connectedComponents(m_clusters);
 
+    // reject global transformations
+    if (m_clusters.size() && m_clusters[0].size() == snap.size && m_clusters[0].size())
+        m_ptl_reject[m_clusters[0][0]] = true;
+
     if (m_prof) m_prof->pop();
     }
 
