@@ -771,7 +771,7 @@ class cluster(_updater):
     def __init__(self, mc, period=1, seed=18293):
         hoomd.util.print_status_line();
 
-        if not isinstance(mc, integrate._mode_hpmc):
+        if not isinstance(mc, integrate.mode_hpmc):
             hoomd.context.msg.warning("update.cluster: Must have a handle to an HPMC integrator.\n");
             return
 
