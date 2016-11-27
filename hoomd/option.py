@@ -1,60 +1,14 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
 
-## \package hoomd.option
-# \brief Commands set global options
-#
-# Options may be set on the command line (\ref page_command_line_options) or from a job script. The option.set_* commands
-# override any settings made on the command line.
-#
+R""" Set global options.
+
+Options may be set on the command line or from a job script using :py:func:`hoomd.context.initialize()`.
+The option.set_* commands override any settings made previously.
+
+"""
 
 from optparse import OptionParser;
 
@@ -234,25 +188,28 @@ def _parse_command_line(arg_string=None):
     if cmd_options.user is not None:
         hoomd.context.options.user = shlex.split(cmd_options.user);
 
-## Get user options
-#
-# \return List of user options passed in via --user="arg1 arg2 ..."
-# \sa \ref page_command_line_options
-#
 def get_user():
+    R""" Get user options.
+
+    Return:
+        List of user options passed in via --user="arg1 arg2 ..."
+    """
     _verify_init();
     return hoomd.context.options.user;
 
-## Set the notice level
-#
-# \param notice_level Specifies the maximum notice level to print (an integer)
-#
-# The notice level may be changed before or after initialization, and may be changed many times during a job script.
-#
-# \note Overrides --notice-level on the command line.
-# \sa \ref page_command_line_options
-#
 def set_notice_level(notice_level):
+    R""" Set the notice level.
+
+    Args:
+        notice_level (int). The maximum notice level to print.
+
+    The notice level may be changed before or after initialization, and may be changed
+    many times during a job script.
+
+    Note:
+        Overrides ``--notice-level`` on the command line.
+
+    """
     _verify_init();
 
     try:
@@ -264,18 +221,20 @@ def set_notice_level(notice_level):
     hoomd.context.msg.setNoticeLevel(notice_level);
     hoomd.context.options.notice_level = notice_level;
 
-## Set the message file
-#
-# \param fname Specifies the name of the file to write. The file will be overwritten. Set to None to direct messages
-#              back to stdout/stderr.
-#
-# The message file may be changed before or after initialization, and may be changed many times during a job script.
-# Changing the message file will only affect messages sent after the change.
-#
-# \note Overrides --msg-file on the command line.
-# \sa \ref page_command_line_options
-#
 def set_msg_file(fname):
+    R""" Set the message file.
+
+    Args:
+        fname (str): Specifies the name of the file to write. The file will be overwritten.
+                     Set to None to direct messages back to stdout/stderr.
+
+    The message file may be changed before or after initialization, and may be changed many times during a job script.
+    Changing the message file will only affect messages sent after the change.
+
+    Note:
+        Overrides ``--msg-file`` on the command line.
+
+    """
     _verify_init();
 
     if fname is not None:
@@ -285,14 +244,16 @@ def set_msg_file(fname):
 
     hoomd.context.options.msg_file = fname;
 
-## Set the Autotuner parameters
-#
-# \param enable Set to True to enable autotuning. Set to False to disable.
-# \param period Approximate period in time steps between retuning
-#
-# \sa page_autotuner
-#
 def set_autotuner_params(enable=True, period=100000):
+    R""" Set autotuner parameters.
+
+    Args:
+        enable (bool). Set to True to enable autotuning. Set to False to disable.
+        period (int): Approximate period in time steps between retuning.
+
+    TODO: reference autotuner page here.
+
+    """
     _verify_init();
 
     hoomd.context.options.autotuner_period = period;

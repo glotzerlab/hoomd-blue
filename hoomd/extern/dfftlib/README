@@ -1,0 +1,53 @@
+dfftlib 0.2 - Distributed FFT library
+=====================================
+
+This library supports fast d-dimensional distributed FFT over MPI, using a
+local FFT library as a hardware-optimized backend.  The supported local FFT
+implementations include host (MKL) and CUDA device (CUFFT) implementations.
+The local FFT functions have been abstracted in a way that allows adding new
+backends easily.
+
+All standard MPI implementations are supported. In addition, the library
+supports "CUDA-aware" MPI-libraries (MVAPICH2 >= 1.8, OpenMPI 1.7).
+Please see their documentation for how to enable CUDA-MPI communication.
+
+The distributed FFT is based upon a modified algorithm from
+"Parallel Scientific Computation", Rob H. Bisseling,
+Oxford University Press 2004.
+
+
+INSTALLATION
+------------
+
+To install, type
+
+$ tar xvfz dfftlib-0.2.tar.gz
+$ mkdir dfftlib-build
+$ cd dfftlib-build
+$ cmake -D CMAKE_INSTALL_PREFIX=<your-install-root> ../dfftlib-0.2
+$ make install
+
+Prerequisites (optional):
+- CUDA (tested with 5.0)
+- Intel MKL (tested with 11.0.4.183)
+
+If no CUDA toolkit is available, only the host backend will be built.
+If MKL is not available, an internal radix-2 FFT routine will be used.
+Using the internal FFT is not recommended for benchmarking.
+
+
+DOCUMENTATION
+-------------
+
+The documentation is rudimentary at this point. For examples, please have a
+look at the unit tests, test/unit_test_host.c and test/unit_test_cuda.c.
+
+LIMITATIONS
+-----------
+
+All FFT dimensions have to be powers of two. The number of processor
+has to be a power of two as well.
+
+CONTACT
+-------
+Author contact: jsglaser@umich.edu

@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -62,8 +17,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 
 #include <stdexcept>
 #include <iomanip>
@@ -79,7 +34,7 @@ using namespace std;
 
     If \a fname is an empty string, no file is output.
 */
-Logger::Logger(boost::shared_ptr<SystemDefinition> sysdef,
+Logger::Logger(std::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix,
                bool overwrite)
@@ -134,7 +89,7 @@ Logger::~Logger()
     After the compute is registered, all of the compute's provided log quantities are available for
     logging.
 */
-void Logger::registerCompute(boost::shared_ptr<Compute> compute)
+void Logger::registerCompute(std::shared_ptr<Compute> compute)
     {
     vector< string > provided_quantities = compute->getProvidedLogQuantities();
 
@@ -158,7 +113,7 @@ void Logger::registerCompute(boost::shared_ptr<Compute> compute)
     After the updater is registered, all of the updater's provided log quantities are available for
     logging.
 */
-void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
+void Logger::registerUpdater(std::shared_ptr<Updater> updater)
     {
     vector< string > provided_quantities = updater->getProvidedLogQuantities();
 
@@ -182,7 +137,7 @@ void Logger::registerUpdater(boost::shared_ptr<Updater> updater)
     After the callback is registered \a name is available as a logger quantity. The callback must return a scalar
     value and accept the time step as an argument.
 */
-void Logger::registerCallback(std::string name, boost::python::object callback)
+void Logger::registerCallback(std::string name, py::object callback)
     {
     // first check if this quantity is already set, printing a warning if so
     if (   m_compute_quantities.count(name)
@@ -200,6 +155,9 @@ void Logger::removeAll()
     {
     m_compute_quantities.clear();
     m_updater_quantities.clear();
+    //The callbacks are intentionally not cleared, because before each
+    //run all compute and updaters should be cleared, but the python
+    //callbacks should not be cleared for this.
     }
 
 /*! \param quantities A list of quantities to log
@@ -381,16 +339,16 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
     else if (m_callback_quantities.count(quantity))
         {
         // get a quantity from a callback
-        boost::python::object rv = m_callback_quantities[quantity](timestep);
-        extract<Scalar> extracted_rv(rv);
-        if (extracted_rv.check())
+        try
             {
-            return extracted_rv();
+            py::object rv = m_callback_quantities[quantity](timestep);
+            Scalar extracted_rv = rv.cast<Scalar>();
+            return extracted_rv;
             }
-        else
+        catch (py::cast_error)
             {
-            m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
-            return Scalar(0.0);
+                m_exec_conf->msg->warning() << "analyze.log: Log callback " << quantity << " returned invalid value, logging 0." << endl;
+                return Scalar(0.0);
             }
         }
     else
@@ -401,10 +359,10 @@ Scalar Logger::getValue(const std::string &quantity, int timestep)
     }
 
 
-void export_Logger()
+void export_Logger(py::module& m)
     {
-    class_<Logger, boost::shared_ptr<Logger>, bases<Analyzer>, boost::noncopyable>
-    ("Logger", init< boost::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
+    py::class_<Logger, std::shared_ptr<Logger> >(m,"Logger", py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, const std::string&, const std::string&, bool >())
     .def("registerCompute", &Logger::registerCompute)
     .def("registerUpdater", &Logger::registerUpdater)
     .def("registerCallback", &Logger::registerCallback)

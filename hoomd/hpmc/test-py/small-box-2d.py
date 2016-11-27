@@ -7,6 +7,10 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # This test ensures that the small box code path is enabled at the correct box sizes and works correctly
 # It performs two tests
 # 1) Initialize a system with known overlaps (or not) and verify that count_overlaps produces the correct result
@@ -27,12 +31,12 @@ context.initialize()
 
 class pair_smallbox2d_test1 (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=1.9, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=1.9, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_cell_list(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -54,12 +58,12 @@ class pair_smallbox2d_test1 (unittest.TestCase):
 
 class pair_smallbox2d_test2 (unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=1.2, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=1.2, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.1);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_no_overlap(self):
         # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
@@ -84,7 +88,7 @@ class pair_smallbox2d_test2 (unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
 
         analyze.log(filename='small-box-2d.log', quantities=['hpmc_overlap_count'], period=1, overwrite=True);
-        run(500000);
+        run(50000);
 
         # check 3 - verify that trial moves were both accepted and rejected
         count = self.mc.get_counters();
@@ -109,7 +113,7 @@ class pair_smallbox2d_test3 (unittest.TestCase):
     def setUp(self):
         l = 16
         x = 2
-        self.system = init.create_empty(N=l*l, box=data.boxdim(L=l*x, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=l*l, box=data.boxdim(L=l*x, dimensions=2), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polygon(seed=10);
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
@@ -120,7 +124,7 @@ class pair_smallbox2d_test3 (unittest.TestCase):
                 self.system.particles[i*l+j].position = (i*x*0.9,j*x*0.9,0);
                 self.system.particles[i*l+j].orientation = (1,0,0,0);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_large_moves_two(self):
         # Run with a very large move distance to trigger pathological cases where particles are

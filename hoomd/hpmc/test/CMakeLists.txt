@@ -1,49 +1,5 @@
 # Maintainer: joaander
 
-###############################
-# need a few settings for the unit test library
-# first, they need the boost unit test framework added as a library
-set(ADDITIONAL_LIBS _hoomd
-        _hpmc
-        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-        )
-
-# boost 1.60.0 requires the boost timer and chrono be linked to unit tests
-if (Boost_MINOR_VERSION GREATER 59)
-list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-endif ()
-
-# then we need to specify BOOST_TEST_DYN_LINK if the unit test framework library is a shared lib
-if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-add_definitions(-DBOOST_TEST_DYN_LINK)
-endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.dylib$")
-
-if("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-add_definitions(-DBOOST_TEST_DYN_LINK)
-endif("${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}" MATCHES "\\.so$")
-
-####################################
-## Setup valgrind options
-if (UNIX AND NOT APPLE)
-find_program(VALGRIND valgrind DOC
-    "valgrind executable for advanced regression tests")
-endif (UNIX AND NOT APPLE)
-
-## User gets an option to enable valgrind tests
-if (VALGRIND)
-    option(ENABLE_VALGRIND OFF "Enable running of unit tests through valgrind")
-
-    set(VALGRIND_COMMON_ARGS
-            "--leak-check=full;--suppressions=${CMAKE_CURRENT_SOURCE_DIR}/combined_valgrind.supp;--error-exitcode=1")
-    mark_as_advanced(VALGRIND)
-endif (VALGRIND)
-
-if (ENABLE_VALGRIND)
-    set(DART_TESTING_TIMEOUT 4500 CACHE STRING "Testing timeout" FORCE)
-endif (ENABLE_VALGRIND)
-
-enable_testing()
-
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
@@ -53,7 +9,6 @@ set(TEST_LIST
     test_ellipsoid
     test_faceted_sphere
     test_moves
-    test_name
     test_polyhedron
     test_simple_polygon
     test_sphere
@@ -78,7 +33,7 @@ foreach (CUR_TEST ${TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hoomd _hpmc ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)

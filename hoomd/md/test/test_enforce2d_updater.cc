@@ -1,64 +1,17 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // this include is necessary to get MPI included before anything else to support intel MPI
 #include "hoomd/ExecutionConfiguration.h"
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <functional>
+#include <memory>
 
 #include "hoomd/md/Enforce2DUpdater.h"
 #include "hoomd/md/AllPairPotentials.h"
-#include "hoomd/HOOMDInitializer.h"
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
 #include "hoomd/ComputeThermo.h"
@@ -69,17 +22,16 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "hoomd/md/IntegratorTwoStep.h"
 
-#include "hoomd/HOOMDDumpWriter.h"
 #include "hoomd/extern/saruprng.h"
 
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
-//! label the boost test module
-#define BOOST_TEST_MODULE Enforce2DUpdaterTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
+
 
 /*! \file enforce2d_updater_test.cc
     \brief Unit tests for the Enforce2DUpdater class
@@ -87,18 +39,18 @@ using namespace boost;
 */
 
 //! Typedef'd Enforce2DUpdater factory
-typedef boost::function<boost::shared_ptr<Enforce2DUpdater> (boost::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
+typedef std::function<std::shared_ptr<Enforce2DUpdater> (std::shared_ptr<SystemDefinition> sysdef)> enforce2d_creator;
 
-//! boost test case to verify proper operation of Enforce2DUpdater
-void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+//! test case to verify proper operation of Enforce2DUpdater
+void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     BoxDim box(20.0, 20.0, 1.0);
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(100, box, 1, 0, 0, 0, 0, exec_conf));
 
     sysdef->setNDimensions(2);
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
     Saru saru(11, 21, 33);
 
@@ -120,19 +72,19 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
             pdata->setVelocity(k, vel);
             }
 
-    boost::shared_ptr<Variant> T(new VariantConst(1.0));
-    boost::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
+    std::shared_ptr<Variant> T(new VariantConst(1.0));
+    std::shared_ptr<ComputeThermo> thermo(new ComputeThermo(sysdef, group_all));
     thermo->setNDOF(2*group_all->getNumMembers()-2);
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt(new TwoStepNVTMTK(sysdef, group_all, thermo, 0.5, T));
 
     Scalar deltaT = Scalar(0.005);
-    boost::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
+    std::shared_ptr<IntegratorTwoStep> nve_up(new IntegratorTwoStep(sysdef, deltaT));
     nve_up->addIntegrationMethod(two_step_nvt);
 
-    boost::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
+    std::shared_ptr<NeighborListBinned> nlist(new NeighborListBinned(sysdef, Scalar(2.5), Scalar(0.3)));
     nlist->setStorageMode(NeighborList::half);
 
-    boost::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
+    std::shared_ptr<PotentialPairLJ> fc(new PotentialPairLJ(sysdef, nlist));
 
     // setup some values for alpha and sigma
     Scalar epsilon = Scalar(1.0);
@@ -172,7 +124,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
         total_deviation += fabs(pdata->getPosition(i).z);
 
     //make sure the deviation is large (should be >> tol)
-    BOOST_CHECK(total_deviation > tol);
+    UP_ASSERT(total_deviation > tol);
 
     // re-initialize the initial state
     for (unsigned int i=0; i<10; i++)
@@ -193,7 +145,7 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
 
     pdata->notifyParticleSort();
 
-    boost::shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
+    std::shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
 
     // verify that the atoms never leave the xy plane if contstraint is present:
     for (int t = 0; t < 1000; t++)
@@ -217,36 +169,36 @@ void enforce2d_basic_test(enforce2d_creator creator, boost::shared_ptr<Execution
         total_deviation += fabs(pdata->getPosition(i).z);
         }
 
-    MY_BOOST_CHECK_CLOSE(total_deviation, 0.0, tol);
+    MY_CHECK_CLOSE(total_deviation, 0.0, tol);
 
     }
 
 //! Enforce2DUpdater creator for unit tests
-boost::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<Enforce2DUpdater> base_class_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
+    return std::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdater(sysdef));
     }
 
 #ifdef ENABLE_CUDA
 //! Enforce2DUpdaterGPU creator for unit tests
-boost::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(boost::shared_ptr<SystemDefinition> sysdef)
+std::shared_ptr<Enforce2DUpdater> gpu_enforce2d_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
-    return boost::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdaterGPU(sysdef));
+    return std::shared_ptr<Enforce2DUpdater>(new Enforce2DUpdaterGPU(sysdef));
     }
 #endif
 
-//! boost test case for basic enforce2d tests
-BOOST_AUTO_TEST_CASE( Enforce2DUpdater_basic )
+//! test case for basic enforce2d tests
+UP_TEST( Enforce2DUpdater_basic )
     {
     enforce2d_creator creator = bind(base_class_enforce2d_creator, _1);
-   enforce2d_basic_test(creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+   enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
-//! boost test case for basic enforce2d tests
-BOOST_AUTO_TEST_CASE( Enforce2DUpdaterGPU_basic )
+//! test case for basic enforce2d tests
+UP_TEST( Enforce2DUpdaterGPU_basic )
     {
     enforce2d_creator creator = bind(gpu_enforce2d_creator, _1);
-    enforce2d_basic_test(creator, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    enforce2d_basic_test(creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

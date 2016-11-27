@@ -1,10 +1,5 @@
 # Maintainer: joaander
 
-option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
-if (ENABLE_HPMC_MIXED_PRECISION)
-    add_definitions(-DENABLE_HPMC_MIXED_PRECISION)
-endif()
-
 option(ENABLE_HPMC_SPHINX_GPU "Enable sphinx on the GPU" OFF)
 if (ENABLE_HPMC_SPHINX_GPU)
     add_definitions(-DENABLE_SPHINX_GPU)
@@ -12,26 +7,89 @@ endif()
 
 set(_hpmc_sources   module.cc
                     module_external_field.cc
-                    module_free_volume.cc
-                    module_hpmc.cc
-                    module_hpmc_fl.cc
-                    module_hpmc_gpu.cc
-                    module_muvt.cc
-                    module_sdf.cc
                     module_clusters.cc
-                    UpdaterBoxNPT.cc
+                    module_sphere.cc
+                    module_convex_polygon.cc
+                    module_simple_polygon.cc
+                    module_spheropolygon.cc
+                    module_polyhedron.cc
+                    module_ellipsoid.cc
+                    module_faceted_sphere.cc
+                    module_sphinx.cc
+                    module_union_sphere.cc
+                    module_convex_polyhedron.cc
+                    module_convex_spheropolyhedron.cc
+                    UpdaterBoxMC.cc
                     IntegratorHPMC.cc
                     )
+
+set(_hpmc_headers
+    AnalyzerSDF.h
+    ComputeFreeVolumeGPU.h
+    ComputeFreeVolume.h
+    ExternalFieldComposite.h
+    ExternalField.h
+    ExternalFieldLattice.h
+    ExternalFieldWall.h
+    GPUTree.h
+    HPMCCounters.h
+    HPMCPrecisionSetup.h
+    IntegratorHPMC.h
+    IntegratorHPMCMonoGPU.h
+    IntegratorHPMCMono.h
+    IntegratorHPMCMonoImplicitGPU.h
+    IntegratorHPMCMonoImplicit.h
+    MinkowskiMath.h
+    modules.h
+    Moves.h
+    OBB.h
+    OBBTree.h
+    ShapeConvexPolygon.h
+    ShapeConvexPolyhedron.h
+    ShapeEllipsoid.h
+    ShapeFacetedSphere.h
+    ShapePolyhedron.h
+    ShapeProxy.h
+    ShapeSimplePolygon.h
+    ShapeSphere.h
+    ShapeSpheropolygon.h
+    ShapeSpheropolyhedron.h
+    ShapeSphinx.h
+    ShapeUnion.h
+    SphinxOverlap.h
+    UpdaterExternalFieldWall.h
+    UpdaterMuVT.h
+    UpdaterMuVTImplicit.h
+    UpdaterRemoveDrift.h
+    XenoCollide2D.h
+    XenoCollide3D.h
+    triangle_triangle.h
+    )
 
 # if (ENABLE_CUDA)
 # list(APPEND _hpmc_sources
 #                            )
 # endif()
 
-set(_hpmc_cu_sources ComputeFreeVolumeGPU.cu
-                     IntegratorHPMCMonoGPU.cu
+set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      IntegratorHPMCMonoImplicitGPU.cu
+                     all_kernels_sphere.cu
+                     all_kernels_convex_polygon.cu
+                     all_kernels_simple_polygon.cu
+                     all_kernels_spheropolygon.cu
+                     all_kernels_polyhedron.cu
+                     all_kernels_ellipsoid.cu
+                     all_kernels_faceted_sphere.cu
+                     all_kernels_sphinx.cu
+                     all_kernels_union_sphere.cu
+                     all_kernels_convex_polyhedron.cu
+                     all_kernels_convex_spheropolyhedron.cu
                      )
+
+# quiet some warnings locally on files we can't modify
+if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    set_source_files_properties(IntegratorHPMCMonoImplicitGPU.cu PROPERTIES COMPILE_FLAGS "-Wno-deprecated-declarations")
+endif()
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hpmc_sources} ${_hpmc_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
@@ -43,7 +101,7 @@ endif (ENABLE_CUDA)
 add_library (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_hpmc ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hpmc _hoomd ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -92,6 +150,7 @@ set(files   analyze.py
             integrate.py
             update.py
             util.py
+            field.py
     )
 
 install(FILES ${files}
@@ -103,6 +162,31 @@ foreach(file ${files})
 endforeach()
 
 add_custom_target(copy_hpmc ALL DEPENDS ${files})
+
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_header file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/hpmc/${file}
+        COMMENT    "Copy hoomd/include/hoomd/hpmc/${file}"
+    )
+ENDMACRO(copy_header)
+
+# install headers in installation target
+install(FILES ${_hpmc_headers}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/hpmc
+       )
+
+if (COPY_HEADERS)
+# copy headers into build directory
+foreach(file ${_hpmc_headers})
+    copy_header(${file})
+endforeach()
+
+add_custom_target(copy_hpmc_headers ALL DEPENDS ${_hpmc_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

@@ -1,60 +1,14 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.external
-# \brief Commands that create external forces on particles
-#
-# Apply an %external force to all particles in the simulation. This module organizes all external forces.
-# As an example, a force derived from a %periodic potential can be used to induce a concentration modulation
-# in the system.
+R""" External forces.
+
+Apply an external force to all particles in the simulation. This module organizes all external forces.
+As an example, a force derived from a :py:class:`periodic` potential can be used to induce a concentration modulation
+in the system.
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -64,26 +18,18 @@ import hoomd;
 import sys;
 import math;
 
-# \brief Defines external potential coefficients
-# The coefficients for all %external force are specified using this class. Coefficients are specified per-particle
-# type.
-#
-# There are two ways to set the coefficients for a particular %external %force.
-# The first way is to save the %external %force in a variable and call set() directly.
-# To see an example of this, see the documentation for the package.
-#
-# The second method is to build the coeff class first and then assign it to the
-# %external %force. There are some advantages to this method in that you could specify a
-# complicated set of %external %force coefficients in a separate python file and import it into
-# your job script.
-#
-# Example:
-# \code
-# my_coeffs = external.coeff();
-# my_external_force.force_coeff.set('A', A=1.0, i=1, w=0.02, p=3)
-# my_external_force.force_coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
-# \endcode
 class coeff:
+    R""" Defines external potential coefficients.
+
+    The coefficients for all external forces are specified using this class. Coefficients are specified per particle
+    type.
+
+    Example::
+
+        my_external_force.force_coeff.set('A', A=1.0, i=1, w=0.02, p=3)
+        my_external_force.force_coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
+
+    """
 
     ## \internal
     # \brief Initializes the class
@@ -113,35 +59,38 @@ class coeff:
     def set_default_coeff(self, name, value):
         self.default_coeff[name] = value;
 
-    ## Sets parameters for one particle type
-    # \param type Type of particle
-    # \param coeff Named coefficients (see below for examples)
-    #
-    # Calling set() results in one or more parameters being set for a particle type. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the %external
-    # %force you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible particle types as defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-    # particle types that do not exist in the simulation. This can be useful in defining a %force field for many
-    # different types of particles even when some simulations only include a subset.
-    #
-    # To set the same coefficients between many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved \c system from the init command.
-    #
-    # \b Examples:
-    # \code
-    # coeff.set('A', A=1.0, i=1, w=0.02, p=3)
-    # coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
-    # coeff.set(['A','B'], i=1, w=0.02, p=3)
-    # \endcode
-    #
-    # \note Single parameters can be updated. If both epsilon and sigma have already been set for a particle type,
-    # then executing coeff.set('A', A =1.0) will %update the value of A and leave the other parameters as they
-    # were previously set.
-    #
     def set(self, type, **coeffs):
+        R""" Sets parameters for particle types.
+
+        Args:
+            type (str): Type of particle (or list of types)
+            coeff: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a particle type. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the external
+        force you are setting these coefficients for, see the corresponding documentation.
+
+        All possible particle types as defined in the simulation box must be specified before executing run().
+        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+        particle types that do not exist in the simulation. This can be useful in defining a force field for many
+        different types of particles even when some simulations only include a subset.
+
+        To set the same coefficients between many particle types, provide a list of type names instead of a single
+        one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
+        of particles in the simulation can be gotten from a saved system from the init command.
+
+        Examples::
+
+            coeff.set('A', A=1.0, i=1, w=0.02, p=3)
+            coeff.set('B', A=-1.0, i=1, w=0.02, p=3)
+            coeff.set(['A','B'], i=1, w=0.02, p=3)
+
+        Note:
+            Single parameters can be updated. For example,
+            executing ``coeff.set('A', A=1.0)`` will update the value of ``A`` and leave the other parameters as they
+            were previously set.
+
+        """
         hoomd.util.print_status_line();
 
         # listify the input
@@ -215,7 +164,7 @@ class coeff:
         return valid;
 
     ## \internal
-    # \brief Gets the value of a single %external %force coefficient
+    # \brief Gets the value of a single external force coefficient
     # \detail
     # \param type Name of particle type
     # \param coeff_name Coefficient to get
@@ -305,38 +254,33 @@ class _external_force(force._force):
         #field_coeff not included here, see wall.py for specific implementation
         return data
 
-
-## One-dimension periodic potential
-#
-# The command %periodic specifies that an external %force should be
-# added to every particle in the simulation to induce a periodic modulation
-# in the particle concentration. The force parameters can be set on a per-particle
-# type-basis. The potential can e.g. be used to induce an ordered phase in a block-copolymer melt.
-#
-# The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
-#
-#    \f[
-#    V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(p \vec{b}_i\cdot\vec{r}\right)\right]
-#    \f]
-#
-#    where \f$A\f$ is the ordering parameter, \f$\vec{b}_i\f$ is the reciprocal lattice vector direction
-#    \f$i=0..2\f$, \f$p\f$ the periodicity and \f$w\f$ the interface width
-#    (relative to the distance \f$2\pi/|\mathbf{b_i}|\f$ between planes in the \f$i\f$-direction).
-#    The modulation is one-dimensional. It extends along the lattice vector \f$\mathbf{a}_i\f$ of the
-#    simulation cell.
-#
-# \MPI_SUPPORTED
 class periodic(_external_force):
-    ## Apply a force derived from a %periodic potential to all particles
-    #
-    # \b Examples:
-    # \code
-    # # Apply a periodic composition modulation along the first lattice vector
-    # periodic = external.periodic()
-    # periodic.force_coeff.set('A', A=1.0, i=0, w=0.02, p=3)
-    # periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
-    # \endcode
+    R""" One-dimension periodic potential.
 
+    :py:class:`periodic` specifies that an external force should be
+    added to every particle in the simulation to induce a periodic modulation
+    in the particle concentration. The force parameters can be set on a per particle
+    type basis. The potential can e.g. be used to induce an ordered phase in a block-copolymer melt.
+
+    The external potential :math:`V(\vec{r})` is implemented using the following formula:
+
+    .. math::
+
+       V(\vec{r}) = A * \tanh\left[\frac{1}{2 \pi p w} \cos\left(p \vec{b}_i\cdot\vec{r}\right)\right]
+
+    where :math:`A` is the ordering parameter, :math:`\vec{b}_i` is the reciprocal lattice vector direction
+    :math:`i=0..2`, :math:`p` the periodicity and :math:`w` the interface width
+    (relative to the distance :math:`2\pi/|\mathbf{b_i}|` between planes in the :math:`i`-direction).
+    The modulation is one-dimensional. It extends along the lattice vector :math:`\mathbf{a}_i` of the
+    simulation cell.
+
+    Examples::
+
+        # Apply a periodic composition modulation along the first lattice vector
+        periodic = external.periodic()
+        periodic.force_coeff.set('A', A=1.0, i=0, w=0.02, p=3)
+        periodic.force_coeff.set('B', A=-1.0, i=0, w=0.02, p=3)
+    """
     def __init__(self, name=""):
         hoomd.util.print_status_line();
 
@@ -362,29 +306,26 @@ class periodic(_external_force):
 
         return _hoomd.make_scalar4(_hoomd.int_as_scalar(i), A, w, _hoomd.int_as_scalar(p));
 
-## Electric field
-#
-# The command %e_field specifies that an external %force should be
-# added to every particle in the simulation that results from an electric field.
-#
-# The external potential \f$V(\vec{r}) \f$ is implemented using the following formula:
-#
-#    \f[
-#    V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
-#    \f]
-#
-#    where \f$q_i\f$ is the particle charge and \f$\vec{E}\f$ is the field vector
-#
-# \MPI_SUPPORTED
 class e_field(_external_force):
-    ## Apply a force derived from an electric field to all particles
-    #
-    # \b Examples:
-    # \code
-    # # Apply an electric field in the x-direction
-    # e_field = external.e_field((1,0,0))
-    # \endcode
+    R""" Electric field.
 
+    :py:class:`e_field` specifies that an external force should be
+    added to every particle in the simulation that results from an electric field.
+
+    The external potential :math:`V(\vec{r})` is implemented using the following formula:
+
+    .. math::
+
+       V(\vec{r}) = - q_i \vec{E} \cdot \vec{r}
+
+
+    where :math:`q_i` is the particle charge and :math:`\vec{E}` is the field vector
+
+    Example::
+
+        # Apply an electric field in the x-direction
+        e_field = external.e_field((1,0,0))
+    """
     def __init__(self, field, name=""):
         hoomd.util.print_status_line();
 
@@ -409,6 +350,3 @@ class e_field(_external_force):
 
     def process_field_coeff(self, field):
         return _hoomd.make_scalar3(field[0],field[1],field[2])
-
-#
-# See wall.py for wall potentials which are based on _external_force

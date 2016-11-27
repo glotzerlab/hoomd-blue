@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -65,8 +20,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 using namespace std;
 
 // File position of NFILE in DCD header
@@ -107,10 +62,10 @@ static unsigned int read_int(fstream &file)
     the time step inforamtion in the file will be invalid. analyze() will print a warning
     if it is called out of sequence.
 */
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              const std::string &fname,
                              unsigned int period,
-                             boost::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<ParticleGroup> group,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
       m_num_frames_written(0), m_last_written_step(0), m_appending(false),
@@ -121,30 +76,38 @@ DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
     }
 
 //! Initializes the output file for writing
-void DCDDumpWriter::initFileIO()
+void DCDDumpWriter::initFileIO(unsigned int timestep)
     {
+    m_staging_buffer = new float[m_pdata->getNGlobal()];
+    m_is_initialized = true;
+
+    m_nglobal = m_pdata->getNGlobal();
+
     // handle appending to an existing file if it is requested
     if (!m_overwrite && filesystem::exists(m_fname))
         {
         m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
 
         // open the file and get data from the header
-        fstream file;
-        file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
-        file.seekp(NFILE_POS);
+        m_file.open(m_fname.c_str(), ios::in | ios::out | ios::binary);
+        m_file.seekp(NFILE_POS);
 
-        m_num_frames_written = read_int(file);
-        m_start_timestep = read_int(file);
-        unsigned int file_period = read_int(file);
+        m_num_frames_written = read_int(m_file);
+        m_start_timestep = read_int(m_file);
+        unsigned int file_period = read_int(m_file);
+
+        m_exec_conf->msg->notice(4) << "dump.dcd: File has " << m_num_frames_written
+                                    << " frames | start timestep: " << m_start_timestep
+                                    << " | and period " << m_period << endl;
 
         // warn the user if we are now dumping at a different period
         if (file_period != m_period)
             m_exec_conf->msg->warning() << "dump.dcd: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
 
-        m_last_written_step = read_int(file);
+        m_last_written_step = read_int(m_file);
 
         // check for errors
-        if (!file.good())
+        if (!m_file.good())
             {
             m_exec_conf->msg->error() << "dump.dcd: I/O error while reading DCD header data" << endl;
             throw runtime_error("Error appending to DCD file");
@@ -152,11 +115,15 @@ void DCDDumpWriter::initFileIO()
 
         m_appending = true;
         }
+    else
+        {
+        // open the file and truncate it
+        m_file.open(m_fname.c_str(), ios::trunc | ios::out | ios::binary);
 
-    m_staging_buffer = new float[m_pdata->getNGlobal()];
-    m_is_initialized = true;
-
-    m_nglobal = m_pdata->getNGlobal();
+        // write the file header
+        m_start_timestep = timestep;
+        write_file_header(m_file);
+        }
     }
 
 DCDDumpWriter::~DCDDumpWriter()
@@ -164,7 +131,10 @@ DCDDumpWriter::~DCDDumpWriter()
     m_exec_conf->msg->notice(5) << "Destroying DCDDumpWriter" << endl;
 
     if (m_is_initialized)
+        {
+        m_file.close();
         delete[] m_staging_buffer;
+        }
     }
 
 /*! \param timestep Current time step of the simulation
@@ -178,7 +148,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         m_prof->push("Dump DCD");
 
     // take particle data snapshot
-    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot;
 
     m_pdata->takeSnapshot(snapshot);
 
@@ -192,7 +162,7 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 #endif
 
     if (! m_is_initialized)
-        initFileIO();
+        initFileIO(timestep);
 
     if (m_nglobal != m_pdata->getNGlobal())
         {
@@ -201,46 +171,27 @@ void DCDDumpWriter::analyze(unsigned int timestep)
         throw std::runtime_error("Error writing DCD file");
         }
 
-    // the file object
-    fstream file;
-
-    // initialize the file on the first frame written
-    if (m_num_frames_written == 0)
+    if (m_appending && timestep <= m_last_written_step)
         {
-        // open the file and truncate it
-        file.open(m_fname.c_str(), ios::trunc | ios::out | ios::binary);
+        m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
 
-        // write the file header
-        m_start_timestep = timestep;
-        write_file_header(file);
+        if (m_prof)
+            m_prof->pop();
+        return;
         }
-    else
-        {
-        if (m_appending && timestep <= m_last_written_step)
-            {
-            m_exec_conf->msg->warning() << "dump.dcd: not writing output at timestep " << timestep << " because the file reports that it already has data up to step " << m_last_written_step << endl;
 
-            if (m_prof)
-                m_prof->pop();
-            return;
-            }
-
-        // open the file and move the file pointer to the end
-        file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
-
-        // verify the period on subsequent frames
-        if ( (timestep - m_start_timestep) % m_period != 0)
-            m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
-        }
+    // verify the period on subsequent frames
+    if ( (timestep - m_start_timestep) % m_period != 0)
+        m_exec_conf->msg->warning() << "dump.dcd: writing time step " << timestep << " which is not specified in the period of the DCD file: " << m_start_timestep << " + i * " << m_period << endl;
 
     // write the data for the current time step
-    write_frame_header(file);
-    write_frame_data(file, snapshot);
+    m_file.seekp(0, std::ios_base::end);
+    write_frame_header(m_file);
+    write_frame_data(m_file, snapshot);
 
     // update the header with the number of frames written
     m_num_frames_written++;
-    write_updated_header(file, timestep);
-    file.close();
+    write_updated_header(m_file, timestep);
 
     if (m_prof)
         m_prof->pop();
@@ -252,6 +203,10 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 */
 void DCDDumpWriter::write_file_header(std::fstream &file)
     {
+     m_exec_conf->msg->notice(4) << "dump.dcd: Creating dcd file "
+                                 << " | start timestep: " << m_start_timestep
+                                 << " | and period " << m_period << endl;
+
     // the first 4 bytes in the file must be 84
     write_int(file, 84);
 
@@ -373,6 +328,19 @@ void DCDDumpWriter::write_frame_data(std::fstream &file, const SnapshotParticleD
             {
             tmp_pos[i] = box.shift(tmp_pos[i], snapshot.image[i]);
             }
+        else if (m_unwrap_rigid && snapshot.body[i] != NO_BODY)
+            {
+            unsigned int central_ptl_tag = snapshot.body[i];
+            int body_ix = snapshot.image[central_ptl_tag].x;
+            int body_iy = snapshot.image[central_ptl_tag].y;
+            int body_iz = snapshot.image[central_ptl_tag].z;
+            int3 particle_img = snapshot.image[i];
+            int3 img_diff = make_int3(particle_img.x - body_ix,
+                                      particle_img.y - body_iy,
+                                      particle_img.z - body_iz);
+
+            tmp_pos[i] = box.shift(tmp_pos[i], img_diff);
+            }
         }
 
     // prepare x coords for writing, looping in tag order
@@ -441,10 +409,10 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
     write_int(file, timestep);
     }
 
-void export_DCDDumpWriter()
+void export_DCDDumpWriter(py::module& m)
     {
-    class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
+    py::class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)

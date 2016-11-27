@@ -19,7 +19,7 @@ These terms apply to your contribution to the HOOMD-blue Open Source Project ("P
 you are authorized to sign this contract on behalf of your company (if identified below).
 1. The terms will be governed by the laws of the State of Michigan and applicable U.S. Federal Law. Any choice of law rules will not apply.
 
-** Send an [e-mail to the HOOMD-blue developers](https://codeblue.umich.edu/hoomd-blue/) to electronically sign and agree to the terms of the HOOMD-blue Contributor Agreement.**
+** By making contribution, you electronically sign and agree to the terms of the HOOMD-blue Contributor Agreement.**
 
 ![by-sa.png](https://licensebuttons.net/l/by-sa/3.0/88x31.png)
 

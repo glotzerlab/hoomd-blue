@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 // inclusion guard
 #ifndef _INTEGRATOR_HPMC_H_
 #define _INTEGRATOR_HPMC_H_
@@ -14,7 +17,9 @@
 #include "HPMCCounters.h"
 #include "ExternalField.h"
 
-
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -33,7 +38,7 @@ class IntegratorHPMC : public Integrator
     {
     public:
         //! Constructor
-        IntegratorHPMC(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                        unsigned int seed);
 
         virtual ~IntegratorHPMC();
@@ -199,7 +204,7 @@ class IntegratorHPMC : public Integrator
 
             MC does not integrate with the MD computations that use this value.
         */
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 1;
             }
@@ -272,27 +277,37 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             return Scalar(0.0);
             }
 
         #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            return CommFlags(0);
+            }
+
         //! Set the MPI communicator
         /*! \param comm the communicator
             This method is overridden so that we can register with the signal to set the ghost layer width.
         */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
-            if (!m_comm)
+            if (! m_communicator_ghost_width_connected)
                 {
                 // only add the migrate request on the first call
                 assert(comm);
-                #ifdef HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
-                m_ghost_layer_width_request = comm->addGhostLayerWidthRequest(boost::bind(&IntegratorHPMC::getGhostLayerWidth, this));
-                #else
-                #error "Unsupported HOOMD version."
-                #endif
+                comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
+                m_communicator_ghost_width_connected = true;
+                }
+            if (! m_communicator_flags_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+                m_communicator_flags_connected = true;
                 }
 
             // set the member variable
@@ -303,15 +318,13 @@ class IntegratorHPMC : public Integrator
     private:
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
-
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
-        boost::signals2::connection m_ghost_layer_width_request;  //!< Connection to request ghost layer width
+ 
+        bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
+        bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
     };
 
 //! Export the IntegratorHPMC class to python
-void export_IntegratorHPMC();
+void export_IntegratorHPMC(pybind11::module& m);
 
 } // end namespace hpmc
 

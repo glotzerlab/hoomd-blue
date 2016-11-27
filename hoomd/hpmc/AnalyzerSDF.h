@@ -1,4 +1,6 @@
-// inclusion guard
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #ifndef _ANALYZER_SDF_H_
 #define _ANALYZER_SDF_H_
 
@@ -8,13 +10,16 @@
 
 
 #include "hoomd/Analyzer.h"
-#include <boost/python.hpp>
 #include "hoomd/Filesystem.h"
 #include "IntegratorHPMCMono.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #include "hoomd/HOOMDMPI.h"
+#endif
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
 namespace hpmc
@@ -106,8 +111,8 @@ class AnalyzerSDF : public Analyzer
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        AnalyzerSDF(boost::shared_ptr<SystemDefinition> sysdef,
-                    boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+        AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
+                    std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                     double lmax,
                     double dl,
                     unsigned int navg,
@@ -125,7 +130,7 @@ class AnalyzerSDF : public Analyzer
         virtual void analyze(unsigned int timestep);
 
     protected:
-        boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The integrator
+        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< The integrator
         double m_lmax;                          //!< Maximum lambda value
         double m_dl;                            //!< Histogram step size
         unsigned int m_navg;                    //!< Number of samples to average before writing out to the file
@@ -171,8 +176,8 @@ class AnalyzerSDF : public Analyzer
     Construct the SDF analyzer and initialize histogram memory to 0
 */
 template < class Shape >
-AnalyzerSDF<Shape>::AnalyzerSDF(boost::shared_ptr<SystemDefinition> sysdef,
-                                boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+AnalyzerSDF<Shape>::AnalyzerSDF(std::shared_ptr<SystemDefinition> sysdef,
+                                std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
                                 double lmax,
                                 double dl,
                                 unsigned int navg,
@@ -335,7 +340,8 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
     // access particle data and system box
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+
+    const std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
 
     // loop through N particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -345,7 +351,7 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
-        Shape shape_i(quat<Scalar>(orientation_i), h_params.data[__scalar_as_int(postype_i.w)]);
+        Shape shape_i(quat<Scalar>(orientation_i), params[__scalar_as_int(postype_i.w)]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // construct the AABB around the particle's circumsphere
@@ -385,8 +391,8 @@ void AnalyzerSDF<Shape>::countHistogram(unsigned int timestep)
                             int bin = computeBin(r_ij,
                                                  quat<Scalar>(orientation_i),
                                                  quat<Scalar>(orientation_j),
-                                                 h_params.data[__scalar_as_int(postype_i.w)],
-                                                 h_params.data[__scalar_as_int(postype_j.w)]);
+                                                 params[__scalar_as_int(postype_i.w)],
+                                                 params[__scalar_as_int(postype_j.w)]);
 
                             if (bin >= 0)
                                 min_bin = std::min(min_bin, bin);
@@ -459,10 +465,10 @@ int AnalyzerSDF<Shape>:: computeBin(const vec3<Scalar>& r_ij,
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of AnalyzerSDF<Shape> will be exported
 */
-template < class Shape > void export_AnalyzerSDF(const std::string& name)
+template < class Shape > void export_AnalyzerSDF(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< AnalyzerSDF<Shape>, boost::shared_ptr< AnalyzerSDF<Shape> >, boost::python::bases<Analyzer>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
+    pybind11::class_< AnalyzerSDF<Shape>, std::shared_ptr< AnalyzerSDF<Shape> > >(m, name.c_str(), pybind11::base<Analyzer>())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, double, double, unsigned int, const std::string&, bool>())
           ;
     }
 

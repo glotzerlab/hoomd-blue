@@ -8,7 +8,7 @@ macro(add_script_test_cpu_mpi script)
             add_test(NAME ${script}-mpi-cpu
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
                 ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu")
-                set_tests_properties(${script}-mpi-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+                set_tests_properties(${script}-mpi-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
             endif()
     endif(ENABLE_MPI)
 endmacro()
@@ -21,7 +21,7 @@ macro(add_script_test_gpu_mpi script)
             add_test(NAME ${script}-mpi-gpu
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
                 ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--gpu_error_checking")
-            set_tests_properties(${script}-mpi-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+            set_tests_properties(${script}-mpi-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
         endif()
     endif(ENABLE_MPI)
 endmacro()
@@ -29,24 +29,24 @@ endmacro()
 
 macro(add_script_test_cpu script)
     add_test(${script}-cpu ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu")
-    set_tests_properties(${script}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(${script}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 
     add_script_test_cpu_mpi(${script})
 endmacro()
 
 macro(add_script_test_gpu script)
     add_test(${script}-gpu ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu")
-    set_tests_properties(${script}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(${script}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 
     add_script_test_gpu_mpi(${script})
 endmacro()
 
 set(TEST_LIST_CPU
-    npt.py
+    test_boxMC.py
     small-box-2d.py
     small-box-3d.py
     stats_check.py
-    test_util.py
+    test_hpmc_util.py
     ignore_flag.py
     move_by_type.py
     shape_union.py
@@ -56,9 +56,11 @@ set(TEST_LIST_CPU
     test_implicit.py
     test_ghost_layer.py
     test_walls.py
-    max_verts.py
     muvt.py
     meta_data.py
+    shape_proxy.py
+    external_lattice.py
+    map_overlap.py
     )
 
 set(TEST_LIST_GPU
@@ -69,20 +71,21 @@ set(TEST_LIST_GPU
     test_sdf.py
     test_implicit.py
     test_ghost_layer.py
-    max_verts.py
     muvt.py
+    shape_proxy.py
     )
 
 set(EXCLUDE_FROM_MPI
     small-box-2d.py
     small-box-3d.py
-    test_util.py
+    test_hpmc_util.py
     ignore_flag.py
-    npt.py
+    test_boxMC.py
     image-list.py
     hoomd.util.py
-    max_verts.py
     create_shapes.py
+    test_sdf.py
+    map_overlap.py
    )
 
 set(MPI_ONLY

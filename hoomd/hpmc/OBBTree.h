@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -81,7 +36,6 @@ namespace detail
     @{
 */
 
-const unsigned int OBB_NODE_CAPACITY = 4;          //!< Maximum number of particles in a node
 const unsigned int OBB_INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 
 #ifndef NVCC
@@ -95,7 +49,6 @@ struct OBBNode
     OBBNode()
         {
         left = right = parent = OBB_INVALID_NODE;
-        num_particles = 0;
         skip = 0;
         }
 
@@ -105,12 +58,11 @@ struct OBBNode
     unsigned int parent; //!< Index of the parent node
     unsigned int skip;   //!< Number of array indices to skip to get to the next node in an in order traversal
 
-    unsigned int particles[OBB_NODE_CAPACITY];      //!< Indices of the particles contained in the node
-    unsigned int num_particles;                 //!< Number of particles contained in the node
-    } __attribute__((aligned(32)));
+    std::vector<unsigned int> particles;      //!< Indices of the particles contained in the node
+    };
 
 //! OBB Tree
-/*! An OBBTree stores a binary tree of OBBs. A leaf node stores up to OBB_NODE_CAPACITY particles by index. The bounding
+/*! An OBBTree stores a binary tree of OBBs. A leaf node stores up to node_capacity particles by index. The bounding
     box of a leaf node is surrounds all the bounding boxes of its contained particles. Internal nodes have OBBs that
     enclose all of their children. The tree supports the following operations:
 
@@ -135,7 +87,7 @@ class OBBTree
     public:
         //! Construct an OBBTree
         OBBTree()
-            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_root(0)
+            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_leaf_capacity(0), m_root(0)
             {
             }
 
@@ -143,12 +95,15 @@ class OBBTree
         ~OBBTree()
             {
             if (m_nodes)
-                free(m_nodes);
+                delete [] m_nodes;
             }
 
-        //! Build a tree smartly from a list of OBBs
+        //! Build a tree smartly from a list of OBBs and internal coordinates
         inline void buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-            OverlapReal vertex_radius, unsigned int N);
+            OverlapReal vertex_radius, unsigned int N, unsigned int leaf_capacity);
+
+        //! Build a tree from a list of OBBs
+        inline void buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity);
 
         //! Find all particles that overlap with the query OBB
         inline unsigned int query(std::vector<unsigned int>& hits, const OBB& obb) const;
@@ -210,7 +165,7 @@ class OBBTree
         */
         inline unsigned int getNodeNumParticles(unsigned int node) const
             {
-            return (m_nodes[node].num_particles);
+            return (m_nodes[node].particles.size());
             }
 
         //! Get the particles in a given node
@@ -218,13 +173,21 @@ class OBBTree
         */
         inline unsigned int getNodeParticle(unsigned int node, unsigned int j) const
             {
+            assert(m_nodes[node].particles.size() > j);
             return (m_nodes[node].particles[j]);
+            }
+
+        //! Get the capacity of leaf nodes
+        unsigned int getLeafNodeCapacity() const
+            {
+            return m_leaf_capacity;
             }
 
     private:
         OBBNode *m_nodes;                  //!< The nodes of the tree
         unsigned int m_num_nodes;           //!< Number of nodes
         unsigned int m_node_capacity;       //!< Capacity of the nodes array
+        unsigned int m_leaf_capacity;       //!< Number of particles in leaf nodes
         unsigned int m_root;                //!< Index to the root node of the tree
         std::vector<unsigned int> m_mapping;//!< Reverse mapping to find node given a particle index
 
@@ -285,7 +248,7 @@ inline unsigned int OBBTree::query(std::vector<unsigned int>& hits, const OBB& o
             {
             if (current_node.left == OBB_INVALID_NODE)
                 {
-                for (unsigned int i = 0; i < current_node.num_particles; i++)
+                for (unsigned int i = 0; i < current_node.particles.size(); i++)
                     hits.push_back(current_node.particles[i]);
                 }
             }
@@ -329,14 +292,17 @@ inline unsigned int OBBTree::height(unsigned int idx)
 
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
+    \param internal_coordinates List of lists of vertex contents of OBBs
+    \param vertex_radius Radius of every vertex
     \param N Number of OBBs in the list
 
     Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
     the construction process.
 */
 inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-    OverlapReal vertex_radius, unsigned int N)
+    OverlapReal vertex_radius, unsigned int N, unsigned int leaf_capacity)
     {
+    m_leaf_capacity = leaf_capacity;
     init(N);
 
     std::vector<unsigned int> idx;
@@ -346,6 +312,33 @@ inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapRe
     m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
     updateSkip(m_root);
     }
+
+/*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
+    \param N Number of OBBs in the list
+
+    Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
+    the construction process.
+*/
+inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity)
+    {
+    m_leaf_capacity = leaf_capacity;
+    init(N);
+
+    std::vector<unsigned int> idx;
+    for (unsigned int i = 0; i < N; i++)
+        idx.push_back(i);
+
+    // initialize internal coordinates from OBB corners
+    std::vector< std::vector<vec3<OverlapReal> > > internal_coordinates;
+    for (unsigned int i = 0; i < N; ++i)
+        {
+        internal_coordinates.push_back(obbs[i].getCorners());
+        }
+
+    m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
+    updateSkip(m_root);
+    }
+
 
 /*! \param obbs List of OBBs
     \param idx List of indices
@@ -384,17 +377,16 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
     my_obb = compute_obb(merge_internal_coordinates, vertex_radius);
 
     // handle the case of a leaf node creation
-    if (len <= OBB_NODE_CAPACITY)
+    if (len <= m_leaf_capacity)
         {
         unsigned int new_node = allocateNode();
         m_nodes[new_node].obb = my_obb;
         m_nodes[new_node].parent = parent;
-        m_nodes[new_node].num_particles = len;
 
         for (unsigned int i = 0; i < len; i++)
             {
             // assign the particle indices into the leaf node
-            m_nodes[new_node].particles[i] = idx[start+i];
+            m_nodes[new_node].particles.push_back(idx[start+i]);
 
             // assign the reverse mapping from particle indices to leaf node indices
             m_mapping[idx[start+i]] = new_node;
@@ -502,17 +494,13 @@ inline unsigned int OBBTree::allocateNode()
             m_new_node_capacity = 16;
 
         // allocate new memory
-        int retval = posix_memalign((void**)&m_new_nodes, 32, m_new_node_capacity*sizeof(OBBNode));
-        if (retval != 0)
-            {
-            throw std::runtime_error("Error allocating OBBTree memory");
-            }
+        m_new_nodes = new OBBNode[m_new_node_capacity];
 
         // if we have old memory, copy it over
         if (m_nodes != NULL)
             {
-            memcpy(m_new_nodes, m_nodes, sizeof(OBBNode)*m_num_nodes);
-            free(m_nodes);
+            std::copy(m_nodes, m_nodes + m_num_nodes, m_new_nodes);
+            delete[] m_nodes;
             }
         m_nodes = m_new_nodes;
         m_node_capacity = m_new_node_capacity;

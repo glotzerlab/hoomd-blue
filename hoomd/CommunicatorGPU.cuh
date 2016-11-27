@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -132,8 +87,11 @@ void gpu_reset_rtags(unsigned int n_delete_ptls,
 void gpu_make_ghost_exchange_plan(unsigned int *d_plan,
                                   unsigned int N,
                                   const Scalar4 *d_pos,
+                                  const unsigned int *d_body,
                                   const BoxDim& box,
                                   const Scalar *d_r_ghost,
+                                  const Scalar *d_r_ghost_body,
+                                  Scalar r_ghost_max,
                                   unsigned int ntypes,
                                   unsigned int mask);
 
@@ -169,6 +127,7 @@ void gpu_exchange_ghosts_pack(
     const uint2 *d_ghost_idx_adj,
     const unsigned int *d_tag,
     const Scalar4 *d_pos,
+    const int3* d_img,
     const Scalar4 *d_vel,
     const Scalar *d_charge,
     const Scalar *d_diameter,
@@ -180,6 +139,7 @@ void gpu_exchange_ghosts_pack(
     Scalar *d_charge_sendbuf,
     Scalar *d_diameter_sendbuf,
     unsigned int *d_body_sendbuf,
+    int3 *d_img_sendbuf,
     Scalar4 *d_orientation_sendbuf,
     bool send_tag,
     bool send_pos,
@@ -187,6 +147,7 @@ void gpu_exchange_ghosts_pack(
     bool send_charge,
     bool send_diameter,
     bool send_body,
+    bool send_image,
     bool send_orientation,
     const Index3D& di,
     uint3 my_pos,
@@ -205,6 +166,7 @@ void gpu_exchange_ghosts_copy_buf(
     const Scalar *d_charge_recvbuf,
     const Scalar *d_diameter_recvbuf,
     const unsigned int *d_body_recvbuf,
+    const int3 *d_image_recvbuf,
     const Scalar4 *d_orientation_recvbuf,
     unsigned int *d_tag,
     Scalar4 *d_pos,
@@ -212,6 +174,7 @@ void gpu_exchange_ghosts_copy_buf(
     Scalar *d_charge,
     Scalar *d_diameter,
     unsigned int *d_body,
+    int3 *d_image,
     Scalar4 *d_orientation,
     bool send_tag,
     bool send_pos,
@@ -219,6 +182,7 @@ void gpu_exchange_ghosts_copy_buf(
     bool send_charge,
     bool send_diameter,
     bool send_body,
+    bool send_image,
     bool send_orientation);
 
 //! Compute ghost rtags

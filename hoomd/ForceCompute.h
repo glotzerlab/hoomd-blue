@@ -1,55 +1,11 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 #include "Compute.h"
 #include "Index1D.h"
+#include "ParticleGroup.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
@@ -59,8 +15,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class
@@ -69,6 +25,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
@@ -91,7 +49,7 @@ class ForceCompute : public Compute
     {
     public:
         //! Constructs the compute
-        ForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompute();
@@ -107,7 +65,7 @@ class ForceCompute : public Compute
         /*! This method is called in MPI simulations BEFORE the particles are migrated
          * and can be used to overlap computation with communication
          */
-        virtual void preCompute(unsigned int timestep) { }
+        virtual void preCompute(unsigned int timestep){}
         #endif
 
         //! Computes the forces
@@ -118,6 +76,9 @@ class ForceCompute : public Compute
 
         //! Total the potential energy
         Scalar calcEnergySum();
+
+        //! Sum the potential energy of a group
+        Scalar calcEnergyGroup(std::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
@@ -154,6 +115,12 @@ class ForceCompute : public Compute
             {
             assert(dir<6);
             return m_external_virial[dir];
+            }
+
+        //! Get the contribution to the external potential energy
+        Scalar getExternalEnergy()
+            {
+            return m_external_energy;
             }
 
         #ifdef ENABLE_MPI
@@ -207,22 +174,19 @@ class ForceCompute : public Compute
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
-
-        //! Connection to the signal notifying when particles are resorted
-        boost::signals2::connection m_sort_connection;
-
-        //! Connection to the signal notifying when maximum number of particles changes
-        boost::signals2::connection m_max_particle_num_change_connection;
+        Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
         */
-        virtual void computeForces(unsigned int timestep)=0;
+        virtual void computeForces(unsigned int timestep){}
     };
 
 //! Exports the ForceCompute class to python
-void export_ForceCompute();
+#ifndef NVCC
+void export_ForceCompute(pybind11::module& m);
+#endif
 
 #endif

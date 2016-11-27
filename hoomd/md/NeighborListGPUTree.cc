@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: mphoward
 
@@ -56,10 +11,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUTree.h"
 #include "NeighborListGPUTree.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -67,7 +19,7 @@ using namespace boost;
 
 using namespace std;
 
-NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUTree::NeighborListGPUTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_type_changed(false), m_box_changed(true),
@@ -82,9 +34,9 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
         throw runtime_error("BVH tree neighbor list not supported by device");
         }
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListGPUTree::slotNumTypesChanged, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListGPUTree::slotBoxChanged, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListGPUTree::slotMaxNumChanged, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
 
     m_tuner_morton.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_morton_codes", this->m_exec_conf));
     m_tuner_merge.reset(new Autotuner(32, 1024, 32, 5, 100000, "nlist_merge_particles", this->m_exec_conf));
@@ -104,9 +56,9 @@ NeighborListGPUTree::NeighborListGPUTree(boost::shared_ptr<SystemDefinition> sys
 NeighborListGPUTree::~NeighborListGPUTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUTree" << endl;
-    m_num_type_change_conn.disconnect();
-    m_boxchange_connection.disconnect();
-    m_max_numchange_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUTree, &NeighborListGPUTree::slotMaxNumChanged>(this);
     }
 
 void NeighborListGPUTree::buildNlist(unsigned int timestep)
@@ -446,16 +398,17 @@ void NeighborListGPUTree::calcMortonCodes()
 
     // particle data and where to write it
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_map_tree_pid(m_map_tree_pid, access_location::device, access_mode::overwrite);
 
     ArrayHandle<uint64_t> d_morton_types(m_morton_types, access_location::device, access_mode::overwrite);
 
     // need a ghost layer width to get the fractional position of particles in the local box
     const BoxDim& box = m_pdata->getBox();
 
-    Scalar ghost_layer_width = getMaxRCut() + m_r_buff;
-    if (m_diameter_shift)
-        ghost_layer_width += m_d_max - Scalar(1.0);
+    Scalar ghost_layer_width(0.0);
+    #ifdef ENABLE_MPI
+    if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
+    #endif
 
     Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
     if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
@@ -466,8 +419,8 @@ void NeighborListGPUTree::calcMortonCodes()
         }
 
 
-    // reset the flag to an invalid particle id before calling the compute
-    m_morton_conditions.resetFlags(-1);
+    // reset the flag to zero before calling the compute
+    m_morton_conditions.resetFlags(0);
 
     m_tuner_morton->begin();
     gpu_nlist_morton_types(d_morton_types.data,
@@ -484,14 +437,16 @@ void NeighborListGPUTree::calcMortonCodes()
     m_tuner_morton->end();
 
     // error check that no local particles are out of bounds
-    const int morton_conditions = m_morton_conditions.readFlags();
-    if (morton_conditions >= 0)
+    const unsigned int morton_conditions = m_morton_conditions.readFlags();
+    if (morton_conditions > 0)
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        Scalar4 post_i = h_pos.data[morton_conditions];
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        Scalar4 post_i = h_pos.data[morton_conditions-1];
         Scalar3 pos_i = make_scalar3(post_i.x, post_i.y, post_i.z);
-        Scalar3 f = box.makeFraction(pos_i, ghost_width);
-        m_exec_conf->msg->error() << "nlist: Particle " << morton_conditions << " is out of bounds "
+        Scalar3 f = box.makeFraction(pos_i);
+        ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+        m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[morton_conditions-1] << " is out of bounds "
                                   << "(x: " << post_i.x << ", y: " << post_i.y << ", z: " << post_i.z
                                   << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
         throw runtime_error("Error updating neighborlist");
@@ -532,6 +487,10 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
         /*
          * Always allocate at least 4 bytes. In CUB 1.4.1, sorting N < the tile size (which I believe is a thread block)
          * does not require any temporary storage, and tmp_storage_bytes returns 0. But, d_tmp_storage must be not NULL
@@ -555,6 +514,9 @@ void NeighborListGPUTree::sortMortonCodes()
                               swap_map,
                               m_pdata->getN() + m_pdata->getNGhosts(),
                               m_n_type_bits);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
         }
 
     // we want the sorted data in the real data because the alt is just a tmp holder
@@ -855,9 +817,8 @@ void NeighborListGPUTree::traverseTree()
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUTree()
+void export_NeighborListGPUTree(py::module& m)
     {
-    class_<NeighborListGPUTree, boost::shared_ptr<NeighborListGPUTree>, bases<NeighborListGPU>, boost::noncopyable >
-                     ("NeighborListGPUTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >());
+    py::class_<NeighborListGPUTree, std::shared_ptr<NeighborListGPUTree> >(m, "NeighborListGPUTree", py::base<NeighborListGPU>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >());
     }
-

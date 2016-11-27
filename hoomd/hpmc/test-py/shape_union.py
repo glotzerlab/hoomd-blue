@@ -7,6 +7,10 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # Tests that randomly generated systems of multi-object particles have the expected logical overlap status.
 
 ## Helper function to check if two dumbbells of unit spheres overlap
@@ -90,10 +94,10 @@ class sphere_union(unittest.TestCase):
         ndim = 3
 
         spheres = numpy.array([[-0.5, 0, 0],[0.5, 0, 0]])      # positions of spheres in dumbbell coordinates
-        system = init.create_empty(N=N, box=data.boxdim(L=L, dimensions=ndim), particle_types=['A'])
+        system = create_empty(N=N, box=data.boxdim(L=L, dimensions=ndim), particle_types=['A'])
 
         # decrease initialization time with smaller grid for Hilbert curve
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         mc = hpmc.integrate.sphere_union(seed=seed);
         mc.shape_param.set("A", diameters=[1.0, 1.0], centers=spheres);

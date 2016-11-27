@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -12,9 +13,9 @@ import tempfile
 class dmp_dcd_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         if comm.get_rank() == 0:
             tmp = tempfile.mkstemp(suffix='.test.dcd');
@@ -44,11 +45,11 @@ class dmp_dcd_tests (unittest.TestCase):
             os.remove(self.tmp_file)
 
     # tests unwrap_rigid option
-    #def test_unwrap_rigid(self):
-    #    dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
-    #    run(100)
-    #    if (comm.get_rank() == 0):
-    #        os.remove(self.tmp_file)
+    def test_unwrap_rigid(self):
+        dump.dcd(filename=self.tmp_file, period=100, unwrap_rigid=True);
+        run(100)
+        if (comm.get_rank() == 0):
+            os.remove(self.tmp_file)
 
     # tests group option
     def test_group(self):

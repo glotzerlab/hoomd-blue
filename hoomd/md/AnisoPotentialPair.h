@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -54,8 +9,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
+#include <memory>
 
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
@@ -69,6 +23,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Template class for computing pair potentials
 /*! <b>Overview:</b>
@@ -111,8 +67,8 @@ class AnisoPotentialPair : public ForceCompute
         typedef typename aniso_evaluator::param_type param_type;
 
         //! Construct the pair potential
-        AnisoPotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~AnisoPotentialPair() { };
@@ -153,7 +109,7 @@ class AnisoPotentialPair : public ForceCompute
             }
 
 protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
@@ -170,8 +126,8 @@ protected:
     \param log_suffix Name given to this instance of the force
 */
 template < class aniso_evaluator >
-AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
@@ -493,25 +449,20 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated AnisoPotentialPair class template.
 */
-template < class T > void export_AnisoPotentialPair(const std::string& name)
+template < class T > void export_AnisoPotentialPair(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_aniso_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setShiftMode", &T::setShiftMode)
-                  ;
-
-    boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
-        .value("no_shift", T::no_shift)
-        .value("shift", T::shift)
+    pybind11::class_<T, std::shared_ptr<T> > anisopotentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    anisopotentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setParams", &T::setParams)
+        .def("setRcut", &T::setRcut)
+        .def("setShiftMode", &T::setShiftMode)
     ;
 
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+    pybind11::enum_<typename T::energyShiftMode>(anisopotentialpair,"energyShiftMode")
+        .value("no_shift", T::energyShiftMode::no_shift)
+        .value("shift", T::energyShiftMode::shift)
+        .export_values()
+    ;
     }
 
 #endif // __ANISO_POTENTIAL_PAIR_H__

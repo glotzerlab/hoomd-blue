@@ -3,8 +3,9 @@
 
 if (SINGLE_PRECISION)
     add_definitions (-DSINGLE_PRECISION)
-else(SINGLE_PRECISION)
-   add_definitions (-Dkiss_fft_scalar=double)
+# disable for now, only support single precision FFT
+#else(SINGLE_PRECISION)
+#   add_definitions (-Dkiss_fft_scalar=double)
 endif(SINGLE_PRECISION)
 
 if (ENABLE_CUDA)

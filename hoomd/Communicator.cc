@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -58,18 +13,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #include "System.h"
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
 #include <algorithm>
-#include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <vector>
 
 template<class group_data>
-Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, boost::shared_ptr<group_data> gdata)
+Communicator::GroupCommunicator<group_data>::GroupCommunicator(Communicator& comm, std::shared_ptr<group_data> gdata)
     : m_comm(comm), m_exec_conf(comm.m_exec_conf), m_gdata(gdata)
     {
     // the size of the bit field must be larger or equal the group size
@@ -1096,8 +1050,8 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
 
 //! Constructor
-Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<DomainDecomposition> decomposition)
+Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<DomainDecomposition> decomposition)
           : m_sysdef(sysdef),
             m_pdata(sysdef->getParticleData()),
             m_exec_conf(m_pdata->getExecConf()),
@@ -1111,6 +1065,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_charge_copybuf(m_exec_conf),
             m_diameter_copybuf(m_exec_conf),
             m_body_copybuf(m_exec_conf),
+            m_image_copybuf(m_exec_conf),
             m_velocity_copybuf(m_exec_conf),
             m_orientation_copybuf(m_exec_conf),
             m_plan_copybuf(m_exec_conf),
@@ -1120,7 +1075,9 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
+            m_r_extra_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
+            m_has_ghost_particles(false),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -1129,7 +1086,7 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
             m_improper_comm(*this, m_sysdef->getImproperData()),
             m_constraint_comm(*this, m_sysdef->getConstraintData()),
-            m_is_first_step(true)
+            m_pair_comm(*this, m_sysdef->getPairData())
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1151,35 +1108,41 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
         }
 
     // connect to particle sort signal
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&Communicator::forceMigrate, this));
+    m_pdata->getParticleSortSignal().connect<Communicator, &Communicator::forceMigrate>(this);
 
     // connect to particle sort signal
-    m_ghost_particles_removed_connection = m_pdata->connectGhostParticlesRemoved(boost::bind(&Communicator::slotGhostParticlesRemoved, this));
+    m_pdata->getGhostParticlesRemovedSignal().connect<Communicator, &Communicator::slotGhostParticlesRemoved>(this);
 
     // connect to type change signal
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&Communicator::slotNumTypesChanged, this));
+    m_pdata->getNumTypesChangeSignal().connect<Communicator, &Communicator::slotNumTypesChanged>(this);
 
     // allocate per type ghost width
     GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
 
+    GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+    m_r_ghost_body.swap(r_ghost_body);
+
     /*
      * Bonded group communication
      */
     m_bonds_changed = true;
-    m_bond_connection = m_sysdef->getBondData()->connectGroupNumChange(boost::bind(&Communicator::setBondsChanged, this));
+    m_sysdef->getBondData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setBondsChanged>(this);
 
     m_angles_changed = true;
-    m_angle_connection = m_sysdef->getAngleData()->connectGroupNumChange(boost::bind(&Communicator::setAnglesChanged, this));
+    m_sysdef->getAngleData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setAnglesChanged>(this);
 
     m_dihedrals_changed = true;
-    m_dihedral_connection = m_sysdef->getDihedralData()->connectGroupNumChange(boost::bind(&Communicator::setDihedralsChanged, this));
+    m_sysdef->getDihedralData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setDihedralsChanged>(this);
 
     m_impropers_changed = true;
-    m_improper_connection = m_sysdef->getImproperData()->connectGroupNumChange(boost::bind(&Communicator::setImpropersChanged, this));
+    m_sysdef->getImproperData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setImpropersChanged>(this);
 
     m_constraints_changed = true;
-    m_constraint_connection= m_sysdef->getConstraintData()->connectGroupNumChange(boost::bind(&Communicator::setConstraintsChanged, this));
+    m_sysdef->getConstraintData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setConstraintsChanged>(this);
+
+    m_pairs_changed = true;
+    m_sysdef->getPairData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setPairsChanged>(this);
 
     // allocate memory
     GPUArray<unsigned int> neighbors(NEIGH_MAX,m_exec_conf);
@@ -1199,37 +1162,22 @@ Communicator::Communicator(boost::shared_ptr<SystemDefinition> sysdef,
     m_end.swap(end);
 
     initializeNeighborArrays();
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // set up autotuners to determine whether to use mapped memory (boolean values)
-        std::vector<unsigned int> valid_params(2);
-        valid_params[0] = 0; valid_params[1]  = 1;
-
-        // use a sufficiently long measurement period to average over
-        unsigned int nsteps = 100;
-        m_tuner_precompute.reset(new Autotuner(valid_params, nsteps, 100000, "comm_precompute", this->m_exec_conf));
-
-        // average execution times instead of median
-        m_tuner_precompute->setMode(Autotuner::mode_avg);
-
-        // we require syncing for aligned execution streams
-        m_tuner_precompute->setSync(true);
-        }
-    #endif
     }
 
 //! Destructor
 Communicator::~Communicator()
     {
-    m_exec_conf->msg->notice(5) << "Destroying Communicator";
-    m_sort_connection.disconnect();
-    m_bond_connection.disconnect();
-    m_angle_connection.disconnect();
-    m_dihedral_connection.disconnect();
-    m_improper_connection.disconnect();
-    m_constraint_connection.disconnect();
+    m_exec_conf->msg->notice(5) << "Destroying Communicator" << std::endl;
+    m_pdata->getParticleSortSignal().disconnect<Communicator, &Communicator::forceMigrate>(this);
+    m_pdata->getGhostParticlesRemovedSignal().disconnect<Communicator, &Communicator::slotGhostParticlesRemoved>(this);
+    m_pdata->getNumTypesChangeSignal().disconnect<Communicator, &Communicator::slotNumTypesChanged>(this);
+
+    m_sysdef->getBondData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setBondsChanged>(this);
+    m_sysdef->getAngleData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setAnglesChanged>(this);
+    m_sysdef->getDihedralData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setDihedralsChanged>(this);
+    m_sysdef->getImproperData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setImpropersChanged>(this);
+    m_sysdef->getConstraintData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setConstraintsChanged>(this);
+    m_sysdef->getPairData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setPairsChanged>(this);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1331,63 +1279,63 @@ void Communicator::communicate(unsigned int timestep)
     m_is_communicating = true;
 
     // update ghost communication flags
-    m_flags = m_requested_flags(timestep);
+    m_flags = CommFlags(0);
+    m_requested_flags.emit_accumulate( [&](CommFlags f)
+                                        {
+                                        m_flags |= f;
+                                        }
+                                      , timestep);
 
-    /*
-     * Always update ghosts - even if not required, i.e. if the neighbor list
-     * needs to be rebuilt. Exceptions are when we have not previously
-     * exchanged ghosts, i.e. on the first step or when ghosts have
-     * potentially been invalidated, i.e. upon reordering of particles.
-     */
-
-    bool update = !m_is_first_step && !m_force_migrate;
-
-    bool precompute = m_tuner_precompute ? m_tuner_precompute->getParam() : false;
-
-    update &= precompute;
-
-    if (m_tuner_precompute) m_tuner_precompute->begin();
-
-    if (update)
-        beginUpdateGhosts(timestep);
-
-    // call computation that can be overlapped with communication
-    m_local_compute_callbacks(timestep);
-
-    if (update)
-        finishUpdateGhosts(timestep);
-
-    if (precompute && update)
+    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
         {
-        // call subscribers *before* MPI synchronization, but after ghost update
-        m_compute_callbacks(timestep);
-        }
-
-    // distance check (synchronizes the GPU execution stream)
-    bool migrate = m_migrate_requests(timestep) || m_force_migrate || m_is_first_step;
-
-    if (!precompute && !migrate)
-        {
-        // *after* synchronization, but only if particles do not migrate
+        // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);
         finishUpdateGhosts(timestep);
 
-        m_compute_callbacks(timestep);
+        // call subscribers after ghost update, but before distance check
+        m_compute_callbacks.emit(timestep);
+
+        // by now, local particles may have moved outside the box due to the rigid body update
+        // we will make sure that they are inside by doing a second migrate if necessary
         }
 
-    if (m_tuner_precompute) m_tuner_precompute->end();
+    bool migrate_request = false;
+    if (! m_force_migrate)
+        {
+        // distance check, may not be called directly after particle reorder (such as
+        // due to SFCPackUpdater running before)
+        m_migrate_requests.emit_accumulate( [&](bool r)
+                                                {
+                                                migrate_request = migrate_request || r;
+                                                },
+                                            timestep);
+        }
+
+    bool migrate = migrate_request || m_force_migrate || !m_has_ghost_particles;
+
+    // Update ghosts if we are not migrating
+    if (!migrate && m_compute_callbacks.empty())
+        {
+        beginUpdateGhosts(timestep);
+
+        finishUpdateGhosts(timestep);
+        }
 
     // Check if migration of particles is requested
     if (migrate)
         {
         m_force_migrate = false;
-        m_is_first_step = false;
 
         // If so, migrate atoms
         migrateParticles();
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
+ 
+        // update particle data now that ghosts are available
+        m_compute_callbacks.emit(timestep);
+        
+        m_has_ghost_particles = true;
         }
 
     m_is_communicating = false;
@@ -1449,6 +1397,10 @@ void Communicator::migrateParticles()
         // Bonds
         m_bond_comm.migrateGroups(m_bonds_changed, true);
         m_bonds_changed = false;
+
+        // Special pairs
+        m_pair_comm.migrateGroups(m_pairs_changed, true);
+        m_pairs_changed = false;
 
         // Angles
         m_angle_comm.migrateGroups(m_angles_changed, true);
@@ -1526,7 +1478,18 @@ void Communicator::migrateParticles()
 
 void Communicator::updateGhostWidth()
     {
-    if (m_ghost_layer_width_requests.num_slots())
+        {
+        // reset values (this may not be needed in most cases, but it doesn't harm to be safe
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::overwrite);
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            h_r_ghost.data[cur_type] = Scalar(0.0);
+            h_r_ghost_body.data[cur_type] = Scalar(0.0);
+            }
+        }
+
+    if (!m_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
         ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
@@ -1535,11 +1498,37 @@ void Communicator::updateGhostWidth()
         Scalar r_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
             {
-            Scalar r_ghost_i = m_ghost_layer_width_requests(cur_type);
+            Scalar r_ghost_i = 0.0;
+            m_ghost_layer_width_requests.emit_accumulate([&](Scalar r)
+                                                            {
+                                                            if (r > r_ghost_i) r_ghost_i = r;
+                                                            }
+                                                            ,cur_type);
             h_r_ghost.data[cur_type] = r_ghost_i;
             if (r_ghost_i > r_ghost_max) r_ghost_max = r_ghost_i;
             }
         m_r_ghost_max = r_ghost_max;
+        }
+    if (!m_extra_ghost_layer_width_requests.empty())
+        {
+        // update the ghost layer width only if subscribers are available
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::readwrite);
+
+        Scalar r_extra_ghost_max = 0.0;
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            Scalar r_extra_ghost_i = 0.0;
+            m_extra_ghost_layer_width_requests.emit_accumulate([&](Scalar r)
+                                                            {
+                                                            if (r > r_extra_ghost_i) r_extra_ghost_i = r;
+                                                            }
+                                                            ,cur_type);
+
+            // add to the maximum ghost layer width
+            h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
+            if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
+            }
+        m_r_extra_ghost_max = r_extra_ghost_max;
         }
     }
 
@@ -1578,16 +1567,20 @@ void Communicator::exchangeGhosts()
 
     // compute the ghost layer widths as fractions
     ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::read);
     const Scalar3 box_dist = box.getNearestPlaneDistance();
     std::vector<Scalar3> ghost_fractions(m_pdata->getNTypes());
+    std::vector<Scalar3> ghost_fractions_body(m_pdata->getNTypes());
     for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         ghost_fractions[cur_type] = h_r_ghost.data[cur_type] / box_dist;
+        ghost_fractions_body[cur_type] = h_r_ghost_body.data[cur_type] / box_dist;
         }
 
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
@@ -1597,7 +1590,12 @@ void Communicator::exchangeGhosts()
 
             // get the ghost fraction for this particle type
             const unsigned int type = __scalar_as_int(postype.w);
-            const Scalar3 ghost_fraction = ghost_fractions[type];
+            Scalar3 ghost_fraction = ghost_fractions[type];
+
+            if (h_body.data[idx] != NO_BODY)
+                {
+                ghost_fraction = m_r_ghost_max/ box_dist + ghost_fractions_body[type];
+                }
 
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)
@@ -1629,6 +1627,9 @@ void Communicator::exchangeGhosts()
     // bonds
     m_bond_comm.markGhostParticles(m_plan, mask);
 
+    // special pairs
+    m_pair_comm.markGhostParticles(m_plan, mask);
+
     // angles
     m_angle_comm.markGhostParticles(m_plan,mask);
 
@@ -1645,17 +1646,31 @@ void Communicator::exchangeGhosts()
      * Fill send buffers, exchange particles according to plans
      */
 
-    // resize buffers
-    m_plan_copybuf.resize(m_pdata->getN());
-    m_pos_copybuf.resize(m_pdata->getN());
-    m_charge_copybuf.resize(m_pdata->getN());
-    m_body_copybuf.resize(m_pdata->getN());
-    m_diameter_copybuf.resize(m_pdata->getN());
-    m_velocity_copybuf.resize(m_pdata->getN());
-    m_orientation_copybuf.resize(m_pdata->getN());
-
     // ghost particle flags
     CommFlags flags = getFlags();
+
+    // resize buffers
+    m_plan_copybuf.resize(m_pdata->getN());
+    if (flags[comm_flag::position])
+        m_pos_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::charge])
+        m_charge_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::body])
+        m_body_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::image])
+        m_image_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::diameter])
+        m_diameter_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::velocity])
+        m_velocity_copybuf.resize(m_pdata->getN());
+
+    if (flags[comm_flag::orientation])
+        m_orientation_copybuf.resize(m_pdata->getN());
 
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
@@ -1669,13 +1684,27 @@ void Communicator::exchangeGhosts()
 
         // resize buffers
         m_plan_copybuf.resize(max_copy_ghosts);
-        m_pos_copybuf.resize(max_copy_ghosts);
-        m_charge_copybuf.resize(max_copy_ghosts);
-        m_body_copybuf.resize(max_copy_ghosts);
-        m_diameter_copybuf.resize(max_copy_ghosts);
-        m_velocity_copybuf.resize(max_copy_ghosts);
-        m_orientation_copybuf.resize(max_copy_ghosts);
 
+        if (flags[comm_flag::position])
+            m_pos_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::charge])
+            m_charge_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::body])
+            m_body_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::image])
+            m_image_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::diameter])
+            m_diameter_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::velocity])
+            m_velocity_copybuf.resize(max_copy_ghosts);
+
+        if (flags[comm_flag::orientation])
+            m_orientation_copybuf.resize(max_copy_ghosts);
 
             {
             // we fill all fields, but send only those that are requested by the CommFlags bitset
@@ -1683,6 +1712,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
@@ -1694,6 +1724,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_body_copybuf(m_body_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<int3> h_image_copybuf(m_image_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_velocity_copybuf(m_velocity_copybuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::overwrite);
 
@@ -1703,12 +1734,13 @@ void Communicator::exchangeGhosts()
                 if (h_plan.data[idx] & (1 << dir))
                     {
                     // send with next message
-                    h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
-                    h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
-                    h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
-                    h_body_copybuf.data[m_num_copy_ghosts[dir]] = h_body.data[idx];
-                    h_velocity_copybuf.data[m_num_copy_ghosts[dir]] = h_vel.data[idx];
-                    h_orientation_copybuf.data[m_num_copy_ghosts[dir]] = h_orientation.data[idx];
+                    if (flags[comm_flag::position]) h_pos_copybuf.data[m_num_copy_ghosts[dir]] = h_pos.data[idx];
+                    if (flags[comm_flag::charge]) h_charge_copybuf.data[m_num_copy_ghosts[dir]] = h_charge.data[idx];
+                    if (flags[comm_flag::diameter]) h_diameter_copybuf.data[m_num_copy_ghosts[dir]] = h_diameter.data[idx];
+                    if (flags[comm_flag::body]) h_body_copybuf.data[m_num_copy_ghosts[dir]] = h_body.data[idx];
+                    if (flags[comm_flag::image]) h_image_copybuf.data[m_num_copy_ghosts[dir]] = h_image.data[idx];
+                    if (flags[comm_flag::velocity]) h_velocity_copybuf.data[m_num_copy_ghosts[dir]] = h_vel.data[idx];
+                    if (flags[comm_flag::orientation]) h_orientation_copybuf.data[m_num_copy_ghosts[dir]] = h_orientation.data[idx];
                     h_plan_copybuf.data[m_num_copy_ghosts[dir]] = h_plan.data[idx];
 
                     h_copy_ghosts.data[m_num_copy_ghosts[dir]] = h_tag.data[idx];
@@ -1771,6 +1803,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge_copybuf(m_charge_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar> h_diameter_copybuf(m_diameter_copybuf, access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_body_copybuf(m_body_copybuf, access_location::host, access_mode::read);
+            ArrayHandle<int3> h_image_copybuf(m_image_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_velocity_copybuf(m_velocity_copybuf, access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::read);
 
@@ -1779,6 +1812,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
@@ -1924,6 +1958,24 @@ void Communicator::exchangeGhosts()
                     &reqs[nreq++]);
                 }
 
+            if (flags[comm_flag::image])
+                {
+                MPI_Isend(h_image_copybuf.data,
+                    m_num_copy_ghosts[dir]*sizeof(int3),
+                    MPI_BYTE,
+                    send_neighbor,
+                    9,
+                    m_mpi_comm,
+                    &reqs[nreq++]);
+                MPI_Irecv(h_image.data + start_idx,
+                    m_num_recv_ghosts[dir]*sizeof(int3),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    9,
+                    m_mpi_comm,
+                    &reqs[nreq++]);
+                }
+
             MPI_Waitall(nreq, reqs, status);
             }
 
@@ -1934,6 +1986,7 @@ void Communicator::exchangeGhosts()
         if (flags[comm_flag::position])
             {
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+            ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
             const BoxDim shifted_box = getShiftedBox();
 
@@ -1942,7 +1995,7 @@ void Communicator::exchangeGhosts()
                 Scalar4& pos = h_pos.data[idx];
 
                 // wrap particles received across a global boundary
-                int3 img = make_int3(0,0,0);
+                int3& img = h_image.data[idx];
                 shifted_box.wrap(pos,img);
                 }
             }
@@ -2072,7 +2125,7 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         size_t sz = 0;
         // only non-permanent fields (position, velocity, orientation) need to be considered here
-        // charge, body and diameter are not updated between neighbor list builds
+        // charge, body, image and diameter are not updated between neighbor list builds
         if (flags[comm_flag::position])
             {
             MPI_Request reqs[2];
@@ -2368,6 +2421,9 @@ void Communicator::removeGhostParticleTags()
     // wipe out reverse-lookup tag -> idx for old ghost atoms
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::readwrite);
+
+    m_exec_conf->msg->notice(9) << "Communicator: removing " << m_ghosts_added << " ghost particles " << std::endl;
+
     for (unsigned int i = 0; i < m_ghosts_added; i++)
         {
         unsigned int idx = m_pdata->getN() + i;
@@ -2459,14 +2515,9 @@ const BoxDim Communicator::getShiftedBox() const
     }
 
 //! Export Communicator class to python
-void export_Communicator()
+void export_Communicator(py::module& m)
     {
-     class_< std::vector<bool> >("std_vector_bool")
-    .def(vector_indexing_suite<std::vector<bool> >());
-
-    class_<Communicator, boost::shared_ptr<Communicator>, boost::noncopyable>("Communicator",
-           init<boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<DomainDecomposition> >())
-    ;
+    py::class_<Communicator, std::shared_ptr<Communicator> >(m,"Communicator")
+    .def(py::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<DomainDecomposition> >());
     }
 #endif // ENABLE_MPI

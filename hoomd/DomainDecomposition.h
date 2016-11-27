@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -64,6 +19,11 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <set>
 #include <vector>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 
 /*! \ingroup communication
 */
@@ -98,7 +58,7 @@ class DomainDecomposition
          * \param nz Requested number of domains along the z direction (0 == choose default)
          * \param twolevel If true, attempt two level decomposition (default == false)
          */
-        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+        DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                        Scalar3 L,
                        unsigned int nx = 0,
                        unsigned int ny = 0,
@@ -106,7 +66,7 @@ class DomainDecomposition
                        bool twolevel = false);
 
         //! Constructor for fixed fractions
-        DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+        DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                             Scalar3 L,
                             const std::vector<Scalar>& fxs,
                             const std::vector<Scalar>& fys,
@@ -198,6 +158,8 @@ class DomainDecomposition
         //! Get the rank for a particle to be placed
         unsigned int placeParticle(const BoxDim& global_box, Scalar3 pos);
 
+        //! Get the number of grid cells in each dimension.
+        uint3 getGridSize(void)const{return make_uint3(m_nx,m_ny,m_nz);}
     private:
         unsigned int m_nx;           //!< Number of processors along the x-axis
         unsigned int m_ny;           //!< Number of processors along the y-axis
@@ -243,7 +205,7 @@ class DomainDecomposition
                                            const std::vector<Scalar>& fys,
                                            const std::vector<Scalar>& fzs);
 
-        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         const MPI_Comm m_mpi_comm; //!< MPI communicator
 
         std::vector<Scalar> m_cum_frac_x;   //!< Cumulative fractions in x below cut plane index
@@ -254,7 +216,7 @@ class DomainDecomposition
 
 #ifdef ENABLE_MPI
 //! Export the domain decomposition information
-void export_DomainDecomposition();
+void export_DomainDecomposition(pybind11::module& m);
 #endif
 
 #endif // __DOMAIN_DECOMPOSITION_H

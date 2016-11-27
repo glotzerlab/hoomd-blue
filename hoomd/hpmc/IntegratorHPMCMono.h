@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 // inclusion guard
 #ifndef _INTEGRATOR_HPMC_MONO_H_
 #define _INTEGRATOR_HPMC_MONO_H_
@@ -8,13 +11,17 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 #include "hoomd/Integrator.h"
-#include <boost/python.hpp>
 #include "HPMCPrecisionSetup.h"
 #include "IntegratorHPMC.h"
 #include "Moves.h"
 #include "hoomd/AABBTree.h"
+
+#include "hoomd/Index1D.h"
+
+#include "hoomd/managed_allocator.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -22,15 +29,10 @@
 #endif
 
 #include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapePolyhedron.h"
-#include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -121,15 +123,15 @@ class IntegratorHPMCMono : public IntegratorHPMC
         typedef typename Shape::param_type param_type;
 
         //! Constructor
-        IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+        IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                       unsigned int seed);
 
         virtual ~IntegratorHPMCMono()
             {
             if (m_aabbs != NULL)
                 free(m_aabbs);
-            m_boxchange_connection.disconnect();
-            m_sort_connection.disconnect();
+            m_pdata->getBoxChangeSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+            m_pdata->getParticleSortSignal().template disconnect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
             }
 
         virtual void printStats();
@@ -145,43 +147,82 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
 
+        //! Set elements of the interaction matrix
+        virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
+
         //! Set the external field for the integrator
-        void setExternalField(boost::shared_ptr< ExternalFieldMono<Shape> > external)
+        void setExternalField(std::shared_ptr< ExternalFieldMono<Shape> > external)
             {
             m_external = external;
             this->m_external_base = (ExternalField*)external.get();
             }
 
         //! Get the particle parameters
-        virtual const GPUArray<param_type>& getParams()
+        virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
             {
             return m_params;
+            }
+
+        //! Get the interaction matrix
+        virtual const GPUArray<unsigned int>& getInteractionMatrix()
+            {
+            return m_overlaps;
+            }
+
+        //! Get the indexer for the interaction matrix
+        virtual const Index2D& getOverlapIndexer()
+            {
+            return m_overlap_idx;
             }
 
         //! Count overlaps with the option to exit early at the first detected overlap
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
 
+        //! Return a vector that is an unwrapped overlap map
+        virtual std::vector<bool> mapOverlaps();
+
+        //! Return a python list that is an unwrapped overlap map
+        virtual pybind11::list PyMapOverlaps();
+
         //! Return the requested ghost layer width
-        virtual Scalar getGhostLayerWidth()
+        virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
             }
 
+        #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            CommFlags flags(0);
+            flags[comm_flag::position] = 1;
+            flags[comm_flag::tag] = 1;
+
+            std::ostringstream o;
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
+            if (m_hasOrientation)
+                {
+                flags[comm_flag::orientation] = 1;
+                o << "orientation ";
+                }
+
+            m_exec_conf->msg->notice(9) << o.str() << std::endl;
+            return flags;
+            }
+        #endif
+
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
             {
                 {
-                // access parameters
-                ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
-                // for params in h_params, if Shape dummy(q_dummy, params).hasOrientation() then m_hasOrientation=true
+                // for p in params, if Shape dummy(q_dummy, params).hasOrientation() then m_hasOrientation=true
                 m_hasOrientation = false;
                 quat<Scalar> q(make_scalar4(1,0,0,0));
                 for (unsigned int i=0; i < m_pdata->getNTypes(); i++)
                     {
-                    Shape dummy(q, h_params.data[i]);
+                    Shape dummy(q, m_params[i]);
                     if (dummy.hasOrientation())
                         m_hasOrientation = true;
                     }
@@ -200,17 +241,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                CommFlags flags(0);
-                flags[comm_flag::position] = 1;
-                flags[comm_flag::tag] = 1;
-
-                if (m_hasOrientation)
-                    flags[comm_flag::orientation] = 1;
-
-                // we need tags
-                flags[comm_flag::tag] = 1;
-
-                m_comm->setFlags(flags);
+                // this is kludgy but necessary since we are calling the communications methods directly
+                m_comm->setFlags(getCommFlags(0));
 
                 if (migrate)
                     m_comm->migrateParticles();
@@ -236,29 +268,29 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
-
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
 
     protected:
-        GPUArray<param_type> m_params;              //!< Parameters for each particle type
+        std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
+        GPUArray<unsigned int> m_overlaps;          //!< Interaction matrix (0/1) for overlap checks
         detail::UpdateOrder m_update_order;         //!< Update order
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
         std::vector<vec3<Scalar> > m_image_list;             //!< List of potentially interacting simulation box images
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
-        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
         unsigned int m_image_list_rebuilds;                  //!< Number of times the image list has been rebuilt
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
-        boost::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
+        std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
         detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
         bool m_aabb_tree_invalid;                   //!< Flag if the aabb tree has been invalidated
 
         bool m_past_first_run;                      //!< Flag to test if the first run() has started
+
+        Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
 
         //! Set the nominal width appropriate for looped moves
         virtual void updateCellWidth();
@@ -284,15 +316,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             {
             m_aabb_tree_invalid = true;
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 template <class Shape>
-IntegratorHPMCMono<Shape>::IntegratorHPMCMono(boost::shared_ptr<SystemDefinition> sysdef,
+IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> sysdef,
                                                    unsigned int seed)
             : IntegratorHPMC(sysdef, seed),
               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
@@ -302,12 +329,15 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(boost::shared_ptr<SystemDefinition
               m_past_first_run(false)
     {
     // allocate the parameter storage
-    GPUArray<param_type> params(m_pdata->getNTypes(), m_exec_conf);
-    m_params.swap(params);
+    m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
+
+    m_overlap_idx = Index2D(m_pdata->getNTypes());
+    GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
+    m_overlaps.swap(overlaps);
 
     // Connect to the BoxChange signal
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&IntegratorHPMCMono<Shape>::slotBoxChanged, this));
-    m_sort_connection = m_pdata->connectParticleSort(boost::bind(&IntegratorHPMCMono<Shape>::slotSorted, this));
+    m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
+    m_pdata->getParticleSortSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotSorted>(this);
 
     m_image_list_rebuilds = 0;
     m_image_list_warning_issued = false;
@@ -352,6 +382,20 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     // re-allocate the parameter storage
     m_params.resize(m_pdata->getNTypes());
+
+    // skip the reallocation if the number of types does not change
+    // this keeps old potential coefficients when restoring a snapshot
+    // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+    if (m_pdata->getNTypes() == m_overlap_idx.getW())
+        return;
+
+    // re-allocate overlap interaction matrix
+    m_overlap_idx = Index2D(m_pdata->getNTypes());
+
+    GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
+    m_overlaps.swap(overlaps);
+
+    updateCellWidth();
     }
 
 template <class Shape>
@@ -390,15 +434,15 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         m_external->compute(timestep);
         }
 
+    // access interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
+
     // loop over local particles nselect times
     for (unsigned int i_nselect = 0; i_nselect < m_nselect; i_nselect++)
         {
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-
-        // access parameters
-        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
         //access move sizes
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
@@ -426,11 +470,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // make a trial move for i
             Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), h_params.data[typ_i]);
+            Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
-            Shape shape_old(quat<Scalar>(orientation_i), h_params.data[typ_i]);
+            Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
 
             if (move_type_translate)
@@ -512,10 +556,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
                                 counters.overlap_checks++;
-                                if (!(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                                if (h_overlaps.data[m_overlap_idx(typ_i, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
                                     {
@@ -658,8 +703,8 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    // access parameters
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    // access parameters and interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
     // Loop over all particles
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
@@ -667,7 +712,8 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
-        Shape shape_i(quat<Scalar>(orientation_i), h_params.data[__scalar_as_int(postype_i.w)]);
+        unsigned int typ_i = __scalar_as_int(postype_i.w);
+        Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
         vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
         // Check particle against AABB tree for neighbors
@@ -702,10 +748,11 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                            Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                            if (h_tag.data[i] <= h_tag.data[j] &&
-                                !(shape_i.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                            if (h_tag.data[i] <= h_tag.data[j]
+                                && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                 && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
@@ -761,14 +808,11 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
 template <class Shape>
 Scalar IntegratorHPMCMono<Shape>::getMaxDiameter()
     {
-    // access the type parameters
-    ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
-
     // for each type, create a temporary shape and return the maximum diameter
     OverlapReal maxD = OverlapReal(0.0);
     for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
         {
-        Shape temp(quat<Scalar>(), h_params.data[typ]);
+        Shape temp(quat<Scalar>(), m_params[typ]);
         maxD = std::max(maxD, temp.getCircumsphereDiameter());
         }
 
@@ -789,12 +833,36 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
     // need to scope this because updateCellWidth will access it
         {
         // update the parameter for this type
-        m_exec_conf->msg->notice(10) << "setParam : " << typ << std::endl;
-        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::readwrite);
-        h_params.data[typ] = param;
+        m_exec_conf->msg->notice(7) << "setParam : " << typ << std::endl;
+        m_params[typ] = param;
         }
 
     updateCellWidth();
+    }
+
+template <class Shape>
+void IntegratorHPMCMono<Shape>::setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps)
+    {
+    // validate input
+    if (typi >= this->m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existant type! "
+                  << typi << std::endl;
+        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
+        }
+
+    if (typj >= this->m_pdata->getNTypes())
+        {
+        this->m_exec_conf->msg->error() << "integrate.mode_hpmc_?." << /*evaluator::getName() <<*/ ": Trying to set interaction matrix for a non existant type! "
+                  << typj << std::endl;
+        throw std::runtime_error("Error setting interaction matrix in IntegratorHPMCMono");
+        }
+
+    // update the parameter for this type
+    m_exec_conf->msg->notice(7) << "setOverlapChecks : " << typi << " " << typj << " " << check_overlaps << std::endl;
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    h_overlaps.data[m_overlap_idx(typi,typj)] = check_overlaps;
+    h_overlaps.data[m_overlap_idx(typj,typi)] = check_overlaps;
     }
 
 //! Calculate a list of box images within interaction range of the simulation box, innermost first
@@ -845,13 +913,12 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     Scalar max_trans_d_and_diam(0.0);
         {
         // access the type parameters
-        ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
 
         // for each type, create a temporary shape and return the maximum sum of diameter and move size
         for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
-            Shape temp(quat<Scalar>(), h_params.data[typ]);
+            Shape temp(quat<Scalar>(), m_params[typ]);
             max_trans_d_and_diam = detail::max(max_trans_d_and_diam, temp.getCircumsphereDiameter()+Scalar(m_nselect)*h_d.data[typ]);
             }
         }
@@ -942,7 +1009,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                                     << "This message will not be repeated." << std::endl;
         }
 
-    m_exec_conf->msg->notice(4) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
+    m_exec_conf->msg->notice(8) << "Updated image list: " << m_image_list.size() << " images" << std::endl;
     if (m_prof) m_prof->pop();
 
     return m_image_list;
@@ -1003,7 +1070,6 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
             {
             ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
 
             // grow the AABB list to the needed size
             unsigned int n_aabb = m_pdata->getN()+m_pdata->getNGhosts();
@@ -1013,7 +1079,7 @@ const detail::AABBTree& IntegratorHPMCMono<Shape>::buildAABBTree()
                 for (unsigned int cur_particle = 0; cur_particle < n_aabb; cur_particle++)
                     {
                     unsigned int i = cur_particle;
-                    Shape shape(quat<Scalar>(h_orientation.data[i]), h_params.data[__scalar_as_int(h_postype.data[i].w)]);
+                    Shape shape(quat<Scalar>(h_orientation.data[i]), m_params[__scalar_as_int(h_postype.data[i].w)]);
                     m_aabbs[i] = shape.getAABB(vec3<Scalar>(h_postype.data[i]));
                     }
                 m_aabb_tree.buildTree(m_aabbs, n_aabb);
@@ -1062,16 +1128,125 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
         }
     }
 
+/*! Function for finding all overlaps in a system by particle tag. returns an unraveled form of an NxN matrix
+ * with true/false indicating the overlap status of the ith and jth particle
+ */
+template <class Shape>
+std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
+    {
+    unsigned int N = m_pdata->getMaximumTag() + 1;
+
+    std::vector<bool> overlap_map(N*N, false);
+
+    m_exec_conf->msg->notice(10) << "HPMC overlap mapping" << std::endl;
+
+    unsigned int err_count = 0;
+
+    // build an up to date AABB tree
+    buildAABBTree();
+    // update the image list
+    updateImageList();
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    // Loop over all particles
+    for (unsigned int i = 0; i < N; i++)
+        {
+        // read in the current position and orientation
+        Scalar4 postype_i = h_postype.data[i];
+        Scalar4 orientation_i = h_orientation.data[i];
+        Shape shape_i(quat<Scalar>(orientation_i), m_params[__scalar_as_int(postype_i.w)]);
+        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        // Check particle against AABB tree for neighbors
+        detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+
+        const unsigned int n_images = m_image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+            detail::AABB aabb = aabb_i_local;
+            aabb.translate(pos_i_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            // skip i==j in the 0 image
+                            if (cur_image == 0 && i == j)
+                                {
+                                continue;
+                                }
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                            Shape shape_j(quat<Scalar>(orientation_j), m_params[__scalar_as_int(postype_j.w)]);
+
+                            if (h_tag.data[i] <= h_tag.data[j]
+                                && check_circumsphere_overlap(r_ij, shape_i, shape_j)
+                                && test_overlap(r_ij, shape_i, shape_j, err_count)
+                                && test_overlap(-r_ij, shape_j, shape_i, err_count))
+                                {
+                                overlap_map[h_tag.data[j]+N*h_tag.data[i]] = true;
+                                }
+                            }
+                        }
+                    }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+                } // end loop over AABB nodes
+            } // end loop over images
+        } // end loop over particles
+    return overlap_map;
+    }
+
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
+    {
+    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
+    pybind11::list overlap_map;
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
+        {
+        overlap_map.append(pybind11::cast<bool>(i));
+        }
+    return overlap_map;
+    }
+
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_IntegratorHPMCMono(const std::string& name)
+template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< IntegratorHPMCMono<Shape>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, boost::python::bases<IntegratorHPMC>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    pybind11::class_< IntegratorHPMCMono<Shape>, std::shared_ptr< IntegratorHPMCMono<Shape> > >(m, name.c_str(), pybind11::base<IntegratorHPMC>())
+          .def(pybind11::init< std::shared_ptr<SystemDefinition>, unsigned int >())
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
+          .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           ;
     }
 

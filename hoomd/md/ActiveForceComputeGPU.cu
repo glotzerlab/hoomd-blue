@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -85,6 +40,7 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     Scalar ry,
                                                     Scalar rz,
                                                     bool orientationLink,
+                                                    bool orientationReverseLink,
                                                     const unsigned int N)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -114,6 +70,18 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
         d_force[idx].x = f.x;
         d_force[idx].y = f.y;
         d_force[idx].z = f.z;
+        }
+    // rotate particle orientation only if orientation is reverse linked to active force vector
+    if (orientationReverseLink == true)
+        {
+        vec3<Scalar> f(d_actMag[tag] * d_actVec[tag].x,
+                        d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
+        vec3<Scalar> vecZ(0.0, 0.0, 1.0);
+        vec3<Scalar> quatVec = cross(vecZ, f);
+        Scalar quatScal = slow::sqrt(d_actMag[tag]*d_actMag[tag]) + dot(f, vecZ);
+        quat<Scalar> quati(quatScal, quatVec);
+        quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
+        d_orientation[idx] = quat_to_scalar4(quati);
         }
     }
 
@@ -285,11 +253,12 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            Scalar ry,
                                            Scalar rz,
                                            bool orientationLink,
+                                           bool orientationReverseLink,
                                            const unsigned int N,
                                            unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
@@ -306,6 +275,7 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     ry,
                                                                     rz,
                                                                     orientationLink,
+                                                                    orientationReverseLink,
                                                                     N);
     return cudaSuccess;
     }
@@ -323,7 +293,7 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel
@@ -356,7 +326,7 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        unsigned int block_size)
     {
     // setup the grid to run the kernel
-    dim3 grid( (int)ceil((double)group_size / (double)block_size), 1, 1);
+    dim3 grid( group_size / block_size + 1, 1, 1);
     dim3 threads(block_size, 1, 1);
 
     // run the kernel

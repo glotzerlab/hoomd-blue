@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -60,11 +15,17 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_CUDA
 
 #include "Communicator.h"
+#include "Autotuner.h"
 
 #include "CommunicatorGPU.cuh"
 
 #include "GPUFlags.h"
 #include "GPUArray.h"
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 
 /*! \ingroup communication
 */
@@ -79,8 +40,8 @@ class CommunicatorGPU : public Communicator
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
-        CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<DomainDecomposition> decomposition);
+        CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods
@@ -150,7 +111,7 @@ class CommunicatorGPU : public Communicator
                 typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
-                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, std::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -181,8 +142,8 @@ class CommunicatorGPU : public Communicator
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
-                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
-                boost::shared_ptr<group_data> m_gdata;                  //!< The group data
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                std::shared_ptr<group_data> m_gdata;                  //!< The group data
 
                 GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
                 GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
@@ -239,11 +200,14 @@ class CommunicatorGPU : public Communicator
         GroupCommunicatorGPU<ConstraintData> m_constraint_comm;  //!< Communication helper for constraints
         friend class GroupCommunicatorGPU<ConstraintData>;
 
+        GroupCommunicatorGPU<PairData> m_pair_comm;    //!< Communication helper for pairs
+        friend class GroupCommunicatorGPU<PairData>;
+
         /* Ghost communication */
         bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
         bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
 
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
@@ -262,6 +226,9 @@ class CommunicatorGPU : public Communicator
 
         GPUVector<unsigned int> m_body_ghost_sendbuf;      //!< Buffer for sending ghost bodys
         GPUVector<unsigned int> m_body_ghost_recvbuf;      //!< Buffer for sending ghost bodys
+
+        GPUVector<int3> m_image_ghost_sendbuf;      //!< Buffer for sending ghost images
+        GPUVector<int3> m_image_ghost_recvbuf;      //!< Buffer for sending ghost images
 
         GPUVector<Scalar4> m_orientation_ghost_sendbuf;//<! Buffer for sending ghost orientations
         GPUVector<Scalar4> m_orientation_ghost_recvbuf;//<! Buffer for receiving ghost orientations
@@ -283,6 +250,9 @@ class CommunicatorGPU : public Communicator
 
         GPUVector<unsigned int> m_body_ghost_sendbuf_alt;      //!< Buffer for sending ghost bodies (standby)
         GPUVector<unsigned int> m_body_ghost_recvbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+
+        GPUVector<int3> m_image_ghost_sendbuf_alt;      //!< Buffer for sending ghost bodies (standby)
+        GPUVector<int3> m_image_ghost_recvbuf_alt;      //!< Buffer for sending ghost bodies (standby)
 
         GPUVector<Scalar4> m_orientation_ghost_sendbuf_alt;//<! Buffer for sending ghost orientations (standby)
         GPUVector<Scalar4> m_orientation_ghost_recvbuf_alt;//<! Buffer for receiving ghost orientations (standby)
@@ -324,7 +294,7 @@ class CommunicatorGPU : public Communicator
     };
 
 //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU();
+void export_CommunicatorGPU(pybind11::module& m);
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI

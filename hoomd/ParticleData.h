@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -71,11 +26,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
-#include <boost/function.hpp>
-#include <boost/utility.hpp>
-#include <boost/python.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
+
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 #ifdef ENABLE_MPI
 #include "Index1D.h"
@@ -85,6 +41,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #include <vector>
+#include <map>
 #include <string>
 #include <bitset>
 #include <stack>
@@ -197,34 +154,34 @@ struct SnapshotParticleData {
         const BoxDim& old_box, const BoxDim& new_box);
 
     //! Get pos as a Python object
-    PyObject* getPosNP();
+    pybind11::object getPosNP();
     //! Get vel as a Python object
-    PyObject* getVelNP();
+    pybind11::object getVelNP();
     //! Get accel as a Python object
-    PyObject* getAccelNP();
+    pybind11::object getAccelNP();
     //! Get type as a Python object
-    PyObject* getTypeNP();
+    pybind11::object getTypeNP();
     //! Get mass as a Python object
-    PyObject* getMassNP();
+    pybind11::object getMassNP();
     //! Get charge as a Python object
-    PyObject* getChargeNP();
+    pybind11::object getChargeNP();
     //! Get diameter as a Python object
-    PyObject* getDiameterNP();
+    pybind11::object getDiameterNP();
     //! Get image as a Python object
-    PyObject* getImageNP();
+    pybind11::object getImageNP();
     //! Get body as a Python object
-    PyObject* getBodyNP();
+    pybind11::object getBodyNP();
     //! Get orientation as a Python object
-    PyObject* getOrientationNP();
+    pybind11::object getOrientationNP();
     //! Get moment of inertia as a numpy array
-    PyObject* getMomentInertiaNP();
+    pybind11::object getMomentInertiaNP();
     //! Get angular momentum as a numpy array
-    PyObject* getAngmomNP();
+    pybind11::object getAngmomNP();
 
     //! Get the type names for python
-    boost::python::list getTypes();
+    pybind11::list getTypes();
     //! Set the type names from python
-    void setTypes(boost::python::list types);
+    void setTypes(pybind11::list types);
 
     std::vector< vec3<Real> > pos;             //!< positions
     std::vector< vec3<Real> > vel;             //!< velocities
@@ -377,25 +334,25 @@ struct pdata_element
     ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
     not be sufficient for simulations where the box size changes. We'll see in testing.
 */
-class ParticleData : boost::noncopyable
+class ParticleData
     {
     public:
         //! Construct with N particles in the given box
         ParticleData(unsigned int N,
                      const BoxDim &global_box,
                      unsigned int n_types,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                     boost::shared_ptr<DomainDecomposition> decomposition
-                        = boost::shared_ptr<DomainDecomposition>()
+                     std::shared_ptr<ExecutionConfiguration> exec_conf,
+                     std::shared_ptr<DomainDecomposition> decomposition
+                        = std::shared_ptr<DomainDecomposition>()
                      );
 
         //! Construct using a ParticleDataSnapshot
         template<class Real>
         ParticleData(const SnapshotParticleData<Real>& snapshot,
                      const BoxDim& global_box,
-                     boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                     boost::shared_ptr<DomainDecomposition> decomposition
-                        = boost::shared_ptr<DomainDecomposition>()
+                     std::shared_ptr<ExecutionConfiguration> exec_conf,
+                     std::shared_ptr<DomainDecomposition> decomposition
+                        = std::shared_ptr<DomainDecomposition>()
                      );
 
         //! Destructor
@@ -418,7 +375,7 @@ class ParticleData : boost::noncopyable
         const BoxDim& getGlobalBox() const;
 
         //! Access the execution configuration
-        boost::shared_ptr<const ExecutionConfiguration> getExecConf() const
+        std::shared_ptr<const ExecutionConfiguration> getExecConf() const
             {
             return m_exec_conf;
             }
@@ -666,40 +623,60 @@ class ParticleData : boost::noncopyable
         //! Set the profiler to profile CPU<-->GPU memory copies
         /*! \param prof Pointer to the profiler to use. Set to NULL to deactivate profiling
         */
-        void setProfiler(boost::shared_ptr<Profiler> prof)
+        void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof=prof;
             }
 
         //! Connects a function to be called every time the particles are rearranged in memory
-        boost::signals2::connection connectParticleSort(const boost::function<void ()> &func);
+        Nano::Signal<void ()>& getParticleSortSignal()
+            {
+            return m_sort_signal;
+            }
 
         //! Notify listeners that the particles have been rearranged in memory
         void notifyParticleSort();
 
         //! Connects a function to be called every time the box size is changed
-        boost::signals2::connection connectBoxChange(const boost::function<void ()> &func);
+        Nano::Signal<void ()>& getBoxChangeSignal()
+            {
+            return m_boxchange_signal;
+            }
 
         //! Connects a function to be called every time the global number of particles changes
-        boost::signals2::connection connectGlobalParticleNumberChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getGlobalParticleNumberChangeSignal()
+            {
+            return m_global_particle_num_signal;
+            }
 
         //! Connects a function to be called every time the local maximum particle number changes
-        boost::signals2::connection connectMaxParticleNumberChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getMaxParticleNumberChangeSignal()
+            {
+            return m_max_particle_num_signal;
+            }
 
         //! Connects a function to be called every time the ghost particles become invalid
-        boost::signals2::connection connectGhostParticlesRemoved(const boost::function< void()> &func);
+        Nano::Signal< void()>& getGhostParticlesRemovedSignal()
+            {
+            return m_ghost_particles_removed_signal;
+            }
 
         #ifdef ENABLE_MPI
         //! Connects a function to be called every time a single particle migration is requested
-        boost::signals2::connection connectSingleParticleMove(
-            const boost::function<void (unsigned int, unsigned int, unsigned int)> &func);
+        Nano::Signal<void (unsigned int, unsigned int, unsigned int)>& getSingleParticleMoveSignal()
+            {
+            return m_ptl_move_signal;
+            }
         #endif
 
         //! Notify listeners that ghost particles have been removed
         void notifyGhostParticlesRemoved();
 
         //! Connects a funtion to be called every time the number of types changes
-        boost::signals2::connection connectNumTypesChange(const boost::function< void()> &func);
+        Nano::Signal< void()>& getNumTypesChangeSignal()
+            {
+            return m_num_types_signal;
+            }
 
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
@@ -878,6 +855,18 @@ class ParticleData : boost::noncopyable
             return m_external_virial[i];
             }
 
+        //! Set the external contribution to the potential energy
+        void setExternalEnergy(Scalar e)
+            {
+            m_external_energy = e;
+            };
+
+        //! Get the external contribution to the virial
+        Scalar getExternalEnergy()
+            {
+            return m_external_energy;
+            }
+
         //! Remove the given flag
         void removeFlag(pdata_flag::Enum flag) { m_flags[flag] = false; }
 
@@ -887,7 +876,7 @@ class ParticleData : boost::noncopyable
 
         //! Take a snapshot
         template <class Real>
-        void takeSnapshot(SnapshotParticleData<Real> &snapshot);
+        std::map<unsigned int, unsigned int> takeSnapshot(SnapshotParticleData<Real> &snapshot);
 
         //! Add ghost particles at the end of the local particle data
         void addGhostParticles(const unsigned int nghosts);
@@ -903,16 +892,16 @@ class ParticleData : boost::noncopyable
 
 #ifdef ENABLE_MPI
         //! Set domain decomposition information
-        void setDomainDecomposition(boost::shared_ptr<DomainDecomposition> decomposition)
+        void setDomainDecomposition(std::shared_ptr<DomainDecomposition> decomposition)
             {
             assert(decomposition);
             m_decomposition = decomposition;
             m_box = m_decomposition->calculateLocalBox(m_global_box);
-            m_boxchange_signal();
+            m_boxchange_signal.emit();
             }
 
         //! Returns the domain decomin decomposition information
-        boost::shared_ptr<DomainDecomposition> getDomainDecomposition()
+        std::shared_ptr<DomainDecomposition> getDomainDecomposition()
             {
             return m_decomposition;
             }
@@ -1000,22 +989,22 @@ class ParticleData : boost::noncopyable
     private:
         BoxDim m_box;                               //!< The simulation box
         BoxDim m_global_box;                        //!< Global simulation box
-        boost::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<ExecutionConfiguration> m_exec_conf; //!< The execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
+        std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition data
 #endif
 
         std::vector<std::string> m_type_mapping;    //!< Mapping between particle type indices and names
 
-        boost::signals2::signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
-        boost::signals2::signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
-        boost::signals2::signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
-        boost::signals2::signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
-        boost::signals2::signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
-        boost::signals2::signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
+        Nano::Signal<void ()> m_sort_signal;       //!< Signal that is triggered when particles are sorted in memory
+        Nano::Signal<void ()> m_boxchange_signal;  //!< Signal that is triggered when the box size changes
+        Nano::Signal<void ()> m_max_particle_num_signal; //!< Signal that is triggered when the maximum particle number changes
+        Nano::Signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
+        Nano::Signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
+        Nano::Signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
 
         #ifdef ENABLE_MPI
-        boost::signals2::signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
+        Nano::Signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
         #endif
 
         unsigned int m_nparticles;                  //!< number of particles
@@ -1069,13 +1058,14 @@ class ParticleData : boost::noncopyable
         GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
         GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
-        boost::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
+        std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
         GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
         GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
+        Scalar m_external_energy;                    //!< External potential energy
         const float m_resize_factor;                 //!< The numerical factor with which the particle data arrays are resized
         PDataFlags m_flags;                          //!< Flags identifying which optional fields are valid
 
@@ -1109,12 +1099,14 @@ class ParticleData : boost::noncopyable
         bool inBox(const SnapshotParticleData<Real>& snap);
     };
 
-
+#ifndef NVCC
 //! Exports the BoxDim class to python
-void export_BoxDim();
+void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python
-void export_ParticleData();
+void export_ParticleData(pybind11::module& m);
 //! Export SnapshotParticleData to python
-void export_SnapshotParticleData();
+void export_SnapshotParticleData(pybind11::module& m);
+#endif
+
 
 #endif

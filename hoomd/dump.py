@@ -1,441 +1,60 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
+R""" Write system configurations to files.
 
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
+Commands in the dump package write the system state out to a file every
+*period* time steps. Check the documentation for details on which file format
+each command writes.
+"""
 
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
-
-# Maintainer: joaander / All Developers are free to add commands for new features
-
-## \package hoomd.dump
-# \brief Commands that %dump particles to files
-#
-# Commands in the dump package write the system state out to a file every
-# \a period time steps. Check the documentation for details on which file format
-# each command writes.
-
+from collections import namedtuple;
 from hoomd import _hoomd
 import hoomd;
+import json;
+import os;
 import sys;
 
-## Writes simulation snapshots in the HOOMD XML format
-#
-# Every \a period time steps, a new file will be created. The state of the
-# particles at that time step is written to the file in the HOOMD XML format.
-# All values are written in native HOOMD-blue units, see \ref page_units for more information.
-#
-# \sa \ref page_xml_file_format
-# \MPI_SUPPORTED
-class xml(hoomd.analyze._analyzer):
-    ## Initialize the hoomd_xml writer
-    #
-    # \param filename (optional) Base of the file name
-    # \param period (optional) Number of time steps between file dumps
-    # \param params (optional) Any number of parameters that set_params() accepts
-    # \param time_step (optional) Time step to write into the file (overrides the current simulation step). time_step
-    #                  is ignored for periodic updates
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param restart When True, write only \a filename and don't save previous states.
-    #
-    # \b Examples:
-    # \code
-    # dump.xml(filename="atoms.dump", period=1000)
-    # xml = dump.xml(filename="particles", period=1e5)
-    # xml = dump.xml(filename="test.xml", vis=True)
-    # xml = dump.xml(filename="restart.xml", all=True, restart=True, period=10000, phase=0);
-    # \endcode
-    #
-    # If period is set and restart is False, a new file will be created every \a period steps. The time step at which
-    # the file is created is added to the file name in a fixed width format to allow files to easily
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
-    # \c particles.0000000000.xml
-    #
-    # If period is set and restart is True, dump.xml() will write a temporary file and then move it to \a filename. This
-    # stores only the most recent state of the simulation in the written file. It is useful for writing jobs that
-    # are restartable. TODO - link to restartable documentation.
-    #
-    # By default, only particle positions are output to the dump files. This can be changed
-    # with set_params(), or by specifying the options in the dump.xml() command.
-    #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately. \a time_step is passed on to write()
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, time_step=None, phase=-1, restart=False, **params):
-        hoomd.util.print_status_line();
-
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
-
-        # check restart options
-        self.restart = restart;
-        if restart and period is None:
-            raise ValueError("a period must be specified with restart=True");
-
-        # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.HOOMDDumpWriter(hoomd.context.current.system_definition, filename, restart);
-        hoomd.util.quiet_status();
-        self.set_params(**params);
-        hoomd.util.unquiet_status();
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-            self.enabled = True;
-            self.prev_period = 1;
-        elif filename != "dump":
-            hoomd.util.quiet_status();
-            self.write(filename, time_step);
-            hoomd.util.unquiet_status();
-        else:
-            self.enabled = False;
-
-        # store metadata
-        self.filename = filename
-        self.period = period
-        self.metadata_fields = ['filename','period']
-
-    ## Change xml write parameters
-    #
-    # \param all (if True) Enables the output of all optional parameters below
-    # \param vis (if True) Enables options commonly used for visualization.
-    # - Specifically, vis=True sets position, mass, diameter, type, body, bond, angle, dihedral, improper, charge
-    # \param position (if set) Set to True/False to enable/disable the output of particle positions in the xml file
-    # \param image (if set) Set to True/False to enable/disable the output of particle images in the xml file
-    # \param velocity (if set) Set to True/False to enable/disable the output of particle velocities in the xml file
-    # \param mass (if set) Set to True/False to enable/disable the output of particle masses in the xml file
-    # \param diameter (if set) Set to True/False to enable/disable the output of particle diameters in the xml file
-    # \param type (if set) Set to True/False to enable/disable the output of particle types in the xml file
-    # \param body (if set) Set to True/False to enable/disable the output of the particle bodies in the xml file
-    # \param bond (if set) Set to True/False to enable/disable the output of bonds in the xml file
-    # \param angle (if set) Set to True/False to enable/disable the output of angles in the xml file
-    # \param dihedral (if set) Set to True/False to enable/disable the output of dihedrals in the xml file
-    # \param improper (if set) Set to True/False to enable/disable the output of impropers in the xml file
-    # \param constraint (if set) Set to True/False to enable/disable the output of constraints in the xml file
-    # \param acceleration (if set) Set to True/False to enable/disable the output of particle accelerations in the xml
-    # \param charge (if set) Set to True/False to enable/disable the output of particle charge in the xml
-    # \param orientation (if set) Set to True/False to enable/disable the output of particle orientations in the xml file
-    # \param angmom (if set) Set to True/False to enable/disable the output of particle angular momenta in the xml file
-    # \param inertia (if set) Set to True/False to enable/disable the output of particle moments of inertia in the xml file
-    # \param vizsigma (if set) Set to a floating point value to include as vizsigma in the xml file
-    #
-    # Using set_params() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # xml = dump.xml(filename="particles", period=1e5)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # xml.set_params(type=False)
-    # xml.set_params(position=False, type=False, velocity=True)
-    # xml.set_params(type=True, position=True)
-    # xml.set_params(bond=True)
-    # xml.set_params(all=True)
-    # \endcode
-    def set_params(self,
-                   all=None,
-                   vis=None,
-                   position=None,
-                   image=None,
-                   velocity=None,
-                   mass=None,
-                   diameter=None,
-                   type=None,
-                   body=None,
-                   bond=None,
-                   angle=None,
-                   dihedral=None,
-                   improper=None,
-                   constraint=None,
-                   acceleration=None,
-                   charge=None,
-                   orientation=None,
-                   angmom=None,
-                   inertia=None,
-                   vizsigma=None):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        if all:
-            position = image = velocity = mass = diameter = type = bond = angle = dihedral = improper = constraint = True;
-            acceleration = charge = body = orientation = angmom = inertia = True;
-
-        if vis:
-            position = mass = diameter = type = body = bond = angle = dihedral = improper = charge = True;
-
-        if position is not None:
-            self.cpp_analyzer.setOutputPosition(position);
-
-        if image is not None:
-            self.cpp_analyzer.setOutputImage(image);
-
-        if velocity is not None:
-            self.cpp_analyzer.setOutputVelocity(velocity);
-
-        if mass is not None:
-            self.cpp_analyzer.setOutputMass(mass);
-
-        if diameter is not None:
-            self.cpp_analyzer.setOutputDiameter(diameter);
-
-        if type is not None:
-            self.cpp_analyzer.setOutputType(type);
-
-        if body is not None:
-            self.cpp_analyzer.setOutputBody(body);
-
-        if bond is not None:
-            self.cpp_analyzer.setOutputBond(bond);
-
-        if angle is not None:
-            self.cpp_analyzer.setOutputAngle(angle);
-
-        if dihedral is not None:
-            self.cpp_analyzer.setOutputDihedral(dihedral);
-
-        if improper is not None:
-            self.cpp_analyzer.setOutputImproper(improper);
-
-        if constraint is not None:
-            self.cpp_analyzer.setOutputConstraint(constraint);
-
-        if acceleration is not None:
-            self.cpp_analyzer.setOutputAccel(acceleration);
-
-        if charge is not None:
-            self.cpp_analyzer.setOutputCharge(charge);
-
-        if orientation is not None:
-            self.cpp_analyzer.setOutputOrientation(orientation);
-
-        if angmom is not None:
-            self.cpp_analyzer.setOutputAngularMomentum(angmom);
-
-        if inertia is not None:
-            self.cpp_analyzer.setOutputMomentInertia(inertia);
-
-        if vizsigma is not None:
-            self.cpp_analyzer.setVizSigma(vizsigma);
-
-    ## Write a file at the current time step
-    #
-    # \param filename File name to write to
-    # \param time_step (if set) Time step value to write out to the file
-    #
-    # The periodic file writes can be temporarily overridden and a file with any file name
-    # written at the current time step.
-    #
-    # \note When \a time_step is None, the current system time step is written to the file. When specified,
-    #       \a time_step overrides this value.
-    #
-    # Executing write() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # xml = dump.xml()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # xml.write(filename="start.xml")
-    # xml.write(filename="start.xml", time_step=0)
-    # \endcode
-    def write(self, filename, time_step = None):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        if time_step is None:
-            time_step = hoomd.context.current.system.getCurrentTimeStep()
-
-        self.cpp_analyzer.writeFile(filename, time_step);
-
-    ## Write a restart file at the current time step
-    #
-    # This only works when dump.xml() is in **restart** mode. write_restart() writes out a restart file at the current
-    # time step. Put it at the end of a script to ensure that the system state is written out before exiting.
-    def write_restart(self):
-        hoomd.util.print_status_line();
-
-        if not self.restart:
-            raise ValueError("Cannot write_restart() when restart=False");
-
-        self.cpp_analyzer.analyze(hoomd.context.current.system.getCurrentTimeStep());
-
-## Writes a simulation snapshot in the MOL2 format
-#
-# Every \a period time steps, a new file will be created. The state of the
-# particles at that time step is written to the file in the MOL2 format.
-#
-# Particle positions are written directly in distance units, see \ref page_units for more information.
-#
-# The intended usage is to use write() to generate a single structure file that
-# can be used by VMD for reading in particle names and %bond topology Use in
-# conjunction with dump.dcd for reading the full simulation trajectory into VMD.
-# \MPI_NOT_SUPPORTED
-class mol2(hoomd.analyze._analyzer):
-    ## Initialize the mol2 writer
-    #
-    # \param filename (optional) Base of the file name
-    # \param period (optional) Number of time steps between file dumps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # dump.mol2(filename="atoms.dump", period=1000)
-    # mol2 = dump.mol2(filename="particles", period=1e5)
-    # mol2 = dump.mol2()
-    # \endcode
-    #
-    # If period is set, a new file will be created every \a period steps. The time step at which
-    # the file is created is added to the file name in a fixed width format to allow files to easily
-    # be read in order. I.e. the write at time step 0 with \c filename="particles" produces the file
-    # \c particles.0000000000.mol2
-    #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately.
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, phase=-1):
-        hoomd.util.print_status_line();
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("dump.mol2 is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error writing MOL2 file.")
-
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
-
-        # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.MOL2DumpWriter(hoomd.context.current.system_definition, filename);
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-            self.enabled = True;
-            self.prev_period = 1;
-        elif filename != "dump":
-            hoomd.util.quiet_status();
-            self.write(filename);
-            hoomd.util.unquiet_status();
-        else:
-            self.enabled = False;
-
-        # store metadata
-        self.filename = filename
-        self.period = period
-        self.metadata_fields = ['filename','period']
-
-    ## Write a file at the current time step
-    #
-    # \param filename File name to write to
-    #
-    # The periodic file writes can be temporarily overridden and a file with any file name
-    # written at the current time step.
-    #
-    # Executing write() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # mol2 = dump.mol2()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # mol2.write(filename="start.mol2")
-    # \endcode
-    def write(self, filename):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        self.cpp_analyzer.writeFile(filename);
-
-## Writes simulation snapshots in the DCD format
-#
-# Every \a period time steps a new simulation snapshot is written to the
-# specified file in the DCD file format. DCD only stores particle positions
-# but is decently space efficient and extremely fast to read and write. VMD
-# can load 100's of MiB of trajectory data in mere seconds.
-#
-# Particle positions are written directly in distance units, see \ref page_units for more information.
-#
-# Use in conjunction with dump.xml so that VMD has information on the
-# particle names and %bond topology.
-#
-# Due to constraints of the DCD file format, once you stop writing to
-# a file via disable(), you cannot continue writing to the same file,
-# nor can you change the period of the %dump at any time. Either of these tasks
-# can be performed by creating a new %dump file with the needed settings.
-#
-# \MPI_SUPPORTED
 class dcd(hoomd.analyze._analyzer):
-    ## Initialize the dcd writer
-    #
-    # \param filename File name to write
-    # \param period Number of time steps between file dumps
-    # \param group Particle group to output to the dcd file. If left as None, all particles will be written
-    # \param overwrite When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
-    #        file \a filename will be overwritten.
-    # \param unwrap_full When False, (the default) particle coordinates are always written inside the simulation box.
-    #        When True, particles will be unwrapped into their current box image before writing to the dcd file.
-    # \param unwrap_rigid When False, (the default) individual particles are written inside the simulation box which
-    #        breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
-    #        unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
-    #        some particles may be written just outside it. \a unwrap_rigid is ignored if \a unwrap_full is True.
-    # \param angle_z When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # dump.dcd(filename="trajectory.dcd", period=1000)
-    # dcd = dump.dcd(filename"data/dump.dcd", period=1000)
-    # \endcode
-    #
-    # \warning
-    # When you use dump.dcd to append to an existing dcd file
-    # - The period must be the same or the time data in the file will not be consistent.
-    # - dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
-    #   consistent timeline
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=-1):
+    R""" Writes simulation snapshots in the DCD format
+
+    Args:
+        filename (str): File name to write.
+        period (int): Number of time steps between file dumps.
+        group (:py:mod:`hoomd.group`): Particle group to output to the dcd file. If left as None, all particles will be written.
+        overwrite (bool): When False, (the default) an existing DCD file will be appended to. When True, an existing DCD
+                          file *filename* will be overwritten.
+        unwrap_full (bool): When False, (the default) particle coordinates are always written inside the simulation box.
+                            When True, particles will be unwrapped into their current box image before writing to the dcd file.
+        unwrap_rigid (bool): When False, (the default) individual particles are written inside the simulation box which
+               breaks up rigid bodies near box boundaries. When True, particles belonging to the same rigid body will be
+               unwrapped so that the body is continuous. The center of mass of the body remains in the simulation box, but
+               some particles may be written just outside it. *unwrap_rigid* is ignored when *unwrap_full* is True.
+        angle_z (bool): When True, the particle orientation angle is written to the z component (only useful for 2D simulations)
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+
+    Every *period* time steps a new simulation snapshot is written to the
+    specified file in the DCD file format. DCD only stores particle positions, in distance
+    units - see :ref:`page-units`.
+
+    Due to constraints of the DCD file format, once you stop writing to
+    a file via :py:meth:`disable()`, you cannot continue writing to the same file,
+    nor can you change the period of the dump at any time. Either of these tasks
+    can be performed by creating a new dump file with the needed settings.
+
+    Examples::
+
+        dump.dcd(filename="trajectory.dcd", period=1000)
+        dcd = dump.dcd(filename"data/dump.dcd", period=1000)
+
+    Warning:
+        When you use dump.dcd to append to an existing dcd file:
+
+        * The period must be the same or the time data in the file will not be consistent.
+        * dump.dcd will not write out data at time steps that already are present in the dcd file to maintain a
+          consistent timeline
+    """
+    def __init__(self, filename, period, group=None, overwrite=False, unwrap_full=False, unwrap_rigid=False, angle_z=False, phase=0):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -466,6 +85,7 @@ class dcd(hoomd.analyze._analyzer):
         self.metadata_fields = ['filename','period','group']
 
     def enable(self):
+        """ The DCD dump writer cannot be re-enabled """
         hoomd.util.print_status_line();
 
         if self.enabled == False:
@@ -478,94 +98,489 @@ class dcd(hoomd.analyze._analyzer):
         hoomd.context.msg.error("you cannot change the period of a dcd dump writer\n");
         raise RuntimeError('Error changing updater period');
 
-## Writes simulation snapshots in the GSD format
-#
-# Write a simulation snapshot to the specified GSD file at regular intervals.
-# GSD is capable of storing all particle and bond data fields that hoomd stores,
-# in every frame of the trajectory. This allows GSD to store simulations where the
-# number of particles, number of particle types, particle types, diameter, mass,
-# charge, or anything is changing over time.
-#
-# To save on space, GSD does not write values that are all set at defaults. So if
-# all masses are left set at the default of 1.0, mass will not take up any space in
-# the file. To save even more on space, flag fields as static (the default) and
-# dump.gsd will only write them out to frame 0. When reading data from frame *i*,
-# any data field not present will be read from frame 0. This makes every single frame
-# of a GSD file fully specified and simulations initialized with init.read_gsd() can
-# select any frame of the file.
-#
-# The **static** option applies to groups of fields:
-#
-# * attribute
-#     * particles/N
-#     * particles/types
-#     * particles/typeid
-#     * particles/mass
-#     * particles/charge
-#     * particles/diameter
-#     * particles/body
-#     * particles/moment_inertia
-# * property
-#     * particles/position
-#     * particles/orientation
-# * momentum
-#     * particles/velocity
-#     * particles/angmom
-#     * particles/image
-# * topology
-#     * bonds/
-#     * angles/
-#     * dihedrals/
-#     * impropers/
-#     * constraints/
-#
-# See https://bitbucket.org/glotzer/gsd
-#
-# \MPI_SUPPORTED
+class getar(hoomd.analyze._analyzer):
+    """Analyzer for dumping system properties to a getar file at intervals.
+
+    Getar files are a simple interface on top of archive formats (such
+    as zip and tar) for storing trajectory data efficiently. A more
+    thorough description of the format and a description of a python
+    API to read and write these files is available at `the libgetar
+    documentation <http://libgetar.readthedocs.io>`_.
+
+    Properties to dump can be given either as a
+    :py:class:`getar.DumpProp` object or a name. Supported property
+    names are specified in the Supported Property Table in
+    :py:class:`hoomd.init.read_getar`.
+
+    Files can be opened in write, append, or one-shot mode. Write mode
+    overwrites files with the same name, while append mode adds to
+    them. One-shot mode is intended for restorable system backups and
+    is described below.
+
+    **One-shot mode**
+
+    In one-shot mode, activated by passing mode='1' to the getar
+    constructor, properties are written to a temporary file, which
+    then overwrites the file with the given filename. In this way, the
+    file with the given filename should always have the most recent
+    frame of successfully written data. This mode is designed for
+    being able to dump restoration data often without wasting large
+    amounts of space saving earlier data. Note that this
+    create-and-overwrite process can be stressful on filesystems,
+    particularly lustre filesystems, and can get your account blocked
+    on some supercomputer resources if overused.
+
+    For convenience, you can also specify **composite properties**,
+    which are expanded according to the table below.
+
+    .. tabularcolumns:: |p{0.25 \textwidth}|p{0.75 \textwidth}|
+    .. csv-table::
+       :header: "Name", "Result"
+       :widths: 1, 3
+
+       "global_all", "box, dimensions"
+       "angle_all", "angle_type_names, angle_tag, angle_type"
+       "bond_all", "bond_type_names, bond_tag, bond_type"
+       "dihedral_all", "dihedral_type_names, dihedral_tag, dihedral_type"
+       "improper_all", "improper_type_names, improper_tag, improper_type"
+       "particle_all", "angular_momentum, body, charge, diameter, image, mass, moment_inertia, orientation, position, type, type_names, velocity"
+       "all", "particle_all, angle_all, bond_all, dihedral_all, improper_all, global_all"
+       "viz_static", "type, type_names"
+       "viz_dynamic", "position, box"
+       "viz_all", "viz_static, viz_dynamic"
+       "viz_aniso_dynamic", "viz_dynamic, orientation"
+       "viz_aniso_all", "viz_static, viz_aniso_dynamic"
+
+    **Particle-related metadata**
+
+    Metadata about particle shape (for later visualization or use in
+    restartable scripts) can be stored in a simple form through
+    :py:func:`hoomd.dump.getar.writeJSON`, which encodes JSON records
+    as strings and stores them inside the dump file. Currently,
+    classes inside :py:mod:`hoomd.dem` and :py:mod:`hoomd.hpmc` are
+    equipped with `get_type_shapes()` methods which can provide
+    per-particle-type shape information as a list.
+
+    Example::
+
+        dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+            static=['viz_static'],
+            dynamic=['viz_aniso_dynamic'])
+
+        dem_wca = hoomd.dem.WCA(nlist, radius=0.5)
+        dem_wca.setParams('A', vertices=vertices, faces=faces)
+        dump.writeJSON('type_shapes.json', dem_wca.get_type_shapes())
+
+        mc = hpmc.integrate.convex_polygon(seed=415236)
+        mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)])
+        dump.writeJSON('type_shapes.json', mc.get_type_shapes(), dynamic=True)
+
+    """
+
+    class DumpProp(namedtuple('DumpProp', ['name', 'highPrecision', 'compression'])):
+        """Simple, internal, read-only namedtuple wrapper for specifying how
+        getar properties will be dumped"""
+
+        def __new__(self, name, highPrecision=False,
+                     compression=_hoomd.GetarCompression.FastCompress):
+            """Initialize a property dump description tuple.
+
+            :param name: property name (string; see `Supported Property Table`_)
+            :param highPrecision: if True, try to save this data in high-precision
+            :param compression: one of `hoomd.dump.getar.Compression.{NoCompress, FastCompress, MediumCompress, SlowCompress`}.
+            """
+            return super(getar.DumpProp, self).__new__(
+                self, name=name, highPrecision=highPrecision,
+                compression=compression);
+
+    Compression = _hoomd.GetarCompression;
+
+    dump_modes = {'w': _hoomd.GetarDumpMode.Overwrite,
+                  'a': _hoomd.GetarDumpMode.Append,
+                  '1': _hoomd.GetarDumpMode.OneShot};
+
+    substitutions = {
+        'all': ['particle_all', 'angle_all', 'bond_all',
+                'dihedral_all', 'improper_all', 'global_all'],
+        'particle_all':
+            ['angular_momentum', 'body', 'charge', 'diameter', 'image', 'mass', 'moment_inertia',
+             'orientation', 'position', 'type', 'type_names', 'velocity'],
+        'angle_all': ['angle_type_names', 'angle_tag', 'angle_type'],
+        'bond_all': ['bond_type_names', 'bond_tag', 'bond_type'],
+        'dihedral_all': ['dihedral_type_names', 'dihedral_tag', 'dihedral_type'],
+        'improper_all': ['improper_type_names', 'improper_tag', 'improper_type'],
+        'global_all': ['box', 'dimensions'],
+        'viz_dynamic': ['position', 'box'],
+        'viz_static': ['type', 'type_names'],
+        'viz_all': ['viz_static', 'viz_dynamic'],
+        'viz_aniso_dynamic': ['viz_dynamic', 'orientation'],
+        'viz_aniso_all': ['viz_static', 'viz_aniso_dynamic']};
+
+    # List of properties we know how to dump and their enums
+    known_properties = {'angle_type_names': _hoomd.GetarProperty.AngleNames,
+                        'angle_tag': _hoomd.GetarProperty.AngleTags,
+                        'angle_type': _hoomd.GetarProperty.AngleTypes,
+                        'angular_momentum': _hoomd.GetarProperty.AngularMomentum,
+                        'body': _hoomd.GetarProperty.Body,
+                        'bond_type_names': _hoomd.GetarProperty.BondNames,
+                        'bond_tag': _hoomd.GetarProperty.BondTags,
+                        'bond_type': _hoomd.GetarProperty.BondTypes,
+                        'box': _hoomd.GetarProperty.Box,
+                        'charge': _hoomd.GetarProperty.Charge,
+                        'diameter': _hoomd.GetarProperty.Diameter,
+                        'dihedral_type_names': _hoomd.GetarProperty.DihedralNames,
+                        'dihedral_tag': _hoomd.GetarProperty.DihedralTags,
+                        'dihedral_type': _hoomd.GetarProperty.DihedralTypes,
+                        'dimensions': _hoomd.GetarProperty.Dimensions,
+                        'image': _hoomd.GetarProperty.Image,
+                        'improper_type_names': _hoomd.GetarProperty.ImproperNames,
+                        'improper_tag': _hoomd.GetarProperty.ImproperTags,
+                        'improper_type': _hoomd.GetarProperty.ImproperTypes,
+                        'mass': _hoomd.GetarProperty.Mass,
+                        'moment_inertia': _hoomd.GetarProperty.MomentInertia,
+                        'orientation': _hoomd.GetarProperty.Orientation,
+                        'position': _hoomd.GetarProperty.Position,
+                        'potential_energy': _hoomd.GetarProperty.PotentialEnergy,
+                        'type': _hoomd.GetarProperty.Type,
+                        'type_names': _hoomd.GetarProperty.TypeNames,
+                        'velocity': _hoomd.GetarProperty.Velocity,
+                        'virial': _hoomd.GetarProperty.Virial};
+
+    # List of properties we know how to dump and their enums
+    known_resolutions = {'angle_type_names': _hoomd.GetarResolution.Text,
+                         'angle_tag': _hoomd.GetarResolution.Individual,
+                         'angle_type': _hoomd.GetarResolution.Individual,
+                         'angular_momentum': _hoomd.GetarResolution.Individual,
+                         'body': _hoomd.GetarResolution.Individual,
+                         'bond_type_names': _hoomd.GetarResolution.Text,
+                         'bond_tag': _hoomd.GetarResolution.Individual,
+                         'bond_type': _hoomd.GetarResolution.Individual,
+                         'box': _hoomd.GetarResolution.Uniform,
+                         'charge': _hoomd.GetarResolution.Individual,
+                         'diameter': _hoomd.GetarResolution.Individual,
+                         'dihedral_type_names': _hoomd.GetarResolution.Text,
+                         'dihedral_tag': _hoomd.GetarResolution.Individual,
+                         'dihedral_type': _hoomd.GetarResolution.Individual,
+                         'dimensions': _hoomd.GetarResolution.Uniform,
+                         'image': _hoomd.GetarResolution.Individual,
+                         'improper_type_names': _hoomd.GetarResolution.Text,
+                         'improper_tag': _hoomd.GetarResolution.Individual,
+                         'improper_type': _hoomd.GetarResolution.Individual,
+                         'mass': _hoomd.GetarResolution.Individual,
+                         'moment_inertia': _hoomd.GetarResolution.Individual,
+                         'orientation': _hoomd.GetarResolution.Individual,
+                         'position': _hoomd.GetarResolution.Individual,
+                         'potential_energy': _hoomd.GetarResolution.Individual,
+                         'type': _hoomd.GetarResolution.Individual,
+                         'type_names': _hoomd.GetarResolution.Text,
+                         'velocity': _hoomd.GetarResolution.Individual,
+                         'virial': _hoomd.GetarResolution.Individual};
+
+    # List of properties which can't run in MPI mode
+    bad_mpi_properties = ['potential_energy', 'virial'];
+
+    def _getStatic(self, val):
+        """Helper method to parse a static property specification element"""
+        if type(val) == type(''):
+            return self.DumpProp(name=val);
+        else:
+            return val;
+
+    def _expandNames(self, vals):
+        result = [];
+        for val in vals:
+            val = self._getStatic(val);
+            if val.name in self.substitutions:
+                subs = [self.DumpProp(name, val.highPrecision, val.compression) for name in
+                        self.substitutions[val.name]];
+                result.extend(self._expandNames(subs));
+            else:
+                result.append(val);
+
+        return result;
+
+    def __init__(self, filename, mode='w', static=[], dynamic={}, _register=True):
+        """Initialize a getar dumper. Creates or appends an archive at the given file
+        location according to the mode and prepares to dump the given
+        sets of properties.
+
+        Args:
+            filename (str): Name of the file to open
+            mode (str): Run mode; see mode list below.
+            static (list): List of static properties to dump immediately
+            dynamic (dict): Dictionary of {prop: period} periodic dumps
+            _register (bool): If True, register as a hoomd analyzer (internal)
+
+        Note that zip32-format archives can not be appended to at the
+        moment; for details and solutions, see the libgetar
+        documentation, section "Zip vs. Zip64." The gtar.fix module was
+        explicitly made for this purpose, but be careful not to call it
+        from within a running GPU HOOMD simulation due to strangeness in
+        the CUDA driver.
+
+        Valid mode arguments:
+
+        * 'w': Write, and overwrite if file exists
+        * 'a': Write, and append if file exists
+        * '1': One-shot mode: keep only one frame of data. For details on one-shot mode, see the "One-shot mode" section of :py:class:`getar`.
+
+        Property specifications can be either a property name (as a string) or
+        :py:class:`DumpProp` objects if you desire greater control over how the
+        property will be dumped.
+
+        Example::
+
+            # detailed API; see `dump.getar.simple` for simpler wrappers
+            zip = dump.getar('dump.zip', static=['types'],
+                      dynamic={'orientation': 10000,
+                               'velocity': 5000,
+                               dump.getar.DumpProp('position', highPrecision=True): 10000})
+
+        """
+
+        self._static = self._expandNames(static);
+        self._dynamic = {};
+
+        for key in dynamic:
+            period = dynamic[key];
+            for prop in self._expandNames([key]):
+                self._dynamic[prop] = period;
+
+        if _register:
+            hoomd.analyze._analyzer.__init__(self);
+            self.analyzer_name = "dump.getar%d" % (hoomd.analyze._analyzer.cur_id - 1);
+
+        for val in self._static:
+            if prop.name not in self.known_properties:
+                raise RuntimeError('Unknown static property in dump.getar: {}'.format(val));
+
+        for val in self._dynamic:
+            if val.name not in self.known_properties:
+                raise RuntimeError('Unknown dynamic property in dump.getar: {}'.format(val));
+
+        try:
+            dumpMode = self.dump_modes[mode];
+        except KeyError:
+            raise RuntimeError('Unknown open mode: {}'.format(mode));
+
+        if dumpMode == self.dump_modes['a'] and not os.path.isfile(filename):
+            dumpMode = self.dump_modes['w'];
+
+        self.cpp_analyzer = _hoomd.GetarDumpWriter(hoomd.context.current.system_definition,
+                                                filename, dumpMode,
+                                                hoomd.context.current.system.getCurrentTimeStep());
+
+        for val in set(self._static):
+            prop = self._getStatic(val);
+            if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                raise RuntimeError(('dump.getar: Can\'t dump property {} '
+                                    'with MPI!').format(prop.name));
+            else:
+                self.cpp_analyzer.setPeriod(self.known_properties[prop.name],
+                                            self.known_resolutions[prop.name],
+                                            _hoomd.GetarBehavior.Constant,
+                                            prop.highPrecision, prop.compression, 0);
+
+        for prop in self._dynamic:
+            try:
+                if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                    raise RuntimeError(('dump.getar: Can\'t dump property {} '
+                                        'with MPI!').format(prop.name));
+                else:
+                    for period in self._dynamic[prop]:
+                        self.cpp_analyzer.setPeriod(self.known_properties[prop.name],
+                                                    self.known_resolutions[prop.name],
+                                                    _hoomd.GetarBehavior.Discrete,
+                                                    prop.highPrecision, prop.compression,
+                                                    int(period));
+            except TypeError: # We got a single value, not an iterable
+                if hoomd.comm.get_num_ranks() > 1 and prop.name in self.bad_mpi_properties:
+                    raise RuntimeError(('dump.getar: Can\'t dump property {} '
+                                        'with MPI!').format(prop.name));
+                else:
+                    self.cpp_analyzer.setPeriod(self.known_properties[prop.name],
+                                                self.known_resolutions[prop.name],
+                                                _hoomd.GetarBehavior.Discrete,
+                                                prop.highPrecision, prop.compression,
+                                                int(self._dynamic[prop]));
+
+        if _register:
+            self.setupAnalyzer(int(self.cpp_analyzer.getPeriod()));
+
+    def writeJSON(self, name, contents, dynamic=True):
+        """Encodes the given JSON-encodable object as a string and writes it
+        (immediately) as a quantity with the given name. If dynamic is
+        True, writes the record as a dynamic record with the current
+        timestep.
+
+        Args:
+            name (str): Name of the record to save
+            contents (str): Any datatype encodable by the :py:mod:`json` module
+            dynamic (bool): If True, dump a dynamic quantity with the current timestep; otherwise, dump a static quantity
+
+        Example::
+
+            dump = hoomd.dump.getar.simple('dump.sqlite', 1e3,
+                static=['viz_static'], dynamic=['viz_dynamic'])
+            dump.writeJSON('params.json', dict(temperature=temperature, pressure=pressure))
+            dump.writeJSON('metadata.json', hoomd.meta.dump_metadata())
+        """
+        if dynamic:
+            timestep = hoomd.context.current.system.getCurrentTimeStep()
+        else:
+            timestep = -1
+
+        self.cpp_analyzer.writeStr(name, json.dumps(contents), timestep)
+
+    @classmethod
+    def simple(cls, filename, period, mode='w', static=[], dynamic=[], high_precision=False):
+        """Create a :py:class:`getar` dump object with a simpler interface.
+
+        Static properties will be dumped once immediately, and dynamic
+        properties will be dumped every `period` steps. For detailed
+        explanation of arguments, see :py:class:`getar`.
+
+        Args:
+            filename (str): Name of the file to open
+            period (int): Period to dump the given dynamic properties with
+            mode (str): Run mode; see mode list in :py:class:`getar`.
+            static (list): List of static properties to dump immediately
+            dynamic (list): List of properties to dump every `period` steps
+            high_precision (bool): If True, dump precision properties
+
+        Example::
+
+            # [optionally] dump metadata beforehand with libgetar
+            with gtar.GTAR('dump.sqlite', 'w') as trajectory:
+                metadata = json.dumps(hoomd.meta.dump_metadata())
+                trajectory.writeStr('hoomd_metadata.json', metadata)
+            # for later visualization of anisotropic systems
+            zip2 = hoomd.dump.getar.simple(
+                 'dump.sqlite', 100000, 'a', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
+            # as backup to restore from later
+            backup = hoomd.dump.getar.simple(
+                'backup.tar', 10000, '1', static=['viz_static'], dynamic=['viz_aniso_dynamic'])
+
+        """
+        dynamicDict = {cls.DumpProp(name, highPrecision=high_precision): period for name in dynamic};
+        return cls(filename=filename, mode=mode, static=static, dynamic=dynamicDict);
+
+    @classmethod
+    def immediate(cls, filename, static, dynamic):
+        """Immediately dump the given static and dynamic properties to the given filename.
+
+        For detailed explanation of arguments, see :py:class:`getar`.
+
+        Example::
+
+            hoomd.dump.getar.immediate(
+                'snapshot.tar', static=['viz_static'], dynamic=['viz_dynamic'])
+
+        """
+        hoomd.util.quiet_status();
+        dumper = getar(filename, 'w', static, {key: 1 for key in dynamic}, _register=False);
+        dumper.cpp_analyzer.analyze(hoomd.context.current.system.getCurrentTimeStep());
+        dumper.close();
+        del dumper.cpp_analyzer;
+        hoomd.util.unquiet_status();
+
+    def close(self):
+        """Closes the trajectory if it is open. Finalizes any IO beforehand."""
+        self.cpp_analyzer.close();
+
 class gsd(hoomd.analyze._analyzer):
-    ## Initialize the gsd writer
-    #
-    # \param filename File name to write
-    # \param period Number of time steps between file dumps, or None to write a single file immediately.
-    # \param group Particle group to output to the dcd file.
-    # \param overwrite When False (the default), any existing GSD file will be appended to. When True, an existing DCD
-    #        file \a filename will be overwritten.
-    # \param truncate When False (the default), frames are appened to the GSD file. When True, truncate the file and
-    #        write a new frame 0 every time.
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param time_step Time step to write to the file (only used when period is None)
-    # \param static A list of quantity categories that are static.
-    #
-    # If you only need to store a subset of the system, you can save file size and time spent analyzing data by
-    # specifying a group to write out. dump.gsd will write out all of the particles in the group in ascending
-    # tag order. When the group is not group.all(), dump.gsd will not write the topology fields.
-    #
-    # To write restart files with gsd, set `truncate=True`. This will cause dump.gsd to write a new frame 0
-    # to the file every period steps.
-    #
-    # dump.gsd writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
-    # frames. Quantity categories *not* listed in static are dynamic. dump.gsd writes dynamic quantities to every frame.
-    # The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
-    # In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
-    # save that information in a trajectory for later access. Particle momentum are always changing, but the default is
-    # to not include these quantities to save on file space.
-    #
-    # \b Examples:
-    # \code
-    # dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
-    # dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
-    # dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
-    # dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
-    # \endcode
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
+    R""" Writes simulation snapshots in the GSD format
+
+    Args:
+        filename (str): File name to write
+        period (int): Number of time steps between file dumps, or None to write a single file immediately.
+        group (:py:mod:`hoomd.group`): Particle group to output to the gsd file.
+        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing DCD
+                          file *filename* will be overwritten.
+        truncate (bool): When False (the default), frames are appended to the GSD file. When True, truncate the file and
+                         write a new frame 0 every time.
+        phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
+        time_step (int): Time step to write to the file (only used when period is None)
+        static (list): A list of quantity categories that are static.
+
+    Write a simulation snapshot to the specified GSD file at regular intervals.
+    GSD is capable of storing all particle and bond data fields that hoomd stores,
+    in every frame of the trajectory. This allows GSD to store simulations where the
+    number of particles, number of particle types, particle types, diameter, mass,
+    charge, or anything is changing over time.
+
+    To save on space, GSD does not write values that are all set at defaults. So if
+    all masses are left set at the default of 1.0, mass will not take up any space in
+    the file. To save even more on space, flag fields as static (the default) and
+    :py:class:`gsd` will only write them out to frame 0. When reading data from frame *i*,
+    any data field not present will be read from frame 0. This makes every single frame
+    of a GSD file fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can
+    select any frame of the file.
+
+    The **static** option applies to groups of fields:
+
+    * ``attribute``
+
+        * particles/N
+        * particles/types
+        * particles/typeid
+        * particles/mass
+        * particles/charge
+        * particles/diameter
+        * particles/body
+        * particles/moment_inertia
+
+    * ``property``
+
+        * particles/position
+        * particles/orientation
+
+    * ``momentum``
+
+        * particles/velocity
+        * particles/angmom
+        * particles/image
+
+    * ``topology``
+
+        * bonds/
+        * angles/
+        * dihedrals/
+        * impropers/
+        * constraints/
+        * pairs/
+
+    See https://bitbucket.org/glotzer/gsd and http://gsd.readthedocs.io/ for more information on GSD files.
+
+    If you only need to store a subset of the system, you can save file size and time spent analyzing data by
+    specifying a group to write out. :py:class:`gsd` will write out all of the particles in the group in ascending
+    tag order. When the group is not :py:func:`hoomd.group.all()`, :py:class:`gsd` will not write the topology fields.
+
+    To write restart files with gsd, set `truncate=True`. This will cause :py:class:`gsd` to write a new frame 0
+    to the file every period steps.
+
+    :py:class:`gsd` writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
+    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`gsd` writes dynamic quantities to every frame.
+    The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
+    In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
+    save that information in a trajectory for later access. Particle momentum are always changing, but the default is
+    to not include these quantities to save on file space.
+
+    Examples::
+
+        dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
+        dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
+        dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
+        dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
+
+    """
     def __init__(self,
                  filename,
                  period,
                  group,
                  overwrite=False,
                  truncate=False,
-                 phase=-1,
+                 phase=0,
                  time_step=None,
                  static=['attribute', 'momentum', 'topology']):
         hoomd.util.print_status_line();
@@ -598,165 +613,13 @@ class gsd(hoomd.analyze._analyzer):
         self.phase = phase
         self.metadata_fields = ['filename','period','group', 'phase']
 
-## Writes simulation snapshots in the PBD format
-#
-# Every \a period time steps, a new file will be created. The state of the
-# particles at that time step is written to the file in the PDB format.
-#
-# Particle positions are written directly in distance units, see \ref page_units for more information.
-# \MPI_NOT_SUPPORTED
-class pdb(hoomd.analyze._analyzer):
-    ## Initialize the pdb writer
-    #
-    # \param filename (optional) Base of the file name
-    # \param period (optional) Number of time steps between file dumps
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    #
-    # \b Examples:
-    # \code
-    # dump.pdb(filename="atoms.dump", period=1000)
-    # pdb = dump.pdb(filename="particles", period=1e5)
-    # pdb = dump.pdb()
-    # \endcode
-    #
-    # If \a period is specified, a new file will be created every \a period steps. The time step
-    # at which the file is created is added to the file name in a fixed width format to allow
-    # files to easily be read in order. I.e. the write at time step 0 with \c filename="particles" produces
-    # the file \c particles.0000000000.pdb
-    #
-    # By default, only particle positions are output to the dump files. This can be changed
-    # with set_params().
-    #
-    # If \a period is not specified, then no periodic updates will occur. Instead, the file
-    # \a filename is written immediately.
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    def __init__(self, filename="dump", period=None, phase=-1):
-        hoomd.util.print_status_line();
+    def write_restart(self):
+        """ Write a restart file at the current time step.
 
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("dump.pdb is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error writing PDB file.")
+        Call :py:meth:`write_restart` at the end of a simulation where are writing a gsd restart file with
+        ``truncate=True`` to ensure that you have the final frame of the simulation written before exiting.
+        See :ref:`restartable-jobs` for examples.
+        """
 
-
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
-
-        # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.PDBDumpWriter(hoomd.context.current.system_definition, filename);
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-            self.enabled = True;
-            self.prev_period = 1;
-        elif filename != "dump":
-            hoomd.util.quiet_status();
-            self.write(filename);
-            hoomd.util.unquiet_status();
-        else:
-            self.enabled = False;
-
-    ## Change pdb write parameters
-    #
-    # \param bond (if set) Set to True/False to enable/disable the output of bonds in the mol2 file
-    #
-    # Using set_params() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # pdb = dump.pdb(filename="particles", period=1e5)
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # pdb.set_params(bond=True)
-    # \endcode
-    def set_params(self, bond=None):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        if bond is not None:
-            self.cpp_analyzer.setOutputBond(bond);
-
-    ## Write a file at the current time step
-    #
-    # \param filename File name to write
-    #
-    # The periodic file writes can be temporarily overridden and a file with any file name
-    # written at the current time step.
-    #
-    # Executing write() requires that the %dump was saved in a variable when it was specified.
-    # \code
-    # pdb = dump.pdb()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # pdb.write(filename="start.pdb")
-    # \endcode
-    def write(self, filename):
-        hoomd.util.print_status_line();
-        self.check_initialization();
-
-        self.cpp_analyzer.writeFile(filename);
-
-## Writes simulation snapshots in the POS format
-#
-# The file is opened on initialization and a new frame is appended every \a period steps.
-#
-# \warning dump.pos Is not restart compatible. It always overwrites the file on initialization.
-#
-class pos(hoomd.analyze._analyzer):
-    ## Initialize the pos writer
-    #
-    # \param filename File name to write
-    # \param period (optional) Number of time steps between file dumps
-    # \param unwrap_rigid When False, (the default) individual particles are written inside
-    #        the simulation box which breaks up rigid bodies near box boundaries. When True,
-    #        particles belonging to the same rigid body will be unwrapped so that the body
-    #        is continuous. The center of mass of the body remains in the simulation box, but
-    #        some particles may be written just outside it.
-    # \param phase When -1, start on the current time step. When >= 0, execute on steps where (step + phase) % period == 0.
-    # \param addInfo A user-defined python function that returns a string of additional information when it is called. This
-    #        information will be printed in the pos file beneath the shape definitions. The information returned by addInfo
-    #        may dynamically change over the course of the simulation; addInfo is a function of the simulation timestep only.
-    #
-    # \b Examples:
-    # \code
-    # dump.pos(filename="dump.pos", period=1000)
-    # pos = dump.pos(filename="particles.pos", period=1e5)
-    # \endcode
-    #
-    # dump.pos always overwrites the file when initializing.
-    #
-    # \a period can be a function: see \ref variable_period_docs for details
-    #
-    def __init__(self, filename, period=None, unwrap_rigid=False, phase=-1, addInfo=None):
-        hoomd.util.print_status_line();
-
-        # initialize base class
-        hoomd.analyze._analyzer.__init__(self);
-
-        # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.POSDumpWriter(hoomd.context.current.system_definition, filename);
-        self.cpp_analyzer.setUnwrapRigid(unwrap_rigid);
-
-        if addInfo is not None:
-            self.cpp_analyzer.setAddInfo(addInfo);
-
-        if period is not None:
-            self.setupAnalyzer(period, phase);
-            self.enabled = True;
-            self.prev_period = 1;
-        else:
-            self.enabled = False;
-
-        # store metadata
-        self.filename = filename
-        self.period = period
-        self.unwrap_rigid = unwrap_rigid
-        self.metadata_fields = ['filename', 'period', 'unwrap_rigid']
-
-    def set_def(self, typ, shape):
-        v = hoomd.context.current.system_definition.getParticleData().getTypeByName(typ);
-        self.cpp_analyzer.setDef(v, shape)
+        time_step = hoomd.context.current.system.getCurrentTimeStep()
+        self.cpp_analyzer.analyze(time_step);

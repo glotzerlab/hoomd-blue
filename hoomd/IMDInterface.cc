@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -62,10 +17,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-#include <boost/shared_array.hpp>
-using namespace boost::python;
-using namespace boost;
+namespace py = pybind11;
+
 
 #include "hoomd/extern/vmdsock.h"
 #include "hoomd/extern/imd.h"
@@ -83,11 +36,11 @@ using namespace std;
     \param force Constant force used to apply forces received from VMD
     \param force_scale Factor by which to scale all forces from IMD
 */
-IMDInterface::IMDInterface(boost::shared_ptr<SystemDefinition> sysdef,
+IMDInterface::IMDInterface(std::shared_ptr<SystemDefinition> sysdef,
                            int port,
                            bool pause,
                            unsigned int rate,
-                           boost::shared_ptr<ConstForceCompute> force,
+                           std::shared_ptr<ConstForceCompute> force,
                            float force_scale)
     : Analyzer(sysdef)
     {
@@ -360,8 +313,8 @@ void IMDInterface::processIMD_KILL()
 void IMDInterface::processIMD_MDCOMM(unsigned int n)
     {
     // mdcomm is not currently handled
-    shared_array<int32> indices(new int32[n]);
-    shared_array<float> forces(new float[3*n]);
+    std::vector<int32> indices(n);
+    std::vector<float> forces(3*n);
 
     int err = imd_recv_mdcomm(m_connected_sock, n, &indices[0], &forces[0]);
 
@@ -478,7 +431,7 @@ void IMDInterface::establishConnectionAttempt()
 void IMDInterface::sendCoords(unsigned int timestep)
     {
     // take a snapshot of the particle data
-    SnapshotParticleData<Scalar> snapshot(m_pdata->getNGlobal());
+    SnapshotParticleData<Scalar> snapshot;
     m_pdata->takeSnapshot(snapshot);
 
 #ifdef ENABLE_MPI
@@ -527,9 +480,9 @@ void IMDInterface::sendCoords(unsigned int timestep)
         }
     }
 
-void export_IMDInterface()
+void export_IMDInterface(py::module& m)
     {
-    class_<IMDInterface, boost::shared_ptr<IMDInterface>, bases<Analyzer>, boost::noncopyable>
-        ("IMDInterface", init< boost::shared_ptr<SystemDefinition>, int, bool, unsigned int, boost::shared_ptr<ConstForceCompute> >())
+    py::class_<IMDInterface, std::shared_ptr<IMDInterface> >(m,"IMDInterface",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, int, bool, unsigned int, std::shared_ptr<ConstForceCompute> >())
         ;
     }

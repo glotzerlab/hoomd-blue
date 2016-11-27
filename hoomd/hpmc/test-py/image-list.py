@@ -8,6 +8,10 @@ import random
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 random.seed(10)
 np.random.seed(10)
 rectangle = np.array([(-1.0,-0.5, 0), (1.0, -0.5, 0), (1.0, 0.5, 0), (-1.0, 0.5, 0)])
@@ -209,7 +213,7 @@ class imagelist2d_test1 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
 
             self.mc = hpmc.integrate.sphere(seed=10, d=0.0);
             self.mc.shape_param.set("A", diameter=1.0);
@@ -230,7 +234,7 @@ class imagelist2d_test1 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
 
             self.mc = hpmc.integrate.sphere(seed=10, d=0.0);
             self.mc.shape_param.set("A", diameter=1.0);
@@ -253,7 +257,7 @@ class imagelist2d_test2 (unittest.TestCase):
             a3 = [0.,0.,1.0]
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.0);
@@ -276,7 +280,7 @@ class imagelist2d_test3 (unittest.TestCase):
             a3 = [0.,0.,1.0]
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.0);
@@ -308,7 +312,7 @@ class imagelist2d_test4 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.0);
@@ -340,7 +344,7 @@ class imagelist2d_test5 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=2)
             box, q = latticeToHoomd(b1, b2, b3, ndim=2)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.0);
@@ -366,7 +370,7 @@ class imagelist3d_test1 (unittest.TestCase):
             a3 = [0.,0.,1.01]
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=3)
             box, q = latticeToHoomd(b1, b2, b3, ndim=3)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
 
             self.mc = hpmc.integrate.sphere(seed=10, d=0.0);
             self.mc.shape_param.set("A", diameter=1.0);
@@ -388,11 +392,11 @@ class imagelist3d_test3 (unittest.TestCase):
             a3 = [0.,0.,1.01]
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=3)
             box, q = latticeToHoomd(b1, b2, b3, ndim=3)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             verts = np.array(poly)
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected
@@ -412,11 +416,11 @@ class imagelist3d_test3 (unittest.TestCase):
             a3 = [0.,0.,1.01]
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=3)
             box, q = latticeToHoomd(b1, b2, b3, ndim=3)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
             verts = np.array(poly)
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected
@@ -445,10 +449,10 @@ class imagelist3d_test4 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=3)
             box, q = latticeToHoomd(b1, b2, b3, ndim=3)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             self.verts = verts
@@ -480,10 +484,10 @@ class imagelist3d_test5 (unittest.TestCase):
 
             b1, b2, b3 = rand_equiv_lattice(a1, a2, a3, ndim=3)
             box, q = latticeToHoomd(b1, b2, b3, ndim=3)
-            self.system = init.create_empty(N=1, box=box, particle_types=['A'])
+            self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected

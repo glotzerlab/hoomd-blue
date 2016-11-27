@@ -1,55 +1,13 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 // Maintainer: joaander
 
 #ifndef __EXECUTION_CONFIGURATION__
 #define __EXECUTION_CONFIGURATION__
+
+// ensure that HOOMDMath.h is the first thing included
+#include "HOOMDMath.h"
 
 #ifdef ENABLE_MPI
 #include <mpi.h>
@@ -57,14 +15,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <memory>
 
 #ifdef ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
-
 
 #include "Messenger.h"
 
@@ -75,6 +31,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 //! Forward declaration
@@ -101,7 +59,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration : boost::noncopyable
+struct ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode
@@ -116,13 +74,13 @@ struct ExecutionConfiguration : boost::noncopyable
                            int gpu_id=-1,
                            bool min_cpu=false,
                            bool ignore_display=false,
-                           boost::shared_ptr<Messenger> _msg=boost::shared_ptr<Messenger>(),
+                           std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
                            unsigned int n_ranks = 0);
 
     ~ExecutionConfiguration();
 
 #ifdef ENABLE_MPI
-    //! Returns the boost MPI communicator
+    //! Returns the MPI communicator
     MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
@@ -138,7 +96,7 @@ struct ExecutionConfiguration : boost::noncopyable
     executionMode exec_mode;    //!< Execution mode specified in the constructor
     unsigned int n_cpu;         //!< Number of CPUS hoomd is executing on
     bool m_cuda_error_checking;                //!< Set to true if GPU error checking is enabled
-    boost::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
+    std::shared_ptr<Messenger> msg;          //!< Messenger for use in printing messages to the screen / log file
 
     //! Returns true if CUDA is enabled
     bool isCUDAEnabled() const
@@ -175,9 +133,6 @@ struct ExecutionConfiguration : boost::noncopyable
 
     //! Handle cuda error message
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;
-
-    //! Check for cuda errors
-    void checkCUDAError(const char *file, unsigned int line) const;
 #endif
 
     //! Return the rank of this processor in the partition
@@ -292,9 +247,20 @@ private:
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time
-#define CHECK_CUDA_ERROR() this->m_exec_conf->checkCUDAError(__FILE__, __LINE__);
+#ifdef ENABLE_CUDA
+#define CHECK_CUDA_ERROR() { \
+    cudaError_t err_sync = cudaGetLastError(); \
+    this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
+    cudaError_t err_async = cudaDeviceSynchronize(); \
+    this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
+    }
+#else
+#define CHECK_CUDA_ERROR()
+#endif
 
 //! Exports ExecutionConfiguration to python
-void export_ExecutionConfiguration();
+#ifndef NVCC
+void export_ExecutionConfiguration(pybind11::module& m);
+#endif
 
 #endif

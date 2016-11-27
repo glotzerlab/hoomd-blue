@@ -1,68 +1,18 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
-## \package hoomd.charge
-# \brief Commands that create forces between pairs of particles
-#
-# Charged interactions are usually long ranged, and for computational efficiency this is split
-# into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
-# implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
-# and short range parts.
-#
-# Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
-# produce incorrect results.
-#
-# The following methods are available:
-# - pppm
-#
+R""" Electrostatic potentials.
+
+Charged interactions are usually long ranged, and for computational efficiency this is split
+into two parts, one part computed in real space and on in Fourier space. You don't need to worry about this
+implementation detail, however, as charge commands in hoomd automatically initialize and configure both the long
+and short range parts.
+
+Only one method of computing charged interactions should be used at a time. Otherwise, they would add together and
+produce incorrect results.
+"""
 
 from hoomd.md import force;
 from hoomd import _hoomd
@@ -76,63 +26,82 @@ import sys;
 
 from math import sqrt
 
-## Long-range electrostatics computed with the PPPM method
-#
-# Reference \cite LeBard2012 describes the PPPM implementation details in HOOMD-blue. Cite it
-# if you utilize the PPPM functionality in your work.
-#
-# The command charge.pppm specifies that the \b both the long-ranged \b and short range parts of the electrostatic
-# force is computed between all charged particles in the simulation. In other words, charge.pppm() initializes and
-# sets all parameters for its own pair.ewald, so you do not need to specify an additional one.
-#
-# Parameters:
-# - Nx - Number of grid points in x direction
-# - Ny - Number of grid points in y direction
-# - Nz - Number of grid points in z direction
-# - order - Number of grid points in each direction to assign charges to
-# - \f$ r_{\mathrm{cut}} \f$ - Cutoff for the short-ranged part of the electrostatics calculation
-#
-# Parameters Nx, Ny, Nz, order, \f$ r_{\mathrm{cut}} \f$ must be set using
-# set_params() before any run() can take place.
-#
-# See \ref page_units for information on the units assigned to charges in hoomd.
-# \note charge.pppm takes a particle group as an option. This should be the group of all charged particles
-#       (group.charged). However, note that this group is static and determined at the time charge.pppm() is specified.
-#       If you are going to add charged particles at a later point in the simulation with the data access API,
-#       ensure that this group includes those particles as well.
-# \MPI_NOT_SUPPORTED
 class pppm(force._force):
-    ## Specify long-ranged electrostatic interactions between particles
-    #
-    # \param group Group on which to apply long range PPPM forces. The short range part is always applied between
-    #              all particles.
-    # \param nlist Neighbor list (default of None automatically creates a cell-list based neighbor list)
-    #
-    # \b Example:
-    # \code
-    # charged = group.charged();
-    # pppm = charge.pppm(group=charged)
-    # \endcode
-    def __init__(self, group, nlist=None):
-        hoomd.util.print_status_line();
+    R""" Long-range electrostatics computed with the PPPM method.
 
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("charge.pppm is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error initializing PPPM.")
+    Args:
+        group (:py:mod:`hoomd.group`): Group on which to apply long range PPPM forces. The short range part is always applied between
+                                       all particles.
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+
+
+    `D. LeBard et. al. 2012 <http://dx.doi.org/10.1039/c1sm06787g>`_ describes the PPPM implementation details in
+    HOOMD-blue. Please cite it if you utilize the PPPM functionality in your work.
+
+    :py:class:`pppm` specifies **both** the long-ranged **and** short range parts of the electrostatic
+    force should be computed between all charged particles in the simulation. In other words, :py:class:`pppm`
+    initializes and sets all parameters for its own :py:class:`hoomd.md.pair.ewald`, so do not specify an additional one.
+
+    The command supports additional screening of interactions, according to the Ewald summation for Yukawa potentials.
+    This is useful if one wants to compute a screened interaction (i.e. a solution to the linerized Poisson-Boltzmann
+    equation), yet the cut-off radius is so large that the computation with a purely short-ranged potential would become
+    inefficient. In that case, the inverse Debye screening length can be supplied using :py:meth`set_params()`.
+    Also see `Salin, G and Caillol, J. 2000, <http://dx.doi.org/10.1063/1.1326477>`.
+
+    Parameters:
+
+    - Nx - Number of grid points in x direction
+    - Ny - Number of grid points in y direction
+    - Nz - Number of grid points in z direction
+    - order - Number of grid points in each direction to assign charges to
+    - :math:`r_{\mathrm{cut}}` - Cutoff for the short-ranged part of the electrostatics calculation
+
+    Parameters Nx, Ny, Nz, order, :math:`r_{\mathrm{cut}}` must be set using
+    :py:meth:`set_params()` before any :py:func:`hoomd.run()` can take place.
+
+    See :ref:`page-units` for information on the units assigned to charges in hoomd.
+
+    Note:
+          :py:class:`pppm` takes a particle group as an option. This should be the group of all charged particles
+          (:py:func:`hoomd.group.charged`). However, note that this group is static and determined at the time
+          :py:class:`pppm` is specified. If you are going to add charged particles at a later point in the simulation
+          with the data access API, ensure that this group includes those particles as well.
+
+    .. important::
+        In MPI simulations, the number of grid point along every dimensions must be a power of two.
+
+    Example::
+
+        charged = group.charged();
+        pppm = charge.pppm(group=charged)
+
+    """
+    def __init__(self, group, nlist):
+        hoomd.util.print_status_line();
 
         # initialize the base class
         force._force.__init__(self);
+
+        # register the citation
+        c = hoomd.cite.article(cite_key='dnlebard2012',
+                         author=['D N LeBard', 'B G Levine', 'S A Barr', 'A Jusufi', 'S Sanders', 'M L Klein', 'A Z Panagiotopoulos'],
+                         title='Self-assembly of coarse-grained ionic surfactants accelerated by graphics processing units',
+                         journal='Journal of Computational Physics',
+                         volume=8,
+                         number=8,
+                         pages='2385-2397',
+                         month='',
+                         year='2012',
+                         doi='10.1039/c1sm06787g',
+                         feature='PPPM')
+        hoomd.cite._ensure_global_bib().add(c)
+
         # create the c++ mirror class
 
-        # PPPM doesn't really need a neighbor list, so subscribe call back as None
-        if nlist is None:
-            self.nlist = nl._subscribe_global_nlist(lambda : None)
-        else: # otherwise, subscribe the specified neighbor list
-            self.nlist = nlist
-            self.nlist.subscribe(lambda : None)
-            self.nlist.update_rcut()
+        # PPPM itself doesn't really need a neighbor list, so subscribe call back as None
+        self.nlist = nlist
+        self.nlist.subscribe(lambda : None)
+        self.nlist.update_rcut()
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.PPPMForceCompute(hoomd.context.current.system_definition, self.nlist.cpp_nlist, group.cpp_group);
@@ -146,7 +115,7 @@ class pppm(force._force):
 
         # initialize the short range part of electrostatics
         hoomd.util.quiet_status();
-        self.ewald = pair.ewald(r_cut = 0.0, nlist = self.nlist);
+        self.ewald = pair.ewald(r_cut = False, nlist = self.nlist);
         hoomd.util.unquiet_status();
 
     # overrride disable and enable to work with both of the forces
@@ -166,27 +135,24 @@ class pppm(force._force):
         self.ewald.enable();
         hoomd.util.unquiet_status();
 
-    ## Sets the PPPM parameters
-    #
-    # \param Nx - Number of grid points in x direction
-    # \param Ny - Number of grid points in y direction
-    # \param Nz - Number of grid points in z direction
-    # \param order - Number of grid points in each direction to assign charges to
-    # \param rcut  -  Cutoff for the short-ranged part of the electrostatics calculation
-    #
-    # Using set_params() requires that the specified PPPM force has been saved in a variable. i.e.
-    # \code
-    # pppm = charge.pppm()
-    # \endcode
-    #
-    # \b Examples:
-    # \code
-    # pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
-    # \endcode
-    # Note that the Fourier transforms are much faster for number of grid points of the form 2^N
-    # The parameters for PPPM  must be set
-    # before the run() can be started.
-    def set_params(self, Nx, Ny, Nz, order, rcut):
+    def set_params(self, Nx, Ny, Nz, order, rcut, alpha = 0.0):
+        """ Sets PPPM parameters.
+
+        Args:
+            Nx (int): Number of grid points in x direction
+            Ny (int): Number of grid points in y direction
+            Nz (int): Number of grid points in z direction
+            order (int): Number of grid points in each direction to assign charges to
+            rcut  (float): Cutoff for the short-ranged part of the electrostatics calculation
+            alpha (float, **optional**): Debye screening parameter (in units 1/distance)
+                .. versionadded:: 2.1
+
+        Examples::
+
+            pppm.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=2.0)
+
+        Note that the Fourier transforms are much faster for number of grid points of the form 2^N.
+        """
         hoomd.util.print_status_line();
 
         if hoomd.context.current.system_definition.getNDimensions() != 3:
@@ -194,12 +160,12 @@ class pppm(force._force):
             raise RuntimeError("Cannot compute PPPM");
 
         self.params_set = True;
-        q2 = 0
-        N = hoomd.context.current.system_definition.getParticleData().getN()
-        for i in range(0,N):
-            q = hoomd.context.current.system_definition.getParticleData().getCharge(i)
-            q2 += q*q
-        box = hoomd.context.current.system_definition.getParticleData().getBox()
+
+        # get sum of charges and of squared charges
+        q = self.cpp_force.getQSum();
+        q2 = self.cpp_force.getQ2Sum();
+        N = hoomd.context.current.system_definition.getParticleData().getNGlobal()
+        box = hoomd.context.current.system_definition.getParticleData().getGlobalBox()
         Lx = box.getL().x
         Ly = box.getL().y
         Lz = box.getL().z
@@ -248,11 +214,11 @@ class pppm(force._force):
         hoomd.util.quiet_status();
         for i in range(0,ntypes):
             for j in range(0,ntypes):
-                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, r_cut=rcut)
+                self.ewald.pair_coeff.set(type_list[i], type_list[j], kappa = kappa, alpha = alpha, r_cut=rcut)
         hoomd.util.unquiet_status();
 
         # set the parameters for the appropriate type
-        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut);
+        self.cpp_force.setParams(Nx, Ny, Nz, order, kappa, rcut, alpha);
 
     def update_coeffs(self):
         if not self.params_set:
@@ -261,9 +227,6 @@ class pppm(force._force):
 
         if self.nlist.cpp_nlist.getDiameterShift():
             hoomd.context.msg.warning("Neighbor diameter shifting is enabled, PPPM may not correct for all excluded interactions\n");
-
-        if self.nlist.cpp_nlist.getFilterBody():
-            hoomd.context.msg.warning("Neighbor body filtering is enabled, PPPM may not correct for all excluded interactions\n");
 
 def diffpr(hx, hy, hz, xprd, yprd, zprd, N, order, kappa, q2, rcut):
     lprx = rms(hx, xprd, N, order, kappa, q2)

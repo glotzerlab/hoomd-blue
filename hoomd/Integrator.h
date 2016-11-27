@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -66,6 +21,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
@@ -110,7 +66,7 @@ class Integrator : public Updater
     {
     public:
         //! Constructor
-        Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
         //! Destructor
         virtual ~Integrator();
@@ -119,10 +75,10 @@ class Integrator : public Updater
         virtual void update(unsigned int timestep);
 
         //! Add a ForceCompute to the list
-        virtual void addForceCompute(boost::shared_ptr<ForceCompute> fc);
+        virtual void addForceCompute(std::shared_ptr<ForceCompute> fc);
 
         //! Add a ForceConstraint to the list
-        virtual void addForceConstraint(boost::shared_ptr<ForceConstraint> fc);
+        virtual void addForceConstraint(std::shared_ptr<ForceConstraint> fc);
 
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
@@ -137,7 +93,7 @@ class Integrator : public Updater
         /*! \param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }
@@ -146,7 +102,7 @@ class Integrator : public Updater
         /*! \param group Group over which to count degrees of freedom.
             Base class Integrator returns 0. Derived classes should override.
         */
-        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
             {
             return 0;
             }
@@ -170,7 +126,7 @@ class Integrator : public Updater
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 
         //! Callback for pre-computing the forces
         void computeCallback(unsigned int timestep);
@@ -178,9 +134,9 @@ class Integrator : public Updater
 
     protected:
         Scalar m_deltaT;                                            //!< The time step
-        std::vector< boost::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
+        std::vector< std::shared_ptr<ForceCompute> > m_forces;    //!< List of all the force computes
 
-        std::vector< boost::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
+        std::vector< std::shared_ptr<ForceConstraint> > m_constraint_forces;    //!< List of all the constraints
 
         //! helper function to compute initial accelerations
         void computeAccelerations(unsigned int timestep);
@@ -203,12 +159,12 @@ class Integrator : public Updater
 
     private:
         #ifdef ENABLE_MPI
-        boost::signals2::connection m_request_flags_connection;     //!< Connection to Communicator to request communication flags
-        boost::signals2::connection m_callback_connection;          //!< Connection to Commmunicator for compute callback
+        bool m_request_flags_connected = false;     //!< Connection to Communicator to request communication flags
+        bool m_signals_connected = false;                           //!< Track if we have already connected signals
         #endif
     };
 
 //! Exports the NVEUpdater class to python
-void export_Integrator();
+void export_Integrator(pybind11::module& m);
 
 #endif

@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -56,11 +11,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "IntegratorTwoStep.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -68,9 +19,9 @@ using namespace boost;
 
 using namespace std;
 
-IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_first_step(true), m_prepared(false), m_gave_warning(false),
-      m_aniso_mode(Automatic)
+IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
+    m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
     }
@@ -78,16 +29,23 @@ IntegratorTwoStep::IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
 IntegratorTwoStep::~IntegratorTwoStep()
     {
     m_exec_conf->msg->notice(5) << "Destroying IntegratorTwoStep" << endl;
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        }
+    #endif
     }
 
 /*! \param prof The profiler to set
     Sets the profiler both for this class and all of the containted integration methods
 */
-void IntegratorTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
+void IntegratorTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     {
     Integrator::setProfiler(prof);
 
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setProfiler(prof);
     }
@@ -104,7 +62,7 @@ std::vector< std::string > IntegratorTwoStep::getProvidedLogQuantities()
     combined_result.insert(combined_result.end(), result.begin(), result.end());
 
     // add integrationmethod quantities
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         result = (*method)->getProvidedLogQuantities();
@@ -121,7 +79,7 @@ Scalar IntegratorTwoStep::getLogValue(const std::string& quantity, unsigned int 
     bool quantity_flag = false;
     Scalar log_value;
 
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         log_value = (*method)->getLogValue(quantity,timestep,quantity_flag);
@@ -151,17 +109,12 @@ void IntegratorTwoStep::update(unsigned int timestep)
         m_prof->push("Integrate");
 
     // perform the first step of the integration on all groups
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepOne(timestep);
 
     if (m_prof)
         m_prof->pop();
-
-    // slave any constituents of local composite particles
-    std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-    for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-        (*force_composite)->updateCompositeParticles(timestep+1, false);
 
 #ifdef ENABLE_MPI
     if (m_comm)
@@ -169,13 +122,15 @@ void IntegratorTwoStep::update(unsigned int timestep)
         // perform all necessary communication steps. This ensures
         // a) that particles have migrated to the correct domains
         // b) that forces are calculated correctly, if ghost atom positions are updated every time step
-        m_comm->communicate(timestep+1);
 
-        // update local constituents of remote composite particles
-        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            (*force_composite)->updateCompositeParticles(timestep+1, true);
+        // also updates rigid bodies after ghost updating
+        m_comm->communicate(timestep+1);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep+1);
+        }
 
     // compute the net force on all particles
 #ifdef ENABLE_CUDA
@@ -213,7 +168,7 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     Integrator::setDeltaT(deltaT);
 
     // set deltaT on all methods already added
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setDeltaT(deltaT);
     }
@@ -223,19 +178,19 @@ void IntegratorTwoStep::setDeltaT(Scalar deltaT)
     existing methods. If an interesection is found, an error is issued. If no interesection is found, setDeltaT
     is called on the method and it is added to the list.
 */
-void IntegratorTwoStep::addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method)
+void IntegratorTwoStep::addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method)
     {
     // check for intersections with existing methods
-    boost::shared_ptr<ParticleGroup> new_group = new_method->getGroup();
+    std::shared_ptr<ParticleGroup> new_group = new_method->getGroup();
 
     if (new_group->getNumMembersGlobal() == 0)
         m_exec_conf->msg->warning() << "integrate.mode_standard: An integration method has been added that operates on zero particles." << endl;
 
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        boost::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-        boost::shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        std::shared_ptr<ParticleGroup> intersection = ParticleGroup::groupIntersection(new_group, current_group);
 
         if (intersection->getNumMembersGlobal() > 0)
             {
@@ -261,7 +216,7 @@ void IntegratorTwoStep::removeAllIntegrationMethods()
 
 /*! \param fc ForceComposite to add
 */
-void IntegratorTwoStep::addForceComposite(boost::shared_ptr<ForceComposite> fc)
+void IntegratorTwoStep::addForceComposite(std::shared_ptr<ForceComposite> fc)
     {
     assert(fc);
     m_composite_forces.push_back(fc);
@@ -286,7 +241,7 @@ bool IntegratorTwoStep::isValidRestart()
     bool res = true;
 
     // loop through all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         // and them all together
@@ -300,12 +255,12 @@ bool IntegratorTwoStep::isValidRestart()
     Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
     mass.
 */
-unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
+unsigned int IntegratorTwoStep::getNDOF(std::shared_ptr<ParticleGroup> group)
     {
     int res = 0;
 
     // loop through all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         // dd them all together
@@ -318,16 +273,35 @@ unsigned int IntegratorTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> group)
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the rotational degrees of freedom that each integration method provide to the group.
 */
-unsigned int IntegratorTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGroup> group)
+unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> group)
     {
     int res = 0;
 
-    // loop through all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
-    for (method = m_methods.begin(); method != m_methods.end(); ++method)
+    bool aniso = false;
+
+    // This is called before prepRun, so we need to determine the anisotropic modes independently here.
+    // It cannot be done earlier, as the integration methods were not in place.
+    // set (an-)isotropic integration mode
+    switch (m_aniso_mode)
         {
-        // dd them all together
-        res += (*method)->getRotationalNDOF(group);
+        case Anisotropic:
+            aniso = true;
+            break;
+        case Automatic:
+        default:
+            aniso = getAnisotropic();
+            break;
+        }
+
+    if (aniso)
+        {
+        // loop through all methods
+        std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+        for (method = m_methods.begin(); method != m_methods.end(); ++method)
+            {
+            // dd them all together
+            res += (*method)->getRotationalNDOF(group);
+            }
         }
 
     return res;
@@ -368,43 +342,34 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             break;
         }
 
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    // if we haven't been called before, then the net force and accelerations have not been set and we need to calculate them
-    if (m_first_step)
-        {
-        m_first_step = false;
-        m_prepared = true;
-
-        // ensure that any rigid bodies are correctly initialized
-        std::vector< boost::shared_ptr<ForceComposite> >::iterator force_composite;
-        for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-            (*force_composite)->updateCompositeParticles(timestep, false);
+    m_prepared = true;
 
 #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            // force particle migration and ghost exchange
-            m_comm->forceMigrate();
+    if (m_comm)
+        {
+        // force particle migration and ghost exchange
+        m_comm->forceMigrate();
 
-            // perform communication
-            m_comm->communicate(timestep);
-
-            // update local constituents of remote composite particles
-            for (force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
-                (*force_composite)->updateCompositeParticles(timestep+1, true);
-            }
+        // perform communication
+        m_comm->communicate(timestep);
+        }
 #endif
 
-        // net force is always needed
-        computeNetForce(timestep);
+        // compute the net force on all particles
+#ifdef ENABLE_CUDA
+    if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
+        computeNetForceGPU(timestep+1);
+    else
+#endif
+        computeNetForce(timestep+1);
 
-        // but the accelerations only need to be calculated if the restart is not valid
-        if (!isValidRestart())
-            computeAccelerations(timestep);
-        }
+    // but the accelerations only need to be calculated if the restart is not valid
+    if (!isValidRestart())
+        computeAccelerations(timestep);
     }
 
 /*! Return the combined flags of all integration methods.
@@ -414,7 +379,7 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
     PDataFlags flags;
 
     // loop through all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         {
         // or them all together
@@ -426,16 +391,30 @@ PDataFlags IntegratorTwoStep::getRequestedPDataFlags()
 
 #ifdef ENABLE_MPI
 //! Set the communicator to use
-void IntegratorTwoStep::setCommunicator(boost::shared_ptr<Communicator> comm)
+void IntegratorTwoStep::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // set Communicator in all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
             (*method)->setCommunicator(comm);
+
+    if (comm && !m_comm)
+        {
+        // on the first time setting the Communicator, connect our compute callback
+        comm->getComputeCallbackSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
+        }
 
     Integrator::setCommunicator(comm);
     }
 #endif
+
+//! Updates the rigid body constituent particles
+void IntegratorTwoStep::updateRigidBodies(unsigned int timestep)
+    {
+    // slave any constituents of local composite particles
+    for (auto force_composite = m_composite_forces.begin(); force_composite != m_composite_forces.end(); ++force_composite)
+        (*force_composite)->updateCompositeParticles(timestep);
+    }
 
 /*! \param enable Enable/disable autotuning
     \param period period (approximate) in time steps when returning occurs
@@ -444,15 +423,15 @@ void IntegratorTwoStep::setAutotunerParams(bool enable, unsigned int period)
     {
     Integrator::setAutotunerParams(enable, period);
     // set params in all methods
-    std::vector< boost::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
+    std::vector< std::shared_ptr<IntegrationMethodTwoStep> >::iterator method;
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
             (*method)->setAutotunerParams(enable, period);
     }
 
-void export_IntegratorTwoStep()
+void export_IntegratorTwoStep(py::module& m)
     {
-    class_<IntegratorTwoStep, boost::shared_ptr<IntegratorTwoStep>, bases<Integrator>, boost::noncopyable>
-        ("IntegratorTwoStep", init< boost::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<IntegratorTwoStep, std::shared_ptr<IntegratorTwoStep> >(m, "IntegratorTwoStep", py::base<Integrator>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
         .def("addIntegrationMethod", &IntegratorTwoStep::addIntegrationMethod)
         .def("removeAllIntegrationMethods", &IntegratorTwoStep::removeAllIntegrationMethods)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
@@ -460,10 +439,11 @@ void export_IntegratorTwoStep()
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
         ;
 
-    enum_<IntegratorTwoStep::AnisotropicMode>("IntegratorAnisotropicMode")
-        .value("Automatic", IntegratorTwoStep::Automatic)
-        .value("Anisotropic", IntegratorTwoStep::Anisotropic)
-        .value("Isotropic", IntegratorTwoStep::Isotropic)
+    py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")
+        .value("Automatic", IntegratorTwoStep::AnisotropicMode::Automatic)
+        .value("Anisotropic", IntegratorTwoStep::AnisotropicMode::Anisotropic)
+        .value("Isotropic", IntegratorTwoStep::AnisotropicMode::Isotropic)
+        .export_values()
         ;
 
     }

@@ -3,6 +3,7 @@
 
 from hoomd import *
 from hoomd import md;
+from hoomd import deprecated
 context.initialize()
 import unittest
 import os
@@ -70,9 +71,8 @@ class wall_group_tests(unittest.TestCase):
 # test lj wall force in standard mode
 class wall_lj_tests (unittest.TestCase):
     def setUp(self):
-        self.s=init.create_random(N=100, box=data.boxdim(L=5));
-        updater=update.box_resize(L = 15, period=None);
-        updater.set_params(scale_particles = False);
+        self.s=deprecated.init.create_random(N=100, box=data.boxdim(L=5));
+        updater=update.box_resize(L = 15, period=None, scale_particles = False);
         self.walls=md.wall.group();
         self.walls.add_sphere(r=5, origin=(0.0, 0.0, 0.0), inside=True);
 
@@ -93,7 +93,8 @@ class wall_lj_tests (unittest.TestCase):
     def test_center(self):
         self.s.particles[0].position=(0,0,0)
         # specify Lennard-Jones interactions between particle pairs
-        lj = md.pair.lj(r_cut=2.5)
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=2.5, nlist = nl)
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         run(100)
 
@@ -121,7 +122,7 @@ class wall_lj_tests (unittest.TestCase):
     #     lj_wall.force_coeff.set('A', epsilon=1.0, sigma=1.0, alpha=1.0)
     #     all = group.all();
     #     md.integrate.mode_standard(dt=0.005);
-    #     md.integrate.npt(group=all, T=1.0, tau=0.5, tauP=1.0, P=2.0);
+    #     md.integrate.npt(group=all, kT=1.0, tau=0.5, tauP=1.0, P=2.0);
     #     self.assertRaises(RuntimeError, run, 10);
 
     def tearDown(self):

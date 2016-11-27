@@ -1,4 +1,5 @@
-
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
@@ -45,13 +46,21 @@ namespace hpmc
 
     \ingroup shape
 */
-struct ell_params : aligned_struct
+struct ell_params : param_base
     {
     OverlapReal x;                      //!< x semiaxis of the ellipsoid
     OverlapReal y;                      //!< y semiaxis of the ellipsoid
     OverlapReal z;                      //!< z semiaxis of the ellipsoid
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 struct ShapeEllipsoid
@@ -69,10 +78,7 @@ struct ShapeEllipsoid
     DEVICE bool hasOrientation() const { return !(axes.x==axes.y&&axes.x==axes.z); }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return axes.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const {return axes.ignore & 0x01;}
+    DEVICE bool ignoreStatistics() const { return axes.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const

@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -64,6 +19,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Integrates the system forward one step with possibly multiple methods
 /*! See IntegrationMethodTwoStep for most of the design notes regarding group integration. IntegratorTwoStep merely
@@ -95,13 +52,13 @@ class IntegratorTwoStep : public Integrator
         enum AnisotropicMode {Automatic, Anisotropic, Isotropic};
 
         //! Constructor
-        IntegratorTwoStep(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
+        IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT);
 
         //! Destructor
         virtual ~IntegratorTwoStep();
 
         //! Sets the profiler for the compute to use
-        virtual void setProfiler(boost::shared_ptr<Profiler> prof);
+        virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Returns a list of log quantities this integrator calculates
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -116,16 +73,16 @@ class IntegratorTwoStep : public Integrator
         virtual void setDeltaT(Scalar deltaT);
 
         //! Add a new integration method to the list that will be run
-        virtual void addIntegrationMethod(boost::shared_ptr<IntegrationMethodTwoStep> new_method);
+        virtual void addIntegrationMethod(std::shared_ptr<IntegrationMethodTwoStep> new_method);
 
         //! Remove all integration methods
         virtual void removeAllIntegrationMethods();
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getNDOF(boost::shared_ptr<ParticleGroup> group);
+        virtual unsigned int getNDOF(std::shared_ptr<ParticleGroup> group);
 
         //! Get the number of degrees of freedom granted to a given group
-        virtual unsigned int getRotationalNDOF(boost::shared_ptr<ParticleGroup> group);
+        virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> group);
 
         //! Set the anisotropic mode of the integrator
         virtual void setAnisotropicMode(AnisotropicMode mode);
@@ -137,7 +94,7 @@ class IntegratorTwoStep : public Integrator
         virtual PDataFlags getRequestedPDataFlags();
 
         //! Add a ForceComposite to the list
-        virtual void addForceComposite(boost::shared_ptr<ForceComposite> fc);
+        virtual void addForceComposite(std::shared_ptr<ForceComposite> fc);
 
         //! Removes all ForceComputes from the list
         virtual void removeForceComputes();
@@ -146,8 +103,11 @@ class IntegratorTwoStep : public Integrator
         //! Set the communicator to use
         /*! \param comm The Communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm);
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm);
 #endif
+
+        //! Updates the rigid body constituent particles
+        virtual void updateRigidBodies(unsigned int timestep);
 
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
@@ -155,17 +115,16 @@ class IntegratorTwoStep : public Integrator
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
 
-        std::vector< boost::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
+        std::vector< std::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
 
-        bool m_first_step;            //!< True before the first call to update()
         bool m_prepared;              //!< True if preprun has been called
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
 
-        std::vector< boost::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
+        std::vector< std::shared_ptr<ForceComposite> > m_composite_forces; //!< A list of active composite forces
     };
 
 //! Exports the IntegratorTwoStep class to python
-void export_IntegratorTwoStep();
+void export_IntegratorTwoStep(pybind11::module& m);
 
 #endif // #ifndef __INTEGRATOR_TWO_STEP_H__

@@ -1,67 +1,19 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward / All Developers are free to add commands for new features
+
+""" Commands to support automatic citation generation.
+
+Certain features of HOOMD-blue should be cited because they represent significant contributions from developers.
+In order to make these citations transparent and easy, HOOMD-blue will automatically print citation notices at run
+time when you use a feature that should be cited. Users should read and cite these publications in their work.
+Citations can be saved as a BibTeX file for easy incorporation into bibliographies.
+"""
 
 import hoomd
 import textwrap
 import os
-
-## \package hoomd.cite
-# \brief Commands to support automatic citation generation
-#
-# Certain features of HOOMD-blue require citation because they represent significant contributions from developers.
-# In order to make these citations transparent and easy, HOOMD-blue will automatically print citation notices at run
-# time when you use a feature that should be cited. Users should read and cite these publications in their work.
-# Citations can be saved as a BibTeX file for easy incorporation into bibliographies. The bibliography is generated
-# in accordance with the terms laid out at \ref page_citing.
-#
 
 ## \internal
 # \brief Generic citation object
@@ -371,21 +323,16 @@ class bibliography(object):
                         citations[e.feature] += [log_str]
                 else: # otherwise, just print the feature without any decoration
                     cite_str = '-'*5 + '\n'
-                    cite_str += 'Read and cite the following:\n'
+                    cite_str += 'Please cite the following:\n'
                     cite_str += log_str
-                    cite_str += 'You can save this citation to file using cite.save().\n'
                     cite_str += '-'*5 + '\n'
                     hoomd.context.msg.notice(1, cite_str)
 
         # print each feature set together
         for feature in citations:
             cite_str = '-'*5 + '\n'
-            cite_str += 'You are using %s. Read and cite the following:\n' % feature
-            cite_str += 'and\n'.join(citations[feature])
-            if len(citations[feature]) > 1:
-                cite_str += 'You can save these citations to file using cite.save().\n'
-            else:
-                cite_str += 'You can save this citation to file using cite.save().\n'
+            cite_str += 'You are using %s. Please cite the following:\n' % feature
+            cite_str += ''.join(citations[feature])
             cite_str += '-'*5 + '\n'
             hoomd.context.msg.notice(1, cite_str)
 
@@ -480,24 +427,26 @@ def _ensure_global_bib():
                         feature = 'HOOMD-blue')
 
 
-        hoomd_web = misc(cite_key = 'hoomdweb', howpublished = 'http://codeblue.umich.edu/hoomd-blue', feature = 'HOOMD-blue')
-        hoomd.context.bib.add([hoomd_base, hoomd_mpi, hoomd_web])
+        hoomd.context.bib.add([hoomd_base, hoomd_mpi])
 
     return hoomd.context.bib
 
-## Saves the automatically generated %bibliography to a BibTeX file
-#
-# \param file File name for the saved %bibliography
-#
-# After save() is called for the first time, the %bibliography will (re-)generate each time that a new feature is added
-# to ensure that all citations have been included. If \a file already exists, it will be overwritten.
-#
-# \b Examples
-# \code
-# cite.save()
-# cite.save(file='cite.bib')
-# \endcode
 def save(file='hoomd.bib'):
+    """ Saves the automatically generated bibliography to a BibTeX file
+
+    Args:
+
+        file(str): File name for the saved bibliography
+
+    After :py:func:`save()` is called for the first time, the bibliography will (re-)generate each time that a new feature is added
+    to ensure that all citations have been included. If ``file`` already exists, it will be overwritten.
+
+    Examples::
+
+        cite.save()
+        cite.save(file='cite.bib')
+    """
+
     hoomd.util.print_status_line()
 
     # force a bibliography to exist

@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 // Maintainer: joaander
 
 /*! \file Integrator.cc
@@ -55,11 +10,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Integrator.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_CUDA
 #include "Integrator.cuh"
@@ -74,7 +25,7 @@ using namespace std;
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
+Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -84,16 +35,16 @@ Integrator::~Integrator()
     {
     #ifdef ENABLE_MPI
     // disconnect
-    if (m_request_flags_connection.connected())
-        m_request_flags_connection.disconnect();
-    if (m_callback_connection.connected())
-        m_callback_connection.disconnect();
+    if (m_request_flags_connected && m_comm)
+        m_comm->getCommFlagsRequestSignal().disconnect<Integrator, &Integrator::determineFlags>(this);
+    if (m_signals_connected && m_comm)
+        m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(this);
     #endif
     }
 
 /*! \param fc ForceCompute to add
 */
-void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
+void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
@@ -102,7 +53,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 
 /*! \param fc ForceConstraint to add
 */
-void Integrator::addForceConstraint(boost::shared_ptr<ForceConstraint> fc)
+void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     {
     assert(fc);
     m_constraint_forces.push_back(fc);
@@ -149,7 +100,7 @@ unsigned int Integrator::getNDOFRemoved()
     unsigned int n = 0;
 
     // loop through all constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
         n += (*force_compute)->getNDOFRemoved();
 
@@ -346,7 +297,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
 
@@ -357,6 +308,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
 
     Scalar external_virial[6];
+    Scalar external_energy;
         {
         // access the net force and virial arrays
         const GPUArray<Scalar4>& net_force  = m_pdata->getNetForce();
@@ -373,6 +325,8 @@ void Integrator::computeNetForce(unsigned int timestep)
 
         for (unsigned int i = 0; i < 6; ++i)
            external_virial[i] = Scalar(0.0);
+
+        external_energy = Scalar(0.0);
 
         // now, add up the net forces
         unsigned int nparticles = m_pdata->getN();
@@ -414,11 +368,15 @@ void Integrator::computeNetForce(unsigned int timestep)
 
             for (unsigned int k = 0; k < 6; k++)
                 external_virial[k] += (*force_compute)->getExternalVirial(k);
+
+            external_energy += (*force_compute)->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -440,7 +398,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -455,9 +413,9 @@ void Integrator::computeNetForce(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
         unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
@@ -494,11 +452,15 @@ void Integrator::computeNetForce(unsigned int timestep)
                 }
             for (unsigned int k = 0; k < 6; k++)
                 external_virial[k] += (*force_constraint)->getExternalVirial(k);
+
+            external_energy += (*force_constraint)->getExternalEnergy();
             }
         }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -521,7 +483,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // compute all the normal forces first
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
@@ -533,6 +495,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     Scalar external_virial[6];
+    Scalar external_energy;
+
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
@@ -552,6 +516,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         // zero external virial
         for (unsigned int i = 0; i < 6; ++i)
             external_virial[i] = Scalar(0.0);
+
+        external_energy = Scalar(0.0);
 
         // there is no need to zero out the initial net force and virial here, the first call to the addition kernel
         // will do that
@@ -671,13 +637,18 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
             }
         }
 
-    // add up external virials
+    // add up external virials and energies
     for (unsigned int cur_force = 0; cur_force < m_forces.size(); cur_force ++)
+        {
         for (unsigned int k = 0; k < 6; k++)
             external_virial[k] += m_forces[cur_force]->getExternalVirial(k);
+        external_energy += m_forces[cur_force]->getExternalEnergy();
+        }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
+
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -698,7 +669,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -713,9 +684,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::readwrite);
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles <= net_force.getNumElements());
@@ -828,12 +799,16 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
+        {
         for (unsigned int k = 0; k < 6; k++)
             external_virial[k] += m_constraint_forces[cur_force]->getExternalVirial(k);
+        external_energy += m_constraint_forces[cur_force]->getExternalEnergy();
+        }
 
     for (unsigned int k = 0; k < 6; k++)
         m_pdata->setExternalVirial(k, external_virial[k]);
 
+    m_pdata->setExternalEnergy(external_energy);
 
     if (m_prof)
         {
@@ -874,12 +849,12 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     CommFlags flags(0);
 
     // query all forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         flags |= (*force_compute)->getRequestedCommFlags(timestep);
 
     // query all constraints
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         flags |= (*force_constraint)->getRequestedCommFlags(timestep);
 
@@ -887,23 +862,27 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     }
 
 
-void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
+void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // call base class method
     Updater::setCommunicator(comm);
 
     // connect to ghost communication flags request
-    if (! m_request_flags_connection.connected() && m_comm)
-        m_request_flags_connection = m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
+    if (! m_request_flags_connected && m_comm)
+        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
 
-    if (! m_callback_connection.connected() && m_comm)
-        m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
+    m_request_flags_connected = true;
+
+    if (! m_signals_connected && m_comm)
+        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+
+    m_signals_connected = true;
     }
 
 void Integrator::computeCallback(unsigned int timestep)
     {
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
@@ -914,23 +893,23 @@ bool Integrator::getAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         aniso |= (*force_compute)->isAnisotropic();
 
     // pre-compute all active constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         aniso |= (*force_constraint)->isAnisotropic();
 
     return aniso;
     }
 
-void export_Integrator()
+void export_Integrator(py::module& m)
     {
-    class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
-    ("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<Integrator, std::shared_ptr<Integrator> >(m,"Integrator",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)

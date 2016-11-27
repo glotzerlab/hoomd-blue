@@ -7,13 +7,17 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # Very basic tests to ensure that meta data output does not create any errors
 # and is producing expected results.
 
 class convex_polygon_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.convex_polygon(seed=10);
 
     def tearDown(self):
@@ -24,7 +28,7 @@ class convex_polygon_test(unittest.TestCase):
     def test_metadata_dump(self):
         vertices = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        meta_data = meta.dump_metadata()[0]
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.convex_polygon', meta_data)
         self.assertNotEqual(meta_data['hoomd.hpmc.integrate.convex_polygon'], None)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_polygon']['shape_param']['A']['vertices'], vertices)
@@ -32,7 +36,7 @@ class convex_polygon_test(unittest.TestCase):
 class simple_polygon_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.simple_polygon(seed=10);
 
     def tearDown(self):
@@ -43,15 +47,15 @@ class simple_polygon_test(unittest.TestCase):
     def test_metadata_dump(self):
         vertices = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        meta_data = meta.dump_metadata()[0]
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.simple_polygon', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.simple_polygon']['shape_param']['A']['vertices'], vertices)
 
 class convex_polyhedron_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10);
 
     def tearDown(self):
         del self.mc
@@ -68,15 +72,15 @@ class convex_polyhedron_test(unittest.TestCase):
                    [2,-1,1],
                    [2,1,1]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.convex_polyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_polyhedron']['shape_param']['A']['vertices'], vertices)
 
 class sphere_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.sphere(seed=10);
 
     def tearDown(self):
@@ -86,14 +90,14 @@ class sphere_test(unittest.TestCase):
 
     def test_metadata_dump(self):
         self.mc.shape_param.set('A', diameter=1.0)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.sphere', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.sphere']['shape_param']['A']['diameter'], 1.0)
 
 class sphere_union_test(unittest.TestCase):
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
         self.mc = hpmc.integrate.sphere_union(seed=10);
 
     def tearDown(self):
@@ -105,8 +109,8 @@ class sphere_union_test(unittest.TestCase):
         diameters = [1.0, 1.0]
         centers = [[-0.25, 0, 0], [0.25, 0, 0]]
         self.mc.shape_param.set('A', diameters=diameters, centers=centers)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.sphere_union', meta_data)
         # readback is not currently enabled for shape union
         # self.assertEqual(meta_data['hoomd.hpmc.integrate.sphere_union']['shape_param']['A']['diameters'], diameters)
@@ -115,7 +119,7 @@ class sphere_union_test(unittest.TestCase):
 class convex_spheropolygon_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.convex_spheropolygon(seed=10);
 
     def tearDown(self):
@@ -134,15 +138,15 @@ class convex_spheropolygon_test(unittest.TestCase):
                    [2,1]]
 
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.convex_spheropolygon', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_spheropolygon']['shape_param']['A']['vertices'], vertices)
 
 class polyhedron_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.polyhedron(seed=10);
 
     def tearDown(self):
@@ -161,8 +165,8 @@ class polyhedron_test(unittest.TestCase):
                    [2,1,1]]
         faces = [[1,2,3,4]]
         self.mc.shape_param.set('A', vertices=vertices, faces=[])
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.polyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.polyhedron']['shape_param']['A']['vertices'], vertices)
 
@@ -171,7 +175,7 @@ class polyhedron_test(unittest.TestCase):
 class faceted_sphere_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.faceted_sphere(seed=10);
 
     def tearDown(self):
@@ -193,8 +197,8 @@ class faceted_sphere_test(unittest.TestCase):
             origin=[0,0,0]
             )
         self.mc.shape_param.set('A',  ** shape_param)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.faceted_sphere', meta_data)
         for key in shape_param:
             self.assertEqual(meta_data['hoomd.hpmc.integrate.faceted_sphere']['shape_param']['A'][key], shape_param[key])
@@ -202,7 +206,7 @@ class faceted_sphere_test(unittest.TestCase):
 class convex_spheropolyhedron_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.convex_spheropolyhedron(seed=10);
 
     def tearDown(self):
@@ -220,15 +224,15 @@ class convex_spheropolyhedron_test(unittest.TestCase):
                    [2,-1,1],
                    [2,1,1]]
         self.mc.shape_param.set('A',  vertices=vertices)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.convex_spheropolyhedron', meta_data)
         self.assertEqual(meta_data['hoomd.hpmc.integrate.convex_spheropolyhedron']['shape_param']['A']['vertices'], vertices)
 
 class ellipsoid_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.ellipsoid(seed=10);
 
     def tearDown(self):
@@ -239,8 +243,8 @@ class ellipsoid_test(unittest.TestCase):
     def test_metadata_dump(self):
         shape_param = dict(a=0.5, b=0.25, c=0.125)
         self.mc.shape_param.set('A',  **shape_param)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.ellipsoid', meta_data)
         for key in shape_param:
             self.assertAlmostEqual(meta_data['hoomd.hpmc.integrate.ellipsoid']['shape_param']['A'][key], shape_param[key]) # using almost equal now because storing the data in C++ gives us finite precision.
@@ -248,7 +252,7 @@ class ellipsoid_test(unittest.TestCase):
 class sphinx_test(unittest.TestCase):
 
     def setUp(self):
-        self.system = init.create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
         self.mc = hpmc.integrate.sphinx(seed=10);
 
     def tearDown(self):
@@ -258,10 +262,10 @@ class sphinx_test(unittest.TestCase):
 
     def test_metadata_dump(self):
         shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], \
-			               colors=['ff','ffff00','ffff00'])
+                           colors=['ff','ffff00','ffff00'])
         self.mc.shape_param.set('A',  **shape_param)
-        sorter.set_params(grid=8)
-        meta_data = meta.dump_metadata()[0]
+        context.current.sorter.set_params(grid=8)
+        meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.sphinx', meta_data)
 
         for i,d in enumerate(shape_param['diameters']):

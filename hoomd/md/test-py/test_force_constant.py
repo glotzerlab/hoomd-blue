@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -11,9 +12,9 @@ import os
 class force_constant_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create a md.force.constant
     def test_create(self):
@@ -32,7 +33,6 @@ class force_constant_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, const.set_force, fx=1.45, fy=0.25, fz=-0.1);
         self.assertRaises(RuntimeError, const.enable);
         self.assertRaises(RuntimeError, const.disable);
-        self.assertRaises(RuntimeError, const.benchmark, 500);
 
     def tearDown(self):
         context.initialize();

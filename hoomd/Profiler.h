@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -62,7 +17,6 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
-#include <boost/bind.hpp>
 #endif
 
 #ifdef ENABLE_NVTOOLS
@@ -74,6 +28,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <iostream>
 #include <cassert>
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Allow score-p instrumentation
 #ifdef SCOREP_USER_ENABLE
@@ -175,9 +131,9 @@ class Profiler
         void pop(uint64_t flop_count = 0, uint64_t byte_count = 0);
 
         //! Pushes a new sub-category into the current category & syncs the GPUs
-        void push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name);
+        void push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name);
         //! Pops back up to the next super-category & syncs the GPUs
-        void pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
+        void pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count = 0, uint64_t byte_count = 0);
 
     private:
         ClockSource m_clk;  //!< Clock to provide timing information
@@ -193,7 +149,10 @@ class Profiler
     };
 
 //! Exports the Profiler class to python
-void export_Profiler();
+#ifndef NVCC
+void export_Profiler(pybind11::module& m);
+#endif
+
 
 //! Output operator for Profiler
 std::ostream& operator<<(std::ostream &o, Profiler& prof);
@@ -201,7 +160,7 @@ std::ostream& operator<<(std::ostream &o, Profiler& prof);
 /////////////////////////////////////
 // Profiler inlines
 
-inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
+inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_conf, const std::string& name)
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen
@@ -211,7 +170,7 @@ inline void Profiler::push(boost::shared_ptr<const ExecutionConfiguration> exec_
     push(name);
    }
 
-inline void Profiler::pop(boost::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
+inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_conf, uint64_t flop_count, uint64_t byte_count)
     {
 #if defined(ENABLE_CUDA) && !defined(ENABLE_NVTOOLS)
     // nvtools profiling disables synchronization so that async CPU/GPU overlap can be seen

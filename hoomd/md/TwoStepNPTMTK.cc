@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -54,9 +9,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "TwoStepNPTMTK.h"
 #include "hoomd/VectorMath.h"
 
-#include <boost/python.hpp>
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file TwoStepNPTMTK.cc
     \brief Contains code for the TwoStepNPTMTK class
@@ -81,24 +35,32 @@ const Scalar h_coeff[] = {Scalar(1.0/3.0), Scalar(-1.0/15.0), Scalar(2.0/189.0),
     \param tau NPT temperature period
     \param tauP NPT pressure period
     \param T Temperature set point
-    \param P Pressure set point
+    \param S Pressure or Stress set point. Pressure if one value, Stress if a list of 6. Stress should be ordered as [xx, yy, zz, yz, xz, xy]
     \param couple Coupling mode
     \param flags Barostatted simulation box degrees of freedom
 */
-TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                       boost::shared_ptr<ParticleGroup> group,
-                       boost::shared_ptr<ComputeThermo> thermo_group,
-                       boost::shared_ptr<ComputeThermo> thermo_group_t,
+TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
                        Scalar tau,
                        Scalar tauP,
-                       boost::shared_ptr<Variant> T,
-                       boost::shared_ptr<Variant> P,
+                       std::shared_ptr<Variant> T,
+                       py::list S,
                        couplingMode couple,
                        unsigned int flags,
                        const bool nph)
-    : IntegrationMethodTwoStep(sysdef, group), m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
-      m_ndof(0), m_tau(tau), m_tauP(tauP), m_T(T), m_P(P), m_couple(couple), m_flags(flags), m_nph(nph),
-      m_rescale_all(false)
+    : IntegrationMethodTwoStep(sysdef, group),
+                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
+                            m_ndof(0),
+                            m_tau(tau),
+                            m_tauP(tauP),
+                            m_T(T),
+                            m_S(),
+                            m_couple(couple),
+                            m_flags(flags),
+                            m_nph(nph),
+                            m_rescale_all(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -110,6 +72,80 @@ TwoStepNPTMTK::TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
     if (flags == 0)
         m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
                                     << endl;
+
+    // Set the stress vector from the python list
+    for (int i = 0; i< 6; ++i)
+        {
+        m_S.push_back(py::cast<std::shared_ptr<Variant>>(S[i]));
+        }
+
+    bool twod = m_sysdef->getNDimensions()==2;
+    m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
+
+    // set initial state
+    IntegratorVariables v = getIntegratorVariables();
+
+    if (!restartInfoTestValid(v, "npt_mtk", 10))
+        {
+        v.type = "npt_mtk";
+        v.variable.resize(10,Scalar(0.0));
+        setValidRestart(false);
+        }
+    else
+        {
+        setValidRestart(true);
+        }
+
+    setIntegratorVariables(v);
+
+    m_log_names.resize(2);
+    m_log_names[0] = "npt_thermostat_energy";
+    m_log_names[1] = "npt_barostat_energy";
+    }
+
+
+// TODO: rewrite the unit test in /hoomd-blue/hoomd/md/test/test_npt_mtk_integrator.cc so we don't need to do this
+TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                       std::shared_ptr<ParticleGroup> group,
+                       std::shared_ptr<ComputeThermo> thermo_group,
+                       std::shared_ptr<ComputeThermo> thermo_group_t,
+                       Scalar tau,
+                       Scalar tauP,
+                       std::shared_ptr<Variant> T,
+                       std::shared_ptr<Variant> P,
+                       couplingMode couple,
+                       unsigned int flags,
+                       const bool nph)
+    : IntegrationMethodTwoStep(sysdef, group),
+                            m_thermo_group(thermo_group), m_thermo_group_t(thermo_group_t),
+                            m_ndof(0),
+                            m_tau(tau),
+                            m_tauP(tauP),
+                            m_T(T),
+                            m_S(),
+                            m_couple(couple),
+                            m_flags(flags),
+                            m_nph(nph),
+                            m_rescale_all(false)
+    {
+    m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
+
+    if (m_tau <= 0.0)
+        m_exec_conf->msg->warning() << "integrate.npt: tau set less than 0.0" << endl;
+    if (m_tauP <= 0.0)
+        m_exec_conf->msg->warning() << "integrate.npt: tauP set less than 0.0" << endl;
+
+    if (flags == 0)
+        m_exec_conf->msg->warning() << "integrate.npt: No barostat couplings specified."
+                                    << endl;
+
+    std::shared_ptr<Variant> zero_variant(new VariantConst(0.0));
+    m_S.push_back(P);
+    m_S.push_back(P);
+    m_S.push_back(P);
+    m_S.push_back(zero_variant);
+    m_S.push_back(zero_variant);
+    m_S.push_back(zero_variant);
 
     bool twod = m_sysdef->getNDimensions()==2;
     m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
@@ -734,11 +770,14 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     // compute pressure for the next half time step
     PressureTensor P = m_thermo_group_t->getPressureTensor();
 
-    if ( isnan(P.xx) || isnan(P.xy) || isnan(P.xz) || isnan(P.yy) || isnan(P.yz) || isnan(P.zz) )
+    if ( std::isnan(P.xx) || std::isnan(P.xy) || std::isnan(P.xz) || std::isnan(P.yy) || std::isnan(P.yz) || std::isnan(P.zz) )
         {
-        Scalar extP = m_P->getValue(timestep);
-        P.xx = P.yy = P.zz = extP;
-        P.xy = P.xz = P.yz = Scalar(0.0);
+        P.xx = m_S[0]->getValue(timestep);
+        P.yy = m_S[1]->getValue(timestep);
+        P.zz = m_S[2]->getValue(timestep);
+        P.yz = m_S[3]->getValue(timestep);
+        P.xz = m_S[4]->getValue(timestep);
+        P.xy = m_S[5]->getValue(timestep);
         }
 
     // advance barostat (nuxx, nuyy, nuzz) half a time step
@@ -832,35 +871,37 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
+
     if (m_flags & baro_x)
         {
-        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_P->getValue(timestep)) + mtk_term;
+        nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_S[0]->getValue(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_xy)
         {
-        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xy;
+        nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xy - m_S[5]->getValue(timestep));
         }
 
     if (m_flags & baro_xz)
         {
-        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.xz;
+        nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xz- m_S[4]->getValue(timestep));
         }
 
     if (m_flags & baro_y)
         {
-        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_P->getValue(timestep)) + mtk_term;
+        nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_S[1]->getValue(timestep)) + mtk_term;
         }
 
     if (m_flags & baro_yz)
         {
-        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*P.yz;
+        nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yz- m_S[3]->getValue(timestep));
         }
 
     if (m_flags & baro_z)
         {
-        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_P->getValue(timestep)) + mtk_term;
+        nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
         }
+
 
     // store integrator variables
     setIntegratorVariables(v);
@@ -901,41 +942,43 @@ void TwoStepNPTMTK::advanceThermostat(unsigned int timestep)
     setIntegratorVariables(v);
     }
 
-void export_TwoStepNPTMTK()
+void export_TwoStepNPTMTK(py::module& m)
     {
-    scope in_npt_mtk = class_<TwoStepNPTMTK, boost::shared_ptr<TwoStepNPTMTK>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepNPTMTK", init< boost::shared_ptr<SystemDefinition>,
-                       boost::shared_ptr<ParticleGroup>,
-                       boost::shared_ptr<ComputeThermo>,
-                       boost::shared_ptr<ComputeThermo>,
+    py::class_<TwoStepNPTMTK, std::shared_ptr<TwoStepNPTMTK> > twostepnptmtk(m, "TwoStepNPTMTK", py::base<IntegrationMethodTwoStep>());
+        twostepnptmtk.def(py::init< std::shared_ptr<SystemDefinition>,
+                       std::shared_ptr<ParticleGroup>,
+                       std::shared_ptr<ComputeThermo>,
+                       std::shared_ptr<ComputeThermo>,
                        Scalar,
                        Scalar,
-                       boost::shared_ptr<Variant>,
-                       boost::shared_ptr<Variant>,
+                       std::shared_ptr<Variant>,
+                       py::list,
                        TwoStepNPTMTK::couplingMode,
                        unsigned int,
                        const bool>())
         .def("setT", &TwoStepNPTMTK::setT)
-        .def("setP", &TwoStepNPTMTK::setP)
+        .def("setS", &TwoStepNPTMTK::setS)
         .def("setTau", &TwoStepNPTMTK::setTau)
         .def("setTauP", &TwoStepNPTMTK::setTauP)
         .def("setRescaleAll", &TwoStepNPTMTK::setRescaleAll)
         ;
 
-    enum_<TwoStepNPTMTK::couplingMode>("couplingMode")
-    .value("couple_none", TwoStepNPTMTK::couple_none)
-    .value("couple_xy", TwoStepNPTMTK::couple_xy)
-    .value("couple_xz", TwoStepNPTMTK::couple_none)
-    .value("couple_yz", TwoStepNPTMTK::couple_yz)
-    .value("couple_xyz", TwoStepNPTMTK::couple_xyz)
+    py::enum_<TwoStepNPTMTK::couplingMode>(twostepnptmtk,"couplingMode")
+    .value("couple_none", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_xy", TwoStepNPTMTK::couplingMode::couple_xy)
+    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_yz", TwoStepNPTMTK::couplingMode::couple_yz)
+    .value("couple_xyz", TwoStepNPTMTK::couplingMode::couple_xyz)
+    .export_values()
     ;
 
-    enum_<TwoStepNPTMTK::baroFlags>("baroFlags")
-    .value("baro_x", TwoStepNPTMTK::baro_x)
-    .value("baro_y", TwoStepNPTMTK::baro_y)
-    .value("baro_z", TwoStepNPTMTK::baro_z)
-    .value("baro_xy", TwoStepNPTMTK::baro_xy)
-    .value("baro_xz", TwoStepNPTMTK::baro_xz)
-    .value("baro_yz", TwoStepNPTMTK::baro_yz)
+    py::enum_<TwoStepNPTMTK::baroFlags>(twostepnptmtk,"baroFlags")
+    .value("baro_x", TwoStepNPTMTK::baroFlags::baro_x)
+    .value("baro_y", TwoStepNPTMTK::baroFlags::baro_y)
+    .value("baro_z", TwoStepNPTMTK::baroFlags::baro_z)
+    .value("baro_xy", TwoStepNPTMTK::baroFlags::baro_xy)
+    .value("baro_xz", TwoStepNPTMTK::baroFlags::baro_xz)
+    .value("baro_yz", TwoStepNPTMTK::baroFlags::baro_yz)
+    .export_values()
     ;
     }

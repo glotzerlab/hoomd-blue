@@ -1,58 +1,13 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
 
-## \package hoomd.context
-# \brief Gather information about the execution context
-#
-# As much data from the environment is gathered as possible.
+R""" Manage execution contexts.
+
+Every hoomd simulation needs an execution context that describes what hardware it should execute on,
+the MPI configuration for the job, etc...
+"""
 
 import os
 import hoomd
@@ -70,7 +25,13 @@ CLOCK_START = time.clock()
 # \note This is initialized to a default messenger on load so that python code may have a unified path for sending
 # messages
 msg = _hoomd.Messenger();
-msg.openPython();
+
+# only use python stdout/stderr in non-mpi runs
+if not (  'OMPI_COMM_WORLD_RANK' in os.environ
+        or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
+        or 'PMI_RANK' in os.environ
+        or 'ALPS_APP_PE' in os.environ):
+    msg.openPython();
 
 ## Global bibliography
 bib = None;
@@ -86,55 +47,66 @@ current = None;
 
 _prev_args = None;
 
-## Simulation context
-#
-# Store all of the context related to a single simulation, including the system state, forces, updaters, integration
-# methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
-# active simulation context. You swap between simulation contexts by using this class as a context manager:
-#
-# ```
-# sim1 = context.SimulationContext();
-# sim2 = context.SimulationContext();
-# with sim1:
-#   init.read_xml('init1.xml');
-#   lj = pair.lj(...)
-#   ...
-#
-# with sim2:
-#   init.read_xml('init2.xml');
-#   gauss = pair.gauss(...)
-#   ...
-#
-# # run simulation 1 for a bit
-# with sim1:
-#    run(100)
-#
-# # run simulation 2 for a bit
-# with sim2:
-#    run(100)
-#
-# # set_current sets the current context without needing to use with
-# sim1.set_current()
-# run(100)
-# ```
-#
-# If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
-# and erase the existing one.
-#
-# ```
-# context.initialize()
-# init.read_xml('init1.xml');
-# lj = pair.lj(...)
-# ...
-# run(100);
-#
-# context.initialize()
-# init.read_xml('init2.xml');
-# gauss = pair.gauss(...)
-# ...
-# run(100)
-# ```
 class SimulationContext(object):
+    R""" Simulation context
+
+    Store all of the context related to a single simulation, including the system state, forces, updaters, integration
+    methods, and all other commands specified on this simulation. All such commands in hoomd apply to the currently
+    active simulation context. You swap between simulation contexts by using this class as a context manager::
+
+
+        sim1 = context.SimulationContext();
+        sim2 = context.SimulationContext();
+        with sim1:
+          init.read_xml('init1.xml');
+          lj = pair.lj(...)
+          ...
+
+        with sim2:
+          init.read_xml('init2.xml');
+          gauss = pair.gauss(...)
+          ...
+
+        # run simulation 1 for a bit
+        with sim1:
+           run(100)
+
+        # run simulation 2 for a bit
+        with sim2:
+           run(100)
+
+        # set_current sets the current context without needing to use with
+        sim1.set_current()
+        run(100)
+
+
+    If you do not need to maintain multiple contexts, you can call `context.initialize()` to  initialize a new context
+    and erase the existing one::
+
+        context.initialize()
+        init.read_xml('init1.xml');
+        lj = pair.lj(...)
+        ...
+        run(100);
+
+        context.initialize()
+        init.read_xml('init2.xml');
+        gauss = pair.gauss(...)
+        ...
+        run(100)
+
+    Attributes:
+        sorter (:py:class:`hoomd.update.sort`): Global particle sorter.
+        system_definition (:py:class:`hoomd.data.system_data`): System definition.
+
+    The attributes are global to the context. User scripts may access documented attributes to control settings,
+    access particle data, etc... See the linked documentation of each attribute for more details. For example,
+    to disable the global sorter::
+
+        c = context.initialize();
+        c.sorter.disable();
+
+    """
     def __init__(self):
         ## Global variable that holds the SystemDefinition shared by all parts of hoomd_script
         self.system_definition = None;
@@ -160,9 +132,6 @@ class SimulationContext(object):
         ## Global variable tracking the last _integrator set
         self.integrator = None;
 
-        ## Global variable tracking the system's neighborlist
-        self.neighbor_list = None;
-
         ## Global variable tracking all neighbor lists that have been created
         self.neighbor_lists = []
 
@@ -182,9 +151,20 @@ class SimulationContext(object):
         self.group_all = None;
 
     def set_current(self):
+        R""" Force this to be the current context
+        """
         global current
 
         current = self;
+
+    def on_gpu(self):
+        R""" Test whether this job is running on a GPU.
+
+        Returns:
+            True if this invocation of HOOMD-blue is executing on a GPU. False if it is on the CPU.
+        """
+        global exec_conf
+        return exec_conf.isCUDAEnabled()
 
     def __enter__(self):
         global current
@@ -197,26 +177,28 @@ class SimulationContext(object):
 
         current = self.prev;
 
-## Initialize the execution context
-# \param args Arguments to parse. When \a None, parse the arguments passed on the command line.
-#
-# initialize() parses the command line arguments given, sets the options and initializes MPI and GPU execution
-# (if any). By default, initialize() reads arguments given on the command line. Provide a string to initialize()
-# to set the launch configuration within the job script.
-#
-# initialize() can be called more than once in a script. However, the execution parameters are fixed on the first call
-# and args is ignored. Subsequent calls to initialize() create a new SimulationContext and set it current. This
-# behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
-# set when rerunning the notebook within an existing kernel.
-#
-# **Example:**
-# \code
-# from hoomd_script import *
-# context.initialize();
-# context.initialize("--mode=gpu --nrank=64");
-# \endcode
-#
 def initialize(args=None):
+    R""" Initialize the execution context
+
+    Args:
+        args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
+
+    :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
+    (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
+    to set the launch configuration within the job script.
+
+    :py:func:`hoomd.context.initialize()` can be called more than once in a script. However, the execution parameters are fixed on the first call
+    and *args* is ignored. Subsequent calls to :py:func:`hoomd.context.initialize()` create a new :py:class:`SimulationContext` and set it current. This
+    behavior is primarily to support use of hoomd in jupyter notebooks, so that a new clean simulation context is
+    set when rerunning the notebook within an existing kernel.
+
+    Example::
+
+        from hoomd import *
+        context.initialize();
+        context.initialize("--mode=gpu --nrank=64");
+
+    """
     global exec_conf, msg, options, current, _prev_args
     _prev_args = args;
 

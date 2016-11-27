@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -63,6 +18,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
 
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! Implements the Martyna Tobias Klein (MTK) equations for rigorous integration in the NPT ensemble.
@@ -106,33 +64,52 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             };
 
         //! Constructs the integration method and associates it with the system
-        TwoStepNPTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo_group,
-                   boost::shared_ptr<ComputeThermo> thermo_group_t,
+        TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo_group,
+                   std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
-                   boost::shared_ptr<Variant> T,
-                   boost::shared_ptr<Variant> P,
+                   std::shared_ptr<Variant> T,
+                   pybind11::list S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
+
+       TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<ParticleGroup> group,
+                  std::shared_ptr<ComputeThermo> thermo_group,
+                  std::shared_ptr<ComputeThermo> thermo_group_t,
+                  Scalar tau,
+                  Scalar tauP,
+                  std::shared_ptr<Variant> T,
+                  std::shared_ptr<Variant> P,
+                  couplingMode couple,
+                  unsigned int flags,
+                  const bool nph=false);
+
         virtual ~TwoStepNPTMTK();
 
         //! Update the temperature
         /*! \param T New temperature to set
         */
-        virtual void setT(boost::shared_ptr<Variant> T)
+        virtual void setT(std::shared_ptr<Variant> T)
             {
             m_T = T;
             }
 
-        //! Update the pressure
-        /*! \param P New pressure to set
-        */
-        virtual void setP(boost::shared_ptr<Variant> P)
+    //! Update the stress components
+    /*! \param S list of stress components: [xx, yy, zz, yz, xz, xy]
+     */
+    virtual void setS(pybind11::list S)
             {
-            m_P = P;
+            std::vector<std::shared_ptr<Variant> > swapS;
+            swapS.resize(0);
+            for (int i = 0; i< 6; ++i)
+                   {
+                swapS.push_back(pybind11::cast<std::shared_ptr<Variant>>(S[i]));
+                }
+            m_S.swap(swapS);
             }
 
         //! Update the tau value
@@ -189,14 +166,14 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
-        boost::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
+        std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
+        std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
         unsigned int m_ndof;            //!< Number of degrees of freedom from ComputeThermo
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
         Scalar m_tauP;                  //!< tauP value for the barostat
-        boost::shared_ptr<Variant> m_T; //!< Temperature set point
-        boost::shared_ptr<Variant> m_P; //!< Pressure set point
+        std::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::vector<std::shared_ptr<Variant>> m_S;  //!< Stress matrix (upper diagonal, components [xx, yy, zz, yz, xz, xy])
         Scalar m_V;                     //!< Current volume
 
         couplingMode m_couple;          //!< Coupling of diagonal elements
@@ -225,6 +202,6 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         };
 
 //! Exports the TwoStepNPTMTK class to python
-void export_TwoStepNPTMTK();
+void export_TwoStepNPTMTK(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_H__

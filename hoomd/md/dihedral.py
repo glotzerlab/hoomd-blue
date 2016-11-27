@@ -1,53 +1,28 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
+
+R""" Dihedral potentials.
+
+Dihedrals add forces between specified quadruplets of particles and are typically used to
+model rotation about chemical bonds.
+
+By themselves, dihedrals that have been specified in an input file do nothing. Only when you
+specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the
+listed particles.
+
+Important:
+There are multiple conventions pertaining to the dihedral angle (phi) in the literature. HOOMD
+utilizes the convention shown in the following figure, where vectors are defined from the central
+particles to the outer particles. These vectors correspond to a stretched state (phi=180 deg)
+when they are anti-parallel and a compact state (phi=0 deg) when they are parallel.
+
+.. image:: dihedral-angle-definition.png
+    :width: 400 px
+    :align: center
+    :alt: Dihedral angle definition
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md
@@ -57,27 +32,28 @@ import hoomd;
 import math;
 import sys;
 
-## Defines %dihedral coefficients
-# \brief Defines dihedral potential coefficients
-# The coefficients for all %dihedral force are specified using this class. Coefficients are
-# specified per dihedral type.
-#
-# There are two ways to set the coefficients for a particular %dihedral %force.
-# The first way is to save the %dihedral %force in a variable and call set() directly.
-# See below for an example of this.
-#
-# The second method is to build the coeff class first and then assign it to the
-# %dihedral %force. There are some advantages to this method in that you could specify a
-# complicated set of %dihedral %force coefficients in a separate python file and import
-# it into your job script.
-#
-# Example:
-# \code
-# my_coeffs = dihedral.coeff();
-# my_dihedral_force.dihedral_coeff.set('polymer', k=330.0, r=0.84)
-# my_dihedral_force.dihedral_coeff.set('backbone', k=330.0, r=0.84)
-# \endcode
 class coeff:
+    R""" Defines dihedral coefficients.
+
+    The coefficients for all dihedral force are specified using this class. Coefficients are
+    specified per dihedral type.
+
+    There are two ways to set the coefficients for a particular dihedral force.
+    The first way is to save the dihedral force in a variable and call :py:meth:`set()` directly.
+    See below for an example of this.
+
+    The second method is to build the :py:class:`coeff` class first and then assign it to the
+    dihedral force. There are some advantages to this method in that you could specify a
+    complicated set of dihedral force coefficients in a separate python file and import
+    it into your job script.
+
+    Examples::
+
+        my_coeffs = dihedral.coeff();
+        my_dihedral_force.dihedral_coeff.set('polymer', k=330.0, r=0.84)
+        my_dihedral_force.dihedral_coeff.set('backbone', k=330.0, r=0.84)
+    """
+
     ## \internal
     # \brief Initializes the class
     # \details
@@ -106,35 +82,37 @@ class coeff:
     def set_default_coeff(self, name, value):
         self.default_coeff[name] = value;
 
-    ## Sets parameters for one dihedral type
-    # \param type Type of dihedral
-    # \param coeffs Named coefficients (see below for examples)
-    #
-    # Calling set() results in one or more parameters being set for a dihedral type. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the %dihedral
-    # %force you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible dihedral types as defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
-    # dihedral types that do not exist in the simulation. This can be useful in defining a %force field for many
-    # different types of dihedrals even when some simulations only include a subset.
-    #
-    # To set the same coefficients between many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved \c system from the init command.
-    #
-    # \b Examples:
-    # \code
-    # my_dihedral_force.dihedral_coeff.set('polymer', k=330.0, r0=0.84)
-    # my_dihedral_force.dihedral_coeff.set('backbone', k=1000.0, r0=1.0)
-    # my_dihedral_force.dihedral_coeff.set(['dihedralA','dihedralB'], k=100, r0=0.0)
-    # \endcode
-    #
-    # \note Single parameters can be updated. If both k and r0 have already been set for a particle type,
-    # then executing coeff.set('polymer', r0=1.0) will %update the value of polymer dihedrals and leave the other
-    # parameters as they were previously set.
-    #
     def set(self, type, **coeffs):
+        R""" Sets parameters for dihedral types.
+
+        Args:
+            type (str): Type of dihedral, or list of types
+            coeffs: Named coefficients (see below for examples)
+
+        Calling :py:meth:`set()` results in one or more parameters being set for a dihedral type. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the dihedral
+        force you are setting these coefficients for, see the corresponding documentation.
+
+        All possible dihedral types as defined in the simulation box must be specified before executing run().
+        You will receive an error if you fail to do so. It is not an error, however, to specify coefficients for
+        dihedral types that do not exist in the simulation. This can be useful in defining a force field for many
+        different types of dihedrals even when some simulations only include a subset.
+
+        To set the same coefficients between many particle types, provide a list of type names instead of a single
+        one. All types in the list will be set to the same parameters.
+
+        Examples::
+
+            my_dihedral_force.dihedral_coeff.set('polymer', k=330.0, r0=0.84)
+            my_dihedral_force.dihedral_coeff.set('backbone', k=1000.0, r0=1.0)
+            my_dihedral_force.dihedral_coeff.set(['dihedralA','dihedralB'], k=100, r0=0.0)
+
+        Note:
+            Single parameters can be updated. If both ``k`` and ``r0`` have already been set for a particle type,
+            then executing ``coeff.set('polymer', r0=1.0)`` will update the value of ``r0`` and leave the other
+            parameters as they were previously set.
+
+        """
         hoomd.util.print_status_line();
 
         # listify the input
@@ -210,7 +188,7 @@ class coeff:
         return valid;
 
     ## \internal
-    # \brief Gets the value of a single %dihedral %force coefficient
+    # \brief Gets the value of a single dihedral force coefficient
     # \detail
     # \param type Name of dihedral type
     # \param coeff_name Coefficient to get
@@ -226,47 +204,32 @@ class coeff:
     def get_metadata(self):
         return self.values
 
-## \package hoomd.dihedral
-# \brief Commands that specify %dihedral forces
-#
-# Dihedrals add forces between specified quadruplets of particles and are typically used to
-# model rotation about chemical bonds. Dihedrals between particles are set when an input XML file is read
-# (init.read_xml) or when an another initializer creates them (like init.create_random_polymers)
-#
-# By themselves, dihedrals that have been specified in an input file do nothing. Only when you
-# specify an dihedral force (i.e. dihedral.harmonic), are forces actually calculated between the
-# listed particles.
-
-## Harmonic %dihedral force
-#
-# The command dihedral.harmonic specifies a %harmonic dihedral potential energy between every defined
-# quadruplet of particles in the simulation.
-# \f[ V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) \right) \right) \f]
-# where \f$ \phi \f$ is angle between two sides of the dihedral
-#
-# Coefficients:
-# - \f$ k \f$ - strength of %force (in energy units)
-# - \f$ d \f$ - sign factor (unitless)
-# - \f$ n \f$ - angle scaling factor (unitless)
-#
-# Coefficients \f$ k \f$, \f$ d \f$, \f$ n \f$ and  must be set for each type of %dihedral in the simulation using
-# dihedral_coeff.set().
-#
-# \b Examples:
-# \code
-# harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
-# harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4)
-# \endcode
-#
-# \note Specifying the dihedral.harmonic command when no dihedrals are defined in the simulation results in an error.
-# \MPI_SUPPORTED
 class harmonic(force._force):
-    ## Specify the %harmonic %dihedral %force
-    #
-    # \b Example:
-    # \code
-    # harmonic = dihedral.harmonic()
-    # \endcode
+    R""" Harmonic dihedral potential.
+
+    :py:class:`harmonic` specifies a harmonic dihedral potential energy between every defined dihedral
+    quadruplet of particles in the simulation:
+
+    .. math::
+
+        V(r) = \frac{1}{2}k \left( 1 + d \cos\left(n * \phi(r) \right) \right)
+
+    where :math:`\phi` is angle between two sides of the dihedral.
+
+    Coefficients:
+
+    - :math:`k` - strength of force (in energy units)
+    - :math:`d` - sign factor (unitless)
+    - :math:`n` - angle scaling factor (unitless)
+
+    Coefficients :math:`k`, :math:`d`, :math:`n` must be set for each type of dihedral in the simulation using
+    :py:meth:`dihedral_coeff.set() <coeff.set()>`.
+
+    Examples::
+
+        harmonic.dihedral_coeff.set('phi-ang', k=30.0, d=-1, n=3)
+        harmonic.dihedral_coeff.set('psi-ang', k=100.0, d=1, n=4)
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         # check that some dihedrals are defined
@@ -323,75 +286,50 @@ class harmonic(force._force):
         data['dihedral_coeff'] = self.dihedral_coeff
         return data
 
-## Tabulated %dihedral %force
-#
-# The command dihedral.table specifies that a tabulated  %dihedral %force should be added to every bonded triple of particles
-# in the simulation.
-#
-# \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$ are evaluated on *width* grid points between
-# \f$ -\pi \f$ and \f$ \pi \f$. Values are interpolated linearly between grid points.
-# For correctness, you must specify the derivative of the potential with respect to the dihedral angle,
-# defined by: \f$ T = -\frac{\partial V}{\partial \theta} \f$
-#
-# The following coefficients must be set per unique %pair of particle types.
-# - \f$ T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}} (\theta) \f$ - evaluated by `func` (see example)
-# - coefficients passed to `func` - `coeff` (see example)
-#
-# The table *width* is set once when dihedral.table is specified (see table.__init__())
-# There are two ways to specify the other parameters.
-#
-# \par Example: Set table from a given function
-# When you have a functional form for V and T, you can enter that
-# directly into python. dihedral.table will evaluate the given function over \a width points between \f$ -\pi \f$ and \f$ \pi \f$
-# and use the resulting values in the table.
-# ~~~~~~~~~~~~~
-#def harmonic(theta, kappa, theta0):
-#    V = 0.5 * kappa * (theta-theta0)**2;
-#    F = -kappa*(theta-theta0);
-#    return (V, F)
-#
-# dtable = dihedral.table(width=1000)
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta_0=0.0))
-# dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, theta_0=1.0))
-# ~~~~~~~~~~~~~
-#
-# \par Example: Set a table from a file
-# When you have no function for for *V* or *T*, or you otherwise have the data listed in a file, dihedral.table can use the given
-# values direcly. You must first specify the number of rows in your tables when initializing dihedral.table. Then use
-# table.set_from_file() to read the file.
-# ~~~~~~~~~~~~~
-# dtable = dihedral.table(width=1000)
-# dtable.set_from_file('polymer', 'dihedral.dat')
-# ~~~~~~~~~~~~~
-#
-# \par Example: Mix functions and files
-# ~~~~~~~~~~~~~
-# dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta_0=0.0))
-# dtable.set_from_file('dihedral2', 'dihedral.dat')
-# ~~~~~~~~~~~~~
-#
-# \note %Dihedral coefficients for all type dihedrals in the simulation must be
-# set before it can be started with run().
-# \MPI_SUPPORTED
 class table(force._force):
-    ## Specify the Tabulated %dihedral %force
-    #
-    # \param width Number of points to use to interpolate V and T (see documentation above)
-    # \param name Name of the force instance
-    #
-    # \b Example:
-    # \code
-    # def har(theta, kappa, theta_0):
-    #   V = 0.5 * kappa * (theta-theta_0)**2;
-    #   T = -kappa*(theta-theta_0);
-    #   return (V, T)
-    #
-    # dtable = dihedral.table(width=1000)
-    # dtable.dihedral_coeff.set('polymer', func=har, coeff=dict(kappa=330, theta_0=1.0))
-    # \endcode
-    #
-    # \note coefficients for all type dihedrals in the simulation must be
-    # set before it can be started with run()
+    R""" Tabulated dihedral potential.
+
+    Args:
+        width (int): Number of points to use to interpolate V and T (see documentation above)
+        name (str): Name of the force instance
+
+    :py:class:`table` specifies that a tabulated dihedral force should be applied to every define dihedral.
+
+    :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)` are evaluated on *width* grid points between
+    :math:`-\pi` and :math:`\pi`. Values are interpolated linearly between grid points.
+    For correctness, you must specify the derivative of the potential with respect to the dihedral angle,
+    defined by: :math:`T = -\frac{\partial V}{\partial \theta}`.
+
+    Parameters:
+
+    - :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}} (\theta)` - evaluated by ``func`` (see example)
+    - coefficients passed to `func` - `coeff` (see example)
+
+    .. rubric:: Set table from a given function
+
+    When you have a functional form for V and T, you can enter that
+    directly into python. :py:class:`table` will evaluate the given function over *width* points between :math:`-\pi` and :math:`\pi`
+    and use the resulting values in the table::
+
+        def harmonic(theta, kappa, theta0):
+           V = 0.5 * kappa * (theta-theta0)**2;
+           F = -kappa*(theta-theta0);
+           return (V, F)
+
+        dtable = dihedral.table(width=1000)
+        dtable.dihedral_coeff.set('dihedral1', func=harmonic, coeff=dict(kappa=330, theta_0=0.0))
+        dtable.dihedral_coeff.set('dihedral2', func=harmonic,coeff=dict(kappa=30, theta_0=1.0))
+
+    .. rubric:: Set a table from a file
+
+    When you have no function for for *V* or *T*, or you otherwise have the data listed in a file, dihedral.table can use the given
+    values direcly. You must first specify the number of rows in your tables when initializing :py:class:`table`. Then use
+    :py:meth:`set_from_file()` to read the file.
+
+        dtable = dihedral.table(width=1000)
+        dtable.set_from_file('polymer', 'dihedral.dat')
+
+    """
     def __init__(self, width, name=None):
         hoomd.util.print_status_line();
 
@@ -454,74 +392,78 @@ class table(force._force):
 
             self.update_dihedral_table(i, func, coeff);
 
-    ## Set a dihedral pair interaction from a file
-    # \param dihedralname Name of dihedral
-    # \param filename Name of the file to read
-    #
-    # The provided file specifies V and F at equally spaced theta values.
-    # Example:
-    # \code
-    # #t  V    T
-    # -3.1414 2.0 -3.0
-    # 1.5707 3.0 - 4.0
-    # 0.0 2.0 -3.0
-    # 1.5707 3.0 -4.0
-    # 3.1414 2.0 -3.0
-    #\endcode
-    #
-    # Note: The theta values are not used by the code.  It is assumed that a table that has N rows will start at \f$ -\pi \f$, end at \f$ \pi \f$
-    # and that \f$ \delta \theta = 2\pi/(N-1) \f$. The table is read
-    # directly into the grid points used to evaluate \f$  T_{\mathrm{user}}(\theta) \f$ and \f$ V_{\mathrm{user}}(\theta) \f$.
-    #
     def set_from_file(self, dihedralname, filename):
-          hoomd.util.print_status_line();
+        R"""  Set a dihedral pair interaction from a file.
 
-          # open the file
-          f = open(filename);
+        Args:
+            dihedralname (str): Name of dihedral
+            filename (str): Name of the file to read
 
-          theta_table = [];
-          V_table = [];
-          T_table = [];
+        The provided file specifies V and F at equally spaced theta values.
 
-          # read in lines from the file
-          for line in f.readlines():
-              line = line.strip();
+        Example::
 
-              # skip comment lines
-              if line[0] == '#':
-                  continue;
+            #t  V    T
+            -3.1414 2.0 -3.0
+            1.5707 3.0 - 4.0
+            0.0 2.0 -3.0
+            1.5707 3.0 -4.0
+            3.1414 2.0 -3.0
 
-              # split out the columns
-              cols = line.split();
-              values = [float(f) for f in cols];
+        Note:
+            The theta values are not used by the code.  It is assumed that a table that has N rows will start at :math:`-\pi`, end at :math:`\pi`
+            and that :math:`\delta \theta = 2\pi/(N-1)`. The table is read
+            directly into the grid points used to evaluate :math:`T_{\mathrm{user}}(\theta)` and :math:`V_{\mathrm{user}}(\theta)`.
 
-              # validate the input
-              if len(values) != 3:
-                  hoomd.context.msg.error("dihedral.table: file must have exactly 3 columns\n");
-                  raise RuntimeError("Error reading table file");
+        """
+        hoomd.util.print_status_line();
 
-              # append to the tables
-              theta_table.append(values[0]);
-              V_table.append(values[1]);
-              T_table.append(values[2]);
+        # open the file
+        f = open(filename);
 
-          # validate input
-          if self.width != len(r_table):
-              hoomd.context.msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
-              raise RuntimeError("Error reading table file");
+        theta_table = [];
+        V_table = [];
+        T_table = [];
+
+        # read in lines from the file
+        for line in f.readlines():
+            line = line.strip();
+
+            # skip comment lines
+            if line[0] == '#':
+                continue;
+
+            # split out the columns
+            cols = line.split();
+            values = [float(f) for f in cols];
+
+            # validate the input
+            if len(values) != 3:
+                hoomd.context.msg.error("dihedral.table: file must have exactly 3 columns\n");
+                raise RuntimeError("Error reading table file");
+
+            # append to the tables
+            theta_table.append(values[0]);
+            V_table.append(values[1]);
+            T_table.append(values[2]);
+
+        # validate input
+        if self.width != len(r_table):
+            hoomd.context.msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
+            raise RuntimeError("Error reading table file");
 
 
-          # check for even spacing
-          dth = 2.0*math.pi / float(self.width-1);
-          for i in range(0,self.width):
-              theta =  -math.pi+dnth * i;
-              if math.fabs(theta - theta_table[i]) > 1e-3:
-                  hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
-                  raise RuntimeError("Error reading table file");
+        # check for even spacing
+        dth = 2.0*math.pi / float(self.width-1);
+        for i in range(0,self.width):
+            theta =  -math.pi+dnth * i;
+            if math.fabs(theta - theta_table[i]) > 1e-3:
+                hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
+                raise RuntimeError("Error reading table file");
 
-          hoomd.util.quiet_status();
-          self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
-          hoomd.util.unquiet_status();
+        hoomd.util.quiet_status();
+        self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
+        hoomd.util.unquiet_status();
 
     ## \internal
     # \brief Get metadata
@@ -534,32 +476,27 @@ class table(force._force):
         data['dihedral_coeff'] = self.dihedral_coeff
         return data
 
-## OPLS %dihedral force
-#
-# The command dihedral.opls specifies an OPLS-style %dihedral potential energy between every defined
-# quadruplet of particles in the simulation.
-# \f[ V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) + \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
-# + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) + \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right) \f]
-# where \f$ \phi \f$ is the angle between two sides of the dihedral and \f$ k_n \f$ are the %force coefficients
-# in the Fourier series (in energy units).
-#
-# \f$ k_1 \f$, \f$ k_2 \f$, \f$ k_3 \f$, and \f$ k_4 \f$ must be set for each type of %dihedral in the simulation using
-# dihedral_coeff.set().
-#
-# \b Example:
-# \code
-# opls_di.dihedral_coeff.set('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
-# \endcode
-#
-# \note Specifying the dihedral.opls command when no dihedrals are defined in the simulation results in an error.
-# \MPI_SUPPORTED
 class opls(force._force):
-    ## Specify the OPLS %dihedral %force
-    #
-    # \b Example:
-    # \code
-    # opls_di = dihedral.opls()
-    # \endcode
+    R""" OPLS dihedral force
+
+    :py:class:`opls` specifies an OPLS-style dihedral potential energy between every defined dihedral.
+
+    .. math::
+
+        V(r) = \frac{1}{2}k_1 \left( 1 + \cos\left(\phi \right) \right) + \frac{1}{2}k_2 \left( 1 - \cos\left(2 \phi \right) \right)
+               + \frac{1}{2}k_3 \left( 1 + \cos\left(3 \phi \right) \right) + \frac{1}{2}k_4 \left( 1 - \cos\left(4 \phi \right) \right)
+
+    where :math:`\phi` is the angle between two sides of the dihedral and :math:`k_n` are the force coefficients
+    in the Fourier series (in energy units).
+
+    :math:`k_1`, :math:`k_2`, :math:`k_3`, and :math:`k_4` must be set for each type of dihedral in the simulation using
+    :py:meth:`dihedral_coeff.set() <coeff.set()>`.
+
+    Example::
+
+        opls_di.dihedral_coeff.set('dihedral1', k1=30.0, k2=15.5, k3=2.2, k4=23.8)
+
+    """
     def __init__(self):
         hoomd.util.print_status_line();
         # check that some dihedrals are defined

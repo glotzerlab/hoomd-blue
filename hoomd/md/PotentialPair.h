@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -54,11 +9,9 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "hoomd/extern/num_util.h"
-#include <boost/python/stl_iterator.hpp>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -134,8 +87,8 @@ class PotentialPair : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Construct the pair potential
-        PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPair();
@@ -177,11 +130,11 @@ class PotentialPair : public ForceCompute
                                             InputIterator first2, InputIterator last2,
                                             Scalar& energy );
         //! Calculates the energy between two lists of particles.
-        Scalar computeEnergyBetweenSetsPythonList(  PyObject* tags1,
-                                                    PyObject* tags2);
+        Scalar computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
+                                                    pybind11::object tags2);
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
@@ -213,11 +166,6 @@ class PotentialPair : public ForceCompute
             GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 /*! \param sysdef System to compute forces on
@@ -225,8 +173,8 @@ class PotentialPair : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
@@ -247,7 +195,7 @@ PotentialPair< evaluator >::PotentialPair(boost::shared_ptr<SystemDefinition> sy
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialPair<evaluator>::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().template connect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
 template< class evaluator >
@@ -255,7 +203,7 @@ PotentialPair< evaluator >::~PotentialPair()
     {
     m_exec_conf->msg->notice(5) << "Destroying PotentialPair<" << evaluator::getName() << ">" << std::endl;
 
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialPair<evaluator>, &PotentialPair<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair
@@ -745,21 +693,21 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
 
 //! Calculates the energy between two lists of particles.
 template < class evaluator >
-Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject* tags1,
-                                                                        PyObject* tags2 )
+Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  pybind11::object tags1,
+                                                                        pybind11::object tags2 )
     {
     Scalar eng = 0.0;
-    num_util::check_contiguous(tags1);
-    num_util::check_rank(tags1, 1);
-    num_util::check_type(tags1, NPY_INT);
-    unsigned int* itags1 = (unsigned int*)num_util::data(tags1);
+    num_util::check_contiguous(tags1.ptr());
+    num_util::check_rank(tags1.ptr(), 1);
+    num_util::check_type(tags1.ptr(), NPY_INT);
+    unsigned int* itags1 = (unsigned int*)num_util::data(tags1.ptr());
 
-    num_util::check_contiguous(tags2);
-    num_util::check_rank(tags2, 1);
-    num_util::check_type(tags2, NPY_INT);
-    unsigned int* itags2 = (unsigned int*)num_util::data(tags2);
-    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1),
-                                itags2, itags2+num_util::size(tags2),
+    num_util::check_contiguous(tags2.ptr());
+    num_util::check_rank(tags2.ptr(), 1);
+    num_util::check_type(tags2.ptr(), NPY_INT);
+    unsigned int* itags2 = (unsigned int*)num_util::data(tags2.ptr());
+    computeEnergyBetweenSets(   itags1, itags1+num_util::size(tags1.ptr()),
+                                itags2, itags2+num_util::size(tags2.ptr()),
                                 eng);
     return eng;
     }
@@ -768,22 +716,22 @@ Scalar PotentialPair< evaluator >::computeEnergyBetweenSetsPythonList(  PyObject
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialPair class template.
 */
-template < class T > void export_PotentialPair(const std::string& name)
+template < class T > void export_PotentialPair(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setRon", &T::setRon)
-                  .def("setShiftMode", &T::setShiftMode)
-                  .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
-                  ;
+    pybind11::class_<T, std::shared_ptr<T> > potentialpair(m, name.c_str(), pybind11::base<ForceCompute>());
+    potentialpair.def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setParams", &T::setParams)
+        .def("setRcut", &T::setRcut)
+        .def("setRon", &T::setRon)
+        .def("setShiftMode", &T::setShiftMode)
+        .def("computeEnergyBetweenSets", &T::computeEnergyBetweenSetsPythonList)
+    ;
 
-    boost::python::enum_<typename T::energyShiftMode>("energyShiftMode")
-        .value("no_shift", T::no_shift)
-        .value("shift", T::shift)
-        .value("xplor", T::xplor)
+    pybind11::enum_<typename T::energyShiftMode>(potentialpair,"energyShiftMode")
+        .value("no_shift", T::energyShiftMode::no_shift)
+        .value("shift", T::energyShiftMode::shift)
+        .value("xplor", T::energyShiftMode::xplor)
+        .export_values()
     ;
     }
 

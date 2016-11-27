@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -68,6 +23,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
@@ -75,7 +32,7 @@ class ForceComposite : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceComposite(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceComposite(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceComposite();
@@ -89,7 +46,9 @@ class ForceComposite : public MolecularForceCompute
         virtual void setParam(unsigned int body_typeid,
             std::vector<unsigned int>& type,
             std::vector<Scalar3>& pos,
-            std::vector<Scalar4>& orientation);
+            std::vector<Scalar4>& orientation,
+            std::vector<Scalar>& charge,
+            std::vector<Scalar>& diameter);
 
         //! Returns true because we compute the torque on the central particle
         virtual bool isAnisotropic()
@@ -104,13 +63,13 @@ class ForceComposite : public MolecularForceCompute
 
         //! Update the constituent particles of a composite particle
         /*  Using the position, velocity and orientation of the central particle
-         * \param remote If true, consider remote bodies, otherwise bodies
-         *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
-        //! Create copies of rigid body constituent particles
-        virtual void createRigidBodies();
+        //! Validate or create copies of rigid body constituent particles
+        /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
+         */
+        virtual void validateRigidBodies(bool create=false);
 
     protected:
         bool m_bodies_changed;          //!< True if constituent particles have changed
@@ -121,6 +80,8 @@ class ForceComposite : public MolecularForceCompute
         GPUArray<Scalar4> m_body_orientation;   //!< Constituent ptl orientations per type id (2D)
         GPUArray<unsigned int> m_body_len;      //!< Length of body per type id
 
+        std::vector<std::vector<Scalar> > m_body_charge;      //!< Constituent ptl charges
+        std::vector<std::vector<Scalar> > m_body_diameter;    //!< Constituent ptl diameters0
         Index2D m_body_idx;                     //!< Indexer for body parameters
 
         std::vector<Scalar> m_d_max;                              //!< Maximum body diameter per type
@@ -136,20 +97,20 @@ class ForceComposite : public MolecularForceCompute
             }
 
         //! Return the requested minimum ghost layer width
-        virtual Scalar requestGhostLayerWidth(unsigned int type);
+        virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceComposite::requestGhostLayerWidth, this, _1));
+                m_comm->getExtraGhostLayerWidthRequestSignal().connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -158,16 +119,10 @@ class ForceComposite : public MolecularForceCompute
         virtual void computeForces(unsigned int timestep);
 
     private:
-        //! Connection o the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
-        //! Connection to particle data signal when particle number changes
-        boost::signals2::connection m_global_ptl_num_change_connection;
-
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected ghost layer width requests
     };
 
 //! Exports the ForceComposite to python
-void export_ForceComposite();
+void export_ForceComposite(pybind11::module& m);
 
 #endif

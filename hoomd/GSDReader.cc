@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -62,10 +17,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdexcept>
 using namespace std;
 
-#include <boost/python.hpp>
-
-using namespace boost::python;
-using namespace boost;
+namespace py = pybind11;
 
 /*! \param exec_conf The execution configuration
     \param name File name to read
@@ -74,12 +26,12 @@ using namespace boost;
     The GSDReader constructor opens the GSD file, initializes an empty snapshot, and reads the file into
     memory (on the root rank).
 */
-GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+GSDReader::GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                      const std::string &name,
                      const uint64_t frame)
     : m_exec_conf(exec_conf), m_timestep(0), m_name(name), m_frame(frame)
     {
-    m_snapshot = boost::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
+    m_snapshot = std::shared_ptr< SnapshotSystemData<float> >(new SnapshotSystemData<float>);
 
     #ifdef ENABLE_MPI
     // if we are not the root processor, do not perform file I/O
@@ -129,7 +81,7 @@ GSDReader::GSDReader(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema in " << name << endl;
         throw runtime_error("Error opening GSD file");
         }
-    if (m_handle.header.schema_version != gsd_make_version(0,1))
+    if (m_handle.header.schema_version >= gsd_make_version(2,0))
         {
         m_exec_conf->msg->error() << "data.gsd_snapshot: " << "Invalid schema version in " << name << endl;
         throw runtime_error("Error opening GSD file");
@@ -234,6 +186,11 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
     m_exec_conf->msg->notice(7) << "data.gsd_snapshot: reading chunk " << name << endl;
 
     std::vector<std::string> type_mapping;
+
+    // set the default particle type mapping per the GSD HOOMD Schema
+    if (std::string(name) == "particles/types")
+        type_mapping.push_back("A");
+
     const struct gsd_index_entry* entry = gsd_find_chunk(&m_handle, frame, name);
     if (entry == NULL && frame != 0)
         entry = gsd_find_chunk(&m_handle, 0, name);
@@ -267,6 +224,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char *name)
             throw runtime_error("Error reading GSD file");
             }
 
+        type_mapping.clear();
         for (unsigned int i = 0; i < entry->N; i++)
             {
             size_t l = strnlen(&data[i*entry->M], entry->M);
@@ -380,11 +338,25 @@ void GSDReader::readTopology()
 
         readChunk(&m_snapshot->constraint_data.groups[0], m_frame, "constraints/group", N*8, N);
         }
+
+    if (m_handle.header.schema_version >= gsd_make_version(1,1))
+        {
+        N = 0;
+        readChunk(&N, m_frame, "pairs/N", 4);
+        if (N > 0)
+            {
+            m_snapshot->pair_data.resize(N);
+            m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
+            readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N*4, N);
+            readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N*8, N);
+            }
+        }
     }
 
-void export_GSDReader()
+void export_GSDReader(py::module& m)
     {
-    class_< GSDReader >("GSDReader", init<boost::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
+    py::class_< GSDReader >(m,"GSDReader")
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
     ;

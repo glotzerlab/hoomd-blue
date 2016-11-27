@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "HPMCPrecisionSetup.h"
@@ -25,6 +27,8 @@ namespace hpmc
 
 namespace detail
 {
+
+const unsigned int XENOCOLLIDE_3D_MAX_ITERATIONS = 1024;
 
 //! XenoCollide overlap check in 3D
 /*! \tparam SupportFuncA Support function class type for shape A
@@ -127,8 +131,17 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
     // ------
     // while (origin ray does not intersect candidate) choose new candidate
     bool intersects = false;
+    unsigned int count = 0;
     while (!intersects)
         {
+        count++;
+
+        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
+            {
+            err_count++;
+            return true;
+            }
+
         // Get the next support point
         v3 = S(n);
         if (dot(v3, n) <= 0)
@@ -161,7 +174,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         }
 
     // Phase 2: Portal Refinement
-    int count = 0;
+    count = 0;
     while (true)
         {
         count++;
@@ -205,7 +218,7 @@ DEVICE inline bool xenocollide_3d(const SupportFuncA& sa,
         if (fabs(d) < tol)
             return true;
 
-        if (count >= 1024)
+        if (count >= XENOCOLLIDE_3D_MAX_ITERATIONS)
             {
             err_count++;
             /*

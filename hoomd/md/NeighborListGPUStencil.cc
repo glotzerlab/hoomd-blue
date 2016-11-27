@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: mphoward
 
@@ -56,8 +11,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "NeighborListGPUStencil.h"
 #include "NeighborListGPUStencil.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -72,11 +26,11 @@ using namespace boost::python;
  *
  * A default cell list and stencil will be constructed if \a cl or \a cls are not instantiated.
  */
-NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListGPUStencil::NeighborListGPUStencil(std::shared_ptr<SystemDefinition> sysdef,
                                                Scalar r_cut,
                                                Scalar r_buff,
-                                               boost::shared_ptr<CellList> cl,
-                                               boost::shared_ptr<CellListStencil> cls)
+                                               std::shared_ptr<CellList> cl,
+                                               std::shared_ptr<CellListStencil> cls)
     : NeighborListGPU(sysdef, r_cut, r_buff), m_cl(cl), m_cls(cls), m_override_cell_width(false),
       m_needs_restencil(true), m_needs_resort(true)
     {
@@ -84,16 +38,17 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
 
     // create a default cell list if one was not specified
     if (!m_cl)
-        m_cl = boost::shared_ptr<CellList>(new CellList(sysdef));
+        m_cl = std::shared_ptr<CellList>(new CellList(sysdef));
 
     // construct the default cell list stencil generator for the current cell list if one was not specified already
     if (!m_cls)
-        m_cls = boost::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
+        m_cls = std::shared_ptr<CellListStencil>(new CellListStencil(m_sysdef, m_cl));
 
     m_cl->setRadius(1);
     // types are always required now
     m_cl->setComputeTDB(true);
     m_cl->setFlagIndex();
+    m_cl->setComputeAdjList(false);
 
     CHECK_CUDA_ERROR();
 
@@ -131,9 +86,9 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
     // call this class's special setRCut
     setRCut(r_cut, r_buff);
 
-    m_rcut_change_conn = connectRCutChange(boost::bind(&NeighborListGPUStencil::slotRCutChange, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(boost::bind(&NeighborListGPUStencil::slotMaxNumChanged, this));
-    m_sort_conn = m_pdata->connectParticleSort(boost::bind(&NeighborListGPUStencil::slotParticleSort, this));
+    getRCutChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().connect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
 
     // needs realloc on size change...
     GPUArray<unsigned int> pid_map(m_pdata->getMaxN(), m_exec_conf);
@@ -143,9 +98,9 @@ NeighborListGPUStencil::NeighborListGPUStencil(boost::shared_ptr<SystemDefinitio
 NeighborListGPUStencil::~NeighborListGPUStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListGPUStencil" << std::endl;
-    m_rcut_change_conn.disconnect();
-    m_max_numchange_conn.disconnect();
-    m_sort_conn.disconnect();
+    getRCutChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotRCutChange>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().disconnect<NeighborListGPUStencil, &NeighborListGPUStencil::slotParticleSort>(this);
     }
 
 void NeighborListGPUStencil::setRCut(Scalar r_cut, Scalar r_buff)
@@ -368,9 +323,9 @@ void NeighborListGPUStencil::buildNlist(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_NeighborListGPUStencil()
+void export_NeighborListGPUStencil(py::module& m)
     {
-    class_<NeighborListGPUStencil, boost::shared_ptr<NeighborListGPUStencil>, bases<NeighborListGPU>, boost::noncopyable >
-        ("NeighborListGPUStencil", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar, boost::shared_ptr<CellList>, boost::shared_ptr<CellListStencil> >())
+    py::class_<NeighborListGPUStencil, std::shared_ptr<NeighborListGPUStencil> >(m, "NeighborListGPUStencil", py::base<NeighborListGPU>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, std::shared_ptr<CellList>, std::shared_ptr<CellListStencil> >())
         .def("setCellWidth", &NeighborListGPUStencil::setCellWidth);
     }

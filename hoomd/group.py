@@ -1,127 +1,82 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
+
+R""" Commands for grouping particles
+
+This package contains various commands for making groups of particles
+"""
 
 from hoomd import _hoomd;
 import hoomd;
 import sys;
 
-## \package hoomd.group
-# \brief Commands for grouping particles
-#
-# This package contains various commands for making groups of particles
-
-## Defines a group of particles
-#
-# group should not be created directly in hoomd_script code. The following methods can be used to create particle
-# groups.
-# - group.all()
-# - group.cuboid()
-# - group.nonrigid()
-# - group.rigid()
-# - group.tags()
-# - group.tag_list()
-# - group.type()
-# - group.charged()
-#
-# The above methods assign a descriptive name based on the criteria chosen. That name can be easily changed if desired:
-# \code
-# groupA = group.type('A')
-# groupA.name = "my new group name"
-# \endcode
-#
-# Once a group has been created, it can be combined with others via set operations to form more complicated groups.
-# Available operations are:
-# - group.difference()
-# - group.intersection()
-# - group.union()
-#
-# \note Groups need to be consistent with the particle data. If a particle member is removed from the simulation,
-# it will be temporarily removed from the group as well, that is, even though the group reports that tag as a member,
-# it will act as if the particle was not existent. If a particle with the same tag is later added to the simulation,
-# it will become member of the group again.
-#
-# \b Examples:
-# \code
-# # create a group containing all particles in group A and those with
-# # tags 100-199
-# groupA = group.type('A')
-# group100_199 = group.tags(100, 199);
-# group_combined = group.union(name="combined", a=groupA, b=group100_199);
-#
-# # create a group containing all particles in group A that also have
-# # tags 100-199
-# group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199);
-#
-# # create a group containing all particles that are not in group A
-# all = group.all()
-# group_notA = group.difference(name="notA", a=all, b=groupA)
-# \endcode
-#
-# A group can also be queried with python sequence semantics.
-#
-# \b Examples:
-# \code
-# groupA = group.type('A')
-# # print the number of particles in group A
-# print len(groupA)
-# # print the position of the first particle in the group
-# print groupA[0].position
-# # set the velocity of all particles in groupA to 0
-# for p in groupA:
-#     p.velocity = (0,0,0)
-# \endcode
-#
-# For more information and examples on accessing the %data in this way, see hoomd.data.
-#
 class group(hoomd.meta._metadata):
+    R""" Defines a group of particles
+
+    group should not be created directly in user code. The following methods can be used to create particle
+    groups.
+
+    * :py:func:`hoomd.group.all()`
+    * :py:func:`hoomd.group.cuboid()`
+    * :py:func:`hoomd.group.nonrigid()`
+    * :py:func:`hoomd.group.rigid()`
+    * :py:func:`hoomd.group.tags()`
+    * :py:func:`hoomd.group.tag_list()`
+    * :py:func:`hoomd.group.type()`
+    * :py:func:`hoomd.group.charged()`
+
+    The above functions assign a descriptive name based on the criteria chosen. That name can be easily changed if desired::
+
+        groupA = group.type('A')
+        groupA.name = "my new group name"
+
+    Once a group has been created, it can be combined with others via set operations to form more complicated groups.
+    Available operations are:
+
+    * :py:func:`hoomd.group.difference()`
+    * :py:func:`hoomd.group.intersection()`
+    * :py:func:`hoomd.group.union()`
+
+    Note:
+        Groups need to be consistent with the particle data. If a particle member is removed from the simulation,
+        it will be temporarily removed from the group as well, that is, even though the group reports that tag as a member,
+        it will act as if the particle was not existent. If a particle with the same tag is later added to the simulation,
+        it will become member of the group again.
+
+    Examples::
+
+        # create a group containing all particles in group A and those with
+        # tags 100-199
+        groupA = group.type('A')
+        group100_199 = group.tags(100, 199);
+        group_combined = group.union(name="combined", a=groupA, b=group100_199);
+
+        # create a group containing all particles in group A that also have
+        # tags 100-199
+        group_combined2 = group.intersection(name="combined2", a=groupA, b=group100_199);
+
+        # create a group containing all particles that are not in group A
+        all = group.all()
+        group_notA = group.difference(name="notA", a=all, b=groupA)
+
+    A group can also be queried with python sequence semantics.
+
+    Examples::
+
+        groupA = group.type('A')
+        # print the number of particles in group A
+        print len(groupA)
+        # print the position of the first particle in the group
+        print groupA[0].position
+        # set the velocity of all particles in groupA to 0
+        for p in groupA:
+            p.velocity = (0,0,0)
+
+    For more information and examples on accessing the data in this way, see :py:mod:`hoomd.data`.
+    """
+
     ## \internal
     # \brief group iterator
     class group_iterator:
@@ -155,15 +110,16 @@ class group(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
         self.metadata_fields = ['name']
 
-    ## Force an update of the group
-    #
-    # Re-evaluate all particles against the original group selection criterion and build a new
-    # member list based on the current state of the system. For example, call force_update()
-    # set set a cuboid group's membership to particles that are currently in the defined region.
-    #
-    # Groups made by a combination (union, intersection, difference) of other groups will not
-    # update their membership, they are static.
     def force_update(self):
+        R""" Force an update of the group.
+
+        Re-evaluate all particles against the original group selection criterion and build a new
+        member list based on the current state of the system. For example, call :py:meth:`hoomd.group.group.force_update()`
+        set set a cuboid group's membership to particles that are currently in the defined region.
+
+        Groups made by a combination (union, intersection, difference) of other groups will not
+        update their membership, they are always static.
+        """
         self.cpp_group.updateMemberTags(True);
 
     ## \internal
@@ -194,23 +150,16 @@ class group(hoomd.meta._metadata):
     def __iter__(self):
         return group.group_iterator(self);
 
-## \name Group specifications
-
-# {@
-
-## Groups all particles
-#
-# Creates a particle group from all particles in the simulation. The group can then be used by other hoomd_script
-# commands (such as analyze.msd) to specify which particles should be operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# all = group.all()
-# \endcode
 def all():
+    R""" Groups all particles.
+
+    Creates a particle group from all particles in the simulation.
+
+    Examples::
+
+        all = group.all()
+    """
+
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -241,47 +190,42 @@ def all():
     hoomd.context.current.group_all = group(name, cpp_group);
     return hoomd.context.current.group_all;
 
-## Groups particles in a cuboid
-#
-# \param name User-assigned name for this group
-# \param xmin (if set) Lower left x-coordinate of the cuboid (in distance units)
-# \param xmax (if set) Upper right x-coordinate of the cuboid (in distance units)
-# \param ymin (if set) Lower left y-coordinate of the cuboid (in distance units)
-# \param ymax (if set) Upper right y-coordinate of the cuboid (in distance units)
-# \param zmin (if set) Lower left z-coordinate of the cuboid (in distance units)
-# \param zmax (if set) Upper right z-coordinate of the cuboid (in distance units)
-#
-# If any of the above parameters is not set, it will automatically be placed slightly outside of the simulation box
-# dimension, allowing easy specification of slabs.
-#
-# Creates a particle group from particles that fall in the defined cuboid. Membership tests are performed via
-# xmin <= x < xmax (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
-#
-# Group membership is \b static and determined at the time the group is created. As the simulation runs, particles
-# may move outside of the defined cuboid.
-#
-# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should be
-# operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \note Membership in group.cuboid() is defined at time of group creation. Once created,
-# any particles added to the system will not be added to the group. Any particles that move
-# into the cuboid region will not be added, and any that move out will not be removed.
-#
-# Between runs, you can force a group to update its membership with the particles currently
-# in the orignally defined region using group.force_update().
-#
-# \b Examples:
-# \code
-# slab = group.cuboid(name="slab", ymin=-3, ymax=3)
-# cube = group.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
-# run(100)
-# # Remove particles that left the region and add particles that entered the region.
-# cube.force_update()
-# \endcode
 def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None):
+    R""" Groups particles in a cuboid.
+
+    Args:
+        name (str): User-assigned name for this group
+        xmin (float): (if set) Lower left x-coordinate of the cuboid (in distance units)
+        xmax (float): (if set) Upper right x-coordinate of the cuboid (in distance units)
+        ymin (float): (if set) Lower left y-coordinate of the cuboid (in distance units)
+        ymax (float): (if set) Upper right y-coordinate of the cuboid (in distance units)
+        zmin (float): (if set) Lower left z-coordinate of the cuboid (in distance units)
+        zmax (float): (if set) Upper right z-coordinate of the cuboid (in distance units)
+
+    If any of the above parameters is not set, it will automatically be placed slightly outside of the simulation box
+    dimension, allowing easy specification of slabs.
+
+    Creates a particle group from particles that fall in the defined cuboid. Membership tests are performed via
+    ``xmin <= x < xmax`` (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
+
+    Note:
+        Membership in :py:class:`cuboid` is defined at time of group creation. Once created,
+        any particles added to the system will not be added to the group. Any particles that move
+        into the cuboid region will not be added automatically, and any that move out will not be
+        removed automatically.
+
+    Between runs, you can force a group to update its membership with the particles currently
+    in the originally defined region using :py:meth:`hoomd.group.group.force_update()`.
+
+    Examples::
+
+        slab = group.cuboid(name="slab", ymin=-3, ymax=3)
+        cube = group.cuboid(name="cube", xmin=0, xmax=5, ymin=0, ymax=5, zmin=0, zmax=5)
+        run(100)
+        # Remove particles that left the region and add particles that entered the region.
+        cube.force_update()
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -323,22 +267,17 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles that are center particles of rigid bodies
-#
-# Creates a particle group from particles. \b All particles that are central particles of rigid bodies be added to the group.
-# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should
-# be operated on.
-#
-# The group is always named 'rigid_center'.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# rigid = group.rigid_center()
-# \endcode
 def rigid_center():
+    R""" Groups particles that are center particles of rigid bodies.
+
+    Creates a particle group from particles. All particles that are central particles of rigid bodies be added to the group.
+    The group is always named 'rigid_center'.
+
+    Examples::
+
+        rigid = group.rigid_center()
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -359,23 +298,17 @@ def rigid_center():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-
-## Groups particles that do not belong to rigid bodies
-#
-# Creates a particle group from particles. \b All particles that <b>do not</b> belong to a rigid body will be added to
-# the group. The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles
-# should be operated on.
-#
-# The group is always named 'nonrigid'.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# nonrigid = group.nonrigid()
-# \endcode
 def nonrigid():
+    R""" Groups particles that do not belong to rigid bodies.
+
+    Creates a particle group from particles. All particles that **do not** belong to a rigid body will be added to
+    the group. The group is always named 'nonrigid'.
+
+    Examples::
+
+        nonrigid = group.nonrigid()
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -394,22 +327,17 @@ def nonrigid():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles that belong to rigid bodies
-#
-# Creates a particle group from particles. \b All particles that belong to a rigid body will be added to the group.
-# The group can then be used by other hoomd_script commands (such as analyze.msd) to specify which particles should
-# be operated on.
-#
-# The group is always named 'rigid'.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# rigid = group.rigid()
-# \endcode
 def rigid():
+    R""" Groups particles that belong to rigid bodies.
+
+    Creates a particle group from particles. All particles that belong to a rigid body will be added to the group.
+    The group is always named 'rigid'.
+
+    Examples::
+
+        rigid = group.rigid()
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -428,29 +356,26 @@ def rigid():
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles by tag
-#
-# \param tag_min First tag in the range to include (inclusive)
-# \param tag_max Last tag in the range to include (inclusive)
-# \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
-# \param update If true, update list of group members when particles are added to or removed from the simulation
-#
-# The second argument (tag_max) is optional. If it is not specified, then a single particle with tag=tag_min will be
-# added to the group.
-#
-# Creates a particle group from particles that match the given tag range. The group can then be used by other
-# hoomd_script commands
-# (such as analyze.msd) to specify which particles should be operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# half1 = group.tags(name="first-half", tag_min=0, tag_max=999)
-# half2 = group.tags(name="second-half", tag_min=1000, tag_max=1999)
-# \endcode
 def tags(tag_min, tag_max=None, name=None, update=False):
+    R""" Groups particles by tag.
+
+    Args:
+        tag_min (int): First tag in the range to include (inclusive)
+        tag_max (int): Last tag in the range to include (inclusive)
+        name (str): User-assigned name for this group. If a name is not specified, a default one will be generated.
+        update (bool): When True, update list of group members when particles are added to or removed from the simulation.
+
+    Creates a particle group from particles that match the given tag range.
+
+    The *tag_max* is optional. If it is not specified, then a single particle with ``tag=tag_min`` will be
+    added to the group.
+
+    Examples::
+
+        half1 = group.tags(name="first-half", tag_min=0, tag_max=999)
+        half2 = group.tags(name="second-half", tag_min=1000, tag_max=1999)
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -479,23 +404,22 @@ def tags(tag_min, tag_max=None, name=None, update=False):
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles by tag list
-#
-# \param tags List of particle tags to include in the group
-# \param name User-assigned name for this group.
-#
-# Creates a particle group from particles with the given tags. Can be used to implement advanced grouping not
-# available with existing group commands.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \b Examples:
-# \code
-# a = group.tag_list(name="a", tags = [0, 12, 18, 205])
-# b = group.tag_list(name="b", tags = range(20,400))
-# \endcode
 def tag_list(name, tags):
+    R""" Groups particles by tag list.
+
+    Args:
+        tags (list): List of particle tags to include in the group
+        name (str): User-assigned name for this group.
+
+    Creates a particle group from particles with the given tags. Can be used to implement advanced grouping not
+    available with existing group commands.
+
+    Examples::
+
+        a = group.tag_list(name="a", tags = [0, 12, 18, 205])
+        b = group.tag_list(name="b", tags = range(20,400))
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -517,35 +441,32 @@ def tag_list(name, tags):
     # return it in the wrapper class
     return group(name, cpp_group);
 
-## Groups particles by type
-#
-# \param type Name of the particle type to add to the group
-# \param name User-assigned name for this group. If a name is not specified, a default one will be generated.
-# \param update If true, update list of group members when particles are added to or removed from the simulation
-#
-# Group membership is \b static and determined at the time the group is created. Changing a particle type at a later
-# time will not update the group.
-#
-# Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script
-# commands (such as analyze.msd) to specify which particles should be operated on.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \note Membership in group.type() is defined at time of group creation. Once created,
-# any particles added to the system will be added to the group if update is set to True.
-# However, if you change a particle type it will not be added to or removed from this group.
-#
-# Between runs, you can force a group to update its membership with the particles currently
-# in the originally  specified type using group.force_update().
-#
-# \b Examples:
-# \code
-# groupA = group.type(name='a-particles', type='A')
-# groupB = group.type(name='b-particles', type='B')
-# groupB = group.type(name='b-particles', type='B',update=True)
-# \endcode
 def type(type, name=None, update=False):
+    R""" Groups particles by type.
+
+    Args:
+        type (str): Name of the particle type to add to the group.
+        name (str): User-assigned name for this group. If a name is not specified, a default one will be generated.
+        update (bool): When true, update list of group members when particles are added to or removed from the simulation.
+
+    Creates a particle group from particles that match the given type. The group can then be used by other hoomd_script
+    commands (such as analyze.msd) to specify which particles should be operated on.
+
+    Note:
+        Membership in :py:func:`hoomd.group.type()` is defined at time of group creation. Once created,
+        any particles added to the system will be added to the group if *update* is set to *True*.
+        However, if you change a particle type it will not be added to or removed from this group.
+
+    Between runs, you can force a group to update its membership with the particles currently
+    in the originally  specified type using :py:meth:`hoomd.group.group.force_update()`.
+
+    Examples::
+
+        groupA = group.type(name='a-particles', type='A')
+        groupB = group.type(name='b-particles', type='B')
+        groupB = group.type(name='b-particles', type='B',update=True)
+
+    """
     hoomd.util.print_status_line();
     type = str(type);
 
@@ -578,24 +499,23 @@ def type(type, name=None, update=False):
     # return it in the wrapper class
     return group(name, cpp_group);
 
-
-## Groups particles that are charged
-#
-# \param name User-assigned name for this group.
-#
-# Creates a particle group containing all particles that have a non-zero charge.
-#
-# Particle groups can be combined in various ways to build up more complicated matches. See group for information and
-# examples.
-#
-# \note This group currently does not support being updated when the number of particles changes.
-#
-# \b Examples:
-# \code
-# a = group.charged()
-# b = group.charged(name="cp")
-# \endcode
 def charged(name='charged'):
+    R""" Groups particles that are charged.
+
+    Args:
+        name (str): User-assigned name for this group.
+
+    Creates a particle group containing all particles that have a non-zero charge.
+
+    Warning:
+        This group currently does not support being updated when the number of particles changes.
+
+    Examples::
+
+        a = group.charged()
+        b = group.charged(name="cp")
+
+    """
     hoomd.util.print_status_line();
 
     # check if initialization has occurred
@@ -618,82 +538,87 @@ def charged(name='charged'):
 
     return retval;
 
-# @}
-
-## \name Group combinations
-
-# {@
-
-## Create a new group from the set difference or complement of two existing groups
-#
-# \param name User-assigned name for this group
-# \param a First group
-# \param b Second group
-#
-# The set difference of *a* and *b* is defined to be the set of particles that are in *a* and not in *b*.
-# This can be useful for inverting the sense of a group (see below).
-#
-# A new group called *name* is created. It is static and will not update if particles are added to
-# or removed from the system.
-#
-# \b Examples:
-# \code
-# groupA = group.type(name='groupA', type='A')
-# all = group.all()
-# nottypeA = group.difference(name="particles-not-typeA", a=all, b=groupA)
-# \endcode
 def difference(name, a, b):
+    R""" Create a new group from the set difference or complement of two existing groups.
+
+    Args:
+        name (str): User-assigned name for this group.
+        a (:py:class:`group`): First group.
+        b (:py:class:`group`): Second group.
+
+    The set difference of *a* and *b* is defined to be the set of particles that are in *a* and not in *b*.
+    This can be useful for inverting the sense of a group (see below).
+
+    A new group called *name* is created.
+
+    Warning:
+        The group is static and will not update if particles are added to
+        or removed from the system.
+
+    Examples::
+
+        groupA = group.type(name='groupA', type='A')
+        all = group.all()
+        nottypeA = group.difference(name="particles-not-typeA", a=all, b=groupA)
+
+    """
+
     new_cpp_group = _hoomd.ParticleGroup.groupDifference(a.cpp_group, b.cpp_group);
     # notify the user of the created group
     hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);
 
-## Create a new group from the set intersection of two existing groups
-#
-# \param name User-assigned name for this group
-# \param a First group
-# \param b Second group
-#
-# A new group is created that contains all particles of *a* that are also in *b*, and is given the name
-# *name*.
-#
-# The group is static and will not update if particles are added to
-# or removed from the system.
-#
-# \b Examples:
-# \code
-# groupA = group.type(name='groupA', type='A')
-# group100_199 = group.tags(name='100_199', tag_min=100, tag_max=199);
-# groupC = group.intersection(name="groupC", a=groupA, b=group100_199)
-# \endcode
 def intersection(name, a, b):
+    R""" Create a new group from the set intersection of two existing groups.
+
+    Args:
+        name (str): User-assigned name for this group.
+        a (:py:class:`group`): First group.
+        b (:py:class:`group`): Second group.
+
+    A new group is created that contains all particles of *a* that are also in *b*, and is given the name
+    *name*.
+
+    Warning:
+        The group is static and will not update if particles are added to
+        or removed from the system.
+
+    Examples::
+
+        groupA = group.type(name='groupA', type='A')
+        group100_199 = group.tags(name='100_199', tag_min=100, tag_max=199);
+        groupC = group.intersection(name="groupC", a=groupA, b=group100_199)
+
+    """
+
     new_cpp_group = _hoomd.ParticleGroup.groupIntersection(a.cpp_group, b.cpp_group);
     # notify the user of the created group
     hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);
 
-## Create a new group from the set union of two existing groups
-#
-# \param name User-assigned name for this group
-# \param a First group
-# \param b Second group
-#
-# A new group is created that contains all particles present in either group *a* or *b*, and is given the
-# name *name*.
-#
-# The group is static and will not update if particles are added to
-# or removed from the system.
-#
-# \b Examples:
-# \code
-# groupA = group.type(name='groupA', type='A')
-# groupB = group.type(name='groupB', type='B')
-# groupAB = group.union(name="ab-particles", a=groupA, b=groupB)
-# \endcode
 def union(name, a, b):
+    R""" Create a new group from the set union of two existing groups.
+
+    Args:
+        name (str): User-assigned name for this group.
+        a (:py:class:`group`): First group.
+        b (:py:class:`group`): Second group.
+
+    A new group is created that contains all particles present in either group *a* or *b*, and is given the
+    name *name*.
+
+    Warning:
+        The group is static and will not update if particles are added to
+        or removed from the system.
+
+    Examples::
+
+        groupA = group.type(name='groupA', type='A')
+        groupB = group.type(name='groupB', type='B')
+        groupAB = group.union(name="ab-particles", a=groupA, b=groupB)
+
+    """
     new_cpp_group = _hoomd.ParticleGroup.groupUnion(a.cpp_group, b.cpp_group);
     # notify the user of the created group
     hoomd.context.msg.notice(2, 'Group "' + name + '" created containing ' + str(new_cpp_group.getNumMembersGlobal()) + ' particles\n');
     return group(name, new_cpp_group);
-
-# @}

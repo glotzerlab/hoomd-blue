@@ -2,6 +2,7 @@
 # Maintainer: jamesaan
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -11,30 +12,30 @@ import os
 class pair_mie_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_random(N=100, phi_p=0.05);
-
-        sorter.set_params(grid=8)
+        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.nl = md.nlist.cell()
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=13.0, m=7.0, r_cut=2.5, r_on=2.0);
         mie.update_coeffs();
 
     # test missing coefficients
     def test_set_missing_epsilon(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         mie.pair_coeff.set('A', 'A', sigma=1.0, n=13.0, m=7.0);
         self.assertRaises(RuntimeError, mie.update_coeffs);
 
     # test missing coefficients
     def test_missing_AA(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         self.assertRaises(RuntimeError, mie.update_coeffs);
 
     # test set params
     def test_set_params(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         mie.set_params(mode="no_shift");
         mie.set_params(mode="shift");
         mie.set_params(mode="xplor");
@@ -42,53 +43,40 @@ class pair_mie_tests (unittest.TestCase):
 
     # test default coefficients
     def test_default_coeff(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         # (alpha, r_cut, and r_on are default)
         mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
         mie.update_coeffs()
 
     # test max rcut
     def test_max_rcut(self):
-        mie = md.pair.mie(r_cut=2.5);
+        mie = md.pair.mie(r_cut=2.5, nlist = self.nl);
         mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
         self.assertAlmostEqual(2.5, mie.get_max_rcut());
         mie.pair_coeff.set('A', 'A', r_cut = 2.0)
         self.assertAlmostEqual(2.0, mie.get_max_rcut());
 
-    # test nlist global subscribe
-    def test_nlist_global_subscribe(self):
-        mie = md.pair.mie(r_cut=2.5);
-        mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
-        context.current.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.5, context.current.neighbor_list.r_cut.get_pair('A','A'));
-
-        mie.pair_coeff.set('A', 'A', r_cut = 2.0)
-        context.current.neighbor_list.update_rcut();
-        self.assertAlmostEqual(2.0, context.current.neighbor_list.r_cut.get_pair('A','A'));
-
     # test specific nlist subscription
     def test_nlist_subscribe(self):
-        nl = md.nlist.cell()
-        mie = md.pair.mie(r_cut=2.5, nlist=nl);
-        self.assertEqual(context.current.neighbor_list, None)
+        mie = md.pair.mie(r_cut=2.5, nlist=self.nl);
 
         mie.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, n=13.0, m=7.0)
-        nl.update_rcut();
-        self.assertAlmostEqual(2.5, nl.r_cut.get_pair('A','A'));
+        self.nl.update_rcut();
+        self.assertAlmostEqual(2.5, self.nl.r_cut.get_pair('A','A'));
 
         mie.pair_coeff.set('A', 'A', r_cut = 2.0)
-        nl.update_rcut();
-        self.assertAlmostEqual(2.0, nl.r_cut.get_pair('A','A'));
+        self.nl.update_rcut();
+        self.assertAlmostEqual(2.0, self.nl.r_cut.get_pair('A','A'));
 
     # test coeff list
     def test_coeff_list(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         mie.pair_coeff.set(['A', 'B'], ['A', 'C'], epsilon=1.0, sigma=1.0, n=13.0, m=7.0, r_cut=2.5, r_on=2.0);
         mie.update_coeffs();
 
     # test adding types
     def test_type_add(self):
-        mie = md.pair.mie(r_cut=3.0);
+        mie = md.pair.mie(r_cut=3.0, nlist = self.nl);
         mie.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, n=13.0, m=7.0);
         self.s.particles.types.add('B')
         self.assertRaises(RuntimeError, mie.update_coeffs);
@@ -97,6 +85,7 @@ class pair_mie_tests (unittest.TestCase):
         mie.update_coeffs();
 
     def tearDown(self):
+        del self.nl
         context.initialize();
 
 

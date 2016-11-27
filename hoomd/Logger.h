@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -66,8 +21,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 #include <fstream>
-
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
@@ -97,7 +52,7 @@ class Logger : public Analyzer
     {
     public:
         //! Constructs a logger and opens the file
-        Logger(boost::shared_ptr<SystemDefinition> sysdef,
+        Logger(std::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix="",
                bool overwrite=false);
@@ -106,13 +61,13 @@ class Logger : public Analyzer
         ~Logger();
 
         //! Registers a compute
-        void registerCompute(boost::shared_ptr<Compute> compute);
+        void registerCompute(std::shared_ptr<Compute> compute);
 
         //! Registers an updater
-        void registerUpdater(boost::shared_ptr<Updater> updater);
+        void registerUpdater(std::shared_ptr<Updater> updater);
 
         //! Register a callback
-        void registerCallback(std::string name, boost::python::object callback);
+        void registerCallback(std::string name, pybind11::object callback);
 
         //! Clears all registered computes and updaters
         void removeAll();
@@ -154,11 +109,11 @@ class Logger : public Analyzer
         //! The file we write out to
         std::ofstream m_file;
         //! A map of computes indexed by logged quantity that they provide
-        std::map< std::string, boost::shared_ptr<Compute> > m_compute_quantities;
+        std::map< std::string, std::shared_ptr<Compute> > m_compute_quantities;
         //! A map of updaters indexed by logged quantity that they provide
-        std::map< std::string, boost::shared_ptr<Updater> > m_updater_quantities;
+        std::map< std::string, std::shared_ptr<Updater> > m_updater_quantities;
         //! List of callbacks
-        std::map< std::string, boost::python::object > m_callback_quantities;
+        std::map< std::string, pybind11::object > m_callback_quantities;
         //! List of quantities to log
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity
@@ -180,6 +135,6 @@ class Logger : public Analyzer
     };
 
 //! exports the Logger class to python
-void export_Logger();
+void export_Logger(pybind11::module& m);
 
 #endif

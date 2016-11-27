@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -53,8 +8,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Compute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 
 #include <iostream>
 #include <stdexcept>
@@ -67,7 +22,7 @@ using namespace std;
 /*! \param sysdef SystemDefinition this compute will act on. Must not be NULL.
     \post The Compute is constructed with the given particle data and a NULL profiler.
 */
-Compute::Compute(boost::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
+Compute::Compute(std::shared_ptr<SystemDefinition> sysdef) : m_sysdef(sysdef), m_pdata(m_sysdef->getParticleData()),
         exec_conf(m_pdata->getExecConf()), m_force_compute(false), m_last_computed(0), m_first_compute(true)
     {
     // sanity check
@@ -91,11 +46,11 @@ double Compute::benchmark(unsigned int num_iters)
     This method does not need to be called, as Computes will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void Compute::setProfiler(boost::shared_ptr<Profiler> prof)
+void Compute::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
@@ -150,79 +105,15 @@ void Compute::forceCompute(unsigned int timestep)
     compute(timestep);
     }
 
-//! Wrapper class for handling virtual methods of Compute in python
-class ComputeWrap : public Compute, public wrapper<Compute>
+
+
+void export_Compute(py::module& m)
     {
-    public:
-        //! Constructor
-        /*! \param sysdef Particle data to pass on to the base class */
-        ComputeWrap(boost::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef)
-            {
-            }
-
-        //! Calls overidden Compute::compute()
-        /*! \param timestep Parameter to pass on to the base class method */
-        void compute(unsigned int timestep)
-            {
-            this->get_override("compute")(timestep);
-            }
-
-        //! Calls overidden Compute::compute()
-        /*! \param num_iters Parameter to pass on to the base class method */
-        double benchmark(unsigned int num_iters)
-            {
-            if (override f = this->get_override("benchmark"))
-                return f(num_iters);
-            else
-                return Compute::benchmark(num_iters);
-            }
-
-        //! Calls overridden Compute::printStats()
-        void printStats()
-            {
-            if (override f = this->get_override("printStats"))
-                f();
-            else
-                Compute::printStats();
-            }
-
-        //! Default implementation of Compute::printStats()
-        void default_printStats()
-            {
-            this->Compute::printStats();
-            }
-
-        // A decision has been made to not currently support deriving new compute classes in python
-        // thus, the internal methods of Compute that are only needed for that purpose do not need to be
-        // exported, only the public interface
-        //protected:
-        // Calls overridden Compute::shouldCompute()
-        /* \param timestep Parameter to pass on to the base class method */
-        /*bool shouldCompute(unsigned int timestep)
-            {
-            if (override f = this->get_override("shouldCompute"))
-                return f(timestep);
-            else
-                return Compute::shouldCompute(timestep);
-            }*/
-
-        // Default implementation of Compute::shouldCompute()
-        /* \param timestep Parameter to pass on to the base class method */
-        /*bool default_shouldCompute(unsigned int timestep)
-            {
-            return this->Compute::shouldCompute(timestep);
-            }
-
-        // The python export needs to be a friend to export protected members
-        friend void export_Compute();*/
-    };
-
-void export_Compute()
-    {
-    class_<ComputeWrap, boost::shared_ptr<ComputeWrap>, boost::noncopyable>("Compute", init< boost::shared_ptr<SystemDefinition> >())
-    .def("compute", pure_virtual(&Compute::compute))
-    .def("benchmark", pure_virtual(&Compute::benchmark))
-    .def("printStats", &Compute::printStats, &ComputeWrap::default_printStats)
+    py::class_<Compute, std::shared_ptr<Compute> >(m,"Compute")
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
+    .def("compute", &Compute::compute)
+    .def("benchmark", &Compute::benchmark)
+    .def("printStats", &Compute::printStats)
     .def("setProfiler", &Compute::setProfiler)
     ;
     }

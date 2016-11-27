@@ -1,9 +1,8 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #ifndef __SHAPE_PROXY_H__
 #define __SHAPE_PROXY_H__
-
-#include <boost/python.hpp>
-#include <boost/type_traits.hpp>
-#include <boost/utility.hpp>
 
 #include "IntegratorHPMCMono.h"
 
@@ -19,61 +18,64 @@
 #include "ShapeSphinx.h"
 #include "ShapeUnion.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
+#endif
 
 namespace hpmc{
 namespace detail{
 
 // make these global constants in one of the shape headers.
-#define IGNORE_OVRLP 0x0001
-#define IGNORE_STATS 0x0002
+#define IGNORE_STATS 0x0001
 
 template<class param_type>
-inline boost::python::list poly2d_verts_to_python(param_type& param)
+inline pybind11::list poly2d_verts_to_python(param_type& param)
     {
-    boost::python::list verts;
+    pybind11::list verts;
     for(size_t i = 0; i < param.N; i++)
         {
-        boost::python::list v;
-        v.append(param.x[i]);
-        v.append(param.y[i]);
+        pybind11::list v;
+        v.append(pybind11::cast<Scalar>(param.x[i]));
+        v.append(pybind11::cast<Scalar>(param.y[i]));
         verts.append(v);
         }
     return verts;
     }
 
 template<class param_type>
-inline boost::python::list poly3d_verts_to_python(param_type& param)
+inline pybind11::list poly3d_verts_to_python(param_type& param)
     {
-    boost::python::list verts;
+    pybind11::list verts;
     for(size_t i = 0; i < param.N; i++)
         {
-        boost::python::list v;
-        v.append(param.x[i]);
-        v.append(param.y[i]);
-        v.append(param.z[i]);
+        pybind11::list v;
+        v.append(pybind11::cast<Scalar>(param.x[i]));
+        v.append(pybind11::cast<Scalar>(param.y[i]));
+        v.append(pybind11::cast<Scalar>(param.z[i]));
         verts.append(v);
         }
     return verts;
     }
 
 template<class ScalarType>
-boost::python::list vec3_to_python(const vec3<ScalarType>& vec)
+pybind11::list vec3_to_python(const vec3<ScalarType>& vec)
     {
-    boost::python::list v;
-    v.append(vec.x);
-    v.append(vec.y);
-    v.append(vec.z);
+    pybind11::list v;
+    v.append(pybind11::cast<Scalar>(vec.x));
+    v.append(pybind11::cast<Scalar>(vec.y));
+    v.append(pybind11::cast<Scalar>(vec.z));
     return v;
     }
 
 template<class ScalarType>
-boost::python::list quat_to_python(const quat<ScalarType>& qu)
+pybind11::list quat_to_python(const quat<ScalarType>& qu)
     {
-    boost::python::list v;
-    v.append(qu.s);
-    v.append(qu.v.x);
-    v.append(qu.v.y);
-    v.append(qu.v.z);
+    pybind11::list v;
+    v.append(pybind11::cast<Scalar>(qu.s));
+    v.append(pybind11::cast<Scalar>(qu.v.x));
+    v.append(pybind11::cast<Scalar>(qu.v.y));
+    v.append(pybind11::cast<Scalar>(qu.v.z));
     return v;
     }
 
@@ -95,10 +97,10 @@ unsigned int make_ignore_flag(bool stats, bool ovrlps)
     }
 
 //! Helper function to build ell_params from python
-ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ignore_stats, bool ignore_ovrlps)
+ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ignore_stats)
     {
     ell_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.x=x;
     result.y=y;
     result.z=z;
@@ -106,30 +108,31 @@ ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ign
     }
 //
 //! Helper function to build sph_params from python
-sph_params make_sph_params(OverlapReal radius, bool ignore_stats, bool ignore_ovrlps)
+sph_params make_sph_params(OverlapReal radius, bool ignore_stats)
     {
     sph_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.radius=radius;
     return result;
     }
 
 //! Helper function to build poly2d_verts from python
-poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats, bool ignore_ovrlps)
+poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats)
     {
     if (len(verts) > MAX_POLY2D_VERTS)
         throw std::runtime_error("Too many polygon vertices");
 
     poly2d_verts result;
     result.N = len(verts);
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.sweep_radius = sweep_radius;
 
     // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
-        vec2<OverlapReal> vert = vec2<OverlapReal>(extract<OverlapReal>(verts[i][0]), extract<OverlapReal>(verts[i][1]));
+        pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+        vec2<OverlapReal> vert = vec2<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]));
         result.x[i] = vert.x;
         result.y[i] = vert.y;
         radius_sq = max(radius_sq, dot(vert, vert));
@@ -147,72 +150,59 @@ poly2d_verts make_poly2d_verts(boost::python::list verts, OverlapReal sweep_radi
     }
 
 //! Helper function to build poly3d_data from python
-inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,boost::python::list face_verts,
-                             boost::python::list face_offs, OverlapReal R, bool ignore_stats, bool ignore_ovrlps)
+inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
+                             pybind11::list face_offs, OverlapReal R, bool ignore_stats,
+                             unsigned int leaf_capacity,
+                             pybind11::list origin,
+                             std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(verts) > MAX_POLY3D_VERTS)
-        throw std::runtime_error("Too many polyhedron vertices");
-
-    if (len(face_verts) > MAX_POLY3D_FACE_VERTS*MAX_POLY3D_FACES)
-        throw std::runtime_error("Too many polyhedron face vertices");
-
-    if (len(face_offs) > MAX_POLY3D_FACES + 1)
-        throw std::runtime_error("Too many polyhedron faces");
-
-    // rounding radius
-
     ShapePolyhedron::param_type result;
-    result.data.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
-    result.data.verts.N = len(verts);
-    result.data.verts.sweep_radius = R;
-    result.data.n_faces = len(face_offs)-1;
+    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
+    result.ignore = ignore_stats;
+    result.verts.sweep_radius = R;
+    result.n_faces = len(face_offs)-1;
+    result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
 
     for (unsigned int i = 0; i < len(face_offs); i++)
         {
-        unsigned int offs = extract<unsigned int>(face_offs[i]);
-        result.data.face_offs[i] = offs;
+        unsigned int offs = pybind11::cast<unsigned int>(face_offs[i]);
+        result.face_offs[i] = offs;
         }
 
     // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
-        boost::python::list v = extract<boost::python::list>(verts[i]);
+        pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
         vec3<OverlapReal> vert;
-        vert.x = extract<OverlapReal>(v[0]);
-        vert.y = extract<OverlapReal>(v[1]);
-        vert.z = extract<OverlapReal>(v[2]);
-        result.data.verts.x[i] = vert.x;
-        result.data.verts.y[i] = vert.y;
-        result.data.verts.z[i] = vert.z;
+        vert.x = pybind11::cast<OverlapReal>(v[0]);
+        vert.y = pybind11::cast<OverlapReal>(v[1]);
+        vert.z = pybind11::cast<OverlapReal>(v[2]);
+        result.verts.x[i] = vert.x;
+        result.verts.y[i] = vert.y;
+        result.verts.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = len(verts); i < MAX_POLY3D_VERTS; i++)
+    for (unsigned int i = len(verts); i < result.verts.N; i++)
         {
-        result.data.verts.x[i] = 0;
-        result.data.verts.y[i] = 0;
-        result.data.verts.z[i] = 0;
+        result.verts.x[i] = 0;
+        result.verts.y[i] = 0;
+        result.verts.z[i] = 0;
         }
 
     for (unsigned int i = 0; i < len(face_verts); i++)
         {
-        unsigned int j = extract<unsigned int>(face_verts[i]);
-        if (j >= result.data.verts.N)
+        unsigned int j = pybind11::cast<unsigned int>(face_verts[i]);
+        if (j >= result.verts.N)
             {
             std::ostringstream oss;
             oss << "Invalid vertex index " << j << " specified" << std::endl;
             throw std::runtime_error(oss.str());
             }
-        result.data.face_verts[i] = j;
+        result.face_verts[i] = j;
         }
 
-    hpmc::detail::OBB *obbs;
-    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*len(face_offs));
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned OBB memory.");
-        }
-
+    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[len(face_offs)];
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
     // construct bounding box tree
@@ -220,59 +210,51 @@ inline ShapePolyhedron::param_type make_poly3d_data(boost::python::list verts,bo
         {
         std::vector<vec3<OverlapReal> > face_vec;
 
-        unsigned int nverts = result.data.face_offs[i+1] - result.data.face_offs[i];
-        if (nverts > 3 && R != OverlapReal(0.0))
-            {
-            throw std::runtime_error("With finite rounding radii, only faces with <= 3 vertices are supported.\n");
-            }
-
-        for (unsigned int j = result.data.face_offs[i]; j < result.data.face_offs[i+1]; ++j)
+        for (unsigned int j = result.face_offs[i]; j < result.face_offs[i+1]; ++j)
             {
             vec3<OverlapReal> v;
-            v.x = result.data.verts.x[result.data.face_verts[j]];
-            v.y = result.data.verts.y[result.data.face_verts[j]];
-            v.z = result.data.verts.z[result.data.face_verts[j]];
+            v.x = result.verts.x[result.face_verts[j]];
+            v.y = result.verts.y[result.face_verts[j]];
+            v.z = result.verts.z[result.face_verts[j]];
 
             face_vec.push_back(v);
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, result.data.verts.sweep_radius);
+        obbs[i] = hpmc::detail::compute_obb(face_vec, result.verts.sweep_radius);
         internal_coordinates.push_back(face_vec);
         }
 
     OBBTree tree;
-    tree.buildTree(obbs, internal_coordinates, result.data.verts.sweep_radius, len(face_offs)-1);
-    result.tree = GPUTree(tree);
-    free(obbs);
+    tree.buildTree(obbs, internal_coordinates, result.verts.sweep_radius, len(face_offs)-1, leaf_capacity);
+    result.tree = GPUTree(tree, exec_conf->isCUDAEnabled());
+    delete [] obbs;
 
     // set the diameter
-    result.data.verts.diameter = 2*(sqrt(radius_sq)+result.data.verts.sweep_radius);
+    result.verts.diameter = 2*(sqrt(radius_sq)+result.verts.sweep_radius);
 
     return result;
     }
 
 //! Helper function to build poly3d_verts from python
-template<unsigned int max_verts>
-poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal sweep_radius, bool ignore_stats, bool ignore_ovrlps)
+poly3d_verts make_poly3d_verts(pybind11::list verts, OverlapReal sweep_radius, bool ignore_stats,
+                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(verts) > max_verts)
-        throw std::runtime_error("Too many polygon vertices");
-
-    poly3d_verts<max_verts> result;
+    poly3d_verts result(len(verts), exec_conf->isCUDAEnabled());
     result.N = len(verts);
     result.sweep_radius = sweep_radius;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
 
     // extract the verts from the python list and compute the radius on the way
     OverlapReal radius_sq = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(verts); i++)
         {
-        vec3<OverlapReal> vert = vec3<OverlapReal>(extract<OverlapReal>(verts[i][0]), extract<OverlapReal>(verts[i][1]), extract<OverlapReal>(verts[i][2]));
+        pybind11::list verts_i = pybind11::cast<pybind11::list>(verts[i]);
+        vec3<OverlapReal> vert = vec3<OverlapReal>(pybind11::cast<OverlapReal>(verts_i[0]), pybind11::cast<OverlapReal>(verts_i[1]), pybind11::cast<OverlapReal>(verts_i[2]));
         result.x[i] = vert.x;
         result.y[i] = vert.y;
         result.z[i] = vert.z;
         radius_sq = max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = len(verts); i < max_verts; i++)
+    for (unsigned int i = len(verts); i < result.N; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -286,27 +268,26 @@ poly3d_verts<max_verts> make_poly3d_verts(boost::python::list verts, OverlapReal
     }
 
 //! Helper function to build faceted_sphere_params from python
-faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::python::list offsets,
-    boost::python::list vertices, Scalar diameter, boost::python::tuple origin, bool ignore_stats, bool ignore_ovrlps)
+faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list offsets,
+    pybind11::list vertices, Scalar diameter, pybind11::tuple origin, bool ignore_stats,
+    std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     if (len(normals) > MAX_SPHERE_FACETS)
         throw std::runtime_error("Too many face normals");
-
-    if (len(vertices) > MAX_FPOLY3D_VERTS)
-        throw std::runtime_error("Too many vertices");
 
     if (len(offsets) != len(normals))
         throw std::runtime_error("Number of normals unequal number of offsets");
 
     faceted_sphere_params result;
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
     result.N = len(normals);
 
     // extract the normals from the python list
     for (unsigned int i = 0; i < len(normals); i++)
         {
-        result.n[i] = vec3<OverlapReal>(extract<OverlapReal>(normals[i][0]), extract<OverlapReal>(normals[i][1]), extract<OverlapReal>(normals[i][2]));
-        result.offset[i] = extract<OverlapReal>(offsets[i]);
+        pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
+        result.n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]), pybind11::cast<OverlapReal>(normals_i[1]), pybind11::cast<OverlapReal>(normals_i[2]));
+        result.offset[i] = pybind11::cast<OverlapReal>(offsets[i]);
         }
     for (unsigned int i = len(normals); i < MAX_SPHERE_FACETS; i++)
         {
@@ -315,7 +296,7 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
         }
 
     // extract the vertices from the python list
-    result.verts=make_poly3d_verts<MAX_FPOLY3D_VERTS>(vertices, 0.0, false, false);
+    result.verts=make_poly3d_verts(vertices, 0.0, false, exec_conf);
 
     // set the diameter
     result.diameter = diameter;
@@ -323,7 +304,7 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
     result.insphere_radius = diameter/Scalar(2.0);
 
     // set the origin
-    result.origin = vec3<OverlapReal>(extract<OverlapReal>(origin[0]), extract<OverlapReal>(origin[1]), extract<OverlapReal>(origin[2]));
+    result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
 
     // compute insphere radius
     for (unsigned int i = 0; i < result.N; ++i)
@@ -344,13 +325,13 @@ faceted_sphere_params make_faceted_sphere(boost::python::list normals, boost::py
         }
 
     // add the edge-sphere vertices
-    ShapeFacetedSphere::initializeVertices(result);
+    ShapeFacetedSphere::initializeVertices(result, exec_conf->isCUDAEnabled());
 
     return result;
     }
 
 //! Helper function to build sphinx3d_verts from python
-sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::python::list centers, bool ignore_stats, bool ignore_ovrlps)
+sphinx3d_params make_sphinx3d_params(pybind11::list diameters, pybind11::list centers, bool ignore_stats)
     {
     if (len(centers) > MAX_SPHERE_CENTERS)
         throw std::runtime_error("Too many spheres");
@@ -362,14 +343,15 @@ sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::pytho
         throw std::runtime_error("Number of centers not equal to number of diameters");
         }
 
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    result.ignore = ignore_stats;
 
     // extract the centers from the python list and compute the radius on the way
     OverlapReal radius = OverlapReal(0.0);
     for (unsigned int i = 0; i < len(centers); i++)
         {
-        OverlapReal d = extract<OverlapReal>(diameters[i]);
-        result.center[i] = vec3<OverlapReal>(extract<OverlapReal>(centers[i][0]), extract<OverlapReal>(centers[i][1]), extract<OverlapReal>(centers[i][2]));
+        OverlapReal d = pybind11::cast<OverlapReal>(diameters[i]);
+        pybind11::list centers_i = pybind11::cast<pybind11::list>(centers[i]);
+        result.center[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(centers_i[0]), pybind11::cast<OverlapReal>(centers_i[1]), pybind11::cast<OverlapReal>(centers_i[2]));
         result.diameter[i] = d;
         OverlapReal n = sqrt(dot(result.center[i],result.center[i]));
         radius = max(radius, (n+d/OverlapReal(2.0)));
@@ -383,19 +365,16 @@ sphinx3d_params make_sphinx3d_params(boost::python::list diameters, boost::pytho
 
 //! Templated helper function to build shape union params from constituent shape params
 template<class Shape>
-union_params<Shape> make_union_params(boost::python::list _members,
-                                                boost::python::list positions,
-                                                boost::python::list orientations,
-                                                bool ignore_stats,
-                                                bool ignore_ovrlps)
+typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members,
+                                        pybind11::list positions,
+                                        pybind11::list orientations,
+                                        pybind11::list overlap,
+                                        bool ignore_stats,
+                                        unsigned int leaf_capacity,
+                                        std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    union_params<Shape> result;
+    typename ShapeUnion<Shape>::param_type result(len(_members), exec_conf->isCUDAEnabled());
 
-    result.N = len(_members);
-    if (result.N > hpmc::detail::MAX_MEMBERS)
-        {
-        throw std::runtime_error("Too many constituent particles");
-        }
     if (len(positions) != result.N)
         {
         throw std::runtime_error("Number of member positions not equal to number of members");
@@ -405,39 +384,54 @@ union_params<Shape> make_union_params(boost::python::list _members,
         throw std::runtime_error("Number of member orientations not equal to number of members");
         }
 
-    result.ignore = make_ignore_flag(ignore_stats,ignore_ovrlps);
+    if (len(overlap) != result.N)
+        {
+        throw std::runtime_error("Number of member overlap flags not equal to number of members");
+        }
+
+    result.ignore = ignore_stats;
+
+    hpmc::detail::OBB *obbs = new hpmc::detail::OBB[result.N];
+
+    std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
     // extract member parameters, posistions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
     for (unsigned int i = 0; i < result.N; i++)
         {
-        typename Shape::param_type param = extract<typename Shape::param_type>(_members[i]);
-        vec3<Scalar> pos = vec3<Scalar>(extract<Scalar>(positions[i][0]), extract<Scalar>(positions[i][1]), extract<Scalar>(positions[i][2]));
-        Scalar s = extract<Scalar>(orientations[i][0]);
-        Scalar x = extract<Scalar>(orientations[i][1]);
-        Scalar y = extract<Scalar>(orientations[i][2]);
-        Scalar z = extract<Scalar>(orientations[i][3]);
-        quat<Scalar> orientation(s, vec3<Scalar>(x,y,z));
+        typename Shape::param_type param = pybind11::cast<typename Shape::param_type>(_members[i]);
+        pybind11::list positions_i = pybind11::cast<pybind11::list>(positions[i]);
+        vec3<OverlapReal> pos = vec3<OverlapReal>(pybind11::cast<OverlapReal>(positions_i[0]), pybind11::cast<OverlapReal>(positions_i[1]), pybind11::cast<OverlapReal>(positions_i[2]));
+        pybind11::list orientations_i = pybind11::cast<pybind11::list>(orientations[i]);
+        OverlapReal s = pybind11::cast<OverlapReal>(orientations_i[0]);
+        OverlapReal x = pybind11::cast<OverlapReal>(orientations_i[1]);
+        OverlapReal y = pybind11::cast<OverlapReal>(orientations_i[2]);
+        OverlapReal z = pybind11::cast<OverlapReal>(orientations_i[3]);
+        quat<OverlapReal> orientation(s, vec3<OverlapReal>(x,y,z));
         result.mparams[i] = param;
         result.mpos[i] = pos;
         result.morientation[i] = orientation;
+        result.moverlap[i] = pybind11::cast<unsigned int>(overlap[i]);
 
         Shape dummy(quat<Scalar>(), param);
         Scalar d = sqrt(dot(pos,pos));
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
+
+        obbs[i] = detail::OBB(dummy.getAABB(pos));
         }
 
     // set the diameter
     result.diameter = diameter;
 
+    // build tree and store GPU accessible version in parameter structure
+    typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
+    OBBTree tree;
+    tree.buildTree(obbs, result.N, leaf_capacity);
+    delete [] obbs;
+    result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
+
     return result;
     }
-
-template< typename ShapeParamType >
-struct get_max_verts { /* nothing here */ }; // will probably get an error if you use it with the wrong type.
-
-template< template<unsigned int> class ShapeParamType, unsigned int _max_verts >
-struct get_max_verts< ShapeParamType<_max_verts> > { static const unsigned int max_verts=_max_verts; };
 
 template< typename Shape >
 struct get_param_data_type { typedef typename Shape::param_type type; };
@@ -458,9 +452,9 @@ template< >
 struct access < ShapePolyhedron >
     {
     template< class ParamType >
-    typename get_param_data_type<ShapePolyhedron>::type& operator()(ParamType& param) { return param.data; }
+    typename get_param_data_type<ShapePolyhedron>::type& operator()(ParamType& param) { return param; }
     template< class ParamType >
-    const typename get_param_data_type<ShapePolyhedron>::type& operator()(const ParamType& param) const  { return param.data; }
+    const typename get_param_data_type<ShapePolyhedron>::type& operator()(const ParamType& param) const  { return param; }
     };
 
 template < typename Shape , typename AccessType = access<Shape> >
@@ -469,37 +463,23 @@ class shape_param_proxy // base class to avoid adding the ignore flag logic to e
 protected:
     typedef typename Shape::param_type param_type;
 public:
-    shape_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : m_mc(mc), m_typeid(typendx), m_access(acc) {}
+    shape_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : m_mc(mc), m_typeid(typendx), m_access(acc) {}
     //!Ignore flag for acceptance statistics
     bool getIgnoreStatistics() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return (m_access(h_params.data[m_typeid]).ignore & IGNORE_STATS);
-        }
-
-    //!Ignore flag for overlaps
-    bool getIgnoreOverlaps() const
-        {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return (m_access(h_params.data[m_typeid]).ignore & IGNORE_OVRLP);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return (m_access(params[m_typeid]).ignore & IGNORE_STATS);
         }
 
     void setIgnoreStatistics(bool stat)
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        if(stat)    m_access(h_params.data[m_typeid]).ignore |= IGNORE_STATS;
-        else        m_access(h_params.data[m_typeid]).ignore &= ~IGNORE_STATS;
-        }
-
-    void setIgnoreOverlaps(bool ovrlps)
-        {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        if(ovrlps)  m_access(h_params.data[m_typeid]).ignore |= IGNORE_OVRLP;
-        else        m_access(h_params.data[m_typeid]).ignore &= ~IGNORE_OVRLP;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        if(stat)    m_access(params[m_typeid]).ignore |= IGNORE_STATS;
+        else        m_access(params[m_typeid]).ignore &= ~IGNORE_STATS;
         }
 
 protected:
-    boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;
+    std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;
     unsigned int m_typeid;
     AccessType m_access;
 };
@@ -514,12 +494,12 @@ protected:
     typedef typename Shape::param_type  param_type;
 public:
     typedef sph_params access_type;
-    sphere_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    sphere_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return OverlapReal(2.0)*m_access(h_params.data[m_typeid]).radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return OverlapReal(2.0)*m_access(params[m_typeid]).radius;
         }
 };
 
@@ -533,24 +513,24 @@ protected:
     typedef typename Shape::param_type  param_type;
 public:
     typedef ell_params  access_type;
-    ell_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx, acc) {}
+    ell_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx, acc) {}
 
     OverlapReal getX()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).x;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).x;
         }
 
     OverlapReal getY()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).y;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).y;
         }
 
     OverlapReal getZ()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).z;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).z;
         }
 };
 
@@ -564,18 +544,18 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef poly2d_verts access_type;
-    poly2d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    poly2d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
-    boost::python::list getVerts() const
+    pybind11::list getVerts() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly2d_verts_to_python(m_access(h_params.data[m_typeid]));
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly2d_verts_to_python(m_access(params[m_typeid]));
         }
 
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).sweep_radius;
         }
 };
 
@@ -587,21 +567,20 @@ class poly3d_param_proxy : public shape_param_proxy<Shape, AccessType>
     using shape_param_proxy<Shape, AccessType>::m_access;
 protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
-    static const unsigned int max_verts = get_max_verts<param_type>::max_verts;
 public:
-    typedef poly3d_verts<max_verts> access_type;
-    poly3d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc) {}
+    typedef poly3d_verts access_type;
+    poly3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc) {}
 
-    boost::python::list getVerts() const
+    pybind11::list getVerts() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]));
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]));
         }
 
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).sweep_radius;
         }
 
 };
@@ -616,36 +595,49 @@ protected:
     typedef shape_param_proxy<ShapePolyhedron>::param_type param_type;
 public:
     typedef poly3d_data access_type;
-    polyhedron_param_proxy(boost::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
+    polyhedron_param_proxy(std::shared_ptr< IntegratorHPMCMono<Shape> > mc, unsigned int typendx, const AccessType& acc = AccessType()) : shape_param_proxy<Shape, AccessType>(mc,typendx,acc){}
 
-    boost::python::list getVerts()
+    pybind11::list getVerts()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]).verts);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]).verts);
         }
 
-    boost::python::list getFaces()
+    pybind11::list getFaces()
         {
-        boost::python::list faces;
+        pybind11::list faces;
         // populate faces.
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         for(size_t i = 0; i < param.n_faces; i++)
             {
-            boost::python::list face;
+            pybind11::list face;
             for(unsigned int f = param.face_offs[i]; f < param.face_offs[i+1]; f++)
                 {
-                face.append(param.face_verts[f]);
+                face.append(pybind11::int_(param.face_verts[f]));
                 }
             faces.append(face);
             }
         return faces;
         }
 
+    pybind11::tuple getOrigin()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        vec3<OverlapReal> origin(m_access(params[m_typeid]).origin);
+        return pybind11::make_tuple(origin.x, origin.y, origin.z);
+        }
+
     OverlapReal getSweepRadius() const
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return m_access(h_params.data[m_typeid]).verts.sweep_radius;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).verts.sweep_radius;
+        }
+
+    unsigned int getCapacity() const
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).tree.getLeafNodeCapacity();
         }
 };
 
@@ -659,45 +651,45 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef ShapeFacetedSphere::param_type access_type;
-    faceted_sphere_param_proxy(boost::shared_ptr< IntegratorHPMCMono<ShapeFacetedSphere> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    faceted_sphere_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeFacetedSphere> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
-    boost::python::list getVerts()
+    pybind11::list getVerts()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        return poly3d_verts_to_python(m_access(h_params.data[m_typeid]).verts);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return poly3d_verts_to_python(m_access(params[m_typeid]).verts);
         }
 
-    boost::python::list getNormals()
+    pybind11::list getNormals()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list normals;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list normals;
         for(size_t i = 0; i < param.N; i++ ) normals.append(vec3_to_python(param.n[i]));
         return normals;
         }
 
-    boost::python::list getOrigin()
+    pybind11::list getOrigin()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return vec3_to_python(param.origin);
         }
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.diameter;
         }
 
-    boost::python::list getOffsets()
+    pybind11::list getOffsets()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list offsets;
-        for(size_t i = 0; i < param.N; i++) offsets.append(param.offset[i]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list offsets;
+        for(size_t i = 0; i < param.N; i++) offsets.append(pybind11::cast<Scalar>(param.offset[i]));
         return offsets;
         }
 };
@@ -712,32 +704,32 @@ protected:
     typedef typename shape_param_proxy<Shape, AccessType>::param_type param_type;
 public:
     typedef ShapeSphinx::param_type access_type;
-    sphinx3d_param_proxy(boost::shared_ptr< IntegratorHPMCMono<ShapeSphinx> > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    sphinx3d_param_proxy(std::shared_ptr< IntegratorHPMCMono<ShapeSphinx> > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy<Shape, AccessType>(mc,typendx,acc)
         {}
 
-    boost::python::list getCenters()
+    pybind11::list getCenters()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list centers;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list centers;
         for(size_t i = 0; i < param.N; i++) centers.append(vec3_to_python(param.center[i]));
         return centers;
         }
 
-    boost::python::list getDiameters()
+    pybind11::list getDiameters()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list diams;
-        for(size_t i = 0; i < param.N; i++) diams.append(param.diameter[i]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list diams;
+        for(size_t i = 0; i < param.N; i++) diams.append(pybind11::cast<Scalar>(param.diameter[i]));
         return diams;
         }
 
     OverlapReal getCircumsphereDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.circumsphereDiameter;
         }
 };
@@ -782,38 +774,38 @@ protected:
     typedef typename get_member_proxy<Shape, ShapeUnionType, access_shape_union_members<ShapeUnionType> >::proxy_type proxy_type;
 public:
     typedef typename ShapeUnionType::param_type access_type;
-    shape_union_param_proxy(boost::shared_ptr< IntegratorHPMCMono< Shape > > mc, unsigned int typendx, const AccessType& acc = AccessType())
+    shape_union_param_proxy(std::shared_ptr< IntegratorHPMCMono< Shape > > mc, unsigned int typendx, const AccessType& acc = AccessType())
         : shape_param_proxy< Shape, AccessType>(mc,typendx,acc)
         {}
-    boost::python::list getPosistions()
+    pybind11::list getPositions()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list pos;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list pos;
         for(size_t i = 0; i < param.N; i++) pos.append(vec3_to_python(param.mpos[i]));
         return pos;
         }
 
-    boost::python::list getOrientations()
+    pybind11::list getOrientations()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list orient;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list orient;
         for(size_t i = 0; i < param.N; i++)
             orient.append(quat_to_python(param.morientation[i]));
         return orient;
         }
 
-    boost::python::list getMembers()
+    std::vector< std::shared_ptr< proxy_type > > getMembers()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
-        boost::python::list members;
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        std::vector< std::shared_ptr< proxy_type > > members;
         for(size_t i = 0; i < param.N; i++)
             {
             access_shape_union_members<ShapeUnionType> acc(i);
-            boost::shared_ptr< proxy_type > p(new proxy_type(m_mc, m_typeid, acc));
-            members.append(p);
+            std::shared_ptr< proxy_type > p(new proxy_type(m_mc, m_typeid, acc));
+            members.push_back(p);
             }
         return members;
         }
@@ -821,8 +813,8 @@ public:
 
     OverlapReal getDiameter()
         {
-        ArrayHandle<param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        access_type& param = m_access(h_params.data[m_typeid]);
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
         return param.diameter;
         }
 };
@@ -830,21 +822,18 @@ public:
 } // end namespace detail
 
 template<class Shape, class AccessType>
-void export_shape_param_proxy(const std::string& name)
+void export_shape_param_proxy(pybind11::module& m, const std::string& name)
     {
     // export the base class.
     using detail::shape_param_proxy;
-    boost::python::class_<shape_param_proxy<Shape, AccessType>, boost::shared_ptr< shape_param_proxy<Shape, AccessType> > >
-        (   name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>()
-        )
-    .add_property("ignore_overlaps", &shape_param_proxy<Shape>::getIgnoreOverlaps, &shape_param_proxy<Shape>::setIgnoreOverlaps)
-    .add_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
+    pybind11::class_<shape_param_proxy<Shape, AccessType>, std::shared_ptr< shape_param_proxy<Shape, AccessType> > >(m, name.c_str())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
+    .def_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
     ;
     }
 
 template<class ShapeType, class AccessType>
-void export_sphere_proxy(const std::string& class_name)
+void export_sphere_proxy(pybind11::module& m, const std::string& class_name)
     {
     using detail::shape_param_proxy;
     using detail::sphere_param_proxy;
@@ -852,16 +841,14 @@ void export_sphere_proxy(const std::string& class_name)
     typedef sphere_param_proxy<ShapeType, AccessType>   proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, AccessType>(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("diameter", &proxy_class::getDiameter)
+    export_shape_param_proxy<ShapeType, AccessType>(m, base_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("diameter", &proxy_class::getDiameter)
     ;
     }
 
-void export_ell_proxy()
+void export_ell_proxy(pybind11::module& m)
     {
     using detail::shape_param_proxy;
     using detail::ell_param_proxy;
@@ -871,49 +858,43 @@ void export_ell_proxy()
     std::string class_name="ell_param_proxy";
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("a", &proxy_class::getX)
-    .add_property("b", &proxy_class::getY)
-    .add_property("c", &proxy_class::getZ)
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("a", &proxy_class::getX)
+    .def_property_readonly("b", &proxy_class::getY)
+    .def_property_readonly("c", &proxy_class::getZ)
     ;
     }
 
 template<class ShapeType>
-void export_poly2d_proxy(std::string class_name, bool sweep_radius_valid)
+void export_poly2d_proxy(pybind11::module& m, std::string class_name, bool sweep_radius_valid)
     {
     using detail::shape_param_proxy;
     using detail::poly2d_param_proxy;
     typedef shape_param_proxy<ShapeType>    proxy_base;
     typedef poly2d_param_proxy<ShapeType>   proxy_class;
     std::string base_name=class_name+"_base";
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
     if (sweep_radius_valid)
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-            (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-            )
-        .add_property("vertices", &proxy_class::getVerts)
-        .add_property("sweep_radius", &proxy_class::getSweepRadius)
+        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+        .def_property_readonly("vertices", &proxy_class::getVerts)
+        .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
         ;
         }
     else
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-            (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-            )
-        .add_property("vertices", &proxy_class::getVerts)
+        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+        .def_property_readonly("vertices", &proxy_class::getVerts)
         ;
         }
     }
 
 template<class ShapeType>
-void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
+void export_poly3d_proxy(pybind11::module& m, std::string class_name, bool sweep_radius_valid)
     {
     using detail::shape_param_proxy;
     using detail::poly3d_param_proxy;
@@ -921,29 +902,25 @@ void export_poly3d_proxy(std::string class_name, bool sweep_radius_valid)
     typedef poly3d_param_proxy<ShapeType>   proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
     if (sweep_radius_valid)
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-            (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-            )
-        .add_property("vertices", &proxy_class::getVerts)
-        .add_property("sweep_radius", &proxy_class::getSweepRadius)
+        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+        .def_property_readonly("vertices", &proxy_class::getVerts)
+        .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
         ;
         }
     else
         {
-        boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-            (   class_name.c_str(),
-                boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-            )
-        .add_property("vertices", &proxy_class::getVerts)
+        pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+        .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+        .def_property_readonly("vertices", &proxy_class::getVerts)
         ;
         }
     }
 
-void export_polyhedron_proxy(std::string class_name)
+void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     {
     using detail::shape_param_proxy;
     using detail::polyhedron_param_proxy;
@@ -952,18 +929,18 @@ void export_polyhedron_proxy(std::string class_name)
     typedef polyhedron_param_proxy<ShapeType>   proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("vertices", &proxy_class::getVerts)
-    .add_property("faces", &proxy_class::getFaces)
-    .add_property("sweep_radius", &proxy_class::getSweepRadius)
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("vertices", &proxy_class::getVerts)
+    .def_property_readonly("faces", &proxy_class::getFaces)
+    .def_property_readonly("origin", &proxy_class::getOrigin)
+    .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
+    .def_property_readonly("capacity", &proxy_class::getCapacity)
     ;
     }
 
-void export_faceted_sphere_proxy(std::string class_name)
+void export_faceted_sphere_proxy(pybind11::module& m, std::string class_name)
     {
     using detail::shape_param_proxy;
     using detail::faceted_sphere_param_proxy;
@@ -972,21 +949,19 @@ void export_faceted_sphere_proxy(std::string class_name)
     typedef faceted_sphere_param_proxy<ShapeType>   proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("vertices", &proxy_class::getVerts)
-    .add_property("normals", &proxy_class::getNormals)
-    .add_property("origin", &proxy_class::getOrigin)
-    .add_property("diameter", &proxy_class::getDiameter)
-    .add_property("offsets", &proxy_class::getOffsets)
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("vertices", &proxy_class::getVerts)
+    .def_property_readonly("normals", &proxy_class::getNormals)
+    .def_property_readonly("origin", &proxy_class::getOrigin)
+    .def_property_readonly("diameter", &proxy_class::getDiameter)
+    .def_property_readonly("offsets", &proxy_class::getOffsets)
     ;
 
     }
 
-void export_sphinx_proxy(std::string class_name)
+void export_sphinx_proxy(pybind11::module& m, std::string class_name)
     {
     using detail::shape_param_proxy;
     using detail::sphinx3d_param_proxy;
@@ -995,70 +970,58 @@ void export_sphinx_proxy(std::string class_name)
     typedef sphinx3d_param_proxy<ShapeType>     proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("centers", &proxy_class::getCenters)
-    .add_property("diameters", &proxy_class::getDiameters)
-    .add_property("diameter", &proxy_class::getCircumsphereDiameter)
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("centers", &proxy_class::getCenters)
+    .def_property_readonly("diameters", &proxy_class::getDiameters)
+    .def_property_readonly("diameter", &proxy_class::getCircumsphereDiameter)
     ;
 
     }
 
 template<class Shape, class ExportFunction >
-void export_shape_union_proxy(std::string class_name, ExportFunction& export_member_proxy)
+void export_shape_union_proxy(pybind11::module& m, std::string class_name, ExportFunction& export_member_proxy)
     {
     using detail::shape_param_proxy;
     using detail::shape_union_param_proxy;
-    typedef ShapeUnion<Shape>                               ShapeType;
+    typedef ShapeUnion<Shape>                     ShapeType;
     typedef shape_param_proxy<ShapeType>                    proxy_base;
     typedef shape_union_param_proxy<ShapeType, ShapeType>   proxy_class;
 
     std::string base_name=class_name+"_base";
     std::string member_name=class_name+"_member_proxy";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(base_name);
-    export_member_proxy(member_name);
-    boost::python::class_<proxy_class, boost::shared_ptr< proxy_class >, boost::python::bases< proxy_base > >
-        (   class_name.c_str(),
-            boost::python::init<boost::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>()
-        )
-    .add_property("centers", &proxy_class::getPosistions)
-    .add_property("orientations", &proxy_class::getOrientations)
-    .add_property("diameter", &proxy_class::getDiameter)
-    .add_property("members", &proxy_class::getMembers)
+    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    export_member_proxy(m, member_name);
+    pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
+    .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
+    .def_property_readonly("centers", &proxy_class::getPositions)
+    .def_property_readonly("orientations", &proxy_class::getOrientations)
+    .def_property_readonly("diameter", &proxy_class::getDiameter)
+    .def_property_readonly("members", &proxy_class::getMembers)
     ;
 
     }
 
 
 
-void export_shape_params()
+void export_shape_params(pybind11::module& m)
     {
-    export_sphere_proxy<ShapeSphere, detail::access<ShapeSphere> >("sphere_param_proxy");
-    export_ell_proxy();
-    export_poly2d_proxy<ShapeConvexPolygon>("convex_polygon_param_proxy", false);
-    export_poly2d_proxy<ShapeSpheropolygon>("convex_spheropolygon_param_proxy", true);
-    export_poly2d_proxy<ShapeSimplePolygon>("simple_polygon_param_proxy", false);
+    export_sphere_proxy<ShapeSphere, detail::access<ShapeSphere> >(m, "sphere_param_proxy");
+    export_ell_proxy(m);
+    export_poly2d_proxy<ShapeConvexPolygon>(m, "convex_polygon_param_proxy", false);
+    export_poly2d_proxy<ShapeSpheropolygon>(m, "convex_spheropolygon_param_proxy", true);
+    export_poly2d_proxy<ShapeSimplePolygon>(m, "simple_polygon_param_proxy", false);
 
-    export_poly3d_proxy< ShapeConvexPolyhedron<8> >("convex_polyhedron_param_proxy8", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<16> >("convex_polyhedron_param_proxy16", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<32> >("convex_polyhedron_param_proxy32", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<64> >("convex_polyhedron_param_proxy64", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<128> >("convex_polyhedron_param_proxy128", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron >(m, "convex_polyhedron_param_proxy", false);
 
-    export_poly3d_proxy< ShapeSpheropolyhedron<8> >("convex_spheropolyhedron_param_proxy8", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<16> >("convex_spheropolyhedron_param_proxy16", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<32> >("convex_spheropolyhedron_param_proxy32", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<64> >("convex_spheropolyhedron_param_proxy64", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<128> >("convex_spheropolyhedron_param_proxy128", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron >(m, "convex_spheropolyhedron_param_proxy", true);
 
-    export_polyhedron_proxy("polyhedron_param_proxy");
-    export_faceted_sphere_proxy("faceted_sphere_param_proxy");
-    export_sphinx_proxy("sphinx3d_param_proxy");
-    export_shape_union_proxy<ShapeSphere>("sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > >);
+    export_polyhedron_proxy(m, "polyhedron_param_proxy");
+    export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
+    export_sphinx_proxy(m, "sphinx3d_param_proxy");
+    export_shape_union_proxy<ShapeSphere>(m, "sphere_union_param_proxy", export_sphere_proxy<ShapeUnion<ShapeSphere>, detail::access_shape_union_members< ShapeUnion<ShapeSphere> > > );
     }
 
 } // end namespace hpmc

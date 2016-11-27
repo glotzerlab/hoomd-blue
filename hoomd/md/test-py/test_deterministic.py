@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -15,16 +16,16 @@ class determinstic(unittest.TestCase):
         self.polymers = [self.polymer1, self.polymer2]
         self.box = data.boxdim(L=35);
         self.separation=dict(A=0.42, B=0.42)
-        self.s = init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        self.s = deprecated.init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
         self.assert_(context.current.system_definition);
         self.assert_(context.current.system);
         self.harmonic = md.bond.harmonic();
         self.harmonic.bond_coeff.set('polymer', k=1.0, r0=1.0)
-        self.pair = md.pair.lj(r_cut=2.5)
+        nl = md.nlist.cell(deterministic=True)
+        self.pair = md.pair.lj(r_cut=2.5, nlist=nl)
         self.pair.pair_coeff.set('A','A',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('A','B',epsilon=1.0, sigma=1.0)
         self.pair.pair_coeff.set('B','B',epsilon=1.0, sigma=1.0)
-        md.nlist.set_params(deterministic=True)
         option.set_autotuner_params(enable=False)
 
     def test_run1(self):

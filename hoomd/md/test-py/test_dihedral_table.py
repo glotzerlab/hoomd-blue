@@ -26,19 +26,20 @@ class dihedral_table_tests (unittest.TestCase):
 
             for i in range(10):
                 x = numpy.array([i, 0, 0], dtype=numpy.float32)
+                numpy.random.seed(10)
                 snap.particles.position[4*i+0,:] = x;
-                x += numpy.random.random(3)
+                x += numpy.random.random(3) * 0.1;
                 snap.particles.position[4*i+1,:] = x;
-                x += numpy.random.random(3)
+                x += numpy.random.random(3) * 0.1;
                 snap.particles.position[4*i+2,:] = x;
-                x += numpy.random.random(3)
+                x += numpy.random.random(3) * 0.1;
                 snap.particles.position[4*i+3,:] = x;
 
                 snap.dihedrals.group[i,:] = [4*i+0, 4*i+1, 4*i+2, 4*i+3];
 
         self.sys = init.read_snapshot(snap)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test to see that se can create a dihedral.table
     def test_create(self):

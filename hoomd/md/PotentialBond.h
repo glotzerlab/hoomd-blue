@@ -1,61 +1,7 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
-// $Id: PotentialBond.h 2904 2010-03-23 17:10:10Z joaander $
-// $URL: https://codeblue.umich.edu/hoomd-blue/svn/trunk/libhoomd/computes/PotentialBond.h $
-// Maintainer: phillicl
-
-#include <boost/shared_ptr.hpp>
-
-#include <boost/python.hpp>
-using namespace boost::python;
-
+#include <memory>
 #include "hoomd/ForceCompute.h"
 #include "hoomd/GPUArray.h"
 
@@ -68,6 +14,8 @@ using namespace boost::python;
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __POTENTIALBOND_H__
 #define __POTENTIALBOND_H__
@@ -84,7 +32,7 @@ class PotentialBond : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Constructs the compute
-        PotentialBond(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string& log_suffix="");
 
         //! Destructor
@@ -106,7 +54,7 @@ class PotentialBond : public ForceCompute
 
     protected:
         GPUArray<param_type> m_params;              //!< Bond parameters per type
-        boost::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
+        std::shared_ptr<BondData> m_bond_data;    //!< Bond data to use in computing bonds
         std::string m_log_name;                     //!< Cached log name
         std::string m_prof_name;                    //!< Cached profiler name
 
@@ -118,7 +66,7 @@ class PotentialBond : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template< class evaluator >
-PotentialBond< evaluator >::PotentialBond(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialBond< evaluator >::PotentialBond(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string& log_suffix)
     : ForceCompute(sysdef)
     {
@@ -382,17 +330,12 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 /*! \param name Name of the class in the exported python module
     \tparam T class type to export. \b Must be an instatiated PotentialBOnd class template.
 */
-template < class T > void export_PotentialBond(const std::string& name)
+template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
     {
-    class_<T, boost::shared_ptr<T>, bases<ForceCompute>, boost::noncopyable >
-        (name.c_str(), init< boost::shared_ptr<SystemDefinition>, const std::string& > ())
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(),pybind11::base<ForceCompute>())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string& > ())
         .def("setParams", &T::setParams)
         ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
     }
 
 #endif

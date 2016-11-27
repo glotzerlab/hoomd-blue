@@ -68,9 +68,17 @@ class gsd_write_tests (unittest.TestCase):
             self.snapshot.constraints.group[0] = [0, 1]
             self.snapshot.constraints.value[0] = 2.5
 
+            # special pairs
+            self.snapshot.pairs.types = ['p1', 'p2'];
+            self.snapshot.pairs.resize(2);
+            self.snapshot.pairs.typeid[:] = [0, 1];
+            self.snapshot.pairs.group[0] = [0, 1];
+            self.snapshot.pairs.group[1] = [2, 3];
+
+
         self.s = init.read_snapshot(self.snapshot);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the dump
     def test(self):
@@ -109,6 +117,15 @@ class gsd_write_tests (unittest.TestCase):
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
 
+    # tests write_restart
+    def write_restart(self):
+        g = dump.gsd(filename="test.gsd", group=group.all(), period=1000000, truncate=True, overwrite=True);
+        run(5);
+        g.write_restart();
+        data.gsd_snapshot('test.gsd', frame=0);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, 'test.gsd', frame=1);
+
     # test all static quantities
     def test_all_static(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=1, static=['attribute', 'property', 'momentum', 'topology'], overwrite=True);
@@ -133,7 +150,6 @@ class gsd_write_tests (unittest.TestCase):
         init.read_gsd(filename='test.gsd', frame=4);
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, init.read_gsd, 'test.gsd', frame=5);
-
 
     def tearDown(self):
         if comm.get_rank() == 0:
@@ -211,8 +227,16 @@ class gsd_read_tests (unittest.TestCase):
             self.snapshot.constraints.group[0] = [0, 1]
             self.snapshot.constraints.value[0] = 2.5
 
+            # pairs
+            self.snapshot.pairs.types = ['p1', 'p2'];
+            self.snapshot.pairs.resize(2);
+            self.snapshot.pairs.typeid[:] = [0, 1];
+            self.snapshot.pairs.group[0] = [0, 1];
+            self.snapshot.pairs.group[1] = [2, 3];
+
+
         self.s = init.read_snapshot(self.snapshot);
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests data.gsd_snapshot
     def test_gsd_snapshot(self):
@@ -267,6 +291,74 @@ class gsd_read_tests (unittest.TestCase):
             numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
             numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
 
+            self.assertEqual(snap.pairs.N, self.snapshot.pairs.N);
+            self.assertEqual(snap.pairs.types, self.snapshot.pairs.types);
+            numpy.testing.assert_array_equal(snap.pairs.typeid, self.snapshot.pairs.typeid);
+            numpy.testing.assert_array_equal(snap.pairs.group, self.snapshot.pairs.group);
+
+
+    # test changing the order particles
+    def test_remove(self):
+        # remove particle so that tag 2 points to no particle, and particle tags are no longer contiguous
+        self.s.particles.remove(2)
+        self.snapshot = self.s.take_snapshot(all=True)
+        dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
+
+        snap = data.gsd_snapshot('test.gsd', frame=0);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.box.dimensions, self.snapshot.box.dimensions);
+            self.assertEqual(snap.box.Lx, self.snapshot.box.Lx);
+            self.assertEqual(snap.box.Ly, self.snapshot.box.Ly);
+            self.assertEqual(snap.box.Lz, self.snapshot.box.Lz);
+            self.assertEqual(snap.box.xy, self.snapshot.box.xy);
+            self.assertEqual(snap.box.xz, self.snapshot.box.xz);
+            self.assertEqual(snap.box.yz, self.snapshot.box.yz);
+
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            self.assertEqual(snap.particles.types, self.snapshot.particles.types);
+
+            numpy.testing.assert_array_equal(snap.particles.typeid, self.snapshot.particles.typeid);
+            numpy.testing.assert_array_equal(snap.particles.mass, self.snapshot.particles.mass);
+            numpy.testing.assert_array_equal(snap.particles.charge, self.snapshot.particles.charge);
+            numpy.testing.assert_array_equal(snap.particles.diameter, self.snapshot.particles.diameter);
+            numpy.testing.assert_array_equal(snap.particles.body, self.snapshot.particles.body);
+            numpy.testing.assert_array_equal(snap.particles.moment_inertia, self.snapshot.particles.moment_inertia);
+            numpy.testing.assert_array_equal(snap.particles.position, self.snapshot.particles.position);
+            numpy.testing.assert_array_equal(snap.particles.orientation, self.snapshot.particles.orientation);
+            numpy.testing.assert_array_equal(snap.particles.velocity, self.snapshot.particles.velocity);
+            numpy.testing.assert_array_equal(snap.particles.angmom, self.snapshot.particles.angmom);
+            numpy.testing.assert_array_equal(snap.particles.image, self.snapshot.particles.image);
+
+            self.assertEqual(snap.bonds.N, self.snapshot.bonds.N);
+            self.assertEqual(snap.bonds.types, self.snapshot.bonds.types);
+            numpy.testing.assert_array_equal(snap.bonds.typeid, self.snapshot.bonds.typeid);
+            numpy.testing.assert_array_equal(snap.bonds.group, self.snapshot.bonds.group);
+
+            self.assertEqual(snap.angles.N, self.snapshot.angles.N);
+            self.assertEqual(snap.angles.types, self.snapshot.angles.types);
+            numpy.testing.assert_array_equal(snap.angles.typeid, self.snapshot.angles.typeid);
+            numpy.testing.assert_array_equal(snap.angles.group, self.snapshot.angles.group);
+
+            self.assertEqual(snap.dihedrals.N, self.snapshot.dihedrals.N);
+            self.assertEqual(snap.dihedrals.types, self.snapshot.dihedrals.types);
+            numpy.testing.assert_array_equal(snap.dihedrals.typeid, self.snapshot.dihedrals.typeid);
+            numpy.testing.assert_array_equal(snap.dihedrals.group, self.snapshot.dihedrals.group);
+
+            self.assertEqual(snap.impropers.N, self.snapshot.impropers.N);
+            self.assertEqual(snap.impropers.types, self.snapshot.impropers.types);
+            numpy.testing.assert_array_equal(snap.impropers.typeid, self.snapshot.impropers.typeid);
+            numpy.testing.assert_array_equal(snap.impropers.group, self.snapshot.impropers.group);
+
+            self.assertEqual(snap.constraints.N, self.snapshot.constraints.N);
+            numpy.testing.assert_array_equal(snap.constraints.group, self.snapshot.constraints.group);
+            numpy.testing.assert_array_equal(snap.constraints.value, self.snapshot.constraints.value);
+
+            self.assertEqual(snap.pairs.N, self.snapshot.pairs.N);
+            self.assertEqual(snap.pairs.types, self.snapshot.pairs.types);
+            numpy.testing.assert_array_equal(snap.pairs.typeid, self.snapshot.pairs.typeid);
+            numpy.testing.assert_array_equal(snap.pairs.group, self.snapshot.pairs.group);
+
+
     # tests init.read_gsd
     def test_read_gsd(self):
         dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
@@ -279,6 +371,49 @@ class gsd_read_tests (unittest.TestCase):
             os.remove('test.gsd');
         comm.barrier_all();
         context.initialize();
+
+# unit tests for dump.gsd with default type
+class gsd_default_type (unittest.TestCase):
+    def setUp(self):
+        print
+        self.snapshot = data.make_snapshot(N=4, box=data.boxdim(L=10), dtype='float');
+        if comm.get_rank() == 0:
+            # particles
+            self.snapshot.particles.position[0] = [0,1,2];
+            self.snapshot.particles.position[1] = [1,2,3];
+            self.snapshot.particles.position[2] = [0,-1,-2];
+            self.snapshot.particles.position[3] = [-1, -2, -3];
+            self.snapshot.particles.velocity[0] = [10, 11, 12];
+            self.snapshot.particles.velocity[1] = [11, 12, 13];
+            self.snapshot.particles.velocity[2] = [12, 13, 14];
+            self.snapshot.particles.velocity[3] = [13, 14, 15];
+            self.snapshot.particles.types = ['A'];
+
+        self.s = init.read_snapshot(self.snapshot);
+        context.current.sorter.set_params(grid=8)
+
+    # tests data.gsd_snapshot
+    def test_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
+
+        snap = data.gsd_snapshot('test.gsd', frame=0);
+        if comm.get_rank() == 0:
+            self.assertEqual(snap.particles.N, self.snapshot.particles.N);
+            self.assertEqual(snap.particles.types, self.snapshot.particles.types);
+
+    # tests init.read_gsd
+    def test_read_gsd(self):
+        dump.gsd(filename="test.gsd", group=group.all(), period=None, overwrite=True);
+        context.initialize();
+
+        init.read_gsd(filename='test.gsd');
+
+    def tearDown(self):
+        if comm.get_rank() == 0:
+            os.remove('test.gsd');
+        comm.barrier_all();
+        context.initialize();
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

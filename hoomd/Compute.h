@@ -1,59 +1,13 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -67,6 +21,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -87,7 +43,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     calculate forces, and calculate temperatures, just to name a few.
 
     For performance and simplicity, each compute is associated with a ParticleData
-    on construction. ParticleData pointers are managed with reference counted boost::shared_ptr.
+    on construction. ParticleData pointers are managed with reference counted std::shared_ptr.
     Since each ParticleData cannot change size, this allows the Compute to preallocate
     any data structures that it may need.
 
@@ -100,18 +56,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class Compute : boost::noncopyable
+class Compute
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
-        Compute(boost::shared_ptr<SystemDefinition> sysdef);
+        Compute(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Compute() {};
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(unsigned int timestep) = 0;
+        virtual void compute(unsigned int timestep){}
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
@@ -121,21 +77,17 @@ class Compute : boost::noncopyable
             call all of the Compute's printStats functions at the end of a run
             so the user can see useful information
         */
-        virtual void printStats()
-            {
-            }
+        virtual void printStats(){}
 
         //! Reset stat counters
         /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
-        virtual void resetStats()
-            {
-            }
+        virtual void resetStats(){}
 
         //! Sets the profiler for the compute to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -179,27 +131,27 @@ class Compute : boost::noncopyable
          *  been calculated earlier in this timestep)
          * \param timestep current timestep
          */
-        virtual void forceCompute(unsigned int timestep);
+        void forceCompute(unsigned int timestep);
 
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
+        std::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_force_compute;           //!< true if calculation is enforced
 
         //! Simple method for testing if the computation should be run or not
@@ -214,6 +166,8 @@ class Compute : boost::noncopyable
     };
 
 //! Exports the Compute class to python
-void export_Compute();
+#ifndef NVCC
+void export_Compute(pybind11::module& m);
+#endif
 
 #endif

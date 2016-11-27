@@ -1,57 +1,14 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
-
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
 
-#include <hoomd/HOOMDMath.h>
-#include <hoomd/VectorMath.h>
+#include "hoomd/HOOMDMath.h"
+#include "hoomd/VectorMath.h"
+#include "hoomd/AABB.h"
+
 #include <algorithm>
+#include <cfloat>
 
 #ifndef __OBB_H__
 #define __OBB_H__
@@ -85,30 +42,6 @@ namespace detail
     @{
 */
 
-//! Matrix vector multiplication
-/*! \param A matrix
-    \param B matrix
-    \returns A*b
-
-    Multiplication is matrix multiplication, where the vector is represented as a column vector.
-*/
-template < class Real >
-DEVICE inline rotmat3<Real> operator*(const rotmat3<Real>& A, const rotmat3<Real>& B)
-    {
-    rotmat3<OverlapReal> r;
-    rotmat3<OverlapReal> B_t = transpose(B);
-    r.row0.x = dot(A.row0,B_t.row0);
-    r.row0.y = dot(A.row0,B_t.row1);
-    r.row0.z = dot(A.row0,B_t.row2);
-    r.row1.x = dot(A.row1,B_t.row0);
-    r.row1.y = dot(A.row1,B_t.row1);
-    r.row1.z = dot(A.row1,B_t.row2);
-    r.row2.x = dot(A.row2,B_t.row0);
-    r.row2.y = dot(A.row2,B_t.row1);
-    r.row2.z = dot(A.row2,B_t.row2);
-    return r;
-    }
-
 //! Axis aligned bounding box
 /*! An OBB represents a bounding volume defined by an axis-aligned bounding box. It is stored as plain old data
     with a lower and upper bound. This is to make the most common operation of OBB overlap testing fast.
@@ -140,10 +73,34 @@ struct OBB
         center = _position;
         }
 
+    DEVICE OBB(const detail::AABB& aabb)
+        {
+        lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
+        center = aabb.getPosition();
+        }
+
+    //! Construct an OBB from an AABB
     //! Get the OBB's position
     DEVICE vec3<OverlapReal> getPosition() const
         {
         return center;
+        }
+
+    //! Get list of OBB corners
+    std::vector<vec3<OverlapReal> > getCorners() const
+        {
+        std::vector< vec3<OverlapReal> > corners(8);
+
+        rotmat3<OverlapReal> r(transpose(rotation));
+        corners[0] = center + r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
+        corners[1] = center - r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
+        corners[2] = center + r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
+        corners[3] = center - r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
+        corners[4] = center + r.row0*lengths.x + r.row1*lengths.y - r.row2*lengths.z;
+        corners[5] = center - r.row0*lengths.x + r.row1*lengths.y - r.row2*lengths.z;
+        corners[6] = center + r.row0*lengths.x - r.row1*lengths.y - r.row2*lengths.z;
+        corners[7] = center - r.row0*lengths.x - r.row1*lengths.y - r.row2*lengths.z;
+        return corners;
         }
 
     //! Rotate OBB, then translate the given vector
@@ -160,10 +117,12 @@ struct OBB
     \param b Second OBB
 
     \param exact If true, report exact overlaps
+    Otherwise, false positives may be reported (which do not hurt
+    since this is used in broad phase), which can improve performance
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;
@@ -175,7 +134,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b)
     t = transpose(a.rotation)*t;
 
     // compute common subexpressions. Add in epsilon term to counteract
-    // arithmetic errors when two edges are parallel and teir cross prodcut is (near) null
+    // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
     const OverlapReal eps(1e-3); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
@@ -217,6 +176,8 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b)
     ra = a.lengths.x * rabs[0][2] + a.lengths.y * rabs[1][2] + a.lengths.z*rabs[2][2];
     rb = b.lengths.z;
     if (fabs(t.x*r.row0.z+t.y*r.row1.z+t.z*r.row2.z) > ra + rb) return false;
+
+    if (!exact) return true; // if exactness is not required, skip some tests
 
     // test axis L = A0 x B0
     ra = a.lengths.y * rabs[2][0] + a.lengths.z*rabs[1][0];
@@ -379,34 +340,6 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
     return res;
     }
-
-//! Merge two OBBs
-/*! \param obbs List of OBBs to merge
-    \returns A new OBB that encloses all OBBs
-*/
-DEVICE inline OBB merge(const std::vector<OBB>& obbs, OverlapReal vertex_radius)
-    {
-    unsigned int n = obbs.size();
-    std::vector<vec3<OverlapReal> > corners(8*n);
-
-    // construct OBB from corner points of the two OBBs
-    for (unsigned int i = 0; i < n; ++i)
-        {
-        const OBB& obb = obbs[i];
-        rotmat3<OverlapReal> r(transpose(obb.rotation));
-        corners[0+i*8] = obb.center + r.row0*obb.lengths.x + r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[1+i*8] = obb.center - r.row0*obb.lengths.x + r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[2+i*8] = obb.center + r.row0*obb.lengths.x - r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[3+i*8] = obb.center - r.row0*obb.lengths.x - r.row1*obb.lengths.y + r.row2*obb.lengths.z;
-        corners[4+i*8] = obb.center + r.row0*obb.lengths.x + r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[5+i*8] = obb.center - r.row0*obb.lengths.x + r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[6+i*8] = obb.center + r.row0*obb.lengths.x - r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        corners[7+i*8] = obb.center - r.row0*obb.lengths.x - r.row1*obb.lengths.y - r.row2*obb.lengths.z;
-        }
-
-    return compute_obb(corners, vertex_radius);
-    }
-
 #endif
 }; // end namespace detail
 

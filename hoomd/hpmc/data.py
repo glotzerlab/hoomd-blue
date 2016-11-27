@@ -1,17 +1,34 @@
-## \package hoomd.hpmc.data
-# \brief HPMC data structures
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+""" Shape data structures.
+"""
 
 import hoomd
 import hoomd.hpmc
 from hoomd.hpmc import _hpmc
 import numpy
 
-## Manages shape parameters
-#
-# The parameters for all hpmc integrator shapes are specified using this class. Parameters are
-# specified per particle type. Every HPMC integrator has a member shape_param that is of type _param and is used
-# to set the parameters of the shapes.
 class param_dict(dict):
+    R""" Manage shape parameters.
+
+    The parameters for all hpmc integrator shapes (:py:mod:`hoomd.hpmc.integrate`) are specified using this class.
+    Parameters are specified per particle type. Every HPMC integrator has a member shape_param that can read and
+    set parameters of the shapes.
+
+    :py:class:`param_dict` can be used as a dictionary to access parameters by type. You can read individual parameters
+    or set parameters with :py:meth:`set`.
+
+    Example::
+
+        mc = hpmc.integrate.sphere();
+        mc.shape_param['A'].set(diameter=2.0)
+        mc.shape_param['B'].set(diameter=0.1)
+        dA = mc.shape_param['A'].diameter
+        dB = mc.shape_param['B'].diameter
+
+    """
+
     def __init__(self, mc):
         dict.__init__(self);
         self.mc = mc;
@@ -27,34 +44,37 @@ class param_dict(dict):
                 raise RuntimeError("could not create proxy for type {}".format(key));
         return super(param_dict, self).__getitem__(key);
 
-    ## Sets parameters for particle type(s)
-    # \param type Particle type (string) or list of types
-    # \param params Named parameters (see below for examples)
-    # \returns nothing
-    #
-    # Calling set() results in one or more parameters being set for a shape. Types are identified
-    # by name, and parameters are also added by name. Which parameters you need to specify depends on the hpmc
-    # integrator you are setting these coefficients for, see the corresponding documentation.
-    #
-    # All possible particle types types defined in the simulation box must be specified before executing run().
-    # You will receive an error if you fail to do so. It is an error to specify coefficients for
-    # particle types that do not exist in the simulation.
-    #
-    # To set the same parameters for many particle types, provide a list of type names instead of a single
-    # one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
-    # of particles in the simulation can be gotten from a saved `sysdef` from the init command.
-    #
-    # \b Quick Examples:
-    # \code
-    # mc.shape_param.set('A', diameter=1.0)
-    # mc.shape_param.set('B', diameter=2.0)
-    # mc.shape_param.set(['A', 'B'], diameter=2.0)
-    # \endcode
-    #
-    # \note Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
-    # then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
-    #
     def set(self, types, **params):
+        """ Sets parameters for particle type(s).
+
+        Args:
+            type (str): Particle type (string) or list of types
+            params: Named parameters (see specific integrator for required parameters - :py:mod:`hoomd.hpmc.integrate`)
+
+        Calling set() results in one or more parameters being set for a shape. Types are identified
+        by name, and parameters are also added by name. Which parameters you need to specify depends on the hpmc
+        integrator you are setting these coefficients for, see the corresponding documentation.
+
+        All possible particle types types defined in the simulation box must be specified before executing :py:func:`hoomd.run()`.
+        You will receive an error if you fail to do so. It is an error to specify coefficients for
+        particle types that do not exist in the simulation.
+
+        To set the same parameters for many particle types, provide a list of type names instead of a single
+        one. All types in the list will be set to the same parameters. A convenient wildcard that lists all types
+        of particles in the simulation can be gotten from a saved `sysdef` from the init command.
+
+        Examples::
+
+            mc.shape_param.set('A', diameter=1.0)
+            mc.shape_param.set('B', diameter=2.0)
+            mc.shape_param.set(['A', 'B'], diameter=2.0)
+
+
+        Note:
+            Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
+            then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
+
+        """
         # hoomd.util.print_status_line();
 
         # listify the input
@@ -67,13 +87,13 @@ class param_dict(dict):
 
 class _param(object):
     def __init__(self, mc, typid):
-        self.__dict__.update(dict(_keys=['ignore_statistics', 'ignore_overlaps'], mc=mc, typid=typid, make_fn=None, is_set=False));
+        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False));
 
-    def ensure_list(self, li):
-        if(type(li) == numpy.ndarray):
-            return li.tolist();
-        else:
-            return list(li);
+    @classmethod
+    def ensure_list(cls, li):
+        # this will be slow if called many times but it is more robust.
+        ai = numpy.array(li);
+        return ai.tolist();
 
     def get_metadata(self):
         data = {}
@@ -88,6 +108,14 @@ class _param(object):
 
     def set(self, **params):
         self.is_set = True;
+
+        # backwards compatbility
+        if 'ignore_overlaps' in params:
+            # ugly workaround
+            super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
+            # do not pass to C++
+            params.pop('ignore_overlaps',None)
+
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
@@ -101,10 +129,9 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
         # should we put this in the c++ side?
         return "sphere(r = {})".format(self.diameter)
 
-    def make_param(self, diameter, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, diameter, ignore_statistics=False):
         return self.make_fn(float(diameter)/2.0,
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -118,11 +145,10 @@ class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
         string = "convex polygon(vertices = {})".format(self.vertices);
         return string;
 
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0.0),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class convex_spheropolygon_params(_hpmc.convex_spheropolygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -136,11 +162,10 @@ class convex_spheropolygon_params(_hpmc.convex_spheropolygon_param_proxy, _param
         string = "convex spheropolygon(sweep radius = {}, , vertices = {})".format(self.sweep_radius, self.vertices);
         return string;
 
-    def make_param(self, vertices, sweep_radius = 0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(sweep_radius),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -154,80 +179,67 @@ class simple_polygon_params(_hpmc.simple_polygon_param_proxy, _param):
         string = "simple polygon(vertices = {})".format(self.vertices);
         return string;
 
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
-class convex_polyhedron_params(_param):
+class convex_polyhedron_params(_hpmc.convex_polyhedron_param_proxy,_param):
     def __init__(self, mc, index):
-        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later becuase of the size template.
+        _hpmc.convex_polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices'];
-        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
+        self.make_fn = _hpmc.make_poly3d_verts
 
     def __str__(self):
         # should we put this in the c++ side?
         string = "convex polyhedron(vertices = {})".format(self.vertices);
         return string;
 
-    @classmethod
-    def get_sized_class(cls, max_verts):
-        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_polyhedron_param_proxy", max_verts);
-        return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
-
-    def make_param(self, vertices, ignore_overlaps=False, ignore_statistics=False):
-        if self.mc.max_verts < len(vertices):
-            raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(self.mc.max_verts,len(vertices)));
+    def make_param(self, vertices, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(0),
                             ignore_statistics,
-                            ignore_overlaps);
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_spheropolyhedron_params(_param):
+class convex_spheropolyhedron_params(_hpmc.convex_spheropolyhedron_param_proxy,_param):
     def __init__(self, mc, index):
-        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later becuase of the size template.
+        _hpmc.convex_spheropolyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
         self._keys += ['vertices', 'sweep_radius'];
-        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
+        self.make_fn = _hpmc.make_poly3d_verts;
 
     def __str__(self):
         # should we put this in the c++ side?
         string = "convex spheropolyhedron(sweep radius = {}, vertices = {})".format(self.sweep_radius, self.vertices);
         return string;
 
-    @classmethod
-    def get_sized_class(cls, max_verts):
-        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_spheropolyhedron_param_proxy", max_verts);
-        return type(cls.__name__ + str(max_verts), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is jusr for easeir refernce to call the constructor
-
-    def make_param(self, vertices, sweep_radius = 0.0, ignore_overlaps=False, ignore_statistics=False):
-        if self.mc.max_verts < len(vertices):
-            raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(self.mc.max_verts,len(vertices)));
-
+    def make_param(self, vertices, sweep_radius = 0.0, ignore_statistics=False):
         return self.make_fn(self.ensure_list(vertices),
                             float(sweep_radius),
                             ignore_statistics,
-                            ignore_overlaps);
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','sweep_radius'];
+        self._keys += ['vertices', 'faces','sweep_radius', 'capacity'];
         self.make_fn = _hpmc.make_poly3d_data;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {})".format(self.vertices, self.faces,self.sweep_radius);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces,self.sweep_radius, capacity);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4):
         face_offs = []
         face_verts = []
         offs = 0
         for face in faces:
+            if len(face) != 3 and len(face) != 1:
+                hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
+                raise RuntimeError('Error setting shape parameters')
             face_offs.append(offs)
             for face_idx in face:
                 face_verts.append(int(face_idx))
@@ -237,14 +249,19 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
         face_offs.append(offs)
 
         if sweep_radius < 0.0:
-            globals.msg.warning("A rounding radius < 0 does not make sense.\n")
+            hoomd.context.msg.warning("A rounding radius < 0 does not make sense.\n")
 
-        return self.make_fn(self.ensure_list(vertices),
+        if len(origin) != 3:
+            hoomd.context.error("Origin must be a coordinate triple.\n")
+
+        return self.make_fn([self.ensure_list(v) for v in vertices],
                             self.ensure_list(face_verts),
                             self.ensure_list(face_offs),
                             float(sweep_radius),
                             ignore_statistics,
-                            ignore_overlaps);
+                            capacity,
+                            self.ensure_list(origin),
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
     def __init__(self, mc, index):
@@ -258,14 +275,14 @@ class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
         string = "faceted sphere(vertices = {}, normals = {}, offsets = {})".format(self.vertices, self.normals, self.offsets);
         return string;
 
-    def make_param(self, normals, offsets, vertices, diameter, origin=(0.0, 0.0, 0.0), ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, normals, offsets, vertices, diameter, origin=(0.0, 0.0, 0.0), ignore_statistics=False):
         return self.make_fn(self.ensure_list(normals),
                             self.ensure_list(offsets),
                             self.ensure_list(vertices),
                             float(diameter),
                             tuple(origin),
                             bool(ignore_statistics),
-                            bool(ignore_overlaps));
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
     def __init__(self, mc, index):
@@ -280,12 +297,11 @@ class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
         string = "sphinx(centers = {}, diameters = {}, diameter = {})".format(self.centers, self.diameters, self.diameter);
         return string;
 
-    def make_param(self, diameters, centers, ignore_overlaps=False, ignore_statistics=False, colors=None):
+    def make_param(self, diameters, centers, ignore_statistics=False, colors=None):
         self.colors = None if colors is None else self.ensure_list(colors);
         return self.make_fn(self.ensure_list(diameters),
                             self.ensure_list(centers),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
 class ellipsoid_params(_hpmc.ell_param_proxy, _param):
     def __init__(self, mc, index):
@@ -298,29 +314,28 @@ class ellipsoid_params(_hpmc.ell_param_proxy, _param):
         # should we put this in the c++ side?
         return "ellipsoid(a = {}, b = {}, c = {})".format(self.a, self.b, self.c)
 
-    def make_param(self, a, b, c, ignore_overlaps=False, ignore_statistics=False):
+    def make_param(self, a, b, c, ignore_statistics=False):
         return self.make_fn(float(a),
                             float(b),
                             float(c),
-                            ignore_statistics,
-                            ignore_overlaps);
+                            ignore_statistics);
 
-class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
+class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
     def __init__(self, mc, index):
-        _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
+        _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['diameters', 'centers', 'orientations', 'diameter', 'colors'];
+        self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
         self.make_fn = _hpmc.make_sphere_union_params;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {})\n".format(self.centers, self.orientations, self.diameter);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {}, capacity = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap, self.capacity);
         ct = 0;
         members = self.members;
         for m in members:
             end = "\n" if ct < (len(members)-1) else "";
-            string+="sphere-{}(r = {}){}".format(ct, m.radius, end)
+            string+="sphere-{}(d = {}){}".format(ct, m.diameter, end)
             ct+=1
         return string;
 
@@ -328,14 +343,17 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         data = {}
         for key in self._keys:
             if key == 'diameters':
-                val = [ 2.0*m.radius for m in self.members ];
+                val = [ m.diameter for m in self.members ];
             else:
                 val = getattr(self, key);
             data[key] = val;
         return data;
 
-    def make_param(self, diameters, centers, ignore_overlaps=False, ignore_statistics=False, colors=None):
-        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
+    def make_param(self, diameters, centers, overlap=None, ignore_statistics=False, colors=None, capacity=4):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
@@ -343,5 +361,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return self.make_fn(self.ensure_list(members),
                             self.ensure_list(centers),
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
+                            self.ensure_list(overlap),
                             ignore_statistics,
-                            ignore_overlaps);
+                            capacity,
+                            hoomd.context.current.system_definition.getParticleData().getExecConf());

@@ -1,7 +1,11 @@
 # Maintainer: joaander
 
 # configure the version information file
-configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/include/HOOMDVersion.h)
+configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
+
+install(FILES ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include
+        )
 
 set(_hoomd_sources Analyzer.cc
                    Autotuner.cc
@@ -21,10 +25,10 @@ set(_hoomd_sources Analyzer.cc
                    ExecutionConfiguration.cc
                    ForceCompute.cc
                    ForceConstraint.cc
+                   GetarDumpWriter.cc
+                   GetarInitializer.cc
                    GSDDumpWriter.cc
                    GSDReader.cc
-                   HOOMDDumpWriter.cc
-                   HOOMDInitializer.cc
                    HOOMDMath.cc
                    HOOMDVersion.cc
                    IMDInterface.cc
@@ -34,14 +38,9 @@ set(_hoomd_sources Analyzer.cc
                    LoadBalancer.cc
                    Logger.cc
                    Messenger.cc
-                   MOL2DumpWriter.cc
-                   MSDAnalyzer.cc
                    ParticleData.cc
                    ParticleGroup.cc
-                   PDBDumpWriter.cc
-                   POSDumpWriter.cc
                    Profiler.cc
-                   RandomGenerator.cc
                    SFCPackUpdater.cc
                    SignalHandler.cc
                    SnapshotSystemData.cc
@@ -59,6 +58,76 @@ set(_hoomd_sources Analyzer.cc
                    extern/vmdsock.cc
                    extern/xmlParser.cc
                    )
+
+set(_hoomd_headers
+    AABB.h
+    AABBTree.h
+    Analyzer.h
+    Autotuner.h
+    BondedGroupData.cuh
+    BondedGroupData.h
+    BoxDim.h
+    BoxResizeUpdater.h
+    CachedAllocator.h
+    CallbackAnalyzer.h
+    CellListGPU.cuh
+    CellListGPU.h
+    CellList.h
+    CellListStencil.h
+    ClockSource.h
+    CommunicatorGPU.cuh
+    CommunicatorGPU.h
+    Communicator.h
+    Compute.h
+    ComputeThermoGPU.cuh
+    ComputeThermoGPU.h
+    ComputeThermo.h
+    ComputeThermoTypes.h
+    ConstForceCompute.h
+    DCDDumpWriter.h
+    DomainDecomposition.h
+    ExecutionConfiguration.h
+    Filesystem.h
+    ForceCompute.h
+    ForceConstraint.h
+    GetarDumpIterators.h
+    GetarDumpWriter.h
+    GetarInitializer.h
+    GPUArray.h
+    GPUFlags.h
+    GPUVector.h
+    GSDDumpWriter.h
+    GSDReader.h
+    HOOMDMath.h
+    HOOMDMPI.h
+    IMDInterface.h
+    Index1D.h
+    Initializers.h
+    Integrator.cuh
+    IntegratorData.h
+    Integrator.h
+    LoadBalancerGPU.cuh
+    LoadBalancerGPU.h
+    LoadBalancer.h
+    Logger.h
+    Messenger.h
+    ParticleData.cuh
+    ParticleData.h
+    ParticleGroup.cuh
+    ParticleGroup.h
+    Profiler.h
+    SFCPackUpdaterGPU.cuh
+    SFCPackUpdaterGPU.h
+    SFCPackUpdater.h
+    SignalHandler.h
+    SnapshotSystemData.h
+    SystemDefinition.h
+    System.h
+    TextureTools.h
+    Updater.h
+    Variant.h
+    VectorMath.h
+    )
 
 if (ENABLE_CUDA)
 list(APPEND _hoomd_sources CellListGPU.cc
@@ -80,6 +149,29 @@ set(_hoomd_cu_sources BondedGroupData.cu
                       SFCPackUpdaterGPU.cu
                       extern/mgpucontext.cu)
 
+# include libgetar sources directly into _hoomd.so
+get_property(GETAR_SRCS_REL TARGET getar PROPERTY SOURCES)
+foreach(getar_src ${GETAR_SRCS_REL})
+  list(APPEND _hoomd_sources ${libgetar_DIR}/${getar_src})
+endforeach(getar_src)
+
+# add libgetar-specific defines
+get_property(HOOMD_DEFS DIRECTORY . PROPERTY COMPILE_DEFINITIONS)
+get_property(GETAR_DEFS DIRECTORY ${libgetar_DIR} PROPERTY COMPILE_DEFINITIONS)
+list(REMOVE_ITEM GETAR_DEFS ${HOOMD_DEFS})
+foreach(def ${GETAR_DEFS})
+  add_definitions(-D${def})
+endforeach(def)
+
+# add libgetar-specific libraries
+get_property(GETAR_LIBS TARGET getar PROPERTY LINK_LIBRARIES)
+list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
+
+# quiet some warnings locally on files we can't modify
+if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+    set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
+endif()
+
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_hoomd_sources} ${_hoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
@@ -91,6 +183,8 @@ add_library (_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
 target_link_libraries(_hoomd ${HOOMD_COMMON_LIBS})
+
+set(HOOMD_LIBRARIES _hoomd ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -146,10 +240,10 @@ set(files analyze.py
           integrate.py
           meta.py
           option.py
-          sorter.py
           update.py
           util.py
           variant.py
+          lattice.py
     )
 
 install(FILES ${files}
@@ -160,7 +254,34 @@ foreach(file ${files})
     copy_file(${file})
 endforeach()
 
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_header file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/include/hoomd/${file}
+        COMMENT    "Copy hoomd/include/hoomd/${file}"
+    )
+ENDMACRO(copy_header)
+
 add_custom_target(copy_hoomd ALL DEPENDS ${files})
+
+# install headers in installation target
+install(FILES ${_hoomd_headers}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd
+       )
+
+if (COPY_HEADERS)
+# copy headers into build directory
+foreach(file ${_hoomd_headers})
+    copy_header(${file})
+endforeach()
+
+add_custom_target(copy_hoomd_headers ALL DEPENDS ${_hoomd_headers})
+endif()
+
+add_subdirectory(extern)
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
@@ -169,6 +290,11 @@ endif()
 
 option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
+    if (ENABLE_MPI)
+        # add the distributed FFT library
+        add_subdirectory(${HOOMD_SOURCE_DIR}/hoomd/extern/dfftlib)
+    endif()
+
     add_subdirectory(md)
 endif()
 
@@ -181,3 +307,36 @@ endif()
 if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
+
+option(BUILD_DEPRECATED "Build the deprecated package" on)
+if (BUILD_DEPRECATED)
+    add_subdirectory(deprecated)
+endif()
+
+option(BUILD_CGCMM "Build the cgcmm package" on)
+if (BUILD_CGCMM AND BUILD_MD)
+    add_subdirectory(cgcmm)
+endif()
+
+option(BUILD_METAL "Build the metal package" on)
+if (BUILD_METAL AND BUILD_MD)
+    add_subdirectory(metal)
+endif()
+
+option(BUILD_DEM "Build the dem package" on)
+if (BUILD_DEM AND BUILD_MD)
+    add_subdirectory(dem)
+endif()
+
+file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
+
+# explicitly remove packages which are already explicitly dealt with
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem)
+
+foreach(entry ${_directory_contents})
+    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+        if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+            add_subdirectory(${entry})
+        endif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${entry}/CMakeLists.txt)
+    endif(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
+endforeach()

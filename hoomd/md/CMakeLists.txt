@@ -3,12 +3,11 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    BondTablePotential.cc
-                   CGCMMAngleForceCompute.cc
-                   CGCMMForceCompute.cc
+                   CommunicatorGrid.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
-                   EAMForceCompute.cc
+                   OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
                    ForceComposite.cc
@@ -37,16 +36,123 @@ set(_md_sources module-md.cc
                    TwoStepNVE.cc
                    TwoStepNVTMTK.cc
                    ZeroMomentumUpdater.cc
+		   MuellerPlatheFlow.cc
                    )
+
+set(_md_headers ActiveForceComputeGPU.h
+                ActiveForceCompute.h
+                AllAnisoPairPotentials.h
+                AllBondPotentials.h
+                AllExternalPotentials.h
+                AllPairPotentials.h
+                AllTripletPotentials.h
+                AnisoPotentialPairGPU.h
+                AnisoPotentialPair.h
+                BondTablePotentialGPU.h
+                BondTablePotential.h
+                CommunicatorGridGPU.h
+                CommunicatorGrid.h
+                ConstExternalFieldDipoleForceCompute.h
+                ConstraintEllipsoidGPU.h
+                ConstraintEllipsoid.h
+                ConstraintSphereGPU.h
+                ConstraintSphere.h
+                Enforce2DUpdaterGPU.h
+                Enforce2DUpdater.h
+                EvaluatorBondFENE.h
+                EvaluatorBondHarmonic.h
+                EvaluatorSpecialPairLJ.h
+                EvaluatorConstraintEllipsoid.h
+                EvaluatorConstraint.h
+                EvaluatorConstraintSphere.h
+                EvaluatorExternalElectricField.h
+                EvaluatorExternalPeriodic.h
+                EvaluatorPairDipole.h
+                EvaluatorPairDPDLJThermo.h
+                EvaluatorPairDPDThermo.h
+                EvaluatorPairEwald.h
+                EvaluatorPairForceShiftedLJ.h
+                EvaluatorPairGauss.h
+                EvaluatorPairGB.h
+                EvaluatorPairLJ.h
+                EvaluatorPairMie.h
+                EvaluatorPairMoliere.h
+                EvaluatorPairMorse.h
+                EvaluatorPairReactionField.h
+                EvaluatorPairSLJ.h
+                EvaluatorPairYukawa.h
+                EvaluatorPairZBL.h
+                EvaluatorTersoff.h
+                EvaluatorWalls.h
+                FIREEnergyMinimizerGPU.h
+                FIREEnergyMinimizer.h
+                ForceCompositeGPU.h
+                ForceComposite.h
+                ForceDistanceConstraintGPU.h
+                ForceDistanceConstraint.h
+                HarmonicAngleForceComputeGPU.h
+                HarmonicAngleForceCompute.h
+                HarmonicDihedralForceComputeGPU.h
+                HarmonicDihedralForceCompute.h
+                HarmonicImproperForceComputeGPU.h
+                HarmonicImproperForceCompute.h
+                IntegrationMethodTwoStep.h
+                IntegratorTwoStep.h
+                MolecularForceCompute.h
+                NeighborListBinned.h
+                NeighborListGPUBinned.h
+                NeighborListGPU.h
+                NeighborListGPUStencil.h
+                NeighborListGPUTree.h
+                NeighborList.h
+                NeighborListStencil.h
+                NeighborListTree.h
+                OPLSDihedralForceComputeGPU.h
+                OPLSDihedralForceCompute.h
+                PotentialBondGPU.h
+                PotentialBond.h
+                PotentialExternalGPU.h
+                PotentialExternal.h
+                PotentialPairDPDThermoGPU.h
+                PotentialPairDPDThermo.h
+                PotentialPairGPU.h
+                PotentialPair.h
+                PotentialTersoffGPU.h
+                PotentialTersoff.h
+                PPPMForceComputeGPU.h
+                PPPMForceCompute.h
+                QuaternionMath.h
+                TableAngleForceComputeGPU.h
+                TableAngleForceCompute.h
+                TableDihedralForceComputeGPU.h
+                TableDihedralForceCompute.h
+                TablePotentialGPU.h
+                TablePotential.h
+                TempRescaleUpdater.h
+                TwoStepBDGPU.h
+                TwoStepBD.h
+                TwoStepBerendsenGPU.h
+                TwoStepBerendsen.h
+                TwoStepLangevinBase.h
+                TwoStepLangevinGPU.h
+                TwoStepLangevin.h
+                TwoStepNPTMTKGPU.h
+                TwoStepNPTMTK.h
+                TwoStepNVEGPU.h
+                TwoStepNVE.h
+                TwoStepNVTMTKGPU.h
+                TwoStepNVTMTK.h
+                WallData.h
+                ZeroMomentumUpdater.h
+                )
 
 if (ENABLE_CUDA)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            BondTablePotentialGPU.cc
-                           CGCMMAngleForceComputeGPU.cc
-                           CGCMMForceComputeGPU.cc
+                           CommunicatorGridGPU.cc
                            ConstraintEllipsoidGPU.cc
                            ConstraintSphereGPU.cc
-                           EAMForceComputeGPU.cc
+                           OneDConstraintGPU.cc
                            Enforce2DUpdaterGPU.cc
                            FIREEnergyMinimizerGPU.cc
                            ForceCompositeGPU.cc
@@ -69,20 +175,21 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNPTMTKGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
+			   MuellerPlatheFlowGPU.cc
                            )
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
+                      AllDriverPotentialSpecialPairGPU.cu
                       AllDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
-                      CGCMMAngleForceGPU.cu
-                      CGCMMForceGPU.cu
+                      CommunicatorGridGPU.cu
                       ConstraintEllipsoidGPU.cu
                       ConstraintSphereGPU.cu
+                      OneDConstraintGPU.cu
                       DriverTersoffGPU.cu
-                      EAMForceGPU.cu
                       Enforce2DUpdaterGPU.cu
                       FIREEnergyMinimizerGPU.cu
                       ForceCompositeGPU.cu
@@ -96,7 +203,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       NeighborListGPUTree.cu
                       OPLSDihedralForceGPU.cu
                       PotentialExternalGPU.cu
-                      PPPMForceGPU.cu
+                      PPPMForceComputeGPU.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
                       TablePotentialGPU.cu
@@ -106,19 +213,20 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNPTMTKGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepNVTMTKGPU.cu
+		      MuellerPlatheFlowGPU.cu
                       )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_md_sources} ${_md_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 if (ENABLE_CUDA)
-CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
+CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES})
+add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
 
 # link the library to its dependencies
-target_link_libraries(_md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -174,6 +282,7 @@ set(files __init__.py
           pair.py
           update.py
           wall.py
+          special_pair.py
     )
 
 install(FILES ${files}
@@ -185,6 +294,31 @@ foreach(file ${files})
 endforeach()
 
 add_custom_target(copy_md ALL DEPENDS ${files})
+
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_header file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/md/${file}
+        COMMENT    "Copy hoomd/include/hoomd/md/${file}"
+    )
+ENDMACRO(copy_header)
+
+# install headers in installation target
+install(FILES ${_md_headers}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/md
+       )
+
+if (COPY_HEADERS)
+# copy headers into build directory
+foreach(file ${_md_headers})
+    copy_header(${file})
+endforeach()
+
+add_custom_target(copy_md_headers ALL DEPENDS ${_md_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

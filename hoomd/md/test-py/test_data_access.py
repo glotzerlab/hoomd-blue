@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -11,9 +12,9 @@ import os
 class particle_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_random(N=100, phi_p=0.05);
+        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests reading/setting of the box
     def test_box(self):
@@ -185,18 +186,22 @@ class particle_data_access_tests (unittest.TestCase):
         del self.s
         context.initialize();
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # tests for bond, angle, dihedral, and improper data access
 class bond_data_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = init.create_empty(N=100, box=data.boxdim(L=10),
+        self.s = create_empty(N=100, box=data.boxdim(L=10),
                                    particle_types=['A'],
                                    bond_types=['bondA', 'bondB'],
                                    angle_types=['angleA', 'angleB'],
                                    dihedral_types=['dihedralA', 'dihedralB'],
                                    improper_types=['improperA', 'improperB']);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests bonds
     def test_bonds(self):
@@ -411,13 +416,14 @@ class bond_data_access_tests (unittest.TestCase):
 class pair_access_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # basic test of creation
     def test(self):
-        lj = md.pair.lj(r_cut=3.0);
+        nl = md.nlist.cell()
+        lj = md.pair.lj(r_cut=3.0, nlist = nl);
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
         lj.update_coeffs();
         for p in lj.forces:

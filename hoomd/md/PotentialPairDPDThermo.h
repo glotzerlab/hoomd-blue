@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: phillicl
 
@@ -92,8 +47,8 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         typedef typename evaluator::param_type param_type;
 
         //! Construct the pair potential
-        PotentialPairDPDThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<NeighborList> nlist,
+        PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairDPDThermo() { };
@@ -103,7 +58,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
         virtual void setSeed(unsigned int seed);
 
         //! Set the temperature
-        virtual void setT(boost::shared_ptr<Variant> T);
+        virtual void setT(std::shared_ptr<Variant> T);
 
         #ifdef ENABLE_MPI
         //! Get ghost particle fields requested by this pair potential
@@ -113,7 +68,7 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
     protected:
 
         unsigned int m_seed;  //!< seed for PRNG for DPD thermostat
-        boost::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
+        std::shared_ptr<Variant> m_T;     //!< Temperature for the DPD thermostat
 
         //! Actually compute the forces (overwrites PotentialPair::computeForces())
         virtual void computeForces(unsigned int timestep);
@@ -124,8 +79,8 @@ class PotentialPairDPDThermo : public PotentialPair<evaluator>
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : PotentialPair<evaluator>(sysdef,nlist, log_suffix)
     {
@@ -146,7 +101,7 @@ void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
 /*! \param T the temperature the system is thermostated on this time step.
 */
 template< class evaluator >
-void PotentialPairDPDThermo< evaluator >::setT(boost::shared_ptr<Variant> T)
+void PotentialPairDPDThermo< evaluator >::setT(std::shared_ptr<Variant> T)
     {
     m_T = T;
     }
@@ -341,21 +296,13 @@ CommFlags PotentialPairDPDThermo< evaluator >::getRequestedCommFlags(unsigned in
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermo class template.
     \tparam Base Base class of \a T. \b Must be PotentialPair<evaluator> with the same evaluator as used in \a T.
 */
-
-//NOTE - not sure this boost python export is set up correctly.
-template < class T, class Base > void export_PotentialPairDPDThermo(const std::string& name)
+template < class T, class Base > void export_PotentialPairDPDThermo(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases< Base >, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setSeed", &T::setSeed)
-                  .def("setT", &T::setT)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base< Base >())
+        .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+        .def("setSeed", &T::setSeed)
+        .def("setT", &T::setT)
+              ;
     }
 
 

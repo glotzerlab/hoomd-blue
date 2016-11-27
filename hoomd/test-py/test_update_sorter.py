@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -11,12 +12,12 @@ import os
 class update_sorter_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
     # test set_params
     def test_set_params(self):
 
-        sorter.set_params(grid=20);
+        context.current.sorter.set_params(grid=20);
 
     def tearDown(self):
         context.initialize();

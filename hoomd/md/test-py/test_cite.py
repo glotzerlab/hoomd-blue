@@ -2,6 +2,7 @@
 # Maintainer: mphoward
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd
 from hoomd import md
 context.initialize();
@@ -13,9 +14,9 @@ import tempfile
 class cite_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
         # ensure that the bibliography is there
         cite._ensure_global_bib()
@@ -34,9 +35,8 @@ class cite_tests (unittest.TestCase):
 
         # check that it has two entries, the default HOOMD citations, and that the keys match what they should be
         print(hoomd.context.bib.entries)
-        self.assertEqual(len(hoomd.context.bib.entries), 3)
+        self.assertEqual(len(hoomd.context.bib.entries), 2)
         self.assertIn('anderson2008', hoomd.context.bib.entries)
-        self.assertIn('hoomdweb', hoomd.context.bib.entries)
         self.assertIn('glaser2015', hoomd.context.bib.entries)
 
         # stringify the global bibliography (basically, save the pointer)

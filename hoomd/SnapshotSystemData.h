@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -65,6 +20,10 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 /*! \ingroup data_structs
 */
 
@@ -76,7 +35,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Snapshots are temporary data-structures, they are only used for passing around data.
  *
  * A SnapshotSystemData is just a super-structure that holds snapshots of other data, such
- * as particles, bonds, rigid bodies, etc. It is used by the SystemDefinition class to initially
+ * as particles, bonds, etc. It is used by the SystemDefinition class to initially
  * set up these data structures, and can also be obtained from an object of that class to
  * analyze the current system state.
  *
@@ -92,6 +51,7 @@ struct SnapshotSystemData {
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data
     ImproperData::Snapshot improper_data;    //!< The improper data
     ConstraintData::Snapshot constraint_data;//!< The constraint data
+    PairData::Snapshot pair_data;            //!< The pair data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
@@ -100,7 +60,7 @@ struct SnapshotSystemData {
     bool has_dihedral_data;                //!< True if snapshot contains dihedral data
     bool has_improper_data;                //!< True if snapshot contains improper data
     bool has_constraint_data;              //!< True if snapshot contains constraint data
-    bool has_rigid_data;                   //!< True if snapshot contains rigid data
+    bool has_pair_data;                    //!< True if snapshot contains pair data
     bool has_integrator_data;              //!< True if snapshot contains integrator data
 
     //! Constructor
@@ -115,7 +75,7 @@ struct SnapshotSystemData {
         has_dihedral_data = true;
         has_improper_data = true;
         has_constraint_data = true;
-        has_rigid_data = true;
+        has_pair_data = true;
         has_integrator_data = true;
         }
 
@@ -130,10 +90,11 @@ struct SnapshotSystemData {
     /*! \param exec_conf The execution configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
     */
-    void broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf);
+    void broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
 //! Export SnapshotParticleData to python
-void export_SnapshotSystemData();
+
+void export_SnapshotSystemData(pybind11::module& m);
 
 #endif

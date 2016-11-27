@@ -1,62 +1,18 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
+#include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file CellList.h
     \brief Declares the CellList class
@@ -65,6 +21,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __CELLLIST_H__
 #define __CELLLIST_H__
@@ -142,7 +100,7 @@ class CellList : public Compute
     {
     public:
         //! Construct a cell list
-        CellList(boost::shared_ptr<SystemDefinition> sysdef);
+        CellList(std::shared_ptr<SystemDefinition> sysdef);
 
         virtual ~CellList();
 
@@ -236,6 +194,13 @@ class CellList : public Compute
             m_params_changed = true;
             }
 
+        //! Set the flag to compute the cell adjacency list
+        void setComputeAdjList(bool compute_adj_list)
+            {
+            m_compute_adj_list = compute_adj_list;
+            m_params_changed = true;
+            }
+
         // @}
         //! \name Get properties
         // @{
@@ -301,6 +266,12 @@ class CellList : public Compute
         //! Get the adjacency list
         const GPUArray<unsigned int>& getCellAdjArray() const
             {
+            if (!m_compute_adj_list)
+                {
+                m_exec_conf->msg->error() << "Cell adjacency list is not computed!" << std::endl;
+                m_exec_conf->msg->error() << "Use setComputeAdjList(true) to calculate it on the next compute()" << std::endl;
+                throw std::runtime_error("Cell adjacency list not available");
+                }
             return m_cell_adj;
             }
 
@@ -342,14 +313,14 @@ class CellList : public Compute
 
         /*! \param func Function to call when the cell width changes
             \return Connection to manage the signal/slot connection
-            Calls are performed by using boost::signals2. The function passed in
+            Calls are performed by using nano_signal_slot. The function passed in
             \a func will be called every time the CellList is notified of a change in the cell width
             \note If the caller class is destroyed, it needs to disconnect the signal connection
             via \b con.disconnect where \b con is the return value of this function.
         */
-        boost::signals2::connection connectCellWidthChange(const boost::function<void ()> &func)
+        Nano::Signal<void ()>& getCellWidthChangeSignal()
             {
-            return m_width_change.connect(func);
+            return m_width_change;
             }
 
     protected:
@@ -383,10 +354,9 @@ class CellList : public Compute
         GPUArray<Scalar4> m_orientation;     //!< Cell list with orientation
         GPUArray<unsigned int> m_idx;        //!< Cell list with index
         GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
-        boost::signals2::connection m_sort_connection;        //!< Connection to the ParticleData sort signal
-        boost::signals2::connection m_boxchange_connection;   //!< Connection to the ParticleData box size change signal
 
         bool m_sort_cell_list;               //!< If true, sort cell list
+        bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists
 
         //! Computes what the dimensions should me
         uint3 computeDimensions();
@@ -415,10 +385,12 @@ class CellList : public Compute
         //! Resets the condition status
         virtual void resetConditions();
 
-        boost::signals2::signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
+        Nano::Signal<void ()> m_width_change;    //!< Signal that is triggered when the cell width changes
     };
 
 //! Export the CellList class to python
-void export_CellList();
+#ifndef NVCC
+void export_CellList(pybind11::module& m);
+#endif
 
 #endif

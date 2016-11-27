@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -56,8 +11,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "TempRescaleUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -69,9 +23,9 @@ using namespace std;
     \param thermo ComputeThermo to compute the temperature with
     \param tset Temperature set point
 */
-TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                                       boost::shared_ptr<ComputeThermo> thermo,
-                                       boost::shared_ptr<Variant> tset)
+TempRescaleUpdater::TempRescaleUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                       std::shared_ptr<ComputeThermo> thermo,
+                                       std::shared_ptr<Variant> tset)
         : Updater(sysdef), m_thermo(thermo), m_tset(tset)
     {
     m_exec_conf->msg->notice(5) << "Constructing TempRescaleUpdater" << endl;
@@ -101,7 +55,7 @@ void TempRescaleUpdater::update(unsigned int timestep)
 
     if (cur_temp < 1e-3)
         {
-        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 temperature to anything but 0, skipping this step" << endl;
+        m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 translational temperature to anything but 0, skipping this step" << endl;
         }
     else
         {
@@ -112,19 +66,44 @@ void TempRescaleUpdater::update(unsigned int timestep)
         assert(m_pdata);
             {
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
 
             for (unsigned int i = 0; i < m_pdata->getN(); i++)
                 {
-                    if (h_body.data[i] == NO_BODY)
-                    {
-                    h_vel.data[i].x *= fraction;
-                    h_vel.data[i].y *= fraction;
-                    h_vel.data[i].z *= fraction;
-                    }
+                h_vel.data[i].x *= fraction;
+                h_vel.data[i].y *= fraction;
+                h_vel.data[i].z *= fraction;
                 }
             }
 
+        }
+
+    cur_temp = m_thermo->getRotationalTemperature();
+    if (! std::isnan(cur_temp))
+        {
+        // only rescale if we have rotational degrees of freedom
+        if (cur_temp < 1e-3)
+            {
+            m_exec_conf->msg->notice(2) << "update.temp_rescale: cannot scale a 0 rotational temperature to anything but 0, skipping this step" << endl;
+            }
+        else
+            {
+            // calculate a fraction to scale the momenta by
+            Scalar fraction = sqrt(m_tset->getValue(timestep) / cur_temp);
+
+            // scale the free particle velocities
+            assert(m_pdata);
+                {
+                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+
+                for (unsigned int i = 0; i < m_pdata->getN(); i++)
+                    {
+                    h_angmom.data[i].x *= fraction;
+                    h_angmom.data[i].y *= fraction;
+                    h_angmom.data[i].z *= fraction;
+                    }
+                }
+
+            }
         }
 
     if (m_prof) m_prof->pop();
@@ -133,17 +112,17 @@ void TempRescaleUpdater::update(unsigned int timestep)
 /*! \param tset New temperature set point
     \note The new set point doesn't take effect until the next call to update()
 */
-void TempRescaleUpdater::setT(boost::shared_ptr<Variant> tset)
+void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
     {
     m_tset = tset;
     }
 
-void export_TempRescaleUpdater()
+void export_TempRescaleUpdater(py::module& m)
     {
-    class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
-    ("TempRescaleUpdater", init< boost::shared_ptr<SystemDefinition>,
-                                 boost::shared_ptr<ComputeThermo>,
-                                 boost::shared_ptr<Variant> >())
+    py::class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                                 std::shared_ptr<ComputeThermo>,
+                                 std::shared_ptr<Variant> >())
     .def("setT", &TempRescaleUpdater::setT)
     ;
     }

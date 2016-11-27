@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -70,25 +25,32 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #include <vector>
 
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/vector.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/archives/binary.hpp>
 
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
 #else
 //! Define MPI_DOUBLE as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #endif
 
-namespace boost
+
+typedef struct{
+    Scalar s;
+    int i;
+    }Scalar_Int;
+
+
+namespace cereal
    {
     //! Serialization functions for some of our data types
-    namespace serialization
-        {
         //! Serialization of Scalar4
         template<class Archive>
         void serialize(Archive & ar, Scalar4 & s, const unsigned int version)
@@ -143,7 +105,6 @@ namespace boost
             ar & u.y;
             ar & u.z;
             }
-        }
     }
 
 
@@ -159,7 +120,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
     if (rank == (int)root)
         {
         std::stringstream s(std::ios_base::out | std::ios_base::binary);
-        boost::archive::binary_oarchive ar(s);
+        cereal::BinaryOutputArchive ar(s);
 
         // serialize object
         ar << val;
@@ -184,7 +145,7 @@ void bcast(T& val, unsigned int root, const MPI_Comm mpi_comm)
         {
         // de-serialize
         std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
-        boost::archive::binary_iarchive ar(s);
+        cereal::BinaryInputArchive ar(s);
 
         ar >> val;
         }
@@ -220,7 +181,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
             {
             unsigned int idx = it - in_values.begin();
             std::stringstream s(std::ios_base::out | std::ios_base::binary);
-            boost::archive::binary_oarchive ar(s);
+            cereal::BinaryOutputArchive ar(s);
 
             // serialize object
             ar << *it;
@@ -249,7 +210,7 @@ void scatter_v(const std::vector<T>& in_values, T& out_value, unsigned int root,
 
     // de-serialize data
     std::stringstream s(std::string(rbuf, recv_count), std::ios_base::in | std::ios_base::binary);
-    boost::archive::binary_iarchive ar(s);
+    cereal::BinaryInputArchive ar(s);
 
     ar >> out_value;
 
@@ -273,7 +234,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
 
     // serialize in_value
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
-    boost::archive::binary_oarchive ar(s);
+    cereal::BinaryOutputArchive ar(s);
 
     ar << in_value;
     s.flush();
@@ -307,7 +268,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         }
 
     // now gather actual objects
-    MPI_Gatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
+    MPI_Gatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, root, mpi_comm);
 
     // on root processor, de-serialize data
     if (rank == (int) root)
@@ -315,7 +276,7 @@ void gather_v(const T& in_value, std::vector<T> & out_values, unsigned int root,
         for (unsigned int i = 0; i < out_values.size(); i++)
             {
             std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
-            boost::archive::binary_iarchive ar(s);
+            cereal::BinaryInputArchive ar(s);
 
             ar >> out_values[i];
             }
@@ -337,7 +298,7 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
 
     // serialize in_value
     std::stringstream s(std::ios_base::out | std::ios_base::binary);
-    boost::archive::binary_oarchive ar(s);
+    cereal::BinaryOutputArchive ar(s);
 
     ar << in_value;
     s.flush();
@@ -364,13 +325,13 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     char *rbuf = new char[len];
 
     // now gather actual objects
-    MPI_Allgatherv(str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
+    MPI_Allgatherv((void *)str.data(), send_count, MPI_BYTE, rbuf, recv_counts, displs, MPI_BYTE, mpi_comm);
 
     // de-serialize data
     for (unsigned int i = 0; i < out_values.size(); i++)
         {
         std::stringstream s(std::string(rbuf + displs[i], recv_counts[i]), std::ios_base::in | std::ios_base::binary);
-        boost::archive::binary_iarchive ar(s);
+        cereal::BinaryInputArchive ar(s);
 
         ar >> out_values[i];
         }
@@ -379,6 +340,66 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     delete[] recv_counts;
     delete[] rbuf;
     }
+
+//! Wrapper around MPI_Send that handles any serializable object
+template<typename T>
+void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
+    {
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+    if(rank == static_cast<int>(dest) ) //Quick exit, if dest is src
+      return;
+    char *buf = NULL;
+    int recv_count;
+
+    std::stringstream s(std::ios_base::out | std::ios_base::binary);
+    cereal::BinaryOutputArchive ar(s);
+
+    // serialize object
+    ar << val;
+
+    // do not forget to flush stream
+    s.flush();
+
+    // copy string to send buffer
+    std::string str = s.str();
+    recv_count = str.size();
+    buf = new char[recv_count];
+    str.copy(buf, recv_count);
+
+    MPI_Send(&recv_count, 1 , MPI_INT, dest, 0, mpi_comm);
+
+    MPI_Send(buf, recv_count, MPI_BYTE, dest, 0 , mpi_comm);
+
+    delete[] buf;
+    }
+
+//! Wrapper around MPI_Recv that handles any serializable object
+template<typename T>
+void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
+    {
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+    if( rank == static_cast<int>(src) ) //Quick exit if src is dest.
+      return;
+
+    int recv_count;
+
+    MPI_Recv(&recv_count, 1, MPI_INT, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+
+    char *buf = NULL;
+    buf = new char[recv_count];
+
+    MPI_Recv(buf, recv_count, MPI_BYTE, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+
+    // de-serialize
+    std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
+    cereal::BinaryInputArchive ar(s);
+    ar >> val;
+
+    delete[] buf;
+    }
+
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MATH_H__

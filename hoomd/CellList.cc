@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -56,19 +11,18 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "CellList.h"
 #include "Communicator.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
 #include <algorithm>
 
-using namespace boost;
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
+
 
 /*! \param sysdef system to compute the cell list of
 */
-CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
+CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     : Compute(sysdef),  m_nominal_width(Scalar(1.0)), m_radius(1), m_compute_tdb(false),
-      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false)
+      m_compute_orientation(false), m_compute_idx(false), m_flag_charge(false), m_flag_type(false), m_sort_cell_list(false),
+      m_compute_adj_list(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellList" << endl;
 
@@ -87,15 +41,15 @@ CellList::CellList(boost::shared_ptr<SystemDefinition> sysdef)
     m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
 
-    m_sort_connection = m_pdata->connectParticleSort(bind(&CellList::slotParticlesSorted, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&CellList::slotBoxChanged, this));
+    m_pdata->getParticleSortSignal().connect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().connect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 CellList::~CellList()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellList" << endl;
-    m_sort_connection.disconnect();
-    m_boxchange_connection.disconnect();
+    m_pdata->getParticleSortSignal().disconnect<CellList, &CellList::slotParticlesSorted>(this);
+    m_pdata->getBoxChangeSignal().disconnect<CellList, &CellList::slotBoxChanged>(this);
     }
 
 //! Round down to the nearest multiple
@@ -308,7 +262,7 @@ void CellList::initializeWidth()
                                   (L.z + Scalar(2.0)*m_ghost_width.z) / Scalar(m_dim.z));
 
     // signal that the width has changed
-    m_width_change();
+    m_width_change.emit();
 
     if (m_prof)
         m_prof->pop();
@@ -337,26 +291,37 @@ void CellList::initializeMemory()
     m_cell_indexer = Index3D(m_dim.x, m_dim.y, m_dim.z);
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
-    // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
-    uint3 n_unique_neighbors = m_dim;
-    n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
-    n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
-    n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
-
-    unsigned int n_adj;
-    if (m_sysdef->getNDimensions() == 2)
-        n_adj = n_unique_neighbors.x * n_unique_neighbors.y;
-    else
-        n_adj = n_unique_neighbors.x * n_unique_neighbors.y * n_unique_neighbors.z;
-
-    m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
-
     // allocate memory
     GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
-    GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
-    m_cell_adj.swap(cell_adj);
+    if (m_compute_adj_list)
+        {
+        // if we have less than radius*2+1 cells in a direction, restrict to unique neighbors
+        uint3 n_unique_neighbors = m_dim;
+        n_unique_neighbors.x = n_unique_neighbors.x > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.x;
+        n_unique_neighbors.y = n_unique_neighbors.y > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.y;
+        n_unique_neighbors.z = n_unique_neighbors.z > m_radius*2+1 ? m_radius*2+1 : n_unique_neighbors.z;
+
+        unsigned int n_adj;
+        if (m_sysdef->getNDimensions() == 2)
+            n_adj = n_unique_neighbors.x * n_unique_neighbors.y;
+        else
+            n_adj = n_unique_neighbors.x * n_unique_neighbors.y * n_unique_neighbors.z;
+
+        m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
+
+        GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
+        m_cell_adj.swap(cell_adj);
+        }
+    else
+        {
+        m_cell_adj_indexer = Index2D();
+
+        // array is not needed, discard it
+        GPUArray<unsigned int> cell_adj;
+        m_cell_adj.swap(cell_adj);
+        }
 
     GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
@@ -400,7 +365,9 @@ void CellList::initializeMemory()
     if (m_prof)
         m_prof->pop();
 
-    initializeCellAdj();
+    // only initialize the adjacency list if requested
+    if (m_compute_adj_list)
+        initializeCellAdj();
     }
 
 void CellList::initializeCellAdj()
@@ -507,7 +474,7 @@ void CellList::computeCellList()
     for (unsigned int n = 0; n < n_tot_particles; n++)
         {
         Scalar3 p = make_scalar3(h_pos.data[n].x, h_pos.data[n].y, h_pos.data[n].z);
-        if (isnan(p.x) || isnan(p.y) || isnan(p.z))
+        if (std::isnan(p.x) || std::isnan(p.y) || std::isnan(p.z))
             {
             conditions.y = n+1;
             continue;
@@ -701,17 +668,17 @@ void CellList::printStats()
     }
 
 
-void export_CellList()
+void export_CellList(py::module& m)
     {
-    class_<CellList, boost::shared_ptr<CellList>, bases<Compute>, boost::noncopyable >
-        ("CellList", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<CellList, std::shared_ptr<CellList> >(m,"CellList",py::base<Compute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setNominalWidth", &CellList::setNominalWidth)
         .def("setRadius", &CellList::setRadius)
         .def("setComputeTDB", &CellList::setComputeTDB)
         .def("setFlagCharge", &CellList::setFlagCharge)
         .def("setFlagIndex", &CellList::setFlagIndex)
         .def("setSortCellList", &CellList::setSortCellList)
-        .def("getDim", &CellList::getDim, return_internal_reference<>())
+        .def("getDim", &CellList::getDim, py::return_value_policy::reference_internal)
         .def("getNmax", &CellList::getNmax)
         .def("benchmark", &CellList::benchmark)
         ;

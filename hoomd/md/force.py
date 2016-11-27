@@ -1,63 +1,15 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
+
+R""" Apply forces to particles.
+"""
 
 from hoomd import _hoomd
 from hoomd.md import _md;
 import sys;
 import hoomd;
-
-## \package hoomd.force
-# \brief Other types of forces
-#
-# This package contains various forces that don't belong in any of the other categories
 
 ## \internal
 # \brief Base class for forces
@@ -122,36 +74,29 @@ class _force(hoomd.meta._metadata):
             hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
             raise RuntimeError();
 
-
-    ## Disables the force
-    # \param log Set to True if you plan to continue logging the potential energy associated with this force.
-    #
-    # \b Examples:
-    # \code
-    # force.disable()
-    # force.disable(log=True)
-    # \endcode
-    #
-    # Executing the disable command will remove the force from the simulation.
-    # Any run() command executed after disabling a force will not calculate or
-    # use the force during the simulation. A disabled force can be re-enabled
-    # with enable()
-    #
-    # By setting \a log to True, the values of the force can be logged even though the forces are not applied
-    # in the simulation.  For forces that use cutoff radii, setting \a log=True will cause the correct r_cut values
-    # to be used throughout the simulation, and therefore possibly drive the neighbor list size larger than it
-    # otherwise would be. If \a log is left False, the potential energy associated with this force will not be
-    # available for logging.
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = pair.some_force()
-    # # ... later in the script
-    # force.disable()
-    # force.disable(log=True)
-    # \endcode
     def disable(self, log=False):
+        R""" Disable the force.
+
+        Args:
+            log (bool): Set to True if you plan to continue logging the potential energy associated with this force.
+
+        Examples::
+
+            force.disable()
+            force.disable(log=True)
+
+        Executing the disable command will remove the force from the simulation.
+        Any :py:func:`hoomd.run()` command executed after disabling a force will not calculate or
+        use the force during the simulation. A disabled force can be re-enabled
+        with :py:meth:`enable()`.
+
+        By setting *log* to True, the values of the force can be logged even though the forces are not applied
+        in the simulation.  For forces that use cutoff radii, setting *log=True* will cause the correct *r_cut* values
+        to be used throughout the simulation, and therefore possibly drive the neighbor list size larger than it
+        otherwise would be. If *log* is left False, the potential energy associated with this force will not be
+        available for logging.
+
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -166,50 +111,17 @@ class _force(hoomd.meta._metadata):
         # remove the compute from the system if it is not going to be logged
         if not log:
             hoomd.context.current.system.removeCompute(self.force_name);
+            hoomd.context.current.forces.remove(self)
 
-    ## Benchmarks the force computation
-    # \param n Number of iterations to average the benchmark over
-    #
-    # \b Examples:
-    # \code
-    # t = force.benchmark(n = 100)
-    # \endcode
-    #
-    # The value returned by benchmark() is the average time to perform the force
-    # computation, in milliseconds. The benchmark is performed by taking the current
-    # positions of all particles in the simulation and repeatedly calculating the forces
-    # on them. Thus, you can benchmark different situations as you need to by simply
-    # running a simulation to achieve the desired state before running benchmark().
-    #
-    # \note
-    # There is, however, one subtle side effect. If the benchmark() command is run
-    # directly after the particle data is initialized with an init command, then the
-    # results of the benchmark will not be typical of the time needed during the actual
-    # simulation. Particles are not reordered to improve cache performance until at least
-    # one time step is performed. Executing run(1) before the benchmark will solve this problem.
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # force = pair.some_force()
-    # # ... later in the script
-    # t = force.benchmark(n = 100)
-    # \endcode
-    def benchmark(self, n):
-        self.check_initialization();
-
-        # run the benchmark
-        return self.cpp_force.benchmark(int(n))
-
-    ## Enables the force
-    #
-    # \b Examples:
-    # \code
-    # force.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
     def enable(self):
+        R""" Enable the force.
+
+        Examples::
+
+            force.enable()
+
+        See :py:meth:`disable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -221,9 +133,26 @@ class _force(hoomd.meta._metadata):
         # add the compute back to the system if it was removed
         if not self.log:
             hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+            hoomd.context.current.forces.append(self)
 
         self.enabled = True;
         self.log = True;
+
+    def get_energy(self,group):
+        R""" Get the energy of a particle group.
+
+        Args:
+            group (:py:mod:`hoomd.group`): The particle group to query the energy for.
+
+        Returns:
+            The last computed energy for the members in the group.
+
+        Examples::
+
+            g = group.all()
+            energy = force.get_energy(g)
+        """
+        return self.cpp_force.calcEnergyGroup(group.cpp_group)
 
     ## \internal
     # \brief updates force coefficients
@@ -254,26 +183,24 @@ class _force(hoomd.meta._metadata):
 # set default counter
 _force.cur_id = 0;
 
-
-## Constant %force
-#
-# The command force.constant specifies that a %constant %force should be added to every
-# particle in the simulation or optionally to all particles in a group.
-#
-# \MPI_SUPPORTED
 class constant(_force):
-    ## Specify the %constant %force
-    #
-    # \param fx x-component of the %force (in force units)
-    # \param fy y-component of the %force (in force units)
-    # \param fz z-component of the %force (in force units)
-    # \param group Group for which the force will be set
-    # \b Examples:
-    # \code
-    # force.constant(fx=1.0, fy=0.5, fz=0.25)
-    # const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-    # const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
-    # \endcode
+    R""" Constant force.
+
+    Args:
+        fx (float): x-component of the force (in force units).
+        fy (float): y-component of the force (in force units).
+        fz (float): z-component of the force (in force units).
+        group (:py:mod:`hoomd.group`): Group for which the force will be set.
+
+    :py:class:`constant` specifies that a constant force should be added to every
+    particle in the simulation or optionally to all particles in a group.
+
+    Examples::
+
+        force.constant(fx=1.0, fy=0.5, fz=0.25)
+        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
+        const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
+    """
     def __init__(self, fx, fy, fz, group=None):
         hoomd.util.print_status_line();
 
@@ -299,12 +226,12 @@ class constant(_force):
 
     ## Change the value of the force
     #
-    # \param fx New x-component of the %force (in force units)
-    # \param fy New y-component of the %force (in force units)
-    # \param fz New z-component of the %force (in force units)
+    # \param fx New x-component of the force (in force units)
+    # \param fy New y-component of the force (in force units)
+    # \param fz New z-component of the force (in force units)
     # \param group Group for which the force will be set
     #
-    # Using set_force() requires that you saved the created %constant %force in a variable. i.e.
+    # Using set_force() requires that you saved the created constant force in a variable. i.e.
     # \code
     # const = force.constant(fx=0.4, fy=1.0, fz=0.5)
     # \endcode
@@ -329,40 +256,43 @@ class constant(_force):
     def update_coeffs(self):
         pass
 
-## Active %force
-#
-# The command force.active specifies that an %active %force should be added to all particles.
-# Obeys \f$\delta {\bf r}_i = \delta t v_0 \hat{p}_i\f$, where \f$ v_0 \f$ is the active velocity. In 2D
-# \f$\hat{p}_i = (\cos \theta_i, \sin \theta_i)\f$ is the active force vector for particle \f$i\f$; and the
-# diffusion of the active force vector follows \f$\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma\f$,
-# where \f$D_r\f$ is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
-# whose components are uncorrelated in time, space, and between particles.
-# In 3D, \f$\hat{p}_i\f$ is a unit vector in 3D space, and diffusion follows
-# \f$\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)\f$, where
-# \f$\hat{p}_r\f$ is an uncorrelated random unit vector. The persistence length of an active particle's path is
-# \f$ v_0 / D_r\f$.
-#
-# NO MPI
 class active(_force):
-    ## Specify the %active %force
-    #
-    # \param seed required user-specified seed number for random number generator.
-    # \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
-    # \param group Group for which the force will be set
-    # \param orientation_link if True then particle orientation is coupled to the active force vector. Only
-    # relevant for non-point-like anisotropic particles.
-    # \param rotation_diff rotational diffusion constant, \f$D_r\f$, for all particles in the group.
-    # \param constraint specifies a constraint surface, to which particles are confined,
-    # such as update.constraint_ellipsoid.
-    #
-    # \b Examples:
-    # \code
-    # force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
-    #
-    # ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
-    # force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
-    # \endcode
-    def __init__(self, seed, f_lst, group, orientation_link=True, rotation_diff=0, constraint=None):
+    R""" Active force.
+
+    Args:
+        seed (int): required user-specified seed number for random number generator.
+        f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
+        group (:py:mod:`hoomd.group`): Group for which the force will be set
+        orientation_link (bool): When True, particle orientation is coupled to the active force vector. Only
+          relevant for non-point-like anisotropic particles.
+        orientation_reverse_link (bool): When True, the active force vector is coupled to particle orientation. Useful for
+          for using a particle's orientation to log the active force vector. Quaternion rotation assumes base vector of (0,0,1).
+        rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
+        constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
+          such as update.constraint_ellipsoid.
+
+    :py:class:`active` specifies that an active force should be added to all particles.
+    Obeys :math:`\delta {\bf r}_i = \delta t v_0 \hat{p}_i`, where :math:`v_0` is the active velocity. In 2D
+    :math:`\hat{p}_i = (\cos \theta_i, \sin \theta_i)` is the active force vector for particle :math:`i`; and the
+    diffusion of the active force vector follows :math:`\delta \theta / \delta t = \sqrt{2 D_r / \delta t} \Gamma`,
+    where :math:`D_r` is the rotational diffusion constant, and the gamma function is a unit-variance random variable,
+    whose components are uncorrelated in time, space, and between particles.
+    In 3D, :math:`\hat{p}_i` is a unit vector in 3D space, and diffusion follows
+    :math:`\delta \hat{p}_i / \delta t = \sqrt{2 D_r / \delta t} \Gamma (\hat{p}_i (\cos \theta - 1) + \hat{p}_r \sin \theta)`, where
+    :math:`\hat{p}_r` is an uncorrelated random unit vector. The persistence length of an active particle's path is
+    :math:`v_0 / D_r`.
+
+    .. attention::
+        :py:meth:`active` does not support MPI execution.
+
+    Examples::
+
+        force.active( seed=13, f_list=[tuple(3,0,0) for i in range(N)])
+
+        ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
+        force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
+    """
+    def __init__(self, seed, f_lst, group, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -392,16 +322,17 @@ class active(_force):
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
-                                                      orientation_link, rotation_diff, P, rx, ry, rz);
+                                                      orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
         else:
             self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
-                                                         orientation_link, rotation_diff, P, rx, ry, rz);
+                                                         orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
 
         # store metadata
         self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
+        self.orientation_reverse_link = orientation_reverse_link
         self.rotation_diff = rotation_diff
         self.constraint = constraint
 
@@ -411,18 +342,20 @@ class active(_force):
     def update_coeffs(self):
         pass
 
-class const_external_field_dipole(_force):
-    ## Specicify the %constant %field and %dipole moment
-    #
-    # \param field_x x-component of the %field (units?)
-    # \param field_y y-component of the %field (units?)
-    # \param field_z z-component of the %field (units?)
-    # \param p magnitude of the particles' dipole moment in z direction
-    # \b Examples:
-    # \code
-    # force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
-    # const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
-    # \endcode
+class dipole(_force):
+    R""" Treat particles as dipoles in an electric field.
+
+    Args:
+        field_x (float): x-component of the field (units?)
+        field_y (float): y-component of the field (units?)
+        field_z (float): z-component of the field (units?)
+        p (float): magnitude of the particles' dipole moment in the local z direction
+
+    Examples::
+
+        force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+        const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+    """
     def __init__(self, field_x,field_y,field_z,p):
         hoomd.util.print_status_line()
 
@@ -440,18 +373,21 @@ class const_external_field_dipole(_force):
         self.field_y = field_y
         self.field_z = field_z
 
-    ## Change the %constant %field and %dipole moment
-    #
-    # \param field_x x-component of the %field (units?)
-    # \param field_y y-component of the %field (units?)
-    # \param field_z z-component of the %field (units?)
-    # \param p magnitude of the particles' dipole moment in z direction
-    # \b Examples:
-    # \code
-    # const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
-    # const_ext_f_dipole.setParams(field_x=0.1, field_y=0.1, field_z=0.0, p=1.0))
-    # \endcode
     def set_params(field_x, field_y,field_z,p):
+        R""" Change the constant field and dipole moment.
+
+        Args:
+            field_x (float): x-component of the field (units?)
+            field_y (float): y-component of the field (units?)
+            field_z (float): z-component of the field (units?)
+            p (float): magnitude of the particles' dipole moment in the local z direction
+
+        Examples::
+
+            const_ext_f_dipole = force.external_field_dipole(field_x=0.0, field_y=1.0 ,field_z=0.5, p=1.0)
+            const_ext_f_dipole.setParams(field_x=0.1, field_y=0.1, field_z=0.0, p=1.0))
+
+        """
         self.check_initialization()
 
         self.cpp_force.setParams(field_x,field_y,field_z,p)

@@ -1,9 +1,12 @@
 
 #include "hoomd/ExecutionConfiguration.h"
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE moves
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 #include "hoomd/extern/saruprng.h"
 #include "hoomd/BoxDim.h"
@@ -15,10 +18,8 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 using namespace std;
 using namespace hpmc;
@@ -30,7 +31,7 @@ struct ShapeDummy
         quat<Scalar> orientation;
     };
 
-BOOST_AUTO_TEST_CASE( rand_rotate_3d )
+UP_TEST( rand_rotate_3d )
     {
     Saru rng(123, 456, 789);
 
@@ -45,17 +46,17 @@ BOOST_AUTO_TEST_CASE( rand_rotate_3d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        BOOST_CHECK(fabs(delta.s) > 0);
-        BOOST_CHECK(fabs(delta.v.x) > 0);
-        BOOST_CHECK(fabs(delta.v.y) > 0);
-        BOOST_CHECK(fabs(delta.v.z) > 0);
+        UP_ASSERT(fabs(delta.s) > 0);
+        UP_ASSERT(fabs(delta.v.x) > 0);
+        UP_ASSERT(fabs(delta.v.y) > 0);
+        UP_ASSERT(fabs(delta.v.z) > 0);
 
         // check that it is a valid rotation
-        MY_BOOST_CHECK_CLOSE(norm2(a), 1, tol);
+        MY_CHECK_CLOSE(norm2(a), 1, tol);
         }
     }
 
-BOOST_AUTO_TEST_CASE( rand_rotate_2d )
+UP_TEST( rand_rotate_2d )
     {
     Saru rng(123, 456, 789);
 
@@ -72,20 +73,20 @@ BOOST_AUTO_TEST_CASE( rand_rotate_2d )
         // check that the angle coordinate moved and that the 0 components stayed 0
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        BOOST_CHECK(fabs(delta.s) > 0);
-        MY_BOOST_CHECK_SMALL(o.v.x, tol_small);
-        MY_BOOST_CHECK_SMALL(o.v.y, tol_small);
-        BOOST_CHECK(fabs(delta.v.z) > 0);
+        UP_ASSERT(fabs(delta.s) > 0);
+        MY_CHECK_SMALL(o.v.x, tol_small);
+        MY_CHECK_SMALL(o.v.y, tol_small);
+        UP_ASSERT(fabs(delta.v.z) > 0);
 
         // check that it is a valid rotation
-        MY_BOOST_CHECK_CLOSE(norm2(o), 1, tol);
+        MY_CHECK_CLOSE(norm2(o), 1, tol);
 
         // check that the angle of the rotation is not too big
-        BOOST_CHECK( (acos(prev.s)*2.0 - acos(o.s)*2.0) <= a);
+        UP_ASSERT( (acos(prev.s)*2.0 - acos(o.s)*2.0) <= a);
         }
     }
 
-BOOST_AUTO_TEST_CASE( rand_translate_3d )
+UP_TEST( rand_translate_3d )
     {
     Saru rng(123, 456, 789);
     Scalar d = 0.1;
@@ -102,16 +103,16 @@ BOOST_AUTO_TEST_CASE( rand_translate_3d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        BOOST_CHECK(fabs(delta.x) > 0);
-        BOOST_CHECK(fabs(delta.y) > 0);
-        BOOST_CHECK(fabs(delta.z) > 0);
+        UP_ASSERT(fabs(delta.x) > 0);
+        UP_ASSERT(fabs(delta.y) > 0);
+        UP_ASSERT(fabs(delta.z) > 0);
 
         // check that the move distance is appropriate
-        BOOST_CHECK(sqrt(dot(delta,delta)) <= d);
+        UP_ASSERT(sqrt(dot(delta,delta)) <= d);
         }
     }
 
-BOOST_AUTO_TEST_CASE( rand_translate_2d )
+UP_TEST( rand_translate_2d )
     {
     Saru rng(123, 456, 789);
     Scalar d = 0.1;
@@ -128,12 +129,12 @@ BOOST_AUTO_TEST_CASE( rand_translate_2d )
         // check that all coordinates moved
         // yes, it is possible that one of the random numbers is zero - if that is the case we can pick a different
         // seed so that we do not sample that case
-        BOOST_CHECK(fabs(delta.x) > 0);
-        BOOST_CHECK(fabs(delta.y) > 0);
-        BOOST_CHECK(delta.z == 0);
+        UP_ASSERT(fabs(delta.x) > 0);
+        UP_ASSERT(fabs(delta.y) > 0);
+        UP_ASSERT(delta.z == 0);
 
         // check that the move distance is appropriate
-        BOOST_CHECK(sqrt(dot(delta,delta)) <= d);
+        UP_ASSERT(sqrt(dot(delta,delta)) <= d);
         }
     }
 
@@ -156,10 +157,10 @@ void test_rand_select(const unsigned int max)
         std::cout << double(counts[i])/double(nsamples) << std::endl;*/
 
     for (unsigned int i = 0; i <= max; i++)
-         MY_BOOST_CHECK_CLOSE(double(counts[i])/double(nsamples), 1.0/double(max+1), 0.5);
+         MY_CHECK_CLOSE(double(counts[i])/double(nsamples), 1.0/double(max+1), 0.5);
     }
 
-BOOST_AUTO_TEST_CASE( rand_select_test )
+UP_TEST( rand_select_test )
     {
     for (unsigned int max=0; max < 10; max++)
         {
@@ -195,15 +196,15 @@ void test_update_order(const unsigned int max)
         else
             {
             cout << "invalid count: " << o[0] << endl;
-            BOOST_CHECK(false);
+            UP_ASSERT(false);
             }
         }
 
-    MY_BOOST_CHECK_CLOSE(double(counts[0])/double(nsamples), 0.5, 0.5);
-    MY_BOOST_CHECK_CLOSE(double(counts[1])/double(nsamples), 0.5, 0.5);
+    MY_CHECK_CLOSE(double(counts[0])/double(nsamples), 0.5, 0.5);
+    MY_CHECK_CLOSE(double(counts[1])/double(nsamples), 0.5, 0.5);
     }
 
-BOOST_AUTO_TEST_CASE( update_order_test )
+UP_TEST( update_order_test )
     {
     for (unsigned int max=2; max < 10; max++)
         {

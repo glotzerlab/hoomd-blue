@@ -83,12 +83,18 @@ ensure that it behaves as intended.
 
 ## Write user documentation
 
-User documentation for the user facing script commands should be documented with doxygen comments. Include examples
-on using the new functionality.
+User documentation for the user facing script commands should be documented with docstrings in napoleon format.
+Include examples on using new functionality.
 
 ## Link new commands into the documentation index
 
 The master command index needs a reference to new script commands so they are easy to find for users.
+
+## Document version status
+
+Each user-facing python class, method, etc... with a docstring should have [versionadded, versionchanged, and
+deprecated sphinx paragraphs](www.sphinx-doc.org/en/stable/markup/para.html) so that users will be aware of
+how functionality changes from version to version (post-2.0).
 
 ## Add developer to the credits
 

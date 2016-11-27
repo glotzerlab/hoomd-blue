@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: sbarr
 
@@ -79,16 +34,19 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     EvaluatorPairEwald evaluates the function:
 
-    \f[ V_{\mathrm{Ewald}}(r) = q_i q_j erfc(\kappa r)/r \f]
+    \f[ V_{\mathrm{ewald}}(r)  = q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
+                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)
+    \f]
 
-    The Ewald potential does not need diameter. One parameters is specified and stored in a Scalar.
-    \a kappa is placed in \a params
+    The Ewald potential does not need diameter. Two parameters is specified and stored in a Scalar2.
+    \a kappa is placed in \a params.x
+    \a alpha is placed in \a params.y
 */
 class EvaluatorPairEwald
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar param_type;
+        typedef Scalar2 param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
@@ -96,7 +54,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params)
+          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), alpha(_params.y)
             {
             }
 
@@ -136,10 +94,15 @@ class EvaluatorPairEwald
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
 
-                Scalar erfc_by_r_val = fast::erfc(kappa * r) * rinv;
+                Scalar arg1 = kappa*r+alpha/(Scalar(2.0)*kappa);
+                Scalar arg2 = kappa*r-alpha/(Scalar(2.0)*kappa);
+                Scalar expfac1 = fast::exp(alpha*r);
+                Scalar expfac2 = fast::exp(-alpha*r);
+                Scalar val = Scalar(0.5)*(fast::erfc(arg1)*expfac1 + fast::erfc(arg2)*expfac2)*rinv;
 
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(Scalar(M_PI)) * fast::exp(-kappa*kappa* rsq));
-                pair_eng = qiqj * erfc_by_r_val ;
+                force_divr = qiqj * r2inv * (val + expfac2*Scalar(2.0)*kappa*fast::exp(-arg2*arg2)/fast::sqrt(Scalar(M_PI))
+                    + alpha*Scalar(0.5)*expfac2*fast::erfc(arg2) - alpha*Scalar(0.5)*expfac1*fast::erfc(arg1));
+                pair_eng = qiqj * val;
 
                 return true;
                 }
@@ -161,7 +124,8 @@ class EvaluatorPairEwald
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
+        Scalar kappa;   //!< Splitting parameter
+        Scalar alpha;   //!< Debye screening parameter
         Scalar qiqj;    //!< product of qi and qj
     };
 

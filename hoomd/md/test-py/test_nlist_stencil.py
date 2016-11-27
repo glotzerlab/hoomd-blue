@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -11,19 +12,18 @@ import os
 class nlist_stencil_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=1000, phi_p=0.05);
+        deprecated.init.create_random(N=1000, phi_p=0.05);
 
         # directly create a neighbor list
         self.nl = md.nlist.stencil()
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # test set_params
     def test_set_params(self):
         self.nl.set_params(r_buff=0.6);
         self.nl.set_params(check_period = 20);
         self.nl.set_params(d_max = 2.0, dist_check = False)
-        self.nl.set_params(deterministic = True);
 
     # test reset_exclusions
     def test_reset_exclusions_works(self):

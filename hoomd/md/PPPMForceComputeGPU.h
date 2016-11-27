@@ -1,119 +1,134 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
-
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
-// Maintainer: sbarr
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
-#include "PPPMForceGPU.cuh"
-#include "NeighborList.h"
+
+#ifndef __PPPM_FORCE_COMPUTE_GPU_H__
+#define __PPPM_FORCE_COMPUTE_GPU_H__
+
+#ifdef ENABLE_CUDA
 
 #include <cufft.h>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+//#define USE_HOST_DFFT
 
-/*! \file PPPMForceComputeGPU.h
-    \brief Declares the PPPMForceGPU class
-*/
+#include "hoomd/Autotuner.h"
 
-#ifdef NVCC
-#error This header cannot be compiled by nvcc
+#ifdef ENABLE_MPI
+#include "CommunicatorGridGPU.h"
+
+#ifndef USE_HOST_DFFT
+#include "hoomd/extern/dfftlib/src/dfft_cuda.h"
+#else
+#include "hoomd/extern/dfftlib/src/dfft_host.h"
+#endif
 #endif
 
-#ifndef __PPPMFORCECOMPUTEGPU_H__
-#define __PPPMFORCECOMPUTEGPU_H__
-
-//! Implements the harmonic bond force calculation on the GPU
-/*! PPPMForceComputeGPU implements the same calculations as PPPMForceCompute,
-    but executing on the GPU.
-
-    Per-type parameters are stored in a simple global memory area pointed to by
-    \a m_gpu_params. They are stored as Scalar2's with the \a x component being K and the
-    \a y component being r_0.
-
-    The GPU kernel can be found in bondforce_kernel.cu.
-
-    \ingroup computes
-*/
+/*! Order parameter evaluated using the particle mesh method
+ */
 class PPPMForceComputeGPU : public PPPMForceCompute
     {
     public:
-        //! Constructs the compute
-        PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                            boost::shared_ptr<NeighborList> nlist,
-                            boost::shared_ptr<ParticleGroup> group);
-        //! Destructor
-        ~PPPMForceComputeGPU();
+        //! Constructor
+        PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
+            std::shared_ptr<ParticleGroup> group);
+        virtual ~PPPMForceComputeGPU();
 
-        //! Sets the block size to run on the device
-        /*! \param block_size Block size to set
-         */
-        void setBlockSize(int block_size)
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_block_size = block_size;
+            m_tuner_bin->setPeriod(period);
+            m_tuner_assign->setPeriod(period);
+            m_tuner_update->setPeriod(period);
+            m_tuner_force->setPeriod(period);
+            m_tuner_influence->setPeriod(period);
+
+            m_tuner_bin->setEnabled(enable);
+            m_tuner_assign->setEnabled(enable);
+            m_tuner_update->setEnabled(enable);
+            m_tuner_force->setEnabled(enable);
+            m_tuner_influence->setEnabled(enable);
             }
 
-        //! Set the parameters
-        virtual void setParams(int Nx, int Ny, int Nz, int order, Scalar kappa, Scalar rcut);
-
-        //! fix the energy and virial thermodynamic quantities
-
     protected:
-        int m_block_size;                    //!< Block size to run calculation on
-        cufftHandle plan;                    //!< Used for the Fast Fourier Transformations performed on the GPU
-        bool m_first_run;                    //!< True if this is the first run
+        //! Helper function to setup FFT and allocate the mesh arrays
+        virtual void initializeFFT();
 
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
+        //! Setup coefficient tables
+        virtual void setupCoeffs();
+
+        //! Helper function to assign particle coordinates to mesh
+        virtual void assignParticles();
+
+        //! Helper function to update the mesh arrays
+        virtual void updateMeshes();
+
+        //! Helper function to interpolate the forces
+        virtual void interpolateForces();
+
+        //! Compute the optimal influence function
+        virtual void computeInfluenceFunction();
+
+        //! Helper function to calculate value of collective variable
+        virtual Scalar computePE();
+
+        //! Helper function to compute the virial
+        virtual void computeVirial();
+
+        //! Helper function to correct forces on excluded particles
+        virtual void fixExclusions();
+
+    private:
+        std::unique_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
+        std::unique_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
+        std::unique_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
+        std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+        std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
+
+        cufftHandle m_cufft_plan;          //!< The FFT plan
+        bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
+
+        #ifdef ENABLE_MPI
+        typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
+
+        dfft_plan m_dfft_plan_forward;     //!< Forward distributed FFT
+        dfft_plan m_dfft_plan_inverse;     //!< Forward distributed FFT
+        #endif
+
+        GPUArray<cufftComplex> m_mesh;                 //!< The particle density mesh
+        GPUArray<cufftComplex> m_fourier_mesh;         //!< The fourier transformed mesh
+        GPUArray<cufftComplex> m_fourier_mesh_G_x;       //!< Fourier transformed mesh times the influence function, x component
+        GPUArray<cufftComplex> m_fourier_mesh_G_y;       //!< Fourier transformed mesh times the influence function, y component
+        GPUArray<cufftComplex> m_fourier_mesh_G_z;       //!< Fourier transformed mesh times the influence function, z component
+        GPUArray<cufftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
+        GPUArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
+        GPUArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
+
+        Index2D m_bin_idx;                         //!< Total number of bins
+        GPUArray<Scalar4> m_particle_bins;         //!< Cell list for particle positions and modes
+        GPUArray<Scalar> m_mesh_scratch;           //!< Mesh with scratch space for density reduction
+        Index2D m_scratch_idx;                     //!< Indexer for scratch space
+        GPUArray<unsigned int> m_n_cell;           //!< Number of particles per cell
+        unsigned int m_cell_size;                  //!< Current max. number of particles per cell
+        GPUFlags<unsigned int> m_cell_overflowed;  //!< Flag set to 1 if a cell overflows
+
+        GPUFlags<Scalar> m_sum;                    //!< Sum over fourier mesh values
+        GPUArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values
+        GPUArray<Scalar> m_sum_virial_partial;     //!< Partial sums over virial mesh values
+        GPUArray<Scalar> m_sum_virial;             //!< Final sum over virial mesh values
+        unsigned int m_block_size;                 //!< Block size for fourier mesh reduction
+
+        GPUFlags<Scalar4> m_gpu_q_max;             //!< Return value for maximum Fourier mode reduction
+        GPUArray<Scalar4> m_max_partial;           //!< Scratch space for reduction of maximum Fourier amplitude
     };
 
-//! Export the BondForceComputeGPU class to python
-void export_PPPMForceComputeGPU();
+void export_PPPMForceComputeGPU(pybind11::module& m);
 
-#endif
+#endif // ENABLE_CUDA
+#endif // __PPPM_FORCE_COMPUTE_GPU_H__

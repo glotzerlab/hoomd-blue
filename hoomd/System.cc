@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -61,13 +16,12 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
+// #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <stdexcept>
 #include <time.h>
 
 using namespace std;
+namespace py = pybind11;
 
 PyObject* walltimeLimitExceptionTypeObj = 0;
 
@@ -78,7 +32,7 @@ PyObject* walltimeLimitExceptionTypeObj = 0;
     analyzers or integrators. Profiling defaults to disabled and
     statistics are printed every 10 seconds.
 */
-System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
+System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_cur_tps(0),
         m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
         m_profile(false), m_stats_period(10)
@@ -110,7 +64,7 @@ System::System(boost::shared_ptr<SystemDefinition> sysdef, unsigned int initial_
     can be prevented from running in future runs by removing it (removeAnalyzer()) before
     calling run()
 */
-void System::addAnalyzer(boost::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
+void System::addAnalyzer(std::shared_ptr<Analyzer> analyzer, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(analyzer);
@@ -172,7 +126,7 @@ void System::removeAnalyzer(const std::string& name)
 /*! \param name Name of the Analyzer to retrieve
     \returns A shared pointer to the requested Analyzer
 */
-boost::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
+std::shared_ptr<Analyzer> System::getAnalyzer(const std::string& name)
     {
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
     return i->m_analyzer;
@@ -201,7 +155,7 @@ void System::setAnalyzerPeriod(const std::string& name, unsigned int period, int
 /*! \param name Name of the Updater to modify
     \param update_func A python callable function taking one argument that returns an integer value of the next time step to analyze at
 */
-void System::setAnalyzerPeriodVariable(const std::string& name, boost::python::object update_func)
+void System::setAnalyzerPeriodVariable(const std::string& name, py::object update_func)
     {
     vector<System::analyzer_item>::iterator i = findAnalyzerItem(name);
     i->setVariablePeriod(update_func, m_cur_tstep);
@@ -253,7 +207,7 @@ std::vector<System::updater_item>::iterator System::findUpdaterItem(const std::s
     can be prevented from running in future runs by removing it (removeUpdater()) before
     calling run()
 */
-void System::addUpdater(boost::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
+void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& name, unsigned int period, int phase)
     {
     // sanity check
     assert(updater);
@@ -294,7 +248,7 @@ void System::removeUpdater(const std::string& name)
 /*! \param name Name of the Updater to retrieve
     \returns A shared pointer to the requested Updater
 */
-boost::shared_ptr<Updater> System::getUpdater(const std::string& name)
+std::shared_ptr<Updater> System::getUpdater(const std::string& name)
     {
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
     return i->m_updater;
@@ -324,7 +278,7 @@ void System::setUpdaterPeriod(const std::string& name, unsigned int period, int 
 /*! \param name Name of the Updater to modify
     \param update_func A python callable function taking one argument that returns an integer value of the next time step to update at
 */
-void System::setUpdaterPeriodVariable(const std::string& name, boost::python::object update_func)
+void System::setUpdaterPeriodVariable(const std::string& name, py::object update_func)
     {
     vector<System::updater_item>::iterator i = findUpdaterItem(name);
     i->setVariablePeriod(update_func, m_cur_tstep);
@@ -349,13 +303,13 @@ unsigned int System::getUpdaterPeriod(const std::string& name)
     saving to restart files, and to activate profiling. They are never
     directly called by the system.
 */
-void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& name)
+void System::addCompute(std::shared_ptr<Compute> compute, const std::string& name)
     {
     // sanity check
     assert(compute);
 
     // check if the name is unique
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         m_computes[name] = compute;
     else
@@ -371,7 +325,7 @@ void System::addCompute(boost::shared_ptr<Compute> compute, const std::string& n
 void System::removeCompute(const std::string& name)
     {
     // see if the compute exists to be removed
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
         m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
@@ -384,15 +338,15 @@ void System::removeCompute(const std::string& name)
 /*! \param name Name of the compute to access
     \returns A shared pointer to the Compute as provided previosly by addCompute()
 */
-boost::shared_ptr<Compute> System::getCompute(const std::string& name)
+std::shared_ptr<Compute> System::getCompute(const std::string& name)
     {
     // see if the compute even exists first
-    map< string, boost::shared_ptr<Compute> >::iterator i = m_computes.find(name);
+    map< string, std::shared_ptr<Compute> >::iterator i = m_computes.find(name);
     if (i == m_computes.end())
         {
         m_exec_conf->msg->error() << "Compute " << name << " not found" << endl;
         throw runtime_error("System: cannot retrieve compute");
-        return boost::shared_ptr<Compute>();
+        return std::shared_ptr<Compute>();
         }
     else
         return m_computes[name];
@@ -402,21 +356,21 @@ boost::shared_ptr<Compute> System::getCompute(const std::string& name)
 
 /*! \param integrator Updater to set as the Integrator for this System
 */
-void System::setIntegrator(boost::shared_ptr<Integrator> integrator)
+void System::setIntegrator(std::shared_ptr<Integrator> integrator)
     {
     m_integrator = integrator;
     }
 
 /*! \returns A shared pointer to the Integrator for this System
 */
-boost::shared_ptr<Integrator> System::getIntegrator()
+std::shared_ptr<Integrator> System::getIntegrator()
     {
     return m_integrator;
     }
 
 #ifdef ENABLE_MPI
 // -------------- Methods for communication
-void System::setCommunicator(boost::shared_ptr<Communicator> comm)
+void System::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     m_comm = comm;
     }
@@ -441,7 +395,7 @@ void System::setCommunicator(boost::shared_ptr<Communicator> comm)
 */
 
 void System::run(unsigned int nsteps, unsigned int cb_frequency,
-                 boost::python::object callback, double limit_hours,
+                 py::object callback, double limit_hours,
                  unsigned int limit_multiple)
     {
     // track if a wall clock timeout ended the run
@@ -469,7 +423,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
             updater->m_updater->setCommunicator(m_comm);
 
         // Set communicator in all Computes
-        map< string, boost::shared_ptr<Compute> >::iterator compute;
+        map< string, std::shared_ptr<Compute> >::iterator compute;
         for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
             compute->second->setCommunicator(m_comm);
 
@@ -486,165 +440,146 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
 
     resetStats();
 
-    // catch exceptions during simulation
-    try
+    // Prepare the run
+    if (!m_integrator)
         {
-        // Prepare the run
-        if (!m_integrator)
-            m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
-        else
-            m_integrator->prepRun(m_cur_tstep);
+        m_exec_conf->msg->warning() << "You are running without an integrator" << endl;
 
         #ifdef ENABLE_MPI
         if (m_comm)
             {
-            // make sure we start off with a migration substep, so that
-            // any old ghost particles are invalidated
+            // make sure we start off with a migration substep nevertheless
             m_comm->forceMigrate();
+
+            // communicate here, to run before the Logger
+            m_comm->communicate(m_cur_tstep);
             }
         #endif
+        }
+    else
+        {
+        m_integrator->prepRun(m_cur_tstep);
+        }
 
-        // handle time steps
-        for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+    // handle time steps
+    for ( ; m_cur_tstep < m_end_tstep; m_cur_tstep++)
+        {
+        // check the clock and output a status line if needed
+        uint64_t cur_time = m_clk.getTime();
+
+        // check if the time limit has exceeded
+        if (limit_hours != 0.0f)
             {
-            // check the clock and output a status line if needed
-            uint64_t cur_time = m_clk.getTime();
-
-            // check if the time limit has exceeded
-            if (limit_hours != 0.0f)
+            if (m_cur_tstep % limit_multiple == 0)
                 {
-                if (m_cur_tstep % limit_multiple == 0)
+                int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
+                if (int64_t(cur_time) - initial_time > time_limit)
+                    timeout_end_run = 1;
+
+                #ifdef ENABLE_MPI
+                // if any processor wants to end the run, end it on all processors
+                if (m_comm)
+                    MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                #endif
+
+                if (timeout_end_run)
                     {
-                    int64_t time_limit = int64_t(limit_hours * 3600.0 * 1e9);
-                    if (int64_t(cur_time) - initial_time > time_limit)
-                        timeout_end_run = 1;
-
-                    #ifdef ENABLE_MPI
-                    // if any processor wants to end the run, end it on all processors
-                    if (m_comm)
-                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-                    #endif
-
-                    if (timeout_end_run)
-                        {
-                        m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
-                        break;
-                        }
+                    m_exec_conf->msg->notice(2) << "Ending run at time step " << m_cur_tstep << " as " << limit_hours << " hours have passed" << endl;
+                    break;
                     }
                 }
+            }
 
-            // check if wall clock time limit has passed
-            if (walltime_stop != NULL)
+        // check if wall clock time limit has passed
+        if (walltime_stop != NULL)
+            {
+            if (m_cur_tstep % limit_multiple == 0)
                 {
-                if (m_cur_tstep % limit_multiple == 0)
+                time_t end_time = atoi(walltime_stop);
+                time_t predict_time = time(NULL);
+
+                // predict when the next limit_multiple will be reached
+                if (m_cur_tps != Scalar(0))
+                    predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
+
+                if (predict_time >= end_time)
+                    timeout_end_run = 1;
+
+                #ifdef ENABLE_MPI
+                // if any processor wants to end the run, end it on all processors
+                if (m_comm)
+                    MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                #endif
+
+                if (timeout_end_run)
                     {
-                    time_t end_time = atoi(walltime_stop);
-                    time_t predict_time = time(NULL);
-
-                    // predict when the next limit_multiple will be reached
-                    if (m_cur_tps != Scalar(0))
-                        predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
-
-                    if (predict_time >= end_time)
-                        timeout_end_run = 1;
-
-                    #ifdef ENABLE_MPI
-                    // if any processor wants to end the run, end it on all processors
-                    if (m_comm)
-                        MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
-                    #endif
-
-                    if (timeout_end_run)
-                        {
-                        m_exec_conf->msg->notice(2) << "Ending run before HOOMD_WALLTIME_STOP - current time step: " << m_cur_tstep << endl;
-                        break;
-                        }
+                    m_exec_conf->msg->notice(2) << "Ending run before HOOMD_WALLTIME_STOP - current time step: " << m_cur_tstep << endl;
+                    break;
                     }
                 }
+            }
 
-            // execute python callback, if present and needed
-            // a negative return value indicates immediate end of run.
-            if (callback && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+        // execute python callback, if present and needed
+        // a negative return value indicates immediate end of run.
+        if (callback != py::none() && (cb_frequency > 0) && (m_cur_tstep % cb_frequency == 0))
+            {
+            py::object rv = callback(m_cur_tstep);
+            if (rv != py::none())
                 {
-                boost::python::object rv = callback(m_cur_tstep);
-                extract<int> extracted_rv(rv);
-                if (extracted_rv.check() && extracted_rv() < 0)
+                int extracted_rv = py::cast<int>(rv);
+                if (extracted_rv < 0)
                     {
                     m_exec_conf->msg->notice(2) << "End of run requested by python callback at step "
                          << m_cur_tstep << " / " << m_end_tstep << endl;
                     break;
                     }
                 }
-
-            if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
-                {
-                generateStatusLine();
-                m_last_status_time = cur_time;
-                m_last_status_tstep = m_cur_tstep;
-
-                // check for any CUDA errors
-                #ifdef ENABLE_CUDA
-                if (m_exec_conf->isCUDAEnabled())
-                    {
-                    CHECK_CUDA_ERROR();
-                    }
-                #endif
-                }
-
-            // execute analyzers
-            vector<analyzer_item>::iterator analyzer;
-            for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
-                {
-                if (analyzer->shouldExecute(m_cur_tstep))
-                    analyzer->m_analyzer->analyze(m_cur_tstep);
-                }
-
-            // execute updaters
-            vector<updater_item>::iterator updater;
-            for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
-                {
-                if (updater->shouldExecute(m_cur_tstep))
-                    updater->m_updater->update(m_cur_tstep);
-                }
-
-            // look ahead to the next time step and see which analyzers and updaters will be executed
-            // or together all of their requested PDataFlags to determine the flags to set for this time step
-            m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
-
-            // execute the integrator
-            if (m_integrator)
-                m_integrator->update(m_cur_tstep);
-
-            // quit if cntrl-C was pressed
-            if (g_sigint_recvd)
-                {
-                g_sigint_recvd = 0;
-                return;
-                }
             }
-        } // end try
-    catch (std::exception const & ex)
-        {
-        #ifdef ENABLE_MPI
-        if (m_sysdef->getParticleData()->getDomainDecomposition() && m_exec_conf->msg->isLocked())
+
+        if (cur_time - m_last_status_time >= uint64_t(m_stats_period)*uint64_t(1000000000))
             {
-            // tear down other ranks in a controlled way, but only if we are the rank that displayed an error
-            // so that eventual error messages are flushed correctly
-            if (m_exec_conf->msg->hasLock())
+            generateStatusLine();
+            m_last_status_time = cur_time;
+            m_last_status_tstep = m_cur_tstep;
+
+            // check for any CUDA errors
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
                 {
-                MPI_Abort(m_exec_conf->getMPICommunicator(), MPI_ERR_OTHER);
+                CHECK_CUDA_ERROR();
                 }
-            else
-                // otherwise just wait
-                {
-                MPI_Barrier(m_exec_conf->getMPICommunicator());
-                }
+            #endif
             }
-        else
-        #endif
+
+        // execute analyzers
+        vector<analyzer_item>::iterator analyzer;
+        for (analyzer =  m_analyzers.begin(); analyzer != m_analyzers.end(); ++analyzer)
             {
-            // re-throw original exception
-            throw;
+            if (analyzer->shouldExecute(m_cur_tstep))
+                analyzer->m_analyzer->analyze(m_cur_tstep);
+            }
+
+        // execute updaters
+        vector<updater_item>::iterator updater;
+        for (updater =  m_updaters.begin(); updater != m_updaters.end(); ++updater)
+            {
+            if (updater->shouldExecute(m_cur_tstep))
+                updater->m_updater->update(m_cur_tstep);
+            }
+
+        // look ahead to the next time step and see which analyzers and updaters will be executed
+        // or together all of their requested PDataFlags to determine the flags to set for this time step
+        m_sysdef->getParticleData()->setFlags(determineFlags(m_cur_tstep+1));
+
+        // execute the integrator
+        if (m_integrator)
+            m_integrator->update(m_cur_tstep);
+
+        // quit if cntrl-C was pressed
+        if (g_sigint_recvd)
+            {
+            g_sigint_recvd = 0;
+            return;
             }
         }
 
@@ -653,7 +588,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     m_last_status_tstep = m_cur_tstep;
 
     // execute python callback, if present and needed
-    if (callback && (cb_frequency == 0))
+    if (callback != py::none() && (cb_frequency == 0))
         {
         callback(m_cur_tstep);
         }
@@ -683,7 +618,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (timeout_end_run && walltime_stop != NULL)
         {
         PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
-        boost::python::throw_error_already_set();
+        py::error_already_set();
         }
     }
 
@@ -697,7 +632,7 @@ void System::enableProfiler(bool enable)
 /*! \param logger Logger to register computes and updaters with
     All computes and updaters registered with the system are also registerd with the logger.
 */
-void System::registerLogger(boost::shared_ptr<Logger> logger)
+void System::registerLogger(std::shared_ptr<Logger> logger)
     {
     // set the profiler on everything
     if (m_integrator)
@@ -709,7 +644,7 @@ void System::registerLogger(boost::shared_ptr<Logger> logger)
         logger->registerUpdater(updater->m_updater);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         logger->registerCompute(compute->second);
     }
@@ -741,7 +676,7 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
         updater->m_updater->setAutotunerParams(enabled, period);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setAutotunerParams(enabled, period);
 
@@ -756,15 +691,20 @@ void System::setAutotunerParams(bool enabled, unsigned int period)
 void System::setupProfiling()
     {
     if (m_profile)
-        m_profiler = boost::shared_ptr<Profiler>(new Profiler("Simulation"));
+        m_profiler = std::shared_ptr<Profiler>(new Profiler("Simulation"));
     else
-        m_profiler = boost::shared_ptr<Profiler>();
+        m_profiler = std::shared_ptr<Profiler>();
 
     // set the profiler on everything
     if (m_integrator)
         m_integrator->setProfiler(m_profiler);
     m_sysdef->getParticleData()->setProfiler(m_profiler);
     m_sysdef->getBondData()->setProfiler(m_profiler);
+    m_sysdef->getPairData()->setProfiler(m_profiler);
+    m_sysdef->getAngleData()->setProfiler(m_profiler);
+    m_sysdef->getDihedralData()->setProfiler(m_profiler);
+    m_sysdef->getImproperData()->setProfiler(m_profiler);
+    m_sysdef->getConstraintData()->setProfiler(m_profiler);
 
     // analyzers
     vector<analyzer_item>::iterator analyzer;
@@ -777,7 +717,7 @@ void System::setupProfiling()
         updater->m_updater->setProfiler(m_profiler);
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->setProfiler(m_profiler);
 
@@ -806,7 +746,7 @@ void System::printStats()
         updater->m_updater->printStats();
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->printStats();
     }
@@ -827,7 +767,7 @@ void System::resetStats()
         updater->m_updater->resetStats();
 
     // computes
-    map< string, boost::shared_ptr<Compute> >::iterator compute;
+    map< string, std::shared_ptr<Compute> >::iterator compute;
     for (compute = m_computes.begin(); compute != m_computes.end(); ++compute)
         compute->second->resetStats();
     }
@@ -887,28 +827,28 @@ PDataFlags System::determineFlags(unsigned int tstep)
     }
 
 //! Create a custom exception
-PyObject* createExceptionClass(const char* name, PyObject* baseTypeObj = PyExc_Exception)
+PyObject* createExceptionClass(py::module& m, const char* name, PyObject* baseTypeObj = PyExc_Exception)
     {
-    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class
+    // http://stackoverflow.com/questions/9620268/boost-python-custom-exception-class, modified by jproc for pybind11
 
     using std::string;
-    namespace bp = boost::python;
 
-    string scopeName = bp::extract<string>(bp::scope().attr("__name__"));
+    string scopeName = py::cast<string>(m.attr("__name__"));
     string qualifiedName0 = scopeName + "." + name;
     char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
 
     PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
-    if(!typeObj) bp::throw_error_already_set();
-    bp::scope().attr(name) = bp::handle<>(bp::borrowed(typeObj));
+    if(!typeObj) py::error_already_set();
+    m.attr(name) = py::object(typeObj,true);
     return typeObj;
     }
 
-void export_System()
+void export_System(py::module& m)
     {
-    walltimeLimitExceptionTypeObj = createExceptionClass("WalltimeLimitReached");
+    walltimeLimitExceptionTypeObj = createExceptionClass(m,"WalltimeLimitReached");
 
-    class_< System, boost::shared_ptr<System>, boost::noncopyable > ("System", init< boost::shared_ptr<SystemDefinition>, unsigned int >())
+    py::class_< System, std::shared_ptr<System> > (m,"System")
+    .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int >())
     .def("addAnalyzer", &System::addAnalyzer)
     .def("removeAnalyzer", &System::removeAnalyzer)
     .def("getAnalyzer", &System::getAnalyzer)

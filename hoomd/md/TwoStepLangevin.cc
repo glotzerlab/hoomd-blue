@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required  attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -57,8 +12,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepLangevin.h
@@ -76,9 +30,9 @@ using namespace std;
     \param suffix Suffix to attach to the end of log quantity names
 
 */
-TwoStepLangevin::TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepLangevin::TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda,
@@ -142,8 +96,6 @@ void TwoStepLangevin::integrateStepOne(unsigned int timestep)
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar4> h_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -287,13 +239,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     {
     unsigned int group_size = m_group->getNumMembers();
 
-    if (m_aniso && !m_warned_aniso)
-        {
-        m_exec_conf->msg->warning() << "integrate.langevin: this thermostat "
-            "does not operate on rotational degrees of freedom" << endl;
-        m_warned_aniso = true;
-        }
-
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
 
     // profile this step
@@ -401,9 +346,9 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
-                bf_torque.x = rand_x * sigma_r - gamma_r * (s.x / I.x);
-                bf_torque.y = rand_y * sigma_r - gamma_r * (s.y / I.y);
-                bf_torque.z = rand_z * sigma_r - gamma_r * (s.z / I.z);
+                bf_torque.x = rand_x - gamma_r * (s.x / I.x);
+                bf_torque.y = rand_y - gamma_r * (s.y / I.y);
+                bf_torque.z = rand_z - gamma_r * (s.z / I.z);
 
                 // ignore torque component along an axis for which the moment of inertia zero
                 if (x_zero) bf_torque.x = 0;
@@ -427,11 +372,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     if (m_aniso)
         {
         // angular degrees of freedom
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = m_group->getMemberIndex(group_idx);
@@ -478,12 +418,12 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         m_prof->pop();
     }
 
-void export_TwoStepLangevin()
+void export_TwoStepLangevin(py::module& m)
     {
-    class_<TwoStepLangevin, boost::shared_ptr<TwoStepLangevin>, bases<TwoStepLangevinBase>, boost::noncopyable>
-        ("TwoStepLangevin", init< boost::shared_ptr<SystemDefinition>,
-                            boost::shared_ptr<ParticleGroup>,
-                            boost::shared_ptr<Variant>,
+    py::class_<TwoStepLangevin, std::shared_ptr<TwoStepLangevin> >(m, "TwoStepLangevin", py::base<TwoStepLangevinBase>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                            std::shared_ptr<ParticleGroup>,
+                            std::shared_ptr<Variant>,
                             unsigned int,
                             bool,
                             Scalar,

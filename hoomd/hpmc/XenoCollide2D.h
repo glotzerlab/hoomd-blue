@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "HPMCPrecisionSetup.h"
@@ -25,6 +27,8 @@ namespace hpmc
 
 namespace detail
 {
+
+const unsigned int XENOCOLLIDE_2D_MAX_ITERATIONS = 1024;
 
 //! Composite support functor
 /*! \tparam SupportFuncA Support function class type for shape A
@@ -208,7 +212,7 @@ DEVICE inline bool xenocollide_2d(const SupportFuncA& sa,
         if (dot(d,d) < tol*tol*dot(v3,v3))
             return true;
 
-        if (count >= 1024)
+        if (count >= XENOCOLLIDE_2D_MAX_ITERATIONS)
             {
             err_count++;
             return true;

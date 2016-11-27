@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -56,7 +11,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ParticleGroup.h"
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <fstream>
 
 /*! \file DCDDumpWriter.h
@@ -66,6 +21,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 // The DCD Dump writer is based on code from the molfile plugin to VMD
 // and is use under the following license
@@ -95,10 +52,10 @@ class DCDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer
-        DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+        DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                       const std::string &fname,
                       unsigned int period,
-                      boost::shared_ptr<ParticleGroup> group,
+                      std::shared_ptr<ParticleGroup> group,
                       bool overwrite=false);
 
         //! Destructor
@@ -116,10 +73,6 @@ class DCDDumpWriter : public Analyzer
         //! Set whether rigid body coordinates should be written out wrapped or unwrapped.
         void setUnwrapRigid(bool enable)
             {
-            if (enable)
-                {
-                throw std::runtime_error("DCDDumpWriter: unwrap_rigid unsupported.\n");
-                }
             m_unwrap_rigid = enable;
             }
 
@@ -133,7 +86,7 @@ class DCDDumpWriter : public Analyzer
         std::string m_fname;                //!< The file name we are writing to
         unsigned int m_start_timestep;      //!< First time step written to the file
         unsigned int m_period;              //!< Time step period bewteen writes
-        boost::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
+        std::shared_ptr<ParticleGroup> m_group; //!< Group of particles to write to the DCD file
         unsigned int m_num_frames_written;  //!< Count the number of frames written to the file
         unsigned int m_last_written_step;   //!< Last timestep written in a a file we are appending to
         bool m_appending;                   //!< True if this instance is appending to an existing DCD file
@@ -146,6 +99,7 @@ class DCDDumpWriter : public Analyzer
         unsigned int m_nglobal;             //!< Initial number of particles
 
         float *m_staging_buffer;            //!< Buffer for staging particle positions in tag order
+        std::fstream m_file;                //!< The file object
 
         // helper functions
 
@@ -158,11 +112,11 @@ class DCDDumpWriter : public Analyzer
         //! Updates the file header
         void write_updated_header(std::fstream &file, unsigned int timestep);
         //! Initializes the output file for writing
-        void initFileIO();
+        void initFileIO(unsigned int timestep);
 
     };
 
 //! Exports the DCDDumpWriter class to python
-void export_DCDDumpWriter();
+void export_DCDDumpWriter(pybind11::module& m);
 
 #endif

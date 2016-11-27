@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -92,15 +47,15 @@ class EvaluatorPairReactionField
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar2 param_type;
+        typedef Scalar3 param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
-            \param _rcutsq Sqauared distance at which the potential goes to 0
+            \param _rcutsq Squared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairReactionField(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), epsrf(_params.y)
+            : rsq(_rsq), rcutsq(_rcutsq), epsilon(_params.x), epsrf(_params.y), use_charge(__scalar_as_int(_params.z)), qiqj(1.0)
             {
             }
 
@@ -112,13 +67,17 @@ class EvaluatorPairReactionField
         */
         DEVICE void setDiameter(Scalar di, Scalar dj) { }
 
-        //! ReactionField doesn't use charge
-        DEVICE static bool needsCharge() { return false; }
-        //! Accept the optional diameter values
+        //! ReactionField uses charge
+        DEVICE static bool needsCharge() { return true; }
+
+        //! Accept the optional charge values
         /*! \param qi Charge of particle i
             \param qj Charge of particle j
         */
-        DEVICE void setCharge(Scalar qi, Scalar qj) { }
+        DEVICE void setCharge(Scalar qi, Scalar qj)
+            {
+            if (use_charge) qiqj = qi*qj;
+            }
 
         //! Evaluate the force and energy
         /*! \param force_divr Output parameter to write the computed force divided by r.
@@ -132,7 +91,7 @@ class EvaluatorPairReactionField
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {
             // compute the force divided by r in force_divr
-            if (rsq < rcutsq && epsilon != 0)
+            if (rsq < rcutsq && epsilon != 0 && qiqj != 0)
                 {
                 Scalar rcut3inv = fast::rsqrt(rcutsq)/rcutsq;
                 Scalar rinv = fast::rsqrt(rsq);
@@ -145,14 +104,14 @@ class EvaluatorPairReactionField
                     eps_fac = Scalar(1.0/2.0)*rcut3inv;
                     }
 
-                force_divr = epsilon * (r2inv * rinv - Scalar(2.0)*eps_fac);
-                pair_eng = epsilon * (rinv + eps_fac*r*r);
+                force_divr = qiqj*epsilon * (r2inv * rinv - Scalar(2.0)*eps_fac);
+                pair_eng = qiqj*epsilon * (rinv + eps_fac*r*r);
 
                 if (energy_shift)
                     {
                     Scalar rcutinv = fast::rsqrt(rcutsq);
                     Scalar rcut = Scalar(1.0) / rcutinv;
-                    pair_eng -= epsilon * (rcutinv + eps_fac*rcut*rcut);
+                    pair_eng -= qiqj*epsilon * (rcutinv + eps_fac*rcut*rcut);
                     }
                 return true;
                 }
@@ -176,6 +135,8 @@ class EvaluatorPairReactionField
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
         Scalar epsilon; //!< epsilon parameter extracted from the params passed to the constructor
         Scalar epsrf;   //!< epsilon_rf parameter extracted from the params passed to the constructor
+        bool use_charge; //!< True if we are using the particle charges
+        Scalar qiqj;    //!< Product of charges
     };
 
 

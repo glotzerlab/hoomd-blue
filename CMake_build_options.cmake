@@ -11,6 +11,11 @@ mark_as_advanced(ENABLE_STATIC)
 ## Optional single/double precision build
 option(SINGLE_PRECISION "Use single precision math" OFF)
 
+option(ENABLE_HPMC_MIXED_PRECISION "Enable mixed precision computations in HPMC" ON)
+if (ENABLE_HPMC_MIXED_PRECISION)
+    add_definitions(-DENABLE_HPMC_MIXED_PRECISION)
+endif()
+
 #####################3
 ## CUDA related options
 find_package(CUDA QUIET)
@@ -48,3 +53,5 @@ if (ENABLE_DOXYGEN)
         endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
     endif ()
 endif ()
+
+option(COPY_HEADERS "Copy the headers into the build directories for plugins" off)

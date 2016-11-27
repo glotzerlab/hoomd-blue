@@ -1,61 +1,14 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
 #include "ActiveForceComputeGPU.h"
 #include "ActiveForceComputeGPU.cuh"
 
-#include <boost/python.hpp>
 #include <vector>
-using namespace boost::python;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \file ActiveForceComputeGPU.cc
@@ -66,21 +19,24 @@ using namespace std;
     \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     relevant for non-point-like anisotropic particles.
+    /param orientation_reverse_link When True, the active force vector is coupled to particle orientation. Useful for
+    for using a particle's orientation to log the active force vector.
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceComputeGPU::ActiveForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        pybind11::list f_lst,
                                         bool orientation_link,
+                                        bool orientation_reverse_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
+        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -127,7 +83,7 @@ void ActiveForceComputeGPU::setForces()
     ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -139,6 +95,7 @@ void ActiveForceComputeGPU::setForces()
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
     bool orientationLink = (m_orientationLink == true);
+    bool orientationReverseLink = (m_orientationReverseLink == true);
     unsigned int group_size = m_group->getNumMembers();
     unsigned int N = m_pdata->getN();
 
@@ -154,6 +111,7 @@ void ActiveForceComputeGPU::setForces()
                                      m_ry,
                                      m_rz,
                                      orientationLink,
+                                     orientationReverseLink,
                                      N,
                                      m_block_size);
     }
@@ -222,18 +180,19 @@ void ActiveForceComputeGPU::setConstraint()
                                              m_block_size);
     }
 
-void export_ActiveForceComputeGPU()
+void export_ActiveForceComputeGPU(py::module& m)
     {
-    class_< ActiveForceComputeGPU, boost::shared_ptr<ActiveForceComputeGPU>, bases<ActiveForceCompute>, boost::noncopyable >
-    ("ActiveForceComputeGPU", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceComputeGPU, std::shared_ptr<ActiveForceComputeGPU> >(m, "ActiveForceComputeGPU", py::base<ActiveForceCompute>())
+        .def(py::init<  std::shared_ptr<SystemDefinition>,
+                        std::shared_ptr<ParticleGroup>,
+                        int,
+                        pybind11::list,
+                        bool,
+                        bool,
+                        Scalar,
+                        Scalar3,
+                        Scalar,
+                        Scalar,
+                        Scalar >())
     ;
     }

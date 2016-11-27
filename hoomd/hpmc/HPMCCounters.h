@@ -1,3 +1,6 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
 #ifndef _HPMC_COUNTERS_H_
 #define _HPMC_COUNTERS_H_
 
@@ -88,20 +91,23 @@ DEVICE inline hpmc_counters_t operator-(const hpmc_counters_t& a, const hpmc_cou
 
 //! Storage for NPT acceptance counters
 /*! \ingroup hpmc_data_structs */
-struct hpmc_npt_counters_t
+struct hpmc_boxmc_counters_t
     {
     unsigned long long int volume_accept_count;      //!< Count of accepted volume moves
     unsigned long long int volume_reject_count;      //!< Count of rejected volume moves
     unsigned long long int shear_accept_count;       //!< Count of accepted shear moves
     unsigned long long int shear_reject_count;       //!< Count of rejected shear moves
-
+    unsigned long long int aspect_accept_count;      //!< Count of accepted aspect moves
+    unsigned long long int aspect_reject_count;      //!< Count of rejected aspect moves
     //! Construct a zero set of counters
-    hpmc_npt_counters_t()
+    hpmc_boxmc_counters_t()
         {
         volume_accept_count = 0;
         volume_reject_count = 0;
         shear_accept_count = 0;
         shear_reject_count = 0;
+        aspect_accept_count = 0;
+        aspect_reject_count = 0;
         }
 
     //! Get the volume acceptance
@@ -126,23 +132,36 @@ struct hpmc_npt_counters_t
             return double(shear_accept_count) / double(shear_reject_count + shear_accept_count);
         }
 
+    //! Get tje aspect acceptance
+    /*! \returns The ratio of aspect moves that are accepted, or 0 if there are no aspect moves
+    */
+    DEVICE double getAspectAcceptance()
+        {
+        if (aspect_reject_count + aspect_accept_count == 0)
+            return 0.0;
+        else
+            return double(aspect_accept_count) / double(aspect_reject_count + aspect_accept_count);
+        }
+
     //! Get the number of moves
     /*! \return The total number of moves
     */
     DEVICE unsigned long long int getNMoves()
         {
-        return volume_accept_count + volume_reject_count + shear_accept_count + shear_reject_count;
+        return volume_accept_count + volume_reject_count + shear_accept_count + shear_reject_count + aspect_accept_count + aspect_reject_count;
         }
     };
 
 //! Take the difference of two sets of counters
-DEVICE inline hpmc_npt_counters_t operator-(const hpmc_npt_counters_t& a, const hpmc_npt_counters_t& b)
+DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, const hpmc_boxmc_counters_t& b)
     {
-    hpmc_npt_counters_t result;
+    hpmc_boxmc_counters_t result;
     result.volume_accept_count = a.volume_accept_count - b.volume_accept_count;
     result.shear_accept_count = a.shear_accept_count - b.shear_accept_count;
+    result.aspect_accept_count = a.aspect_accept_count - b.aspect_accept_count;
     result.volume_reject_count = a.volume_reject_count - b.volume_reject_count;
     result.shear_reject_count = a.shear_reject_count - b.shear_reject_count;
+    result.aspect_reject_count = a.aspect_reject_count - b.aspect_reject_count;
     return result;
     }
 

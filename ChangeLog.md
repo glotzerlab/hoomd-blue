@@ -2,23 +2,157 @@
 
 [TOC]
 
+## v2.2.0
+
+*New features*
+* hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
+
+Deprecated*
+
+* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
+
+*Bug fixes*
+
+* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* fix alignment error when running implicit depletants on GPU with ntrial > 0
+
+*Other changes*
+* Optimized performance of HPMC sphere union overlap check
+
+## v2.2.2
+
+*Bug fixes*
+
+* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+
+## v2.1.1
+
+Released 2016/10/23
+
+*Bug fixes*
+
+* Fix `force.active` memory allocation bug
+* Quiet Python.h warnigns when building (python 2.7)
+* Allow multi-character particle types in HPMC (python 2.7)
+* Enable `dump.getar.writeJSON` in MPI
+* Allow the flow to change directions in `md.update.mueller_plathe_flow`
+* Fix critical bug in MPI communication when using HPMC integrators
+
+## v2.1.0
+
+Released 2016/10/04
+
+*New features*
+
+* enable/disable overlap checks between pairs of constituent particles for `hpmc.integrate.sphere_union()`
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+* Add `md.constrain.oned` to constrain particles to move in one dimension
+* `hpmc.integrate.sphere_union()` now takes max_members as an optional argument, allowing to use GPU memory more efficiently
+* Add `md.special_pair.lj()` to support scaled 1-4 (or other) exclusions in all-atom force fields
+* `md.update.mueller_plathe_flow()`: Method to create shear flows in MD simulations
+* `use_charge` option for `md.pair.reaction_field`
+* `md.charge.pppm()` takes a Debye screening length as an optional parameter
+* `md.charge.pppm()` now computes the rigid body correction to the PPPM energy
+
+*Deprecated*
+
+* HPMC: the `ignore_overlaps` flag is replaced by `hpmc.integrate.interaction_matrix`
+
+*Other changes*
+
+* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
+* Removed dependency on all boost libraries. Boost is no longer needed to build hoomd
+* Intel compiler builds are no longer supported due to c++11 bugs
+* Shorter compile time for HPMC GPU kernels
+* Include symlinked external components in the build process
+* Add template for external components
+* Optimized dense depletant simulations with HPMC on CPU
+
+*Bug fixes*
+
+* fix invalid mesh energy in non-neutral systems with `md.charge.pppm()`
+* Fix invalid forces in simulations with many bond types (on GPU)
+* fix rare cases where analyze.log() would report a wrong pressure
+* fix possible illegal memory access when using `md.constrain.rigid()` in GPU MPI simulations
+* fix a bug where the potential energy is misreported on the first step with `md.constrain.rigid()`
+* Fix a bug where the potential energy is misreported in MPI simulations with `md.constrain.rigid()`
+* Fix a bug where the potential energy is misreported on the first step with `md.constrain.rigid()`
+* `md.charge.pppm()` computed invalid forces
+* Fix a bug where PPPM interactions on CPU where not computed correctly
+* Match logged quantitites between MPI and non-MPI runs on first time step
+* Fix `md.pair.dpd` and `md.pair.dpdlj` `set_params`
+* Fix diameter handling in DEM shifted WCA potential
+* Correctly handle particle type names in lattice.unitcell
+* Validate `md.group.tag_list` is consistent across MPI ranks
+
+## v2.0.3
+
+Released 2016/08/30
+
+* hpmc.util.tune now works with particle types as documented
+* Fix pressure computation with pair.dpd() on the GPU
+* Fix a bug where dump.dcd corrupted files on job restart
+* Fix a bug where HPMC walls did not work correctly with MPI
+* Fix a bug where stdout/stderr did not appear in MPI execution
+* HOOMD will now report an human readable error when users forget context.initialize()
+* Fix syntax errors in frenkel ladd field
+
+## v2.0.2
+
+Released 2016/08/09
+
+* Support CUDA Toolkit 8.0
+* group.rigid()/nonrigid() did not work in MPI simulations
+* Fix builds with ENABLE_DOXYGEN=on
+* Always add -std=c++11 to the compiler command line arguments
+* Fix rare infinite loops when using hpmc.integrate.faceted_sphere
+* Fix hpmc.util.tune to work with more than one tunable
+* Fix a bug where dump.gsd() would write invalid data in simulations with changing number of particles
+* replicate() sometimes did not work when restarting a simulation
+
+## v2.0.1
+
+Released 2016/07/15
+
+*Bug fixes*
+
+* Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
+* References to disabled analyzers, computes, updaters, etc. are properly freed from the simulation context.
+* Fix a bug where `init.read_gsd` ignored the `restart` argument.
+* Report an error when HPMC kernels run out of memory.
+* Fix ghost layer when using rigid constraints in MPI runs.
+* Clarify definition of the dihedral angle.
+
 ## v2.0.0
+
+Released 2016/06/22
+
+HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
+
+*New packages*
+
+* `dem` - simulate faceted shapes with dynamics
+* `hpmc` - hard particle Monte Carlo of a variety of shape classes.
 
 *Bug fixes*
 
 * Angles, dihedrals, and impropers no longer initialize with one default type.
 * Fixed a bug where integrate.brownian gave the same x,y, and z velocity components.
+* Data proxies verify input types and vector lengths.
+* dump.dcd no longer generates excessive metadata traffic on lustre file systems
 
 *New features*
 
 * Distance constraints `constrain.distance` - constrain pairs of particles to a fixed separation distance
+* Rigid body constraints `constrain.rigid` - rigid bodies now have central particles, and support MPI and replication
+* Multi-GPU electrostatics `charge.pppm` - the long range electrostatic forces are now supported in MPI runs
 * `context.initialize()` can now be called multiple times - useful in jupyter notebooks
 * Manage multiple simulations in a single job script with `SimulationContext` as a python context manager.
 * `util.quiet_status() / util.unquiet_status()` allow users to control if line status messages are output.
 * Support executing hoomd in Jupyter (ipython) notebooks. Notice, warning, and error messages now show up in the
   notebook output blocks.
 * `analyze.log` can now register python callback functions as sources for logged quantities.
-* The GSD file format (http://gsd.readthedocs.org/en/latest/) is fully implemented in hoomd
+* The GSD file format (http://gsd.readthedocs.io) is fully implemented in hoomd
     * `dump.gsd` writes GSD trajectories and restart files (use `truncate=true` for restarts).
     * `init.read_gsd` reads GSD file and initializes the system, and can start the simulation
        from any frame in the GSD file.
@@ -29,20 +163,41 @@
       particles, types, bonds, etc. can also vary over the trajectory.
 * `force.active` applies an active force (optionally with rotational diffusion) to a group of particles
 * `update.constrain_ellipsoid` constrains particles to an ellipsoid
-* `integrate.langevin` and `ingetgrate.brownian` now apply rotational noise and damping to anisotropic particles
+* `integrate.langevin` and `integrate.brownian` now apply rotational noise and damping to anisotropic particles
 * Support dynamically updating groups. `group.force_update()` forces the group to rebuild according
   to the original selection criteria. For example, this can be used to periodically update a cuboid
   group to include particles only in the specified region.
-* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a dielectric medium.
+* `pair.reaction_field` implements a pair force for a screened electrostatic interaction of a charge pair in a
+  dielectric medium.
+* `force.get_energy` allows querying the potential energy of a particle group for a specific force
+* `init.create_lattice` initializes particles on a lattice.
+    * `lattice.unitcell` provides a generic unit cell definition for `create_lattice`
+    * Convenience functions for common lattices: sq, hex, sc, bcc, fcc.
+* Dump and initialize commands for the GTAR file format (http://libgetar.readthedocs.io).
+    * GTAR can store trajectory data in zip, tar, sqlite, or bare directories
+    * The current version stores system properties, later versions will be able to capture log, metadata, and other
+      output to reduce the number of files that a job script produces.
+* `integrate.npt` can now apply a constant stress tensor to the simulation box.
+* Faceted shapes can now be simulated through the `dem` component.
 
 *Changes that require job script modifications*
 
 * `context.initialize()` is now required before any other hoomd script command.
 * `init.reset()` no longer exists. Use `context.initialize()` or activate a `SimulationContext`.
-* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to the `context` module and members of the currently active `SimulationContext`.
+* Any scripts that relied on undocumented members of the `globals` module will fail. These variables have been moved to
+  the `context` module and members of the currently active `SimulationContext`.
 * bonds, angles, dihedrals, and impropers no longer use the `set_coeff` syntax. Use `bond_coeff.set`, `angle_coeff.set`,
   `dihedral_coeff.set`, and `improper_coeff.set` instead.
 * `hoomd_script` no longer exists, python commands are now spread across `hoomd`, `hoomd.md`, and other sub packages.
+* `integrate.\*_rigid()` no longer exists. Use a standard integrator on `group.rigid_center()`, and define rigid bodies
+  using `constrain.rigid()`
+* All neighbor lists must be explicitly created using `nlist.\*`, and each pair potential must be attached explicitly
+  to a neighbor list. A default global neighbor list is no longer created.
+* Moved cgcmm into its own package.
+* Moved eam into the metal package.
+* Integrators now take `kT` arguments for temperature instead of `T` to avoid confusion on the units of temperature.
+* phase defaults to 0 for updaters and analyzers so that restartable jobs are more easily enabled by default.
+* `dump.xml` (deprecated) requires a particle group, and can dump subsets of particles.
 
 *Other changes*
 
@@ -51,11 +206,28 @@
 * `__version__` is now available in the top level package
 * `boost::iostreams` is no longer a build dependency
 * `boost::filesystem` is no longer a build dependency
+* New concepts page explaining the different styles of neighbor lists
+* Default neighbor list buffer radius is more clearly shown to be r_buff = 0.4
+* Memory usage of `nlist.stencil` is significantly reduced
+* A C++11 compliant compiler is now required to build HOOMD-blue
 
 *Removed*
 
 * Removed `integrate.bdnvt`: use `integrate.langevin`
 * Removed `mtk=False` option from `integrate.nvt` - The MTK NVT integrator is now the only implementation.
+* Removed `integrate.\*_rigid()`: rigid body functionality is now contained in the standard integration methods
+* Removed the global neighbor list, and thin wrappers to the neighbor list in `nlist`.
+* Removed PDB and MOL2 dump writers.
+* Removed init.create_empty
+
+*Deprecated*
+
+* Deprecated analyze.msd.
+* Deprecated dump.xml.
+* Deprecated dump.pos.
+* Deprecated init.read_xml.
+* Deprecated init.create_random.
+* Deprecated init.create_random_polymers.
 
 ## v1.3.3
 
@@ -524,7 +696,7 @@ xml.write(filename="file.xml")
     * update.zero_momentum
 1. NVT integration using the Berendsen thermostat (*integrate.berendsen*)
 1. Bonds, angles, dihedrals, and impropers can now be created and deleted with the python data access API.
-1. Attribution clauses added to the "HOOMD-blue license":http://codeblue.umich.edu/hoomd-blue/doc/page_license.html
+1. Attribution clauses added to the HOOMD-blue license.
 
 *Changes that may break existing job scripts*
 

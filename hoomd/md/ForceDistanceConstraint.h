@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -58,6 +13,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __ForceDistanceConstraint_H__
 #define __ForceDistanceConstraint_H__
@@ -80,7 +37,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -106,7 +63,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void assignMoleculeTags();
 
     protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
+        std::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
         GPUVector<double> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
         GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
@@ -120,12 +77,6 @@ class ForceDistanceConstraint : public MolecularForceCompute
         Eigen::SparseLU<Eigen::SparseMatrix<double, Eigen::ColMajor>, Eigen::COLAMDOrdering<int> > m_sparse_solver;
             //!< The persistent state of the sparse matrix solver
         GPUVector<int> m_sparse_idxlookup;          //!< Reverse lookup from column-major to sparse matrix element
-
-        //! Connection to the signal notifying when groups are resorted
-        boost::signals2::connection m_constraint_reorder_connection;
-
-        //!< Connection to the signal for global topology changes
-        boost::signals2::connection m_group_num_change_connection;
 
         bool m_constraint_reorder;         //!< True if groups have changed
         bool m_constraints_added_removed;  //!< True if global constraint topology has changed
@@ -164,21 +115,18 @@ class ForceDistanceConstraint : public MolecularForceCompute
          */
         virtual Scalar askGhostLayerWidth(unsigned int type);
 
-        //! Fill the molecule list
-        virtual void initMolecules();
-
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceDistanceConstraint::askGhostLayerWidth, this, _1));
+                m_comm->getGhostLayerWidthRequestSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -188,11 +136,11 @@ class ForceDistanceConstraint : public MolecularForceCompute
         Scalar dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
             unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length);
 
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected to ghost layer width requests
 
     };
 
 //! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraint();
+void export_ForceDistanceConstraint(pybind11::module& m);
 
 #endif

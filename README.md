@@ -1,10 +1,13 @@
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
+
 # HOOMD-blue
 
-HOOMD-blue is a general purpose particle simulation toolkit. It performs molecular dynamics simulations of particles
-with a variety of pair, bond, angle, and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
-many nodes. For more information, see the [HOOMD-blue website](https://codeblue.umich.edu/hoomd-blue).
+HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
+of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
+and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
+many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab.engin.umich.edu/hoomd-blue).
 
-# Installing HOOMD-blue
+## Installing HOOMD-blue
 
 Official binaries of HOOMD-blue are available via [conda](http://conda.pydata.org/docs/) through
 the [glotzer channel](https://anaconda.org/glotzer).
@@ -17,7 +20,16 @@ $ conda config --add channels glotzer
 $ conda install hoomd
 ```
 
-# Compiling HOOMD-blue
+## Tutorials and examples
+
+The [hoomd-examples git repository](https://bitbucket.org/glotzer/hoomd-examples) demonstrates how to use hoomd
+with jupyter notebooks.
+
+* View a [static version of hoomd-examples at nbviewer.org](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
+* Launch an [executable version of hoomd-examples at mybinder.org](http://mybinder.org:/repo/joaander/hoomd-examples) (CPU only).
+* Or, clone the hoomd-examples repository and run on your local system.
+
+## Compiling HOOMD-blue
 
 Use cmake to configure an out of source build and make to build hoomd.
 
@@ -28,21 +40,27 @@ cmake ../
 make -j20
 ```
 
-For more detailed instructions, [see the documentationn](https://codeblue.umich.edu/hoomd-blue/doc/page_compile_guide.html).
+To run out of the build directory, add the build directory to your `PYTHONPATH`:
 
-## Prerequisites
+```bash
+export PYTHONPATH=`pwd`:$PYTHONPATH
+```
+
+For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
+
+### Prerequisites
 
  * Required:
-     * Python >= 2.6
+     * Python >= 2.7
      * numpy >= 1.7
-     * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ Compiler (tested with gcc, clang, intel)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
  * Optional:
-     * NVIDIA CUDA Toolkit >= 5.0
-     * MPI (tested with OpenMPI, MVAPICH, impi)
+     * NVIDIA CUDA Toolkit >= 7.0
+     * MPI (tested with OpenMPI, MVAPICH)
+     * sqlite3
 
-# Job scripts
+## Job scripts
 
 HOOMD-blue job scripts are python scripts. You can control system initialization, run protocol, analyze simulation data,
 or develop complex workflows all with python code in your job.
@@ -50,32 +68,35 @@ or develop complex workflows all with python code in your job.
 Here is a simple example.
 
 ```python
-from hoomd_script import *
-context.initialize()
+import hoomd
+from hoomd import md
+hoomd.context.initialize()
 
-# create 100 random particles of name A
-init.create_random(N=100, phi_p=0.01, name='A')
+# create a 10x10x10 square lattice of particles with name A
+hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=2.0, type_name='A'), n=10)
 # specify Lennard-Jones interactions between particle pairs
-lj = pair.lj(r_cut=3.0)
+nl = md.nlist.cell()
+lj = md.pair.lj(r_cut=3.0, nlist=nl)
 lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
-all = group.all();
-integrate.mode_standard(dt=0.005)
-integrate.nvt(group=all, T=1.2, tau=0.5)
+all = hoomd.group.all();
+md.integrate.mode_standard(dt=0.005)
+md.integrate.nvt(group=all, kT=1.2, tau=0.5)
 # run 10,000 time steps
-run(10e3)
+hoomd.run(10e3)
 ```
 
-Save this as `lj.py` and run with `hoomd lj.py`.
+Save this as `lj.py` and run with `python lj.py`.
 
-# Documentation
+## Documentation
 
-Documentation for the current stable release is available online: [http://codeblue.umich.edu/hoomd-blue/doc/](http://codeblue.umich.edu/hoomd-blue/doc/)
+Documentation for current and previous releases is available at [readthedocs](http://hoomd-blue.readthedocs.io).
 
-# Change log
+## Change log
 
 See [ChangeLog.md](ChangeLog.md).
 
-# Contributing to HOOMD-blue.
+## Contributing to HOOMD-blue.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
+

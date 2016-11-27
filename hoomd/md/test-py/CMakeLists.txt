@@ -11,19 +11,19 @@ if (ENABLE_MPI)
     add_test(NAME script-${_test_name}-cpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${PYTHON_EXECUTABLE} ${test_py} "--mode=cpu" "--gpu_error_checking")
-    set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     if (ENABLE_CUDA)
         add_test(NAME script-${_test_name}-gpu
                  COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                          ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu" "--gpu_error_checking")
-    set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     endif (ENABLE_CUDA)
 else ()
     add_test(NAME script-${_test_name}-cpu COMMAND ${PYTHON_EXECUTABLE} ${test_py} "--mode=cpu" "--gpu_error_checking")
-    set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     if (ENABLE_CUDA)
         add_test(NAME script-${_test_name}-gpu COMMAND ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu" "--gpu_error_checking")
-        set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+        set_tests_properties(script-${_test_name}-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     endif (ENABLE_CUDA)
 endif()
 
@@ -39,12 +39,12 @@ get_filename_component(_test_name ${test_py} NAME_WE)
 add_test(NAME script-${_test_name}-mpi-cpu
          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
          ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${test_py} "--mode=cpu" "--gpu_error_checking")
-set_tests_properties(script-${_test_name}-mpi-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+set_tests_properties(script-${_test_name}-mpi-cpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 if (ENABLE_CUDA)
 add_test(NAME script-${_test_name}-mpi-gpu
          COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
          ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu" "--gpu_error_checking")
-set_tests_properties(script-${_test_name}-mpi-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+set_tests_properties(script-${_test_name}-mpi-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 endif (ENABLE_CUDA)
 endmacro(add_hoomd_script_test_mpi)
 ###############################
@@ -71,16 +71,16 @@ if (ENABLE_MPI)
     add_test(NAME script-${_test_name}-racecheck-gpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu")
-    set_tests_properties(script-${_test_name}-racecheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-racecheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     add_test(NAME script-${_test_name}-memcheck-gpu
              COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1
                      ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu")
-    set_tests_properties(script-${_test_name}-memcheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-memcheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 else()
     add_test(NAME script-${_test_name}-racecheck-gpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool racecheck ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu")
-    set_tests_properties(script-${_test_name}-racecheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-racecheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
     add_test(NAME script-${_test_name}-memcheck-gpu COMMAND ${CUDA_MEMCHECK_EXECUTABLE} --error-exitcode 123 --tool memcheck ${PYTHON_EXECUTABLE} ${test_py} "--mode=gpu")
-    set_tests_properties(script-${_test_name}-memcheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
+    set_tests_properties(script-${_test_name}-memcheck-gpu PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}")
 
 endif()
 endif (ENABLE_CUDA)
@@ -99,11 +99,10 @@ endforeach(test)
 # exclude some tests from MPI
 SET(EXCLUDE_FROM_MPI
     test_charge_pppm
-    test_pair_cgcmm
     test_constrain_distance
     test_force_active
     test_update_ellipsoid
-    test_update_rescale_temp
+    test_meta_md
     )
 
 if (ENABLE_MPI)
@@ -117,6 +116,9 @@ if (ENABLE_MPI)
 
     # communication test needs to be run on 8 procs
     add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_constrain_distance.py 8)
+
+    # run pppm test on 8 procs
+    add_hoomd_script_test_mpi(${CMAKE_CURRENT_SOURCE_DIR}/test_charge_pppm.py 8)
 endif(ENABLE_MPI)
 
 if (ENABLE_CUDA)

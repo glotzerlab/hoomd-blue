@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
@@ -54,8 +9,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string.h>
 #include <map>
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
+namespace py = pybind11;
 
 /*! \file MolecularForceCompute.cc
     \brief Contains code for the MolecularForceCompute class
@@ -63,22 +17,27 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-MolecularForceCompute::MolecularForceCompute(boost::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_list(m_exec_conf),
-      m_molecule_length(m_exec_conf), m_molecule_tag(m_exec_conf),
-      m_molecule_idx(m_exec_conf), m_n_molecules_global(0)
+MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+      m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
+      m_molecule_idx(m_exec_conf), m_dirty(true)
     {
+    // connect to the ParticleData to recieve notifications when particles change order in memory
+    m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
 //! Destructor
 MolecularForceCompute::~MolecularForceCompute()
     {
+    m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
 void MolecularForceCompute::initMolecules()
     {
     // return early if no molecules are defined
     if (!m_n_molecules_global) return;
+
+    if (m_prof) m_prof->push("init molecules");
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
@@ -94,11 +53,10 @@ void MolecularForceCompute::initMolecules()
 
     std::vector<unsigned int> local_molecule_idx(nptl_local, NO_MOLECULE);
 
-    // resize molecule lookup
-    m_molecule_idx.resize(m_n_molecules_global);
+    // resize molecule lookup to size of local particle data
+    m_molecule_order.resize(m_pdata->getMaxN());
 
     // identify local molecules and assign local indices to global molecule tags
-    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < nptl_local; ++i)
         {
         unsigned int tag = h_tag.data[i];
@@ -112,8 +70,6 @@ void MolecularForceCompute::initMolecules()
             {
             // insert element
             it = local_molecule_tags.insert(std::make_pair(mol_tag,n_local_molecules++)).first;
-            unsigned int mol_idx = it->second;
-            h_molecule_idx.data[mol_tag] = mol_idx;
             }
 
         local_molecule_idx[i] = it->second;
@@ -174,9 +130,20 @@ void MolecularForceCompute::initMolecules()
             }
         }
 
+    // reset molecule order
+    ArrayHandle<unsigned int> h_molecule_order(m_molecule_order, access_location::host, access_mode::overwrite);
+    memset(h_molecule_order.data, 0, sizeof(unsigned int)*(m_pdata->getN() + m_pdata->getNGhosts()));
+
+    // resize reverse-lookup
+    m_molecule_idx.resize(nptl_local);
+
     // fill molecule list
     ArrayHandle<unsigned int> h_molecule_list(m_molecule_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_molecule_idx(m_molecule_idx, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+    // reset reverse lookup
+    memset(h_molecule_idx.data, 0, sizeof(unsigned int)*nptl_local);
 
     unsigned int i_mol = 0;
     for (std::vector< std::set<unsigned int> >::iterator it_mol = local_molecules_sorted_by_tag.begin();
@@ -188,14 +155,18 @@ void MolecularForceCompute::initMolecules()
             unsigned int ptl_idx = h_rtag.data[*it_tag];
             assert(ptl_idx < m_pdata->getN() + m_pdata->getNGhosts());
             h_molecule_list.data[m_molecule_indexer(i_mol, n)] = ptl_idx;
+            h_molecule_idx.data[ptl_idx] = i_mol;
+            h_molecule_order.data[ptl_idx] = n;
             }
         i_mol ++;
         }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_MolecularForceCompute()
+void export_MolecularForceCompute(py::module& m)
     {
-    class_< MolecularForceCompute, boost::shared_ptr<MolecularForceCompute>, bases<ForceConstraint>, boost::noncopyable >
-    ("MolecularForceCompute", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< MolecularForceCompute, std::shared_ptr<MolecularForceCompute> >(m, "MolecularForceCompute", py::base<ForceConstraint>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

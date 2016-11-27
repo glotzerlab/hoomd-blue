@@ -1,61 +1,14 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
-
-#include <boost/python.hpp>
-
 using namespace Eigen;
+namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
@@ -63,7 +16,7 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
@@ -73,10 +26,10 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
     m_constraint_violated.resetFlags(0);
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
-    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraint::slotConstraintReorder, this));
+    m_cdata->getGroupReorderSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
 
     // connect to ConstraintData to receive notifications when global constraint topology changes
-    m_group_num_change_connection = m_cdata->connectGroupNumChange(boost::bind(&ForceDistanceConstraint::slotConstraintsAddedRemoved, this));
+    m_cdata->getGroupNumChangeSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
 
     // reset condition
     m_condition.resetFlags(0);
@@ -86,15 +39,12 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
 ForceDistanceConstraint::~ForceDistanceConstraint()
     {
     // disconnect from signal in ConstraintData
-    m_constraint_reorder_connection.disconnect();
-
-    m_group_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        {
-        // register this class with the communciator
-        m_comm_ghost_layer_connection.disconnect();
-        }
+    m_cdata->getGroupReorderSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
+    m_cdata->getGroupNumChangeSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getGhostLayerWidthRequestSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+    #endif
     }
 
 /*! Does nothing in the base class
@@ -174,16 +124,13 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the constraint
         const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(n);
-        assert(constraint.tag[0] < m_pdata->getMaximumTag());
-        assert(constraint.tag[1] < m_pdata->getMaximumTag());
+        assert(constraint.tag[0] <= m_pdata->getMaximumTag());
+        assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
-
-        assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
-        assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
 
         if (idx_a >= max_local || idx_b >= max_local)
             {
@@ -213,8 +160,8 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             {
             // lookup the tag of each of the particles participating in the constraint
             const ConstraintData::members_t constraint_m = m_cdata->getMembersByIndex(m);
-            assert(constraint_m.tag[0] < m_pdata->getMaximumTag());
-            assert(constraint_m.tag[1] < m_pdata->getMaximumTag());
+            assert(constraint_m.tag[0] <= m_pdata->getMaximumTag());
+            assert(constraint_m.tag[1] <= m_pdata->getMaximumTag());
 
             // transform a and b into indicies into the particle data arrays
             // (MEM TRANSFER: 4 integers)
@@ -277,7 +224,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         Scalar d = m_cdata->getValueByIndex(n);
 
         // check distance violation
-        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d || isnan(dot(rn,rn)))
+        if (fast::sqrt(dot(rn,rn))-d >= m_rel_tol*d || std::isnan(dot(rn,rn)))
             {
             m_constraint_violated.resetFlags(n+1);
             }
@@ -583,19 +530,6 @@ Scalar ForceDistanceConstraint::askGhostLayerWidth(unsigned int type)
     return m_d_max;
     }
 
-void ForceDistanceConstraint::initMolecules()
-    {
-    // only rebuild global tag list if necessary
-    if (m_constraints_added_removed)
-        {
-        assignMoleculeTags();
-        m_constraints_added_removed = false;
-        }
-
-    // call base-class method
-    MolecularForceCompute::initMolecules();
-    }
-
 void ForceDistanceConstraint::assignMoleculeTags()
     {
     ConstraintData::Snapshot snap;
@@ -657,10 +591,10 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint()
+void export_ForceDistanceConstraint(py::module& m)
     {
-    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

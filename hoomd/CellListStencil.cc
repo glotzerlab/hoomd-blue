@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: mphoward
 
@@ -55,26 +10,24 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "CellListStencil.h"
 
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
+namespace py = pybind11;
 #include <algorithm>
 
 using namespace std;
-using namespace boost::python;
 
 /*!
  * \param sysdef System definition
  * \param cl Cell list to pair the stencil with
  */
-CellListStencil::CellListStencil(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<CellList> cl)
+CellListStencil::CellListStencil(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<CellList> cl)
     : Compute(sysdef), m_cl(cl), m_compute_stencil(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing CellListStencil" << endl;
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(boost::bind(&CellListStencil::slotTypeChange, this));
-    m_box_change_conn = m_pdata->connectBoxChange(boost::bind(&CellListStencil::requestCompute, this));
-    m_width_change_conn = m_cl->connectCellWidthChange(boost::bind(&CellListStencil::requestCompute, this));
+    m_pdata->getNumTypesChangeSignal().connect<CellListStencil, &CellListStencil::slotTypeChange>(this);
+    m_pdata->getBoxChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(this);
+    m_cl->getCellWidthChangeSignal().connect<CellListStencil, &CellListStencil::requestCompute>(this);
 
     // Default initialization is no stencil for any type
     m_rstencil = std::vector<Scalar>(m_pdata->getNTypes(), -1.0);
@@ -91,9 +44,9 @@ CellListStencil::~CellListStencil()
     {
     m_exec_conf->msg->notice(5) << "Destroying CellListStencil" << endl;
 
-    m_num_type_change_conn.disconnect();
-    m_box_change_conn.disconnect();
-    m_width_change_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<CellListStencil, &CellListStencil::slotTypeChange>(this);
+    m_pdata->getBoxChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(this);
+    m_cl->getCellWidthChangeSignal().disconnect<CellListStencil, &CellListStencil::requestCompute>(this);
     }
 
 void CellListStencil::compute(unsigned int timestep)
@@ -154,7 +107,7 @@ void CellListStencil::compute(unsigned int timestep)
             h_n_stencil.data[cur_type] = 0;
             continue;
             }
-        
+
         Scalar r_listsq_max = r_list_max*r_list_max;
 
         // get the stencil size
@@ -225,12 +178,12 @@ bool CellListStencil::shouldCompute(unsigned int timestep)
         m_compute_stencil = false;
         return true;
         }
-    
+
     return false;
     }
 
-void export_CellListStencil()
+void export_CellListStencil(py::module& m)
     {
-    class_<CellListStencil, boost::shared_ptr<CellListStencil>, bases<Compute>, boost::noncopyable >
-        ("CellListStencil", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<CellList> >());
+    py::class_<CellListStencil, std::shared_ptr<CellListStencil> >(m,"CellListStencil", py::base<Compute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<CellList> >());
     }

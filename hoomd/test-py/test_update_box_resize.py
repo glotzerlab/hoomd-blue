@@ -2,6 +2,7 @@
 # Maintainer: joaander
 
 from hoomd import *
+from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -11,9 +12,9 @@ import os
 class update_box_resize_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_random(N=100, phi_p=0.05);
+        deprecated.init.create_random(N=100, phi_p=0.05);
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     # tests basic creation of the updater
     def test(self):
@@ -50,11 +51,6 @@ class update_box_resize_tests (unittest.TestCase):
                           xz= variant.linear_interp([(0,0), (1e5, .5)]),
                           yz= variant.linear_interp([(0,0), (1e5, .3)]), period=10);
         run(100);
-
-    # test set_params
-    def test_set_params(self):
-        upd = update.box_resize(Lx = variant.linear_interp([(0, 20), (1e6, 50)]))
-        upd.set_params(scale_particles = False);
 
     def tearDown(self):
         context.initialize();

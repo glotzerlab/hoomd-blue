@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
@@ -64,7 +19,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 using namespace std;
 
-using namespace boost::python;
+namespace py = pybind11;
 
 //! A streambuf sink that writes to sys.stdout in python
 class pysys_stdout_streambuf : public std::streambuf
@@ -138,7 +93,7 @@ Messenger::Messenger()
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
 
-    m_nullstream = boost::shared_ptr<nullstream>(new nullstream());
+    m_nullstream = std::shared_ptr<nullstream>(new nullstream());
     m_notice_level = 2;
     m_err_prefix     = "**ERROR**";
     m_warning_prefix = "*Warning*";
@@ -388,8 +343,8 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg) const
 */
 void Messenger::openFile(const std::string& fname)
     {
-    m_file_out = boost::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>(new ofstream(fname.c_str()));
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
     m_notice_stream = m_file_out.get();
@@ -403,12 +358,12 @@ void Messenger::openFile(const std::string& fname)
 */
 void Messenger::openPython()
     {
-    m_streambuf_out = boost::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
-    m_streambuf_err = boost::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
+    m_streambuf_out = std::shared_ptr<std::streambuf>(new pysys_stdout_streambuf());
+    m_streambuf_err = std::shared_ptr<std::streambuf>(new pysys_stderr_streambuf());
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
-    m_file_err = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_err.get()));
+    m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
+    m_file_err = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_err.get()));
 
     m_err_stream = m_file_err.get();
     m_warning_stream = m_file_err.get();
@@ -425,11 +380,11 @@ void Messenger::openSharedFile()
     {
     std::ostringstream oss;
     oss << m_shared_filename << "." << m_partition;
-    m_streambuf_out = boost::shared_ptr< std::streambuf >(new mpi_io((const MPI_Comm&) m_mpi_comm, oss.str()));
+    m_streambuf_out = std::shared_ptr< std::streambuf >(new mpi_io((const MPI_Comm&) m_mpi_comm, oss.str()));
 
     // now update the error, warning, and notice streams
-    m_file_out = boost::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>(new std::ostream(m_streambuf_out.get()));
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = m_file_out.get();
     m_warning_stream = m_file_out.get();
     m_notice_stream = m_file_out.get();
@@ -440,8 +395,8 @@ void Messenger::openSharedFile()
 */
 void Messenger::openStd()
     {
-    m_file_out = boost::shared_ptr<std::ostream>();
-    m_file_err = boost::shared_ptr<std::ostream>();
+    m_file_out = std::shared_ptr<std::ostream>();
+    m_file_err = std::shared_ptr<std::ostream>();
     m_err_stream = &cerr;
     m_warning_stream = &cerr;
     m_notice_stream = &cout;
@@ -457,10 +412,10 @@ mpi_io::mpi_io(const MPI_Comm& mpi_comm, const std::string& filename)
     assert(m_mpi_comm);
 
     // overwrite old file
-    MPI_File_delete(filename.c_str(), MPI_INFO_NULL);
+    MPI_File_delete((char *)filename.c_str(), MPI_INFO_NULL);
 
     // open the log file
-    int ret = MPI_File_open(m_mpi_comm, filename.c_str(),  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
+    int ret = MPI_File_open(m_mpi_comm, (char *)filename.c_str(),  MPI_MODE_CREATE | MPI_MODE_WRONLY | MPI_MODE_UNIQUE_OPEN, MPI_INFO_NULL, &m_file);
 
     if (ret == 0)
         m_file_open = true;
@@ -506,26 +461,26 @@ void Messenger::releaseSharedMem()
 
 #endif
 
-void export_Messenger()
+void export_Messenger(py::module& m)
     {
-    class_<Messenger, boost::shared_ptr<Messenger>, boost::noncopyable >
-         ("Messenger", init< >())
-         .def("error", &Messenger::errorStr)
-         .def("warning", &Messenger::warningStr)
-         .def("notice", &Messenger::noticeStr)
-         .def("getNoticeLevel", &Messenger::getNoticeLevel)
-         .def("setNoticeLevel", &Messenger::setNoticeLevel)
-         .def("getErrorPrefix", &Messenger::getErrorPrefix, return_value_policy<copy_const_reference>())
-         .def("setErrorPrefix", &Messenger::setErrorPrefix)
-         .def("getWarningPrefix", &Messenger::getWarningPrefix, return_value_policy<copy_const_reference>())
-         .def("setWarningPrefix", &Messenger::setWarningPrefix)
-         .def("getNoticePrefix", &Messenger::getNoticePrefix, return_value_policy<copy_const_reference>())
-         .def("setWarningPrefix", &Messenger::setWarningPrefix)
-         .def("openFile", &Messenger::openFile)
-         .def("openPython", &Messenger::openPython)
+    py::class_<Messenger, std::shared_ptr<Messenger> >(m,"Messenger")
+        .def(py::init< >())
+        .def("error", &Messenger::errorStr)
+        .def("warning", &Messenger::warningStr)
+        .def("notice", &Messenger::noticeStr)
+        .def("getNoticeLevel", &Messenger::getNoticeLevel)
+        .def("setNoticeLevel", &Messenger::setNoticeLevel)
+        .def("getErrorPrefix", &Messenger::getErrorPrefix, py::return_value_policy::reference_internal)
+        .def("setErrorPrefix", &Messenger::setErrorPrefix)
+        .def("getWarningPrefix", &Messenger::getWarningPrefix, py::return_value_policy::reference_internal)
+        .def("setWarningPrefix", &Messenger::setWarningPrefix)
+        .def("getNoticePrefix", &Messenger::getNoticePrefix, py::return_value_policy::reference_internal)
+        .def("setWarningPrefix", &Messenger::setWarningPrefix)
+        .def("openFile", &Messenger::openFile)
+        .def("openPython", &Messenger::openPython)
 #ifdef ENABLE_MPI
-         .def("setSharedFile", &Messenger::setSharedFile)
+        .def("setSharedFile", &Messenger::setSharedFile)
 #endif
-         .def("openStd", &Messenger::openStd)
+        .def("openStd", &Messenger::openStd)
          ;
     }

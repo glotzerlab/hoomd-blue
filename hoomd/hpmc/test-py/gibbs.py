@@ -1,4 +1,5 @@
 from hoomd import *
+from hoomd import deprecated
 from hoomd import hpmc
 
 import unittest
@@ -13,7 +14,7 @@ context.initialize(args="--nrank=1")
 class gibbs_ensemble_test(unittest.TestCase):
     def setUp(self):
         p = comm.get_partition()
-        self.system = init.create_random(N=128,phi_p=0.2,min_dist=1.0,seed=12345+p)
+        self.system = deprecated.init.create_random(N=128,phi_p=0.2,min_dist=1.0,seed=12345+p)
         self.system.particles.types.add('B')
         self.mc = hpmc.integrate.sphere(seed=123+p,implicit=True)
         self.mc.set_params(d=0.1)

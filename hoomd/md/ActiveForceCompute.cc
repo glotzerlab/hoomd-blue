@@ -1,62 +1,16 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2015 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: joaander
 
 
 #include "ActiveForceCompute.h"
 
-#include <boost/python.hpp>
 #include <vector>
-using namespace boost::python;
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \file ActiveForceCompute.cc
     \brief Contains code for the ActiveForceCompute class
@@ -66,22 +20,25 @@ using namespace std;
     \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
     \param orientation_link if True then particle orientation is coupled to the active force vector. Only
     relevant for non-point-like anisotropic particles.
+    /param orientation_reverse_link When True, the active force vector is coupled to particle orientation. Useful for
+    for using a particle's orientation to log the active force vector.
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.
 */
-ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                                        boost::shared_ptr<ParticleGroup> group,
+ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                        std::shared_ptr<ParticleGroup> group,
                                         int seed,
-                                        boost::python::list f_lst,
+                                        py::list f_lst,
                                         bool orientation_link,
+                                        bool orientation_reverse_link,
                                         Scalar rotation_diff,
                                         Scalar3 P,
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_rotationDiff(rotation_diff),
-            m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
+        : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_orientationReverseLink(orientation_reverse_link),
+            m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
     m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
 
@@ -93,23 +50,26 @@ ActiveForceCompute::ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysde
         }
 
     vector<Scalar3> c_f_lst;
-    tuple tmp_force;
+    py::tuple tmp_force;
     for (unsigned int i = 0; i < len(f_lst); i++)
         {
-        tmp_force = extract<tuple>(f_lst[i]);
+        tmp_force = py::cast<py::tuple>(f_lst[i]);
         if (len(tmp_force) !=3)
             throw runtime_error("Non-3D force given for ActiveForceCompute");
-        c_f_lst.push_back( make_scalar3(extract<Scalar>(tmp_force[0]), extract<Scalar>(tmp_force[1]), extract<Scalar>(tmp_force[2])));
+        c_f_lst.push_back( make_scalar3(py::cast<Scalar>(tmp_force[0]), py::cast<Scalar>(tmp_force[1]), py::cast<Scalar>(tmp_force[2])));
         }
 
     if (c_f_lst.size() != group_size) { throw runtime_error("Force given for ActiveForceCompute doesn't match particle number."); }
     if (m_orientationLink == true && m_rotationDiff != 0)
         {
-        throw runtime_error("Non-spherical particles and rotational diffusion of the active force vector is ill defined. Instead implement rotational diffusion through the integrator.");
+        throw runtime_error("Non-spherical particles and rotational diffusion is ill defined. Instead implement rotational diffusion through the integrator, or if you are working with point particles set orientation_link=False.");
         }
 
-    m_activeVec.resize(group_size);
-    m_activeMag.resize(group_size);
+    GPUArray<Scalar3> tmp_activeVec(group_size, m_exec_conf);
+    GPUArray<Scalar> tmp_activeMag(group_size, m_exec_conf);
+
+    m_activeVec.swap(tmp_activeVec);
+    m_activeMag.swap(tmp_activeMag);
 
     ArrayHandle<Scalar3> h_activeVec(m_activeVec, access_location::host);
     ArrayHandle<Scalar> h_activeMag(m_activeMag, access_location::host);
@@ -144,11 +104,11 @@ ActiveForceCompute::~ActiveForceCompute()
 */
 void ActiveForceCompute::setForces()
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_actMag(m_activeMag, access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // sanity check
@@ -183,6 +143,17 @@ void ActiveForceCompute::setForces()
             h_force.data[idx].y = f.y;
             h_force.data[idx].z = f.z;
             }
+        // rotate particle orientation only if orientation is reverse linked to active force vector
+        if (m_orientationReverseLink == true)
+            {
+            vec3<Scalar> f(h_actMag.data[i]*h_actVec.data[i].x, h_actMag.data[i]*h_actVec.data[i].y, h_actMag.data[i]*h_actVec.data[i].z);
+            vec3<Scalar> vecZ(0.0, 0.0, 1.0);
+            vec3<Scalar> quatVec = cross(vecZ, f);
+            Scalar quatScal = slow::sqrt(h_actMag.data[i]*h_actMag.data[i]) + dot(f, vecZ);
+            quat<Scalar> quati(quatScal, quatVec);
+            quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
+            h_orientation.data[idx] = quat_to_scalar4(quati);
+            }
         }
     }
 
@@ -191,7 +162,7 @@ void ActiveForceCompute::setForces()
 */
 void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
     {
-	//  array handles
+    //  array handles
     ArrayHandle<Scalar3> h_actVec(m_activeVec, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata -> getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -334,8 +305,8 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
             {
             rotationalDiffusion(timestep); // apply rotational diffusion to active particles
             }
-	    setForces(); // set forces for particles
-	    }
+        setForces(); // set forces for particles
+        }
 
     #ifdef ENABLE_CUDA
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -347,18 +318,10 @@ void ActiveForceCompute::computeForces(unsigned int timestep)
     }
 
 
-void export_ActiveForceCompute()
+void export_ActiveForceCompute(py::module& m)
     {
-    class_< ActiveForceCompute, boost::shared_ptr<ActiveForceCompute>, bases<ForceCompute>, boost::noncopyable >
-    ("ActiveForceCompute", init< boost::shared_ptr<SystemDefinition>,
-                                    boost::shared_ptr<ParticleGroup>,
-                                    int,
-                                    boost::python::list,
-                                    bool,
-                                    Scalar,
-                                    Scalar3,
-                                    Scalar,
-                                    Scalar,
-                                    Scalar >())
+    py::class_< ActiveForceCompute, std::shared_ptr<ActiveForceCompute> >(m, "ActiveForceCompute", py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, int, py::list, bool, bool, Scalar,
+                    Scalar3, Scalar, Scalar, Scalar >())
     ;
     }

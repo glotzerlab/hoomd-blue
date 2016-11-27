@@ -1,56 +1,10 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 // Maintainer: jglaser
 
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
+#include <memory>
 #include "PotentialExternal.h"
 #include "PotentialExternalGPU.cuh"
 #include "hoomd/Autotuner.h"
@@ -63,6 +17,8 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __POTENTIAL_EXTERNAL_GPU_H__
 #define __POTENTIAL_EXTERNAL_GPU_H__
 
@@ -74,7 +30,7 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
     {
     public:
         //! Constructs the compute
-        PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+        PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
                              const std::string& log_suffix="");
 
         //! Set autotuner parameters
@@ -93,14 +49,14 @@ class PotentialExternalGPU : public PotentialExternal<evaluator>
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size
     };
 
 /*! Constructor
     \param sysdef system definition
  */
 template<class evaluator>
-PotentialExternalGPU<evaluator>::PotentialExternalGPU(boost::shared_ptr<SystemDefinition> sysdef,
+PotentialExternalGPU<evaluator>::PotentialExternalGPU(std::shared_ptr<SystemDefinition> sysdef,
                                                                 const std::string& log_suffix)
     : PotentialExternal<evaluator>(sysdef, log_suffix)
     {
@@ -168,18 +124,13 @@ void PotentialExternalGPU<evaluator>::computeForces(unsigned int timestep)
     \tparam T Class type to export. \b Must be an instantiated PotentialExternalGPU class template.
 */
 template < class T, class base >
-void export_PotentialExternalGPU(const std::string& name)
+void export_PotentialExternalGPU(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<base>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, const std::string&  >())
-                  .def("setParams", &T::setParams)
-                  .def("setField", &T::setField)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION >= 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+    pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<base>())
+                .def(pybind11::init< std::shared_ptr<SystemDefinition>, const std::string&  >())
+                .def("setParams", &T::setParams)
+                .def("setField", &T::setField)
+                ;
     }
 
 #endif

@@ -1,51 +1,5 @@
-# -- start license --
-# Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-# (HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-# the University of Michigan All rights reserved.
-
-# HOOMD-blue may contain modifications ("Contributions") provided, and to which
-# copyright is held, by various Contributors who have granted The Regents of the
-# University of Michigan the right to modify and/or distribute such Contributions.
-
-# You may redistribute, use, and create derivate works of HOOMD-blue, in source
-# and binary forms, provided you abide by the following conditions:
-
-# * Redistributions of source code must retain the above copyright notice, this
-# list of conditions, and the following disclaimer both in the code and
-# prominently in any materials provided with the distribution.
-
-# * Redistributions in binary form must reproduce the above copyright notice, this
-# list of conditions, and the following disclaimer in the documentation and/or
-# other materials provided with the distribution.
-
-# * All publications and presentations based on HOOMD-blue, including any reports
-# or published results obtained, in whole or in part, with HOOMD-blue, will
-# acknowledge its use according to the terms posted at the time of submission on:
-# http://codeblue.umich.edu/hoomd-blue/citations.html
-
-# * Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-# http://codeblue.umich.edu/hoomd-blue/
-
-# * Apart from the above required attributions, neither the name of the copyright
-# holder nor the names of HOOMD-blue's contributors may be used to endorse or
-# promote products derived from this software without specific prior written
-# permission.
-
-# Disclaimer
-
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-# WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-# IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-# INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# -- end license --
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
 
@@ -258,25 +212,18 @@ class _integration_method(hoomd.meta._metadata):
             hoomd.context.msg.error('Bug in hoomd_script: cpp_method not set, please report\n');
             raise RuntimeError();
 
-    ## Disables the integration method
-    #
-    # \b Examples:
-    # \code
-    # method.disable()
-    # \endcode
-    #
-    # Executing the disable command will remove the integration method from the simulation.Any run() command executed
-    # after disabling an integration method will not apply the integration method to the particles during the
-    # simulation. A disabled integration method can be re-enabled with enable()
-    #
-    # To use this command, you must have saved the force in a variable, as
-    # shown in this example:
-    # \code
-    # method = integrate.some_method()
-    # # ... later in the script
-    # method.disable()
-    # \endcode
     def disable(self):
+        R""" Disables the integration method.
+
+        Examples::
+
+            method.disable()
+
+        Executing the disable command will remove the integration method from the simulation.
+        Any :py:func:`hoomd.run()` command executed after disabling an integration method will
+        not apply the integration method to the particles during the
+        simulation. A disabled integration method can be re-enabled with :py:meth:`enable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization()
 
@@ -288,15 +235,16 @@ class _integration_method(hoomd.meta._metadata):
         self.enabled = False;
         hoomd.context.current.integration_methods.remove(self);
 
-    ## Enables the integration method
-    #
-    # \b Examples:
-    # \code
-    # method.enable()
-    # \endcode
-    #
-    # See disable() for a detailed description.
     def enable(self):
+        R""" Enables the integration method.
+
+        Examples::
+
+            method.enable()
+
+        See Also:
+            :py:meth:`disable()`.
+        """
         hoomd.util.print_status_line();
         self.check_initialization();
 
@@ -311,6 +259,6 @@ class _integration_method(hoomd.meta._metadata):
     ## \internal
     # \brief Override get_metadata() to add 'enabled' field
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data

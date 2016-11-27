@@ -1,3 +1,5 @@
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
@@ -41,7 +43,6 @@ namespace detail
 //! maximum number of plane normal vectors that can be stored
 /*! \ingroup hpmc_data_structs */
 const unsigned int MAX_SPHERE_FACETS = 8;
-const unsigned int MAX_FPOLY3D_VERTS = 24;
 
 //! maximum number of intersection vertices between two planes and the sphere
 /*! \ingroup hpmc_data_structs */
@@ -50,10 +51,10 @@ const unsigned int MAX_SPHERE_VERTICES = MAX_SPHERE_FACETS*(MAX_SPHERE_FACETS-1)
 
 //! Data structure for intersection planes
 /*! \ingroup hpmc_data_structs */
-struct faceted_sphere_params : aligned_struct
+struct faceted_sphere_params : param_base
     {
-    poly3d_verts<MAX_FPOLY3D_VERTS> verts;           //!< Vertices of the polyhedron
-    poly3d_verts<MAX_FPOLY3D_VERTS> additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
+    poly3d_verts verts;           //!< Vertices of the polyhedron
+    poly3d_verts additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
     vec3<OverlapReal> n[MAX_SPHERE_FACETS];          //!< Normal vectors of planes
     OverlapReal offset[MAX_SPHERE_FACETS];           //!< Offset of every plane
     OverlapReal diameter;                            //!< Sphere diameter
@@ -62,9 +63,27 @@ struct faceted_sphere_params : aligned_struct
     unsigned int N;                                  //!< Number of cut planes
     unsigned int ignore;                             //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                                      //   First bit is ignore overlaps, Second bit is ignore statistics
-    } __attribute__((aligned(32)));
 
-#define SMALL 1e-5
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param load If true, copy data to pointer, otherwise increment only
+        \param ptr_max Maximum address in shared memory
+     */
+    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        {
+        verts.load_shared(ptr, load, ptr_max);
+        additional_verts.load_shared(ptr, load, ptr_max);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        verts.attach_to_stream(stream);
+        additional_verts.attach_to_stream(stream);
+        }
+    #endif
+    } __attribute__((aligned(32)));
 
 //! Support function for ShapeFacetedSphere
 /* \ingroup minkowski
@@ -147,7 +166,7 @@ class SupportFuncFacetedSphere
             // do we have to take into account plane-plane intersection vertices?
             if (intersecting && params.additional_verts.N)
                 {
-                detail::SupportFuncConvexPolyhedron<MAX_FPOLY3D_VERTS> s(params.additional_verts);
+                detail::SupportFuncConvexPolyhedron s(params.additional_verts);
                 vec3<OverlapReal> v = s(n);
 
                 if (!valid)
@@ -157,7 +176,7 @@ class SupportFuncFacetedSphere
                 if (params.verts.N)
                     {
                     // determine polyhedron support
-                    detail::SupportFuncConvexPolyhedron<MAX_FPOLY3D_VERTS> t(params.verts);
+                    detail::SupportFuncConvexPolyhedron t(params.verts);
                     vec3<OverlapReal> p  = t(n);
 
                     // does the shape intersect within the sphere?
@@ -202,10 +221,7 @@ struct ShapeFacetedSphere
     DEVICE bool hasOrientation() { return params.N > 0; }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return params.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const {return params.ignore & 0x01;}
+    DEVICE bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const
@@ -231,17 +247,12 @@ struct ShapeFacetedSphere
     /*!
      * Generate the intersections points of polyhedron edges with the sphere
      */
-    DEVICE static void initializeVertices(param_type& _params)
+    DEVICE static void initializeVertices(param_type& _params, bool managed)
         {
         #ifndef NVCC
+        _params.additional_verts = detail::poly3d_verts(2*_params.N*_params.N, managed);
         _params.additional_verts.diameter = _params.diameter;
         _params.additional_verts.N = 0;
-        for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS; ++i)
-            {
-            _params.additional_verts.x[i] = OverlapReal(0.0);
-            _params.additional_verts.y[i] = OverlapReal(0.0);
-            _params.additional_verts.z[i] = OverlapReal(0.0);
-            }
 
         OverlapReal R = (_params.diameter)/OverlapReal(2.0);
 
@@ -301,9 +312,6 @@ struct ShapeFacetedSphere
 
                 if (allowed)
                     {
-                    if (_params.additional_verts.N >= detail::MAX_FPOLY3D_VERTS)
-                        throw std::runtime_error("Max number of vertices exceeded.\n");
-
                     _params.additional_verts.x[_params.additional_verts.N] = v1.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v1.y;
                     _params.additional_verts.z[_params.additional_verts.N] = v1.z;
@@ -329,9 +337,6 @@ struct ShapeFacetedSphere
 
                 if (allowed)
                     {
-                    if (_params.additional_verts.N >= detail::MAX_FPOLY3D_VERTS)
-                        throw std::runtime_error("Max number of vertices exceeded.\n");
-
                     _params.additional_verts.x[_params.additional_verts.N] = v2.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v2.y;
                     _params.additional_verts.z[_params.additional_verts.N] = v2.z;

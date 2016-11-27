@@ -8,6 +8,10 @@ import numpy
 
 context.initialize()
 
+def create_empty(**kwargs):
+    snap = data.make_snapshot(**kwargs);
+    return init.read_snapshot(snap);
+
 # This test ensures that the small box code path is enabled at the correct box sizes and works correctly
 # It performs two tests
 # 1) we set translations moves by type, freezing all, half then none of the system. We use acceptance probabilities to check that system is behaving as expected.
@@ -21,9 +25,9 @@ context.initialize()
 #
 class pair_move_some(unittest.TestCase):
     def setUp(self) :
-        self.system  = init.create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A','B'])
+        self.system  = create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A','B'])
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,a=0.0,d={'A':0.1,'B':0.0},max_verts=8);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10,a=0.0,d={'A':0.1,'B':0.0});
         rverts= numpy.array( [(-2,-1,-1),
                              (-2,1,-1),
                              (-2,-1,1),
@@ -33,10 +37,10 @@ class pair_move_some(unittest.TestCase):
                              (2,-1,1),
                              (2,1,1)])*0.25
 
-        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
-        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
+        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False)
+        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_move_some(self):
 
@@ -67,7 +71,7 @@ class pair_move_some(unittest.TestCase):
             for t,p in zip(['A']*N_a+['B']*(1000-N_a),self.system.particles):
                 p.type=t
 
-            run(250)
+            run(100)
 
             #check that the B particles haven't moved
             for x,y,z,p in zip(xs,ys,zs,self.system.particles):
@@ -98,9 +102,9 @@ class pair_move_some(unittest.TestCase):
 
 class pair_rot_some(unittest.TestCase):
     def setUp(self) :
-        self.system  = init.create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A','B'])
+        self.system  = create_empty(N=1000, box=data.boxdim(Lx=11,Ly=5.5, Lz=5.5, dimensions=3), particle_types=['A','B'])
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,d=0.0,a={'A':0.05,'B':0.0},max_verts=8);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10,d=0.0,a={'A':0.05,'B':0.0});
         rverts= numpy.array( [(-2,-1,-1),
                              (-2,1,-1),
                              (-2,-1,1),
@@ -110,10 +114,10 @@ class pair_rot_some(unittest.TestCase):
                              (2,-1,1),
                              (2,1,1)])*0.25
 
-        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
-        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
+        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False)
+        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False)
 
-        sorter.set_params(grid=8)
+        context.current.sorter.set_params(grid=8)
 
     def test_rot_some(self):
 
@@ -144,7 +148,7 @@ class pair_rot_some(unittest.TestCase):
             for t,p in zip(['A']*N_a+['B']*(1000-N_a),self.system.particles):
                 p.type=t
 
-            run(250)
+            run(100)
 
             #check that B orientations are unchanged
             for p in self.system.particles:

@@ -1,51 +1,6 @@
-/*
-Highly Optimized Object-oriented Many-particle Dynamics -- Blue Edition
-(HOOMD-blue) Open Source Software License Copyright 2009-2016 The Regents of
-the University of Michigan All rights reserved.
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-HOOMD-blue may contain modifications ("Contributions") provided, and to which
-copyright is held, by various Contributors who have granted The Regents of the
-University of Michigan the right to modify and/or distribute such Contributions.
-
-You may redistribute, use, and create derivate works of HOOMD-blue, in source
-and binary forms, provided you abide by the following conditions:
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions, and the following disclaimer both in the code and
-prominently in any materials provided with the distribution.
-
-* Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions, and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-* All publications and presentations based on HOOMD-blue, including any reports
-or published results obtained, in whole or in part, with HOOMD-blue, will
-acknowledge its use according to the terms posted at the time of submission on:
-http://codeblue.umich.edu/hoomd-blue/citations.html
-
-* Any electronic documents citing HOOMD-Blue will link to the HOOMD-Blue website:
-http://codeblue.umich.edu/hoomd-blue/
-
-* Apart from the above required attributions, neither the name of the copyright
-holder nor the names of HOOMD-blue's contributors may be used to endorse or
-promote products derived from this software without specific prior written
-permission.
-
-Disclaimer
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER AND CONTRIBUTORS ``AS IS'' AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND/OR ANY
-WARRANTIES THAT THIS SOFTWARE IS FREE OF INFRINGEMENT ARE DISCLAIMED.
-
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 // Maintainer: joaander
 
 #include "ExecutionConfiguration.h"
@@ -59,9 +14,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef ENABLE_MPI
 #include "HOOMDMPI.h"
 #endif
-
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <stdexcept>
 #include <iostream>
@@ -70,7 +23,6 @@ using namespace boost::python;
 #include <algorithm>
 
 using namespace std;
-using namespace boost;
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
@@ -94,12 +46,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                bool min_cpu,
                                                bool ignore_display,
-                                               boost::shared_ptr<Messenger> _msg,
+                                               std::shared_ptr<Messenger> _msg,
                                                unsigned int n_ranks)
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
-        msg = boost::shared_ptr<Messenger>(new Messenger());
+        msg = std::shared_ptr<Messenger>(new Messenger());
 
     msg->notice(5) << "Constructing ExecutionConfiguration: " << gpu_id << " " << min_cpu << " " << ignore_display << endl;
     exec_mode = mode;
@@ -334,13 +286,6 @@ void ExecutionConfiguration::handleCUDAError(cudaError_t err, const char *file, 
         }
     }
 
-void ExecutionConfiguration::checkCUDAError(const char *file, unsigned int line) const
-    {
-    cudaThreadSynchronize();
-    cudaError_t err = cudaGetLastError();
-    handleCUDAError(err, file, line);
-    }
-
 /*! \param gpu_id Index for the GPU to initialize, set to -1 for automatic selection
     \param min_cpu If set to true, the cudaDeviceBlockingSync device flag is set
 
@@ -401,7 +346,9 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
-    checkCUDAError(__FILE__, __LINE__);
+
+    cudaError_t err_sync = cudaGetLastError();
+    handleCUDAError(err_sync, __FILE__, __LINE__);
     }
 
 /*! Prints out a status line for the selected GPU
@@ -737,37 +684,36 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
-void export_ExecutionConfiguration()
+
+void export_ExecutionConfiguration(py::module& m)
     {
-    scope in_exec_conf = class_<ExecutionConfiguration, boost::shared_ptr<ExecutionConfiguration>, boost::noncopyable >
-                         ("ExecutionConfiguration", init< ExecutionConfiguration::executionMode, int, bool, bool, boost::shared_ptr<Messenger>, unsigned int >())
-                         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
-                         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
-                         .def("getGPUName", &ExecutionConfiguration::getGPUName)
-                         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
-                         .def_readonly("msg", &ExecutionConfiguration::msg)
+    py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
+    executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
+         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
+         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+         .def("getGPUName", &ExecutionConfiguration::getGPUName)
+         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+         .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
-                         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
+         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-                         .def("getPartition", &ExecutionConfiguration::getPartition)
-                         .def("getNRanks", &ExecutionConfiguration::getNRanks)
-                         .def("getRank", &ExecutionConfiguration::getRank)
-                         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-                         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-                         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
-                         .def("barrier", &ExecutionConfiguration::barrier)
-                         .staticmethod("getNRanksGlobal")
-                         .staticmethod("getRankGlobal")
+         .def("getPartition", &ExecutionConfiguration::getPartition)
+         .def("getNRanks", &ExecutionConfiguration::getNRanks)
+         .def("getRank", &ExecutionConfiguration::getRank)
+         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+         .def("barrier", &ExecutionConfiguration::barrier)
+         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
 #endif
-                         ;
-
-    enum_<ExecutionConfiguration::executionMode>("executionMode")
-    .value("GPU", ExecutionConfiguration::GPU)
-    .value("CPU", ExecutionConfiguration::CPU)
-    .value("AUTO", ExecutionConfiguration::AUTO)
     ;
 
-    // allow classes to take shared_ptr<const ExecutionConfiguration> arguments
-    implicitly_convertible<boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<const ExecutionConfiguration> >();
+    py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")
+        .value("GPU", ExecutionConfiguration::executionMode::GPU)
+        .value("CPU", ExecutionConfiguration::executionMode::CPU)
+        .value("AUTO", ExecutionConfiguration::executionMode::AUTO)
+        .export_values()
+    ;
     }
