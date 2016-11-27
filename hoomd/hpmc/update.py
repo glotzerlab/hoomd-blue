@@ -789,9 +789,9 @@ class cluster(_updater):
         elif isinstance(mc, integrate.simple_polygon):
             cls = _hpmc.UpdaterClustersSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('UpdaterClustersConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterClustersConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = integrate._get_sized_entry('UpdaterClustersSpheropolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterClustersSpheropolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.UpdaterClustersEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):
@@ -802,6 +802,8 @@ class cluster(_updater):
             cls =_hpmc.UpdaterClustersSphereUnion;
         elif isinstance(mc, integrate.polyhedron):
             cls =_hpmc.UpdaterClustersPolyhedron;
+        elif isinstance(mc, integrate.sphinx):
+            cls =_hpmc.UpdaterClustersSphinx;
         else:
             raise RuntimeError("Unsupported integrator.\n");
 

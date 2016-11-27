@@ -7,7 +7,6 @@ endif()
 
 set(_hpmc_sources   module.cc
                     module_external_field.cc
-                    module_clusters.cc
                     module_sphere.cc
                     module_convex_polygon.cc
                     module_simple_polygon.cc
@@ -57,6 +56,7 @@ set(_hpmc_headers
     ShapeSphinx.h
     ShapeUnion.h
     SphinxOverlap.h
+    UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterMuVTImplicit.h

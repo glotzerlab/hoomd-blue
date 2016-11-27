@@ -9,14 +9,7 @@
 #include "hoomd/Updater.h"
 #include "hoomd/extern/saruprng.h"
 
-// Boost Graph Library (BGL)
-#include <boost/foreach.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/property_map/property_map.hpp>
-#include <boost/graph/connected_components.hpp>
-#include <boost/graph/incremental_components.hpp>
-#include <boost/pending/disjoint_sets.hpp>
+#include <list>
 
 #include "Moves.h"
 #include "HPMCCounters.h"
@@ -24,6 +17,81 @@
 
 namespace hpmc
 {
+
+namespace detail
+{
+
+// Graph class represents a undirected graph
+// using adjacency list representation
+// http://quiz.geeksforgeeks.org/connected-components-in-an-undirected-graph/
+class Graph
+    {
+    int V;    // No. of vertices
+
+    // Pointer to an array containing adjacency lists
+    std::list<int> *adj;
+
+    // A function used by DFS
+    inline void DFSUtil(int v, bool visited[], std::vector<unsigned int>& cur_cc);
+
+public:
+    Graph()         //!< Default constructor
+        : V(0) {}
+
+    inline Graph(int V);   // Constructor
+    inline void addEdge(int v, int w);
+    inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
+    };
+
+// Method to print connected components in an
+// undirected graph
+void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
+    {
+    // Mark all the vertices as not visited
+    bool *visited = new bool[V];
+    for(int v = 0; v < V; v++)
+        visited[v] = false;
+
+    for (int v=0; v<V; v++)
+        {
+        if (visited[v] == false)
+            {
+            std::vector<unsigned int> cur_cc;
+            // print all reachable vertices
+            // from v
+            DFSUtil(v, visited, cur_cc);
+            cc.push_back(cur_cc);
+            }
+        }
+    }
+
+void Graph::DFSUtil(int v, bool visited[], std::vector<unsigned int>& cur_cc)
+    {
+    // Mark the current node as visited and print it
+    visited[v] = true;
+    cur_cc.push_back(v);
+
+    // Recur for all the vertices
+    // adjacent to this vertex
+    std::list<int>::iterator i;
+    for(i = adj[v].begin(); i != adj[v].end(); ++i)
+        if(!visited[*i])
+            DFSUtil(*i, visited, cur_cc);
+    }
+
+Graph::Graph(int V)
+    {
+    this->V = V;
+    adj = new std::list<int>[V];
+    }
+
+// method to add an undirected edge
+void Graph::addEdge(int v, int w)
+    {
+    adj[v].push_back(w);
+    adj[w].push_back(v);
+    }
+} // end namespace detail
 
 template< class Shape >
 class UpdaterClusters : public Updater
@@ -34,8 +102,8 @@ class UpdaterClusters : public Updater
             \param mc_implicit Implicit depletants integrator
             \param seed PRNG seed
         */
-        UpdaterClusters(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+        UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
                         unsigned int seed);
 
         //! Destructor
@@ -134,7 +202,7 @@ class UpdaterClusters : public Updater
 
 
     protected:
-        boost::shared_ptr< IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit; //!< Implicit depletants integrator object
+        std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit; //!< Implicit depletants integrator object
         unsigned int m_seed;                        //!< RNG seed
 
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
@@ -150,12 +218,7 @@ class UpdaterClusters : public Updater
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
         Scalar m_extra_range;                                //!< Extra image list padding length
 
-        typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS > Graph;
-        typedef typename boost::graph_traits<Graph>::vertex_descriptor Vertex;
-        typedef typename boost::graph_traits<Graph>::vertices_size_type VertexIndex;
-        typedef typename boost::graph_traits<Graph>::vertex_iterator VertexIterator;
-        typedef typename boost::graph_traits<Graph>::edge_descriptor Edge;
-        Graph m_G; //!< The graph
+        detail::Graph m_G; //!< The graph
 
         std::vector<unsigned int> m_ptl_reject;        //!< List of flags if ptl belongs to a cluster that is not transformed
         hpmc_counters_t m_count_total;                 //!< Total count since initialization
@@ -176,8 +239,8 @@ class UpdaterClusters : public Updater
     };
 
 template< class Shape >
-UpdaterClusters<Shape>::UpdaterClusters(boost::shared_ptr<SystemDefinition> sysdef,
-                                 boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
                                  unsigned int seed)
         : Updater(sysdef), m_mc_implicit(mc_implicit), m_seed(seed), m_extra_range(0.0)
     {
@@ -243,12 +306,12 @@ void UpdaterClusters<Shape>::updateImageList()
 
         {
         // access the type parameters
-        ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
 
         // for each type, create a temporary shape and return the maximum sum of diameter and move size
         for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
-            Shape temp(quat<Scalar>(), h_params.data[typ]);
+            Shape temp(quat<Scalar>(), params[typ]);
             max_range = std::max(max_range, temp.getCircumsphereDiameter()*m_mc_implicit->getD(typ));
             }
         }
@@ -349,15 +412,15 @@ void UpdaterClusters<Shape>::buildAABBTree(const SnapshotParticleData<Scalar>& s
     Scalar d_dep;
         {
         // add range of depletion interaction
-        ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[m_mc_implicit->getDepletantType()]);
+        Shape tmp(o, params[m_mc_implicit->getDepletantType()]);
         d_dep = tmp.getCircumsphereDiameter();
         }
 
     // build the AABB tree
         {
-        ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
 
         // grow the AABB list to the needed size
         unsigned int n_aabb = snap.size;
@@ -367,7 +430,7 @@ void UpdaterClusters<Shape>::buildAABBTree(const SnapshotParticleData<Scalar>& s
             for (unsigned int cur_particle = 0; cur_particle < n_aabb; cur_particle++)
                 {
                 unsigned int i = cur_particle;
-                Shape shape(quat<Scalar>(snap.orientation[i]), h_params.data[snap.type[i]]);
+                Shape shape(quat<Scalar>(snap.orientation[i]), params[snap.type[i]]);
 
                 // radius of excluded volume
                 Scalar r_excl_i = (shape.getCircumsphereDiameter() + d_dep)/Scalar(2.0);
@@ -418,19 +481,19 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
     unsigned int depletant_type = m_mc_implicit->getDepletantType();
         {
         // add range of depletion interaction
-        ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[depletant_type]);
+        Shape tmp(o, params[depletant_type]);
         d_dep = tmp.getCircumsphereDiameter();
         }
 
     // access parameters
-    ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
 
     const BoxDim& box = m_pdata->getGlobalBox();
 
     // clear the graph
-    m_G.clear();
+    m_G = detail::Graph(snap.size);
 
     m_ptl_reject.clear();
     m_ptl_reject.resize(snap.size);
@@ -463,12 +526,11 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
         int3 tmp = make_int3(0,0,0);
         box.wrap(pos_i_new,tmp);
 
-        Shape shape_i(orientation_i_new, h_params.data[typ_i]);
+        Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = (shape_i.getCircumsphereDiameter() + d_dep)/Scalar(2.0);
 
         // the trivial cluster
-        boost::add_edge(i,i,m_G);
-
+        m_G.addEdge(i,i);
 
         // cut-off radius for clustering
         detail::AABB aabb_i = shape_i.getAABB(pos_i_new);
@@ -509,7 +571,7 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
                                 continue;
                                 }
 
-                            Shape shape_j(quat<Scalar>(), h_params.data[snap.type[j]]);
+                            Shape shape_j(quat<Scalar>(), params[snap.type[j]]);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = pos_j - pos_i_image;
@@ -522,7 +584,7 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
                             if (rsq_ij < RaRb*RaRb)
                                 {
                                 // add edge to graph
-                                boost::add_edge(i,j,m_G);
+                                m_G.addEdge(i,j);
 
                                 if (cur_image != 0)
                                     {
@@ -550,37 +612,9 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
         } // end loop over local particles
 
     // compute connected components
-    std::vector<VertexIndex> rank(boost::num_vertices(m_G));
-    std::vector<Vertex> parent(boost::num_vertices(m_G));
-
-    typedef VertexIndex* Rank;
-    typedef Vertex* Parent;
-
-    boost::disjoint_sets<Rank,Parent> ds(&rank[0], &parent[0]);
-
-    boost::initialize_incremental_components(m_G, ds);
-    boost::incremental_components(m_G, ds);
-
-    // assign body ID's
-    typedef boost::component_index<VertexIndex> Components;
-    Components components(parent.begin(), parent.end());
-
     m_clusters.clear();
 
-    // Iterate through the component indices
-    BOOST_FOREACH(VertexIndex current_index, components)
-        {
-        m_clusters.push_back(std::vector<unsigned int>());
-        unsigned int i_body = current_index;
-        // Iterate through the child vertex indices for [current_index]
-        BOOST_FOREACH(VertexIndex child_index,
-                      components[current_index])
-            {
-            unsigned int i_ptl = child_index;
-            m_clusters[i_body].push_back(i_ptl);
-            }
-
-        }
+    m_G.connectedComponents(m_clusters);
 
     if (m_prof) m_prof->pop();
     }
@@ -658,61 +692,56 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
             {
             // access parameters
-            ArrayHandle<typename Shape::param_type> h_params(m_mc_implicit->getParams(), access_location::host, access_mode::read);
+            const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
 
             // clusters may be moved independently
             for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
                 {
-                bool flip = rng.template s<Scalar>() < Scalar(0.5);
-
-                if (flip)
+                // loop over cluster members
+                std::vector<unsigned int>::iterator it;
+                bool reject = false;
+                for (it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                     {
-                    // loop over cluster members
-                    std::vector<unsigned int>::iterator it;
-                    bool reject = false;
+                    // if any of the ptls in this cluster connects across PBC, reject move
+                    if (m_ptl_reject[*it])
+                        reject = true;
+                    }
+
+                if (!reject)
+                    {
                     for (it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                         {
-                        // if any of the ptls in this cluster connects across PBC, reject move
-                        if (m_ptl_reject[*it])
-                            reject = true;
-                        }
+                        // particle index
+                        unsigned int i = *it;
 
-                    if (!reject)
-                        {
-                        for (it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
+                        // read in the current position and cluster id
+                        quat<Scalar> orientation_i = snap.orientation[i];
+                        vec3<Scalar> pos_i(snap.pos[i]);
+
+                        // make a trial move for i
+                        int typ_i = snap.type[i];
+
+                        if (!line)
                             {
-                            // particle index
-                            unsigned int i = *it;
+                            // point reflection
+                            pos_i = pivot-(pos_i-pivot);
+                            }
+                        else
+                            {
+                            // line reflection
+                            pos_i = rotate(q, pos_i);
+                            orientation_i = q*orientation_i;
+                            }
 
-                            // read in the current position and cluster id
-                            quat<Scalar> orientation_i = snap.orientation[i];
-                            vec3<Scalar> pos_i(snap.pos[i]);
-
-                            // make a trial move for i
-                            int typ_i = snap.type[i];
-
-                            if (!line)
-                                {
-                                // point reflection
-                                pos_i = pivot-(pos_i-pivot);
-                                }
-                            else
-                                {
-                                // line reflection
-                                pos_i = rotate(q, pos_i);
-                                orientation_i = q*orientation_i;
-                                }
-
-                            // update position of particle
-                            snap.pos[i] = pos_i;
-                            Shape shape_i(orientation_i, h_params.data[typ_i]);
-                            if (shape_i.hasOrientation())
-                                {
-                                snap.orientation[i] = orientation_i;
-                                }
+                        // update position of particle
+                        snap.pos[i] = pos_i;
+                        Shape shape_i(orientation_i, params[typ_i]);
+                        if (shape_i.hasOrientation())
+                            {
+                            snap.orientation[i] = orientation_i;
                             }
                         }
-                    } // end loop over cluster particles
+                    }
                 }
             } // end loop over clusters
 
@@ -741,12 +770,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     }
 
 
-template< class Shape >
-void export_UpdaterClusters(const std::string& name)
+template < class Shape > void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
-    class_< UpdaterClusters<Shape>, boost::shared_ptr< UpdaterClusters<Shape> >, bases<Updater>, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<IntegratorHPMCMonoImplicit<Shape> >,
+    pybind11::class_< UpdaterClusters<Shape>, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>,
+                         std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >,
                          unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
     ;

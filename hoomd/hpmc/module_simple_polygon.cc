@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -47,6 +48,7 @@ void export_simple_polygon(py::module& m)
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon >(m, "UpdaterMuVTImplicitSimplePolygon");
+    export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");

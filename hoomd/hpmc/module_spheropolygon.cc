@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -44,6 +45,7 @@ void export_spheropolygon(py::module& m)
     export_AnalyzerSDF< ShapeSpheropolygon >(m, "AnalyzerSDFSpheropolygon");
     export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTSpheropolygon");
     export_UpdaterMuVTImplicit< ShapeSpheropolygon >(m, "UpdaterMuVTImplicitSpheropolygon");
+    export_UpdaterClusters< ShapeSpheropolygon >(m, "UpdaterClustersSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");

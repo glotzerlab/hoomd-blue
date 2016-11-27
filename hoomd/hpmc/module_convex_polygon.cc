@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -47,6 +48,7 @@ void export_convex_polygon(py::module& m)
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterMuVTImplicit< ShapeConvexPolygon >(m, "UpdaterMuVTImplicitConvexPolygon");
+    export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");

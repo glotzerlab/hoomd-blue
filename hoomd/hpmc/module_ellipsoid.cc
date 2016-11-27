@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -44,6 +45,7 @@ void export_ellipsoid(py::module& m)
     export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
     export_UpdaterMuVTImplicit< ShapeEllipsoid >(m, "UpdaterMuVTImplicitEllipsoid");
+    export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");

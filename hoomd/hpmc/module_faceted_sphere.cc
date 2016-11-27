@@ -20,6 +20,7 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -47,6 +48,7 @@ void export_faceted_sphere(py::module& m)
     export_AnalyzerSDF< ShapeFacetedSphere >(m, "AnalyzerSDFFacetedSphere");
     export_UpdaterMuVT< ShapeFacetedSphere >(m, "UpdaterMuVTFacetedSphere");
     export_UpdaterMuVTImplicit< ShapeFacetedSphere >(m, "UpdaterMuVTImplicitFacetedSphere");
+    export_UpdaterClusters< ShapeFacetedSphere >(m, "UpdaterClustersFacetedSphere");
 
     export_ExternalFieldInterface<ShapeFacetedSphere>(m, "ExternalFieldFacetedSphere");
     export_LatticeField<ShapeFacetedSphere>(m, "ExternalFieldLatticeFacetedSphere");
