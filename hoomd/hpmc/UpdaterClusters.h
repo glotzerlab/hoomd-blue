@@ -29,10 +29,10 @@ class Graph
     int V;    // No. of vertices
 
     // Pointer to an array containing adjacency lists
-    std::list<int> *adj;
+    std::vector<std::list<int> > adj;
 
     // A function used by DFS
-    inline void DFSUtil(int v, bool visited[], std::vector<unsigned int>& cur_cc);
+    inline void DFSUtil(int v, bool *visited, std::vector<unsigned int>& cur_cc);
 
 public:
     Graph()         //!< Default constructor
@@ -43,8 +43,7 @@ public:
     inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
     };
 
-// Method to print connected components in an
-// undirected graph
+// Gather connected components in an undirected graph
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
     {
     // Mark all the vertices as not visited
@@ -57,15 +56,14 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
         if (visited[v] == false)
             {
             std::vector<unsigned int> cur_cc;
-            // print all reachable vertices
-            // from v
             DFSUtil(v, visited, cur_cc);
             cc.push_back(cur_cc);
             }
         }
+    delete[] visited;
     }
 
-void Graph::DFSUtil(int v, bool visited[], std::vector<unsigned int>& cur_cc)
+void Graph::DFSUtil(int v, bool *visited, std::vector<unsigned int>& cur_cc)
     {
     // Mark the current node as visited and print it
     visited[v] = true;
@@ -75,14 +73,17 @@ void Graph::DFSUtil(int v, bool visited[], std::vector<unsigned int>& cur_cc)
     // adjacent to this vertex
     std::list<int>::iterator i;
     for(i = adj[v].begin(); i != adj[v].end(); ++i)
+        {
+        std::cout << "*i=" << *i << std::endl;
         if(!visited[*i])
             DFSUtil(*i, visited, cur_cc);
+        }
     }
 
 Graph::Graph(int V)
     {
     this->V = V;
-    adj = new std::list<int>[V];
+    adj.resize(V);
     }
 
 // method to add an undirected edge
@@ -532,14 +533,79 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
         // the trivial cluster
         m_G.addEdge(i,i);
 
-        // cut-off radius for clustering
-        detail::AABB aabb_i = shape_i.getAABB(pos_i_new);
+        // check for overlap at old position
+        detail::AABB aabb_i = shape_i.getAABB(pos_i_old);
+
+        // All image boxes (including the primary)
+        const unsigned int n_images = m_image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i_old + m_image_list[cur_image];
+
+            detail::AABB aabb_i_image = aabb_i;
+            aabb_i_image.translate(m_image_list[cur_image]);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb_i_image))
+                    {
+                    if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            vec3<Scalar> pos_j;
+                            // check same particle only for outside images
+                            if (i != j)
+                                {
+                                // load the position and orientation of the j particle
+                                pos_j = vec3<Scalar>(snap.pos[j]);
+                                }
+                            else
+                                {
+                                continue;
+                                }
+
+                            Shape shape_j(quat<Scalar>(), params[snap.type[j]]);
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = pos_j - pos_i_image;
+
+                            // check for excluded volume sphere overlap
+                            Scalar r_excl_j = (shape_j.getCircumsphereDiameter() + d_dep)/Scalar(2.0);
+                            Scalar RaRb = r_excl_i + r_excl_j;
+                            Scalar rsq_ij = dot(r_ij, r_ij);
+
+                            if (rsq_ij < RaRb*RaRb)
+                                {
+                                // add edge to graph
+                                m_G.addEdge(i,j);
+                                std::cout << "old " << i << " " << j << std::endl;
+                                }
+
+                            } // end loop over AABB tree leaf
+                        } // end is leaf
+                    } // end if overlap
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+
+                } // end loop over nodes
+
+            } // end loop over images
+
+        // check for overlap at new position
+        aabb_i = shape_i.getAABB(pos_i_new);
 
         // if this cluster transformation is rejected
         bool reject = false;
 
         // All image boxes (including the primary)
-        const unsigned int n_images = m_image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i_new + m_image_list[cur_image];
@@ -616,6 +682,12 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 
     m_G.connectedComponents(m_clusters);
 
+    for (auto it = m_clusters.begin(); it != m_clusters.end(); ++it)
+        {
+        for (auto itj = it->begin(); itj != it->end(); ++itj)
+            std::cout << *itj << " ";
+        std::cout << std::endl;
+        }
     if (m_prof) m_prof->pop();
     }
 
