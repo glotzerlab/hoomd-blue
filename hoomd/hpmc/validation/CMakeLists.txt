@@ -49,11 +49,11 @@ endmacro()
 
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
-spheres_implicit.py 0 399
+spheres_implicit.py 0 1
 )
 
 set(TEST_LIST_GPU
-spheres_implicit.py 0 399
+spheres_implicit.py 0 1
    )
 
 set(EXCLUDE_FROM_MPI
