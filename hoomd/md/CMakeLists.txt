@@ -226,7 +226,11 @@ endif (ENABLE_CUDA)
 add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
 
 # link the library to its dependencies
+if (CUSOLVER_AVAILABLE)
+target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+else()
 target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
+endif()
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

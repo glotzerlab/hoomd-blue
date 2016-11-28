@@ -23,11 +23,7 @@ set(HOOMD_COMMON_LIBS
         )
 
 if (ENABLE_CUDA)
-    if (NOT CUSOLVER_AVAILABLE)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY} ${CUDA_curand_LIBRARY})
-    else()
-    list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY} ${CUDA_curand_LIBRARY} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
-    endif()
 
     if (ENABLE_NVTOOLS)
         list(APPEND HOOMD_COMMON_LIBS ${CUDA_nvToolsExt_LIBRARY})
