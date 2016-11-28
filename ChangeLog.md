@@ -4,6 +4,8 @@
 
 ## v2.2.0
 
+Not yet released
+
 *New features*
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 
@@ -14,16 +16,15 @@ Deprecated*
 *Bug fixes*
 
 * hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* Implicit depletants with spheres and faceted spheres gave wrong results
+* Implicit depletants with ntrial > 0 gave wrong results
+
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-
-## v2.2.2
-
-*Bug fixes*
-
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* Drop support for compute 2.0 GPU devices
 
 ## v2.1.1
 
