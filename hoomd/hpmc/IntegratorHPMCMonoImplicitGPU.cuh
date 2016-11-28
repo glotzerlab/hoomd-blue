@@ -1675,7 +1675,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
         unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
 
         static unsigned int extra_bytes = UINT_MAX;
-        if (extra_bytes == UINT_MAX || args.update_shape_param)
+        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
             {
             // required for memory coherency
             cudaDeviceSynchronize();
