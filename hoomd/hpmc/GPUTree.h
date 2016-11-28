@@ -111,7 +111,6 @@ class GPUTree
          *
          * \param obb Query bounding box
          * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
-         * \param particles List of particles returned (array of at least capacity length), -1 means no particle
          * \returns true if the current node overlaps and is a leaf node
          */
         DEVICE inline bool queryNode(const OBB& obb, unsigned int &cur_node) const
@@ -138,6 +137,44 @@ class GPUTree
 
             return leaf;
             }
+
+        //! Fetch the next node in the tree and test against overlap with a ray
+        /*! The method maintains it internal state in a user-supplied variable cur_node
+         * The ray equation is R(t) = p + t*d (t>=0)
+         *
+         * \param p origin of ray
+         * \param d direction of ray
+         * \param cur_node If 0, start a new tree traversal, otherwise use stored value from previous call
+         * \param abs_tol an absolute tolerance
+         * \returns true if the current node overlaps and is a leaf node
+         */
+        DEVICE inline bool queryRay(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, unsigned int &cur_node, OverlapReal abs_tol) const
+            {
+            OBB node_obb(getOBB(cur_node));
+
+            bool leaf = false;
+            OverlapReal t;
+            vec3<OverlapReal> q;
+            if (IntersectRayOBB(p,d,node_obb,t,q, abs_tol))
+                {
+                // is this node a leaf node?
+                if (m_left[cur_node] == OBB_INVALID_NODE)
+                    {
+                    leaf = true;
+                    }
+                }
+            else
+                {
+                // skip ahead
+                cur_node += m_skip[cur_node];
+                }
+
+            // advance cur_node
+            cur_node ++;
+
+            return leaf;
+            }
+
 
         //! Test if a given index is a leaf node
         DEVICE inline bool isLeaf(unsigned int idx) const

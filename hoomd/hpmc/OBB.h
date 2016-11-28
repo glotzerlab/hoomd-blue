@@ -32,6 +32,9 @@
 #define DEVICE __attribute__((always_inline))
 #endif
 
+// Check against zero with absolute tolerance
+#define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
+
 namespace hpmc
 {
 
@@ -225,6 +228,95 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     if (fabs(t.y*r.row0.z - t.x * r.row1.z) > ra + rb) return false;
 
     // no separating axis found, the OBBs must be intersecting
+    return true;
+    }
+
+// Intersect ray R(t) = p + t*d against OBB a. When intersecting,
+// return intersection distance tmin and point q of intersection
+// Ericson, Christer, Real-Time Collision Detection (Page 180)
+DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, OBB a, OverlapReal &tmin, vec3<OverlapReal> &q, OverlapReal abs_tol)
+    {
+    tmin = 0.0f; // set to -FLT_MAX to get first hit on line
+    OverlapReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+    // rotate ray in local coordinate system
+    rotmat3<OverlapReal> a_transp(transpose(a.rotation));
+    vec3<OverlapReal> p_local(a_transp*(p-a.center));
+    vec3<OverlapReal> d_local(a_transp*d);
+
+    // For all three slabs
+    if (CHECK_ZERO(d_local.x, abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.x < - a.lengths.x || p_local.x > a.lengths.x) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.x;
+        OverlapReal t1 = (- a.lengths.x - p_local.x) * ood;
+        OverlapReal t2 = (a.lengths.x - p_local.x) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) std::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.y,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.y < - a.lengths.y || p_local.y > a.lengths.y) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.y;
+        OverlapReal t1 = (- a.lengths.y - p_local.y) * ood;
+        OverlapReal t2 = (a.lengths.y - p_local.y) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) std::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.z,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.z < - a.lengths.z || p_local.z > a.lengths.z) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.z;
+        OverlapReal t1 = (- a.lengths.z - p_local.z) * ood;
+        OverlapReal t2 = (a.lengths.z - p_local.z) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) std::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin) in space frame
+    q = a.rotation*(p_local + d_local * tmin);
+
     return true;
     }
 
