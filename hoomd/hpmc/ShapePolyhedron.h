@@ -28,9 +28,6 @@
 #include <iostream>
 #endif
 
-// Check against zero with absolute tolerance
-#define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
-
 namespace hpmc
 {
 
@@ -557,11 +554,9 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               const ShapePolyhedron& b,
                                               unsigned int cur_node_a,
                                               unsigned int cur_node_b,
-                                              unsigned int &err)
+                                              unsigned int &err,
+                                              OverlapReal abs_tol)
     {
-    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
-    const OverlapReal abs_tol(DaDb*1e-12);
-
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
     unsigned int nb = b.tree.getNumParticles(cur_node_b);
@@ -792,6 +787,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
            ShapeConvexPolyhedron(b.orientation,b.data.verts),err)) return false;
         }
 
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    const OverlapReal abs_tol(DaDb*1e-12);
+
     vec3<OverlapReal> dr = r_ab;
     /*
      * This overlap test checks if an edge of one polyhedron is overlapping with a face of the other
@@ -829,7 +827,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err)) return true;
+                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, abs_tol)) return true;
                 }
             }
         }
@@ -848,7 +846,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err)) return true;
+                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err,abs_tol)) return true;
                 }
             }
         }
@@ -863,7 +861,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         // load pair of shapes
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
 
-        vec3<OverlapReal> p,q;
+        vec3<OverlapReal> p;
 
         if (ord == 0)
             {
@@ -879,55 +877,67 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         vec3<OverlapReal> n = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin)-
             rotate(quat<OverlapReal>(a.orientation),a.data.origin);
 
-        if (ord == 0)
+        // rotate ray in coordinate system of shape s1
+        p = rotate(conj(quat<OverlapReal>(s1.orientation)), p);
+        n = rotate(conj(quat<OverlapReal>(s1.orientation)), n);
+
+        if (ord != 0)
             {
-            q = p + n;
+            n = -n;
             }
-        else
-            {
-            q = p - n;
-            }
+
+        vec3<OverlapReal> q = p + n;
 
         unsigned int n_overlap = 0;
 
-        // loop through faces
-        for (unsigned int jface = 0; jface < s1.data.n_faces; jface ++)
+        // query ray against OBB tree
+        unsigned cur_node_s1 = 0;
+        while (cur_node_s1 < s1.tree.getNumNodes())
             {
-            // fetch next face
-            unsigned int offs_b = s1.data.face_offs[jface];
-
-            if (s1.data.face_offs[jface + 1] - offs_b < 3) continue;
-
-            // Load vertex 0
-            vec3<OverlapReal> v_b[3];
-            unsigned int idx_v = s1.data.face_verts[offs_b];
-            v_b[0].x = s1.data.verts.x[idx_v];
-            v_b[0].y = s1.data.verts.y[idx_v];
-            v_b[0].z = s1.data.verts.z[idx_v];
-            v_b[0] = rotate(quat<OverlapReal>(s1.orientation),v_b[0]);
-
-            // vertex 1
-            idx_v = s1.data.face_verts[offs_b + 1];
-            v_b[1].x = s1.data.verts.x[idx_v];
-            v_b[1].y = s1.data.verts.y[idx_v];
-            v_b[1].z = s1.data.verts.z[idx_v];
-            v_b[1] = rotate(quat<OverlapReal>(s1.orientation),v_b[1]);
-
-            // vertex 2
-            idx_v = s1.data.face_verts[offs_b + 2];
-            v_b[2].x = s1.data.verts.x[idx_v];
-            v_b[2].y = s1.data.verts.y[idx_v];
-            v_b[2].z = s1.data.verts.z[idx_v];
-            v_b[2] = rotate(quat<OverlapReal>(s1.orientation),v_b[2]);
-
-            OverlapReal u,v,w,t;
-
-            // Note: triangle need to be oriented counter-clockwise viewed from p
-            if (IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
+            unsigned int query_node = cur_node_s1;
+            if (tree_b.queryRay(p,n, cur_node_s1, abs_tol))
                 {
-                n_overlap++;
+                unsigned int n_faces = s1.tree.getNumParticles(query_node);
+
+                // loop through faces
+                for (unsigned int j = 0; j < n_faces; j ++)
+                    {
+                    // fetch next face
+                    unsigned int jface = s1.tree.getParticle(query_node, j);
+                    unsigned int offs_b = s1.data.face_offs[jface];
+
+                    if (s1.data.face_offs[jface + 1] - offs_b < 3) continue;
+
+                    // Load vertex 0
+                    vec3<OverlapReal> v_b[3];
+                    unsigned int idx_v = s1.data.face_verts[offs_b];
+                    v_b[0].x = s1.data.verts.x[idx_v];
+                    v_b[0].y = s1.data.verts.y[idx_v];
+                    v_b[0].z = s1.data.verts.z[idx_v];
+
+                    // vertex 1
+                    idx_v = s1.data.face_verts[offs_b + 1];
+                    v_b[1].x = s1.data.verts.x[idx_v];
+                    v_b[1].y = s1.data.verts.y[idx_v];
+                    v_b[1].z = s1.data.verts.z[idx_v];
+
+                    // vertex 2
+                    idx_v = s1.data.face_verts[offs_b + 2];
+                    v_b[2].x = s1.data.verts.x[idx_v];
+                    v_b[2].y = s1.data.verts.y[idx_v];
+                    v_b[2].z = s1.data.verts.z[idx_v];
+
+                    OverlapReal u,v,w,t;
+
+                    // Note: triangle need to be oriented counter-clockwise viewed from p
+                    if (IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
+                        {
+                        n_overlap++;
+                        }
+                    }
                 }
             }
+
         // apply odd parity rule
         if (n_overlap % 2)
             {
