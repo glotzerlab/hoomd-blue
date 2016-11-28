@@ -468,14 +468,6 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
     {
     if (m_prof) m_prof->push("Generate clusters");
 
-    // update the aabb tree
-    buildAABBTree(snap);
-
-    m_extra_range = Scalar(0.0);
-
-    // update the image list
-    updateImageList();
-
     // Depletant diameter
     Scalar d_dep;
     unsigned int depletant_type = m_mc_implicit->getDepletantType();
@@ -487,10 +479,16 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
         d_dep = tmp.getCircumsphereDiameter();
         }
 
+    m_extra_range = d_dep;
+
+    // update the aabb tree
+    buildAABBTree(snap);
+
+    // update the image list
+    updateImageList();
+
     // access parameters
     const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
-
-    const BoxDim& box = m_pdata->getGlobalBox();
 
     // clear the graph
     m_G = detail::Graph(snap.size);
@@ -521,10 +519,6 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
             pos_i_new = rotate(q, pos_i_new);
             orientation_i_new = q*orientation_i_new;
             }
-
-        // wrap into box
-        int3 tmp = make_int3(0,0,0);
-        box.wrap(pos_i_new,tmp);
 
         Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = (shape_i.getCircumsphereDiameter() + d_dep)/Scalar(2.0);
@@ -559,17 +553,8 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
-                            vec3<Scalar> pos_j;
-                            // check same particle only for outside images
-                            if (i != j)
-                                {
-                                // load the position and orientation of the j particle
-                                pos_j = vec3<Scalar>(snap.pos[j]);
-                                }
-                            else
-                                {
-                                continue;
-                                }
+                            // load the position and orientation of the j particle
+                            vec3<Scalar> pos_j = vec3<Scalar>(snap.pos[j]);
 
                             Shape shape_j(quat<Scalar>(), params[snap.type[j]]);
 
@@ -629,17 +614,8 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
-                            vec3<Scalar> pos_j;
-                            // check same particle only for outside images
-                            if (i != j)
-                                {
-                                // load the position and orientation of the j particle
-                                pos_j = vec3<Scalar>(snap.pos[j]);
-                                }
-                            else
-                                {
-                                continue;
-                                }
+                            // load the position and orientation of the j particle
+                            vec3<Scalar> pos_j = vec3<Scalar>(snap.pos[j]);
 
                             Shape shape_j(quat<Scalar>(), params[snap.type[j]]);
 
