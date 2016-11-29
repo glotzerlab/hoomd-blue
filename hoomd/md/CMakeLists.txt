@@ -227,9 +227,14 @@ add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
-target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+    if(${CUDA_VERSION} VERSION_LESS 8.0)
+        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
+    else()
+        # CUDA 8.0 requires that we link in gomp
+        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+    endif()
 else()
-target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
 endif()
 
 # if we are compiling with MPI support built in, set appropriate
