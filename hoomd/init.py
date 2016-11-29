@@ -321,7 +321,9 @@ def restore_getar(filename, modes={'any': 'any'}):
     """
     hoomd.util.print_status_line();
 
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
+    # the getar initializer opens the file on all ranks: need to broadcast the string from rank 0
+    filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename_bcast);
 
     newModes = _parse_getar_modes(modes);
 
