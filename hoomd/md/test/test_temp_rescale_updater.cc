@@ -84,7 +84,9 @@ UP_TEST( ComputeThermoGPU_basic )
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
-    MY_CHECK_CLOSE(tc->getTemperature(), 16.5, tol);
+    Scalar cur_T = tc->getTemperature();
+    cout << "Testing: T=" << cur_T << endl;
+    MY_CHECK_CLOSE(T, 16.5, tol);
     }
 #endif
 
