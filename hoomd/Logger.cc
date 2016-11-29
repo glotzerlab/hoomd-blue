@@ -155,6 +155,9 @@ void Logger::removeAll()
     {
     m_compute_quantities.clear();
     m_updater_quantities.clear();
+    //The callbacks are intentionally not cleared, because before each
+    //run all compute and updaters should be cleared, but the python
+    //callbacks should not be cleared for this.
     }
 
 /*! \param quantities A list of quantities to log
