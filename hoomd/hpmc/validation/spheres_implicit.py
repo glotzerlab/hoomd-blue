@@ -169,7 +169,7 @@ class implicit_test (unittest.TestCase):
         def log_callback(timestep):
             eta_p_measure.append(math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity'))
 
-        run(5e5,callback=log_callback,callback_period=1000)
+        run(1e6,callback=log_callback,callback_period=1000)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(eta_p_measure)
