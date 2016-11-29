@@ -266,6 +266,18 @@ void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     #endif
     }
 
+//! broadcast string from root rank to all other ranks
+std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    #ifdef ENABLE_MPI
+    std::string result = s;
+    bcast(result, 0, exec_conf->getMPICommunicator());
+    return result;
+    #else
+    return s;
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -288,6 +300,7 @@ PYBIND11_PLUGIN(_hoomd)
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
+    m.def("mpi_bcast_str", mpi_bcast_str);
 
     m.def("hoomd_compile_flags", &hoomd_compile_flags);
     m.def("output_version_info", &output_version_info);
