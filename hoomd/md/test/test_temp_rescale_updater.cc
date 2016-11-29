@@ -86,7 +86,7 @@ UP_TEST( ComputeThermoGPU_basic )
     tc->compute(0);
     Scalar cur_T = tc->getTemperature();
     cout << "Testing: T=" << cur_T << endl;
-    MY_CHECK_CLOSE(T, 16.5, tol);
+    MY_CHECK_CLOSE(cur_T, 16.5, tol);
     }
 #endif
 
