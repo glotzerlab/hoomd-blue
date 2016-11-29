@@ -929,8 +929,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
                     OverlapReal u,v,w,t;
 
-                    // Note: triangle need to be oriented counter-clockwise viewed from p
-                    if (IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
+                    // two-sided triangle test
+                    if (IntersectRayTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t)
+                     || IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
                         {
                         n_overlap++;
                         }
