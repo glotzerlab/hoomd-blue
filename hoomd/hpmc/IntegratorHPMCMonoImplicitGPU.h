@@ -198,7 +198,13 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
     // encoded as block_size*1000000 + stride*100 + group_size.
+
+    // parameters for count_overlaps kernel
     std::vector<unsigned int> valid_params;
+
+    // parameters for HPMC update kernel
+    std::vector<unsigned int> valid_params_update;
+
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
 
     unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
@@ -206,6 +212,43 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
         {
         // no wide parallelism on Fermi
         max_tpp = 1;
+        }
+
+    if (Shape::isParallel())
+        {
+        for (unsigned int block_size =dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size +=dev_prop.warpSize)
+            {
+            unsigned int s=1;
+            while (s <= (unsigned int)dev_prop.warpSize)
+                {
+                unsigned int stride = 1;
+                while (stride <= block_size)
+                    {
+                    // for parallel overlap checks, use 3d-layout where blockDim.z is limited
+                    if (block_size % (s*stride) == 0 && block_size/(s*stride) <= (unsigned int) dev_prop.maxThreadsDim[2])
+                        valid_params_update.push_back(block_size*1000000 + stride*100 + s);
+
+                    // increment stride in powers of two
+                    stride *= 2;
+                    }
+                s++;
+                }
+            }
+        }
+    else
+        {
+        // for serial overlap checks, force stride=1. And groups no longer need to evenly divide into warps: only into
+        // blocks
+        unsigned int stride = 1;
+
+        for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+            {
+            for (unsigned int group_size=1; group_size <= (unsigned int)dev_prop.warpSize; group_size++)
+                {
+                if ((block_size % group_size) == 0)
+                    valid_params_update.push_back(block_size*1000000 + stride*100 + group_size);
+                }
+            }
         }
 
     if (Shape::isParallel())
@@ -231,8 +274,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
         }
     else
         {
-        // for serial overlap checks, force stride=1. And groups no longer need to evenly divide into warps: only into
-        // blocks
+        // for serial overlap checks, force stride=1. A group needs to be smaller than a warp and a power of two
         unsigned int stride = 1;
 
         for (unsigned int block_size = (unsigned int) dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += (unsigned int) dev_prop.warpSize)
@@ -245,7 +287,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
             }
         }
 
-    m_tuner_update.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_update", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner(valid_params_update, 5, 1000000, "hpmc_update", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
     m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_count_overlaps", this->m_exec_conf));
     m_tuner_reinsert.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_reinsert", this->m_exec_conf));
