@@ -50,7 +50,8 @@ class GPUTree
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
             m_rotation = ManagedArray<rotmat3<OverlapReal> >(m_num_nodes,managed);
             m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
-            m_skip = ManagedArray<unsigned int>(m_num_nodes, managed);
+            m_escape = ManagedArray<unsigned int>(m_num_nodes, managed);
+            m_ancestors = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_leaf_ptr = ManagedArray<unsigned int>(m_num_nodes+1, managed);
 
             unsigned int n = 0;
@@ -60,7 +61,7 @@ class GPUTree
             for (unsigned int i = 0; i < tree.getNumNodes(); ++i)
                 {
                 m_left[i] = tree.getNodeLeft(i);
-                m_skip[i] = tree.getNodeSkip(i);
+                m_escape[i] = tree.getEscapeIndex(i);
 
                 m_center[i] = tree.getNodeOBB(i).getPosition();
                 m_rotation[i] = tree.getNodeOBB(i).rotation;
@@ -97,6 +98,9 @@ class GPUTree
                 }
 
             m_leaf_capacity = tree.getLeafNodeCapacity();
+
+            // recursively initialize ancestor indices
+            initializeAncestorCounts(0, tree, 0);
             }
         #endif
 
@@ -104,6 +108,21 @@ class GPUTree
         DEVICE unsigned int getNumNodes() const
             {
             return m_num_nodes;
+            }
+
+        //! Initialize the ancestor count index
+        void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
+            {
+            if (!isLeaf(idx))
+                {
+                unsigned int left_idx = tree.getNodeLeft(idx);;
+                unsigned int right_idx = tree.getNode(idx).right;
+
+                initializeAncestorCounts(left_idx, tree, 0);
+                initializeAncestorCounts(right_idx, tree, ancestors+1);
+                }
+
+            m_ancestors[idx] = ancestors;
             }
 
         //! Fetch the next node in the tree and test against overlap
@@ -120,20 +139,22 @@ class GPUTree
             bool leaf = false;
             if (overlap(node_obb, obb))
                 {
+                unsigned int left_child = getLeftChild(cur_node);
+
                 // is this node a leaf node?
-                if (m_left[cur_node] == OBB_INVALID_NODE)
+                if (left_child == OBB_INVALID_NODE)
                     {
                     leaf = true;
                     }
-                }
-            else
-                {
-                // skip ahead
-                cur_node += m_skip[cur_node];
+                else
+                    {
+                    cur_node = left_child;
+                    return false;
+                    }
                 }
 
-            // advance cur_node
-            cur_node ++;
+            // escape
+            cur_node = m_escape[cur_node];
 
             return leaf;
             }
@@ -152,29 +173,29 @@ class GPUTree
             {
             OBB node_obb(getOBB(cur_node));
 
-            bool leaf = false;
             OverlapReal t;
             vec3<OverlapReal> q;
+            bool leaf = false;
             if (IntersectRayOBB(p,d,node_obb,t,q, abs_tol))
                 {
                 // is this node a leaf node?
-                if (m_left[cur_node] == OBB_INVALID_NODE)
+                unsigned int left_child = getLeftChild(cur_node);
+                if (left_child == OBB_INVALID_NODE)
                     {
                     leaf = true;
                     }
-                }
-            else
-                {
-                // skip ahead
-                cur_node += m_skip[cur_node];
+                else
+                    {
+                    cur_node = left_child;
+                    return false;
+                    }
                 }
 
-            // advance cur_node
-            cur_node ++;
+            // escape
+            cur_node = m_escape[cur_node];
 
             return leaf;
             }
-
 
         //! Test if a given index is a leaf node
         DEVICE inline bool isLeaf(unsigned int idx) const
@@ -210,10 +231,14 @@ class GPUTree
             return m_left[node];
             }
 
-        DEVICE inline void advanceNode(unsigned int &cur_node, bool skip) const
+        DEVICE inline unsigned int getEscapeIndex(unsigned int node) const
             {
-            if (skip) cur_node += m_skip[cur_node];
-            cur_node++;
+            return m_escape[node];
+            }
+
+        DEVICE inline unsigned int getNumAncestors(unsigned int node) const
+            {
+            return m_ancestors[node];
             }
 
         DEVICE inline OBB getOBB(unsigned int idx) const
@@ -235,7 +260,7 @@ class GPUTree
             m_rotation.attach_to_stream(stream);
 
             m_left.attach_to_stream(stream);
-            m_skip.attach_to_stream(stream);
+            m_escape.attach_to_stream(stream);
 
             m_leaf_ptr.attach_to_stream(stream);
             m_leaf_obb_ptr.attach_to_stream(stream);
@@ -255,7 +280,7 @@ class GPUTree
             m_rotation.load_shared(ptr, load, ptr_max);
 
             m_left.load_shared(ptr, load, ptr_max);
-            m_skip.load_shared(ptr, load, ptr_max);
+            m_escape.load_shared(ptr, load, ptr_max);
 
             m_leaf_ptr.load_shared(ptr, load, ptr_max);
             m_leaf_obb_ptr.load_shared(ptr, load, ptr_max);
@@ -278,13 +303,135 @@ class GPUTree
         ManagedArray<unsigned int> m_particles;        //!< Stores the leaf nodes' indices
 
         ManagedArray<unsigned int> m_left;    //!< Left nodes
-        ManagedArray<unsigned int> m_skip;    //!< Skip intervals
+        ManagedArray<unsigned int> m_escape;  //!< Escape indices
+        ManagedArray<unsigned int> m_ancestors;  //!< Number of right-most ancestors
 
         unsigned int m_num_nodes;             //!< Number of nodes in the tree
         unsigned int m_num_leaves;            //!< Number of leaf nodes
         unsigned int m_leaf_capacity;         //!< Capacity of OBB leaf nodes
     };
 
+
+// Tandem stack traversal routines
+// from: A Binary Stack Tandem Traversal and an Ancestor Counter Data Structure for GPU friendly Bounding Volume
+// Damkjær, Jesper and Erleben, Kenny
+// Proceedings Workshop in Virtual Reality Interactions and Physical Simulation "VRIPHYS" (2009)
+// http://dx.doi.org/10.2312/PE/vriphys/vriphys09/115-124
+
+//! Compute how many ascents are necessary to reach a non right-most child
+/*! \param a_count Ancestor count in tree a
+    \param b_count Ancestor count in tree b
+    \param Binary stack
+    \param a_ascent Number of ascents in a (return variable)
+    \param b_ascent Number of ascents in b (return variable)
+ */
+DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsigned long int &stack,
+    unsigned int& a_ascent, unsigned int& b_ascent)
+    {
+    a_ascent = 0;
+    b_ascent = 0;
+
+    while (true)
+        {
+        if ((stack & 1) == 0) // top of stack == A?
+            {
+            if (a_count > 0)
+                {
+                stack >>= 1; // pop
+                a_count--;
+                a_ascent++;
+                }
+            else
+                return;
+            }
+        else
+            {
+            if (b_count > 0)
+                {
+                stack >>= 1; // pop
+                b_count--;
+                b_ascent++;
+                }
+            else
+                return;
+            }
+        } // end while
+    }
+
+//! Traverse a binary hierachy
+/*! Returns true if an intersecting pair of leaf OBB's has been found
+ * \param a First tree
+ * \param b Second tree
+ * \param cur_node_a Current node in first tree
+ * \param cur_node_b Current node in second tree
+ * \param a binary stack realized as an integer
+ * \param obb_a OBB from first tree corresponding to cur_node_a
+ * \param obb_b OBB from second tree corresponding to cur_node_b
+ *
+ * This function supposed to be called from a while-loop:
+ *
+ * unsigned long int stack = 0;
+ * while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
+ *     {
+ *     query_node_a = cur_node_a;
+ *     query_node_b = cur_node_b;
+ *     // load OBBs for the two nodes
+ *     obb_a = ...
+ *     obb_b = ...
+ *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b))
+ *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
+ *     }
+ */
+DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
+    unsigned long int stack, const OBB& obb_a, const OBB& obb_b)
+    {
+    if (overlap(obb_a, obb_b))
+        {
+        if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
+            {
+            return true;
+            }
+        else
+            {
+            // apply descend rule (always descend A for now, unless there are no children)
+            bool descend_A = !a.isLeaf(cur_node_a);
+            if (descend_A)
+                {
+                cur_node_a = a.getLeftChild(cur_node_a);
+                stack <<= 1; // push A
+                }
+            else
+                {
+                cur_node_b = b.getLeftChild(cur_node_b);
+                stack <<= 1; stack |= 1; // push B
+                }
+            return false;
+            }
+        }
+
+    // ascend in tree
+    unsigned int a_count = a.getNumAncestors(cur_node_a);
+    unsigned int b_count = b.getNumAncestors(cur_node_b);
+
+    unsigned int a_ascent, b_ascent;
+    findAscent(a_count, b_count, stack, a_ascent, b_ascent);
+
+    if ((stack & 1) == 0) // top of stack == A
+        {
+        cur_node_a = a.getEscapeIndex(cur_node_a);
+
+        // ascend in B, using post-order indexing
+        cur_node_b -= b_ascent;
+        }
+    else
+        {
+        // ascend in A, using post-order indexing
+        cur_node_a -= a_ascent;
+        cur_node_b = b.getEscapeIndex(cur_node_b);
+        }
+
+    return false;
+    }
 
 }; // end namespace detail
 

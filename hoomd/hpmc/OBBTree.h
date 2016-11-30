@@ -49,14 +49,14 @@ struct OBBNode
     OBBNode()
         {
         left = right = parent = OBB_INVALID_NODE;
-        skip = 0;
+        escape = 0;
         }
 
     OBB obb;           //!< The box bounding this node's volume
     unsigned int left;   //!< Index of the left child
     unsigned int right;  //!< Index of the right child
     unsigned int parent; //!< Index of the parent node
-    unsigned int skip;   //!< Number of array indices to skip to get to the next node in an in order traversal
+    unsigned int escape; //!< Index of next node in in-order traversal
 
     std::vector<unsigned int> particles;      //!< Indices of the particles contained in the node
     };
@@ -72,9 +72,8 @@ struct OBBNode
 
     **Implementation details**
 
-    OBBTree stores all nodes in a flat array manged by std::vector. To easily locate particle leaf nodes for update,
-    a reverse mapping is stored to locate the leaf node containing a particle. m_root tracks the index of the root node
-    as the tree is built. The nodes store the indices of their left and right children along with their OBB. Nodes
+    OBBTree stores all nodes in a flat array manged by std::vector. The tree is in *post-order*.
+    The nodes store the indices of their left and right children along with their OBB. Nodes
     are allocated as needed with allocate(). With multiple particles per leaf node, the total number of internal nodes
     needed is not known (but can be estimated) until build time.
 
@@ -105,14 +104,8 @@ class OBBTree
         //! Build a tree from a list of OBBs
         inline void buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity);
 
-        //! Find all particles that overlap with the query OBB
-        inline unsigned int query(std::vector<unsigned int>& hits, const OBB& obb) const;
-
         //! Update the OBB of a particle
         inline void update(unsigned int idx, const OBB& obb);
-
-        //! Get the height of a given particle's leaf node
-        inline unsigned int height(unsigned int idx);
 
         //! Get the number of nodes
         inline unsigned int getNumNodes() const
@@ -144,12 +137,12 @@ class OBBTree
             return (m_nodes[node].obb);
             }
 
-        //! Get the skip of a given node
+        //! Get the the escape index for a given node
         /*! \param node Index of the node (not the particle) to query
         */
-        inline unsigned int getNodeSkip(unsigned int node) const
+        inline unsigned int getEscapeIndex(unsigned int node) const
             {
-            return (m_nodes[node].skip);
+            return (m_nodes[node].escape);
             }
 
         //! Get the left child of a given node
@@ -189,7 +182,6 @@ class OBBTree
         unsigned int m_node_capacity;       //!< Capacity of the nodes array
         unsigned int m_leaf_capacity;       //!< Number of particles in leaf nodes
         unsigned int m_root;                //!< Index to the root node of the tree
-        std::vector<unsigned int> m_mapping;//!< Reverse mapping to find node given a particle index
 
         //! Initialize the tree to hold N particles
         inline void init(unsigned int N);
@@ -201,8 +193,8 @@ class OBBTree
         //! Allocate a new node
         inline unsigned int allocateNode();
 
-        //! Update the skip value for a node
-        inline unsigned int updateSkip(unsigned int idx);
+        //! Update the escape index for a node
+        inline void updateEscapeIndex(unsigned int idx, unsigned int parent_idx);
     };
 
 
@@ -215,81 +207,9 @@ inline void OBBTree::init(unsigned int N)
     // clear the nodes
     m_num_nodes = 0;
 
-    // init the root node and mapping to invalid states
+    // init the root node to invalid state
     m_root = OBB_INVALID_NODE;
-    m_mapping.resize(N);
-
-    for (unsigned int i = 0; i < N; i++)
-        m_mapping[i] = OBB_INVALID_NODE;
     }
-
-/*! \param hits Output vector of positive hits.
-    \param obb The OBB to query
-    \returns the number of box overlap checks made during the recursion
-
-    The *hits* vector is not cleared, elements are only added with push_back. query() traverses the tree and finds all
-    of the leaf nodes that intersect *obb*. The index of each intersecting leaf node is added to the hits vector.
-*/
-inline unsigned int OBBTree::query(std::vector<unsigned int>& hits, const OBB& obb) const
-    {
-    unsigned int box_overlap_counts = 0;
-
-    // avoid pointer indirection overhead of std::vector
-    OBBNode* nodes = &m_nodes[0];
-
-    // stackless search
-    for (unsigned int current_node_idx = 0; current_node_idx < m_num_nodes; current_node_idx++)
-        {
-        // cache current node pointer
-        const OBBNode& current_node = nodes[current_node_idx];
-
-        box_overlap_counts++;
-        if (overlap(current_node.obb, obb))
-            {
-            if (current_node.left == OBB_INVALID_NODE)
-                {
-                for (unsigned int i = 0; i < current_node.particles.size(); i++)
-                    hits.push_back(current_node.particles[i]);
-                }
-            }
-        else
-            {
-            // skip ahead
-            current_node_idx += current_node.skip;
-            }
-        }
-
-    return box_overlap_counts;
-    }
-
-
-/*! \param idx Particle to get height for
-    \returns Height of the node
-*/
-inline unsigned int OBBTree::height(unsigned int idx)
-    {
-    assert(idx < m_mapping.size());
-
-    // find the node this particle is in
-    unsigned int node_idx = m_mapping[idx];
-
-    // handle invalid nodes
-    if (node_idx == OBB_INVALID_NODE)
-        return 0;
-
-    // follow the parent pointers up and count the steps
-    unsigned int height = 1;
-
-    unsigned int current_node = m_nodes[node_idx].parent;
-    while (current_node != OBB_INVALID_NODE)
-        {
-        current_node = m_nodes[current_node].parent;
-        height += 1;
-        }
-
-    return height;
-    }
-
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
     \param internal_coordinates List of lists of vertex contents of OBBs
@@ -310,7 +230,7 @@ inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapRe
         idx.push_back(i);
 
     m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
-    updateSkip(m_root);
+    updateEscapeIndex(m_root,getNumNodes());
     }
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
@@ -336,7 +256,7 @@ inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capa
         }
 
     m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
-    updateSkip(m_root);
+    updateEscapeIndex(m_root, getNumNodes());
     }
 
 
@@ -387,9 +307,6 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
             {
             // assign the particle indices into the leaf node
             m_nodes[new_node].particles.push_back(idx[start+i]);
-
-            // assign the reverse mapping from particle indices to leaf node indices
-            m_mapping[idx[start+i]] = new_node;
             }
 
         return new_node;
@@ -442,8 +359,10 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
 
     // note: calling buildNode has side effects, the m_nodes array may be reallocated. So we need to determine the left
     // and right children, then build our node (can't say m_nodes[my_idx].left = buildNode(...))
-    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radius, idx, start+start_left, start_right-start_left, my_idx);
+
+    // create nodes in post-order
     unsigned int new_right = buildNode(obbs, internal_coordinates,  vertex_radius, idx, start+start_right, len-start_right, my_idx);
+    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radius, idx, start+start_left, start_right-start_left, my_idx);
 
     // now, create the children and connect them up
     m_nodes[my_idx].obb = my_obb;
@@ -456,28 +375,20 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
 
 /*! \param idx Index of the node to update
 
-    updateSkip() updates the skip field of every node in the tree. The skip field is used in the stackless
-    implementation of query. Each node's skip field lists the number of nodes that are children to this node. Because
-    of the order in which nodes are built in buildNode(), this number is the number of elements to skip in a search
-    if a box-box test does not overlap.
+    updateEscapeIndex() pdates the escape index of every node in the tree. The escape index is used in the stackless
+    implementation of query. Each node's escape index points to the next node on the same level.
 */
-inline unsigned int OBBTree::updateSkip(unsigned int idx)
+inline void OBBTree::updateEscapeIndex(unsigned int idx, unsigned int escape)
     {
-    // leaf nodes have no nodes under them
-    if (isNodeLeaf(idx))
-        {
-        return 1;
-        }
-    else
-        {
-        // node idx needs to skip all the nodes underneath it (determined recursively)
-        unsigned int left_idx = m_nodes[idx].left;
-        unsigned int right_idx = m_nodes[idx].right;
+    unsigned int left_idx = m_nodes[idx].left;
+    unsigned int right_idx = m_nodes[idx].right;
 
-        unsigned int skip = updateSkip(left_idx) + updateSkip(right_idx);
-        m_nodes[idx].skip = skip;
-        return skip + 1;
-        }
+    m_nodes[idx].escape = escape;
+
+    if (isNodeLeaf(idx)) return;
+
+    updateEscapeIndex(right_idx, escape);
+    updateEscapeIndex(left_idx, right_idx);
     }
 
 /*! Allocates a new node in the tree
