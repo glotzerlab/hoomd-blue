@@ -123,7 +123,7 @@ inline vec3<Scalar> normalize(const vec3<Scalar>& v) { return v / sqrt(dot(v,v))
 // face is assumed to be an array of indices of triangular face of a convex body.
 // points may contain points inside or outside the body defined by faces.
 // faces may include faces that contain vertices that are inside the body.
-inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, const std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
+inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, const vec3<Scalar>& inside_point, const std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
     {
     const std::vector<unsigned int>& face = faces[faceid];
     assert(face.size() == 3);
