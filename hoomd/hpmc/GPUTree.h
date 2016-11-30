@@ -394,8 +394,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
             }
         else
             {
-            // apply descend rule (always descend A for now, unless there are no children)
-            bool descend_A = !a.isLeaf(cur_node_a);
+            // descend into subtree with larger volume first (unless there are no children)
+            bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
             if (descend_A)
                 {
                 cur_node_a = a.getLeftChild(cur_node_a);

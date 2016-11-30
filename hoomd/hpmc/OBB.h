@@ -113,6 +113,11 @@ struct OBB
         rotation = rotmat3<OverlapReal>(q) * rotation;
         }
 
+    DEVICE OverlapReal getVolume() const
+        {
+        return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
+        }
+
     } __attribute__((aligned(32)));
 
 //! Check if two OBBs overlap
