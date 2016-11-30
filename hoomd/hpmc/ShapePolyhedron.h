@@ -28,6 +28,9 @@
 #include <iostream>
 #endif
 
+// undef for parallel overlap checks
+//#define LEAVES_AGAINST_TREE_TRAVERSAL
+
 namespace hpmc
 {
 
@@ -152,7 +155,14 @@ struct ShapePolyhedron
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return true; }
+    HOSTDEVICE static bool isParallel()
+        {
+        #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
+        return true;
+        #else
+        return false;
+        #endif
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
@@ -801,6 +811,10 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * b) the center of mass of one polyhedron is contained in the other
      */
 
+    const detail::GPUTree& tree_a = a.tree;
+    const detail::GPUTree& tree_b = b.tree;
+
+    #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
@@ -809,9 +823,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int offset = 0;
     unsigned int stride = 1;
     #endif
-
-    const detail::GPUTree& tree_a = a.tree;
-    const detail::GPUTree& tree_b = b.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
@@ -850,6 +861,39 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 }
             }
         }
+    #else
+    // perform a tandem tree traversal
+    unsigned long int stack = 0;
+    detail::OBB obb_a,obb_b;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+    unsigned int last_node_a = UINT_MAX;
+    unsigned int last_node_b = UINT_MAX;
+
+    while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
+        {
+        unsigned int query_node_a = cur_node_a;
+        unsigned int query_node_b = cur_node_b;
+
+        if (last_node_a != cur_node_a)
+            {
+            // rotate and translate a's obb into b's body frame
+            obb_a = tree_a.getOBB(cur_node_a);
+            obb_a.affineTransform(conj(b.orientation)*a.orientation,
+                rotate(conj(b.orientation),-r_ab));
+            last_node_a = cur_node_a;
+            }
+
+        if (last_node_b != cur_node_b)
+            {
+            obb_b = tree_b.getOBB(cur_node_b);
+            last_node_b = cur_node_b;
+            }
+
+         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b)
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
+        }
+    #endif
 
     // no intersecting edge, check if one polyhedron is contained in the other
 
