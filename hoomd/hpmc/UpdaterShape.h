@@ -24,7 +24,8 @@ public:
                     Scalar move_ratio,
                     unsigned int seed,
                     unsigned int nselect,
-                    bool pretend);
+                    bool pretend,
+                    bool multiphase);
 
     ~UpdaterShape();
 
@@ -77,6 +78,7 @@ protected:
 
 private:
     unsigned int                m_seed;           //!< Random number seed
+    unsigned int                m_global_partition;           //!< Random number seed
     unsigned int                m_nselect;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
@@ -93,6 +95,7 @@ private:
     size_t                      m_num_params;
     bool                        m_pretend;
     bool                        m_initialized;
+    bool                        m_multi_phase;
     detail::UpdateOrder         m_update_order;         //!< Update order
 };
 
@@ -102,12 +105,13 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  Scalar move_ratio,
                                  unsigned int seed,
                                  unsigned int nselect,
-                                 bool pretend)
+                                 bool pretend,
+                                 bool multiphase)
     : Updater(sysdef), m_seed(seed), m_nselect(nselect),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
-      m_pretend(pretend), m_initialized(false), m_update_order(seed)
+      m_pretend(pretend), m_initialized(false), m_global_partition(0), m_update_order(seed), m_multi_phase(multiphase)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -120,6 +124,15 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
         h_det.data[i] = 0.0;
         }
     countTypes(); // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
+    //TODO: add a sanity check to makesure that MPI is setup correctly
+    if(m_multi_phase)
+    {
+    #ifdef MPI_ENABLED
+    MPI_Comm_rank(MPI_COMM_WORLD, &m_global_partition);
+    assert(m_global_partition < 2);
+    #endif
+    }
+
     }
 
 template< class Shape >
@@ -239,10 +252,39 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
     Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
     m_exec_conf->msg->notice(8) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
+    if(m_multi_phase)
+        {
+        #ifdef MPI_ENABLED
+        // make sure random seeds are equal
+        Scalar Z_0 = 1.0, Z_1 = 1.0;
+        if(m_global_partition == 0)
+            Z_0 = Z;
+        else if (m_global_partition == 1)
+            Z_1 = Z;
+        MPI_Bcast( &Z_0, 1, HOOMD_SCALAR, 0, MPI_COMM_WORLD );
+        MPI_Bcast( &Z_1, 1, HOOMD_SCALAR, 1, MPI_COMM_WORLD );
+        Z = Z_0*Z_1;
+        #endif
+        }
+
     if( p < Z)
         {
         m_exec_conf->msg->notice(8) << " UpdaterShape counting overlaps" << std::endl;
         accept = ! m_mc->countOverlaps(timestep, true);
+        if(m_multi_phase)
+            {
+            #ifdef MPI_ENABLED
+            // make sure random seeds are equal
+            Scalar a_0 = false, a_1 = false;
+            if(m_global_partition == 0)
+                a_0 = accept;
+            else if (m_global_partition == 1)
+                a_1 = accept;
+            MPI_Bcast( &a_0, 1, MPI_BOOL, 0, MPI_COMM_WORLD );
+            MPI_Bcast( &a_1, 1, MPI_BOOL, 1, MPI_COMM_WORLD );
+            accept = a_0 && a_1;
+            #endif
+            }
         }
 
     if( !accept ) // catagorically reject the move.
@@ -347,6 +389,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             Scalar,
                             unsigned int,
                             unsigned int,
+                            bool,
                             bool >())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
