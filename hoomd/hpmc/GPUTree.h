@@ -110,6 +110,7 @@ class GPUTree
             return m_num_nodes;
             }
 
+        #ifndef NVCC
         //! Initialize the ancestor count index
         void initializeAncestorCounts(unsigned int idx, const OBBTree& tree, unsigned int ancestors)
             {
@@ -124,6 +125,7 @@ class GPUTree
 
             m_ancestors[idx] = ancestors;
             }
+        #endif
 
         //! Fetch the next node in the tree and test against overlap
         /*! The method maintains it internal state in a user-supplied variable cur_node
@@ -261,6 +263,7 @@ class GPUTree
 
             m_left.attach_to_stream(stream);
             m_escape.attach_to_stream(stream);
+            m_ancestors.attach_to_stream(stream);
 
             m_leaf_ptr.attach_to_stream(stream);
             m_leaf_obb_ptr.attach_to_stream(stream);
@@ -281,6 +284,7 @@ class GPUTree
 
             m_left.load_shared(ptr, load, ptr_max);
             m_escape.load_shared(ptr, load, ptr_max);
+            m_ancestors.load_shared(ptr, load, ptr_max);
 
             m_leaf_ptr.load_shared(ptr, load, ptr_max);
             m_leaf_obb_ptr.load_shared(ptr, load, ptr_max);
