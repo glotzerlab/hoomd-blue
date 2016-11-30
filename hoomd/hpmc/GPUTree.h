@@ -383,13 +383,14 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  *     }
  */
 DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int stack, const OBB& obb_a, const OBB& obb_b)
+    unsigned long int &stack, const OBB& obb_a, const OBB& obb_b)
     {
+    bool leaf = false;
     if (overlap(obb_a, obb_b))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
             {
-            return true;
+            leaf = true;
             }
         else
             {
@@ -430,7 +431,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
         cur_node_b = b.getEscapeIndex(cur_node_b);
         }
 
-    return false;
+    return leaf;
     }
 
 }; // end namespace detail
