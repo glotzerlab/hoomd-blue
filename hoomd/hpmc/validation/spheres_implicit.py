@@ -162,7 +162,7 @@ class implicit_test (unittest.TestCase):
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR, ntrial=ntrial)
 
-        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
+        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=100000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
 
         eta_p_measure = []
@@ -174,13 +174,24 @@ class implicit_test (unittest.TestCase):
         import BlockAverage
         block = BlockAverage.BlockAverage(eta_p_measure)
         eta_p_avg = np.mean(np.array(eta_p_measure))
-        _, eta_p_err = block.get_error_estimate()
+        i, eta_p_err = block.get_error_estimate()
+
+        if comm.get_rank() == 0:
+            print(i)
+            (n, num, err, err_err) = block.get_hierarchical_errors()
+
+            print('Hierarchical error analysis:')
+            for (i, num_samples, e, ee) in zip(n, num, err, err_err):
+                print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
 
         # max error 0.5%
         self.assertLessEqual(eta_p_err/eta_p_avg,0.005)
 
+        # confidence interval, 0.95 quantile of the normal distribution
+        ci = 1.96
+
         # check against reference value within reference error + measurement error
-        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err)
+        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
