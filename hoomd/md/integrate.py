@@ -191,6 +191,7 @@ class nvt(_integration_method):
             group_copy.name = "__nvt_all";
             hoomd.util.quiet_status();
             thermo = hoomd.compute.thermo(group_copy);
+            thermo.disable();
             hoomd.util.unquiet_status();
         else:
             thermo = hoomd.compute._get_unique_thermo(group=group);
@@ -394,6 +395,7 @@ class npt(_integration_method):
             group_copy.name = "__npt_all";
             hoomd.util.quiet_status();
             thermo_group = hoomd.compute.thermo(group_copy);
+            thermo_group.disable();
             hoomd.util.unquiet_status();
         else:
             thermo_group = hoomd.compute._get_unique_thermo(group=group);
