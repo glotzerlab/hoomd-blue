@@ -490,23 +490,18 @@ void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
         // Calculate Boltzmann factor
         double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
         double Boltzmann = exp(dBetaH);
-        double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
-                                      newL[1],
-                                      newL[2],
-                                      newShear[0],
-                                      newShear[1],
-                                      newShear[2],
-                                      timestep,
-                                      Boltzmann,
-                                      rng
-                                      );
-            }
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
+                                  newL[1],
+                                  newL[2],
+                                  newShear[0],
+                                  newShear[1],
+                                  newShear[2],
+                                  timestep,
+                                  Boltzmann,
+                                  rng
+                                  );
 
         if (accept)
             {
@@ -586,13 +581,9 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
         // Calculate Boltzmann factor
         double dBetaH = -P * dV + Nglobal * log(Vnew/V);
         double Boltzmann = exp(dBetaH);
-        double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
                                       newL[1],
                                       newL[2],
                                       newShear[0],
@@ -601,7 +592,6 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
                                       timestep,
                                       Boltzmann,
                                       rng);
-            }
 
         if (accept)
             {
