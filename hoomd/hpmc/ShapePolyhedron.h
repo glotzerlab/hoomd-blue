@@ -870,6 +870,8 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int last_node_a = UINT_MAX;
     unsigned int last_node_b = UINT_MAX;
 
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
     while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
         {
         unsigned int query_node_a = cur_node_a;
@@ -879,8 +881,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             {
             // rotate and translate a's obb into b's body frame
             obb_a = tree_a.getOBB(cur_node_a);
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-r_ab));
+            obb_a.affineTransform(q, dr_rot);
             last_node_a = cur_node_a;
             }
 
@@ -939,7 +940,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         while (cur_node_s1 < s1.tree.getNumNodes())
             {
             unsigned int query_node = cur_node_s1;
-            if (tree_b.queryRay(p,n, cur_node_s1, abs_tol))
+            if (s1.tree.queryRay(p,n, cur_node_s1, abs_tol))
                 {
                 unsigned int n_faces = s1.tree.getNumParticles(query_node);
 
