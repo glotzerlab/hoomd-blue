@@ -25,6 +25,13 @@ Deprecated*
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
 * Drop support for compute 2.0 GPU devices
+* Faster simulations with implicit depletants on CPU
+
+## v2.2.2
+
+*Bug fixes*
+
+* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
 
 ## v2.1.1
 
