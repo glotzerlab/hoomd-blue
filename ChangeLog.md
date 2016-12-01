@@ -2,7 +2,6 @@
 
 [TOC]
 
-<<<<<<< HEAD
 ## v2.2.0
 
 *New features*
@@ -20,6 +19,7 @@ Deprecated*
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
+* Faster simulations with implicit depletants on CPU
 
 ## v2.2.2
 
