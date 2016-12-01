@@ -940,7 +940,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         while (cur_node_s1 < s1.tree.getNumNodes())
             {
             unsigned int query_node = cur_node_s1;
-            if (tree_b.queryRay(p,n, cur_node_s1, abs_tol))
+            if (s1.tree.queryRay(p,n, cur_node_s1, abs_tol))
                 {
                 unsigned int n_faces = s1.tree.getNumParticles(query_node);
 
