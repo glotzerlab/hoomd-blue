@@ -51,11 +51,13 @@ endmacro()
 set(TEST_LIST_CPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 35
+disk_eos.py 0 0
 )
 
 set(TEST_LIST_GPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 35
+disk_eos.py 0 0
 )
 
 set(EXCLUDE_FROM_MPI
