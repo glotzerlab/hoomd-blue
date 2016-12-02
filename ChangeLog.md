@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.1.2
+
+Not yet released
+
+*Bug fixes*
+
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+
 ## v2.1.1
 
 Released 2016/10/23
