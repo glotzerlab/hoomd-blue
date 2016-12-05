@@ -27,6 +27,8 @@
 #define HOSTDEVICE
 #endif
 
+#define SMALL 1e-5
+
 namespace hpmc
 {
 
@@ -62,8 +64,8 @@ namespace detail
         }
     }
 
-//! Base class for aligned data types
-struct aligned_struct
+//! Base class for parameter structure data types
+struct param_base
     {
     //! Custom new operator
     static void* operator new(std::size_t sz)
@@ -102,6 +104,16 @@ struct aligned_struct
         {
         free(ptr);
         }
+
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param load If true, copy data to pointer, otherwise increment only
+        \param ptr_max Maximum address in shared memory
+     */
+    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        {
+        // default implementation does nothing
+        }
     };
 
 
@@ -112,11 +124,19 @@ struct aligned_struct
 
     \ingroup shape
 */
-struct sph_params : aligned_struct
+struct sph_params : param_base
     {
     OverlapReal radius;                 //!< radius of sphere
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 struct ShapeSphere

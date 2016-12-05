@@ -56,7 +56,6 @@ set(TEST_LIST_CPU
     test_implicit.py
     test_ghost_layer.py
     test_walls.py
-    max_verts.py
     muvt.py
     meta_data.py
     shape_proxy.py
@@ -72,7 +71,6 @@ set(TEST_LIST_GPU
     test_sdf.py
     test_implicit.py
     test_ghost_layer.py
-    max_verts.py
     muvt.py
     shape_proxy.py
     )
@@ -85,7 +83,6 @@ set(EXCLUDE_FROM_MPI
     test_boxMC.py
     image-list.py
     hoomd.util.py
-    max_verts.py
     create_shapes.py
     test_sdf.py
     map_overlap.py

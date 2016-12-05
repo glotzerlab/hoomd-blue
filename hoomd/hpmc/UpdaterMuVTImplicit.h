@@ -192,11 +192,11 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
     // Depletant and colloid diameter
     Scalar d_dep, d_colloid;
         {
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[type_d]);
+        Shape tmp(o, params[type_d]);
         d_dep = tmp.getCircumsphereDiameter();
-        Shape shape(o, h_params.data[type]);
+        Shape shape(o, params[type]);
         d_colloid = shape.getCircumsphereDiameter();
         }
 
@@ -342,15 +342,15 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
     // Depletant and colloid diameter
     Scalar d_dep, d_colloid, d_colloid_old;
         {
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >&  params = this->m_mc->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[type_d]);
+        Shape tmp(o, params[type_d]);
         d_dep = tmp.getCircumsphereDiameter();
 
-        Shape shape(o, h_params.data[new_type]);
+        Shape shape(o, params[new_type]);
         d_colloid = shape.getCircumsphereDiameter();
 
-        Shape shape_old(o, h_params.data[type]);
+        Shape shape_old(o, params[type]);
         d_colloid_old = shape_old.getCircumsphereDiameter();
         }
 
@@ -473,12 +473,12 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         // Depletant and colloid diameter
         Scalar d_dep, d_colloid_old;
             {
-            ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+            const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
             quat<Scalar> o;
-            Shape tmp(o, h_params.data[type_d]);
+            Shape tmp(o, params[type_d]);
             d_dep = tmp.getCircumsphereDiameter();
 
-            Shape shape_old(o, h_params.data[type]);
+            Shape shape_old(o, params[type]);
             d_colloid_old = shape_old.getCircumsphereDiameter();
             }
 
@@ -581,8 +581,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -607,7 +608,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -657,7 +658,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
                                     unsigned int type = __scalar_as_int(postype_j.w);
 
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                                     if (h_overlaps.data[overlap_idx(type,type_d)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -700,7 +701,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
                         // old particle shape
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_old(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                        Shape shape_old(quat<Scalar>(orientation_j), params[typ_j]);
 
                         if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape_test, shape_old)
@@ -709,7 +710,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                             // overlap with old particle configuration
 
                             // new particle shape
-                            Shape shape_new(quat<Scalar>(orientation_j), h_params.data[new_type]);
+                            Shape shape_new(quat<Scalar>(orientation_j), params[new_type]);
 
                             if (!(h_overlaps.data[overlap_idx(type_d,new_type)]
                                 && check_circumsphere_overlap(r_ij, shape_test, shape_new)
@@ -781,8 +782,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -813,7 +815,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -857,7 +859,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                     if (h_overlaps.data[overlap_idx(type_d,typ_j)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -882,7 +884,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                     } // end loop over images
 
                 // checking the (0,0,0) image is sufficient
-                Shape shape(orientation, h_params.data[type]);
+                Shape shape(orientation, params[type]);
                 vec3<Scalar> r_ij = pos - pos_test;
                 if (h_overlaps.data[overlap_idx(type, type_d)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
@@ -956,8 +958,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
 
         const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -986,7 +989,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -1036,7 +1039,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int type = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                                     if (h_overlaps.data[overlap_idx(type_d, type)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1074,7 +1077,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test;
 
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                Shape shape(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                Shape shape(quat<Scalar>(orientation_j), params[typ_j]);
 
                 if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
@@ -1151,9 +1154,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
@@ -1173,7 +1177,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1217,7 +1221,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1247,7 +1251,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
                 // see if it overlaps with inserted particle
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
-                    Shape shape(orientation, h_params.data[type]);
+                    Shape shape(orientation, params[type]);
 
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
                     vec3<Scalar> r_ij = pos - pos_test_image;
@@ -1309,9 +1313,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
@@ -1331,7 +1336,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1375,7 +1380,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1472,7 +1477,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
         // access parameters
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
@@ -1526,7 +1531,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
             f_test = (f_test + make_scalar3(grid_pos.x,grid_pos.y,grid_pos.z))/make_scalar3(dim.x,dim.y,dim.z);
             vec3<Scalar> pos_test = vec3<Scalar>(new_box.makeCoordinates(f_test));
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1587,7 +1592,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                 vec3<Scalar> r_ij = pos_j_old - pos_test_image_old;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1655,7 +1660,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                     if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                          && check_circumsphere_overlap(r_ij, shape_test, shape_j)

@@ -8,42 +8,6 @@ from hoomd.integrate import _integrator
 import hoomd
 import sys
 
-def _get_sized_entry(base, max_n):
-    """ Get a sized entry.
-
-    HPMC has some classes and functions templated by maximum size. This convenience function returns a class given a
-    base name and a maximum value for n.
-
-    Args:
-        base (string): Base name of the class.
-        max_n (int): Maximum size needed
-
-    Returns:
-        The selected class with a maximum n greater than or equal to *max_n*.
-    """
-
-    # inspect _hpmc.__dict__ for base class name + integer suffix
-    sizes=[]
-    for cls in _hpmc.__dict__:
-        if cls.startswith(base):
-            # append only suffixes that convert to ints
-            try:
-                sizes.append(int(cls.split(base)[1]))
-            except:
-                pass
-    sizes = sorted(sizes)
-
-    if max_n > sizes[-1]:
-        raise ValueError("Maximum value must be less than or equal to {0}".format(sizes[-1]));
-
-    # Find the smallest size that fits size
-    for size in sizes:
-        if max_n <= size:
-            selected_size = size;
-            break;
-
-    return _hpmc.__dict__["{0}{1}".format(base, size)];
-
 class interaction_matrix:
     R""" Define pairwise interaction matrix
 
@@ -335,16 +299,7 @@ class mode_hpmc(_integrator):
         raise NotImplementedError("You are using a shape type that is not implemented! If you want it, please modify the hoomd.hpmc.integrate.mode_hpmc.get_type_shapes function")
 
     def initialize_shape_params(self):
-        shape_param_type = None;
-        # have to have a few extra checks becuase the sized class don't actually exist yet.
-        if isinstance(self, convex_polyhedron):
-            shape_param_type = data.convex_polyhedron_params.get_sized_class(self.max_verts);
-        elif isinstance(self, convex_spheropolyhedron):
-            shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
-        elif isinstance(self, sphere_union):
-            shape_param_type = data.sphere_union_params.get_sized_class(self.max_members);
-        else:
-            shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
+        shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
 
         # setup the coefficient options
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -1032,6 +987,16 @@ class simple_polygon(mode_hpmc):
 class polyhedron(mode_hpmc):
     R""" HPMC integration for general polyhedra (3D).
 
+    This shape uses an internal OBB tree for fast collision queries.
+    Depending on the number of constituent spheres in the tree, different values of the number of
+    spheres per leaf node may yield different optimal performance.
+    The capacity of leaf nodes is configurable.
+
+    Only triangle meshes and spheres are supported. The mesh must be free of self-intersections.
+
+    The orientation of the mesh assumes outward-facing normals, that is, if viewed from the shape's *origin*,
+    all triangles are oriented clockwise.
+
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1045,8 +1010,8 @@ class polyhedron(mode_hpmc):
     * *vertices* (**required**) - vertices of the polyhedron as is a list of (x,y,z) tuples of numbers (distance units)
 
         * The origin **MUST** strictly be contained in the generally nonconvex volume defined by the vertices and faces
-        * The origin centered circle that encloses all verticies should be of minimal size for optimal performance (e.g.
-          don't put the origin right next to a face).
+        * The (0,0,0) centered sphere that encloses all verticies should be of minimal size for optimal performance (e.g.
+          don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
@@ -1055,6 +1020,10 @@ class polyhedron(mode_hpmc):
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+    * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+        * .. versionadded:: 2.2
+    * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
+        * .. versionadded:: 2.2
 
     Warning:
         HPMC does not check that all requirements are met. Undefined behavior will result if they are
@@ -1078,7 +1047,7 @@ class polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
             (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)], faces = faces);
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
-            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
+            (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces, origin = (0,0,0));
     """
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
         hoomd.util.print_status_line();
@@ -1144,6 +1113,7 @@ class convex_polyhedron(mode_hpmc):
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_verts (int): Set the maximum number of vertices in a polyhedron.
+            * .. deprecated:: 2.2
 
     Convex polyhedron parameters:
 
@@ -1177,8 +1147,11 @@ class convex_polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None):
         hoomd.util.print_status_line();
+
+        if max_verts is not None:
+            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1186,16 +1159,16 @@ class convex_polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1205,14 +1178,10 @@ class convex_polyhedron(mode_hpmc):
             self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_verts = max_verts;
         self.initialize_shape_params();
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
-
-        # meta data
-        self.metadata_fields = ['max_verts']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1450,6 +1419,7 @@ class convex_spheropolyhedron(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_verts (int): Set the maximum number of vertices in a polyhedron.
+            * .. deprecated:: 2.2
 
     A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
@@ -1489,8 +1459,11 @@ class convex_spheropolyhedron(mode_hpmc):
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None):
         hoomd.util.print_status_line();
+
+        if max_verts is not None:
+            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1498,16 +1471,16 @@ class convex_spheropolyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1517,14 +1490,10 @@ class convex_spheropolyhedron(mode_hpmc):
             self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_verts = max_verts
         self.initialize_shape_params();
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
-
-        # meta data
-        self.metadata_fields = ['max_verts']
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1622,6 +1591,11 @@ class ellipsoid(mode_hpmc):
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
+    This shape uses an internal OBB tree for fast collision queries.
+    Depending on the number of constituent spheres in the tree, different values of the number of
+    spheres per leaf node may yield different optimal performance.
+    The capacity of leaf nodes is configurable.
+
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1630,7 +1604,7 @@ class sphere_union(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_members (int): Set the maximum number of members in the sphere union
-            * .. versionadded:: 2.1
+            * .. deprecated:: 2.2
 
     Sphere union parameters:
 
@@ -1645,6 +1619,8 @@ class sphere_union(mode_hpmc):
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+    * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+        * .. versionadded:: 2.2
 
     Example::
 
@@ -1662,8 +1638,11 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None):
         hoomd.util.print_status_line();
+
+        if max_members is not None:
+            hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1671,16 +1650,16 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSphereUnion(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1689,11 +1668,7 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_members = max_members;
         self.initialize_shape_params();
-
-        # meta data
-        self.metadata_fields = ['max_members']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']

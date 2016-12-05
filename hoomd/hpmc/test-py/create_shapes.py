@@ -97,7 +97,7 @@ class convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -154,8 +154,8 @@ class sphere_union_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
 
-        self.mc = hpmc.integrate.sphere_union(seed=10,max_members=16);
-        self.mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0, 0), (0.25, 0, 0)]);
+        self.mc = hpmc.integrate.sphere_union(seed=10);
+        self.mc.shape_param.set('A', diameters=[1.0, 1.0], centers=[(-0.25, 0, 0), (0.25, 0, 0)], capacity=16);
 
         context.current.sorter.set_params(grid=8)
 
