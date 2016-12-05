@@ -338,6 +338,8 @@ class mode_hpmc(_integrator):
             nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
             depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
             ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
+                * .. deprecated:: 2.2
+                     No longer supported
         """
 
         hoomd.util.print_status_line();
@@ -378,8 +380,7 @@ class mode_hpmc(_integrator):
                 itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type)
                 self.cpp_integrator.setDepletantType(itype)
             if ntrial is not None:
-                self.implicit_params.append('ntrial')
-                self.cpp_integrator.setNTrial(ntrial)
+                hoomd.context.msg.warning("ntrial is deprecated. Ignoring.\n")
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
@@ -542,11 +543,8 @@ class mode_hpmc(_integrator):
             The current value of the 'ntrial' parameter of the integrator.
 
         """
-        if not self.implicit:
-            hoomd.context.msg.warning("ntrial only available in simulations with non-interacting depletants. Returning 0.\n")
-            return 0;
-
-        return self.cpp_integrator.getNTrial();
+        hoomd.context.msg.warning("ntrial no longer supported. Returning 0.\n")
+        return 0;
 
     def get_configurational_bias_ratio(self):
         R""" Get the average ratio of configurational bias attempts to depletant insertion moves.

@@ -84,16 +84,8 @@ struct hpmc_implicit_args_t
                 const unsigned int *_d_active_cell_ptl_idx,
                 const unsigned int *_d_active_cell_accept,
                 const unsigned int *_d_active_cell_move_type_translate,
-                float *_d_lnb,
-                unsigned int *_d_n_success_zero,
-                unsigned int _ntrial,
                 unsigned int *_d_depletant_active_cell,
                 unsigned int &_n_overlaps,
-                unsigned int *_d_n_success_forward,
-                unsigned int *_d_n_overlap_shape_forward,
-                unsigned int *_d_n_success_reverse,
-                unsigned int *_d_n_overlap_shape_reverse,
-                float *_d_depletant_lnb,
                 const Scalar *_d_d_min,
                 const Scalar *_d_d_max,
                 bool _update_shape_param,
@@ -142,16 +134,8 @@ struct hpmc_implicit_args_t
                   d_active_cell_ptl_idx(_d_active_cell_ptl_idx),
                   d_active_cell_accept(_d_active_cell_accept),
                   d_active_cell_move_type_translate(_d_active_cell_move_type_translate),
-                  d_lnb(_d_lnb),
-                  d_n_success_zero(_d_n_success_zero),
-                  ntrial(_ntrial),
                   d_depletant_active_cell(_d_depletant_active_cell),
                   n_overlaps(_n_overlaps),
-                  d_n_success_forward(_d_n_success_forward),
-                  d_n_overlap_shape_forward(_d_n_overlap_shape_forward),
-                  d_n_success_reverse(_d_n_success_reverse),
-                  d_n_overlap_shape_reverse(_d_n_overlap_shape_reverse),
-                  d_depletant_lnb(_d_depletant_lnb),
                   d_d_min(_d_d_min),
                   d_d_max(_d_d_max),
                   update_shape_param(_update_shape_param),
@@ -202,16 +186,8 @@ struct hpmc_implicit_args_t
     const unsigned int *d_active_cell_ptl_idx; //!< Updated particle index per active cell
     const unsigned int *d_active_cell_accept;//!< =1 if active cell move has been accepted, =0 otherwise
     const unsigned int *d_active_cell_move_type_translate;//!< =1 if active cell move was a translation, =0 if rotation
-    float *d_lnb;                     //!< Logarithm of Boltzmann factor
-    unsigned int *d_n_success_zero;   //!< If the number of successful re-insertion attempts is zero (new position)
-    unsigned int ntrial;              //!< Number of reinsertion attempts
     unsigned int *d_depletant_active_cell; //!< Lookup of active-cell idx per depletant
     unsigned int &n_overlaps;          //!< Total number of inserted overlapping depletants
-    unsigned int *d_n_success_forward; //!< successful reinsertions in forward move, per depletant
-    unsigned int *d_n_overlap_shape_forward; //!< reinsertions into old colloid positiion, per depletant
-    unsigned int *d_n_success_reverse; //!< successful reinsertions in reverse move, per depletant
-    unsigned int *d_n_overlap_shape_reverse; //!< reinsertions into new colloid position, per depletant
-    float *d_depletant_lnb;            //!< logarithm of configurational bias weight, per depletant
     const Scalar *d_d_min;             //!< Minimum insertion diameter for depletants (per type)
     const Scalar *d_d_max;             //!< Maximum insertion diameter for depletants (per type)
     bool update_shape_param;           //!< True if this is the first iteration
@@ -497,7 +473,6 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
     // number of depletants inserted
     unsigned int n_inserted = 0;
 
-    // number of depletants in free volume
     unsigned int n_free_volume = 0;
 
     Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
@@ -644,12 +619,6 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
         // increment number of inserted depletants
         atomicAdd(&d_implicit_counters->insert_count, n_inserted);
-
-        // increment number of overlapping depletants
-        atomicAdd(&d_implicit_counters->overlap_count, n_overlap);
-
-        // increment number of depletants in free volume
-        atomicAdd(&d_implicit_counters->free_volume_count, n_free_volume);
         }
     }
 
@@ -1316,32 +1285,6 @@ __global__ void gpu_implicit_accept_reject_kernel(
 
         // if no overlap of depletant in new configuration, accept
         accept = !n_overlap;
-
-        if (n_overlap && ntrial)
-            {
-            // take into account reinsertion attempts
-
-            // log of acceptance probability
-            unsigned int n_success_zero = d_n_success_zero[active_cell_idx];
-
-            Scalar lnb = d_lnb[active_cell_idx];
-
-            if (! n_success_zero)
-                {
-                // load RNG state per cell
-                curandState_t local_state = d_state_cell[active_cell_idx];
-
-                // apply acceptance criterium
-                accept = curand_uniform(&local_state) < expf(lnb);
-
-                // store RNG state
-                d_state_cell[active_cell_idx] = local_state;
-                }
-            else
-                {
-                accept = false;
-                }
-            }
         }
 
     // the particle that was updated
@@ -1583,7 +1526,55 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
 
     // return total number of overlaps
     mgpu::Scan<mgpu::MgpuScanTypeExc>(args.d_overlap_cell, (int) args.n_active_cells, (unsigned int)0, mgpu::plus<unsigned int>(),
-        (unsigned int *) 0, (args.ntrial ? &args.n_overlaps : (unsigned int *) 0), args.d_overlap_cell_scan, *args.mgpu_context);
+        (unsigned int *) 0, (unsigned int *) 0, args.d_overlap_cell_scan, *args.mgpu_context);
+    }
+
+//! Kernel to accept or reject moves on a per active cell basis
+template<class Shape>
+__global__ void gpu_implicit_accept_reject_kernel(
+    unsigned int *d_overlap_cell,
+    unsigned int n_active_cells,
+    const unsigned int *d_cell_set,
+    const unsigned int *d_cell_size,
+    const unsigned int *d_cell_idx,
+    Index2D cli,
+    Scalar4 *d_postype,
+    Scalar4 *d_orientation,
+    const Scalar4 *d_postype_old,
+    const Scalar4 *d_orientation_old,
+    hpmc_counters_t *d_counters,
+    const BoxDim box,
+    const unsigned int *d_active_cell_ptl_idx,
+    const unsigned int *d_active_cell_accept,
+    const unsigned int *d_move_type_translate,
+    curandState_t *d_state_cell,
+    const typename Shape::param_type *d_params
+    )
+    {
+    unsigned int active_cell_idx = blockDim.x*blockIdx.x + threadIdx.x;
+    if (active_cell_idx >= n_active_cells) return;
+
+    // ignore if no move was proposed in this cell
+    unsigned int updated_ptl_idx = d_active_cell_ptl_idx[active_cell_idx];
+    if (updated_ptl_idx == UINT_MAX)
+        {
+        return;
+        }
+
+    // whether the particle move was accepted (== generated no overlap)
+    bool accept = d_active_cell_accept[active_cell_idx];
+
+    if (accept)
+        {
+        unsigned int n_overlap = d_overlap_cell[active_cell_idx];
+
+        // if no overlap of depletant in new configuration, accept
+        accept = !n_overlap;
+        }
+
+    // the particle that was updated
+    Scalar4 postype_i = d_postype[updated_ptl_idx];
+    Shape shape_i(quat<Scalar>(), d_params[__scalar_as_int(postype_i.w)]);
     }
 
 //! Kernel driver for gpu_hpmc_implicit_reinsert_kernel() and gpu_hpmc_implict_accept_reject_kernel()
@@ -1609,177 +1600,6 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
     assert(args.group_size >= 1);
     assert(args.group_size <= 32);  // note, really should be warp size of the device
 
-    if (args.n_overlaps && args.ntrial > 0)
-        {
-        // construct the lookup of active cell idx per depletant
-        mgpu::IntervalExpand(args.n_overlaps, args.d_overlap_cell_scan,
-            mgpu::counting_iterator<unsigned int>(0), args.n_active_cells, args.d_depletant_active_cell,
-            *args.mgpu_context);
-
-        // determine the maximum block size and clamp the input block size down
-        static int max_block_size = -1;
-        static int sm = -1;
-        static cudaFuncAttributes attr;
-        if (max_block_size == -1)
-            {
-            cudaFuncGetAttributes(&attr, gpu_hpmc_implicit_reinsert_kernel<Shape>);
-            max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
-            }
-
-        unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-        unsigned int stride = min(block_size, args.stride);
-
-
-        // the new block size might not be a multiple of group size, decrease group size until it is
-        unsigned int group_size = args.group_size;
-
-        while ((block_size%(stride*group_size)) != 0)
-            {
-            // decrease block_size further until it is a multiple of group_size
-            // (because the kernel uses warp-shuffle instructions we cannot use non-power-of-two group sizes)
-            block_size--;
-            }
-        // setup the grid to run the kernel
-        unsigned int n_groups = block_size / group_size / stride;
-
-        unsigned int shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
-                                    block_size*sizeof(unsigned int)*2 +
-                                    args.num_types * (sizeof(typename Shape::param_type)) +
-                                    args.overlap_idx.getNumElements() * sizeof(unsigned int);
-
-        while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
-            {
-            block_size -= args.devprop.warpSize;
-
-            // the new block size might not be a multiple of group size, decrease group size until it is
-            group_size = args.group_size;
-
-            while ((block_size%(stride*group_size)) != 0)
-                {
-                block_size--;
-                }
-
-            n_groups = block_size / group_size / stride;
-            shared_bytes = n_groups * (sizeof(unsigned int) + sizeof(Scalar4) + sizeof(Scalar3)) +
-                           block_size*sizeof(unsigned int)*2 +
-                           args.num_types * (sizeof(typename Shape::param_type)) +
-                           args.overlap_idx.getNumElements() * sizeof(unsigned int);
-            }
-
-        static unsigned int base_shared_bytes = UINT_MAX;
-        bool shared_bytes_changed = base_shared_bytes != shared_bytes;
-        if (shared_bytes_changed != base_shared_bytes)
-            base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-        unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-
-        static unsigned int extra_bytes = UINT_MAX;
-        if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-            {
-            // required for memory coherency
-            cudaDeviceSynchronize();
-
-            // determine dynamically requested shared memory
-            char *ptr_begin = nullptr;
-            char *ptr =  ptr_begin;
-            for (unsigned int i = 0; i < args.num_types; ++i)
-                {
-                d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
-                }
-            extra_bytes = ptr - ptr_begin;
-            }
-
-        shared_bytes += extra_bytes;
-
-        // reset counters
-        cudaMemsetAsync(args.d_n_success_forward,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
-        cudaMemsetAsync(args.d_n_overlap_shape_forward,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
-        cudaMemsetAsync(args.d_n_success_reverse,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
-        cudaMemsetAsync(args.d_n_overlap_shape_reverse,0, sizeof(unsigned int)*args.n_overlaps, args.stream);
-
-        dim3 threads;
-        if (Shape::isParallel())
-            {
-            // use three-dimensional thread-layout with blockDim.z < 64
-            threads = dim3(stride, group_size, n_groups);
-            }
-        else
-            {
-            threads = dim3(group_size, n_groups, 1);
-            }
-        dim3 grid((args.n_overlaps*2*args.ntrial)/n_groups+1, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
-
-        // check for newly generated overlaps with depletants
-        gpu_hpmc_implicit_reinsert_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
-                                                                     args.d_orientation,
-                                                                     args.d_postype_old,
-                                                                     args.d_orientation_old,
-                                                                     args.d_cell_idx,
-                                                                     args.d_cell_size,
-                                                                     args.d_excell_idx,
-                                                                     args.d_excell_size,
-                                                                     args.ci,
-                                                                     args.cli,
-                                                                     args.excli,
-                                                                     args.cell_dim,
-                                                                     args.ghost_width,
-                                                                     args.d_cell_set,
-                                                                     args.n_active_cells,
-                                                                     args.N,
-                                                                     args.num_types,
-                                                                     args.seed,
-                                                                     args.d_check_overlaps,
-                                                                     args.overlap_idx,
-                                                                     args.timestep,
-                                                                     args.dim,
-                                                                     args.box,
-                                                                     args.select,
-                                                                     args.depletant_type,
-                                                                     args.d_active_cell_ptl_idx,
-                                                                     args.d_active_cell_accept,
-                                                                     args.d_counters,
-                                                                     args.d_implicit_count,
-                                                                     args.ntrial,
-                                                                     args.d_n_success_forward,
-                                                                     args.d_n_overlap_shape_forward,
-                                                                     args.d_n_success_reverse,
-                                                                     args.d_n_overlap_shape_reverse,
-                                                                     args.d_depletant_active_cell,
-                                                                     args.n_overlaps,
-                                                                     args.d_d_min,
-                                                                     args.d_d_max,
-                                                                     d_params,
-                                                                     block_size,
-                                                                     max_extra_bytes);
-
-        block_size = 256;
-
-        // reset flags
-        cudaMemsetAsync(args.d_n_success_zero,0, sizeof(unsigned int)*args.n_active_cells, args.stream);
-
-        // compute logarithm of configurational bias weights per active cell
-        gpu_implicit_compute_weights_kernel<<<args.n_overlaps/block_size+1,block_size, 0, args.stream>>>(args.n_overlaps,
-             args.d_n_success_forward,
-             args.d_n_overlap_shape_forward,
-             args.d_n_success_reverse,
-             args.d_n_overlap_shape_reverse,
-             args.d_depletant_lnb,
-             args.d_n_success_zero,
-             args.d_depletant_active_cell);
-
-        // do a segmented reduction
-        mgpu::SegReduceCsr(args.d_depletant_lnb, args.d_overlap_cell_scan, args.n_overlaps,
-            args.n_active_cells, true, args.d_lnb, 0.0f, mgpu::plus<float>(), *args.mgpu_context);
-        }
-
     // accept-reject on a per cell basis
     unsigned int block_size = 256;
     gpu_implicit_accept_reject_kernel<Shape><<<args.n_active_cells/block_size + 1, block_size, 0, args.stream>>>(
@@ -1798,10 +1618,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
         args.d_active_cell_ptl_idx,
         args.d_active_cell_accept,
         args.d_active_cell_move_type_translate,
-        args.d_lnb,
-        args.d_n_success_zero,
         args.d_state_cell,
-        args.ntrial,
         d_params);
 
     return cudaSuccess;
