@@ -1599,6 +1599,41 @@ __global__ void gpu_implicit_accept_reject_kernel(
     // the particle that was updated
     Scalar4 postype_i = d_postype[updated_ptl_idx];
     Shape shape_i(quat<Scalar>(), d_params[__scalar_as_int(postype_i.w)]);
+
+    if (!accept)
+        {
+        // revert to old position and orientation
+        d_postype[updated_ptl_idx] = d_postype_old[updated_ptl_idx];
+        d_orientation[updated_ptl_idx] = d_orientation_old[updated_ptl_idx];
+
+        if (!shape_i.ignoreStatistics())
+            {
+            // increment reject count
+            if (d_move_type_translate[active_cell_idx])
+                {
+                atomicAdd(&d_counters->translate_reject_count, 1);
+                }
+            else
+                {
+                atomicAdd(&d_counters->rotate_reject_count, 1);
+                }
+            }
+        }
+    else
+        {
+        if (!shape_i.ignoreStatistics())
+            {
+            // increment accept count
+            if (d_move_type_translate[active_cell_idx])
+                {
+                atomicAdd(&d_counters->translate_accept_count, 1);
+                }
+            else
+                {
+                atomicAdd(&d_counters->rotate_accept_count, 1);
+                }
+            }
+        }
     }
 
 //! Kernel driver for gpu_hpmc_implicit_reinsert_kernel() and gpu_hpmc_implict_accept_reject_kernel()
