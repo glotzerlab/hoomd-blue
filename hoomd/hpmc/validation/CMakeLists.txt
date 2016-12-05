@@ -50,18 +50,17 @@ endmacro()
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
 spheres_implicit.py 0 1
-sphere_eos.py 0 35
+sphere_eos.py 0 0
 disk_eos.py 0 0
 )
 
 set(TEST_LIST_GPU
 spheres_implicit.py 0 1
-sphere_eos.py 0 35
+sphere_eos.py 0 0
 disk_eos.py 0 0
 )
 
 set(EXCLUDE_FROM_MPI
-sphere_eos.py
 )
 
 list(LENGTH TEST_LIST_CPU _max_i)
