@@ -7,7 +7,7 @@ macro(add_script_test_cpu_mpi script USER_VAR)
         if(NOT "${EXCLUDE_FROM_MPI}" MATCHES ${script})
             add_test(NAME ${script}-mpi-cpu-${USER_VAR}
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
-                ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu" "--user=${USER_VAR}")
+                ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} "-u" ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu" "--user=${USER_VAR}")
                 set_tests_properties(${script}-mpi-cpu-${USER_VAR} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH};OMP_NUM_THREADS=1"
                     LABELS "validation")
             endif()
@@ -21,7 +21,7 @@ macro(add_script_test_gpu_mpi script USER_VAR)
         if(NOT "${EXCLUDE_FROM_MPI}" MATCHES ${script})
             add_test(NAME ${script}-mpi-gpu-${USER_VAR}
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
-                ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--gpu_error_checking" "--user=${USER_VAR}")
+                ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} "-u" ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--gpu_error_checking" "--user=${USER_VAR}")
             set_tests_properties(${script}-mpi-gpu-${USER_VAR} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}"
                 LABELS "validation")
         endif()
@@ -31,7 +31,7 @@ endmacro()
 
 macro(add_script_test_cpu script start stop)
     foreach(USER_VAR RANGE ${start} ${stop})
-        add_test(${script}-cpu-${USER_VAR} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu" "--user=${USER_VAR}")
+        add_test(${script}-cpu-${USER_VAR} ${PYTHON_EXECUTABLE} "-u" ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=cpu" "--user=${USER_VAR}")
         set_tests_properties(${script}-cpu-${USER_VAR} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH};OMP_NUM_THREADS=1"
             LABELS "validation")
         add_script_test_cpu_mpi(${script} ${USER_VAR})
@@ -40,7 +40,7 @@ endmacro()
 
 macro(add_script_test_gpu script start stop)
     foreach(USER_VAR RANGE ${start} ${stop})
-        add_test(${script}-gpu-${USER_VAR} ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--user=${USER_VAR}")
+        add_test(${script}-gpu-${USER_VAR} ${PYTHON_EXECUTABLE} "-u" ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--user=${USER_VAR}")
         set_tests_properties(${script}-gpu-${USER_VAR} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}:$ENV{PYTHONPATH}"
             LABELS "validation")
         add_script_test_gpu_mpi(${script} ${USER_VAR})
@@ -50,11 +50,15 @@ endmacro()
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
 spheres_implicit.py 0 1
+sphere_eos.py 0 0
+disk_eos.py 0 0
 )
 
 set(TEST_LIST_GPU
 spheres_implicit.py 0 1
-   )
+sphere_eos.py 0 0
+disk_eos.py 0 0
+)
 
 set(EXCLUDE_FROM_MPI
 )

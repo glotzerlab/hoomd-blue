@@ -4,6 +4,7 @@ import os;
 import random;
 import sys;
 import unittest;
+import tempfile;
 
 import numpy as np;
 import hoomd;
@@ -14,6 +15,13 @@ except ImportError:
     print('Warning: gtar python module not found, some getar tests not run',
           file=sys.stderr);
     gtar = None;
+
+def get_tmp(suffix):
+    if hoomd.comm.get_rank() == 0:
+        tmp = tempfile.mkstemp(suffix);
+        return tmp[1];
+    else:
+        return "invalid";
 
 class RandomSystem:
     def __init__(self, seed):
@@ -152,13 +160,16 @@ class RandomSystem:
 if gtar is not None:
     class test_random_read_write(unittest.TestCase):
         def test_zip(self):
-            self._test_procedure('dump.zip');
+            tmp_file = get_tmp(suffix='dump.zip');
+            self._test_procedure(tmp_file);
 
         def test_tar(self):
-            self._test_procedure('dump.tar');
+            tmp_file = get_tmp(suffix='dump.tar');
+            self._test_procedure(tmp_file);
 
         def test_sqlite(self):
-            self._test_procedure('dump.sqlite');
+            tmp_file = get_tmp(suffix='dump.sqlite');
+            self._test_procedure(tmp_file);
 
         def _test_procedure(self, fname):
             random.seed();
@@ -202,12 +213,15 @@ class test_basic_io(unittest.TestCase):
         vel_prop = hoomd.dump.getar.DumpProp(
             'velocity', True, hoomd.dump.getar.Compression.NoCompress);
         for suffix in ['zip', 'tar', 'sqlite']:
-            fname = 'dump.{}'.format(suffix);
-            hoomd.dump.getar.immediate(fname, static=['type'],
+            fname_suffix = 'dump.{}'.format(suffix);
+            tmp_file = get_tmp(suffix=fname_suffix);
+
+            hoomd.dump.getar.immediate(tmp_file, static=['type'],
                                        dynamic=['position', vel_prop]);
+
             hoomd.comm.barrier_all();
 
-            hoomd.init.restore_getar(fname);
+            hoomd.init.restore_getar(tmp_file);
 
     def test_simple(self):
         N = 10;
@@ -218,8 +232,9 @@ class test_basic_io(unittest.TestCase):
         hoomd.init.read_snapshot(snap);
 
         for suffix in ['zip', 'tar', 'sqlite']:
-            fname = 'dump.{}'.format(suffix);
-            dump = hoomd.dump.getar.simple(fname, mode='w', period=1e3,
+            fname_suffix = 'dump.{}'.format(suffix);
+            tmp_file = get_tmp(suffix=fname_suffix);
+            dump = hoomd.dump.getar.simple(tmp_file, mode='w', period=1e3,
                                            static=['viz_static'],
                                            dynamic=['viz_dynamic']);
             hoomd.run(1);
@@ -227,7 +242,7 @@ class test_basic_io(unittest.TestCase):
             dump.disable();
             hoomd.comm.barrier_all();
 
-            hoomd.init.restore_getar(fname);
+            hoomd.init.restore_getar(tmp_file);
 
     def test_periodic(self):
         N = 10;
@@ -238,15 +253,17 @@ class test_basic_io(unittest.TestCase):
         hoomd.init.read_snapshot(snap);
 
         for suffix in ['zip', 'tar', 'sqlite']:
-            fname = 'dump.{}'.format(suffix);
-            dump = hoomd.dump.getar(fname, mode='w', static=['viz_static'],
+            fname_suffix = 'dump.{}'.format(suffix);
+            tmp_file = get_tmp(suffix=fname_suffix);
+
+            dump = hoomd.dump.getar(tmp_file, mode='w', static=['viz_static'],
                                     dynamic={'viz_aniso_dynamic': 1e3});
             hoomd.run(1);
             dump.close();
             dump.disable();
             hoomd.comm.barrier_all();
 
-            hoomd.init.restore_getar(fname);
+            hoomd.init.restore_getar(tmp_file);
 
     def test_write_json(self):
         N = 10;
@@ -257,8 +274,10 @@ class test_basic_io(unittest.TestCase):
         hoomd.init.read_snapshot(snap);
 
         for suffix in ['zip', 'tar', 'sqlite']:
-            fname = 'dump.{}'.format(suffix);
-            dump = hoomd.dump.getar(fname, mode='w', static=['viz_static'],
+            fname_suffix = 'dump.{}'.format(suffix);
+            tmp_file = get_tmp(suffix=fname_suffix);
+
+            dump = hoomd.dump.getar(tmp_file, mode='w', static=['viz_static'],
                                     dynamic={'viz_aniso_dynamic': 1e3});
 
             dump.writeJSON('test.json', dict(testQuantity=True), False)
@@ -271,7 +290,7 @@ class test_basic_io(unittest.TestCase):
             dump.disable();
             hoomd.comm.barrier_all();
 
-            hoomd.init.restore_getar(fname);
+            hoomd.init.restore_getar(tmp_file);
 
     def setUp(self):
         hoomd.context.initialize();
