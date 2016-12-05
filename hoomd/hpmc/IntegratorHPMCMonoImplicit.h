@@ -521,9 +521,6 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
             if (!overlap)
                 {
-                // log of acceptance probability
-                unsigned int zero = 0;
-
                 // The trial move is valid. Now generate random depletant particles in a sphere
                 // of radius (d_max+d_depletant+move size)/2.0 around the original particle position
 
@@ -540,7 +537,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
 
                 volatile bool flag=false;
 
-                #pragma omp parallel for reduction(+ : n_overlap_checks, overlap_err_count, insert_count) reduction(max: zero) shared(flag) if (n>0) schedule(dynamic)
+                #pragma omp parallel for reduction(+ : n_overlap_checks, overlap_err_count, insert_count) shared(flag) if (n>0) schedule(dynamic)
                 for (unsigned int k = 0; k < n; ++k)
                     {
                     if (flag)
@@ -695,7 +692,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                     // if not part of overlap volume in new config, reject
                     if (in_intersection_volume)
                         {
-                        zero = 1;
+                        accept = false;
+
                         // break out of loop
                         flag = true;
                         }
@@ -705,9 +703,6 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 counters.overlap_checks += n_overlap_checks;
                 counters.overlap_err_count += overlap_err_count;
                 implicit_counters.insert_count += insert_count;
-
-                // apply acceptance criterium
-                if (zero) accept = false;
                 } // end depletant placement
 
             // if the move is accepted
