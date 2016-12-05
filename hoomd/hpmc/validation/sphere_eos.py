@@ -9,10 +9,11 @@ import unittest
 
 context.initialize()
 
-p = comm.get_partition()
 V = math.pi/6
-P_list = [0.29054,0.91912,2.2768,5.29102,8.06553,9.98979]
-npt_list = [1,2,3,5,6,7]
+#P_list = [0.29054,0.91912,2.2768,5.29102,8.06553,9.98979]
+#npt_list = [1,2,3,5,6,7]
+P_list = [5.29102]
+npt_list = [2]
 
 # Packing fractions from Carnahan Starling EOS
 phi_p_ref = {0.29054: 0.1, 0.91912: 0.2, 2.2768: 0.3, 5.29102: 0.4, 8.06553: 0.45, 9.98979: 0.475}
@@ -52,17 +53,21 @@ class sphereEOS_test(unittest.TestCase):
         boxmc = hpmc.update.boxmc(self.mc,betaP=P,seed=123)
         if do_lengths:
             boxmc.length(delta=(0.1,0.1,0.1),weight=1)
-            tunables = ['dLx', 'dLy', 'dLz']
+            tunables.append('dLx')
+            tunables.append('dLy')
+            tunables.append('dLz')
         if do_volume:
             boxmc.volume(delta=1,weight=1)
-            tunables = ['dV']
+            tunables.append('dV')
         if do_shear:
             boxmc.shear(delta=(0.01,0.01,0.01),weight=1)
-            tunables = ['dxy','dxz','dyz']
+            tunables.append('dxy')
+            tunables.append('dxz')
+            tunables.append('dyz')
 
         npt_tune = hpmc.util.tune_npt(boxmc, tunables = tunables, target = 0.3, gamma=1)
 
-        for i in range(10):
+        for i in range(20):
             run(1e3)
             mc_tune.update()
             npt_tune.update()
@@ -72,7 +77,7 @@ class sphereEOS_test(unittest.TestCase):
         def log_callback(timestep):
             phi_p_measure.append(self.log.query('phi_p'))
 
-        run(1e6,callback=log_callback, callback_period=100)
+        run(1e4,callback=log_callback, callback_period=100)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(phi_p_measure)
