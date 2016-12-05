@@ -467,13 +467,8 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
     unsigned int overlap_checks = 0;
 
-    // number of overlapping depletants
-    unsigned int n_overlap = 0;
-
     // number of depletants inserted
     unsigned int n_inserted = 0;
-
-    unsigned int n_free_volume = 0;
 
     Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
 
@@ -511,11 +506,50 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                 shape_test.orientation = generateRandomOrientation(rng);
                 }
 
-            // check if depletant overlaps with the old configuration
+            vec3<Scalar> r_ij;
+
+            bool overlap_new = false;
+                {
+                // check depletant overlap with shape at new position
+                r_ij = pos_i - pos_test;
+
+                // test circumsphere overlap
+                OverlapReal rsq = dot(r_ij,r_ij);
+                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
+                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
+                    && circumsphere_overlap
+                    && test_overlap(r_ij, shape_test, shape_i, err_count))
+                    {
+                    overlap_new = true;
+                    }
+                }
+
+            bool overlap_old = false;
+                {
+                // check depletant overlap with shape at old position
+                r_ij = vec3<Scalar>(d_postype[idx_i]) - pos_test;
+                Shape shape_i_old(quat<Scalar>(d_orientation[idx_i]), d_params[type_i]);
+
+                // test circumsphere overlap
+                OverlapReal rsq = dot(r_ij,r_ij);
+                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i_old.getCircumsphereDiameter();
+                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
+                    && circumsphere_overlap
+                    && test_overlap(r_ij, shape_test, shape_i_old, err_count))
+                    {
+                    overlap_old = true;
+                    }
+                }
+
+            if (! overlap_old || overlap_new) continue;
+
+            // check if depletant is in overlap volume both in the old and new configuration
             unsigned int excell_size = d_excell_size[my_cell];
             overlap_checks += excell_size;
-
-            vec3<Scalar> r_ij;
 
             for (unsigned int k = 0; k < excell_size; k += group_size)
                 {
@@ -532,6 +566,8 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                         #else
                         j = d_excell_idx[excli(local_k, my_cell)];
                         #endif
+
+                        if (j == idx_i) continue;
 
                         // check against neighbor
                         postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, j);
@@ -589,22 +625,10 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
             {
             overlap_checks++;
 
-            if (!overlap)
+            // increase overlap count
+            if (master && overlap)
                 {
-                // depletant not overlapping in old configuration
-                n_free_volume++;
-
-                vec3<Scalar> r_ij = pos_i - pos_test;
-                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
-                    && test_overlap(r_ij, shape_test, shape_i, err_count))
-                    {
-                    // increase overlap count
-                    if (master)
-                        {
-                        atomicAdd((unsigned int *)&d_overlap_cell[active_cell_idx], 1);
-                        n_overlap++;
-                        }
-                    }
+                atomicAdd((unsigned int *)&d_overlap_cell[active_cell_idx], 1);
                 }
             }
         } // end loop over depletants
