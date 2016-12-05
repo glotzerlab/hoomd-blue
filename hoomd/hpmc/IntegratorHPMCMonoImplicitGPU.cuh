@@ -218,19 +218,6 @@ scalar4_tex_t implicit_orientation_old_tex;
 //! Texture for reading cell index data
 texture<unsigned int, 1, cudaReadModeElementType> implicit_cell_idx_tex;
 
-#if (__CUDA_ARCH__ >= 300)
-//! CTA allreduce
-__device__ inline int warp_reduce(int val, int width)
-    {
-    #pragma unroll
-    for (int i = width/2; i > 0; i >>= 1)
-        {
-        val += __shfl_xor(val,i);
-        }
-    return val;
-    }
-#endif
-
 //! HPMC implicit count overlaps kernel
 /*! \param d_postype Particle positions and types by index
     \param d_orientation Particle orientation
@@ -617,11 +604,6 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
                 } // end loop over neighbors
 
             }
-
-        #if (__CUDA_ARCH__ >= 300)
-        // reduce over all threads in the CTA
-        overlap = warp_reduce(overlap, group_size);
-        #endif
 
         if (i_dep_local < n_depletants)
             {
