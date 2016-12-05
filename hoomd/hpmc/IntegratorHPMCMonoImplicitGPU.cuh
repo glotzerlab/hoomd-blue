@@ -607,10 +607,8 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
         if (i_dep_local < n_depletants)
             {
-            overlap_checks++;
-
             // increase overlap count
-            if (master && overlap)
+            if (overlap)
                 {
                 atomicAdd((unsigned int *)&d_overlap_cell[active_cell_idx], 1);
                 break;
