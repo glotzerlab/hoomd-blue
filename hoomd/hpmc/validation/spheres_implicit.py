@@ -94,25 +94,21 @@ eta_p_ref[(0.3,1.8)] = (0.0283405,0.000133873)
 eta_p_ref[(0.3,2.)] = (0.0387704,0.000167702)
 
 # number of spheres
-N = 128
+n = 5
+N = n**3
 d_sphere = 1.0
 V_sphere = math.pi/6.0*math.pow(d_sphere,3.0)
 
 # depletant-colloid size ratio
 q=1.0
 
-# initial volume fraction
-phi_c_ini = 0.01
-
-L_ini= math.pow(N*V_sphere/phi_c_ini,1.0/3.0)
 L_target= math.pow(N*V_sphere/phi_c,1.0/3.0)
-
 
 class implicit_test (unittest.TestCase):
     def setUp(self):
         # initialize random configuration
-        from hoomd import deprecated
-        self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=1.0)
+        a = L_target/n
+        self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
         self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
         self.mc.set_params(d=0.1,a=0.1)
@@ -131,31 +127,8 @@ class implicit_test (unittest.TestCase):
 
         self.mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4*d_sphere,0.5],gamma=1,target=0.3)
 
-        # run for a bit to randomize
-        run(1000);
-
-        # shrink the box to the target size (if needed)
-        scale = 0.99;
-        L = L_ini;
-        while L_target < L:
-            # shrink the box
-            L = max(L*scale, L_target);
-
-            update.box_resize(Lx=L, Ly=L, Lz=L, period=None);
-            overlaps = self.mc.count_overlaps();
-            context.msg.notice(1,"phi =%f: overlaps = %d " % (((N*V_sphere) / (L*L*L)), overlaps));
-
-            # run until all overlaps are removed
-            while overlaps > 0:
-                self.mc_tune.update()
-                run(100, quiet=True);
-                overlaps = self.mc.count_overlaps();
-                context.msg.notice(1,"%d\n" % overlaps)
-
-            context.msg.notice(1,"\n");
-
-        # set the target L (this expands to the final L if it is larger than the start)
-        update.box_resize(Lx=L_target, Ly=L_target, Lz=L_target, period=None);
+        # warm up
+        run(2000);
 
     def test_measure_etap(self):
         # set depletant fugacity
@@ -167,9 +140,12 @@ class implicit_test (unittest.TestCase):
 
         eta_p_measure = []
         def log_callback(timestep):
-            eta_p_measure.append(math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity'))
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            eta_p_measure.append(v)
+            if comm.get_rank() == 0:
+                print('eta_p =', v);
 
-        run(1e6,callback=log_callback,callback_period=1000)
+        run(1e5,callback=log_callback,callback_period=100)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(eta_p_measure)
@@ -183,6 +159,10 @@ class implicit_test (unittest.TestCase):
             print('Hierarchical error analysis:')
             for (i, num_samples, e, ee) in zip(n, num, err, err_err):
                 print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
+
+        if comm.get_rank() == 0:
+            print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
+            print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 
         # max error 0.5%
         self.assertLessEqual(eta_p_err/eta_p_avg,0.005)
