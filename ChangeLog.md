@@ -11,6 +11,7 @@ Not yet released
 * (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
 * (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 
 * Other changes *
 
