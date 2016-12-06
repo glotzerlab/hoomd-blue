@@ -2,40 +2,20 @@
 
 [TOC]
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> triangulated_polyhedron
 ## v2.2.0
-
-Not yet released
-
-=======
-<<<<<<< HEAD
-## v2.2.0
-
->>>>>>> hpmc_deep_copy
 *New features*
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
+* (HPMC) Improved acceptance rate with implicit depletants
 
 Deprecated*
 
 * HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
 
-*Bug fixes*
-
-* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
-* Implicit depletants with spheres and faceted spheres gave wrong results
-* Implicit depletants with ntrial > 0 gave wrong results
-
-* fix alignment error when running implicit depletants on GPU with ntrial > 0
-
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-* Drop support for compute 2.0 GPU devices
-* Faster simulations with implicit depletants on CPU
-* Drop support for compute 2.0 GPU devices
+
+*Bug fixes*
+* fix alignment error when running implicit depletants on GPU with ntrial > 0
 
 ## v2.1.2
 
@@ -43,9 +23,15 @@ Not yet released
 
 *Bug fixes*
 
-* Implicit depletants with spheres and faceted spheres gave wrong results
-* Implicit depletants with ntrial > 0 gave wrong results
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+
+*Other changes*
+
+* Support cusolver with CUDA 8.0
+* Drop support for compute 2.0 GPU devices
 
 ## v2.1.1
 
