@@ -134,8 +134,15 @@ class ManagedArray
          */
         HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
             {
-            if (ptr + sizeof(T)*N >= ptr_max)
+            // align to size of data type
+            char *ptr_align = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~((unsigned long int) sizeof(T) - 1));
+
+            // can we fit the data into shared memory?
+            if (ptr_align + sizeof(T)*N >= ptr_max)
                 return;
+
+            // use aligned address
+            ptr = ptr_align;
 
             #if defined (__CUDA_ARCH__)
             if (load)

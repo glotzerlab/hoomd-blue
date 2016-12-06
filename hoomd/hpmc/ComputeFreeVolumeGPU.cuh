@@ -469,7 +469,7 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         }
 
     // determine dynamically requested shared memory
-    char *ptr_begin = nullptr;
+    char *ptr_begin = (char *)nullptr + shared_bytes + attr.sharedSizeBytes; // start after statically & dynamically allocated shared memory
     char *ptr =  ptr_begin;
     for (unsigned int i = 0; i < args.num_types; ++i)
         {
