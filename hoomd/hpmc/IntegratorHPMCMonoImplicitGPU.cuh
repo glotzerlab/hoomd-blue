@@ -744,8 +744,6 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
         s_overlap_checks = 0;
         s_overlap_err_count = 0;
         s_n_inserted = 0;
-        s_queue_size = 0;
-        s_still_searching = 1;
         s_reject = 0;
         }
 
@@ -855,7 +853,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                     }
                 }
 
-            if (overlap_new) continue;
+            if (overlap_new) active = false;
 
             overlap_checks++;
             bool overlap_old = false;
@@ -884,7 +882,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                     }
                 }
 
-            if (! overlap_old) continue;
+            if (! overlap_old) active = false;
 
             // stash the trial move in shared memory so that other threads in this block can process overlap checks
             if (master)
@@ -892,6 +890,12 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                 s_pos_group[group] = make_scalar3(pos_test.x, pos_test.y, pos_test.z);
                 s_orientation_group[group] = quat_to_scalar4(shape_test.orientation);
                 }
+            }
+
+        if (master && group == 0)
+            {
+            s_queue_size = 0;
+            s_still_searching = 1;
             }
 
         // sync so that s_postype_group and s_orientation are available before other threads might process overlap checks
@@ -997,7 +1001,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
             if (master && group == 0)
                 s_still_searching = 0;
 
-            unsigned int tidx_1d = offset + group_size*group;  // z component is for Shape parallelism
+            unsigned int tidx_1d = offset + group_size*group;
 
             // max_queue_size is always <= block size, so we just need an if here
             if (tidx_1d < min(s_queue_size, max_queue_size))
