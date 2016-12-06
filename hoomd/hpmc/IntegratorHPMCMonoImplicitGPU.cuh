@@ -857,6 +857,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
 
             overlap_checks++;
             bool overlap_old = false;
+            if (active)
                 {
                 // check depletant overlap with shape at old position
                 Scalar4 postype_i_old = texFetchScalar4(d_postype_old, implicit_postype_old_tex, i);
@@ -1050,7 +1051,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
         } // end loop over depletants
 
     // update the data if accepted
-    if (master && group == 0)
+    if (master && group == 0 && s_reject)
         {
         // count the overlap checks
         d_overlap_cell[active_cell_idx] = 1;
