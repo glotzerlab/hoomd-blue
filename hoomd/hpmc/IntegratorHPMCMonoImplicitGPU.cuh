@@ -77,8 +77,6 @@ struct hpmc_implicit_args_t
                 const unsigned int *_d_active_cell_ptl_idx,
                 const unsigned int *_d_active_cell_accept,
                 const unsigned int *_d_active_cell_move_type_translate,
-                unsigned int *_d_depletant_active_cell,
-                unsigned int &_n_overlaps,
                 const Scalar *_d_d_min,
                 const Scalar *_d_d_max,
                 bool _update_shape_param,
@@ -125,8 +123,6 @@ struct hpmc_implicit_args_t
                   d_active_cell_ptl_idx(_d_active_cell_ptl_idx),
                   d_active_cell_accept(_d_active_cell_accept),
                   d_active_cell_move_type_translate(_d_active_cell_move_type_translate),
-                  d_depletant_active_cell(_d_depletant_active_cell),
-                  n_overlaps(_n_overlaps),
                   d_d_min(_d_d_min),
                   d_d_max(_d_d_max),
                   update_shape_param(_update_shape_param),
@@ -175,16 +171,11 @@ struct hpmc_implicit_args_t
     const unsigned int *d_active_cell_ptl_idx; //!< Updated particle index per active cell
     const unsigned int *d_active_cell_accept;//!< =1 if active cell move has been accepted, =0 otherwise
     const unsigned int *d_active_cell_move_type_translate;//!< =1 if active cell move was a translation, =0 if rotation
-    unsigned int *d_depletant_active_cell; //!< Lookup of active-cell idx per depletant
-    unsigned int &n_overlaps;          //!< Total number of inserted overlapping depletants
     const Scalar *d_d_min;             //!< Minimum insertion diameter for depletants (per type)
     const Scalar *d_d_max;             //!< Maximum insertion diameter for depletants (per type)
     bool update_shape_param;           //!< True if this is the first iteration
     cudaStream_t stream;               //!< CUDA stream for kernel execution
     };
-
-template< class Shape >
-void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t &args, const typename Shape::param_type *d_params);
 
 template< class Shape >
 cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t &args, const typename Shape::param_type *d_params);
@@ -205,418 +196,6 @@ scalar4_tex_t implicit_orientation_tex;
 scalar4_tex_t implicit_postype_old_tex;
 //! Texture for reading orientation
 scalar4_tex_t implicit_orientation_old_tex;
-
-//! HPMC implicit count overlaps kernel
-/*! \param d_postype Particle positions and types by index
-    \param d_orientation Particle orientation
-    \param d_counters Acceptance counters to increment
-    \param d_cell_idx Particle index stored in the cell list
-    \param d_cell_size The size of each cell
-    \param d_excell_idx Indices of particles in extended cells
-    \param d_excell_size Number of particles in each extended cell
-    \param ci Cell indexer
-    \param cli Cell list indexer
-    \param excli Extended cell list indexer
-    \param cell_dim Dimensions of the cell list
-    \param ghost_width Width of the ghost layer
-    \param d_cell_set List of active cells
-    \param n_active_cells Number of active cells
-    \param N number of particles
-    \param num_types Number of particle types
-    \param seed User chosen random number seed
-    \param d_check_overlaps Interaction matrix
-    \param overlap_idx Indexer for interactinon matrix
-    \param timestep Current timestep of the simulation
-    \param dim Dimension of the simulation box
-    \param box Simulation box
-    \param select Current index within the loop over nselect selections (for RNG generation)
-    \param d_params Per-type shape parameters
-
-    \ingroup hpmc_kernels
-*/
-template< class Shape >
-__global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
-                                     Scalar4 *d_orientation,
-                                     const Scalar4 *d_postype_old,
-                                     const Scalar4 *d_orientation_old,
-                                     const unsigned int *d_cell_idx,
-                                     const unsigned int *d_cell_size,
-                                     const unsigned int *d_excell_idx,
-                                     const unsigned int *d_excell_size,
-                                     const Index3D ci,
-                                     const Index2D cli,
-                                     const Index2D excli,
-                                     const uint3 cell_dim,
-                                     const Scalar3 ghost_width,
-                                     const unsigned int *d_cell_set,
-                                     const unsigned int n_active_cells,
-                                     const unsigned int N,
-                                     const unsigned int num_types,
-                                     const unsigned int seed,
-                                     const unsigned int *d_check_overlaps,
-                                     const Index2D overlap_idx,
-                                     const unsigned int timestep,
-                                     const unsigned int dim,
-                                     const BoxDim box,
-                                     const unsigned int select,
-                                     curandState_t *d_state_cell,
-                                     curandState_t *d_state_cell_new,
-                                     const curandDiscreteDistribution_t *d_poisson,
-                                     unsigned int depletant_type,
-                                     unsigned int *d_overlap_cell,
-                                     const unsigned int *d_active_cell_ptl_idx,
-                                     const unsigned int *d_active_cell_accept,
-                                     hpmc_counters_t *d_counters,
-                                     hpmc_implicit_counters_t *d_implicit_counters,
-                                     const unsigned int groups_per_cell,
-                                     const Scalar *d_d_min,
-                                     const Scalar *d_d_max,
-                                     const typename Shape::param_type *d_params,
-                                     unsigned int max_extra_bytes)
-    {
-    // flags to tell what type of thread we are
-    unsigned int group;
-    unsigned int offset;
-    unsigned int group_size;
-    bool master;
-    unsigned int n_groups;
-
-    if (Shape::isParallel())
-        {
-        // use 3d thread block layout
-        group = threadIdx.z;
-        offset = threadIdx.y;
-        group_size = blockDim.y;
-        master = (offset == 0 && threadIdx.x == 0);
-        n_groups = blockDim.z;
-        }
-    else
-        {
-        group = threadIdx.y;
-        offset = threadIdx.x;
-        group_size = blockDim.x;
-        master = (offset == 0);
-        n_groups = blockDim.y;
-        }
-
-    unsigned int err_count = 0;
-
-    // load the per type pair parameters into shared memory
-    extern __shared__ char s_data[];
-    typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
-    unsigned int *s_check_overlaps = (unsigned int *)(s_params + num_types);
-
-    // copy over parameters one int per thread for fast loads
-        {
-        unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
-        unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
-        unsigned int param_size = num_types*sizeof(typename Shape::param_type) / sizeof(int);
-
-        for (unsigned int cur_offset = 0; cur_offset < param_size; cur_offset += block_size)
-            {
-            if (cur_offset + tidx < param_size)
-                {
-                ((int *)s_params)[cur_offset + tidx] = ((int *)d_params)[cur_offset + tidx];
-                }
-            }
-
-        unsigned int ntyppairs = overlap_idx.getNumElements();
-        for (unsigned int cur_offset = 0; cur_offset < ntyppairs; cur_offset += block_size)
-            {
-            if (cur_offset + tidx < ntyppairs)
-                {
-                s_check_overlaps[cur_offset + tidx] = d_check_overlaps[cur_offset + tidx];
-                }
-            }
-        }
-
-    __syncthreads();
-
-    // initialize extra shared mem
-    char *s_extra = (char *)(s_check_overlaps + overlap_idx.getNumElements());
-    char *s_extra_begin = s_extra;
-
-    for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
-
-    __syncthreads();
-
-    // determine global CTA index
-    unsigned int group_global = 0;
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        group_global = (blockIdx.x + blockIdx.y * 65535) * n_groups + group;
-        }
-    else
-        {
-        group_global = blockIdx.x * n_groups + group;
-        }
-
-    // active cell corresponding to this group
-    unsigned int active_cell_idx = group_global / groups_per_cell;
-
-    bool active = true;
-
-    // this thread is inactive if it indexes past the end of the active cell list
-    if (active_cell_idx >= n_active_cells)
-        {
-        active = false;
-        }
-
-    // pull in the index of our cell
-    unsigned int my_cell = 0;
-    unsigned int my_cell_size = 0;
-
-    if (active)
-        {
-        my_cell = d_cell_set[active_cell_idx];
-        my_cell_size = d_cell_size[my_cell];
-
-        // ignore if there are no particles in this cell
-        if (my_cell_size == 0)
-            active = false;
-        }
-
-    // load updated particle index
-    unsigned int idx_i;
-
-    if (active)
-        {
-        idx_i = d_active_cell_ptl_idx[active_cell_idx];
-
-        // if the move was not performed or has been rejected before, nothing to do here
-        if (idx_i == UINT_MAX || !d_active_cell_accept[active_cell_idx])
-            {
-            active = false;
-            }
-        }
-
-    Scalar4 postype_i;
-    unsigned int type_i;
-    vec3<Scalar> pos_i;
-    Scalar4 orientation_i = make_scalar4(1,0,0,0);
-
-    if (active)
-        {
-        // load updated particle position
-        postype_i = texFetchScalar4(d_postype, implicit_postype_tex, idx_i);
-        type_i = __scalar_as_int(postype_i.w);
-        pos_i = vec3<Scalar>(postype_i);
-        }
-
-    // load RNG state per cell
-    curandState_t local_state;
-
-    if (active_cell_idx < n_active_cells)
-        {
-        local_state = d_state_cell[active_cell_idx];
-        }
-
-    unsigned int n_depletants;
-    if (active)
-        {
-        // for every active cell, draw a poisson random number
-        n_depletants = curand_discrete(&local_state, d_poisson[type_i]);
-        }
-
-    // save RNG state per cell
-    if (active_cell_idx < n_active_cells && master && (group_global % groups_per_cell == 0))
-        {
-        d_state_cell_new[active_cell_idx] = local_state;
-        }
-
-    // we no longer need to do any processing for inactive cells after this point
-    if (!active)
-        return;
-
-    Shape shape_i(quat<Scalar>(orientation_i), s_params[__scalar_as_int(postype_i.w)]);
-    if (shape_i.hasOrientation())
-        {
-        orientation_i = texFetchScalar4(d_orientation, implicit_orientation_tex, idx_i);
-        shape_i.orientation = quat<Scalar>(orientation_i);
-        }
-
-
-    SaruGPU rng(group_global, seed+select, timestep);
-
-    unsigned int overlap_checks = 0;
-
-    // number of depletants inserted
-    unsigned int n_inserted = 0;
-
-    Shape shape_test(quat<Scalar>(), s_params[depletant_type]);
-
-    Scalar d_min = d_d_min[type_i];
-    Scalar d_max = d_d_max[type_i];
-
-    // iterate over depletants
-    for (unsigned int i_dep = 0; i_dep < n_depletants; i_dep += groups_per_cell)
-        {
-        unsigned int i_dep_local = i_dep + group_global % groups_per_cell;
-
-        unsigned int overlap = 0;
-
-        vec3<Scalar> pos_test;
-
-        if (i_dep_local < n_depletants)
-            {
-            n_inserted++;
-            // draw a random vector in the excluded volume sphere of the large particle
-            Scalar theta = Scalar(2.0*M_PI)*rng.template s<Scalar>();
-            Scalar z = Scalar(2.0)*rng.template s<Scalar>()-Scalar(1.0);
-
-            // random normalized vector
-            vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
-
-            // draw random radial coordinate in test sphere
-            Scalar r3 = rng.template s<Scalar>(fast::pow(d_min/d_max,Scalar(3.0)),Scalar(1.0));
-            Scalar r = Scalar(0.5)*d_max*fast::pow(r3,Scalar(1.0/3.0));
-
-            // test depletant position
-            pos_test = pos_i+r*n;
-
-            if (shape_test.hasOrientation())
-                {
-                shape_test.orientation = generateRandomOrientation(rng);
-                }
-
-            vec3<Scalar> r_ij;
-
-            overlap_checks++;
-            bool overlap_new = false;
-                {
-                // check depletant overlap with shape at new position
-                r_ij = pos_i - pos_test;
-
-                // test circumsphere overlap
-                OverlapReal rsq = dot(r_ij,r_ij);
-                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
-                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
-                    && circumsphere_overlap
-                    && test_overlap(r_ij, shape_test, shape_i, err_count))
-                    {
-                    overlap_new = true;
-                    }
-                }
-
-            overlap_checks++;
-            bool overlap_old = false;
-                {
-                // check depletant overlap with shape at old position
-                r_ij = vec3<Scalar>(d_postype[idx_i]) - pos_test;
-                Shape shape_i_old(quat<Scalar>(d_orientation[idx_i]), d_params[type_i]);
-
-                // test circumsphere overlap
-                OverlapReal rsq = dot(r_ij,r_ij);
-                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i_old.getCircumsphereDiameter();
-                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                if (s_check_overlaps[overlap_idx(type_i, depletant_type)]
-                    && circumsphere_overlap
-                    && test_overlap(r_ij, shape_test, shape_i_old, err_count))
-                    {
-                    overlap_old = true;
-                    }
-                }
-
-            if (! overlap_old || overlap_new) continue;
-
-            // check if depletant is in overlap volume both in the old and new configuration
-            unsigned int excell_size = d_excell_size[my_cell];
-            overlap_checks += excell_size;
-
-            for (unsigned int k = 0; k < excell_size; k += group_size)
-                {
-                unsigned int local_k = k + offset;
-                if (local_k < excell_size)
-                    {
-                    bool circumsphere_overlap = false;
-                    unsigned int j;
-                    Scalar4 postype_j;
-                    do {
-                        // read in position, and orientation of neighboring particle
-                        #if (__CUDA_ARCH__ > 300)
-                        j = __ldg(&d_excell_idx[excli(local_k, my_cell)]);
-                        #else
-                        j = d_excell_idx[excli(local_k, my_cell)];
-                        #endif
-
-                        if (j == idx_i) continue;
-
-                        // check against neighbor
-                        postype_j = texFetchScalar4(d_postype_old, implicit_postype_old_tex, j);
-                        Shape shape_j(quat<Scalar>(), s_params[__scalar_as_int(postype_j.w)]);
-                        if (shape_j.hasOrientation())
-                            {
-                            shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, j));
-                            }
-
-                        // test depletant in sphere around new particle position
-                        r_ij = vec3<Scalar>(postype_j) - pos_test;
-                        r_ij = vec3<Scalar>(box.minImage(vec_to_scalar3(r_ij)));
-
-                        // test circumsphere overlap
-                        OverlapReal rsq = dot(r_ij,r_ij);
-                        OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                        circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                        if (!circumsphere_overlap)
-                            {
-                            // fetch next element
-                            local_k += group_size;
-                            k += group_size;
-                            }
-                        } while(!circumsphere_overlap && (local_k < excell_size));
-
-                    if (circumsphere_overlap)
-                        {
-                        unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_j(quat<Scalar>(), s_params[typ_j]);
-                        if (shape_j.hasOrientation())
-                            {
-                            shape_j.orientation = quat<Scalar>(texFetchScalar4(d_orientation_old, implicit_orientation_old_tex, j));
-                            }
-
-                        if (s_check_overlaps[overlap_idx(depletant_type, typ_j)]
-                            && test_overlap(r_ij, shape_test, shape_j, err_count))
-                            {
-                            overlap = 1;
-                            break;
-                            }
-                        }
-                    }
-
-                } // end loop over neighbors
-
-            }
-
-        if (i_dep_local < n_depletants)
-            {
-            // increase overlap count
-            if (overlap)
-                {
-                atomicAdd((unsigned int *)&d_overlap_cell[active_cell_idx], 1);
-                break;
-                }
-            }
-        } // end loop over depletants
-
-    if (master)
-        {
-        // increment number of overlap checks
-        atomicAdd(&d_counters->overlap_checks, overlap_checks);
-
-        // increment number of overlap check errors
-        atomicAdd(&d_counters->overlap_err_count, err_count);
-
-        // increment number of inserted depletants
-        atomicAdd(&d_implicit_counters->insert_count, n_inserted);
-        }
-    }
-
 
 template< class Shape >
 __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
@@ -769,8 +348,6 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
     // load updated particle position
     Scalar4 postype_i = texFetchScalar4(d_postype, implicit_postype_tex, i);
     unsigned int type_i = __scalar_as_int(postype_i.w);
-    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-    Scalar4 orientation_i = make_scalar4(1,0,0,0);
 
     // load RNG state per cell
     curandState_t local_state = d_state_cell[active_cell_idx];
@@ -828,6 +405,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
             overlap_checks++;
             bool overlap_new = false;
                 {
+                Scalar4 orientation_i = make_scalar4(1,0,0,0);
                 Shape shape_i(quat<Scalar>(orientation_i), s_params[type_i]);
                 if (shape_i.hasOrientation())
                     {
@@ -836,7 +414,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                     }
 
                 // check depletant overlap with shape at new position
-                vec3<Scalar> r_ij = pos_i - pos_test;
+                vec3<Scalar> r_ij = vec3<Scalar>(postype_i) - pos_test;
 
                 // test circumsphere overlap
                 OverlapReal rsq = dot(r_ij,r_ij);
@@ -1089,189 +667,6 @@ __global__ void gpu_curand_implicit_setup(unsigned int n_rng,
  * Definition of templated GPU kernel drivers
  */
 
-// Kernel driver for gpu_hpmc_implicit_count_overlaps_kernel()
-/*! \param args Bundled arguments
-    \param d_params Per-type shape parameters
-    \returns Error codes generated by any CUDA calls, or cudaSuccess when there is no error
-
-    This templatized method is the kernel driver for HPMC update of any shape. It is instantiated for every shape at the
-    bottom of this file.
-
-    \ingroup hpmc_kernels
-*/
-template< class Shape >
-void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const typename Shape::param_type *d_params)
-    {
-    assert(args.d_postype);
-    assert(args.d_orientation);
-    assert(args.d_cell_idx);
-    assert(args.d_cell_size);
-    assert(args.d_excell_idx);
-    assert(args.d_excell_size);
-    assert(args.d_cell_set);
-    assert(args.group_size >= 1);
-    assert(args.group_size <= 32);  // note, really should be warp size of the device
-    assert(args.block_size%(args.stride*args.group_size)==0);
-
-    // determine the maximum block size and clamp the input block size down
-    static int max_block_size = -1;
-    static int sm = -1;
-    static cudaFuncAttributes attr;
-    if (max_block_size == -1)
-        {
-        cudaFuncGetAttributes(&attr, gpu_hpmc_implicit_count_overlaps_kernel<Shape>);
-        max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
-        }
-
-    // setup the grid to run the kernel
-    unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
-    unsigned int stride = min(block_size, args.stride);
-    unsigned int group_size = args.group_size;
-
-    while (stride*group_size > block_size)
-         {
-         group_size /= 2; // use power-of-two block size because of warp shuffle
-         }
-
-    unsigned int n_groups = block_size/ (group_size * stride);
-
-    static unsigned int n_active_cells = UINT_MAX;
-
-    if (n_active_cells != args.n_active_cells)
-        {
-        // (re-) initialize cuRAND
-        unsigned int block_size = 512;
-        gpu_curand_implicit_setup<<<args.n_active_cells/block_size + 1,block_size, 0, args.stream>>>
-                                         (args.n_active_cells,
-                                          args.seed,
-                                          args.timestep,
-                                          args.d_state_cell);
-        n_active_cells = args.n_active_cells;
-        }
-
-    // bind the textures
-    implicit_postype_tex.normalized = false;
-    implicit_postype_tex.filterMode = cudaFilterModePoint;
-    cudaError_t error = cudaBindTexture(0, implicit_postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return;
-
-    implicit_postype_old_tex.normalized = false;
-    implicit_postype_old_tex.filterMode = cudaFilterModePoint;
-    error = cudaBindTexture(0, implicit_postype_old_tex, args.d_postype_old, sizeof(Scalar4)*args.max_n);
-    if (error != cudaSuccess)
-        return;
-
-    if (args.has_orientation)
-        {
-        implicit_orientation_tex.normalized = false;
-        implicit_orientation_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, implicit_orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
-        if (error != cudaSuccess)
-            return;
-
-        implicit_orientation_old_tex.normalized = false;
-        implicit_orientation_old_tex.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, implicit_orientation_old_tex, args.d_orientation_old, sizeof(Scalar4)*args.max_n);
-        if (error != cudaSuccess)
-            return;
-        }
-
-    unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type))
-        + args.overlap_idx.getNumElements() * sizeof(unsigned int);
-
-    static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes;
-    if (shared_bytes_changed != base_shared_bytes)
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
-
-    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
-
-    static unsigned int extra_bytes = UINT_MAX;
-    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
-        {
-        // required for memory coherency
-        cudaDeviceSynchronize();
-
-        // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
-        char *ptr =  ptr_begin;
-        for (unsigned int i = 0; i < args.num_types; ++i)
-            {
-            d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
-            }
-        extra_bytes = ptr - ptr_begin;
-        }
-
-    shared_bytes += extra_bytes;
-
-    dim3 threads;
-    if (Shape::isParallel())
-        {
-        // use three-dimensional thread-layout with blockDim.z < 64
-        threads = dim3(stride, group_size, n_groups);
-        }
-    else
-        {
-        threads = dim3(group_size, n_groups, 1);
-        }
-    dim3 grid((args.n_active_cells*args.groups_per_cell)/n_groups+1, 1, 1);
-
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
-
-    // reset counters
-    cudaMemsetAsync(args.d_overlap_cell,0, sizeof(unsigned int)*args.n_active_cells, args.stream);
-
-    // check for newly generated overlaps with depletants
-    gpu_hpmc_implicit_count_overlaps_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
-                                                                 args.d_orientation,
-                                                                 args.d_postype_old,
-                                                                 args.d_orientation_old,
-                                                                 args.d_cell_idx,
-                                                                 args.d_cell_size,
-                                                                 args.d_excell_idx,
-                                                                 args.d_excell_size,
-                                                                 args.ci,
-                                                                 args.cli,
-                                                                 args.excli,
-                                                                 args.cell_dim,
-                                                                 args.ghost_width,
-                                                                 args.d_cell_set,
-                                                                 args.n_active_cells,
-                                                                 args.N,
-                                                                 args.num_types,
-                                                                 args.seed,
-                                                                 args.d_check_overlaps,
-                                                                 args.overlap_idx,
-                                                                 args.timestep,
-                                                                 args.dim,
-                                                                 args.box,
-                                                                 args.select,
-                                                                 args.d_state_cell,
-                                                                 args.d_state_cell_new,
-                                                                 args.d_poisson,
-                                                                 args.depletant_type,
-                                                                 args.d_overlap_cell,
-                                                                 args.d_active_cell_ptl_idx,
-                                                                 args.d_active_cell_accept,
-                                                                 args.d_counters,
-                                                                 args.d_implicit_count,
-                                                                 args.groups_per_cell,
-                                                                 args.d_d_min,
-                                                                 args.d_d_max,
-                                                                 d_params,
-                                                                 max_extra_bytes);
-
-    // advance per-cell RNG states
-    cudaMemcpyAsync(args.d_state_cell, args.d_state_cell_new, sizeof(curandState_t)*args.n_active_cells, cudaMemcpyDeviceToDevice, args.stream);
-    }
-
 //! Kernel driver for gpu_update_hpmc_kernel()
 /*! \param args Bundled arguments
     \param d_params Per-type shape parameters
@@ -1481,6 +876,8 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
                                                                  args.d_poisson,
                                                                  args.d_d_min,
                                                                  args.d_d_max);
+    // advance per-cell RNG states
+    cudaMemcpyAsync(args.d_state_cell, args.d_state_cell_new, sizeof(curandState_t)*args.n_active_cells, cudaMemcpyDeviceToDevice, args.stream);
 
     return cudaSuccess;
     }

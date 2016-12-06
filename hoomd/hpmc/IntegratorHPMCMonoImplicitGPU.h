@@ -104,8 +104,6 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUArray<unsigned int> m_active_cell_accept;   //!< List of accept/reject flags per active cell
         GPUArray<unsigned int> m_active_cell_move_type_translate;   //!< Type of move proposed in active cell
 
-        GPUVector<unsigned int> m_depletant_active_cell;            //!< Lookup of active cell idx per overlapping depletant
-
         cudaStream_t m_stream;                                  //! GPU kernel stream
 
         //! Take one timestep forward
@@ -162,9 +160,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
 
     GPUVector<Scalar4> old_orientation(this->m_exec_conf);
     m_old_orientation.swap(old_orientation);
-
-    GPUVector<unsigned int> depletant_active_cell(this->m_exec_conf);
-    m_depletant_active_cell.swap(depletant_active_cell);
 
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
@@ -516,9 +511,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                     // Poisson distribution
                     ArrayHandle<curandDiscreteDistribution_t> d_poisson_dist(m_poisson_dist, access_location::device, access_mode::read);
 
-                    // total number of inserted depletants that overlap
-                    unsigned int n_overlaps = 0;
-
                         {
                         // counters
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
@@ -575,8 +567,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_active_cell_ptl_idx.data,
                                 d_active_cell_accept.data,
                                 d_active_cell_move_type_translate.data,
-                                0,
-                                n_overlaps,
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
@@ -592,7 +582,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         {
                         // counters
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
-                        ArrayHandle<unsigned int> d_depletant_active_cell(m_depletant_active_cell, access_location::device, access_mode::overwrite);
 
                         // apply acceptance/rejection criterium
                         detail::gpu_hpmc_implicit_accept_reject<Shape>(
@@ -637,8 +626,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_active_cell_ptl_idx.data,
                                 d_active_cell_accept.data,
                                 d_active_cell_move_type_translate.data,
-                                d_depletant_active_cell.data,
-                                n_overlaps,
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
