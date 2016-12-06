@@ -2,11 +2,16 @@
 
 [TOC]
 
-## v2.2.2
+*Bug fixes*
+
+## v2.1.2
+
+Not yet released
 
 *Bug fixes*
 
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+ * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+ * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 
 ## v2.1.1
 
