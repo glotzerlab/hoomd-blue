@@ -766,7 +766,6 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
     // if the move was not performed or has been rejected before, nothing to do here
     if (i == UINT_MAX || !d_active_cell_accept[active_cell_idx]) return;
 
-
     // load updated particle position
     Scalar4 postype_i = texFetchScalar4(d_postype, implicit_postype_tex, i);
     unsigned int type_i = __scalar_as_int(postype_i.w);
@@ -801,8 +800,6 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
         {
         unsigned int i_dep_local = i_dep + group;
 
-        vec3<Scalar> pos_test;
-
         bool active = i_dep_local < n_depletants;
 
         if (active)
@@ -819,8 +816,9 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
             Scalar r3 = rng.template s<Scalar>(fast::pow(d_min/d_max,Scalar(3.0)),Scalar(1.0));
             Scalar r = Scalar(0.5)*d_max*fast::pow(r3,Scalar(1.0/3.0));
 
-            // test depletant position
-            pos_test = pos_i+r*n;
+            // test depletant position around old configuration
+            Scalar4 postype_i_old = texFetchScalar4(d_postype_old, implicit_postype_old_tex, i);
+            vec3<Scalar> pos_test = vec3<Scalar>(postype_i_old)+r*n;
 
             if (shape_test.hasOrientation())
                 {
@@ -860,7 +858,6 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
             if (active)
                 {
                 // check depletant overlap with shape at old position
-                Scalar4 postype_i_old = texFetchScalar4(d_postype_old, implicit_postype_old_tex, i);
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_i_old) - pos_test;
                 Scalar4 orientation_i_old = make_scalar4(1,0,0,0);
                 Shape shape_i_old(quat<Scalar>(quat<Scalar>(orientation_i_old)), d_params[type_i]);
