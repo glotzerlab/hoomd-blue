@@ -2,16 +2,15 @@
 
 [TOC]
 
-<<<<<<< HEAD
 ## v2.2
 
 Not yet released
 
 *Bug fixes*
 
-* Implicit depletants with spheres and faceted spheres gave wrong results
-* Implicit depletants with ntrial > 0 gave wrong results
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 
 * Other changes *
 
