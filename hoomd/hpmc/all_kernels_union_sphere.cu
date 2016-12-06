@@ -18,7 +18,7 @@ template cudaError_t gpu_hpmc_free_volume<ShapeUnion<ShapeSphere> >(const hpmc_f
                                                        const typename ShapeUnion<ShapeSphere> ::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeUnion<ShapeSphere> >(const hpmc_args_t& args,
                                                   const typename ShapeUnion<ShapeSphere> ::param_type *d_params);
-template void gpu_hpmc_implicit_count_overlaps<ShapeUnion<ShapeSphere> >(const hpmc_implicit_args_t& args,
+template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeUnion<ShapeSphere> >(const hpmc_implicit_args_t& args,
                                                   const typename ShapeUnion<ShapeSphere> ::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeUnion<ShapeSphere> >(const hpmc_implicit_args_t& args,
                                                   const typename ShapeUnion<ShapeSphere> ::param_type *d_params);
