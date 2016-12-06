@@ -360,6 +360,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
+
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
@@ -808,12 +809,15 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
+    // ensure block_size is a multiple of stride
+    unsigned int stride = args.stride;
+    while (block_size % stride)
+        {
+        stride--;
+        }
+
     // the new block size might not be a multiple of group size, decrease group size until it is
-    group_size = args.group_size;
-
-    unsigned int stride = min(block_size, args.stride);
-
-    while (stride*group_size > block_size)
+    while (block_size % (stride*group_size))
         {
         group_size--;
         }
@@ -837,11 +841,16 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         if (block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
+        // ensure block_size is a multiple of stride
+        stride = args.stride;
+        while (block_size % stride)
+            {
+            stride--;
+            }
+
         // the new block size might not be a multiple of group size, decrease group size until it is
         group_size = args.group_size;
-
-        stride = min(block_size, args.stride);
-        while (stride*group_size > block_size)
+        while (block_size % (stride*group_size))
             {
             group_size--;
             }
@@ -866,7 +875,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         cudaDeviceSynchronize();
 
         // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
+        char *ptr_begin = (char *)nullptr + base_shared_bytes; // start after dynamically allocated shared memory
         char *ptr =  ptr_begin;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
