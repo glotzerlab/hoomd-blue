@@ -2,7 +2,7 @@
 
 [TOC]
 
-## v2.2
+## v2.1.2
 
 Not yet released
 
@@ -15,6 +15,7 @@ Not yet released
 * Other changes *
 
 * Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
 
 ## v2.1.1
 
