@@ -688,8 +688,6 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
     assert(args.d_excell_idx);
     assert(args.d_excell_size);
     assert(args.d_cell_set);
-    assert(args.d_d);
-    assert(args.d_a);
     assert(args.d_check_overlaps);
     assert(args.group_size >= 1);
     assert(args.stride >= 1);
@@ -723,12 +721,17 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
+    // ensure block_size is a multiple of stride
+    unsigned int stride = args.stride;
+    while (block_size % stride)
+        {
+        stride--;
+        }
+
     // the new block size might not be a multiple of group size, decrease group size until it is
     group_size = args.group_size;
 
-    unsigned int stride = min(block_size, args.stride);
-
-    while (stride*group_size > block_size)
+    while (block_size % (stride*group_size))
         {
         group_size--;
         }
@@ -752,11 +755,17 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         if (block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
+        // ensure block_size is a multiple of stride
+        stride = args.stride;
+        while (block_size % stride)
+            {
+            stride--;
+            }
+
         // the new block size might not be a multiple of group size, decrease group size until it is
         group_size = args.group_size;
 
-        stride = min(block_size, args.stride);
-        while (stride*group_size > block_size)
+        while (block_size % (stride*group_size))
             {
             group_size--;
             }
@@ -781,7 +790,7 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         cudaDeviceSynchronize();
 
         // determine dynamically requested shared memory
-        char *ptr_begin = nullptr;
+        char *ptr_begin = (char *)nullptr + base_shared_bytes; // start after dynamically allocated shared memory
         char *ptr =  ptr_begin;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
