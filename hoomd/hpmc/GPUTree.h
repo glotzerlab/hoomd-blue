@@ -439,11 +439,16 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
         cur_node_b = b.getEscapeIndex(cur_node_b);
         }
 
-    // fetch OBBs
-    obb_a = a.getOBB(cur_node_a);
-    obb_a.affineTransform(q, dr);
-
-    obb_b = b.getOBB(cur_node_b);
+    if (cur_node_a < a.getNumNodes())
+        {
+        // fetch OBBs
+        obb_a = a.getOBB(cur_node_a);
+        obb_a.affineTransform(q, dr);
+        }
+    if (cur_node_b < b.getNumNodes())
+        {
+        obb_b = b.getOBB(cur_node_b);
+        }
     return leaf;
     }
 
