@@ -750,17 +750,10 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         if (block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
-        // ensure block_size is a multiple of stride
-        stride = args.stride;
-        while (block_size % stride)
-            {
-            stride--;
-            }
-
-        // the new block size might not be a multiple of group size, decrease group size until it is
         group_size = args.group_size;
 
-        while (block_size % (stride*group_size))
+        stride = min(block_size, args.stride);
+        while (stride*group_size > block_size)
             {
             group_size--;
             }
