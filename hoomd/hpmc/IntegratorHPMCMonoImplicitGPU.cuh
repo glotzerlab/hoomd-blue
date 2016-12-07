@@ -766,7 +766,7 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         }
 
     static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes;
+    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
     base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;

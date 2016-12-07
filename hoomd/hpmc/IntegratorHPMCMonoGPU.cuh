@@ -855,7 +855,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes;
+    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
     base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
