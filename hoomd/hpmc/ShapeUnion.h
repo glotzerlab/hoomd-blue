@@ -305,34 +305,23 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     #else
     // perform a tandem tree traversal
     unsigned long int stack = 0;
-    detail::OBB obb_a,obb_b;
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
-    unsigned int last_node_a = UINT_MAX;
-    unsigned int last_node_b = UINT_MAX;
 
     vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
     quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
         unsigned int query_node_a = cur_node_a;
         unsigned int query_node_b = cur_node_b;
 
-        if (last_node_a != cur_node_a)
-            {
-            // rotate and translate a's obb into b's body frame
-            obb_a = tree_a.getOBB(cur_node_a);
-            obb_a.affineTransform(q, dr_rot);
-            last_node_a = cur_node_a;
-            }
-
-        if (last_node_b != cur_node_b)
-            {
-            obb_b = tree_b.getOBB(cur_node_b);
-            last_node_b = cur_node_b;
-            }
-
-         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b)
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
             && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b)) return true;
         }
     #endif
