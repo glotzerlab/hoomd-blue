@@ -2,7 +2,6 @@
 
 [TOC]
 
-<<<<<<< HEAD
 ## v2.2.0
 
 *New features*
@@ -22,19 +21,21 @@ Deprecated*
 * Optimized performance of HPMC sphere union overlap check
 * Faster simulations with implicit depletants on CPU
 
-## v1.2.2
+## v2.1.2
 
 Not yet released
 
 *Bug fixes*
 
-* Implicit depletants with spheres and faceted spheres gave wrong results
-* Implicit depletants with ntrial > 0 gave wrong results
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 
 * Other changes *
 
 * Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
 
 ## v2.1.1
 

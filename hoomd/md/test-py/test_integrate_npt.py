@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -12,7 +11,7 @@ import os
 class integrate_npt_tests (unittest.TestCase):
     def setUp(self):
         print
-        deprecated.init.create_random(N=1000, phi_p=0.05);
+        init.create_lattice(unitcell=lattice.sc(a=1.0), n=13);
         md.force.constant(fx=0.1, fy=0.1, fz=0.1)
         nl = md.nlist.cell()
         lj = md.pair.lj(r_cut=2.5, nlist = nl)
@@ -24,31 +23,31 @@ class integrate_npt_tests (unittest.TestCase):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5);
-        run(100);
+        run(1);
 
     def test_mtk_cubic(self):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5);
-        run(100);
+        run(1);
 
     def test_mtk_orthorhombic(self):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5, couple="none");
-        run(100);
+        run(1);
 
     def test_mtk_tetragonal(self):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5, couple="xy");
-        run(100);
+        run(1);
 
     def test_mtk_triclinic(self):
         all = group.all();
         md.integrate.mode_standard(dt=0.005);
         md.integrate.npt(all, kT=1.2, tau=0.5, P=1.0, tauP=0.5, couple="none", all=True);
-        run(100);
+        run(1);
 
     # test set_params
     def test_set_params(self):
@@ -60,7 +59,7 @@ class integrate_npt_tests (unittest.TestCase):
         npt.set_params(P=0.5);
         npt.set_params(tauP=0.6);
         npt.set_params(rescale_all=True)
-        run(100);
+        run(1);
 
     # test w/ empty group
     def test_empty(self):
