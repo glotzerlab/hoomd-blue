@@ -235,7 +235,8 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
                                      curandState_t *d_state_cell_new,
                                      const curandDiscreteDistribution_t *d_poisson,
                                      const Scalar *d_d_min,
-                                     const Scalar *d_d_max)
+                                     const Scalar *d_d_max,
+                                     bool reinitialize_curand)
     {
     // flags to tell what type of thread we are
     unsigned int group;
@@ -349,8 +350,16 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
     Scalar4 postype_i = texFetchScalar4(d_postype, implicit_postype_tex, i);
     unsigned int type_i = __scalar_as_int(postype_i.w);
 
-    // load RNG state per cell
-    curandState_t local_state = d_state_cell[active_cell_idx];
+    curandState_t local_state;
+    if (reinitialize_curand)
+        {
+        curand_init((unsigned long long)(seed+active_cell_idx), (unsigned long long)timestep, select, &local_state);
+        }
+    else
+        {
+        // load RNG state per cell
+        local_state = d_state_cell[active_cell_idx];
+        }
 
     // for every active cell, draw a poisson random number
     unsigned int n_depletants = curand_discrete(&local_state, d_poisson[type_i]);
@@ -701,20 +710,6 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    static unsigned int n_active_cells = UINT_MAX;
-
-    if (n_active_cells != args.n_active_cells)
-        {
-        // (re-) initialize cuRAND
-        unsigned int block_size = 512;
-        gpu_curand_implicit_setup<<<args.n_active_cells/block_size + 1,block_size, 0, args.stream>>>
-                                         (args.n_active_cells,
-                                          args.seed,
-                                          args.timestep,
-                                          args.d_state_cell);
-        n_active_cells = args.n_active_cells;
-        }
-
     // might need to modify group_size to make the kernel runnable
     unsigned int group_size = args.group_size;
 
@@ -812,6 +807,16 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
         threads = dim3(group_size, n_groups,1);
         }
 
+    static dim3 last_threads = dim3(0,0,0);
+
+    bool reinitialize_curand = false;
+    if (threads.x != last_threads.x || threads.y != last_threads.y || threads.z != last_threads.z)
+        {
+        // thread configuration changed
+        last_threads = threads;
+        reinitialize_curand = true;
+        }
+
     // 1 block per active cell
     dim3 grid( args.n_active_cells, 1, 1);
 
@@ -883,7 +888,8 @@ cudaError_t gpu_hpmc_insert_depletants_queue(const hpmc_implicit_args_t& args, c
                                                                  args.d_state_cell_new,
                                                                  args.d_poisson,
                                                                  args.d_d_min,
-                                                                 args.d_d_max);
+                                                                 args.d_d_max,
+                                                                 reinitialize_curand);
     // advance per-cell RNG states
     cudaMemcpyAsync(args.d_state_cell, args.d_state_cell_new, sizeof(curandState_t)*args.n_active_cells, cudaMemcpyDeviceToDevice, args.stream);
 
