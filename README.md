@@ -81,7 +81,7 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
 all = hoomd.group.all();
 md.integrate.mode_standard(dt=0.005)
-md.integrate.nvt(group=all, kT=1.2, tau=0.5)
+hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
 # run 10,000 time steps
 hoomd.run(10e3)
 ```

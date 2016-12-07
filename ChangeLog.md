@@ -3,9 +3,11 @@
 [TOC]
 
 ## v2.2.0
+
+Not yet released
+
 *New features*
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
-* (HPMC) Improved acceptance rate with implicit depletants
 
 Deprecated*
 
@@ -13,9 +15,7 @@ Deprecated*
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-
-*Bug fixes*
-* fix alignment error when running implicit depletants on GPU with ntrial > 0
+* Drop support for compute 2.0 GPU devices
 
 ## v2.1.2
 
@@ -28,10 +28,10 @@ Not yet released
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 
-*Other changes*
+* Other changes *
 
-* Support cusolver with CUDA 8.0
 * Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
 
 ## v2.1.1
 
