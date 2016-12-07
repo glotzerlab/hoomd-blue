@@ -110,12 +110,15 @@ set(_md_headers ActiveForceComputeGPU.h
                 OPLSDihedralForceComputeGPU.h
                 OPLSDihedralForceCompute.h
                 PotentialBondGPU.h
+		PotentialBondGPU.cuh
                 PotentialBond.h
                 PotentialExternalGPU.h
                 PotentialExternal.h
                 PotentialPairDPDThermoGPU.h
+		PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
                 PotentialPairGPU.h
+		PotentialPairGPU.cuh
                 PotentialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
