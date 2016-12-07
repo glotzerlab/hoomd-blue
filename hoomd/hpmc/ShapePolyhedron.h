@@ -28,10 +28,10 @@
 #include <iostream>
 #endif
 
-// undef for parallel overlap checks
+// uncomment for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
 
-// undef to do an early-rejection check of convex hulls - on the GPU, this adds additional divergence
+// uncomment to do an early-rejection check of convex hulls - on the GPU, this adds additional divergence
 //#define POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
 
 namespace hpmc
