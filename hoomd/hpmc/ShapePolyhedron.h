@@ -31,6 +31,9 @@
 // undef for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
 
+// undef to do an early-rejection check of convex hulls - on the GPU, this adds additional divergence
+//#define POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
+
 namespace hpmc
 {
 
@@ -784,6 +787,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& b,
                                  unsigned int& err)
     {
+    #ifdef POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
         {
@@ -795,6 +799,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.verts),
            ShapeConvexPolyhedron(b.orientation,b.data.verts),err)) return false;
         }
+    #endif
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);
