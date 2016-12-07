@@ -809,15 +809,11 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
-    // ensure block_size is a multiple of stride
-    unsigned int stride = args.stride;
-    while (block_size % stride)
-        {
-        stride--;
-        }
+    // the new block size might not fit the group size and stride, decrease group size until it is
+    group_size = args.group_size;
 
-    // the new block size might not be a multiple of group size, decrease group size until it is
-    while (block_size % (stride*group_size))
+    unsigned int stride = min(block_size, args.stride);
+    while (stride*group_size > block_size)
         {
         group_size--;
         }
@@ -841,16 +837,12 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         if (block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
-        // ensure block_size is a multiple of stride
+        // the new block size might not fit the group size and stride, decrease group size until it is
         stride = args.stride;
-        while (block_size % stride)
-            {
-            stride--;
-            }
-
-        // the new block size might not be a multiple of group size, decrease group size until it is
         group_size = args.group_size;
-        while (block_size % (stride*group_size))
+
+        unsigned int stride = min(block_size, args.stride);
+        while (stride*group_size > block_size)
             {
             group_size--;
             }
