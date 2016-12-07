@@ -389,6 +389,8 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr)
     {
     bool leaf = false;
+    bool ascend = true;
+
     if (overlap(obb_a, obb_b))
         {
         if (a.isLeaf(cur_node_a) && b.isLeaf(cur_node_b))
@@ -403,52 +405,47 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
                 {
                 cur_node_a = a.getLeftChild(cur_node_a);
                 stack <<= 1; // push A
-
-                obb_a = a.getOBB(cur_node_a);
-                obb_a.affineTransform(q, dr);
                 }
             else
                 {
                 cur_node_b = b.getLeftChild(cur_node_b);
                 stack <<= 1; stack |= 1; // push B
-
-                obb_b = b.getOBB(cur_node_b);
                 }
-            return false;
+            ascend = false;
             }
         }
 
-    // ascend in tree
-    unsigned int a_count = a.getNumAncestors(cur_node_a);
-    unsigned int b_count = b.getNumAncestors(cur_node_b);
-
-    unsigned int a_ascent, b_ascent;
-    findAscent(a_count, b_count, stack, a_ascent, b_ascent);
-
-    if ((stack & 1) == 0) // top of stack == A
+    if (ascend)
         {
-        cur_node_a = a.getEscapeIndex(cur_node_a);
+        // ascend in tree
+        unsigned int a_count = a.getNumAncestors(cur_node_a);
+        unsigned int b_count = b.getNumAncestors(cur_node_b);
 
-        // ascend in B, using post-order indexing
-        cur_node_b -= b_ascent;
+        unsigned int a_ascent, b_ascent;
+        findAscent(a_count, b_count, stack, a_ascent, b_ascent);
+
+        if ((stack & 1) == 0) // top of stack == A
+            {
+            cur_node_a = a.getEscapeIndex(cur_node_a);
+
+            // ascend in B, using post-order indexing
+            cur_node_b -= b_ascent;
+            }
+        else
+            {
+            // ascend in A, using post-order indexing
+            cur_node_a -= a_ascent;
+            cur_node_b = b.getEscapeIndex(cur_node_b);
+            }
         }
-    else
+    if (cur_node_a < a.getNumNodes() && cur_node_b < b.getNumNodes())
         {
-        // ascend in A, using post-order indexing
-        cur_node_a -= a_ascent;
-        cur_node_b = b.getEscapeIndex(cur_node_b);
-        }
-
-    if (cur_node_a < a.getNumNodes())
-        {
-        // fetch OBBs
+        // pre-fetch OBBs
         obb_a = a.getOBB(cur_node_a);
         obb_a.affineTransform(q, dr);
-        }
-    if (cur_node_b < b.getNumNodes())
-        {
         obb_b = b.getOBB(cur_node_b);
         }
+
     return leaf;
     }
 
