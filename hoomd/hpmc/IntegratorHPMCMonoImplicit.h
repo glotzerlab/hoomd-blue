@@ -281,7 +281,8 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
         Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
         // Minimum diameter of colloid sphere in which depletant can be inserted without overlapping with other colloids
-        Scalar d = Scalar(2.0)*shape_i.getInsphereRadius();
+//        Scalar d = std::max(Scalar(2.0)*shape_i.getInsphereRadius()-m_d_dep,0.0);
+        Scalar d = Scalar(0.0);
 
         h_d_min.data[i_type] = d;
 
@@ -1161,17 +1162,17 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos
     DaDb = shape_depletant.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
     circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+    // check for overlaps with neighboring particle's positions
+    bool overlap=false;
+
     if (h_overlaps[this->m_overlap_idx(m_type, typ_i)]
         && circumsphere_overlap && test_overlap(r_ij, shape_depletant, shape_i, overlap_err_count))
         {
         // if we are already overlapping in the other configuration, this doesn't count as an insertion
-        overlap_shape = false;
+        overlap = true;
         }
 
-    // check for overlaps with neighboring particle's positions
-    bool overlap=false;
-
-    if (overlap_shape)
+    if (!overlap && overlap_shape)
         {
         // All image boxes (including the primary)
         const unsigned int n_images = this->m_image_list.size();

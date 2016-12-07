@@ -2,16 +2,21 @@
 
 [TOC]
 
-*Bug fixes*
-
 ## v2.1.2
 
 Not yet released
 
 *Bug fixes*
 
- * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
- * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+
+* Other changes *
+
+* Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
 
 ## v2.1.1
 
