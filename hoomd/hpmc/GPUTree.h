@@ -387,7 +387,7 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  *     }
  */
 DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsigned int& cur_node_a, unsigned int& cur_node_b,
-    unsigned long int &stack, const OBB& obb_a, const OBB& obb_b)
+    unsigned long int &stack, OBB& obb_a, OBB& obb_b, const quat<OverlapReal>& q, const vec3<OverlapReal>& dr)
     {
     bool leaf = false;
     if (overlap(obb_a, obb_b))
@@ -404,11 +404,16 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
                 {
                 cur_node_a = a.getLeftChild(cur_node_a);
                 stack <<= 1; // push A
+
+                obb_a = a.getOBB(cur_node_a);
+                obb_a.affineTransform(q, dr);
                 }
             else
                 {
                 cur_node_b = b.getLeftChild(cur_node_b);
                 stack <<= 1; stack |= 1; // push B
+
+                obb_b = b.getOBB(cur_node_b);
                 }
             return false;
             }
@@ -435,6 +440,11 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
         cur_node_b = b.getEscapeIndex(cur_node_b);
         }
 
+    // fetch OBBs
+    obb_a = a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr);
+
+    obb_b = b.getOBB(cur_node_b);
     return leaf;
     }
 
