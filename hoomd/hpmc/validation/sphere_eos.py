@@ -20,24 +20,20 @@ phi_p_ref = {0.29054: 0.1, 0.91912: 0.2, 2.2768: 0.3, 5.29102: 0.4, 8.06553: 0.4
 rel_err_cs = 0.0015 # see for example Guang-Wen Wu and Richard J. Sadus, doi:10.1002.aic10233
 
 import itertools
-params = list(itertools.product(P_list,npt_list))
+params = list(P_list)
 
 context.msg.notice(1,"{} parameters\n".format(len(params)))
 
 p = int(option.get_user()[0])
-P = params[p][0]
-do_lengths = bool(params[p][1] & 1)
-do_volume = bool(params[p][1] & 2)
-do_shear = bool(params[p][1] & 4)
-
-N=256
+P = params[p]
 
 class sphereEOS_test(unittest.TestCase):
     def setUp(self):
+        n = 7;
+        N = n**3
+        a = (math.pi / (6*phi_p_ref[P]))**(1.0/3.0);
 
-        from hoomd import deprecated
-        phi_p_ini = 0.05
-        self.system = deprecated.init.create_random(N=N,phi_p=phi_p_ini, min_dist=1.0)
+        self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
         self.mc = hpmc.integrate.sphere(seed=p)
 
@@ -51,33 +47,39 @@ class sphereEOS_test(unittest.TestCase):
 
         tunables = []
         boxmc = hpmc.update.boxmc(self.mc,betaP=P,seed=123)
-        if do_lengths:
-            boxmc.length(delta=(0.1,0.1,0.1),weight=1)
-            tunables.append('dLx')
-            tunables.append('dLy')
-            tunables.append('dLz')
-        if do_volume:
-            boxmc.volume(delta=1,weight=1)
-            tunables.append('dV')
-        if do_shear:
-            boxmc.shear(delta=(0.01,0.01,0.01),weight=1)
-            tunables.append('dxy')
-            tunables.append('dxz')
-            tunables.append('dyz')
+        boxmc.volume(delta=1,weight=1)
+        tunables = ['dV']
 
-        npt_tune = hpmc.util.tune_npt(boxmc, tunables = tunables, target = 0.3, gamma=1)
+        npt_tune = hpmc.util.tune_npt(boxmc, tunables = tunables, target = 0.2, gamma=1)
 
-        for i in range(20):
-            run(1e3)
+        for i in range(10):
+            run(1000, quiet=True)
+
+            d = self.mc.get_d();
+            translate_acceptance = self.mc.get_translate_acceptance();
+            util.quiet_status()
+            v = boxmc.volume()['delta']
+            util.unquiet_status()
+            volume_acceptance = boxmc.get_volume_acceptance();
+            if comm.get_rank() == 0:
+                print('d: {:3.2f} accept: {:3.2f} / v: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance,v,volume_acceptance));
+
             mc_tune.update()
             npt_tune.update()
 
     def test_measure_phi_p(self):
         phi_p_measure = []
         def log_callback(timestep):
-            phi_p_measure.append(self.log.query('phi_p'))
+            v = self.log.query('phi_p')
+            phi_p_measure.append(v)
+            if comm.get_rank() == 0:
+                print('phi_p =', v);
 
-        run(1e4,callback=log_callback, callback_period=100)
+        # equilibrate
+        run(1e4)
+
+        # sample
+        run(4e4,callback=log_callback, callback_period=50)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(phi_p_measure)
@@ -98,7 +100,8 @@ class sphereEOS_test(unittest.TestCase):
         ci = 1.96
 
         if comm.get_rank() == 0:
-            print('avg {:.6f} +- {:.6f}'.format(phi_p_avg, phi_p_err))
+            print('avg: {:.6f} +- {:.6f}'.format(phi_p_avg, phi_p_err))
+            print('tgt: {:.6f} +- {:.6f}'.format(phi_p_ref[P], rel_err_cs))
 
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(phi_p_avg-phi_p_ref[P]),ci*(phi_p_ref[P]*rel_err_cs+phi_p_err))

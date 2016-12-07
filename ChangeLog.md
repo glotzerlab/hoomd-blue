@@ -2,16 +2,10 @@
 
 [TOC]
 
-<<<<<<< HEAD
 ## v2.2.0
 
 Not yet released
 
-=======
-<<<<<<< HEAD
-## v2.2.0
-
->>>>>>> hpmc_deep_copy
 *New features*
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 
@@ -34,16 +28,23 @@ Deprecated*
 * Faster simulations with implicit depletants on CPU
 * Drop support for compute 2.0 GPU devices
 
-## v2.1.2.2
+## v2.1.2
 
 Not yet released
 
 *Bug fixes*
 
-* Implicit depletants with spheres and faceted spheres gave wrong results
-* Implicit depletants with ntrial > 0 gave wrong results
-* NPT ensemble in HPMC (hpmc.update.boxmc) gave wrong values
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 
+* Other changes *
+
+* Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
+
+>>>>>>> hpmc_deep_copy
 ## v2.1.1
 
 Released 2016/10/23
