@@ -141,6 +141,7 @@ class log(hoomd.analyze._analyzer):
         matrix = False
         if not force_matrix:
             logged_quantities = self.cpp_analyzer.getLoggedQuantities()
+            logged_quantities.append('timestep')
             if quantity in logged_quantities:
                 matrix = False
             else:
