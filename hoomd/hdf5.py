@@ -27,7 +27,7 @@ class log(hoomd.analyze._analyzer):
     R""" Log a number of calculated quantities or matrices to a hdf5 file.
 
     Args:
-        filename(str): File to log the data
+        filename(str): filename for the data to log
         period(int):  Quantities are loggged every *period* time steps
         quantities(list): Quantities to log.
         matriy_quantities(list): Matrix quantities to log.
@@ -54,21 +54,25 @@ class log(hoomd.analyze._analyzer):
         run.
 
     Examples::
-
-            log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'],matrix_quantities = ['random_matrix'], period=100)
-            log.register_callback('my_quantity', lambda timestep: timestep**2)
-            log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
-            def random_matrix(timestep):
-                return numpy.random.rand(23,56)
-            log.register_callback('random_matrix',random_matrix,True)
+            #with h5py.File("log.h5", "w") as h5file:
+               #with hoomd.context.SimulationContext:
+                  #general setup
+                  log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'], matrix_quantities = ['random_matrix'], period=100)
+                  log.register_callback('my_quantity', lambda timestep: timestep**2)
+                  log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
+                  def random_matrix(timestep):
+                     return numpy.random.rand(23, 56)
+                  log.register_callback('random_matrix', random_matrix, True)
+                  #more setup
+                  run(200)
 
     """
-    def __init__(self, filename, period, quantities=[],matrix_quantities=[], overwrite=False, phase=0):
+    def __init__(self, filename, period, quantities=[], matrix_quantities=[], phase=0):
         hoomd.util.print_status_line()
 
         # store metadata
-        self.metadata_fields = ['filename','period']
-        self.filename = filename
+        self.metadata_fields = ['filename', 'period']
+        self.h5file = filename
         self.period = period
 
         if overwrite and hoomd.comm.get_rank() == 0:
@@ -78,7 +82,7 @@ class log(hoomd.analyze._analyzer):
                 pass
 
         # initialize base class
-        _analyzer.__init__(self)
+        super(log, self).__init__()
 
         # create the c++ mirror class
         self.cpp_analyzer = _hoomd.LogHDF5(hoomd.context.current.system_definition, self._write_hdf5)
@@ -86,7 +90,7 @@ class log(hoomd.analyze._analyzer):
 
         # set the logged quantities
         hoomd.util.quiet_status()
-        self.set_params(quantities=quantities,matrix_quantities=matrix_quantities)
+        self.set_params(quantities=quantities, matrix_quantities=matrix_quantities)
         hoomd.util.unquiet_status()
 
         # set the logged matrix quantities
@@ -122,7 +126,7 @@ class log(hoomd.analyze._analyzer):
             self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list);
 
 
-    def query(self, quantity,force_matrix=False):
+    def query(self, quantity, force_matrix=False):
         R"""
             Get the last logged value of a quantity which has been written to the file.
             If quantity is registered as a non-matrix quantity, its value is returned.
@@ -158,7 +162,7 @@ class log(hoomd.analyze._analyzer):
         else:
             return self.cpp_analyzer.getMatrixQuantity(quantity, timestep, use_cache)
 
-    def register_callback(self, name, callback,matrix=False):
+    def register_callback(self, name, callback, matrix=False):
         R""" Register a callback to produce a logged quantity.
 
         Args:
@@ -176,12 +180,12 @@ class log(hoomd.analyze._analyzer):
 
         Examples::
 
-            log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'],matrix_quantities = ['random_matrix'], period=100)
+            log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'], matrix_quantities = ['random_matrix'], period=100)
             log.register_callback('my_quantity', lambda timestep: timestep**2)
             log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
             def random_matrix(timestep):
-                return numpy.random.rand(23,56)
-            log.register_callback('random_matrix',random_matrix,True)
+                return numpy.random.rand(23, 56)
+            log.register_callback('random_matrix', random_matrix, True)
 
         """
         if not matrix:
@@ -237,14 +241,14 @@ class log(hoomd.analyze._analyzer):
 
     ## \internal
     # \brief Writes all C++ side prepare data to hdf5 file.
-    def _write_hdf5(self,timestep):
+    def _write_hdf5(self, timestep):
 
         f = None
         if hoomd.comm.get_rank() == 0:
-            f = h5py.File(self.filename,"a")
+            f = h5py.File(self.filename, "a")
 
-        self._write_quantities(f,timestep)
-        self._write_matrix_values(f,timestep)
+        self._write_quantities(f, timestep)
+        self._write_matrix_values(f, timestep)
 
         if f is not None:
             f.close()
@@ -253,7 +257,7 @@ class log(hoomd.analyze._analyzer):
 
     ## \internal
     # \brief Writes the non-matrix quantities of the logger as an array to the hdf5 file.
-    def _write_quantities(self,f,timestep):
+    def _write_quantities(self, f, timestep):
         #Everything is MPI collective, except writing.
         # prepare and check file for quantities
         self._write_header(f)
@@ -267,19 +271,19 @@ class log(hoomd.analyze._analyzer):
                                         " with the number of quantities stored in the file.")
                 raise RuntimeError("Error write quantities with log_hdf5.")
 
-            data_set.resize(old_size+1,axis=0)
+            data_set.resize(old_size+1, axis=0)
             data_set[old_size,] = new_array
 
     ## \internal
     # \brief Writes the logged matrix quantities to file
-    def _write_matrix_values(self,f,timestep):
+    def _write_matrix_values(self, f, timestep):
         matrix_quantities = self.cpp_analyzer.getLoggedMatrixQuantities()
 
         for q in matrix_quantities:
             #Obtain the numpy arrray from cpp class.
             try:
                 #This is called on every rank, but only root rank returns "correct data"
-                new_matrix = self.cpp_analyzer.getMatrixQuantity(q,timestep)
+                new_matrix = self.cpp_analyzer.getMatrixQuantity(q, timestep)
             except:
                 hoomd.context.msg.error("For quantity "+q+" no python type obtainable.")
                 raise RuntimeError("Error writing matrix quantity "+q)
@@ -300,7 +304,7 @@ class log(hoomd.analyze._analyzer):
 
                 if not q in f:
                     #Create a new container in hdf5 file, if not already existing.
-                    data_set = f.create_dataset(q,shape=(0,)+new_matrix.shape,maxshape=(None,)+new_matrix.shape)
+                    data_set = f.create_dataset(q, shape=(0,)+new_matrix.shape, maxshape=(None,)+new_matrix.shape)
                 else:
                     data_set = f[q]
 
@@ -320,14 +324,13 @@ class log(hoomd.analyze._analyzer):
 
                 old_size = data_set.shape[0]
 
-                data_set.resize(old_size+1,axis=0)
+                data_set.resize(old_size+1, axis=0)
                 data_set[old_size,] = new_matrix
 
 
     ## \internal
     # \brief prepare and check the hdf5 file for non-matrix quantity dump
-    def _write_header(self,f):
-
+    def _write_header(self, f):
         quantities = self.cpp_analyzer.getLoggedQuantities()
 
         if f is not None:
@@ -335,7 +338,7 @@ class log(hoomd.analyze._analyzer):
                 data_set = f["quantities"]
                 if  data_set.shape[1] != len(quantities):
                     if data_set.shape[0] == 0:
-                        data_set.resize( (0,len(quantities)) )
+                        data_set.resize( (0, len(quantities)) )
                         for key in data_set.attrs.keys():
                             del data_set.attrs[key]
                     else:
@@ -343,7 +346,7 @@ class log(hoomd.analyze._analyzer):
                                         " if there are already logged quantities.")
                         raise RuntimeError("Error updating quantities with log_hdf5.")
             else:
-                data_set = f.create_dataset("quantities",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
+                data_set = f.create_dataset("quantities", shape=(0,len(quantities)), maxshape=(None, len(quantities)) )
 
             #Ensure quantities in the attribute match with new setting.
             for i in range(len(quantities)):
