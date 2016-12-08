@@ -38,15 +38,15 @@ class LogHDF5 : public LogMatrix
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
 
-        //! Get numpy array containing all logged single values.
-        pybind11::array getSingleValueArray(void){return m_single_value_array;}
+        //! Get numpy array containing all logged non-matrix quantities.
+        pybind11::array getQuantitiesArray(void){return m_quantities_array;}
 
     private:
         //! python function, which is called to write the data to disk.
         pybind11::function m_python_analyze;
-        //! python numpy array for all single values.
-        pybind11::array m_single_value_array;
-        //! memory space of the numpy array m_single_value_array
+        //! python numpy array for all non-matrix quantities.
+        pybind11::array m_quantities_array;
+        //! memory space of the numpy array m_quantities_array
         std::vector<Scalar> m_holder_array;
     };
 

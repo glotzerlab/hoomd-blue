@@ -42,12 +42,12 @@ void LogHDF5::analyze(unsigned int timestep)
 
     if (m_prof) m_prof->push("LogHDF5");
 
-    //Prepare the single data
-    auto numpy_array_buf = m_single_value_array.request();
+    //Prepare the non-matrix data
+    auto numpy_array_buf = m_quantities_array.request();
     assert( numpy_array_buf.shape[0] == m_logged_quantities.size());
     assert( numpy_array_buf.itemsize == sizeof(Scalar));
     Scalar*const numpy_array_data = static_cast<Scalar*>(numpy_array_buf.ptr);
-    //Prepare single value data in a single array.
+    //Prepare non-matrix data in a single array.
     for(unsigned int i=0; i < m_logged_quantities.size(); i++)
         {
         numpy_array_data[i] = this->getQuantity(m_logged_quantities[i],timestep,true);
@@ -67,13 +67,13 @@ void LogHDF5::setLoggedQuantities(const std::vector< std::string >& quantities)
 
     m_holder_array.resize(quantities.size());
     //Create a new numpy array of the correct size.
-    m_single_value_array = py::array(quantities.size(),m_holder_array.data());
+    m_quantities_array = py::array(quantities.size(),m_holder_array.data());
     }
 
 void export_LogHDF5(py::module& m)
     {
     py::class_<LogHDF5, std::shared_ptr<LogHDF5> >(m,"LogHDF5", py::base<LogMatrix>())
         .def(py::init< std::shared_ptr<SystemDefinition>, pybind11::function >())
-        .def("get_single_value_array",&LogHDF5::getSingleValueArray,py::return_value_policy::copy)
+        .def("get_quantity_array",&LogHDF5::getQuantitiesArray,py::return_value_policy::copy)
         ;
     }

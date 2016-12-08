@@ -29,14 +29,14 @@ class log(hoomd.analyze._analyzer):
     Args:
         filename(str): File to log the data
         period(int):  Quantities are loggged every *period* time steps
-        quantities(list): Single value quantities to log.
+        quantities(list): Quantities to log.
         matriy_quantities(list): Matrix quantities to log.
         overwrite(bool): When False (the default) the existing log will be append. When True the file will be overwritten.
         phase(int): When -1, start on the current time step. When >= 0 execute on steps where *(step +phase) % period == 0*.
 
-    For details on the loggable single values refer :py:class:`hoomd.analyze.log` for details.
+    For details on the loggable quantities refer :py:class:`hoomd.analyze.log` for details.
 
-    The single values are combined in a single array 'single_values' in the hdf5 file.
+    The non-matrix quantities are combined in an array 'quantities' in the hdf5 file.
     The attributes list all the names of the logged quantities and there position in the file.
 
     Matrix quantities are logged as a separate data set each in the file. The name of the data set
@@ -44,7 +44,7 @@ class log(hoomd.analyze._analyzer):
     logged time step. The other dimension correspond to the dimensions of the logged matrix.
 
     Note:
-        The number and order of single value logs cannot change compared to data which is already
+        The number and order of non-matrix quantities cannot change compared to data which is already
         stored in the hdf5 file. As a result, if you append to a file make sure you are logging the
         same values as before. In addition, also during a run with multiple `hoomd.run()` commands
         the logged values can not change.
@@ -103,7 +103,7 @@ class log(hoomd.analyze._analyzer):
         R""" Change the parameters of the log.
 
         Warning:
-           Do not change the number or order of logged single quantities compared to values stored in the file.
+           Do not change the number or order of logged non-matrix quantities compared to values stored in the file.
         """
         hoomd.util.print_status_line();
 
@@ -222,7 +222,7 @@ class log(hoomd.analyze._analyzer):
         if hoomd.comm.get_rank() == 0:
             f = h5py.File(self.filename,"a")
 
-        self._write_single_values(f,timestep)
+        self._write_quantities(f,timestep)
         self._write_matrix_values(f,timestep)
 
         if f is not None:
@@ -231,20 +231,20 @@ class log(hoomd.analyze._analyzer):
         return timestep
 
     ## \internal
-    # \brief Writes the single values of the logger as a single array to the hdf5 file.
-    def _write_single_values(self,f,timestep):
+    # \brief Writes the non-matrix quantities of the logger as an array to the hdf5 file.
+    def _write_quantities(self,f,timestep):
         #Everything is MPI collective, except writing.
-        # prepare and check file for single values
+        # prepare and check file for quantities
         self._write_header(f)
-        new_array = self.cpp_analyzer.get_single_value_array()
-        if f is not None: # Handle single values only on root.
-            data_set = f["/single_values"]
+        new_array = self.cpp_analyzer.get_quantity_array()
+        if f is not None: # Handle quantities only on root.
+            data_set = f["/quantities"]
             old_size = data_set.shape[0]
 
             if data_set.shape[1] != new_array.shape[0]:
-                hoomd.context.msg.error("The number of logged single quantities does not match"
+                hoomd.context.msg.error("The number of logged quantities does not match"
                                         " with the number of quantities stored in the file.")
-                raise RuntimeError("Error write single values with log_hdf5.")
+                raise RuntimeError("Error write quantities with log_hdf5.")
 
             data_set.resize(old_size+1,axis=0)
             data_set[old_size,] = new_array
@@ -304,14 +304,14 @@ class log(hoomd.analyze._analyzer):
 
 
     ## \internal
-    # \brief prepare and check the hdf5 file for single value dump
+    # \brief prepare and check the hdf5 file for non-matrix quantity dump
     def _write_header(self,f):
 
         quantities = self.cpp_analyzer.getLoggedQuantities()
 
         if f is not None:
-            if "single_values" in f:
-                data_set = f["single_values"]
+            if "quantities" in f:
+                data_set = f["quantities"]
                 if  data_set.shape[1] != len(quantities):
                     if data_set.shape[0] == 0:
                         data_set.resize( (0,len(quantities)) )
@@ -322,7 +322,7 @@ class log(hoomd.analyze._analyzer):
                                         " if there are already logged quantities.")
                         raise RuntimeError("Error updating quantities with log_hdf5.")
             else:
-                data_set = f.create_dataset("single_values",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
+                data_set = f.create_dataset("quantities",shape=(0,len(quantities)),maxshape=(None,len(quantities)) )
 
             #Ensure quantities in the attribute match with new setting.
             for i in range(len(quantities)):
