@@ -67,7 +67,7 @@ class log(hoomd.analyze._analyzer):
                   run(200)
 
     """
-    def __init__(self, filename, period, quantities=[], matrix_quantities=[], phase=0):
+    def __init__(self, filename, period, quantities=list(), matrix_quantities=list(), overwrite=False, phase=0):
         hoomd.util.print_status_line()
 
         # store metadata
