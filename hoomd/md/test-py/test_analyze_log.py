@@ -134,8 +134,12 @@ except ImportError:
 else:
     enable_hdf5 = True
 
+if enable_hdf5:
+    import hoomd.hdf5
+
+
 # test hdf5.log with query
-@unittest.skipIf(not enable_hdf5)
+@unittest.skipIf(not enable_hdf5, "no h5py module available.")
 class analyze_log_hdf5_query_tests (unittest.TestCase):
     def setUp(self):
         deprecated.init.create_random(N=100, phi_p=0.005);
@@ -180,7 +184,7 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
             os.remove(self.tmp_file);
 
 # unit tests for analyze.log_hdf5
-@unittest.skipIf(not enable_hdf5)
+@unittest.skipIf(not enable_hdf5, "no h5py module available.")
 class analyze_log_hdf5_tests (unittest.TestCase):
     def setUp(self):
         deprecated.init.create_random(N=100, phi_p=0.05);

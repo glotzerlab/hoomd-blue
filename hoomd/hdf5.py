@@ -72,7 +72,7 @@ class log(hoomd.analyze._analyzer):
 
         # store metadata
         self.metadata_fields = ['filename', 'period']
-        self.h5file = filename
+        self.filename = filename
         self.period = period
 
         if overwrite and hoomd.comm.get_rank() == 0:
@@ -146,10 +146,7 @@ class log(hoomd.analyze._analyzer):
         if not force_matrix:
             logged_quantities = self.cpp_analyzer.getLoggedQuantities()
             logged_quantities.append('timestep')
-            matrix = quantity in logged_quantities
-            else:
-                matrix = True
-
+            matrix = quantity not in logged_quantities
         else:
             matrix = True
 
