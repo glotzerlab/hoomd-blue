@@ -122,13 +122,33 @@ class log(hoomd.analyze._analyzer):
             self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list);
 
 
-    def query(self, quantity,matrix=False):
-        R""" Get the last logged value of a quantity.
+    def query(self, quantity,force_matrix=False):
+        R"""
+            Get the last logged value of a quantity which has been written to the file.
+            If quantity is registered as a non-matrix quantity, its value is returned.
+            If it is not registered as a non-matrix quantity, it is assumed to be a matrix quantity.
+            If a quantity exists as non-matrix and matrix quantity with the same name, force_matrix
+            can be used to obtain the matrix value.
+
+        Args:
+             quantity(str): name of the quantity to query
+             force_matrix(bool): the name of the quantity is
 
         Note:
-            Matrix quantities are not cached by the class, so calling this function multiple time,
-            may not be efficient.
+            Matrix quantities are not efficiently cached by the class,
+            so calling this function multiple time, may not be efficient.
         """
+        matrix = False
+        if not force_matrix:
+            logged_quantities = self.cpp_analyzer.getLoggedQuantities()
+            if quantity in logged_quantities:
+                matrix = False
+            else:
+                matrix = True
+
+        else:
+            matrix = True
+
         use_cache=True # Log hdf5 does not support init w/o filename
         timestep = hoomd.context.current.system.getCurrentTimeStep()
 
