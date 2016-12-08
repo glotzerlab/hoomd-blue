@@ -71,7 +71,7 @@ class log(hoomd.analyze._analyzer):
         self.filename = filename
         self.period = period
 
-        if overwrite:
+        if overwrite and hoomd.comm.get_rank() == 0:
             try:
                 os.remove(filename)
             except OSError:
@@ -123,7 +123,7 @@ class log(hoomd.analyze._analyzer):
 
 
     def query(self, quantity,matrix=False):
-        R""" Get the current value of a logged quantity.
+        R""" Get the last logged value of a quantity.
 
         Note:
             Matrix quantities are not cached by the class, so calling this function multiple time,
