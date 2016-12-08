@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #include "hoomd/Autotuner.h"
 
 //! Integrates part of the system forward in two steps in the NVE ensemble on the GPU
@@ -28,7 +30,7 @@ class TwoStepNVEGPU : public TwoStepNVE
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleGroup> group);
+        TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group);
         virtual ~TwoStepNVEGPU() {};
 
         //! Performs the first step of the integration
@@ -51,11 +53,11 @@ class TwoStepNVEGPU : public TwoStepNVE
             }
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
-        boost::scoped_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
+        std::unique_ptr<Autotuner> m_tuner_one; //!< Autotuner for block size (step one kernel)
+        std::unique_ptr<Autotuner> m_tuner_two; //!< Autotuner for block size (step two kernel)
     };
 
 //! Exports the TwoStepNVEGPU class to python
-void export_TwoStepNVEGPU();
+void export_TwoStepNVEGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NVE_GPU_H__

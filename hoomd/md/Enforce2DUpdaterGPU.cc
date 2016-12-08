@@ -12,17 +12,13 @@
 #include "Enforce2DUpdaterGPU.h"
 #include "Enforce2DUpdaterGPU.cuh"
 
-#include <boost/bind.hpp>
-using namespace boost;
-
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
 /*! \param sysdef System to update
 */
-Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
+Enforce2DUpdaterGPU::Enforce2DUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef) : Enforce2DUpdater(sysdef)
     {
     // at least one GPU is needed
     if (!m_exec_conf->isCUDAEnabled())
@@ -59,9 +55,9 @@ void Enforce2DUpdaterGPU::update(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_Enforce2DUpdaterGPU()
+void export_Enforce2DUpdaterGPU(py::module& m)
     {
-    class_<Enforce2DUpdaterGPU, boost::shared_ptr<Enforce2DUpdaterGPU>, bases<Enforce2DUpdater>, boost::noncopyable>
-    ("Enforce2DUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<Enforce2DUpdaterGPU, std::shared_ptr<Enforce2DUpdaterGPU> >(m, "Enforce2DUpdaterGPU", py::base<Enforce2DUpdater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

@@ -12,17 +12,13 @@
 
 #include "CGCMMAngleForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 using namespace std;
 
 /*! \param sysdef System to compute angle forces on
 */
-CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+CGCMMAngleForceComputeGPU::CGCMMAngleForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : CGCMMAngleForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -147,9 +143,9 @@ void CGCMMAngleForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_CGCMMAngleForceComputeGPU()
+void export_CGCMMAngleForceComputeGPU(py::module& m)
     {
-    class_<CGCMMAngleForceComputeGPU, boost::shared_ptr<CGCMMAngleForceComputeGPU>, bases<CGCMMAngleForceCompute>, boost::noncopyable >
-    ("CGCMMAngleForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<CGCMMAngleForceComputeGPU, std::shared_ptr<CGCMMAngleForceComputeGPU> >(m, "CGCMMAngleForceComputeGPU", py::base<CGCMMAngleForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

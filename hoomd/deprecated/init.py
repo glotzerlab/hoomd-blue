@@ -112,7 +112,7 @@ def create_random(N, phi_p=None, name="A", min_dist=0.7, box=None, seed=1, dimen
     where *d* is the dimension, and assumes the particles have a radius of 0.5.
     All particles are created with the same type, given by *name*.
 
-    The result of :py:func:`hoomd.init.create_random` can be saved in a variable and later used to read
+    The result of :py:func:`hoomd.deprecated.init.create_random` can be saved in a variable and later used to read
     and/or change particle properties later in the script. See :py:mod:`hoomd.data` for more information.
 
     """

@@ -20,7 +20,7 @@ class eam(force._force):
     Args:
         file (str): Filename with potential tables in Alloy or FS format
         type (str): Type of file potential ('Alloy', 'FS')
-        nlist (:py:mod:`hoomd.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
 
     :py:class:`eam` specifies that a EAM (embedded atom method) pair potential should be applied between every
     non-excluded particle pair in the simulation.

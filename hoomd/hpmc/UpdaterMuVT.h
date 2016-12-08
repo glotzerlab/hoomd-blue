@@ -10,6 +10,10 @@
 #include "Moves.h"
 #include "IntegratorHPMCMono.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 
@@ -23,8 +27,8 @@ class UpdaterMuVT : public Updater
     {
     public:
         //! Constructor
-        UpdaterMuVT(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+        UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
             unsigned int seed,
             unsigned int npartition);
         virtual ~UpdaterMuVT();
@@ -38,7 +42,7 @@ class UpdaterMuVT : public Updater
         /*! \param type The type id for which to set the fugacity
          * \param fugacity The value of the fugacity (variant)
          */
-        void setFugacity(unsigned int type, boost::shared_ptr<Variant> fugacity)
+        void setFugacity(unsigned int type, std::shared_ptr<Variant> fugacity)
             {
             assert(type < m_pdata->getNTypes());
             m_fugacity[type] = fugacity;
@@ -137,8 +141,8 @@ class UpdaterMuVT : public Updater
         hpmc_muvt_counters_t getCounters(unsigned int mode=0);
 
     protected:
-        std::vector<boost::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
-        boost::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
+        std::vector<std::shared_ptr<Variant> > m_fugacity;  //!< Reservoir concentration per particle-type
+        std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc;   //!< The MC Integrator this Updater is associated with
         unsigned int m_seed;                                  //!< RNG seed
         unsigned int m_npartition;                            //!< The number of partitions to use for Gibbs ensemble
         bool m_gibbs;                                         //!< True if we simulate a Gibbs ensemble
@@ -220,20 +224,16 @@ class UpdaterMuVT : public Updater
 
         //! Get number of particles of a given type
         unsigned int getNumParticlesType(unsigned int type);
-
-    private:
-        boost::signals2::connection m_type_num_change_connection;      //!< Connection to the ParticleData particle type number change signal
-        boost::signals2::connection m_particle_sort_connection;       //!< Connection to the ParticleData particle sort signal
     };
 
 //! Export the UpdaterMuVT class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of UpdaterMuVT<Shape> will be exported
 */
-template < class Shape > void export_UpdaterMuVT(const std::string& name)
+template < class Shape > void export_UpdaterMuVT(pybind11::module& m, const std::string& name)
     {
-    boost::python::class_< UpdaterMuVT<Shape>, boost::shared_ptr< UpdaterMuVT<Shape> >, boost::python::bases<Updater>, boost::noncopyable >
-          (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
+    pybind11::class_< UpdaterMuVT<Shape>, std::shared_ptr< UpdaterMuVT<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+          .def( pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int, unsigned int>())
           .def("setFugacity", &UpdaterMuVT<Shape>::setFugacity)
           .def("setMaxVolumeRescale", &UpdaterMuVT<Shape>::setMaxVolumeRescale)
           .def("setMoveRatio", &UpdaterMuVT<Shape>::setMoveRatio)
@@ -249,18 +249,18 @@ template < class Shape > void export_UpdaterMuVT(const std::string& name)
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
  */
 template<class Shape>
-UpdaterMuVT<Shape>::UpdaterMuVT(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<IntegratorHPMCMono< Shape > > mc,
+UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<IntegratorHPMCMono< Shape > > mc,
     unsigned int seed,
     unsigned int npartition)
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_move_ratio(0.5), m_transfer_ratio(1.0), m_gibbs_other(0)
     {
-    m_fugacity.resize(m_pdata->getNTypes(), boost::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
-    m_type_num_change_connection = m_pdata->connectNumTypesChange(boost::bind(&UpdaterMuVT<Shape>::slotNumTypesChange, this));
-    m_particle_sort_connection = m_pdata->connectParticleSort(boost::bind(&UpdaterMuVT<Shape>::mapTypes, this));
+    m_pdata->getNumTypesChangeSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().template connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
 
     if (npartition > 1)
         {
@@ -309,8 +309,8 @@ UpdaterMuVT<Shape>::UpdaterMuVT(boost::shared_ptr<SystemDefinition> sysdef,
 template<class Shape>
 UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
-    m_type_num_change_connection.disconnect();
-    m_particle_sort_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
+    m_pdata->getParticleSortSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
     }
 
 template<class Shape>
@@ -406,7 +406,7 @@ template<class Shape>
 void UpdaterMuVT<Shape>::slotNumTypesChange()
     {
     // resize parameter list
-    m_fugacity.resize(m_pdata->getNTypes(), boost::shared_ptr<Variant>(new VariantConst(0.0)));
+    m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
     }
 
@@ -1283,6 +1283,9 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+    const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
     Shape shape(orientation, h_params.data[type]);
@@ -1301,7 +1304,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
             {
             // check for self-overlap with all images except the original
             vec3<Scalar> r_ij = pos - pos_image;
-            if (!shape.ignoreOverlaps()
+            if (h_overlaps.data[overlap_idx(type, type)]
                 && check_circumsphere_overlap(r_ij, shape, shape)
                 && test_overlap(r_ij, shape, shape, err_count))
                 {
@@ -1331,9 +1334,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                         // put particles in coordinate system of particle i
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
-                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                        if (!(shape.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                        if (h_overlaps.data[overlap_idx(type, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)
                             && test_overlap(r_ij, shape, shape_j, err_count))
                             {
@@ -1399,6 +1403,9 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+    const Index2D & overlap_idx = m_mc->getOverlapIndexer();
 
     // read in the current position and orientation
     Shape shape(orientation, h_params.data[newtype]);
@@ -1420,7 +1427,7 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
             {
             // check for self-overlap with all images except the original
             vec3<Scalar> r_ij = pos - pos_image;
-            if (!shape.ignoreOverlaps()
+            if (h_overlaps.data[overlap_idx(newtype,newtype)]
                 && check_circumsphere_overlap(r_ij, shape, shape)
                 && test_overlap(r_ij, shape, shape, err_count))
                 {
@@ -1447,9 +1454,10 @@ bool UpdaterMuVT<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, 
                         // put particles in coordinate system of particle i
                         vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
-                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[__scalar_as_int(postype_j.w)]);
+                        unsigned int typ_j = __scalar_as_int(postype_j.w);
+                        Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
 
-                        if (!(shape.ignoreOverlaps() && shape_j.ignoreOverlaps())
+                        if (h_overlaps.data[overlap_idx(typ_j, newtype)]
                             && check_circumsphere_overlap(r_ij, shape, shape_j)
                             && test_overlap(r_ij, shape, shape_j, err_count))
                             {

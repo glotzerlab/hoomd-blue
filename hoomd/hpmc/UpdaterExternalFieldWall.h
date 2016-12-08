@@ -7,9 +7,6 @@
 /*! \file UpdaterExternalField.h
     \brief Updates ExternalField base class
 */
-#include <boost/python.hpp>
-
-
 #include "hoomd/Updater.h"
 #include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
 #include "hoomd/VectorMath.h"
@@ -18,6 +15,9 @@
 #include "ExternalField.h"
 #include "ExternalFieldWall.h" // do we need anything else?
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
 
 namespace hpmc
 {
@@ -33,10 +33,10 @@ class UpdaterExternalFieldWall : public Updater
             \param move_ratio Probability of attempting wall update move
             \param seed PRNG seed
         */
-        UpdaterExternalFieldWall( boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr< IntegratorHPMCMono<Shape> > mc,
-                      boost::shared_ptr< ExternalFieldWall<Shape> > external,
-                      boost::python::object py_updater,
+        UpdaterExternalFieldWall( std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr< IntegratorHPMCMono<Shape> > mc,
+                      std::shared_ptr< ExternalFieldWall<Shape> > external,
+                      pybind11::object py_updater,
                       Scalar move_ratio,
                       unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
                       {
@@ -168,9 +168,9 @@ class UpdaterExternalFieldWall : public Updater
             }
 
     private:
-        boost::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
-        boost::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
-        boost::python::object m_py_updater;                       //!< Python call back for external field update
+        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc;      //!< Integrator
+        std::shared_ptr< ExternalFieldWall<Shape> > m_external; //!< External field wall object
+        pybind11::object m_py_updater;                       //!< Python call back for external field update
         Scalar m_move_ratio;                                      //!< Ratio of lattice vector length versus shearing move
         unsigned int m_count_accepted_rel;                        //!< Accepted moves count, relative to start of run
         unsigned int m_count_total_rel;                           //!< Accept/reject total count, relative to start of run
@@ -183,10 +183,10 @@ class UpdaterExternalFieldWall : public Updater
     };
 
 template< class Shape >
-void export_UpdaterExternalFieldWall(std::string name)
+void export_UpdaterExternalFieldWall(pybind11::module& m, std::string name)
     {
-    class_< UpdaterExternalFieldWall<Shape>, boost::shared_ptr< UpdaterExternalFieldWall<Shape> >, bases< Updater >, boost::noncopyable>
-    (name.c_str(), init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr< IntegratorHPMCMono<Shape> >, boost::shared_ptr< ExternalFieldWall<Shape> >, boost::python::object, Scalar, unsigned int >())
+   pybind11::class_< UpdaterExternalFieldWall<Shape>, std::shared_ptr< UpdaterExternalFieldWall<Shape> > >(m, name.c_str(), pybind11::base< Updater >())
+    .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr< IntegratorHPMCMono<Shape> >, std::shared_ptr< ExternalFieldWall<Shape> >, pybind11::object, Scalar, unsigned int >())
     .def("getAcceptedCount", &UpdaterExternalFieldWall<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterExternalFieldWall<Shape>::getTotalCount)
     .def("resetStats", &UpdaterExternalFieldWall<Shape>::resetStats)

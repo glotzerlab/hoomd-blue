@@ -16,8 +16,7 @@
 #include "hoomd/extern/kiss_fftnd.h"
 
 #include <memory>
-#include <boost/signals2.hpp>
-#include <boost/bind.hpp>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 const Scalar EPS_HOC(1.0e-7);
 
@@ -29,14 +28,14 @@ class PPPMForceCompute : public ForceCompute
     {
     public:
         //! Constructor
-        PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
-            boost::shared_ptr<ParticleGroup> group);
+        PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
+            std::shared_ptr<ParticleGroup> group);
         virtual ~PPPMForceCompute();
 
         //! Set the parameters
         virtual void setParams(unsigned int nx, unsigned int ny, unsigned int nz,
-            unsigned int order, Scalar kappa, Scalar rcut);
+            unsigned int order, Scalar kappa, Scalar rcut, Scalar alpha = 0);
 
         void computeForces(unsigned int timestep);
 
@@ -64,6 +63,31 @@ class PPPMForceCompute : public ForceCompute
         //! Get sum of squares of charges
         Scalar getQ2Sum();
 
+        #ifdef ENABLE_MPI
+        //! Get ghost particle fields requested by this pair potential
+        /*! \param timestep Current time step
+        */
+        virtual CommFlags getRequestedCommFlags(unsigned int timestep)
+            {
+            CommFlags flags = ForceCompute::getRequestedCommFlags(timestep);
+            bool correct_body = m_nlist->getFilterBody();
+
+            if(m_nlist->getExclusionsSet() || correct_body)
+                {
+                // need ghost particle charge
+                flags[comm_flag::charge] = 1;
+
+                if (correct_body)
+                    {
+                    flags[comm_flag::body] = 1;
+                    }
+                }
+
+            return flags;
+            }
+        #endif
+
+
     protected:
         /*! Compute the biased forces for this collective variable.
             The force that is written to the force arrays must be
@@ -73,8 +97,8 @@ class PPPMForceCompute : public ForceCompute
          */
         void computeBiasForces(unsigned int timestep);
 
-        boost::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
-        boost::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
+        std::shared_ptr<NeighborList> m_nlist; //!< The neighborlist to use for the computation
+        std::shared_ptr<ParticleGroup> m_group;//!< Group to compute properties for
 
         uint3 m_mesh_points;                //!< Number of sub-divisions along one coordinate
         uint3 m_global_dim;                 //!< Global grid dimensions
@@ -94,15 +118,25 @@ class PPPMForceCompute : public ForceCompute
 
         GPUArray<Scalar> m_virial_mesh;     //!< k-space mesh of virial tensor values
 
-        Scalar m_kappa;                     //!< Screening parameter
+        Scalar m_kappa;                     //!< Splitting parameter
         Scalar m_rcut;                      //!< Cutoff for short-ranged interaction
         int m_order;                        //!< Order of interpolation scheme
+        Scalar m_alpha;                     //!< Debye screening parameter
 
         Scalar m_q;                         //!< Total system charge
         Scalar m_q2;                        //!< Sum of charge squared
 
         GPUArray<Scalar> m_rho_coeff;       //!< Coefficients for computing the grid based charge density
         GPUArray<Scalar> m_gf_b;            //!< Green function coefficients
+
+        Scalar m_body_energy;                      //!< Energy correction due to rigid body exclusions
+        bool m_ptls_added_removed;          //!< True if global particle number changed
+
+        //! Helper function to be called when particle number changes
+        void slotGlobalParticleNumberChange()
+            {
+            m_ptls_added_removed = true;
+            }
 
         //! Helper function to be called when box changes
         void setBoxChange()
@@ -140,6 +174,9 @@ class PPPMForceCompute : public ForceCompute
         //! Setup coefficients
         virtual void setupCoeffs();
 
+        //! Compute rigid body correction
+        virtual void computeBodyCorrection();
+
     private:
         kiss_fftnd_cfg m_kiss_fft;         //!< The FFT configuration
         kiss_fftnd_cfg m_kiss_ifft;        //!< Inverse FFT configuration
@@ -161,8 +198,6 @@ class PPPMForceCompute : public ForceCompute
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_x;   //!< Fourier transformed mesh times the influence function, x-component
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_y;   //!< Fourier transformed mesh times the influence function, y-component
         GPUArray<kiss_fft_cpx> m_inv_fourier_mesh_z;   //!< Fourier transformed mesh times the influence function, z-component
-
-        boost::signals2::connection m_boxchange_connection; //!< Connection to ParticleData box change signal
 
         std::vector<std::string> m_log_names;           //!< Name of the log quantity
 
@@ -188,6 +223,6 @@ class PPPMForceCompute : public ForceCompute
 
     };
 
-void export_PPPMForceCompute();
+void export_PPPMForceCompute(pybind11::module& m);
 
 #endif

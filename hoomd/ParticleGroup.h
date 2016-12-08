@@ -15,7 +15,8 @@
 #include "SystemDefinition.h"
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __PARTICLE_GROUP_H__
 #define __PARTICLE_GROUP_H__
@@ -43,16 +44,16 @@ class ParticleSelector
     {
     public:
         //! constructs a ParticleSelector
-        ParticleSelector(boost::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelector(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ParticleSelector() {}
 
         //! Test if a particle meets the selection criteria
         virtual bool isSelected(unsigned int tag) const;
 
     protected:
-        boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
-        boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition assigned to this selector
+        std::shared_ptr<ParticleData> m_pdata;        //!< The particle data from m_sysdef, stored as a convenience
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
     };
 
 //! Select all particles
@@ -60,7 +61,7 @@ class ParticleSelectorAll : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorAll(boost::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelectorAll(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ParticleSelectorAll() {}
 
         //! Test if a particle meets the selection criteria
@@ -73,7 +74,7 @@ class ParticleSelectorTag : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorTag(boost::shared_ptr<SystemDefinition> sysdef, unsigned int tag_min, unsigned int tag_max);
+        ParticleSelectorTag(std::shared_ptr<SystemDefinition> sysdef, unsigned int tag_min, unsigned int tag_max);
         virtual ~ParticleSelectorTag() {}
 
         //! Test if a particle meets the selection criteria
@@ -88,7 +89,7 @@ class ParticleSelectorType : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorType(boost::shared_ptr<SystemDefinition> sysdef, unsigned int typ_min, unsigned int typ_max);
+        ParticleSelectorType(std::shared_ptr<SystemDefinition> sysdef, unsigned int typ_min, unsigned int typ_max);
         virtual ~ParticleSelectorType() {}
 
         //! Test if a particle meets the selection criteria
@@ -103,7 +104,7 @@ class ParticleSelectorCuboid : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorCuboid(boost::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max);
+        ParticleSelectorCuboid(std::shared_ptr<SystemDefinition> sysdef, Scalar3 min, Scalar3 max);
         virtual ~ParticleSelectorCuboid() {}
 
         //! Test if a particle meets the selection criteria
@@ -118,7 +119,7 @@ class ParticleSelectorRigid : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigid(boost::shared_ptr<SystemDefinition> sysdef, bool rigid);
+        ParticleSelectorRigid(std::shared_ptr<SystemDefinition> sysdef, bool rigid);
         virtual ~ParticleSelectorRigid() {}
 
         //! Test if a particle meets the selection criteria
@@ -131,7 +132,7 @@ class ParticleSelectorRigidCenter : public ParticleSelector
     {
     public:
         //! Constructs the selector
-        ParticleSelectorRigidCenter(boost::shared_ptr<SystemDefinition> sysdef);
+        ParticleSelectorRigidCenter(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~ParticleSelectorRigidCenter() {}
 
         //! Test if a particle meets the selection criteria
@@ -188,11 +189,11 @@ class ParticleGroup
         ParticleGroup() : m_num_local_members(0) {};
 
         //! Constructs a particle group of all particles that meet the given selection
-        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, boost::shared_ptr<ParticleSelector> selector,
+        ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleSelector> selector,
             bool update_tags = true);
 
         //! Constructs a particle group given a list of tags
-        ParticleGroup(boost::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
+        ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std::vector<unsigned int>& member_tags);
 
         //! Destructor
         ~ParticleGroup();
@@ -298,26 +299,23 @@ class ParticleGroup
         // @{
 
         //! Make a new particle group from a union of two
-        static boost::shared_ptr<ParticleGroup> groupUnion(boost::shared_ptr<ParticleGroup> a,
-                                                           boost::shared_ptr<ParticleGroup> b);
+        static std::shared_ptr<ParticleGroup> groupUnion(std::shared_ptr<ParticleGroup> a,
+                                                           std::shared_ptr<ParticleGroup> b);
         //! Make a new particle group from an intersection
-        static boost::shared_ptr<ParticleGroup> groupIntersection(boost::shared_ptr<ParticleGroup> a,
-                                                                  boost::shared_ptr<ParticleGroup> b);
+        static std::shared_ptr<ParticleGroup> groupIntersection(std::shared_ptr<ParticleGroup> a,
+                                                                  std::shared_ptr<ParticleGroup> b);
         //! Make a new particle group from an difference
-        static boost::shared_ptr<ParticleGroup> groupDifference(boost::shared_ptr<ParticleGroup> a,
-                                                                boost::shared_ptr<ParticleGroup> b);
+        static std::shared_ptr<ParticleGroup> groupDifference(std::shared_ptr<ParticleGroup> a,
+                                                                std::shared_ptr<ParticleGroup> b);
 
         // @}
 
     private:
-        boost::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
-        boost::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
+        std::shared_ptr<SystemDefinition> m_sysdef;   //!< The system definition this group is associated with
+        std::shared_ptr<ParticleData> m_pdata;        //!< The particle data this group is associated with
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         mutable GPUArray<unsigned char> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
         GPUArray<unsigned int> m_member_idx;            //!< List of all particle indices in the group
-        boost::signals2::connection m_sort_connection;   //!< Connection to the ParticleData sort signal
-        boost::signals2::connection m_max_particle_num_change_connection; //!< Connection to the max particle number change signal
-        boost::signals2::connection m_global_particle_num_change_connection; //!< Connection to global particle number change signal
         GPUArray<unsigned int> m_member_tags;           //!< Lists the tags of the paritcle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
         mutable bool m_particles_sorted;                //!< True if particle have been sorted since last rebuild
@@ -325,7 +323,7 @@ class ParticleGroup
         mutable bool m_global_ptl_num_change;           //!< True if the global particle number changed
 
         GPUArray<unsigned char> m_is_member_tag;        //!< One byte per particle, == 1 if tag is a member of the group
-        boost::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
+        std::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
         mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
@@ -390,6 +388,6 @@ class ParticleGroup
     };
 
 //! Exports the ParticleGroup class to python
-void export_ParticleGroup();
+void export_ParticleGroup(pybind11::module& m);
 
 #endif

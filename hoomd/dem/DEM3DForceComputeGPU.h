@@ -6,8 +6,8 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <boost/python.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #include "DEM3DForceCompute.h"
 
@@ -35,8 +35,8 @@ class DEM3DForceComputeGPU: public DEM3DForceCompute<Real, Real4, Potential>
     {
     public:
         //! Constructs the compute
-        DEM3DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
+        DEM3DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
             Real r_cut, Potential potential);
 
         //! Destructor
@@ -53,7 +53,7 @@ class DEM3DForceComputeGPU: public DEM3DForceCompute<Real, Real4, Potential>
         size_t maxGPUThreads() const;
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;     //!< Autotuner for block size
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);

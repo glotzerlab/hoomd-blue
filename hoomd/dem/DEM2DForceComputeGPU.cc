@@ -19,12 +19,8 @@
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-#include <boost/bind.hpp>
-
-using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
@@ -40,8 +36,8 @@ using namespace std;
 
 template<typename Real, typename Real2, typename Real4, typename Potential>
 DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::DEM2DForceComputeGPU(
-    boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Scalar r_cut, Potential potential)
     : DEM2DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential),
     m_vertices(this->m_pdata->getNTypes(), this->m_exec_conf),
@@ -69,7 +65,7 @@ DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::~DEM2DForceComputeGPU()
 */
 template<typename Real, typename Real2, typename Real4, typename Potential>
 void DEM2DForceComputeGPU<Real, Real2, Real4, Potential>::setParams(unsigned int type,
-    const boost::python::list &vertices)
+    const pybind11::list &vertices)
     {
     DEM2DForceCompute<Real, Real4, Potential>::setParams(type, vertices);
     createGeometry();

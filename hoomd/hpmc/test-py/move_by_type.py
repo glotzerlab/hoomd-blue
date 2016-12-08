@@ -37,8 +37,8 @@ class pair_move_some(unittest.TestCase):
                              (2,-1,1),
                              (2,1,1)])*0.25
 
-        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
-        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
+        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False)
+        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False)
 
         context.current.sorter.set_params(grid=8)
 
@@ -114,8 +114,8 @@ class pair_rot_some(unittest.TestCase):
                              (2,-1,1),
                              (2,1,1)])*0.25
 
-        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
-        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False,ignore_overlaps=False)
+        self.mc.shape_param.set('A', vertices=rverts,ignore_statistics=False)
+        self.mc.shape_param.set('B', vertices=rverts,ignore_statistics=False)
 
         context.current.sorter.set_params(grid=8)
 

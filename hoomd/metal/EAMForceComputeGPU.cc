@@ -20,19 +20,16 @@ Moscow group.
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-#include <boost/bind.hpp>
-
-using namespace boost;
+namespace py = pybind11;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
     \param type_of_file Undocumented parameter
 */
-EAMForceComputeGPU::EAMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
     : EAMForceCompute(sysdef, filename, type_of_file)
     {
     #ifndef SINGLE_PRECISION
@@ -153,9 +150,9 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_EAMForceComputeGPU()
+void export_EAMForceComputeGPU(py::module& m)
     {
-    class_<EAMForceComputeGPU, boost::shared_ptr<EAMForceComputeGPU>, bases<EAMForceCompute>, boost::noncopyable >
-        ("EAMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, char*, int >())
+    py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU> >(m, "EAMForceComputeGPU", py::base<EAMForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, char*, int >())
         ;
     }

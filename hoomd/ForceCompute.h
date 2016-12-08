@@ -15,8 +15,8 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file ForceCompute.h
     \brief Declares the ForceCompute class
@@ -25,6 +25,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
@@ -47,7 +49,7 @@ class ForceCompute : public Compute
     {
     public:
         //! Constructs the compute
-        ForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompute();
@@ -63,7 +65,7 @@ class ForceCompute : public Compute
         /*! This method is called in MPI simulations BEFORE the particles are migrated
          * and can be used to overlap computation with communication
          */
-        virtual void preCompute(unsigned int timestep) { }
+        virtual void preCompute(unsigned int timestep){}
         #endif
 
         //! Computes the forces
@@ -76,7 +78,7 @@ class ForceCompute : public Compute
         Scalar calcEnergySum();
 
         //! Sum the potential energy of a group
-        Scalar calcEnergyGroup(boost::shared_ptr<ParticleGroup> group);
+        Scalar calcEnergyGroup(std::shared_ptr<ParticleGroup> group);
 
         //! Easy access to the torque on a single particle
         Scalar4 getTorque(unsigned int tag);
@@ -174,21 +176,17 @@ class ForceCompute : public Compute
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
         Scalar m_external_energy;    //!< Stores external contribution to potential energy
 
-        //! Connection to the signal notifying when particles are resorted
-        boost::signals2::connection m_sort_connection;
-
-        //! Connection to the signal notifying when maximum number of particles changes
-        boost::signals2::connection m_max_particle_num_change_connection;
-
         //! Actually perform the computation of the forces
         /*! This is pure virtual here. Sub-classes must implement this function. It will be called by
             the base class compute() when the forces need to be computed.
             \param timestep Current time step
         */
-        virtual void computeForces(unsigned int timestep)=0;
+        virtual void computeForces(unsigned int timestep){}
     };
 
 //! Exports the ForceCompute class to python
-void export_ForceCompute();
+#ifndef NVCC
+void export_ForceCompute(pybind11::module& m);
+#endif
 
 #endif

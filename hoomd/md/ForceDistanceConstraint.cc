@@ -7,10 +7,8 @@
 #include "ForceDistanceConstraint.h"
 
 #include <string.h>
-
-#include <boost/python.hpp>
-
 using namespace Eigen;
+namespace py = pybind11;
 
 /*! \file ForceDistanceConstraint.cc
     \brief Contains code for the ForceDistanceConstraint class
@@ -18,7 +16,7 @@ using namespace Eigen;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_cdata(m_sysdef->getConstraintData()),
           m_cmatrix(m_exec_conf), m_cvec(m_exec_conf), m_lagrange(m_exec_conf),
           m_rel_tol(1e-3), m_constraint_violated(m_exec_conf), m_condition(m_exec_conf),
@@ -28,10 +26,10 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
     m_constraint_violated.resetFlags(0);
 
     // connect to the ConstraintData to recieve notifications when constraints change order in memory
-    m_constraint_reorder_connection = m_cdata->connectGroupReorder(boost::bind(&ForceDistanceConstraint::slotConstraintReorder, this));
+    m_cdata->getGroupReorderSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
 
     // connect to ConstraintData to receive notifications when global constraint topology changes
-    m_group_num_change_connection = m_cdata->connectGroupNumChange(boost::bind(&ForceDistanceConstraint::slotConstraintsAddedRemoved, this));
+    m_cdata->getGroupNumChangeSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
 
     // reset condition
     m_condition.resetFlags(0);
@@ -41,15 +39,12 @@ ForceDistanceConstraint::ForceDistanceConstraint(boost::shared_ptr<SystemDefinit
 ForceDistanceConstraint::~ForceDistanceConstraint()
     {
     // disconnect from signal in ConstraintData
-    m_constraint_reorder_connection.disconnect();
-
-    m_group_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        {
-        // register this class with the communciator
-        m_comm_ghost_layer_connection.disconnect();
-        }
+    m_cdata->getGroupReorderSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
+    m_cdata->getGroupNumChangeSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getGhostLayerWidthRequestSignal().disconnect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+    #endif
     }
 
 /*! Does nothing in the base class
@@ -129,16 +124,13 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         {
         // lookup the tag of each of the particles participating in the constraint
         const ConstraintData::members_t constraint = m_cdata->getMembersByIndex(n);
-        assert(constraint.tag[0] < m_pdata->getMaximumTag());
-        assert(constraint.tag[1] < m_pdata->getMaximumTag());
+        assert(constraint.tag[0] <= m_pdata->getMaximumTag());
+        assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
         // transform a and b into indicies into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
-
-        assert(idx_a <= m_pdata->getN()+m_pdata->getNGhosts());
-        assert(idx_b <= m_pdata->getN()+m_pdata->getNGhosts());
 
         if (idx_a >= max_local || idx_b >= max_local)
             {
@@ -168,8 +160,8 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             {
             // lookup the tag of each of the particles participating in the constraint
             const ConstraintData::members_t constraint_m = m_cdata->getMembersByIndex(m);
-            assert(constraint_m.tag[0] < m_pdata->getMaximumTag());
-            assert(constraint_m.tag[1] < m_pdata->getMaximumTag());
+            assert(constraint_m.tag[0] <= m_pdata->getMaximumTag());
+            assert(constraint_m.tag[1] <= m_pdata->getMaximumTag());
 
             // transform a and b into indicies into the particle data arrays
             // (MEM TRANSFER: 4 integers)
@@ -599,10 +591,10 @@ void ForceDistanceConstraint::assignMoleculeTags()
     m_n_molecules_global = molecule;
     }
 
-void export_ForceDistanceConstraint()
+void export_ForceDistanceConstraint(py::module& m)
     {
-    class_< ForceDistanceConstraint, boost::shared_ptr<ForceDistanceConstraint>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceDistanceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceDistanceConstraint, std::shared_ptr<ForceDistanceConstraint> >(m, "ForceDistanceConstraint", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setRelativeTolerance", &ForceDistanceConstraint::setRelativeTolerance)
     ;
     }

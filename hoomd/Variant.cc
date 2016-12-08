@@ -12,8 +12,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 VariantLinear::VariantLinear()
@@ -91,14 +90,17 @@ double VariantLinear::getValue(unsigned int timestep)
     return (1.0 - f) * va + f * vb;
     }
 
-void export_Variant()
+void export_Variant(py::module& m)
     {
-    class_<Variant, boost::shared_ptr<Variant> >("Variant", init< >())
+    py::class_<Variant, std::shared_ptr<Variant> >(m,"Variant")
+    .def(py::init< >())
     .def("getValue", &Variant::getValue)
     .def("setOffset", &Variant::setOffset);
 
-    class_<VariantConst, boost::shared_ptr<VariantConst>, bases<Variant> >("VariantConst", init< double >());
+    py::class_<VariantConst, std::shared_ptr<VariantConst> >(m,"VariantConst",py::base<Variant>())
+    .def(py::init< double >());
 
-    class_<VariantLinear, boost::shared_ptr<VariantLinear>, bases<Variant> >("VariantLinear", init< >())
+    py::class_<VariantLinear, std::shared_ptr<VariantLinear> >(m,"VariantLinear",py::base<Variant>())
+    .def(py::init< >())
     .def("setPoint", &VariantLinear::setPoint);
     }

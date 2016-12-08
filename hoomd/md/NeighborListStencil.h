@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTSTENCIL_H__
 #define __NEIGHBORLISTSTENCIL_H__
 
@@ -29,11 +31,11 @@ class NeighborListStencil : public NeighborList
     {
     public:
         //! Constructs the compute
-        NeighborListStencil(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListStencil(std::shared_ptr<SystemDefinition> sysdef,
                             Scalar r_cut,
                             Scalar r_buff,
-                            boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>(),
-                            boost::shared_ptr<CellListStencil> cls = boost::shared_ptr<CellListStencil>());
+                            std::shared_ptr<CellList> cl = std::shared_ptr<CellList>(),
+                            std::shared_ptr<CellListStencil> cls = std::shared_ptr<CellListStencil>());
 
         //! Destructor
         virtual ~NeighborListStencil();
@@ -60,11 +62,10 @@ class NeighborListStencil : public NeighborList
         virtual void buildNlist(unsigned int timestep);
 
     private:
-        boost::shared_ptr<CellList> m_cl;           //!< The cell list
-        boost::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
+        std::shared_ptr<CellList> m_cl;           //!< The cell list
+        std::shared_ptr<CellListStencil> m_cls;   //!< The cell list stencil
         bool m_override_cell_width;                 //!< Flag to override the cell width
 
-        boost::signals2::connection m_rcut_change_conn;     //!< Connection to the cutoff radius changing
         bool m_needs_restencil;                             //!< Flag for updating the stencil
         void slotRCutChange()
             {
@@ -76,6 +77,6 @@ class NeighborListStencil : public NeighborList
     };
 
 //! Exports NeighborListStencil to python
-void export_NeighborListStencil();
+void export_NeighborListStencil(pybind11::module& m);
 
 #endif // __NEIGHBORLISTSTENCIL_H__

@@ -106,14 +106,14 @@ sub process_file_lines
         {
         $message .= "lines overlength:    $overlength_count\n";
         }
-    if (!$has_doxygen_file && !($fname =~ /\.py$/ or $fullpath =~ /\/test\//))
-        {
-        $message .= "missing doxygen \\file\n";
-        }
-    if (!$has_doxygen_package && ($fullpath =~ /\/python-module\//))
-        {
-        $message .= "missing doxygen \\package\n";
-        }
+    # if (!$has_doxygen_file && !($fname =~ /\.py$/ or $fullpath =~ /\/test\//))
+    #    {
+    #    $message .= "missing doxygen \\file\n";
+    #    }
+    #if (!$has_doxygen_package && ($fullpath =~ /\/python-module\//))
+    #    {
+    #    $message .= "missing doxygen \\package\n";
+    #    }
 
     #if (not $last_line =~ /^\n/)
     #    {

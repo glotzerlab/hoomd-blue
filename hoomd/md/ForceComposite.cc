@@ -9,8 +9,7 @@
 
 #include <map>
 #include <string.h>
-
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 /*! \file ForceComposite.cc
     \brief Contains code for the ForceComposite class
@@ -18,13 +17,13 @@
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
+ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&ForceComposite::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
 
-    m_global_ptl_num_change_connection = m_pdata->connectGlobalParticleNumberChange(boost::bind(&ForceComposite::slotPtlsAddedRemoved, this));
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -49,12 +48,12 @@ ForceComposite::ForceComposite(boost::shared_ptr<SystemDefinition> sysdef)
 ForceComposite::~ForceComposite()
     {
     // disconnect from signal in ParticleData;
-    m_num_type_change_connection.disconnect();
-
-    m_global_ptl_num_change_connection.disconnect();
-
-    if (m_comm_ghost_layer_connection.connected())
-        m_comm_ghost_layer_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    #ifdef ENABLE_MPI
+    if (m_comm_ghost_layer_connected)
+        m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+    #endif
     }
 
 void ForceComposite::setParam(unsigned int body_typeid,
@@ -160,22 +159,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
         assert(m_d_max_changed.size() > body_typeid);
 
         // make sure central particle will be communicated
-        m_d_max[body_typeid] = Scalar(0.0);
-
-        for (unsigned int i = 0; i < pos.size(); ++i)
-            {
-            Scalar3 dr = pos[i];
-
-            // it would suffice to pull in central particles within R=|dr| from the boundary
-            // however, to account for boundary cases where it is exactly at R, we still
-            // need to update local constituent particles, so multiply by two to be safe
-            Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
-
-            if (d > m_d_max[body_typeid])
-                {
-                m_d_max[body_typeid] = d;
-                }
-            }
+        m_d_max_changed[body_typeid] = true;
 
         // also update diameter on constituent particles
         for (unsigned int i = 0; i < type.size(); ++i)
@@ -217,11 +201,6 @@ void ForceComposite::slotNumTypesChange()
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
-    // the default ghost layer is there to ensure that constituent particles are always
-    // communicated for every central particle
-
-    // central particle may stick out a particle radius from the boundary, therefore constituent
-    // particles can be found within 2*R
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -238,7 +217,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = false;
+            bool is_part_of_body = body_type == type;
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
                 if (h_body_type.data[m_body_idx(body_type,i)] == type)
@@ -251,12 +230,29 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                 {
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
+                    if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
 
+                    // distance to central particle 
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+                    Scalar d = sqrt(dot(dr,dr));
                     if (d > m_d_max[type])
                         {
                         m_d_max[type] = d;
+                        }
+
+                    if (body_type != type) 
+                        {
+                        // for non-central particles, distance to every other particle
+                        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                            { 
+                            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+                            d = sqrt(dot(dr,dr));
+
+                            if (d > m_d_max[type])
+                                {
+                                m_d_max[type] = d;
+                                }
+                            }
                         }
                     }
                 }
@@ -659,6 +655,14 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(unsigned int timestep)
     {
+    // access local molecule data
+    // need to move this on top because of scoping issues
+    Index2D molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
+
+    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
+
     // access particle data
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -675,14 +679,6 @@ void ForceComposite::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
-
-    // for each local body
-    Index2D molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
-
-    // access local molecule data
-    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
 
     // access rigid body definition
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -824,6 +820,11 @@ void ForceComposite::computeForces(unsigned int timestep)
 
 void ForceComposite::updateCompositeParticles(unsigned int timestep)
     {
+    // access molecule order (this needs to be on top because of ArrayHandle scope)
+    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
+
     // access the particle data arrays
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
@@ -837,11 +838,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    // access molecule order
-    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
@@ -898,8 +894,8 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
                     << std::endl << std::endl;
                 throw std::runtime_error("Error while updating constituent particles.\n");
                 }
-    
-            // otherwise we must ignore it 
+
+            // otherwise we must ignore it
             continue;
             }
 
@@ -930,10 +926,10 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         }
     }
 
-void export_ForceComposite()
+void export_ForceComposite(py::module& m)
     {
-    class_< ForceComposite, boost::shared_ptr<ForceComposite>, bases<MolecularForceCompute>, boost::noncopyable >
-    ("ForceComposite", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceComposite, std::shared_ptr<ForceComposite> >(m, "ForceComposite", py::base<MolecularForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition> >())
         .def("setParam", &ForceComposite::setParam)
         .def("validateRigidBodies", &ForceComposite::validateRigidBodies)
     ;

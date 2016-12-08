@@ -4,7 +4,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 /*! \file EAMForceCompute.h
     \brief Declares the EAMForceCompute class
@@ -13,6 +13,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
@@ -35,13 +37,13 @@ class EAMForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        EAMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
+        EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
 
         //! Destructor
         virtual ~EAMForceCompute();
 
         //! Sets the neighbor list to be used for the EAM force
-        virtual void set_neighbor_list(boost::shared_ptr<NeighborList> nlist);
+        virtual void set_neighbor_list(std::shared_ptr<NeighborList> nlist);
 
         //! Get the r cut value read from the EAM potential file
         virtual Scalar get_r_cut();
@@ -57,7 +59,7 @@ class EAMForceCompute : public ForceCompute
 
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;       //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;       //!< The neighborlist to use for the computation
         Scalar m_r_cut;                                //!< Cuttoff radius beyond which the force is set to 0
         unsigned int m_ntypes;                         //!< Store the width and height of lj1 and lj2 here
 
@@ -89,14 +91,9 @@ class EAMForceCompute : public ForceCompute
             m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
             throw std::runtime_error("Unsupported feature");
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
     };
 
 //! Exports the EAMForceCompute class to python
-void export_EAMForceCompute();
+void export_EAMForceCompute(pybind11::module& m);
 
 #endif

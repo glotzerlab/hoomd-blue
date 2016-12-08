@@ -5,8 +5,7 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
+#include <functional>
 
 #include "hoomd/ConstForceCompute.h"
 #include "hoomd/md/TwoStepNVTMTK.h"
@@ -26,50 +25,49 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file nvt_updater_test.cc
     \brief Implements unit tests for NVTUpdater and descendants
     \ingroup unit_tests
 */
 
-//! name the boost unit test module
-#define BOOST_TEST_MODULE NVTUpdaterTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 
 //! Typedef'd NVTUpdator class factory
-typedef boost::function<boost::shared_ptr<TwoStepNVTMTK> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                 boost::shared_ptr<ParticleGroup> group,
-                                                 boost::shared_ptr<ComputeThermo> thermo,
+typedef std::function<std::shared_ptr<TwoStepNVTMTK> (std::shared_ptr<SystemDefinition> sysdef,
+                                                 std::shared_ptr<ParticleGroup> group,
+                                                 std::shared_ptr<ComputeThermo> thermo,
                                                  Scalar Q,
                                                  Scalar T)> twostepnvt_creator;
 
 //! NVTUpdater creator
-boost::shared_ptr<TwoStepNVTMTK> base_class_nvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                              boost::shared_ptr<ParticleGroup> group,
-                                              boost::shared_ptr<ComputeThermo> thermo,
+std::shared_ptr<TwoStepNVTMTK> base_class_nvt_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                              std::shared_ptr<ParticleGroup> group,
+                                              std::shared_ptr<ComputeThermo> thermo,
                                               Scalar Q,
                                               Scalar T)
     {
-    boost::shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return boost::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTK(sysdef, group, thermo, Q, T_variant));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return std::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTK(sysdef, group, thermo, Q, T_variant));
     }
 
 #ifdef ENABLE_CUDA
 //! NVTUpdaterGPU factory for the unit tests
-boost::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                       boost::shared_ptr<ParticleGroup> group,
-                                       boost::shared_ptr<ComputeThermo> thermo,
+std::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                       std::shared_ptr<ParticleGroup> group,
+                                       std::shared_ptr<ComputeThermo> thermo,
                                        Scalar Q,
                                        Scalar T)
     {
-    boost::shared_ptr<VariantConst> T_variant(new VariantConst(T));
-    return boost::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTKGPU(sysdef, group, thermo, Q, T_variant));
+    std::shared_ptr<VariantConst> T_variant(new VariantConst(T));
+    return std::shared_ptr<TwoStepNVTMTK>(new TwoStepNVTMTKGPU(sysdef, group, thermo, Q, T_variant));
     }
 #endif
 
-void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
+void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
 {
     // initialize random particle system
     Scalar phi_p = 0.2;
@@ -81,25 +79,25 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     types.push_back("A");
     std::vector<unsigned int> bonds;
     std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
+    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
     rand_init.setSeparationRadius("A", .4);
 
     rand_init.generate();
 
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
-    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+    std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
     Scalar r_buff = Scalar(0.8);
-    boost::shared_ptr<NeighborListTree> nlist_1(new NeighborListTree(sysdef_1, r_cut, r_buff));
+    std::shared_ptr<NeighborListTree> nlist_1(new NeighborListTree(sysdef_1, r_cut, r_buff));
     nlist_1->setRCutPair(0,0,r_cut);
     nlist_1->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairLJ> fc_1 = boost::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef_1, nlist_1));
+    std::shared_ptr<PotentialPairLJ> fc_1 = std::shared_ptr<PotentialPairLJ>(new PotentialPairLJ(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 
@@ -117,13 +115,13 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
     Scalar deltaT = Scalar(0.004);
     Scalar T_ref = Scalar(1.0);
     Scalar tau = Scalar(0.5);
-    boost::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
-    boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+    std::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    std::shared_ptr<ComputeThermo> thermo_1 = std::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
 
     // ComputeThermo for integrator
-    boost::shared_ptr<ComputeThermo> thermo_nvt = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+    std::shared_ptr<ComputeThermo> thermo_nvt = std::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
 
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
 ;
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
@@ -178,14 +176,14 @@ void test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration> exec_conf
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
-        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
     avg_T /= n_measure_steps;
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T, T_tol);
     }
 
-void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
+void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
 {
     // initialize random particle system
     Scalar phi_p = 0.2;
@@ -197,29 +195,29 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     types.push_back("A");
     std::vector<unsigned int> bonds;
     std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, boost::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
+    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
     rand_init.setSeparationRadius("A", .5);
 
     rand_init.generate();
 
-    boost::shared_ptr<SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr<SnapshotSystemData<Scalar> > snap;
     snap = rand_init.getSnapshot();
 
     // have to set moment of inertia to actually test aniso integration
     for(unsigned int i(0); i < snap->particle_data.size; ++i)
         snap->particle_data.inertia[i] = vec3<Scalar>(1.0, 1.0, 1.0);
 
-    boost::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
-    boost::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
+    std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all_1(new ParticleSelectorTag(sysdef_1, 0, pdata_1->getNGlobal()-1));
+    std::shared_ptr<ParticleGroup> group_all_1(new ParticleGroup(sysdef_1, selector_all_1));
 
     Scalar r_cut = Scalar(3.0);
     Scalar r_buff = Scalar(0.4);
-    boost::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
+    std::shared_ptr<NeighborList> nlist_1(new NeighborListBinned(sysdef_1, r_cut, r_buff));
 
     nlist_1->setStorageMode(NeighborList::full);
-    boost::shared_ptr<AnisoPotentialPairGB> fc_1 = boost::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
+    std::shared_ptr<AnisoPotentialPairGB> fc_1 = std::shared_ptr<AnisoPotentialPairGB>(new AnisoPotentialPairGB(sysdef_1, nlist_1));
 
     fc_1->setRcut(0, 0, r_cut);
 
@@ -235,13 +233,13 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
     Scalar deltaT = Scalar(0.0025);
     Scalar T_ref = Scalar(1.0);
     Scalar tau = Scalar(0.5);
-    boost::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
-    boost::shared_ptr<ComputeThermo> thermo_1 = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+    std::shared_ptr<IntegratorTwoStep> nvt_1(new IntegratorTwoStep(sysdef_1, deltaT));
+    std::shared_ptr<ComputeThermo> thermo_1 = std::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
 
     // ComputeThermo for integrator
-    boost::shared_ptr<ComputeThermo> thermo_nvt = boost::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
+    std::shared_ptr<ComputeThermo> thermo_nvt = std::shared_ptr<ComputeThermo>(new ComputeThermo(sysdef_1,group_all_1));
 
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt_1 = nvt_creator(sysdef_1, group_all_1, thermo_nvt, tau, T_ref);
 ;
     nvt_1->addIntegrationMethod(two_step_nvt_1);
     nvt_1->addForceCompute(fc_1);
@@ -305,47 +303,47 @@ void test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration> exe
 
         Scalar H = thermo_1->getKineticEnergy() + thermo_1->getPotentialEnergy();
         H += nvt_1->getLogValue("nvt_mtk_reservoir_energy", flag);
-        MY_BOOST_CHECK_CLOSE(H_ini,H, H_tol);
+        MY_CHECK_CLOSE(H_ini,H, H_tol);
         }
 
     avg_T /= n_measure_steps;
     avg_T_trans /= n_measure_steps;
     avg_T_rot /= n_measure_steps;
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T, T_tol);
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_trans, T_tol);
-    MY_BOOST_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T_trans, T_tol);
+    MY_CHECK_CLOSE(T_ref, avg_T_rot, T_tol);
     }
 
 
 //! Compares the output from one NVTUpdater to another
-void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creator nvt_creator2, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 1000;
 
     // create two identical random particle systems to simulate
     RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
     rand_init.setSeed(12345);
     snap = rand_init.getSnapshot();
 
-    boost::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
+    std::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all1(new ParticleGroup(sysdef1, selector_all1));
 
-    boost::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
-    boost::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
-    boost::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
+    std::shared_ptr<SystemDefinition> sysdef2(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata2 = sysdef2->getParticleData();
+    std::shared_ptr<ParticleSelector> selector_all2(new ParticleSelectorTag(sysdef2, 0, pdata2->getN()-1));
+    std::shared_ptr<ParticleGroup> group_all2(new ParticleGroup(sysdef2, selector_all2));
 
-    boost::shared_ptr<NeighborListTree> nlist1(new NeighborListTree(sysdef1, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist1(new NeighborListTree(sysdef1, Scalar(3.0), Scalar(0.8)));
     nlist1->setRCutPair(0,0,3.0);
-    boost::shared_ptr<NeighborListTree> nlist2(new NeighborListTree(sysdef2, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist2(new NeighborListTree(sysdef2, Scalar(3.0), Scalar(0.8)));
     nlist2->setRCutPair(0,0,3.0);
 
-    boost::shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
+    std::shared_ptr<PotentialPairLJ> fc1(new PotentialPairLJ(sysdef1, nlist1));
     fc1->setRcut(0, 0, Scalar(3.0));
-    boost::shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
+    std::shared_ptr<PotentialPairLJ> fc2(new PotentialPairLJ(sysdef2, nlist2));
     fc2->setRcut(0, 0, Scalar(3.0));
 
 
@@ -360,16 +358,16 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     fc1->setParams(0,0,make_scalar2(lj1,lj2));
     fc2->setParams(0,0,make_scalar2(lj1,lj2));
 
-    boost::shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.002)));
-    boost::shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
+    std::shared_ptr<IntegratorTwoStep> nvt1(new IntegratorTwoStep(sysdef1, Scalar(0.002)));
+    std::shared_ptr<ComputeThermo> thermo1(new ComputeThermo(sysdef1, group_all1));
     thermo1->setNDOF(3*N-3);
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt1 = nvt_creator1(sysdef1, group_all1, thermo1, Scalar(0.5), Scalar(1.2));
     nvt1->addIntegrationMethod(two_step_nvt1);
 
-    boost::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.002)));
-    boost::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
+    std::shared_ptr<IntegratorTwoStep> nvt2(new IntegratorTwoStep(sysdef2, Scalar(0.002)));
+    std::shared_ptr<ComputeThermo> thermo2(new ComputeThermo(sysdef2, group_all2));
     thermo2->setNDOF(3*N-3);
-    boost::shared_ptr<TwoStepNVTMTK> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
+    std::shared_ptr<TwoStepNVTMTK> two_step_nvt2 = nvt_creator2(sysdef2, group_all2, thermo2, Scalar(0.5), Scalar(1.2));
     nvt2->addIntegrationMethod(two_step_nvt2);
 
     nvt1->addForceCompute(fc1);
@@ -396,17 +394,17 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
         // check position, velocity and acceleration
         for (unsigned int j = 0; j < N; j++)
             {
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].x, h_pos2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].y, h_pos2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_pos1.data[j].z, h_pos2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].x, h_vel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].y, h_vel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_vel1.data[j].z, h_vel2.data[j].z, rough_tol);
 
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
-            MY_BOOST_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].x, h_accel2.data[j].x, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].y, h_accel2.data[j].y, rough_tol);
+            MY_CHECK_CLOSE(h_accel1.data[j].z, h_accel2.data[j].z, rough_tol);
             }
 
         }
@@ -416,36 +414,36 @@ void nvt_updater_compare_test(twostepnvt_creator nvt_creator1, twostepnvt_creato
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTK
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_test )
+UP_TEST( TwoStepNVTMTK_basic_test )
     {
-    test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
+    test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTK
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTK_basic_aniso_test )
+UP_TEST( TwoStepNVTMTK_basic_aniso_test )
     {
-    test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
+    test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),bind(base_class_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 #ifdef ENABLE_CUDA
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_test )
+UP_TEST( TwoStepNVTMTKGPU_basic_test )
     {
-    test_nvt_mtk_integrator(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
+    test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
 //! Performs a basic equilibration test of TwoStepNVTMTKGPU
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_basic_aniso_test )
+UP_TEST( TwoStepNVTMTKGPU_basic_aniso_test )
     {
-    test_nvt_mtk_integrator_aniso(boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
+    test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)),bind(gpu_nvt_creator, _1, _2, _3, _4, _5));
     }
 
-//! boost test case for comparing the GPU and CPU NVTUpdaters
-BOOST_AUTO_TEST_CASE( TwoStepNVTMTKGPU_comparison_tests)
+//! test case for comparing the GPU and CPU NVTUpdaters
+UP_TEST( TwoStepNVTMTKGPU_comparison_tests)
     {
     twostepnvt_creator nvt_creator_gpu = bind(gpu_nvt_creator, _1, _2, _3, _4, _5);
     twostepnvt_creator nvt_creator = bind(base_class_nvt_creator, _1, _2, _3, _4, _5);
-    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    nvt_updater_compare_test(nvt_creator, nvt_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

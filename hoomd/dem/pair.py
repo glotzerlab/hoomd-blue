@@ -102,6 +102,37 @@ class _DEMBase:
         self.cpp_force.setRcut(self.r_cut);
         self.cpp_force.setParams(itype, vertices, faces);
 
+    def get_type_shapes(self):
+        """Returns a list of shape descriptions with one element for each
+        unique particle type in the system. Currently assumes that all
+        3D shapes are convex.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.vertices[typename]
+            if self.dimensions == 2:
+                if len(shape) < 2:
+                    result.append(dict(type='Disk',
+                                       diameter=2*self.radius))
+                else:
+                    result.append(dict(type='Polygon',
+                                       rounding_radius=self.radius,
+                                       vertices=list(shape)))
+            else:
+                if len(shape) < 2:
+                    result.append(dict(type='Sphere',
+                                       diameter=2*self.radius))
+                else:
+                    result.append(dict(type='ConvexPolyhedron',
+                                       rounding_radius=self.radius,
+                                       vertices=list(shape)))
+
+        return result
+
 class WCA(hoomd.md.force._force, _DEMBase):
     R"""Specify a purely repulsive Weeks-Chandler-Andersen DEM force with a constant rounding radius.
 

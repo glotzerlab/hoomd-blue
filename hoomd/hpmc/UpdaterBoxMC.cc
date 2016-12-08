@@ -3,8 +3,7 @@
 
 #include "UpdaterBoxMC.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 /*! \file UpdaterBoxMC.cc
     \brief Definition of UpdaterBoxMC
@@ -13,9 +12,9 @@ using namespace boost::python;
 namespace hpmc
 {
 
-UpdaterBoxMC::UpdaterBoxMC(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMC> mc,
-                             boost::shared_ptr<Variant> P,
+UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMC> mc,
+                             std::shared_ptr<Variant> P,
                              const Scalar frequency,
                              const unsigned int seed)
         : Updater(sysdef),
@@ -45,14 +44,14 @@ UpdaterBoxMC::UpdaterBoxMC(boost::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
 
     // Connect to the MaxParticleNumberChange signal
-    m_maxparticlenumberchange_connection = m_pdata->connectMaxParticleNumberChange(boost::bind(&UpdaterBoxMC::slotMaxNChange, this));
+    m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
 
     }
 
 UpdaterBoxMC::~UpdaterBoxMC()
     {
     m_exec_conf->msg->notice(5) << "Destroying UpdaterBoxMC" << std::endl;
-    m_maxparticlenumberchange_connection.disconnect();
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
     }
 
 /*! hpmc::UpdaterBoxMC provides:
@@ -491,23 +490,18 @@ void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
         // Calculate Boltzmann factor
         double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
         double Boltzmann = exp(dBetaH);
-        double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
-                                      newL[1],
-                                      newL[2],
-                                      newShear[0],
-                                      newShear[1],
-                                      newShear[2],
-                                      timestep,
-                                      Boltzmann,
-                                      rng
-                                      );
-            }
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
+                                  newL[1],
+                                  newL[2],
+                                  newShear[0],
+                                  newShear[1],
+                                  newShear[2],
+                                  timestep,
+                                  Boltzmann,
+                                  rng
+                                  );
 
         if (accept)
             {
@@ -587,13 +581,9 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
         // Calculate Boltzmann factor
         double dBetaH = -P * dV + Nglobal * log(Vnew/V);
         double Boltzmann = exp(dBetaH);
-        double p = rng.d();
 
-        bool accept = false;
-        if (p < Boltzmann)
-            {
-            // attempt box change
-            accept = box_resize_trial(newL[0],
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
                                       newL[1],
                                       newL[2],
                                       newShear[0],
@@ -602,7 +592,6 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
                                       timestep,
                                       Boltzmann,
                                       rng);
-            }
 
         if (accept)
             {
@@ -754,12 +743,12 @@ hpmc_boxmc_counters_t UpdaterBoxMC::getCounters(unsigned int mode)
     return result;
     }
 
-void export_UpdaterBoxMC()
+void export_UpdaterBoxMC(py::module& m)
     {
-    class_< UpdaterBoxMC, boost::shared_ptr< UpdaterBoxMC >, bases<Updater>, boost::noncopyable>
-    ("UpdaterBoxMC", init< boost::shared_ptr<SystemDefinition>,
-                         boost::shared_ptr<IntegratorHPMC>,
-                         boost::shared_ptr<Variant>,
+   py::class_< UpdaterBoxMC, std::shared_ptr< UpdaterBoxMC > >(m, "UpdaterBoxMC", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                         std::shared_ptr<IntegratorHPMC>,
+                         std::shared_ptr<Variant>,
                          Scalar,
                          const unsigned int >())
     .def("volume", &UpdaterBoxMC::volume)
@@ -781,7 +770,7 @@ void export_UpdaterBoxMC()
     .def("getCounters", &UpdaterBoxMC::getCounters)
     ;
 
-    class_< hpmc_boxmc_counters_t >("hpmc_boxmc_counters_t")
+   py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
     .def_readwrite("volume_accept_count", &hpmc_boxmc_counters_t::volume_accept_count)
     .def_readwrite("volume_reject_count", &hpmc_boxmc_counters_t::volume_reject_count)
     .def_readwrite("shear_accept_count", &hpmc_boxmc_counters_t::shear_accept_count)

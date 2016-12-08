@@ -16,6 +16,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __NEIGHBORLISTGPUBINNED_H__
 #define __NEIGHBORLISTGPUBINNED_H__
 
@@ -30,10 +32,10 @@ class NeighborListGPUBinned : public NeighborListGPU
     {
     public:
         //! Constructs the compute
-        NeighborListGPUBinned(boost::shared_ptr<SystemDefinition> sysdef,
+        NeighborListGPUBinned(std::shared_ptr<SystemDefinition> sysdef,
                               Scalar r_cut,
                               Scalar r_buff,
-                              boost::shared_ptr<CellList> cl = boost::shared_ptr<CellList>());
+                              std::shared_ptr<CellList> cl = std::shared_ptr<CellList>());
 
         //! Destructor
         virtual ~NeighborListGPUBinned();
@@ -65,17 +67,17 @@ class NeighborListGPUBinned : public NeighborListGPU
         virtual void setMaximumDiameter(Scalar d_max);
 
     protected:
-        boost::shared_ptr<CellList> m_cl;   //!< The cell list
+        std::shared_ptr<CellList> m_cl;   //!< The cell list
         unsigned int m_block_size;          //!< Block size to execute on the GPU
         unsigned int m_param;               //!< Kernel tuning parameter
 
-        boost::scoped_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size and threads per particle
 
         //! Builds the neighbor list
         virtual void buildNlist(unsigned int timestep);
     };
 
 //! Exports NeighborListGPUBinned to python
-void export_NeighborListGPUBinned();
+void export_NeighborListGPUBinned(pybind11::module& m);
 
 #endif

@@ -19,6 +19,10 @@
 
 #include "IntegratorHPMC.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 namespace hpmc
 {
 
@@ -39,9 +43,9 @@ class UpdaterBoxMC : public Updater
 
             Variant parameters are possible, but changing MC parameters violates detailed balance.
         */
-        UpdaterBoxMC(boost::shared_ptr<SystemDefinition> sysdef,
-                      boost::shared_ptr<IntegratorHPMC> mc,
-                      boost::shared_ptr<Variant> P,
+        UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
+                      std::shared_ptr<IntegratorHPMC> mc,
+                      std::shared_ptr<Variant> P,
                       const Scalar frequency,
                       const unsigned int seed);
 
@@ -128,13 +132,13 @@ class UpdaterBoxMC : public Updater
         //! Get pressure parameter
         /*! \returns pressure variant object
         */
-        boost::shared_ptr<Variant> getP()
+        std::shared_ptr<Variant> getP()
             {
             return m_P;
             }
 
         //! Set pressure parameter
-        void setP(const boost::shared_ptr<Variant>& betaP)
+        void setP(const std::shared_ptr<Variant>& betaP)
             {
             m_P = betaP;
             }
@@ -227,21 +231,21 @@ class UpdaterBoxMC : public Updater
             }
 
         //! Get box length trial parameters
-        boost::python::tuple get_length_delta() const
+        pybind11::tuple get_length_delta() const
             {
-            return boost::python::make_tuple(m_Length_delta[0], m_Length_delta[1], m_Length_delta[2]);
+            return pybind11::make_tuple(m_Length_delta[0], m_Length_delta[1], m_Length_delta[2]);
             }
 
         //! Get box shear trial parameters
-        boost::python::tuple get_shear_delta() const
+        pybind11::tuple get_shear_delta() const
             {
-            return boost::python::make_tuple(m_Shear_delta[0], m_Shear_delta[1], m_Shear_delta[2]);
+            return pybind11::make_tuple(m_Shear_delta[0], m_Shear_delta[1], m_Shear_delta[2]);
             }
 
 
     private:
-        boost::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
-        boost::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
+        std::shared_ptr<IntegratorHPMC> m_mc;     //!< HPMC integrator object
+        std::shared_ptr<Variant> m_P;             //!< Reduced pressure in isobaric ensembles
         Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
         Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
@@ -260,8 +264,6 @@ class UpdaterBoxMC : public Updater
         float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
-        boost::signals2::connection m_maxparticlenumberchange_connection;
-                                                    //!< Connection to MaxParticleNumberChange signal
 
         hpmc_boxmc_counters_t m_count_total;          //!< Accept/reject total count
         hpmc_boxmc_counters_t m_count_run_start;      //!< Count saved at run() start
@@ -295,7 +297,7 @@ class UpdaterBoxMC : public Updater
     };
 
 //! Export UpdaterBoxMC to Python
-void export_UpdaterBoxMC();
+void export_UpdaterBoxMC(pybind11::module& m);
 
 } // end namespace hpmc
 

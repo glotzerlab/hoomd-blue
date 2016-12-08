@@ -7,8 +7,8 @@
 #include "HarmonicImproperForceGPU.cuh"
 #include "hoomd/Autotuner.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/signals2.hpp>
+#include <memory>
+#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
 /*! \file HarmonicImproperForceComputeGPU.h
     \brief Declares the HarmonicImproperForceGPU class
@@ -37,7 +37,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicImproperForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef);
         //! Destructor
         ~HarmonicImproperForceComputeGPU();
 
@@ -56,7 +56,7 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
         virtual void setParams(unsigned int type, Scalar K, Scalar chi);
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size
+        std::unique_ptr<Autotuner> m_tuner;   //!< Autotuner for block size
         GPUArray<Scalar2>  m_params;          //!< Parameters stored on the GPU (k,chi)
 
         //! Actually compute the forces
@@ -64,6 +64,6 @@ class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
     };
 
 //! Export the ImproperForceComputeGPU class to python
-void export_HarmonicImproperForceComputeGPU();
+void export_HarmonicImproperForceComputeGPU(pybind11::module& m);
 
 #endif

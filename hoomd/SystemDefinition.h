@@ -16,7 +16,9 @@
 #include "IntegratorData.h"
 #include "BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 
 #ifndef __SYSTEM_DEFINITION_H__
 #define __SYSTEM_DEFINITION_H__
@@ -25,6 +27,7 @@
 //! Forward declaration of Communicator
 class Communicator;
 #endif
+
 
 //! Forward declaration of SnapshotSytemData
 template <class Real> struct SnapshotSystemData;
@@ -52,7 +55,7 @@ template <class Real> struct SnapshotSystemData;
     \b good \b thing ^TM, as it promotes good separation and isolation of the various classes responsibilities.
 
     In rare circumstances, a references back really is required (i.e. notification of referring classes when
-    ParticleData resorts particles). Any event based notifications of such should be managed with boost::signals2.
+    ParticleData resorts particles). Any event based notifications of such should be managed with Nano::Signal.
     Any ongoing references where two data structure classes are so interwoven that they must constantly refer to
     each other should be avoided (consider merging them into one class).
 
@@ -79,14 +82,14 @@ class SystemDefinition
                          unsigned int n_angle_types=0,
                          unsigned int n_dihedral_types=0,
                          unsigned int n_improper_types=0,
-                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
-                         boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
+                         std::shared_ptr<ExecutionConfiguration> exec_conf=std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                         std::shared_ptr<DomainDecomposition> decomposition=std::shared_ptr<DomainDecomposition>());
 
         //! Construct from a snapshot
         template <class Real>
-        SystemDefinition(boost::shared_ptr<SnapshotSystemData<Real> > snapshot,
-                         boost::shared_ptr<ExecutionConfiguration> exec_conf=boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
-                         boost::shared_ptr<DomainDecomposition> decomposition=boost::shared_ptr<DomainDecomposition>());
+        SystemDefinition(std::shared_ptr<SnapshotSystemData<Real> > snapshot,
+                         std::shared_ptr<ExecutionConfiguration> exec_conf=std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration()),
+                         std::shared_ptr<DomainDecomposition> decomposition=std::shared_ptr<DomainDecomposition>());
 
         //! Set the dimensionality of the system
         void setNDimensions(unsigned int);
@@ -97,69 +100,77 @@ class SystemDefinition
             return m_n_dimensions;
             }
         //! Get the particle data
-        boost::shared_ptr<ParticleData> getParticleData() const
+        std::shared_ptr<ParticleData> getParticleData() const
             {
             return m_particle_data;
             }
         //! Get the bond data
-        boost::shared_ptr<BondData> getBondData() const
+        std::shared_ptr<BondData> getBondData() const
             {
             return m_bond_data;
             }
         //! Access the angle data defined for the simulation
-        boost::shared_ptr<AngleData> getAngleData()
+        std::shared_ptr<AngleData> getAngleData()
             {
             return m_angle_data;
             }
         //! Access the dihedral data defined for the simulation
-        boost::shared_ptr<DihedralData> getDihedralData()
+        std::shared_ptr<DihedralData> getDihedralData()
             {
             return m_dihedral_data;
             }
         //! Access the improper data defined for the simulation
-        boost::shared_ptr<ImproperData> getImproperData()
+        std::shared_ptr<ImproperData> getImproperData()
             {
             return m_improper_data;
             }
 
         //! Access the constraint data defined for the simulation
-        boost::shared_ptr<ConstraintData> getConstraintData()
+        std::shared_ptr<ConstraintData> getConstraintData()
             {
             return m_constraint_data;
             }
 
         //! Returns the integrator variables (if applicable)
-        boost::shared_ptr<IntegratorData> getIntegratorData()
+        std::shared_ptr<IntegratorData> getIntegratorData()
             {
             return m_integrator_data;
             }
 
+        //! Get the pair data
+        std::shared_ptr<PairData> getPairData() const
+            {
+            return m_pair_data;
+            }
+
         //! Return a snapshot of the current system data
         template <class Real>
-        boost::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles,
+        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles,
                                                            bool bonds,
                                                            bool angles,
                                                            bool dihedrals,
                                                            bool impropers,
                                                            bool constraints,
-                                                           bool integrators);
+                                                           bool integrators,
+                                                           bool pairs);
 
         //! Re-initialize the system from a snapshot
         template <class Real>
-        void initializeFromSnapshot(boost::shared_ptr< SnapshotSystemData<Real> > snapshot);
+        void initializeFromSnapshot(std::shared_ptr< SnapshotSystemData<Real> > snapshot);
 
     private:
         unsigned int m_n_dimensions;                        //!< Dimensionality of the system
-        boost::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
-        boost::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
-        boost::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
-        boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
-        boost::shared_ptr<ImproperData> m_improper_data;    //!< Improper data for the system
-        boost::shared_ptr<ConstraintData> m_constraint_data;//!< Improper data for the system
-        boost::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
+        std::shared_ptr<ParticleData> m_particle_data;    //!< Particle data for the system
+        std::shared_ptr<BondData> m_bond_data;            //!< Bond data for the system
+        std::shared_ptr<AngleData> m_angle_data;          //!< Angle data for the system
+        std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data for the system
+        std::shared_ptr<ImproperData> m_improper_data;    //!< Improper data for the system
+        std::shared_ptr<ConstraintData> m_constraint_data;//!< Improper data for the system
+        std::shared_ptr<IntegratorData> m_integrator_data;    //!< Integrator data for the system
+        std::shared_ptr<PairData> m_pair_data;            //!< Special pairs data for the system
     };
 
 //! Exports SystemDefinition to python
-void export_SystemDefinition();
+void export_SystemDefinition(pybind11::module& m);
 
 #endif

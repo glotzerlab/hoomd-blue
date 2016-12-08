@@ -8,9 +8,8 @@
 #include <iostream>
 #include <fstream>
 
-#include <boost/bind.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <functional>
+#include <memory>
 
 #include "hoomd/md/AllPairPotentials.h"
 
@@ -20,23 +19,26 @@
 #include <math.h>
 
 using namespace std;
-using namespace boost;
+using namespace std::placeholders;
 
 /*! \file morse_force_test.cc
     \brief Implements unit tests for PotentialPairMorse and descendants
     \ingroup unit_tests
 */
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE PotentialPairMorseTests
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 
 //! Typedef'd PotentialPairMorse factory
-typedef boost::function<boost::shared_ptr<PotentialPairMorse> (boost::shared_ptr<SystemDefinition> sysdef,
-                                                         boost::shared_ptr<NeighborList> nlist)> morseforce_creator;
+typedef std::function<std::shared_ptr<PotentialPairMorse> (std::shared_ptr<SystemDefinition> sysdef,
+                                                         std::shared_ptr<NeighborList> nlist)> morseforce_creator;
 
 //! Test the ability of the morse force compute to actually calucate forces
-void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void morse_force_particle_test(morseforce_creator morse_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
@@ -46,8 +48,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     // a particle and ignore a particle outside the radius
 
     // periodic boundary conditions will be handeled in another test
-    boost::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
-    boost::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
+    std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
 
     {
@@ -57,8 +59,8 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     h_pos.data[1].x = Scalar(1.0); h_pos.data[1].y = h_pos.data[1].z = 0.0;
     h_pos.data[2].x = Scalar(2.0); h_pos.data[2].y = h_pos.data[2].z = 0.0;
     }
-    boost::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
-    boost::shared_ptr<PotentialPairMorse> fc_3 = morse_creator(sysdef_3, nlist_3);
+    std::shared_ptr<NeighborListTree> nlist_3(new NeighborListTree(sysdef_3, Scalar(1.3), Scalar(3.0)));
+    std::shared_ptr<PotentialPairMorse> fc_3 = morse_creator(sysdef_3, nlist_3);
     fc_3->setRcut(0, 0, Scalar(1.3));
 
     // first test: choose a basic set of values
@@ -75,20 +77,20 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     GPUArray<Scalar>& virial_array_1 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_1(force_array_1,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_1(virial_array_1,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].x, 1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[0].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[0].w, -0.9328248052694093/2.0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[0].x, 1.1520395075261485, tol);
+    MY_CHECK_SMALL(h_force_1.data[0].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[0].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[0].w, -0.9328248052694093/2.0, tol);
 
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].x, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[1].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[1].w, -0.9328248052694093, tol);
+    MY_CHECK_SMALL(h_force_1.data[1].x, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[1].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[1].w, -0.9328248052694093, tol);
 
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].x, -1.1520395075261485, tol);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].y, tol_small);
-    MY_BOOST_CHECK_SMALL(h_force_1.data[2].z, tol_small);
-    MY_BOOST_CHECK_CLOSE(h_force_1.data[2].w, -0.9328248052694093/2.0, tol);
+    MY_CHECK_CLOSE(h_force_1.data[2].x, -1.1520395075261485, tol);
+    MY_CHECK_SMALL(h_force_1.data[2].y, tol_small);
+    MY_CHECK_SMALL(h_force_1.data[2].z, tol_small);
+    MY_CHECK_CLOSE(h_force_1.data[2].w, -0.9328248052694093/2.0, tol);
     }
 
     // swap the order of particles 0 and 2 in memory to check that the force compute handles this properly
@@ -117,28 +119,28 @@ void morse_force_particle_test(morseforce_creator morse_creator, boost::shared_p
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();
     ArrayHandle<Scalar4> h_force_2(force_array_2,access_location::host,access_mode::read);
     ArrayHandle<Scalar> h_virial_2(virial_array_2,access_location::host,access_mode::read);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[0].x, -1.1520395075261485, tol);
-    MY_BOOST_CHECK_CLOSE(h_force_2.data[2].x, 1.1520395075261485, tol);
+    MY_CHECK_CLOSE(h_force_2.data[0].x, -1.1520395075261485, tol);
+    MY_CHECK_CLOSE(h_force_2.data[2].x, 1.1520395075261485, tol);
     }
     }
 
 //! Unit test a comparison between 2 PotentialPairMorse's on a "real" system
 void morse_force_comparison_test(morseforce_creator morse_creator1,
                                   morseforce_creator morse_creator2,
-                                  boost::shared_ptr<ExecutionConfiguration> exec_conf)
+                                  std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 5000;
 
     // create a random particle system to sum forces on
     RandomInitializer rand_init(N, Scalar(0.1), Scalar(1.0), "A");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
     pdata->setFlags(~PDataFlags(0));
-    boost::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
+    std::shared_ptr<NeighborListTree> nlist(new NeighborListTree(sysdef, Scalar(3.0), Scalar(0.8)));
 
-    boost::shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
-    boost::shared_ptr<PotentialPairMorse> fc2 = morse_creator2(sysdef, nlist);
+    std::shared_ptr<PotentialPairMorse> fc1 = morse_creator1(sysdef, nlist);
+    std::shared_ptr<PotentialPairMorse> fc2 = morse_creator2(sysdef, nlist);
     fc1->setRcut(0, 0, Scalar(3.0));
     fc2->setRcut(0, 0, Scalar(3.0));
 
@@ -189,58 +191,58 @@ void morse_force_comparison_test(morseforce_creator morse_creator1,
     deltape2 /= double(pdata->getN());
     for (unsigned int j = 0; j < 6; j++)
         deltav2[j] /= double(pdata->getN());
-    BOOST_CHECK_SMALL(deltaf2, double(tol_small));
-    BOOST_CHECK_SMALL(deltape2, double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[0], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[1], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[2], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[3], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[4], double(tol_small));
-    BOOST_CHECK_SMALL(deltav2[5], double(tol_small));
+    CHECK_SMALL(deltaf2, double(tol_small));
+    CHECK_SMALL(deltape2, double(tol_small));
+    CHECK_SMALL(deltav2[0], double(tol_small));
+    CHECK_SMALL(deltav2[1], double(tol_small));
+    CHECK_SMALL(deltav2[2], double(tol_small));
+    CHECK_SMALL(deltav2[3], double(tol_small));
+    CHECK_SMALL(deltav2[4], double(tol_small));
+    CHECK_SMALL(deltav2[5], double(tol_small));
     }
     }
 
 //! PotentialPairMorse creator for unit tests
-boost::shared_ptr<PotentialPairMorse> base_class_morse_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairMorse> base_class_morse_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist)
     {
-    return boost::shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
+    return std::shared_ptr<PotentialPairMorse>(new PotentialPairMorse(sysdef, nlist));
     }
 
 #ifdef ENABLE_CUDA
 //! PotentialPairMorseGPU creator for unit tests
-boost::shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(boost::shared_ptr<SystemDefinition> sysdef,
-                                                      boost::shared_ptr<NeighborList> nlist)
+std::shared_ptr<PotentialPairMorseGPU> gpu_morse_creator(std::shared_ptr<SystemDefinition> sysdef,
+                                                      std::shared_ptr<NeighborList> nlist)
     {
     nlist->setStorageMode(NeighborList::full);
-    boost::shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
+    std::shared_ptr<PotentialPairMorseGPU> morse(new PotentialPairMorseGPU(sysdef, nlist));
     return morse;
     }
 #endif
 
-//! boost test case for particle test on CPU
-BOOST_AUTO_TEST_CASE( MorseForce_particle )
+//! test case for particle test on CPU
+UP_TEST( MorseForce_particle )
     {
     morseforce_creator morse_creator_base = bind(base_class_morse_creator, _1, _2);
-    morse_force_particle_test(morse_creator_base, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    morse_force_particle_test(morse_creator_base, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 # ifdef ENABLE_CUDA
-//! boost test case for particle test on GPU
-BOOST_AUTO_TEST_CASE( MorseForceGPU_particle )
+//! test case for particle test on GPU
+UP_TEST( MorseForceGPU_particle )
     {
     morseforce_creator morse_creator_gpu = bind(gpu_morse_creator, _1, _2);
-    morse_force_particle_test(morse_creator_gpu, boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    morse_force_particle_test(morse_creator_gpu, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
-//! boost test case for comparing GPU output to base class output
-BOOST_AUTO_TEST_CASE( MorseForceGPU_compare )
+//! test case for comparing GPU output to base class output
+UP_TEST( MorseForceGPU_compare )
     {
     morseforce_creator morse_creator_gpu = bind(gpu_morse_creator, _1, _2);
     morseforce_creator morse_creator_base = bind(base_class_morse_creator, _1, _2);
     morse_force_comparison_test(morse_creator_base,
                                  morse_creator_gpu,
-                                 boost::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+                                 std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 #endif

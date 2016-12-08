@@ -10,14 +10,12 @@
 
 #include "BoxResizeUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
 #include <math.h>
 #include <iostream>
 #include <stdexcept>
 
 using namespace std;
+namespace py = pybind11;
 
 /*! \param sysdef System definition containing the particle data to set the box size on
     \param Lx length of the x dimension over time
@@ -26,13 +24,13 @@ using namespace std;
 
     The default setting is to scale particle positions along with the box.
 */
-BoxResizeUpdater::BoxResizeUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                                   boost::shared_ptr<Variant> Lx,
-                                   boost::shared_ptr<Variant> Ly,
-                                   boost::shared_ptr<Variant> Lz,
-                                   boost::shared_ptr<Variant> xy,
-                                   boost::shared_ptr<Variant> xz,
-                                   boost::shared_ptr<Variant> yz)
+BoxResizeUpdater::BoxResizeUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                   std::shared_ptr<Variant> Lx,
+                                   std::shared_ptr<Variant> Ly,
+                                   std::shared_ptr<Variant> Lz,
+                                   std::shared_ptr<Variant> xy,
+                                   std::shared_ptr<Variant> xz,
+                                   std::shared_ptr<Variant> yz)
     : Updater(sysdef), m_Lx(Lx), m_Ly(Ly), m_Lz(Lz), m_xy(xy), m_xz(xz), m_yz(yz), m_scale_particles(true)
     {
     assert(m_pdata);
@@ -138,15 +136,15 @@ void BoxResizeUpdater::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void export_BoxResizeUpdater()
+void export_BoxResizeUpdater(py::module& m)
     {
-    class_<BoxResizeUpdater, boost::shared_ptr<BoxResizeUpdater>, bases<Updater>, boost::noncopyable>
-    ("BoxResizeUpdater", init< boost::shared_ptr<SystemDefinition>,
-     boost::shared_ptr<Variant>,
-     boost::shared_ptr<Variant>,
-     boost::shared_ptr<Variant>,
-     boost::shared_ptr<Variant>,
-     boost::shared_ptr<Variant>,
-     boost::shared_ptr<Variant> >())
+    py::class_<BoxResizeUpdater, std::shared_ptr<BoxResizeUpdater> >(m,"BoxResizeUpdater",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+     std::shared_ptr<Variant>,
+     std::shared_ptr<Variant>,
+     std::shared_ptr<Variant>,
+     std::shared_ptr<Variant>,
+     std::shared_ptr<Variant>,
+     std::shared_ptr<Variant> >())
     .def("setParams", &BoxResizeUpdater::setParams);
     }

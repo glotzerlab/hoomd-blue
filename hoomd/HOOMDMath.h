@@ -13,7 +13,11 @@
 
 // bring in math.h
 #ifndef NVCC
+
+// include python.h first to silelse _XOPEN_SOURCE redefinition warnings
+#include <Python.h>
 #include <cmath>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
 // for vector types
@@ -254,7 +258,9 @@ HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
     }
 
 //! Export relevant hoomd math functions to python
-void export_hoomd_math_functions();
+#ifndef NVCC
+void export_hoomd_math_functions(pybind11::module& m);
+#endif
 
 //! Small epsilon value
 const Scalar EPSILON=1.0e-6;

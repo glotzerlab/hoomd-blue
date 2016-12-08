@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps in the NVT ensemble
 /*! Implements Martyna-Tobias-Klein (MTK) NVT integration through the IntegrationMethodTwoStep interface
 
@@ -38,18 +40,18 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNVTMTK(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo,
+        TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo,
                    Scalar tau,
-                   boost::shared_ptr<Variant> T,
+                   std::shared_ptr<Variant> T,
                    const std::string& suffix = std::string(""));
         virtual ~TwoStepNVTMTK();
 
         //! Update the temperature
         /*! \param T New temperature to set
         */
-        virtual void setT(boost::shared_ptr<Variant> T)
+        virtual void setT(std::shared_ptr<Variant> T)
             {
             m_T = T;
             }
@@ -95,10 +97,10 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
 
 
     protected:
-        boost::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
+        std::shared_ptr<ComputeThermo> m_thermo;    //!< compute for thermodynamic quantities
 
         Scalar m_tau;                   //!< tau value for Nose-Hoover
-        boost::shared_ptr<Variant> m_T; //!< Temperature set point
+        std::shared_ptr<Variant> m_T; //!< Temperature set point
         std::string m_log_name;         //!< Name of the reservior quantity that we log
 
         Scalar m_exp_thermo_fac;        //!< Thermostat rescaling factor
@@ -111,6 +113,6 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
     };
 
 //! Exports the TwoStepNVTMTK class to python
-void export_TwoStepNVTMTK();
+void export_TwoStepNVTMTK(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NVT_MTK_H__

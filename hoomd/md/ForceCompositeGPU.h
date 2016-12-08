@@ -18,6 +18,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
 
@@ -25,7 +27,7 @@ class ForceCompositeGPU : public ForceComposite
     {
     public:
         //! Constructs the compute
-        ForceCompositeGPU(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceCompositeGPU();
@@ -62,14 +64,14 @@ class ForceCompositeGPU : public ForceComposite
         //! Compute the forces and torques on the central particle
         virtual void computeForces(unsigned int timestep);
 
-        boost::scoped_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
-        boost::scoped_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
-        boost::scoped_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
+        std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
 
-        GPUFlags<unsigned int> m_flag;               //!< Flag to read out error condition
+        GPUFlags<uint2> m_flag;               //!< Flag to read out error condition
     };
 
 //! Exports the ForceCompositeGPU to python
-void export_ForceCompositeGPU();
+void export_ForceCompositeGPU(pybind11::module& m);
 
 #endif

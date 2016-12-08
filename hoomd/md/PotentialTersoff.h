@@ -7,9 +7,7 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <boost/shared_ptr.hpp>
-#include <boost/python.hpp>
-#include <boost/bind.hpp>
+#include <memory>
 #include <fstream>
 
 #include "hoomd/HOOMDMath.h"
@@ -28,6 +26,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Template class for computing three-body potentials
 /*! <b>Overview:</b>
@@ -76,8 +76,8 @@ class PotentialTersoff : public ForceCompute
         typedef typename evaluator::param_type param_type;
 
         //! Construct the potential
-        PotentialTersoff(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
+        PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialTersoff();
@@ -96,7 +96,7 @@ class PotentialTersoff : public ForceCompute
 
 
     protected:
-        boost::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
+        std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
         GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
         GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
@@ -126,10 +126,6 @@ class PotentialTersoff : public ForceCompute
             GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
-
-    private:
-        //! Connection to the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
     };
 
 /*! \param sysdef System to compute forces on
@@ -137,8 +133,8 @@ class PotentialTersoff : public ForceCompute
     \param log_suffix Name given to this instance of the force
 */
 template < class evaluator >
-PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefinition> sysdef,
-                                                boost::shared_ptr<NeighborList> nlist,
+PotentialTersoff< evaluator >::PotentialTersoff(std::shared_ptr<SystemDefinition> sysdef,
+                                                std::shared_ptr<NeighborList> nlist,
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_typpair_idx(m_pdata->getNTypes())
     {
@@ -159,14 +155,14 @@ PotentialTersoff< evaluator >::PotentialTersoff(boost::shared_ptr<SystemDefiniti
     m_log_name = std::string("pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&PotentialTersoff<evaluator>::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().template connect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 template < class evaluator >
 PotentialTersoff< evaluator >::~PotentialTersoff()
     {
     this->exec_conf->msg->notice(5) << "Destroying PotentialTersoff" << std::endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().template disconnect<PotentialTersoff<evaluator>, &PotentialTersoff<evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair
@@ -512,20 +508,14 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
 /*! \param name Name of the class in the exported python module
     \tparam T Class type to export. \b Must be an instantiated PotentialTersoff class template.
 */
-template < class T > void export_PotentialTersoff(const std::string& name)
+template < class T > void export_PotentialTersoff(pybind11::module& m, const std::string& name)
     {
-    boost::python::scope in_pair =
-        boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<ForceCompute>, boost::noncopyable >
-                  (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
-                  .def("setParams", &T::setParams)
-                  .def("setRcut", &T::setRcut)
-                  .def("setRon", &T::setRon)
-                  ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
+        pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<ForceCompute>())
+            .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
+            .def("setParams", &T::setParams)
+            .def("setRcut", &T::setRcut)
+            .def("setRon", &T::setRon)
+        ;
     }
 
 

@@ -10,11 +10,13 @@
 #include "AllExternalPotentials.h"
 #include "AllPairPotentials.h"
 #include "AllTripletPotentials.h"
+#include "AllSpecialPairPotentials.h"
 #include "AnisoPotentialPair.h"
 #include "BondTablePotential.h"
 #include "ConstExternalFieldDipoleForceCompute.h"
 #include "ConstraintEllipsoid.h"
 #include "ConstraintSphere.h"
+#include "OneDConstraint.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
 #include "FIREEnergyMinimizer.h"
@@ -51,6 +53,7 @@
 #include "TwoStepNVTMTK.h"
 #include "WallData.h"
 #include "ZeroMomentumUpdater.h"
+#include "MuellerPlatheFlow.h"
 
 // include GPU classes
 #ifdef ENABLE_CUDA
@@ -59,6 +62,7 @@
 #include "BondTablePotentialGPU.h"
 #include "ConstraintEllipsoidGPU.h"
 #include "ConstraintSphereGPU.h"
+#include "OneDConstraintGPU.h"
 #include "Enforce2DUpdaterGPU.h"
 #include "FIREEnergyMinimizerGPU.h"
 #include "ForceCompositeGPU.h"
@@ -86,20 +90,21 @@
 #include "TwoStepNPTMTKGPU.h"
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVTMTKGPU.h"
+#include "MuellerPlatheFlowGPU.h"
 #endif
 
-#include <boost/python.hpp>
-
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
 
 //! Function to export the tersoff parameter type to python
-void export_tersoff_params()
+void export_tersoff_params(py::module& m)
 {
-    class_<tersoff_params>("tersoff_params", init<>())
+    py::class_<tersoff_params>(m, "tersoff_params")
+        .def(py::init<>())
         .def_readwrite("cutoff_thickness", &tersoff_params::cutoff_thickness)
         .def_readwrite("coeffs", &tersoff_params::coeffs)
         .def_readwrite("exp_consts", &tersoff_params::exp_consts)
@@ -111,16 +116,19 @@ void export_tersoff_params()
         .def_readwrite("alpha", &tersoff_params::alpha)
         ;
 
-    def("make_tersoff_params", &make_tersoff_params);
+    m.def("make_tersoff_params", &make_tersoff_params);
 }
 
 //! Helper function for converting python wall group structure to wall_type
-wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<const ExecutionConfiguration> m_exec_conf)
+wall_type make_wall_field_params(py::object walls, std::shared_ptr<const ExecutionConfiguration> m_exec_conf)
     {
     wall_type w;
-    w.numSpheres = boost::python::len(walls.attr("spheres"));
-    w.numCylinders = boost::python::len(walls.attr("cylinders"));
-    w.numPlanes = boost::python::len(walls.attr("planes"));
+    py::list walls_spheres = walls.attr("spheres").cast<py::list>();
+    py::list walls_cylinders = walls.attr("cylinders").cast<py::list>();
+    py::list walls_planes = walls.attr("planes").cast<py::list>();
+    w.numSpheres = py::len(walls_spheres);
+    w.numCylinders = py::len(walls_cylinders);
+    w.numPlanes = py::len(walls_planes);
 
     if (w.numSpheres>MAX_N_SWALLS || w.numCylinders>MAX_N_CWALLS || w.numPlanes>MAX_N_PWALLS)
         {
@@ -129,26 +137,27 @@ wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<
         }
     else
         {
+
         for(unsigned int i = 0; i < w.numSpheres; i++)
             {
-            Scalar     r = boost::python::extract<Scalar>(walls.attr("spheres")[i].attr("r"));
-            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("spheres")[i].attr("_origin"));
-            bool     inside =boost::python::extract<bool>(walls.attr("spheres")[i].attr("inside"));
+            Scalar     r = py::cast<Scalar>(py::object(walls_spheres[i]).attr("r"));
+            Scalar3 origin =py::cast<Scalar3>(py::object(walls_spheres[i]).attr("_origin"));
+            bool     inside =py::cast<bool>(py::object(walls_spheres[i]).attr("inside"));
             w.Spheres[i] = SphereWall(r, origin, inside);
             }
         for(unsigned int i = 0; i < w.numCylinders; i++)
             {
-            Scalar     r = boost::python::extract<Scalar>(walls.attr("cylinders")[i].attr("r"));
-            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_origin"));
-            Scalar3 axis =boost::python::extract<Scalar3>(walls.attr("cylinders")[i].attr("_axis"));
-            bool     inside =boost::python::extract<bool>(walls.attr("cylinders")[i].attr("inside"));
+            Scalar     r = py::cast<Scalar>(py::object(walls_cylinders[i]).attr("r"));
+            Scalar3 origin =py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_origin"));
+            Scalar3 axis =py::cast<Scalar3>(py::object(walls_cylinders[i]).attr("_axis"));
+            bool     inside =py::cast<bool>(py::object(walls_cylinders[i]).attr("inside"));
             w.Cylinders[i] = CylinderWall(r, origin, axis, inside);
             }
         for(unsigned int i = 0; i < w.numPlanes; i++)
             {
-            Scalar3 origin =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_origin"));
-            Scalar3 normal =boost::python::extract<Scalar3>(walls.attr("planes")[i].attr("_normal"));
-            bool    inside =boost::python::extract<bool>(walls.attr("planes")[i].attr("inside"));
+            Scalar3 origin =py::cast<Scalar3>(py::object(walls_planes[i]).attr("_origin"));
+            Scalar3 normal =py::cast<Scalar3>(py::object(walls_planes[i]).attr("_normal"));
+            bool    inside =py::cast<bool>(py::object(walls_planes[i]).attr("inside"));
             w.Planes[i] = PlaneWall(origin, normal, inside);
             }
         return w;
@@ -157,28 +166,23 @@ wall_type make_wall_field_params(boost::python::object walls, boost::shared_ptr<
 
 //! Exports helper function for parameters based on standard evaluators
 template< class evaluator >
-void export_wall_params_helpers()
+void export_wall_params_helpers(py::module& m)
     {
-    using namespace boost::python;
-    class_<typename EvaluatorWalls<evaluator>::param_type , boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >((EvaluatorWalls<evaluator>::getName()+"_params").c_str(), init<>())
+    py::class_<typename EvaluatorWalls<evaluator>::param_type , std::shared_ptr<typename EvaluatorWalls<evaluator>::param_type> >(m, (EvaluatorWalls<evaluator>::getName()+"_params").c_str())
+        .def(py::init<>())
         .def_readwrite("params", &EvaluatorWalls<evaluator>::param_type::params)
         .def_readwrite("rextrap", &EvaluatorWalls<evaluator>::param_type::rextrap)
         .def_readwrite("rcutsq", &EvaluatorWalls<evaluator>::param_type::rcutsq)
         ;
-    def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<typename EvaluatorWalls<evaluator>::param_type > >();
-    #endif
+    m.def(std::string("make_"+EvaluatorWalls<evaluator>::getName()+"_params").c_str(), &make_wall_params<evaluator>);
     }
 
 //! Combines exports of evaluators and parameter helper functions
 template < class evaluator >
-void export_PotentialExternalWall(const std::string& name)
+void export_PotentialExternalWall(py::module& m, const std::string& name)
     {
-    export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(name);
-    export_wall_params_helpers<evaluator>();
+    export_PotentialExternal< PotentialExternal<EvaluatorWalls<evaluator> > >(m, name);
+    export_wall_params_helpers<evaluator>(m);
     }
 
 
@@ -186,198 +190,146 @@ void export_PotentialExternalWall(const std::string& name)
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-BOOST_PYTHON_MODULE(_md)
+PYBIND11_PLUGIN(_md)
     {
-    export_ActiveForceCompute();
-    export_ConstExternalFieldDipoleForceCompute();
-    export_HarmonicAngleForceCompute();
-    export_TableAngleForceCompute();
-    export_HarmonicDihedralForceCompute();
-    export_OPLSDihedralForceCompute();
-    export_TableDihedralForceCompute();
-    export_HarmonicImproperForceCompute();
-    export_TablePotential();
-    export_BondTablePotential();
-    export_PotentialPair<PotentialPairLJ>("PotentialPairLJ");
-    export_PotentialPair<PotentialPairGauss>("PotentialPairGauss");
-    export_PotentialPair<PotentialPairSLJ>("PotentialPairSLJ");
-    export_PotentialPair<PotentialPairYukawa>("PotentialPairYukawa");
-    export_PotentialPair<PotentialPairEwald>("PotentialPairEwald");
-    export_PotentialPair<PotentialPairMorse>("PotentialPairMorse");
-    export_PotentialPair<PotentialPairDPD> ("PotentialPairDPD");
-    export_PotentialPair<PotentialPairMoliere> ("PotentialPairMoliere");
-    export_PotentialPair<PotentialPairZBL> ("PotentialPairZBL");
-    export_PotentialTersoff<PotentialTripletTersoff> ("PotentialTersoff");
-    export_PotentialPair<PotentialPairMie>("PotentialPairMie");
-    export_PotentialPair<PotentialPairReactionField>("PotentialPairReactionField");
-    export_tersoff_params();
-    export_AnisoPotentialPair<AnisoPotentialPairGB> ("AnisoPotentialPairGB");
-    export_AnisoPotentialPair<AnisoPotentialPairDipole> ("AnisoPotentialPairDipole");
-    export_PotentialPair<PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJ");
-    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>("PotentialPairDPDThermoDPD");
-    export_PotentialPair<PotentialPairDPDLJ> ("PotentialPairDPDLJ");
-    export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>("PotentialPairDPDLJThermoDPD");
-    export_PotentialBond<PotentialBondHarmonic>("PotentialBondHarmonic");
-    export_PotentialBond<PotentialBondFENE>("PotentialBondFENE");
-    export_NeighborList();
-    export_NeighborListBinned();
-    export_NeighborListStencil();
-    export_NeighborListTree();
-    export_ConstraintSphere();
-    export_MolecularForceCompute();
-    export_ForceDistanceConstraint();
-    export_ForceComposite();
-    export_PPPMForceCompute();
-    class_< wall_type, boost::shared_ptr<wall_type> >( "wall_type", init<>());
-    def("make_wall_field_params", &make_wall_field_params);
-    export_PotentialExternal<PotentialExternalPeriodic>("PotentialExternalPeriodic");
-    export_PotentialExternal<PotentialExternalElectricField>("PotentialExternalElectricField");
-    export_PotentialExternalWall<EvaluatorPairLJ>("WallsPotentialLJ");
-    export_PotentialExternalWall<EvaluatorPairYukawa>("WallsPotentialYukawa");
-    export_PotentialExternalWall<EvaluatorPairSLJ>("WallsPotentialSLJ");
-    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>("WallsPotentialForceShiftedLJ");
-    export_PotentialExternalWall<EvaluatorPairMie>("WallsPotentialMie");
-    export_PotentialExternalWall<EvaluatorPairGauss>("WallsPotentialGauss");
-    export_PotentialExternalWall<EvaluatorPairMorse>("WallsPotentialMorse");
+    pybind11::module m("_md");
+
+    export_ActiveForceCompute(m);
+    export_ConstExternalFieldDipoleForceCompute(m);
+    export_HarmonicAngleForceCompute(m);
+    export_TableAngleForceCompute(m);
+    export_HarmonicDihedralForceCompute(m);
+    export_OPLSDihedralForceCompute(m);
+    export_TableDihedralForceCompute(m);
+    export_HarmonicImproperForceCompute(m);
+    export_TablePotential(m);
+    export_BondTablePotential(m);
+    export_PotentialPair<PotentialPairLJ>(m, "PotentialPairLJ");
+    export_PotentialPair<PotentialPairGauss>(m, "PotentialPairGauss");
+    export_PotentialPair<PotentialPairSLJ>(m, "PotentialPairSLJ");
+    export_PotentialPair<PotentialPairYukawa>(m, "PotentialPairYukawa");
+    export_PotentialPair<PotentialPairEwald>(m, "PotentialPairEwald");
+    export_PotentialPair<PotentialPairMorse>(m, "PotentialPairMorse");
+    export_PotentialPair<PotentialPairDPD>(m, "PotentialPairDPD");
+    export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
+    export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
+    export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
+    export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
+    export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
+    export_tersoff_params(m);
+    export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
+    export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
+    export_PotentialPair<PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJ");
+    export_PotentialPairDPDThermo<PotentialPairDPDThermoDPD, PotentialPairDPD>(m, "PotentialPairDPDThermoDPD");
+    export_PotentialPair<PotentialPairDPDLJ>(m, "PotentialPairDPDLJ");
+    export_PotentialPairDPDThermo<PotentialPairDPDLJThermoDPD, PotentialPairDPDLJ>(m, "PotentialPairDPDLJThermoDPD");
+    export_PotentialBond<PotentialBondHarmonic>(m, "PotentialBondHarmonic");
+    export_PotentialBond<PotentialBondFENE>(m, "PotentialBondFENE");
+    export_PotentialSpecialPair<PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJ");
+    export_NeighborList(m);
+    export_NeighborListBinned(m);
+    export_NeighborListStencil(m);
+    export_NeighborListTree(m);
+    export_ConstraintSphere(m);
+    export_OneDConstraint(m);
+    export_MolecularForceCompute(m);
+    export_ForceDistanceConstraint(m);
+    export_ForceComposite(m);
+    export_PPPMForceCompute(m);
+    py::class_< wall_type, std::shared_ptr<wall_type> >(m, "wall_type")
+        .def(py::init<>());
+    m.def("make_wall_field_params", &make_wall_field_params);
+    export_PotentialExternal<PotentialExternalPeriodic>(m, "PotentialExternalPeriodic");
+    export_PotentialExternal<PotentialExternalElectricField>(m, "PotentialExternalElectricField");
+    export_PotentialExternalWall<EvaluatorPairLJ>(m, "WallsPotentialLJ");
+    export_PotentialExternalWall<EvaluatorPairYukawa>(m, "WallsPotentialYukawa");
+    export_PotentialExternalWall<EvaluatorPairSLJ>(m, "WallsPotentialSLJ");
+    export_PotentialExternalWall<EvaluatorPairForceShiftedLJ>(m, "WallsPotentialForceShiftedLJ");
+    export_PotentialExternalWall<EvaluatorPairMie>(m, "WallsPotentialMie");
+    export_PotentialExternalWall<EvaluatorPairGauss>(m, "WallsPotentialGauss");
+    export_PotentialExternalWall<EvaluatorPairMorse>(m, "WallsPotentialMorse");
 
 #ifdef ENABLE_CUDA
-    export_NeighborListGPU();
-    export_NeighborListGPUBinned();
-    export_NeighborListGPUStencil();
-    export_NeighborListGPUTree();
-    export_ForceCompositeGPU();
-    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>("PotentialPairLJGPU");
-    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>("PotentialPairGaussGPU");
-    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>("PotentialPairSLJGPU");
-    export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>("PotentialPairYukawaGPU");
-    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>("PotentialPairReactionFieldGPU");
-    export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>("PotentialPairEwaldGPU");
-    export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>("PotentialPairMorseGPU");
-    export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD> ("PotentialPairDPDGPU");
-    export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere> ("PotentialPairMoliereGPU");
-    export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL> ("PotentialPairZBLGPU");
-    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff> ("PotentialTersoffGPU");
-    export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>("PotentialPairForceShiftedLJGPU");
-    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>("PotentialPairMieGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >("PotentialPairDPDThermoDPDGPU");
-    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ> ("PotentialPairDPDLJGPU");
-    export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >("PotentialPairDPDLJThermoDPDGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB> ("AnisoPotentialPairGBGPU");
-    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole> ("AnisoPotentialPairDipoleGPU");
-    export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>("PotentialBondHarmonicGPU");
-    export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>("PotentialBondFENEGPU");
-    export_BondTablePotentialGPU();
-    export_TablePotentialGPU();
-    export_HarmonicAngleForceComputeGPU();
-    export_TableAngleForceComputeGPU();
-    export_HarmonicDihedralForceComputeGPU();
-    export_OPLSDihedralForceComputeGPU();
-    export_TableDihedralForceComputeGPU();
-    export_HarmonicImproperForceComputeGPU();
-    export_ConstraintSphereGPU();
-    export_ForceDistanceConstraintGPU();
-//    export_ConstExternalFieldDipoleForceComputeGPU();
-    export_PPPMForceComputeGPU();
-    export_ActiveForceComputeGPU();
-    export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>("PotentialExternalPeriodicGPU");
-    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>("PotentialExternalElectricFieldGPU");
-    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>("WallsPotentialLJGPU");
-    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>("WallsPotentialYukawaGPU");
-    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>("WallsPotentialSLJGPU");
-    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>("WallsPotentialForceShiftedLJGPU");
-    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>("WallsPotentialMieGPU");
-    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>("WallsPotentialGaussGPU");
-    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>("WallsPotentialMorseGPU");
+    export_NeighborListGPU(m);
+    export_NeighborListGPUBinned(m);
+    export_NeighborListGPUStencil(m);
+    export_NeighborListGPUTree(m);
+    export_ForceCompositeGPU(m);
+    export_PotentialPairGPU<PotentialPairLJGPU, PotentialPairLJ>(m, "PotentialPairLJGPU");
+    export_PotentialPairGPU<PotentialPairGaussGPU, PotentialPairGauss>(m, "PotentialPairGaussGPU");
+    export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
+    export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m, "PotentialPairYukawaGPU");
+    export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(m, "PotentialPairReactionFieldGPU");
+    export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
+    export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");
+    export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
+    export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(m, "PotentialPairMoliereGPU");
+    export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
+    export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
+    export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
+    export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
+    export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
+    export_PotentialPairGPU<PotentialPairDPDLJGPU, PotentialPairDPDLJ>(m, "PotentialPairDPDLJGPU");
+    export_PotentialPairDPDThermoGPU<PotentialPairDPDLJThermoDPDGPU, PotentialPairDPDLJThermoDPD >(m, "PotentialPairDPDLJThermoDPDGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairGBGPU, AnisoPotentialPairGB>(m, "AnisoPotentialPairGBGPU");
+    export_AnisoPotentialPairGPU<AnisoPotentialPairDipoleGPU, AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipoleGPU");
+    export_PotentialBondGPU<PotentialBondHarmonicGPU, PotentialBondHarmonic>(m, "PotentialBondHarmonicGPU");
+    export_PotentialBondGPU<PotentialBondFENEGPU, PotentialBondFENE>(m, "PotentialBondFENEGPU");
+    export_PotentialSpecialPairGPU<PotentialSpecialPairLJGPU, PotentialSpecialPairLJ>(m, "PotentialSpecialPairLJGPU");
+    export_BondTablePotentialGPU(m);
+    export_TablePotentialGPU(m);
+    export_HarmonicAngleForceComputeGPU(m);
+    export_TableAngleForceComputeGPU(m);
+    export_HarmonicDihedralForceComputeGPU(m);
+    export_OPLSDihedralForceComputeGPU(m);
+    export_TableDihedralForceComputeGPU(m);
+    export_HarmonicImproperForceComputeGPU(m);
+    export_ConstraintSphereGPU(m);
+    export_OneDConstraintGPU(m);
+    export_ForceDistanceConstraintGPU(m);
+    // export_ConstExternalFieldDipoleForceComputeGPU(m);
+    export_PPPMForceComputeGPU(m);
+    export_ActiveForceComputeGPU(m);
+    export_PotentialExternalGPU<PotentialExternalPeriodicGPU, PotentialExternalPeriodic>(m, "PotentialExternalPeriodicGPU");
+    export_PotentialExternalGPU<PotentialExternalElectricFieldGPU, PotentialExternalElectricField>(m, "PotentialExternalElectricFieldGPU");
+    export_PotentialExternalGPU<WallsPotentialLJGPU, WallsPotentialLJ>(m, "WallsPotentialLJGPU");
+    export_PotentialExternalGPU<WallsPotentialYukawaGPU, WallsPotentialYukawa>(m, "WallsPotentialYukawaGPU");
+    export_PotentialExternalGPU<WallsPotentialSLJGPU, WallsPotentialSLJ>(m, "WallsPotentialSLJGPU");
+    export_PotentialExternalGPU<WallsPotentialForceShiftedLJGPU, WallsPotentialForceShiftedLJ>(m, "WallsPotentialForceShiftedLJGPU");
+    export_PotentialExternalGPU<WallsPotentialMieGPU, WallsPotentialMie>(m, "WallsPotentialMieGPU");
+    export_PotentialExternalGPU<WallsPotentialGaussGPU, WallsPotentialGauss>(m, "WallsPotentialGaussGPU");
+    export_PotentialExternalGPU<WallsPotentialMorseGPU, WallsPotentialMorse>(m, "WallsPotentialMorseGPU");
 #endif
 
     // updaters
-    export_IntegratorTwoStep();
-    export_IntegrationMethodTwoStep();
-    export_TempRescaleUpdater();
-    export_ZeroMomentumUpdater();
-    export_TwoStepNVE();
-    export_TwoStepNVTMTK();
-    export_TwoStepLangevinBase();
-    export_TwoStepLangevin();
-    export_TwoStepBD();
-    export_TwoStepNPTMTK();
-    export_Berendsen();
-    export_Enforce2DUpdater();
-    export_ConstraintEllipsoid();
-    export_FIREEnergyMinimizer();
+    export_IntegratorTwoStep(m);
+    export_IntegrationMethodTwoStep(m);
+    export_TempRescaleUpdater(m);
+    export_ZeroMomentumUpdater(m);
+    export_TwoStepNVE(m);
+    export_TwoStepNVTMTK(m);
+    export_TwoStepLangevinBase(m);
+    export_TwoStepLangevin(m);
+    export_TwoStepBD(m);
+    export_TwoStepNPTMTK(m);
+    export_Berendsen(m);
+    export_Enforce2DUpdater(m);
+    export_ConstraintEllipsoid(m);
+    export_FIREEnergyMinimizer(m);
+    export_MuellerPlatheFlow(m);
 
 #ifdef ENABLE_CUDA
-    export_TwoStepNVEGPU();
-    export_TwoStepNVTMTKGPU();
-    export_TwoStepLangevinGPU();
-    export_TwoStepBDGPU();
-    export_TwoStepNPTMTKGPU();
-    export_BerendsenGPU();
-    export_Enforce2DUpdaterGPU();
-    export_FIREEnergyMinimizerGPU();
-    export_ConstraintEllipsoidGPU();
+    export_TwoStepNVEGPU(m);
+    export_TwoStepNVTMTKGPU(m);
+    export_TwoStepLangevinGPU(m);
+    export_TwoStepBDGPU(m);
+    export_TwoStepNPTMTKGPU(m);
+    export_BerendsenGPU(m);
+    export_Enforce2DUpdaterGPU(m);
+    export_FIREEnergyMinimizerGPU(m);
+    export_ConstraintEllipsoidGPU(m);
+    export_MuellerPlatheFlowGPU(m);
 #endif
 
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr< TablePotential > >();
-    register_ptr_to_python< boost::shared_ptr< PPPMForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ConstExternalFieldDipoleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListStencil > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListBinned > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< TableDihedralForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< TableAngleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ConstraintSphere > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborList > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListTree > >();
-    register_ptr_to_python< boost::shared_ptr< BondTablePotential > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< wall_type > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVE > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinBase > >();
-    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBD > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TempRescaleUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTK > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsen > >();
-    register_ptr_to_python< boost::shared_ptr< IntegratorTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< IntegrationMethodTwoStep > >();
-    register_ptr_to_python< boost::shared_ptr< ZeroMomentumUpdater > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevin > >();
-    register_ptr_to_python< boost::shared_ptr< MolecularForceCompute > >();
-    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraint > >();
-    register_ptr_to_python< boost::shared_ptr< ForceComposite > >();
-
-    #ifdef ENABLE_CUDA
-    register_ptr_to_python< boost::shared_ptr< TableAngleForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicAngleForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUStencil > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicImproperForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< PPPMForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TableDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TablePotentialGPU > >();
-    register_ptr_to_python< boost::shared_ptr< BondTablePotentialGPU > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUBinned > >();
-    register_ptr_to_python< boost::shared_ptr< NeighborListGPUTree > >();
-    register_ptr_to_python< boost::shared_ptr< ForceCompositeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< HarmonicDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< ConstraintSphereGPU > >();
-    register_ptr_to_python< boost::shared_ptr< OPLSDihedralForceComputeGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepLangevinGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVEGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNPTMTKGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepNVTMTKGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBDGPU > >();
-    register_ptr_to_python< boost::shared_ptr< FIREEnergyMinimizerGPU > >();
-    register_ptr_to_python< boost::shared_ptr< TwoStepBerendsenGPU > >();
-    register_ptr_to_python< boost::shared_ptr< Enforce2DUpdaterGPU > >();
-    register_ptr_to_python< boost::shared_ptr< ForceDistanceConstraintGPU > >();
-    #endif
-
-    #endif
+    return m.ptr();
     }

@@ -7,8 +7,7 @@
 
 #include "ForceConstraint.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 using namespace std;
 
@@ -18,7 +17,7 @@ using namespace std;
 
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
-ForceConstraint::ForceConstraint(boost::shared_ptr<SystemDefinition> sysdef)
+ForceConstraint::ForceConstraint(std::shared_ptr<SystemDefinition> sysdef)
         : ForceCompute(sysdef)
     {
     }
@@ -31,9 +30,9 @@ void ForceConstraint::computeForces(unsigned int timestep)
     }
 
 
-void export_ForceConstraint()
+void export_ForceConstraint(py::module& m)
     {
-    class_< ForceConstraint, boost::shared_ptr<ForceConstraint>, bases<ForceCompute>, boost::noncopyable >
-    ("ForceConstraint", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_< ForceConstraint, std::shared_ptr<ForceConstraint> >(m,"ForceConstraint",py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

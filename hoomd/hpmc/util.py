@@ -624,11 +624,12 @@ class tune(object):
 
     Default tunable_maps are provided but can be modified or extended by setting
     the following dictionary key/value pairs in the entry for tunable.
-        maximum (float): maximum value of tunable
-        get (lambda): function to call to retrieve curent tunable value
-        acceptance (lambda): function to call to get relevant accemptance rate
-        set (lambda x): function to call to set new value (optional). If not provided,
-            obj.set_params(tunable=x) will be called to set the new value.
+
+    * maximum (float): maximum value of tunable
+    * get (lambda): function to call to retrieve curent tunable value
+    * acceptance (lambda): function to call to get relevant accemptance rate
+    * set (lambda x): function to call to set new value (optional). If not provided,
+      obj.set_params(tunable=x) will be called to set the new value.
 
     Note:
         There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
@@ -739,6 +740,7 @@ class tune(object):
                     newval = float(1e-6)
                 if (newval > max_val):
                     newval = max_val
+
             self.tunables[tunable]['set'](float(newval))
         hoomd.util.unquiet_status();
 

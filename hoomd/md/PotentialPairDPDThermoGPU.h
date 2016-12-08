@@ -9,7 +9,6 @@
 
 #ifdef ENABLE_CUDA
 
-#include <boost/bind.hpp>
 #include "hoomd/Variant.h"
 #include "PotentialPairDPDThermoGPU.cuh"
 #include "AllPairPotentials.h"
@@ -45,8 +44,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
     {
     public:
         //! Construct the pair potential
-        PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                         boost::shared_ptr<NeighborList> nlist,
+        PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                         std::shared_ptr<NeighborList> nlist,
                          const std::string& log_suffix="");
         //! Destructor
         virtual ~PotentialPairDPDThermoGPU() { };
@@ -74,7 +73,7 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
             }
 
     protected:
-        boost::scoped_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
+        std::unique_ptr<Autotuner> m_tuner; //!< Autotuner for block size and threads per particle
         unsigned int m_param;                 //!< Kernel tuning parameter
 
         //! Actually compute the forces
@@ -83,8 +82,8 @@ class PotentialPairDPDThermoGPU : public PotentialPairDPDThermo<evaluator>
 
 template< class evaluator, cudaError_t gpu_cpdf(const dpd_pair_args_t& pair_args,
                                                 const typename evaluator::param_type *d_params) >
-PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                          boost::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
+PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::PotentialPairDPDThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                          std::shared_ptr<NeighborList> nlist, const std::string& log_suffix)
     : PotentialPairDPDThermo<evaluator>(sysdef, nlist, log_suffix), m_param(0)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -200,17 +199,12 @@ void PotentialPairDPDThermoGPU< evaluator, gpu_cpdf >::computeForces(unsigned in
     \tparam T Class type to export. \b Must be an instantiated PotentialPairDPDThermoGPU class template.
     \tparam Base Base class of \a T. \b Must be PotentialPairDPDThermo<evaluator> with the same evaluator as used in \a T.
 */
-template < class T, class Base > void export_PotentialPairDPDThermoGPU(const std::string& name)
+template < class T, class Base > void export_PotentialPairDPDThermoGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<T, boost::shared_ptr<T>, boost::python::bases<Base>, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, const std::string& >())
+     pybind11::class_<T, std::shared_ptr<T> >(m, name.c_str(), pybind11::base<Base>())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, const std::string& >())
               .def("setTuningParam",&T::setTuningParam)
               ;
-
-    // boost 1.60.0 compatibility
-    #if (BOOST_VERSION == 106000)
-    register_ptr_to_python< boost::shared_ptr<T> >();
-    #endif
     }
 
 #endif // ENABLE_CUDA

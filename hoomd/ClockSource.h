@@ -15,6 +15,8 @@
 #ifndef __CLOCK_SOURCE_H__
 #define __CLOCK_SOURCE_H__
 
+#include "HOOMDMath.h"
+
 // The clock code uses 64 bit integers for big numbers of nanoseconds.
 #include <stdint.h>
 
@@ -24,6 +26,8 @@
 
 #include <sys/time.h>
 #include <unistd.h>
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! Sleep for for a time
 /*! \param msec Number of milliseconds to sleep for
@@ -55,7 +59,9 @@ class ClockSource
     };
 
 //! Exports the ClockSource class to python
-void export_ClockSource();
+#ifndef NVCC
+void export_ClockSource(pybind11::module& m);
+#endif
 
 inline int64_t ClockSource::getTime() const
     {

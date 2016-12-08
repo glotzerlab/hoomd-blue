@@ -29,13 +29,7 @@
 
 using namespace std;
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-
-using namespace boost::signals2;
-using namespace boost;
+namespace py = pybind11;
 
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
@@ -59,7 +53,7 @@ using namespace boost;
 
     Type mappings assign particle types "A", "B", "C", ....
 */
-ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, boost::shared_ptr<ExecutionConfiguration> exec_conf, boost::shared_ptr<DomainDecomposition> decomposition)
+ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned int n_types, std::shared_ptr<ExecutionConfiguration> exec_conf, std::shared_ptr<DomainDecomposition> decomposition)
         : m_exec_conf(exec_conf),
           m_nparticles(0),
           m_nghosts(0),
@@ -102,7 +96,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     initializeFromSnapshot(snap);
 
     // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
+    m_prof = std::shared_ptr<Profiler>();
 
     // reset external virial
     for (unsigned int i = 0; i < 6; i++)
@@ -132,8 +126,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 template <class Real>
 ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
                            const BoxDim& global_box,
-                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                           boost::shared_ptr<DomainDecomposition> decomposition
+                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                           std::shared_ptr<DomainDecomposition> decomposition
                           )
     : m_exec_conf(exec_conf),
       m_nparticles(0),
@@ -169,7 +163,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     m_external_energy = Scalar(0.0);
 
     // default constructed shared ptr is null as desired
-    m_prof = boost::shared_ptr<Profiler>();
+    m_prof = std::shared_ptr<Profiler>();
 
     // zero the origin
     m_origin = make_scalar3(0,0,0);
@@ -222,7 +216,7 @@ void ParticleData::setGlobalBox(const BoxDim& box)
         m_box = box;
         }
 
-    m_boxchange_signal();
+    m_boxchange_signal.emit();
     }
 
 /*! \return Global simulation box dimensions
@@ -232,83 +226,12 @@ const BoxDim & ParticleData::getGlobalBox() const
     return m_global_box;
     }
 
-/*! \param func Function to call when the particles are resorted
-    \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals2. The function passed in
-    \a func will be called every time the ParticleData is notified of a particle
-    sort via notifyParticleSort().
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-*/
-boost::signals2::connection ParticleData::connectParticleSort(const boost::function<void ()> &func)
-    {
-    return m_sort_signal.connect(func);
-    }
-
 /*! \b ANY time particles are rearranged in memory, this function must be called.
     \note The call must be made after calling release()
 */
 void ParticleData::notifyParticleSort()
     {
-    m_sort_signal();
-    }
-
-/*! \param func Function to call when the box size changes
-    \return Connection to manage the signal/slot connection
-    Calls are performed by using boost::signals2. The function passed in
-    \a func will be called every time the the box size is changed via setGlobalBoxL()
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-*/
-boost::signals2::connection ParticleData::connectBoxChange(const boost::function<void ()> &func)
-    {
-    return m_boxchange_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the particle data arrays are resized
-    \return Connection to manage the signal
-
-    The maximum particle number is the size of the particle data arrays in memory. This
-    can be larger than the current local particle number. The arrays are infrequently
-    resized (e.g. by doubling the size if necessary), to keep the amount of data
-    copied to a minimum.
-
-    \note If the caller class is destroyed, it needs to disconnect the signal connection
-    via \b con.disconnect where \b con is the return value of this function.
-
-    \note A change in maximum particle number does not necessarily imply a change in sort order,
-          and notifyParticleSort() needs to be called separately after all particle data is available
-          on the local processor.
-*/
-boost::signals2::connection ParticleData::connectMaxParticleNumberChange(const boost::function<void ()> &func)
-    {
-    return m_max_particle_num_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the global number of particles changes
-    \return Connection to manage the signal
-
-    The global number of particles can be changed during the simulation, by calls
-    to addParticle() or removeParticle(). Classes that store information e.g.
-    for every global particle should subscribe to this signal.
-
-    Changes in global particle number imply a local change in particle number (on some processor),
-    and are indicated both by this signal, and notifyParticleSort(), which is triggered
-    *after* the global particle number change signal.
-
-    The signal is to be triggered after all changes to the particle data are complete.
- */
-boost::signals2::connection ParticleData::connectGlobalParticleNumberChange(const boost::function<void ()> &func)
-    {
-    return m_global_particle_num_signal.connect(func);
-    }
-
-/*! \param func Function to be called when the ghost particles are remove
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boost::function<void ()> &func)
-    {
-    return m_ghost_particles_removed_signal.connect(func);
+    m_sort_signal.emit();
     }
 
 /*! This function is called any time the ghost particles are removed
@@ -320,29 +243,9 @@ boost::signals2::connection ParticleData::connectGhostParticlesRemoved(const boo
  */
 void ParticleData::notifyGhostParticlesRemoved()
     {
-    m_ghost_particles_removed_signal();
+    m_ghost_particles_removed_signal.emit();
     }
 
-/*! \param func Function to be called when the number of types changes
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectNumTypesChange(const boost::function<void ()> &func)
-    {
-    return m_num_types_signal.connect(func);
-    }
-
-
-
-#ifdef ENABLE_MPI
-/*! \param func Function to be called when a single particle moves between domains
-    \return Connection to manage the signal
- */
-boost::signals2::connection ParticleData::connectSingleParticleMove(
-    const boost::function<void(unsigned int, unsigned int, unsigned int)> &func)
-    {
-    return m_ptl_move_signal.connect(func);
-    }
-#endif
 
 /*! \param name Type name to get the index of
     \return Type index of the corresponding type name
@@ -471,7 +374,7 @@ void ParticleData::allocate(unsigned int N)
     allocateAlternateArrays(N);
 
     // notify observers
-    m_max_particle_num_signal();
+    m_max_particle_num_signal.emit();
     }
 
 /*! \param N Number of particles to allocate memory for
@@ -551,7 +454,7 @@ void ParticleData::setNGlobal(unsigned int nglobal)
     m_nglobal = nglobal;
 
     // we have changed the global particle number, notify subscribers
-    m_global_particle_num_signal();
+    m_global_particle_num_signal.emit();
     }
 
 /*! \param new_nparticles New particle number
@@ -575,7 +478,7 @@ void ParticleData::resize(unsigned int new_nparticles)
 
 /*! \param max_n new maximum size of particle data arrays (can be greater or smaller than the current maxium size)
  *  To inform classes that allocate arrays for per-particle information of the change of the particle data size,
- *  this method issues a m_max_particle_num_signal().
+ *  this method issues a m_max_particle_num_signal.emit().
  *
  *  \note To keep unnecessary data copying to a minimum, arrays are not reallocated with every change of the
  *  particle number, rather an amortized array expanding strategy is used.
@@ -626,7 +529,7 @@ void ParticleData::reallocate(unsigned int max_n)
         }
 
     // notify observers
-    m_max_particle_num_signal();
+    m_max_particle_num_signal.emit();
     }
 
 /*! Rebuild the cached vector of active tags, if necessary
@@ -1065,7 +968,7 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
     m_o_image = make_int3(0,0,0);
 
     // notify listeners that number of types has changed
-    m_num_types_signal();
+    m_num_types_signal.emit();
     }
 
 //! take a particle data snapshot
@@ -1843,7 +1746,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 }
 
             // Notify observers
-            m_ptl_move_signal(tag, owner_rank, new_rank);
+            m_ptl_move_signal.emit(tag, owner_rank, new_rank);
             }
         }
     #endif // ENABLE_MPI
@@ -2288,18 +2191,18 @@ unsigned int ParticleData::getNthTag(unsigned int n)
     return m_cached_tag_set[n];
     }
 
-void export_BoxDim()
+void export_BoxDim(py::module& m)
     {
     void (BoxDim::*wrap_overload)(Scalar3&, int3&, char3) const = &BoxDim::wrap;
     Scalar3 (BoxDim::*minImage_overload)(const Scalar3&) const = &BoxDim::minImage;
     Scalar3 (BoxDim::*makeFraction_overload)(const Scalar3&, const Scalar3&) const = &BoxDim::makeFraction;
 
-    class_<BoxDim>("BoxDim")
-    .def(init<Scalar>())
-    .def(init<Scalar, Scalar, Scalar>())
-    .def(init<Scalar3>())
-    .def(init<Scalar3, Scalar3, uchar3>())
-    .def(init<Scalar, Scalar, Scalar, Scalar>())
+    py::class_<BoxDim>(m,"BoxDim")
+    .def(py::init<Scalar>())
+    .def(py::init<Scalar, Scalar, Scalar>())
+    .def(py::init<Scalar3>())
+    .def(py::init<Scalar3, Scalar3, uchar3>())
+    .def(py::init<Scalar, Scalar, Scalar, Scalar>())
     .def("getPeriodic", &BoxDim::getPeriodic)
     .def("setPeriodic", &BoxDim::setPeriodic)
     .def("getL", &BoxDim::getL)
@@ -2334,8 +2237,8 @@ string print_ParticleData(ParticleData *pdata)
 // instantiate both float and double methods for snapshots
 template ParticleData::ParticleData(const SnapshotParticleData<double>& snapshot,
                                            const BoxDim& global_box,
-                                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                           boost::shared_ptr<DomainDecomposition> decomposition
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<double>(const SnapshotParticleData<double> & snapshot, bool ignore_bodies);
 template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>(SnapshotParticleData<double> &snapshot);
@@ -2343,18 +2246,19 @@ template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<double>
 
 template ParticleData::ParticleData(const SnapshotParticleData<float>& snapshot,
                                            const BoxDim& global_box,
-                                           boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                           boost::shared_ptr<DomainDecomposition> decomposition
+                                           std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                           std::shared_ptr<DomainDecomposition> decomposition
                                           );
 template void ParticleData::initializeFromSnapshot<float>(const SnapshotParticleData<float> & snapshot, bool ignore_bodies);
 template std::map<unsigned int, unsigned int> ParticleData::takeSnapshot<float>(SnapshotParticleData<float> &snapshot);
 
 
-void export_ParticleData()
+void export_ParticleData(py::module& m)
     {
-    class_<ParticleData, boost::shared_ptr<ParticleData>, boost::noncopyable>("ParticleData", init<unsigned int, const BoxDim&, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def("getGlobalBox", &ParticleData::getGlobalBox, return_value_policy<copy_const_reference>())
-    .def("getBox", &ParticleData::getBox, return_value_policy<copy_const_reference>())
+    py::class_<ParticleData, std::shared_ptr<ParticleData> >(m,"ParticleData")
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    .def("getGlobalBox", &ParticleData::getGlobalBox, py::return_value_policy::reference_internal)
+    .def("getBox", &ParticleData::getBox, py::return_value_policy::reference_internal)
     .def("setGlobalBoxL", &ParticleData::setGlobalBoxL)
     .def("setGlobalBox", &ParticleData::setGlobalBox)
     .def("getN", &ParticleData::getN)
@@ -2897,7 +2801,7 @@ unsigned int ParticleData::addType(const std::string& type_name)
     m_type_mapping.push_back(type_name);
 
     // inform listeners about the number of types change
-    m_num_types_signal();
+    m_num_types_signal.emit();
 
     // return id of newly added type
     return m_type_mapping.size() - 1;
@@ -2966,140 +2870,140 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getPosNP()
+py::object SnapshotParticleData<Real>::getPosNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Real*)&pos[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&pos[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getVelNP()
+py::object SnapshotParticleData<Real>::getVelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Real*)&vel[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&vel[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getAccelNP()
+py::object SnapshotParticleData<Real>::getAccelNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Real*)&accel[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&accel[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the type data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getTypeNP()
+py::object SnapshotParticleData<Real>::getTypeNP()
     {
-    return num_util::makeNumFromData(&type[0], type.size());
+    return py::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
 /*! \returns a numpy array that wraps the mass data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getMassNP()
+py::object SnapshotParticleData<Real>::getMassNP()
     {
-    return num_util::makeNumFromData(&mass[0], mass.size());
+    return py::object(num_util::makeNumFromData(&mass[0], mass.size()), false);
     }
 
 /*! \returns a numpy array that wraps the charge data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getChargeNP()
+py::object SnapshotParticleData<Real>::getChargeNP()
     {
-    return num_util::makeNumFromData(&charge[0], charge.size());
+    return py::object(num_util::makeNumFromData(&charge[0], charge.size()), false);
     }
 
 /*! \returns a numpy array that wraps the diameter data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getDiameterNP()
+py::object SnapshotParticleData<Real>::getDiameterNP()
     {
-    return num_util::makeNumFromData(&diameter[0], diameter.size());
+    return py::object(num_util::makeNumFromData(&diameter[0], diameter.size()), false);
     }
 
 /*! \returns a numpy array that wraps the image data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getImageNP()
+py::object SnapshotParticleData<Real>::getImageNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((int*)&image[0], dims);
+    return py::object(num_util::makeNumFromData((int*)&image[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the body data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getBodyNP()
+py::object SnapshotParticleData<Real>::getBodyNP()
     {
-    return num_util::makeNumFromData(&body[0], body.size());
+    return py::object(num_util::makeNumFromData(&body[0], body.size()), false);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getOrientationNP()
+py::object SnapshotParticleData<Real>::getOrientationNP()
     {
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 4;
-    return num_util::makeNumFromData((Real*)&orientation[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&orientation[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the moment of inertia data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getMomentInertiaNP()
+py::object SnapshotParticleData<Real>::getMomentInertiaNP()
     {
     std::vector<intp> dims(2);
     dims[0] = inertia.size();
     dims[1] = 3;
-    return num_util::makeNumFromData((Real*)&inertia[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&inertia[0], dims), false);
     }
 
 /*! \returns a numpy array that wraps the angular momentum data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-PyObject* SnapshotParticleData<Real>::getAngmomNP()
+py::object SnapshotParticleData<Real>::getAngmomNP()
     {
     std::vector<intp> dims(2);
     dims[0] = angmom.size();
     dims[1] = 4;
-    return num_util::makeNumFromData((Real*)&angmom[0], dims);
+    return py::object(num_util::makeNumFromData((Real*)&angmom[0], dims), false);
     }
 
 /*! \returns A python list of type names
 */
 template <class Real>
-boost::python::list SnapshotParticleData<Real>::getTypes()
+py::list SnapshotParticleData<Real>::getTypes()
     {
-    boost::python::list types;
+    py::list types;
 
     for (unsigned int i = 0; i < type_mapping.size(); i++)
-        types.append(str(type_mapping[i]));
+        types.append(py::str(type_mapping[i]));
 
     return types;
     }
@@ -3107,53 +3011,55 @@ boost::python::list SnapshotParticleData<Real>::getTypes()
 /*! \param types Python list of type names to set
 */
 template <class Real>
-void SnapshotParticleData<Real>::setTypes(boost::python::list types)
+void SnapshotParticleData<Real>::setTypes(py::list types)
     {
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
-        type_mapping[i] = extract<string>(types[i]);
+        type_mapping[i] = py::cast<string>(types[i]);
     }
 
 // instantiate both float and double snapshots
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;
 
-void export_SnapshotParticleData()
+void export_SnapshotParticleData(py::module& m)
     {
-    class_<SnapshotParticleData<float>, boost::shared_ptr<SnapshotParticleData<float> > >("SnapshotParticleData_float", init<unsigned int>())
-    .add_property("position", &SnapshotParticleData<float>::getPosNP)
-    .add_property("velocity", &SnapshotParticleData<float>::getVelNP)
-    .add_property("acceleration", &SnapshotParticleData<float>::getAccelNP)
-    .add_property("typeid", &SnapshotParticleData<float>::getTypeNP)
-    .add_property("mass", &SnapshotParticleData<float>::getMassNP)
-    .add_property("charge", &SnapshotParticleData<float>::getChargeNP)
-    .add_property("diameter", &SnapshotParticleData<float>::getDiameterNP)
-    .add_property("image", &SnapshotParticleData<float>::getImageNP)
-    .add_property("body", &SnapshotParticleData<float>::getBodyNP)
-    .add_property("orientation", &SnapshotParticleData<float>::getOrientationNP)
-    .add_property("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
-    .add_property("angmom", &SnapshotParticleData<float>::getAngmomNP)
-    .add_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
+    py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >(m,"SnapshotParticleData_float")
+    .def(py::init<unsigned int>())
+    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
     ;
 
-    class_<SnapshotParticleData<double>, boost::shared_ptr<SnapshotParticleData<double> > >("SnapshotParticleData_double", init<unsigned int>())
-    .add_property("position", &SnapshotParticleData<double>::getPosNP)
-    .add_property("velocity", &SnapshotParticleData<double>::getVelNP)
-    .add_property("acceleration", &SnapshotParticleData<double>::getAccelNP)
-    .add_property("typeid", &SnapshotParticleData<double>::getTypeNP)
-    .add_property("mass", &SnapshotParticleData<double>::getMassNP)
-    .add_property("charge", &SnapshotParticleData<double>::getChargeNP)
-    .add_property("diameter", &SnapshotParticleData<double>::getDiameterNP)
-    .add_property("image", &SnapshotParticleData<double>::getImageNP)
-    .add_property("body", &SnapshotParticleData<double>::getBodyNP)
-    .add_property("orientation", &SnapshotParticleData<double>::getOrientationNP)
-    .add_property("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
-    .add_property("angmom", &SnapshotParticleData<double>::getAngmomNP)
-    .add_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
+    py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
+    .def(py::init<unsigned int>())
+    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)

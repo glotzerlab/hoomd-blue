@@ -11,14 +11,13 @@
 #include "CellListGPU.h"
 #include "CellListGPU.cuh"
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 using namespace std;
-using namespace boost::python;
 
 /*! \param sysdef system to compute the cell list of
 */
-CellListGPU::CellListGPU(boost::shared_ptr<SystemDefinition> sysdef)
+CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef)
     : CellList(sysdef)
     {
     if (!m_exec_conf->isCUDAEnabled())
@@ -122,9 +121,9 @@ void CellListGPU::computeCellList()
         m_prof->pop(m_exec_conf);
     }
 
-void export_CellListGPU()
+void export_CellListGPU(py::module& m)
     {
-    class_<CellListGPU, boost::shared_ptr<CellListGPU>, bases<CellList>, boost::noncopyable >
-        ("CellListGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<CellListGPU, std::shared_ptr<CellListGPU> >(m,"CellListGPU",py::base<CellList>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
         ;
     }

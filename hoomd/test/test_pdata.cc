@@ -14,221 +14,220 @@
 
 #include <iostream>
 
-#include <boost/bind.hpp>
-
 #include "hoomd/ParticleData.h"
 #include "hoomd/Initializers.h"
 #include "hoomd/SnapshotSystemData.h"
 
 using namespace std;
-using namespace boost;
 
-//! Name the boost unit test module
-#define BOOST_TEST_MODULE ParticleDataTests
-#include "boost_utf_configure.h"
+
+#include "upp11_config.h"
+
+HOOMD_UP_MAIN();
+
 
 //! Perform some basic tests on the boxdim structure
-BOOST_AUTO_TEST_CASE( BoxDim_basic_test )
+UP_TEST( BoxDim_basic_test )
     {
     Scalar tol = Scalar(1e-6);
 
     // test default constructor
     BoxDim a;
-    MY_BOOST_CHECK_CLOSE(a.getLo().x,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.getLo().y,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.getLo().z,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.getHi().x,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.getHi().y,0.0, tol);
-    MY_BOOST_CHECK_CLOSE(a.getHi().z,0.0, tol);
+    MY_CHECK_CLOSE(a.getLo().x,0.0, tol);
+    MY_CHECK_CLOSE(a.getLo().y,0.0, tol);
+    MY_CHECK_CLOSE(a.getLo().z,0.0, tol);
+    MY_CHECK_CLOSE(a.getHi().x,0.0, tol);
+    MY_CHECK_CLOSE(a.getHi().y,0.0, tol);
+    MY_CHECK_CLOSE(a.getHi().z,0.0, tol);
 
     BoxDim b(10.0);
-    MY_BOOST_CHECK_CLOSE(b.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getLo().y,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getLo().z,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().y,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().z,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
-    BOOST_CHECK_EQUAL(b.getPeriodic().x, 1);
-    BOOST_CHECK_EQUAL(b.getPeriodic().y, 1);
-    BOOST_CHECK_EQUAL(b.getPeriodic().z, 1);
+    MY_CHECK_CLOSE(b.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(b.getLo().y,-5.0, tol);
+    MY_CHECK_CLOSE(b.getLo().z,-5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().y,5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().z,5.0, tol);
+    MY_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().z,10.0, tol);
+    UP_ASSERT_EQUAL(b.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().z, 1);
 
     BoxDim c(10.0, 30.0, 50.0);
-    MY_BOOST_CHECK_CLOSE(c.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getLo().y,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getLo().z,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getL().y,30.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getL().z,50.0, tol);
-    BOOST_CHECK_EQUAL(c.getPeriodic().x, 1);
-    BOOST_CHECK_EQUAL(c.getPeriodic().y, 1);
-    BOOST_CHECK_EQUAL(c.getPeriodic().z, 1);
+    MY_CHECK_CLOSE(c.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(c.getLo().y,-15.0, tol);
+    MY_CHECK_CLOSE(c.getLo().z,-25.0, tol);
+    MY_CHECK_CLOSE(c.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(c.getHi().y,15.0, tol);
+    MY_CHECK_CLOSE(c.getHi().z,25.0, tol);
+    MY_CHECK_CLOSE(c.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(c.getL().y,30.0, tol);
+    MY_CHECK_CLOSE(c.getL().z,50.0, tol);
+    UP_ASSERT_EQUAL(c.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(c.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(c.getPeriodic().z, 1);
 
     // test for assignment and copy constructor
     c.setPeriodic(make_uchar3(1,0,1));
     BoxDim d(c);
-    MY_BOOST_CHECK_CLOSE(d.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getLo().y,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getLo().z,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().y,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().z,25.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getL().y,30.0, tol);
-    MY_BOOST_CHECK_CLOSE(d.getL().z,50.0, tol);
-    BOOST_CHECK_EQUAL(d.getPeriodic().x, 1);
-    BOOST_CHECK_EQUAL(d.getPeriodic().y, 0);
-    BOOST_CHECK_EQUAL(d.getPeriodic().z, 1);
+    MY_CHECK_CLOSE(d.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(d.getLo().y,-15.0, tol);
+    MY_CHECK_CLOSE(d.getLo().z,-25.0, tol);
+    MY_CHECK_CLOSE(d.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(d.getHi().y,15.0, tol);
+    MY_CHECK_CLOSE(d.getHi().z,25.0, tol);
+    MY_CHECK_CLOSE(d.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(d.getL().y,30.0, tol);
+    MY_CHECK_CLOSE(d.getL().z,50.0, tol);
+    UP_ASSERT_EQUAL(d.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(d.getPeriodic().z, 1);
 
     BoxDim e;
     e = c;
-    MY_BOOST_CHECK_CLOSE(e.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getLo().y,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getLo().z,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getHi().y,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getHi().z,25.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getL().y,30.0, tol);
-    MY_BOOST_CHECK_CLOSE(e.getL().z,50.0, tol);
-    BOOST_CHECK_EQUAL(d.getPeriodic().x, 1);
-    BOOST_CHECK_EQUAL(d.getPeriodic().y, 0);
-    BOOST_CHECK_EQUAL(d.getPeriodic().z, 1);
+    MY_CHECK_CLOSE(e.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(e.getLo().y,-15.0, tol);
+    MY_CHECK_CLOSE(e.getLo().z,-25.0, tol);
+    MY_CHECK_CLOSE(e.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(e.getHi().y,15.0, tol);
+    MY_CHECK_CLOSE(e.getHi().z,25.0, tol);
+    MY_CHECK_CLOSE(e.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(e.getL().y,30.0, tol);
+    MY_CHECK_CLOSE(e.getL().z,50.0, tol);
+    UP_ASSERT_EQUAL(d.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(d.getPeriodic().y, 0);
+    UP_ASSERT_EQUAL(d.getPeriodic().z, 1);
 
     b = b;
-    MY_BOOST_CHECK_CLOSE(b.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getLo().y,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getLo().z,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().y,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getHi().z,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
-    BOOST_CHECK_EQUAL(b.getPeriodic().x, 1);
-    BOOST_CHECK_EQUAL(b.getPeriodic().y, 1);
-    BOOST_CHECK_EQUAL(b.getPeriodic().z, 1);
+    MY_CHECK_CLOSE(b.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(b.getLo().y,-5.0, tol);
+    MY_CHECK_CLOSE(b.getLo().z,-5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().y,5.0, tol);
+    MY_CHECK_CLOSE(b.getHi().z,5.0, tol);
+    MY_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().z,10.0, tol);
+    UP_ASSERT_EQUAL(b.getPeriodic().x, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().y, 1);
+    UP_ASSERT_EQUAL(b.getPeriodic().z, 1);
     }
 
-BOOST_AUTO_TEST_CASE( BoxDim_functionality_test1 )
+UP_TEST( BoxDim_functionality_test1 )
     {
     BoxDim b(5.0);
-    MY_BOOST_CHECK_CLOSE(b.getL().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().y,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().z,5.0, tol);
+    MY_CHECK_CLOSE(b.getL().x,5.0, tol);
+    MY_CHECK_CLOSE(b.getL().y,5.0, tol);
+    MY_CHECK_CLOSE(b.getL().z,5.0, tol);
 
     b.setL(make_scalar3(10.0, 10.0, 10.0));
-    MY_BOOST_CHECK_CLOSE(b.getL().x,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().y,10.0, tol);
-    MY_BOOST_CHECK_CLOSE(b.getL().z,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().x,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().y,10.0, tol);
+    MY_CHECK_CLOSE(b.getL().z,10.0, tol);
 
     Scalar3 v = b.makeFraction(make_scalar3(5.0, 5.0, 5.0));
-    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,1.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,1.0, tol);
+    MY_CHECK_CLOSE(v.x,1.0, tol);
+    MY_CHECK_CLOSE(v.y,1.0, tol);
+    MY_CHECK_CLOSE(v.z,1.0, tol);
 
     v = b.makeFraction(make_scalar3(1.0, -2.0, 3.0));
-    MY_BOOST_CHECK_CLOSE(v.x,0.6, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,0.3, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,0.8, tol);
+    MY_CHECK_CLOSE(v.x,0.6, tol);
+    MY_CHECK_CLOSE(v.y,0.3, tol);
+    MY_CHECK_CLOSE(v.z,0.8, tol);
 
     v = b.minImage(make_scalar3(1.0, -2.0, 3.0));
-    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-2.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,3.0, tol);
+    MY_CHECK_CLOSE(v.x,1.0, tol);
+    MY_CHECK_CLOSE(v.y,-2.0, tol);
+    MY_CHECK_CLOSE(v.z,3.0, tol);
 
     // test minimum image
     v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
-    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+    MY_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_CHECK_CLOSE(v.y,3.0, tol);
+    MY_CHECK_CLOSE(v.z,-2.0, tol);
 
     b.setPeriodic(make_uchar3(0,0,0));
     v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
-    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+    MY_CHECK_CLOSE(v.x,6.0, tol);
+    MY_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_CHECK_CLOSE(v.z,8.0, tol);
 
     b.setPeriodic(make_uchar3(1,0,0));
     v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
-    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+    MY_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_CHECK_CLOSE(v.z,8.0, tol);
 
     b.setPeriodic(make_uchar3(0,1,0));
     v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
-    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
+    MY_CHECK_CLOSE(v.x,6.0, tol);
+    MY_CHECK_CLOSE(v.y,3.0, tol);
+    MY_CHECK_CLOSE(v.z,8.0, tol);
 
     b.setPeriodic(make_uchar3(0,0,1));
     v = b.minImage(make_scalar3(6.0, -7.0, 8.0));
-    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
+    MY_CHECK_CLOSE(v.x,6.0, tol);
+    MY_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_CHECK_CLOSE(v.z,-2.0, tol);
 
     // test wrap
     b.setPeriodic(make_uchar3(1,1,1));
     int3 image = make_int3(10,20,30);
     v = make_scalar3(1.0, -2.0, 3.0);
     b.wrap(v, image);
-    MY_BOOST_CHECK_CLOSE(v.x,1.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-2.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,3.0, tol);
-    BOOST_CHECK_EQUAL(image.x, 10);
-    BOOST_CHECK_EQUAL(image.y, 20);
-    BOOST_CHECK_EQUAL(image.z, 30);
+    MY_CHECK_CLOSE(v.x,1.0, tol);
+    MY_CHECK_CLOSE(v.y,-2.0, tol);
+    MY_CHECK_CLOSE(v.z,3.0, tol);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     image = make_int3(10,20,30);
     v = make_scalar3(6.0, -7.0, 8.0);
     b.wrap(v, image);
-    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
-    BOOST_CHECK_EQUAL(image.x, 11);
-    BOOST_CHECK_EQUAL(image.y, 19);
-    BOOST_CHECK_EQUAL(image.z, 31);
+    MY_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_CHECK_CLOSE(v.y,3.0, tol);
+    MY_CHECK_CLOSE(v.z,-2.0, tol);
+    UP_ASSERT_EQUAL(image.x, 11);
+    UP_ASSERT_EQUAL(image.y, 19);
+    UP_ASSERT_EQUAL(image.z, 31);
 
     b.setPeriodic(make_uchar3(1,0,0));
     image = make_int3(10,20,30);
     v = make_scalar3(6.0, -7.0, 8.0);
     b.wrap(v, image);
-    MY_BOOST_CHECK_CLOSE(v.x,-4.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
-    BOOST_CHECK_EQUAL(image.x, 11);
-    BOOST_CHECK_EQUAL(image.y, 20);
-    BOOST_CHECK_EQUAL(image.z, 30);
+    MY_CHECK_CLOSE(v.x,-4.0, tol);
+    MY_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_CHECK_CLOSE(v.z,8.0, tol);
+    UP_ASSERT_EQUAL(image.x, 11);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     b.setPeriodic(make_uchar3(0,1,0));
     image = make_int3(10,20,30);
     v = make_scalar3(6.0, -7.0, 8.0);
     b.wrap(v, image);
-    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,3.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,8.0, tol);
-    BOOST_CHECK_EQUAL(image.x, 10);
-    BOOST_CHECK_EQUAL(image.y, 19);
-    BOOST_CHECK_EQUAL(image.z, 30);
+    MY_CHECK_CLOSE(v.x,6.0, tol);
+    MY_CHECK_CLOSE(v.y,3.0, tol);
+    MY_CHECK_CLOSE(v.z,8.0, tol);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 19);
+    UP_ASSERT_EQUAL(image.z, 30);
 
     b.setPeriodic(make_uchar3(0,0,1));
     image = make_int3(10,20,30);
     v = make_scalar3(6.0, -7.0, 8.0);
     b.wrap(v, image);
-    MY_BOOST_CHECK_CLOSE(v.x,6.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.y,-7.0, tol);
-    MY_BOOST_CHECK_CLOSE(v.z,-2.0, tol);
-    BOOST_CHECK_EQUAL(image.x, 10);
-    BOOST_CHECK_EQUAL(image.y, 20);
-    BOOST_CHECK_EQUAL(image.z, 31);
+    MY_CHECK_CLOSE(v.x,6.0, tol);
+    MY_CHECK_CLOSE(v.y,-7.0, tol);
+    MY_CHECK_CLOSE(v.z,-2.0, tol);
+    UP_ASSERT_EQUAL(image.x, 10);
+    UP_ASSERT_EQUAL(image.y, 20);
+    UP_ASSERT_EQUAL(image.z, 31);
     }
 
-BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
+UP_TEST( BoxDim_triclinic_test )
     {
     BoxDim b(5.0);
 
@@ -239,9 +238,9 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     Scalar yz = .9;
 
     b.setTiltFactors(xy,xz,yz);
-    MY_BOOST_CHECK_CLOSE(b.getTiltFactorXY(), xy,tol);
-    MY_BOOST_CHECK_CLOSE(b.getTiltFactorXZ(), xz,tol);
-    MY_BOOST_CHECK_CLOSE(b.getTiltFactorYZ(), yz,tol);
+    MY_CHECK_CLOSE(b.getTiltFactorXY(), xy,tol);
+    MY_CHECK_CLOSE(b.getTiltFactorXZ(), xz,tol);
+    MY_CHECK_CLOSE(b.getTiltFactorYZ(), yz,tol);
 
     Scalar3 f = make_scalar3(.5,.6,.7);
     Scalar3 L = b.getL();
@@ -254,16 +253,16 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     // convert pos to fraction
     Scalar3 f2 = b.makeFraction(pos);
 
-    MY_BOOST_CHECK_CLOSE(f2.x,f.x,tol);
-    MY_BOOST_CHECK_CLOSE(f2.y,f.y,tol);
-    MY_BOOST_CHECK_CLOSE(f2.z,f.z,tol);
+    MY_CHECK_CLOSE(f2.x,f.x,tol);
+    MY_CHECK_CLOSE(f2.y,f.y,tol);
+    MY_CHECK_CLOSE(f2.z,f.z,tol);
 
     // convert fraction to pos
     Scalar3 pos2 = b.makeCoordinates(f);
 
-    MY_BOOST_CHECK_CLOSE(pos2.x, pos.x,tol);
-    MY_BOOST_CHECK_CLOSE(pos2.y, pos.y,tol);
-    MY_BOOST_CHECK_CLOSE(pos2.z, pos.z,tol);
+    MY_CHECK_CLOSE(pos2.x, pos.x,tol);
+    MY_CHECK_CLOSE(pos2.y, pos.y,tol);
+    MY_CHECK_CLOSE(pos2.z, pos.z,tol);
 
     /*
      * test ghost layer padding
@@ -278,9 +277,9 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
 
     // compare to new fraction, calculated from old fraction accounting for ghost layer
     Scalar3 f3_cmp = (f2+ghost_frac)/(make_scalar3(1.0,1.0,1.0)+2.0*ghost_frac);
-    MY_BOOST_CHECK_CLOSE(f3.x, f3_cmp.x, tol);
-    MY_BOOST_CHECK_CLOSE(f3.y, f3_cmp.y, tol);
-    MY_BOOST_CHECK_CLOSE(f3.z, f3_cmp.z, tol);
+    MY_CHECK_CLOSE(f3.x, f3_cmp.x, tol);
+    MY_CHECK_CLOSE(f3.y, f3_cmp.y, tol);
+    MY_CHECK_CLOSE(f3.z, f3_cmp.z, tol);
 
     // test minimum image
 
@@ -288,60 +287,60 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     Scalar3 dx = make_scalar3(3.0,1.0,2.0);
     Scalar3 dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.x, -2.0, tol);
+    MY_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_CHECK_CLOSE(dx2.z, 2.0, tol);
 
     dx = make_scalar3(-3.0,1.0,2.0);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_CHECK_CLOSE(dx2.z, 2.0, tol);
 
     // along y coordinate
     dx = make_scalar3(2.0,2.6,1.5);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, -2.4, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+    MY_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.y, -2.4, tol);
+    MY_CHECK_CLOSE(dx2.z, 1.5, tol);
 
     dx = make_scalar3(2.0,-2.6,1.5);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, 2.4, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+    MY_CHECK_CLOSE(dx2.x, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.y, 2.4, tol);
+    MY_CHECK_CLOSE(dx2.z, 1.5, tol);
 
     dx = make_scalar3(3.0,2.6,1.5);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, -2.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, -2.4, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 1.5, tol);
+    MY_CHECK_CLOSE(dx2.x, -2.0, tol);
+    MY_CHECK_CLOSE(dx2.y, -2.4, tol);
+    MY_CHECK_CLOSE(dx2.z, 1.5, tol);
 
     dx = make_scalar3(3.0,-2.6,1.5);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x,-2.0,tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y,2.4,tol);
-    MY_BOOST_CHECK_CLOSE(dx.z, 1.5,tol);
+    MY_CHECK_CLOSE(dx2.x,-2.0,tol);
+    MY_CHECK_CLOSE(dx2.y,2.4,tol);
+    MY_CHECK_CLOSE(dx.z, 1.5,tol);
 
     // along z coordinate
     dx = make_scalar3(2.1,1.5,3.0);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, 0.1, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, 2.0 ,tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, -2.0,tol);
+    MY_CHECK_CLOSE(dx2.x, 0.1, tol);
+    MY_CHECK_CLOSE(dx2.y, 2.0 ,tol);
+    MY_CHECK_CLOSE(dx2.z, -2.0,tol);
 
     dx = make_scalar3(2.1,1.5,-3.0);
     dx2 = b.minImage(dx);
 
-    MY_BOOST_CHECK_CLOSE(dx2.x, -0.9, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.y, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(dx2.z, 2.0, tol);
+    MY_CHECK_CLOSE(dx2.x, -0.9, tol);
+    MY_CHECK_CLOSE(dx2.y, 1.0, tol);
+    MY_CHECK_CLOSE(dx2.z, 2.0, tol);
 
     // test particle wrap
 
@@ -350,104 +349,104 @@ BOOST_AUTO_TEST_CASE( BoxDim_triclinic_test )
     int3 img = make_int3(0,0,0);
 
     b.wrap(pos, img);
-    MY_BOOST_CHECK_CLOSE(pos.x, -1.0 ,tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, -2.5,tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, -2.4,tol);
-    BOOST_CHECK_EQUAL(img.x, 0);
-    BOOST_CHECK_EQUAL(img.y, 0);
-    BOOST_CHECK_EQUAL(img.z, 1);
+    MY_CHECK_CLOSE(pos.x, -1.0 ,tol);
+    MY_CHECK_CLOSE(pos.y, -2.5,tol);
+    MY_CHECK_CLOSE(pos.z, -2.4,tol);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 1);
 
     pos = make_scalar3(-1.0,-2.0,-2.6);
     img = make_int3(0,0,0);
     b.wrap(pos,img);
 
-    MY_BOOST_CHECK_CLOSE(pos.x, 1.0 ,tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, 2.5,tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, 2.4,tol);
-    BOOST_CHECK_EQUAL(img.x, 0);
-    BOOST_CHECK_EQUAL(img.y, 0);
-    BOOST_CHECK_EQUAL(img.z, -1);
+    MY_CHECK_CLOSE(pos.x, 1.0 ,tol);
+    MY_CHECK_CLOSE(pos.y, 2.5,tol);
+    MY_CHECK_CLOSE(pos.z, 2.4,tol);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, -1);
 
     // along y direction
     pos = make_scalar3(1.0,4.0,1.5);
     img = make_int3(0,0,0);
 
     b.wrap(pos, img);
-    MY_BOOST_CHECK_CLOSE(pos.x, -4.0,tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, -1.0,tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, 1.5,tol);
+    MY_CHECK_CLOSE(pos.x, -4.0,tol);
+    MY_CHECK_CLOSE(pos.y, -1.0,tol);
+    MY_CHECK_CLOSE(pos.z, 1.5,tol);
 
-    BOOST_CHECK_EQUAL(img.x, 0);
-    BOOST_CHECK_EQUAL(img.y, 1);
-    BOOST_CHECK_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, 1);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-1.0,-4.0,-1.5);
     img = make_int3(0,0,0);
 
     b.wrap(pos, img);
-    MY_BOOST_CHECK_CLOSE(pos.x, 4.0, tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, -1.5, tol);
+    MY_CHECK_CLOSE(pos.x, 4.0, tol);
+    MY_CHECK_CLOSE(pos.y, 1.0, tol);
+    MY_CHECK_CLOSE(pos.z, -1.5, tol);
 
-    BOOST_CHECK_EQUAL(img.x, 0);
-    BOOST_CHECK_EQUAL(img.y, -1);
-    BOOST_CHECK_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 0);
+    UP_ASSERT_EQUAL(img.y, -1);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     // along x direction
     pos = make_scalar3(4.2,1.5, 1.0);
     img = make_int3(0,0,0);
 
     b.wrap(pos, img);
-    MY_BOOST_CHECK_CLOSE(pos.x, -0.8, tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, 1.5, tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, 1.0, tol);
+    MY_CHECK_CLOSE(pos.x, -0.8, tol);
+    MY_CHECK_CLOSE(pos.y, 1.5, tol);
+    MY_CHECK_CLOSE(pos.z, 1.0, tol);
 
-    BOOST_CHECK_EQUAL(img.x, 1);
-    BOOST_CHECK_EQUAL(img.y, 0);
-    BOOST_CHECK_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, 1);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 0);
 
     pos = make_scalar3(-5.0,-1.5, 1.0);
     img = make_int3(0,0,0);
 
     b.wrap(pos,img);
-    MY_BOOST_CHECK_CLOSE(pos.x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(pos.y, -1.5, tol);
-    MY_BOOST_CHECK_CLOSE(pos.z, 1.0, tol);
+    MY_CHECK_CLOSE(pos.x, 0.0, tol);
+    MY_CHECK_CLOSE(pos.y, -1.5, tol);
+    MY_CHECK_CLOSE(pos.z, 1.0, tol);
 
-    BOOST_CHECK_EQUAL(img.x, -1);
-    BOOST_CHECK_EQUAL(img.y, 0);
-    BOOST_CHECK_EQUAL(img.z, 0);
+    UP_ASSERT_EQUAL(img.x, -1);
+    UP_ASSERT_EQUAL(img.y, 0);
+    UP_ASSERT_EQUAL(img.z, 0);
     }
 
 //! Test operation of the particle data class
-BOOST_AUTO_TEST_CASE( ParticleData_test )
+UP_TEST( ParticleData_test )
     {
     BoxDim box(10.0, 30.0, 50.0);
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     ParticleData a(1, box, 1, exec_conf);
 
     Scalar tol = Scalar(1e-6);
 
     // make sure the box is working
     const BoxDim& c = a.getBox();
-    MY_BOOST_CHECK_CLOSE(c.getLo().x,-5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getLo().y,-15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getLo().z,-25.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().x,5.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().y,15.0, tol);
-    MY_BOOST_CHECK_CLOSE(c.getHi().z,25.0, tol);
+    MY_CHECK_CLOSE(c.getLo().x,-5.0, tol);
+    MY_CHECK_CLOSE(c.getLo().y,-15.0, tol);
+    MY_CHECK_CLOSE(c.getLo().z,-25.0, tol);
+    MY_CHECK_CLOSE(c.getHi().x,5.0, tol);
+    MY_CHECK_CLOSE(c.getHi().y,15.0, tol);
+    MY_CHECK_CLOSE(c.getHi().z,25.0, tol);
 
     a.setGlobalBoxL(make_scalar3(5.0, 5.0, 5.0));
     const BoxDim& d = a.getBox();
-    MY_BOOST_CHECK_CLOSE(d.getLo().x,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.getLo().y,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.getLo().z,-2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().x,2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().y,2.5, tol);
-    MY_BOOST_CHECK_CLOSE(d.getHi().z,2.5, tol);
+    MY_CHECK_CLOSE(d.getLo().x,-2.5, tol);
+    MY_CHECK_CLOSE(d.getLo().y,-2.5, tol);
+    MY_CHECK_CLOSE(d.getLo().z,-2.5, tol);
+    MY_CHECK_CLOSE(d.getHi().x,2.5, tol);
+    MY_CHECK_CLOSE(d.getHi().y,2.5, tol);
+    MY_CHECK_CLOSE(d.getHi().z,2.5, tol);
 
     // make sure that getN is working
-    BOOST_CHECK(a.getN() == 1);
+    UP_ASSERT(a.getN() == 1);
 
     // Test the ability to acquire data
     {
@@ -462,36 +461,36 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::readwrite);
 
     // begin by verifying that the defaults the class adversizes are set
-    BOOST_CHECK(a.getPositions().getNumElements() == 1);
-    BOOST_CHECK(a.getVelocities().getNumElements() == 1);
-    BOOST_CHECK(a.getAccelerations().getNumElements() == 1);
-    BOOST_CHECK(a.getImages().getNumElements() == 1);
-    BOOST_CHECK(a.getCharges().getNumElements() == 1);
-    BOOST_CHECK(a.getDiameters().getNumElements() == 1);
-    BOOST_CHECK(a.getTags().getNumElements() == 1);
-    BOOST_CHECK(a.getRTags().getNumElements() == 1);
-    BOOST_CHECK(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getPositions().getNumElements() == 1);
+    UP_ASSERT(a.getVelocities().getNumElements() == 1);
+    UP_ASSERT(a.getAccelerations().getNumElements() == 1);
+    UP_ASSERT(a.getImages().getNumElements() == 1);
+    UP_ASSERT(a.getCharges().getNumElements() == 1);
+    UP_ASSERT(a.getDiameters().getNumElements() == 1);
+    UP_ASSERT(a.getTags().getNumElements() == 1);
+    UP_ASSERT(a.getRTags().getNumElements() == 1);
+    UP_ASSERT(a.getBodies().getNumElements() == 1);
 
 
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].x, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].y, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].z, 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_charge.data[0], 0.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].w, 1.0, tol); // mass
-    MY_BOOST_CHECK_CLOSE(h_diameter.data[0], 1.0, tol);
-    BOOST_CHECK_EQUAL(h_image.data[0].x, 0);
-    BOOST_CHECK_EQUAL(h_image.data[0].y, 0);
-    BOOST_CHECK_EQUAL(h_image.data[0].z, 0);
-    BOOST_CHECK(__scalar_as_int(h_pos.data[0].w) == 0); //type
-    BOOST_CHECK(h_rtag.data[0] == 0);
-    BOOST_CHECK(h_tag.data[0] == 0);
-    BOOST_CHECK(h_body.data[0] == NO_BODY);
+    MY_CHECK_CLOSE(h_pos.data[0].x, 0.0, tol);
+    MY_CHECK_CLOSE(h_pos.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_pos.data[0].z, 0.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].x, 0.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].z, 0.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].x, 0.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].y, 0.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].z, 0.0, tol);
+    MY_CHECK_CLOSE(h_charge.data[0], 0.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].w, 1.0, tol); // mass
+    MY_CHECK_CLOSE(h_diameter.data[0], 1.0, tol);
+    UP_ASSERT_EQUAL(h_image.data[0].x, 0);
+    UP_ASSERT_EQUAL(h_image.data[0].y, 0);
+    UP_ASSERT_EQUAL(h_image.data[0].z, 0);
+    UP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 0); //type
+    UP_ASSERT(h_rtag.data[0] == 0);
+    UP_ASSERT(h_tag.data[0] == 0);
+    UP_ASSERT(h_body.data[0] == NO_BODY);
 
     // set some new values for testing
     h_pos.data[0].x = 1.0;
@@ -526,35 +525,35 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     ArrayHandle<unsigned int> h_rtag(a.getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(a.getBodies(), access_location::host, access_mode::read);
 
-    BOOST_CHECK(a.getPositions().getNumElements() == 1);
-    BOOST_CHECK(a.getVelocities().getNumElements() == 1);
-    BOOST_CHECK(a.getAccelerations().getNumElements() == 1);
-    BOOST_CHECK(a.getImages().getNumElements() == 1);
-    BOOST_CHECK(a.getCharges().getNumElements() == 1);
-    BOOST_CHECK(a.getDiameters().getNumElements() == 1);
-    BOOST_CHECK(a.getTags().getNumElements() == 1);
-    BOOST_CHECK(a.getRTags().getNumElements() == 1);
-    BOOST_CHECK(a.getBodies().getNumElements() == 1);
+    UP_ASSERT(a.getPositions().getNumElements() == 1);
+    UP_ASSERT(a.getVelocities().getNumElements() == 1);
+    UP_ASSERT(a.getAccelerations().getNumElements() == 1);
+    UP_ASSERT(a.getImages().getNumElements() == 1);
+    UP_ASSERT(a.getCharges().getNumElements() == 1);
+    UP_ASSERT(a.getDiameters().getNumElements() == 1);
+    UP_ASSERT(a.getTags().getNumElements() == 1);
+    UP_ASSERT(a.getRTags().getNumElements() == 1);
+    UP_ASSERT(a.getBodies().getNumElements() == 1);
 
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].y, 2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_pos.data[0].z,-2.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].x,11.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].y,12.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].z,13.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].x,21.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].y,22.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_accel.data[0].z,23.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_charge.data[0],24.0, tol);
-    MY_BOOST_CHECK_CLOSE(h_vel.data[0].w,25.0, tol); // mass
-    MY_BOOST_CHECK_CLOSE(h_diameter.data[0],26.0, tol);
-    BOOST_CHECK_EQUAL(h_image.data[0].x,27);
-    BOOST_CHECK_EQUAL(h_image.data[0].y,28);
-    BOOST_CHECK_EQUAL(h_image.data[0].z,29);
-    BOOST_CHECK(__scalar_as_int(h_pos.data[0].w) == 1); //type
-    BOOST_CHECK(h_rtag.data[0] == 0);
-    BOOST_CHECK(h_tag.data[0] == 0);
-    BOOST_CHECK(h_body.data[0] == 0);
+    MY_CHECK_CLOSE(h_pos.data[0].x, 1.0, tol);
+    MY_CHECK_CLOSE(h_pos.data[0].y, 2.0, tol);
+    MY_CHECK_CLOSE(h_pos.data[0].z,-2.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].x,11.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].y,12.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].z,13.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].x,21.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].y,22.0, tol);
+    MY_CHECK_CLOSE(h_accel.data[0].z,23.0, tol);
+    MY_CHECK_CLOSE(h_charge.data[0],24.0, tol);
+    MY_CHECK_CLOSE(h_vel.data[0].w,25.0, tol); // mass
+    MY_CHECK_CLOSE(h_diameter.data[0],26.0, tol);
+    UP_ASSERT_EQUAL(h_image.data[0].x,27);
+    UP_ASSERT_EQUAL(h_image.data[0].y,28);
+    UP_ASSERT_EQUAL(h_image.data[0].z,29);
+    UP_ASSERT(__scalar_as_int(h_pos.data[0].w) == 1); //type
+    UP_ASSERT(h_rtag.data[0] == 0);
+    UP_ASSERT(h_tag.data[0] == 0);
+    UP_ASSERT(h_body.data[0] == 0);
 
     }
     // finally, lets check a larger ParticleData for correctness of the initialization
@@ -572,38 +571,38 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     ArrayHandle<unsigned int> h_body(b.getBodies(), access_location::host, access_mode::read);
 
     // begin by verifying that the defaults the class adversizes are set
-    BOOST_CHECK(b.getPositions().getNumElements() == N);
-    BOOST_CHECK(b.getVelocities().getNumElements() == N);
-    BOOST_CHECK(b.getAccelerations().getNumElements() == N);
-    BOOST_CHECK(b.getImages().getNumElements() == N);
-    BOOST_CHECK(b.getCharges().getNumElements() == N);
-    BOOST_CHECK(b.getDiameters().getNumElements() == N);
-    BOOST_CHECK(b.getTags().getNumElements() == N);
-    BOOST_CHECK(b.getRTags().getNumElements() == N);
-    BOOST_CHECK(b.getBodies().getNumElements() == N);
+    UP_ASSERT(b.getPositions().getNumElements() == N);
+    UP_ASSERT(b.getVelocities().getNumElements() == N);
+    UP_ASSERT(b.getAccelerations().getNumElements() == N);
+    UP_ASSERT(b.getImages().getNumElements() == N);
+    UP_ASSERT(b.getCharges().getNumElements() == N);
+    UP_ASSERT(b.getDiameters().getNumElements() == N);
+    UP_ASSERT(b.getTags().getNumElements() == N);
+    UP_ASSERT(b.getRTags().getNumElements() == N);
+    UP_ASSERT(b.getBodies().getNumElements() == N);
 
 
     for (unsigned int i = 0; i < N; i++)
         {
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].x, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].y, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].z, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].x, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].y, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].z, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_accel.data[i].x, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_accel.data[i].y, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_accel.data[i].z, 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_charge.data[i], 0.0, tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].w, 1.0, tol); // mass
-        MY_BOOST_CHECK_CLOSE(h_diameter.data[i], 1.0, tol);
-        BOOST_CHECK_EQUAL(h_image.data[i].x, 0);
-        BOOST_CHECK_EQUAL(h_image.data[i].y, 0);
-        BOOST_CHECK_EQUAL(h_image.data[i].z, 0);
-        BOOST_CHECK(__scalar_as_int(h_pos.data[i].w) == 0); //type
-        BOOST_CHECK(h_rtag.data[i] == i);
-        BOOST_CHECK(h_tag.data[i] == i);
-        BOOST_CHECK(h_body.data[i] == NO_BODY);
+        MY_CHECK_CLOSE(h_pos.data[i].x, 0.0, tol);
+        MY_CHECK_CLOSE(h_pos.data[i].y, 0.0, tol);
+        MY_CHECK_CLOSE(h_pos.data[i].z, 0.0, tol);
+        MY_CHECK_CLOSE(h_vel.data[i].x, 0.0, tol);
+        MY_CHECK_CLOSE(h_vel.data[i].y, 0.0, tol);
+        MY_CHECK_CLOSE(h_vel.data[i].z, 0.0, tol);
+        MY_CHECK_CLOSE(h_accel.data[i].x, 0.0, tol);
+        MY_CHECK_CLOSE(h_accel.data[i].y, 0.0, tol);
+        MY_CHECK_CLOSE(h_accel.data[i].z, 0.0, tol);
+        MY_CHECK_CLOSE(h_charge.data[i], 0.0, tol);
+        MY_CHECK_CLOSE(h_vel.data[i].w, 1.0, tol); // mass
+        MY_CHECK_CLOSE(h_diameter.data[i], 1.0, tol);
+        UP_ASSERT_EQUAL(h_image.data[i].x, 0);
+        UP_ASSERT_EQUAL(h_image.data[i].y, 0);
+        UP_ASSERT_EQUAL(h_image.data[i].z, 0);
+        UP_ASSERT(__scalar_as_int(h_pos.data[i].w) == 0); //type
+        UP_ASSERT(h_rtag.data[i] == i);
+        UP_ASSERT(h_tag.data[i] == i);
+        UP_ASSERT(h_body.data[i] == NO_BODY);
         }
 
     }
@@ -611,25 +610,25 @@ BOOST_AUTO_TEST_CASE( ParticleData_test )
     // check that new types can be added
     ParticleData pdata_type_test(123, box, 1, exec_conf);
 
-    BOOST_CHECK(pdata_type_test.getNTypes()==1);
-    BOOST_CHECK(pdata_type_test.addType("test")==1);
-    BOOST_CHECK(pdata_type_test.getNTypes()==2);
-    BOOST_CHECK(pdata_type_test.getNameByType(1) == "test");
-    BOOST_CHECK(pdata_type_test.getTypeByName("test") == 1);
+    UP_ASSERT(pdata_type_test.getNTypes()==1);
+    UP_ASSERT(pdata_type_test.addType("test")==1);
+    UP_ASSERT(pdata_type_test.getNTypes()==2);
+    UP_ASSERT(pdata_type_test.getNameByType(1) == "test");
+    UP_ASSERT(pdata_type_test.getTypeByName("test") == 1);
     }
 
 //! Tests the RandomParticleInitializer class
-BOOST_AUTO_TEST_CASE( Random_test )
+UP_TEST( Random_test )
     {
     // create a fairly dense system with a minimum distance of 0.8
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     Scalar min_dist = Scalar(0.8);
     RandomInitializer rand_init(500, Scalar(0.4), min_dist, "ABC");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
     ParticleData pdata(snap->particle_data, snap->global_box, exec_conf);
 
-    BOOST_CHECK_EQUAL(pdata.getNameByType(0), "ABC");
-    BOOST_CHECK_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
+    UP_ASSERT_EQUAL(pdata.getNameByType(0), "ABC");
+    UP_ASSERT_EQUAL(pdata.getTypeByName("ABC"), (unsigned int)0);
 
     {
     ArrayHandle<Scalar4> h_pos(pdata.getPositions(), access_location::host, access_mode::read);
@@ -639,9 +638,9 @@ BOOST_AUTO_TEST_CASE( Random_test )
     Scalar L = box.getL().x;
     for (unsigned int i = 0; i < pdata.getN(); i++)
         {
-        BOOST_CHECK(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
-        BOOST_CHECK(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
-        BOOST_CHECK(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
+        UP_ASSERT(h_pos.data[i].x <= box.getHi().x && h_pos.data[i].x >= box.getLo().x);
+        UP_ASSERT(h_pos.data[i].y <= box.getHi().y && h_pos.data[i].y >= box.getLo().y);
+        UP_ASSERT(h_pos.data[i].z <= box.getHi().z && h_pos.data[i].z >= box.getLo().z);
 
         for (unsigned int j = 0; j < pdata.getN(); j++)
             {
@@ -668,7 +667,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
                 dz -= L;
 
             Scalar dr2 = dx*dx + dy*dy + dz*dz;
-            BOOST_CHECK(dr2 >= min_dist*min_dist);
+            UP_ASSERT(dr2 >= min_dist*min_dist);
             }
         }
 
@@ -677,7 +676,7 @@ BOOST_AUTO_TEST_CASE( Random_test )
 
 /*#include "RandomGenerator.h"
 #include "MOL2DumpWriter.h"
-BOOST_AUTO_TEST_CASE( Generator_test )
+UP_TEST( Generator_test )
     {
     vector<string> types;
     for (int i = 0; i < 6; i++)
@@ -691,8 +690,8 @@ BOOST_AUTO_TEST_CASE( Generator_test )
     for (int i = 0; i < 7; i++)
         types2.push_back("B");
 
-    boost::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
-    boost::shared_ptr<PolymerParticleGenerator> poly2(new PolymerParticleGenerator(1.2, types2, 100));
+    std::shared_ptr<PolymerParticleGenerator> poly(new PolymerParticleGenerator(1.2, types, 100));
+    std::shared_ptr<PolymerParticleGenerator> poly2(new PolymerParticleGenerator(1.2, types2, 100));
     BoxDim box(40);
     RandomGenerator generator(box, 1);
     generator.setSeparationRadius("A", 0.5);
@@ -702,7 +701,7 @@ BOOST_AUTO_TEST_CASE( Generator_test )
 
     generator.generate();
 
-    boost::shared_ptr<ParticleData> pdata(new ParticleData(generator));
+    std::shared_ptr<ParticleData> pdata(new ParticleData(generator));
     MOL2DumpWriter dump(pdata, string("test.mol2"));
     dump.analyze(0);
     }*/

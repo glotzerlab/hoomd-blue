@@ -9,9 +9,8 @@
  */
 
 #include "SnapshotSystemData.h"
-#include <boost/python.hpp>
-
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+namespace py = pybind11;
 
 template <class Real>
 void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsigned int nz)
@@ -44,10 +43,12 @@ void SnapshotSystemData<Real>::replicate(unsigned int nx, unsigned int ny, unsig
         improper_data.replicate(n,old_n);
     if (has_constraint_data)
         constraint_data.replicate(n,old_n);
+    if (has_pair_data)
+        pair_data.replicate(n,old_n);
     }
 
 template <class Real>
-void SnapshotSystemData<Real>::broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf)
+void SnapshotSystemData<Real>::broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     #ifdef ENABLE_MPI
     if (exec_conf->getNRanks() > 1)
@@ -61,37 +62,35 @@ void SnapshotSystemData<Real>::broadcast(boost::shared_ptr<ExecutionConfiguratio
 template struct SnapshotSystemData<float>;
 template struct SnapshotSystemData<double>;
 
-void export_SnapshotSystemData()
+void export_SnapshotSystemData(py::module& m)
     {
-    class_<SnapshotSystemData<float>, boost::shared_ptr< SnapshotSystemData<float> > >("SnapshotSystemData_float")
-    .def(init<>())
+    py::class_<SnapshotSystemData<float>, std::shared_ptr< SnapshotSystemData<float> > >(m,"SnapshotSystemData_float")
+    .def(py::init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<float>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<float>::global_box)
-    .def_readwrite("particles", &SnapshotSystemData<float>::particle_data)
-    .def_readwrite("bonds", &SnapshotSystemData<float>::bond_data)
-    .def_readwrite("angles", &SnapshotSystemData<float>::angle_data)
-    .def_readwrite("dihedrals", &SnapshotSystemData<float>::dihedral_data)
-    .def_readwrite("impropers", &SnapshotSystemData<float>::improper_data)
-    .def_readwrite("constraints", &SnapshotSystemData<float>::constraint_data)
+    .def_readonly("particles", &SnapshotSystemData<float>::particle_data)
+    .def_readonly("bonds", &SnapshotSystemData<float>::bond_data)
+    .def_readonly("angles", &SnapshotSystemData<float>::angle_data)
+    .def_readonly("dihedrals", &SnapshotSystemData<float>::dihedral_data)
+    .def_readonly("impropers", &SnapshotSystemData<float>::improper_data)
+    .def_readonly("constraints", &SnapshotSystemData<float>::constraint_data)
+    .def_readonly("pairs", &SnapshotSystemData<float>::pair_data)
     .def("replicate", &SnapshotSystemData<float>::replicate)
     .def("_broadcast", &SnapshotSystemData<float>::broadcast)
     ;
 
-    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr< const SnapshotSystemData<float> > >();
-
-    class_<SnapshotSystemData<double>, boost::shared_ptr< SnapshotSystemData<double> > >("SnapshotSystemData_double")
-    .def(init<>())
+    py::class_<SnapshotSystemData<double>, std::shared_ptr< SnapshotSystemData<double> > >(m,"SnapshotSystemData_double")
+    .def(py::init<>())
     .def_readwrite("_dimensions", &SnapshotSystemData<double>::dimensions)
     .def_readwrite("_global_box", &SnapshotSystemData<double>::global_box)
-    .def_readwrite("particles", &SnapshotSystemData<double>::particle_data)
-    .def_readwrite("bonds", &SnapshotSystemData<double>::bond_data)
-    .def_readwrite("angles", &SnapshotSystemData<double>::angle_data)
-    .def_readwrite("dihedrals", &SnapshotSystemData<double>::dihedral_data)
-    .def_readwrite("impropers", &SnapshotSystemData<double>::improper_data)
-    .def_readwrite("constraints", &SnapshotSystemData<double>::constraint_data)
+    .def_readonly("particles", &SnapshotSystemData<double>::particle_data)
+    .def_readonly("bonds", &SnapshotSystemData<double>::bond_data)
+    .def_readonly("angles", &SnapshotSystemData<double>::angle_data)
+    .def_readonly("dihedrals", &SnapshotSystemData<double>::dihedral_data)
+    .def_readonly("impropers", &SnapshotSystemData<double>::improper_data)
+    .def_readonly("constraints", &SnapshotSystemData<double>::constraint_data)
+    .def_readonly("pairs", &SnapshotSystemData<double>::pair_data)
     .def("replicate", &SnapshotSystemData<double>::replicate)
     .def("_broadcast", &SnapshotSystemData<double>::broadcast)
     ;
-
-    implicitly_convertible<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr< const SnapshotSystemData<double> > >();
     }

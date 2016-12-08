@@ -46,7 +46,7 @@ cudaError_t gpu_compute_dpdthermo_forces(const pair_args_t& pair_args,
 
 //! Compute ewlad pair forces on the GPU with PairEvaluatorEwald
 cudaError_t gpu_compute_ewald_forces(const pair_args_t& pair_args,
-                                     const Scalar *d_params);
+                                     const Scalar2 *d_params);
 
 //! Compute moliere pair forces on the GPU with EvaluatorPairMoliere
 cudaError_t gpu_compute_moliere_forces(const pair_args_t& pair_args,
@@ -74,6 +74,6 @@ cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
 
 //! Compute mie potential pair forces on the GPU with PairEvaluatorReactionField
 cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
-                                                const Scalar2 *d_params);
+                                                const Scalar3 *d_params);
 
 #endif

@@ -12,17 +12,13 @@
 
 #include "OPLSDihedralForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 using namespace std;
 
 /*! \param sysdef System to compute bond forces on
 */
-OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+OPLSDihedralForceComputeGPU::OPLSDihedralForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
     : OPLSDihedralForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -82,9 +78,9 @@ void OPLSDihedralForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_OPLSDihedralForceComputeGPU()
+void export_OPLSDihedralForceComputeGPU(py::module& m)
     {
-    class_<OPLSDihedralForceComputeGPU, boost::shared_ptr<OPLSDihedralForceComputeGPU>, bases<OPLSDihedralForceCompute>, boost::noncopyable >
-    ("OPLSDihedralForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<OPLSDihedralForceComputeGPU, std::shared_ptr<OPLSDihedralForceComputeGPU> >(m, "OPLSDihedralForceComputeGPU", py::base<OPLSDihedralForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

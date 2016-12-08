@@ -14,6 +14,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceDistanceConstraint_H__
 #define __ForceDistanceConstraint_H__
 
@@ -35,7 +37,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceDistanceConstraint(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceDistanceConstraint(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceDistanceConstraint();
@@ -61,7 +63,7 @@ class ForceDistanceConstraint : public MolecularForceCompute
         virtual void assignMoleculeTags();
 
     protected:
-        boost::shared_ptr<ConstraintData> m_cdata; //! The constraint data
+        std::shared_ptr<ConstraintData> m_cdata; //! The constraint data
 
         GPUVector<double> m_cmatrix;                //!< The matrix for the constraint force equation (column-major)
         GPUVector<double> m_cvec;                   //!< The vector on the RHS of the constraint equation
@@ -75,12 +77,6 @@ class ForceDistanceConstraint : public MolecularForceCompute
         Eigen::SparseLU<Eigen::SparseMatrix<double, Eigen::ColMajor>, Eigen::COLAMDOrdering<int> > m_sparse_solver;
             //!< The persistent state of the sparse matrix solver
         GPUVector<int> m_sparse_idxlookup;          //!< Reverse lookup from column-major to sparse matrix element
-
-        //! Connection to the signal notifying when groups are resorted
-        boost::signals2::connection m_constraint_reorder_connection;
-
-        //!< Connection to the signal for global topology changes
-        boost::signals2::connection m_group_num_change_connection;
 
         bool m_constraint_reorder;         //!< True if groups have changed
         bool m_constraints_added_removed;  //!< True if global constraint topology has changed
@@ -121,16 +117,16 @@ class ForceDistanceConstraint : public MolecularForceCompute
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceDistanceConstraint::askGhostLayerWidth, this, _1));
+                m_comm->getGhostLayerWidthRequestSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -140,11 +136,11 @@ class ForceDistanceConstraint : public MolecularForceCompute
         Scalar dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
             unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length);
 
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected to ghost layer width requests
 
     };
 
 //! Exports the ForceDistanceConstraint to python
-void export_ForceDistanceConstraint();
+void export_ForceDistanceConstraint(pybind11::module& m);
 
 #endif

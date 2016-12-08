@@ -8,6 +8,7 @@
 #include "hoomd/AABB.h"
 
 #include <algorithm>
+#include <cfloat>
 
 #ifndef __OBB_H__
 #define __OBB_H__
@@ -116,10 +117,12 @@ struct OBB
     \param b Second OBB
 
     \param exact If true, report exact overlaps
+    Otherwise, false positives may be reported (which do not hurt
+    since this is used in broad phase), which can improve performance
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=false)
     {
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;
@@ -173,6 +176,8 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b)
     ra = a.lengths.x * rabs[0][2] + a.lengths.y * rabs[1][2] + a.lengths.z*rabs[2][2];
     rb = b.lengths.z;
     if (fabs(t.x*r.row0.z+t.y*r.row1.z+t.z*r.row2.z) > ra + rb) return false;
+
+    if (!exact) return true; // if exactness is not required, skip some tests
 
     // test axis L = A0 x B0
     ra = a.lengths.y * rabs[2][0] + a.lengths.z*rabs[1][0];

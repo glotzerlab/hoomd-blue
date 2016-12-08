@@ -92,7 +92,7 @@ Initializing a system with a triclinic box
 You can specify all parameters of a triclinic box in a GSD file.
 
 You can also pass a :py:class:`hoomd.data.boxdim` argument to the constructor of any initialization method. Here is an
-example for :py:func:`hoomd.init.create_random`::
+example for :py:func:`hoomd.deprecated.init.create_random`::
 
     init.create_random(box=data.boxdim(L=18, xy=0.1, xz=0.2, yz=0.3), N=1000))
 

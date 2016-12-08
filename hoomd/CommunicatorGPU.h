@@ -22,6 +22,11 @@
 #include "GPUFlags.h"
 #include "GPUArray.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
+
 /*! \ingroup communication
 */
 
@@ -35,8 +40,8 @@ class CommunicatorGPU : public Communicator
         /*! \param sysdef system definition the communicator is associated with
          *  \param decomposition Information about the decomposition of the global simulation domain
          */
-        CommunicatorGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                        boost::shared_ptr<DomainDecomposition> decomposition);
+        CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
+                        std::shared_ptr<DomainDecomposition> decomposition);
         virtual ~CommunicatorGPU();
 
         //! \name communication methods
@@ -106,7 +111,7 @@ class CommunicatorGPU : public Communicator
                 typedef typename group_data::packed_t group_element_t;
 
                 //! Constructor
-                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, boost::shared_ptr<group_data> gdata);
+                GroupCommunicatorGPU(CommunicatorGPU& gpu_comm, std::shared_ptr<group_data> gdata);
 
                 //! Migrate groups
                 /*! \param incomplete If true, mark all groups that have non-local members and update local
@@ -137,8 +142,8 @@ class CommunicatorGPU : public Communicator
 
             private:
                 CommunicatorGPU& m_gpu_comm;                            //!< The outer class
-                boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
-                boost::shared_ptr<group_data> m_gdata;                  //!< The group data
+                std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //< The execution configuration
+                std::shared_ptr<group_data> m_gdata;                  //!< The group data
 
                 GPUVector<unsigned int> m_rank_mask;                    //!< Bitfield for every group to keep track of updated rank fields
                 GPUVector<unsigned int> m_scan;                         //!< Temporary array for exclusive scan of group membership information
@@ -195,11 +200,14 @@ class CommunicatorGPU : public Communicator
         GroupCommunicatorGPU<ConstraintData> m_constraint_comm;  //!< Communication helper for constraints
         friend class GroupCommunicatorGPU<ConstraintData>;
 
+        GroupCommunicatorGPU<PairData> m_pair_comm;    //!< Communication helper for pairs
+        friend class GroupCommunicatorGPU<PairData>;
+
         /* Ghost communication */
         bool m_mapped_ghost_recv;                        //!< True if using host-mapped memory for ghost recv buffers
         bool m_mapped_ghost_send;                        //!< True if using host-mapped memory for ghost send buffers
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
-        boost::scoped_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_recv; //!< Autotuner for mapped memory (recv ghosts)
+        std::unique_ptr<Autotuner> m_tuner_ghost_send; //!< Autotuner for mapped memory (recv ghosts)
 
         GPUVector<unsigned int> m_tag_ghost_sendbuf;   //!< Buffer for sending particle tags
         GPUVector<unsigned int> m_tag_ghost_recvbuf;   //!< Buffer for recveiving particle tags
@@ -286,7 +294,7 @@ class CommunicatorGPU : public Communicator
     };
 
 //! Export CommunicatorGPU class to python
-void export_CommunicatorGPU();
+void export_CommunicatorGPU(pybind11::module& m);
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI

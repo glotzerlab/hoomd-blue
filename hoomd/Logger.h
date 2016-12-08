@@ -21,8 +21,8 @@
 #include <vector>
 #include <map>
 #include <fstream>
-
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <memory>
 
 #ifndef __LOGGER_H__
 #define __LOGGER_H__
@@ -52,7 +52,7 @@ class Logger : public Analyzer
     {
     public:
         //! Constructs a logger and opens the file
-        Logger(boost::shared_ptr<SystemDefinition> sysdef,
+        Logger(std::shared_ptr<SystemDefinition> sysdef,
                const std::string& fname,
                const std::string& header_prefix="",
                bool overwrite=false);
@@ -61,13 +61,13 @@ class Logger : public Analyzer
         ~Logger();
 
         //! Registers a compute
-        void registerCompute(boost::shared_ptr<Compute> compute);
+        void registerCompute(std::shared_ptr<Compute> compute);
 
         //! Registers an updater
-        void registerUpdater(boost::shared_ptr<Updater> updater);
+        void registerUpdater(std::shared_ptr<Updater> updater);
 
         //! Register a callback
-        void registerCallback(std::string name, boost::python::object callback);
+        void registerCallback(std::string name, pybind11::object callback);
 
         //! Clears all registered computes and updaters
         void removeAll();
@@ -109,11 +109,11 @@ class Logger : public Analyzer
         //! The file we write out to
         std::ofstream m_file;
         //! A map of computes indexed by logged quantity that they provide
-        std::map< std::string, boost::shared_ptr<Compute> > m_compute_quantities;
+        std::map< std::string, std::shared_ptr<Compute> > m_compute_quantities;
         //! A map of updaters indexed by logged quantity that they provide
-        std::map< std::string, boost::shared_ptr<Updater> > m_updater_quantities;
+        std::map< std::string, std::shared_ptr<Updater> > m_updater_quantities;
         //! List of callbacks
-        std::map< std::string, boost::python::object > m_callback_quantities;
+        std::map< std::string, pybind11::object > m_callback_quantities;
         //! List of quantities to log
         std::vector< std::string > m_logged_quantities;
         //! Clock for the time log quantity
@@ -135,6 +135,6 @@ class Logger : public Analyzer
     };
 
 //! exports the Logger class to python
-void export_Logger();
+void export_Logger(pybind11::module& m);
 
 #endif
