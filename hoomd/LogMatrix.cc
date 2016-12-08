@@ -126,8 +126,8 @@ void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quan
     //Init with empty arrays.
     for(unsigned int i=0; i < m_cached_matrix_quantities.size(); i++)
         {
-        PyObject* tmp = num_util::makeNum(0,num_util::getEnum<int>());
-        m_cached_matrix_quantities[i] = py::array(tmp,false);
+        unsigned char tmp[] = {0};
+        m_cached_matrix_quantities[i] = py::array(0,tmp);
         }
     }
 
@@ -208,7 +208,8 @@ py::array LogMatrix::getMatrixQuantity(const std::string &quantity, unsigned int
         if( m_logged_matrix_quantities[i] == quantity )
             return m_cached_matrix_quantities[i];
     m_exec_conf->msg->error() << "Matrix quantity " << quantity << " unknow to analyzer Unable to return."<<endl;
-    return py::array(num_util::makeNum(0,num_util::getEnum<char>()),false);
+    unsigned char tmp[] = {0};
+    return py::array(0,tmp);
     }
 
 

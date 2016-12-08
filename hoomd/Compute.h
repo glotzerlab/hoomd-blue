@@ -24,7 +24,6 @@
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/numpy.h>
-#include <hoomd/extern/num_util.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -151,7 +150,8 @@ class Compute
         */
         virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
             {
-            return pybind11::array(num_util::makeNum(0,num_util::getEnum<char>()),false);
+            unsigned char tmp[] = {0};
+            return pybind11::array(0,tmp);
             }
 
 
