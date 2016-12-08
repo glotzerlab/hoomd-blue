@@ -23,11 +23,29 @@ except ImportError as error:
     hoomd.context.msg.error(h5py_userwarning)
     raise error
 
+class File(h5py.File):
+    R""" Thin wrapper of the h5py.File class. This class ensures, that
+         opening and close operations within a context manager are only
+         executed on the root MPI rank.
+
+    Note:
+         This class can be used like the h5py.File class, but the user has to
+         make sure that all operations are only executed on the root rank.
+    """
+    def __init__(self, *args, **kwargs):
+        if hoomd.comm.get_rank() == 0:
+            super(File, self).__init__(*args, **kwargs)
+
+    def __exit__(self, *args, **kwargs):
+        if hoomd.comm.get_rank() == 0:
+            return super(File,self).__exit__(*args, **kwargs)
+
+
 class log(hoomd.analyze._analyzer):
     R""" Log a number of calculated quantities or matrices to a hdf5 file.
 
     Args:
-        filename(str): filename for the data to log
+        h5file(:py:class:`hoomd.hdf5.File`): Instance describing the opened h5file.
         period(int):  Quantities are loggged every *period* time steps
         quantities(list): Quantities to log.
         matriy_quantities(list): Matrix quantities to log.
@@ -54,32 +72,27 @@ class log(hoomd.analyze._analyzer):
         run.
 
     Examples::
-            #with h5py.File("log.h5", "w") as h5file:
-               #with hoomd.context.SimulationContext:
-                  #general setup
-                  log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'], matrix_quantities = ['random_matrix'], period=100)
-                  log.register_callback('my_quantity', lambda timestep: timestep**2)
-                  log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
-                  def random_matrix(timestep):
-                     return numpy.random.rand(23, 56)
-                  log.register_callback('random_matrix', random_matrix, True)
-                  #more setup
-                  run(200)
+        with hoomd.hdf5.File("log.h5", "w") as h5file:
+           #general setup
+           log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'], matrix_quantities = ['random_matrix'], period=100)
+           log.register_callback('my_quantity', lambda timestep: timestep**2)
+           log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
+           def random_matrix(timestep):
+              return numpy.random.rand(23, 56)
+           log.register_callback('random_matrix', random_matrix, True)
+           #more setup
+           run(200)
 
     """
-    def __init__(self, filename, period, quantities=list(), matrix_quantities=list(), overwrite=False, phase=0):
+    def __init__(self, h5file, period, quantities=list(), matrix_quantities=list(), phase=0):
         hoomd.util.print_status_line()
-
+        if not isinstance(h5file, hoomd.hdf5.File) :
+            hoomd.context.msg.error("HDF5 file descriptor is no instance the hoomd thin wrapper of h5py.File.")
+            raise RuntimeError("Error creating hoomd.hdf5.log")
         # store metadata
-        self.metadata_fields = ['filename', 'period']
-        self.filename = filename
+        self.metadata_fields = ['h5file', 'period']
+        self.h5file = h5file
         self.period = period
-
-        if overwrite and hoomd.comm.get_rank() == 0:
-            try:
-                os.remove(filename)
-            except OSError:
-                pass
 
         # initialize base class
         super(log, self).__init__()
@@ -92,13 +105,6 @@ class log(hoomd.analyze._analyzer):
         hoomd.util.quiet_status()
         self.set_params(quantities=quantities, matrix_quantities=matrix_quantities)
         hoomd.util.unquiet_status()
-
-        # set the logged matrix quantities
-        matrix_quantity_list = _hoomd.std_vector_string();
-        for item in matrix_quantities:
-            matrix_quantity_list.append(str(item));
-        self.cpp_analyzer.setLoggedMatrixQuantities(matrix_quantity_list);
-
 
         # add the logger to the list of loggers
         hoomd.context.current.loggers.append(self);
@@ -241,13 +247,14 @@ class log(hoomd.analyze._analyzer):
 
         f = None
         if hoomd.comm.get_rank() == 0:
-            f = h5py.File(self.filename, "a")
+            f = self.h5file
 
         self._write_quantities(f, timestep)
         self._write_matrix_values(f, timestep)
 
-        if f is not None:
-            f.close()
+        if hoomd.comm.get_rank() == 0:
+            # Flush the file after each write to maximize integrity of written data
+            f.flush()
 
         return timestep
 

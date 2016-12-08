@@ -159,23 +159,24 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
         else:
             self.tmp_file = "invalid";
 
-        log = hoomd.hdf5.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=self.tmp_file);
-        hoomd.run(11);
-        t0 = log.query('timestep');
-        U0 = log.query('potential_energy');
-        K0 = log.query('kinetic_energy');
+        with hoomd.hdf5.File(self.tmp_file,"a") as h5file:
+            log = hoomd.hdf5.log(h5file, quantities = ['potential_energy', 'kinetic_energy'], period = 10);
+            hoomd.run(11);
+            t0 = log.query('timestep');
+            U0 = log.query('potential_energy');
+            K0 = log.query('kinetic_energy');
 
-        hoomd.run(2);
-        t1 = log.query('timestep');
-        U1 = log.query('potential_energy');
-        K1 = log.query('kinetic_energy');
+            hoomd.run(2);
+            t1 = log.query('timestep');
+            U1 = log.query('potential_energy');
+            K1 = log.query('kinetic_energy');
 
-        self.assertEqual(int(t0), 10)
-        self.assertNotEqual(K0, 0);
-        self.assertNotEqual(U0, 0);
-        self.assertEqual(int(t1), 10)
-        self.assertEqual(U0, U1);
-        self.assertEqual(K0, K1);
+            self.assertEqual(int(t0), 10)
+            self.assertNotEqual(K0, 0);
+            self.assertNotEqual(U0, 0);
+            self.assertEqual(int(t1), 10)
+            self.assertEqual(U0, U1);
+            self.assertEqual(K0, K1);
 
     def tearDown(self):
         self.pair = None;
@@ -199,58 +200,63 @@ class analyze_log_hdf5_tests (unittest.TestCase):
 
     # tests basic creation of the analyzer
     def test(self):
-        hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
-        hoomd.run(100);
+        with hoomd.hdf5.File(self.tmp_file,"a") as h5file:
+            hoomd.hdf5.log(h5file, quantities = ['test1', 'test2', 'test3'], period = 10);
+            hoomd.run(100);
 
     def test_matrix(self):
         def callback(timestep):
             return numpy.random.rand(2, 3)
-        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
-        ana.register_callback("mtest1",callback,matrix=True)
-        ana.register_callback("mtest2",callback,matrix=True)
+        with hoomd.hdf5.File(self.tmp_file,"a") as h5file:
+            ana = hoomd.hdf5.log(h5file, quantities = ['test1', 'test2', 'test3'], matrix_quantities=["mtest1","mtest2"], period = 10);
+            ana.register_callback("mtest1",callback,matrix=True)
+            ana.register_callback("mtest2",callback,matrix=True)
 
-        hoomd.run(100);
+            hoomd.run(100);
 
     # tests with phase
     def test_phase(self):
         def callback(timestep):
             return numpy.random.rand(2,3)
-        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file,phase=0);
-        ana.register_callback("mtest1",callback,matrix=True)
-        ana.register_callback("mtest2",callback,matrix=True)
+        with hoomd.hdf5.File(self.tmp_file, "a") as h5file:
+            ana = hoomd.hdf5.log(h5file,quantities = ['test1', 'test2', 'test3'],matrix_quantities=["mtest1","mtest2"], period = 10,phase=0);
+            ana.register_callback("mtest1",callback,matrix=True)
+            ana.register_callback("mtest2",callback,matrix=True)
 
-        hoomd.run(100);
+            hoomd.run(100);
 
     # test set_params
     def test_set_params(self):
         def callback(timestep):
-            return numpy.random.rand(2,3)
+            return numpy.random.rand(2, 3)
 
-        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], matrix_quantities=["mtest1","mtest2"], period = 10, filename=self.tmp_file);
-        ana.register_callback("mtest1", callback, matrix=True)
-        ana.register_callback("mtest2", callback, matrix=True)
+        with hoomd.hdf5.File(self.tmp_file,"a") as h5file:
+            ana = hoomd.hdf5.log(h5file,quantities = ['test1', 'test2', 'test3'], matrix_quantities=["mtest1","mtest2"], period = 10);
+            ana.register_callback("mtest1", callback, matrix=True)
+            ana.register_callback("mtest2", callback, matrix=True)
 
-        #hdf5 logger does not support changing the number of logged quantities on the fly.
-        # ana.set_params(quantities = ['test1']);
-        # hoomd.run(100);
-        # ana.set_params(quantities = ['test2', 'test3'])
-        # hoomd.run(100);
-        # ana.set_params(quantities = [u'test4', u'test5'])
-        # hoomd.run(100);
-        # ana.set_params(matrix_quantities = [])
-        # hoomd.run(100);
-        ana.set_params(matrix_quantities = ["mtest1"])
-        hoomd.run(100);
-        ana.set_params(matrix_quantities = ["mtest1"])
-        hoomd.run(100);
+            #hdf5 logger does not support changing the number of logged quantities on the fly.
+            # ana.set_params(quantities = ['test1']);
+            # hoomd.run(100);
+            # ana.set_params(quantities = ['test2', 'test3'])
+            # hoomd.run(100);
+            # ana.set_params(quantities = [u'test4', u'test5'])
+            # hoomd.run(100);
+            # ana.set_params(matrix_quantities = [])
+            # hoomd.run(100);
+            ana.set_params(matrix_quantities = ["mtest1"])
+            hoomd.run(100);
+            ana.set_params(matrix_quantities = ["mtest1"])
+            hoomd.run(100);
 
     # test the initialization checks
     def test_init_checks(self):
-        ana = hoomd.hdf5.log(quantities = ['test1', 'test2', 'test3'], period = 10, filename=self.tmp_file);
-        ana.cpp_analyzer = None;
+        with hoomd.hdf5.File(self.tmp_file,"a") as h5file:
+            ana = hoomd.hdf5.log(h5file, quantities = ['test1', 'test2', 'test3'], period = 10);
+            ana.cpp_analyzer = None;
 
-        self.assertRaises(RuntimeError, ana.enable);
-        self.assertRaises(RuntimeError, ana.disable);
+            self.assertRaises(RuntimeError, ana.enable);
+            self.assertRaises(RuntimeError, ana.disable);
 
     def tearDown(self):
         hoomd.context.initialize();
