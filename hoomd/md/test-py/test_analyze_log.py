@@ -19,7 +19,7 @@ class analyze_log_tests (unittest.TestCase):
         hoomd.context.current.sorter.set_params(grid=8)
 
         if hoomd.comm.get_rank() == 0:
-            tmp = tempfile.mkstemp(suffix='.test.h5');
+            tmp = tempfile.mkstemp(suffix='.test.log');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
@@ -77,14 +77,34 @@ class analyze_log_query_tests (unittest.TestCase):
         hoomd.md.integrate.langevin(hoomd.group.all(), seed=1, kT=1.0);
 
         hoomd.context.current.sorter.set_params(grid=8)
-        if hoomd.comm.get_rank() == 0:
-            tmp = tempfile.mkstemp(suffix='.test.h5');
-            self.tmp_file = tmp[1];
-        else:
-            self.tmp_file = "invalid";
+
+    # tests query with no output file
+    def test(self):
+        log = hoomd.analyze.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=None);
+        hoomd.run(102);
+        t0 = log.query('timestep');
+        U0 = log.query('potential_energy');
+        K0 = log.query('kinetic_energy');
+
+        hoomd.run(2);
+        t1 = log.query('timestep');
+        U1 = log.query('potential_energy');
+        K1 = log.query('kinetic_energy');
+
+        self.assertEqual(int(t0), 102)
+        self.assertNotEqual(K0, 0);
+        self.assertNotEqual(U0, 0);
+        self.assertEqual(int(t1), 104)
+        self.assertNotEqual(U0, U1);
+        self.assertNotEqual(K0, K1);
 
     # tests basic creation of the analyzer
     def test_with_file(self):
+        if hoomd.comm.get_rank() == 0:
+            tmp = tempfile.mkstemp(suffix='.test.log');
+            self.tmp_file = tmp[1];
+        else:
+            self.tmp_file = "invalid";
 
         log = hoomd.analyze.log(quantities = ['potential_energy', 'kinetic_energy'], period = 10, filename=self.tmp_file);
         hoomd.run(11);
@@ -135,7 +155,7 @@ class analyze_log_hdf5_query_tests (unittest.TestCase):
             return
 
         if hoomd.comm.get_rank() == 0:
-            tmp = tempfile.mkstemp(suffix='.test.log');
+            tmp = tempfile.mkstemp(suffix='.test.h5');
             self.tmp_file = tmp[1];
         else:
             self.tmp_file = "invalid";
