@@ -4,24 +4,12 @@
 ## Find CUDA
 # If CUDA is enabled, set it up
 if (ENABLE_CUDA)
-	# the package is needed
-	find_package(CUDA REQUIRED REQUIRED)
-
-	if (${CUDA_VERSION} VERSION_LESS 5.0)
-		message(SEND_ERROR "CUDA 5.0 or newer is required")
-	endif (${CUDA_VERSION} VERSION_LESS 5.0)
-
-    # Find Thrust
-    find_package(Thrust)
-
-    if (${THRUST_VERSION} VERSION_LESS 1.5.0)
-        message(SEND_ERROR "Thrust version ${THRUST_VERSION} found, >= 1.5.0 is required")
-    endif (${THRUST_VERSION} VERSION_LESS 1.5.0)
+	find_package(CUDA 7.0 REQUIRED)
+    find_package(Thrust 1.5.0 REQUIRED)
 
     # first thrust, then CUDA (to allow for local thrust installation
     # that overrides CUDA toolkit)
     include_directories(${THRUST_INCLUDE_DIR})
-
 	include_directories(${CUDA_INCLUDE_DIRS})
 
     get_directory_property(DIRS INCLUDE_DIRECTORIES SYSTEM)
@@ -56,10 +44,8 @@ if (ENABLE_CUDA)
     # setup nvcc to build for all CUDA architectures. Allow user to modify the list if desired
     if (CUDA_VERSION VERSION_GREATER 7.99)
         set(CUDA_ARCH_LIST 30 35 50 60 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    elseif (CUDA_VERSION VERSION_GREATER 5.99)
+    elseif (CUDA_VERSION VERSION_GREATER 6.99)
         set(CUDA_ARCH_LIST 30 35 50 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
-    else (CUDA_VERSION VERSION_GREATER 4.99)
-        set(CUDA_ARCH_LIST 30 35 CACHE STRING "List of target sm_ architectures to compile CUDA code for. Separate with semicolons.")
     endif()
 
     foreach(_cuda_arch ${CUDA_ARCH_LIST})
@@ -97,53 +83,36 @@ endif ()
 
 endif (ENABLE_CUDA)
 
-# automatically handle setting ccbin to /usr when needed
-if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_VERSION VERSION_GREATER 2.8.7)
-    # CMAKE_CXX_COMPILER_VERSION is only available on 2.8.8 and newer
-
-    # need to set ccbin to  when gcc is unsupported
-    # this assumes that the user is on a system where CUDA is supported and /usr/bin/gcc will work - if they aren't, then it is their problem
-
-    if (CUDA_VERSION VERSION_EQUAL 4.1)
-        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.5.99)
-            message(STATUS "CUDA 4.1 doesn't support gcc >= 4.6, falling back on /usr/bin/gcc")
-            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
-        endif()
-    endif()
-
-    if (CUDA_VERSION VERSION_EQUAL 4.2)
-        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6.99)
-            message(STATUS "CUDA 4.2 doesn't support gcc >= 4.7, falling back on /usr/bin/gcc")
-            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
-        endif()
-    endif()
-
-    if (CUDA_VERSION VERSION_EQUAL 5.0)
-        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6.99)
-            message(STATUS "CUDA 5.0 doesn't support gcc >= 4.7, falling back on /usr/bin/gcc")
-            list(APPEND CUDA_NVCC_FLAGS "-ccbin;/usr/bin/gcc")
-        endif()
-    endif()
-endif()
-
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
 if (ENABLE_CUDA)
     if(${CUDA_VERSION} VERSION_LESS 7.5)
-        set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
-    elseif(${CUDA_VERSION} VERSION_GREATER 7.5)
-        set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
+        set(CUSOLVER_AVAILABLE FALSE)
+    elseif(${CUDA_VERSION} VERSION_LESS 8.0)
+        # CUDA 7.5 has a functioning cusolver, if cmake found it
+        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "")
+            set(CUSOLVER_AVAILABLE TRUE)
+        else()
+            set(CUSOLVER_AVAILABLE FALSE)
+        endif()
     else()
-        if (NOT CUSOLVER_AVAILABLE)
-            # message at first time
-            message(STATUS "CUDA version >= 7.5, looking for cusolver library")
-            if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "")
-                set(CUSOLVER_AVAILABLE TRUE CACHE BOOL "TRUE if cusolver library is available")
-                message(STATUS "cuSolver library found.")
-            else()
-                set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
-                message(STATUS "Could not find cusolver library, constraints will be slower, perhaps old CMake?")
-            endif()
+        # CUDA 8.0 requires that libgomp be linked in - see if we can link it
+        try_compile(_can_link_gomp
+                    ${CMAKE_CURRENT_BINARY_DIR}/tmp
+                    ${CMAKE_CURRENT_SOURCE_DIR}/CMake/hoomd/test.cc
+                    LINK_LIBRARIES gomp
+                   )
+
+        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "" AND _can_link_gomp)
+            set(CUSOLVER_AVAILABLE TRUE)
+        else()
+            set(CUSOLVER_AVAILABLE FALSE)
         endif()
     endif()
-    mark_as_advanced(CUSOLVER_AVAILABLE)
+
+if (NOT CUSOLVER_AVAILABLE)
+    message(STATUS "Could not find cusolver library, constraints will be slower. Perhaps old CMake or missing gomp library.")
+else()
+    message(STATUS "Found cusolver: ${CUDA_cusolver_LIBRARY}")
+endif()
+
 endif()

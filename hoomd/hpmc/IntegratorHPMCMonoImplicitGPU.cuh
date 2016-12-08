@@ -886,6 +886,11 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
     vec3<Scalar> r_ij;
     bool overlap_shape = false;
 
+    if (master)
+        {
+        s_overlap[group] = 0;
+        }
+
     if (active)
         {
         r_ij = pos_i_old - pos_i_new;
@@ -1012,21 +1017,28 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
             overlap_shape_new = true;
             }
 
-        // we count a possible trial insertion as one that overlaps with either the
-        // old or the new colloid shape, but not with both
-        overlap_shape = ((forward && overlap_shape_old && !overlap_shape_new)
-            || (!forward && !overlap_shape_old && overlap_shape_new));
+        // we count a possible trial insertion as one that overlaps with the old shape or the new one,
+        // depending on which Rosenbluth weight we are computing
+        overlap_shape = ((forward && overlap_shape_old) || (!forward && overlap_shape_new));
+
+        if ((forward && overlap_shape_new) || (!forward && overlap_shape_old))
+            {
+            // shortcut, reject
+            if (master) s_overlap[group] = 1;
+            }
 
         // check if depletant overlaps with the old configuration
-        if (master && overlap_shape)
+        if (master && overlap_shape && !s_overlap[group])
             {
             overlap_checks += excell_size;
             }
         }
 
+    __syncthreads();
+
     // if the check for the updated particle fails, no need to check for overlaps with other particles
     bool trial_active = true;
-    if (!overlap_shape)
+    if (!overlap_shape || s_overlap[group])
         {
         trial_active = false;
         }
@@ -1036,10 +1048,6 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
         // initialize queue
         s_queue_size = 0;
         s_still_searching = 1;
-        }
-    if (master)
-        {
-        s_overlap[group] = 0;
         }
     __syncthreads();
 

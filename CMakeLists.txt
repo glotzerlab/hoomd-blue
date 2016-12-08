@@ -132,6 +132,10 @@ if (BUILD_TESTING)
 endif (BUILD_TESTING)
 
 ################################
+# set up long validation tests
+option(BUILD_VALIDATION "Build validation tests" OFF)
+
+################################
 ## Process subdirectories
 add_subdirectory (hoomd)
 

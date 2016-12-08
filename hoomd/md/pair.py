@@ -2293,6 +2293,7 @@ class dipole(ai_pair):
         U_{ee} = A e^{-\kappa r} \frac{q_i q_j}{r}
 
     Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+    :py:class:`dipole` does not implement and energy shift / smoothing modes due to the function of the force.
 
     The following coefficients must be set per unique pair of particle types:
 
@@ -2339,6 +2340,13 @@ class dipole(ai_pair):
         params = _hoomd.make_scalar3(mu, A, kappa)
 
         return params
+
+    def set_params(self, coeff):
+        """ :py:class:`dipole` has no energy shift modes """
+
+        raise RuntimeError('Not implemented for dipole');
+        return;
+
 
 class reaction_field(pair):
     R""" Onsager reaction field pair potential.

@@ -1,11 +1,8 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-
-// Maintainer: joaander
-
 /*! \file LogPlainTXT.cc
-    \brief Defines the Logger class
+    \brief Defines the LogPlainTXT class
 */
 
 #include "LogPlainTXT.h"
@@ -16,7 +13,6 @@
 #endif
 
 namespace py = pybind11;
-
 
 #include <stdexcept>
 #include <iomanip>
@@ -146,7 +142,7 @@ void LogPlainTXT::analyze(unsigned int timestep)
 /*! \param quantities A list of quantities to log
 
     When analyze() is called, each quantitiy in the list will, in order, be requested
-    from the matching registered compute or updtaer and written to the file separated
+    from the matching registered compute or updater and written to the file separated
     by delimiters. After all quantities are written to the file a newline is written.
 
     Each time setLoggedQuantities is called, a header listing the column names is also written.
@@ -198,7 +194,6 @@ void LogPlainTXT::setLoggedQuantities(const std::vector< std::string >& quantiti
         m_file.flush();
         }
     }
-
 
 void export_LogPlainTXT(py::module& m)
     {
