@@ -146,8 +146,7 @@ class log(hoomd.analyze._analyzer):
         if not force_matrix:
             logged_quantities = self.cpp_analyzer.getLoggedQuantities()
             logged_quantities.append('timestep')
-            if quantity in logged_quantities:
-                matrix = False
+            matrix = quantity in logged_quantities
             else:
                 matrix = True
 
@@ -288,10 +287,10 @@ class log(hoomd.analyze._analyzer):
                 hoomd.context.msg.error("For quantity "+q+" no python type obtainable.")
                 raise RuntimeError("Error writing matrix quantity "+q)
 
-            if f != None: #Only the root rank further process the recieved data
+            if f is not None: #Only the root rank further process the recieved data
 
                 #Check the returned object
-                if type(new_matrix) != numpy.ndarray :
+                if not isinstance(new_matrix, numpy.ndarray) :
                     hoomd.context.msg.error("For quantity "+q+" no matrix obtainable.")
                     raise RuntimeError("Error writing matrix quantity "+q)
                 zero_shape = True
@@ -302,7 +301,7 @@ class log(hoomd.analyze._analyzer):
                     hoomd.context.msg.error("For quantity "+q+" matrix with zero shape obtained.")
                     raise RuntimeError("Error writing matrix quantity "+q)
 
-                if not q in f:
+                if q not in f:
                     #Create a new container in hdf5 file, if not already existing.
                     data_set = f.create_dataset(q, shape=(0,)+new_matrix.shape, maxshape=(None,)+new_matrix.shape)
                 else:
