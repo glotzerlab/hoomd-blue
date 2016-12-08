@@ -3,9 +3,10 @@
 
 R""" Commands that require the h5py package at runtime.
 
-All commands that are part of this module require the hdf5 pacakge. In
-addition, this module is an opt-in. As a consequence you'll need to
-import it via `import hoomd.hdf5` before you can use any command.
+All commands that are part of this module require the h5py package a
+python API for hdf5. In addition, this module is an opt-in. As a
+consequence you'll need to import it via `import hoomd.hdf5` before
+you can use any command.
 
 """
 from hoomd import _hoomd
