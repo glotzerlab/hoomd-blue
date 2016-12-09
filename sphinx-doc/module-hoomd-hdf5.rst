@@ -6,6 +6,7 @@ hoomd.hdf5
 .. autosummary::
     :nosignatures:
 
+    hoomd.hdf5.File
     hoomd.hdf5.log
 
 .. rubric:: Details

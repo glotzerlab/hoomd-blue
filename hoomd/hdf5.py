@@ -24,9 +24,10 @@ except ImportError as error:
     raise error
 
 class File(h5py.File):
-    R""" Thin wrapper of the h5py.File class. This class ensures, that
-         opening and close operations within a context manager are only
-         executed on the root MPI rank.
+    R""" Thin wrapper of the h5py.File class.
+
+    This class ensures, that opening and close operations within a
+    context manager are only executed on the root MPI rank.
 
     Note:
          This class can be used like the h5py.File class, but the user has to
@@ -39,7 +40,6 @@ class File(h5py.File):
     def __exit__(self, *args, **kwargs):
         if hoomd.comm.get_rank() == 0:
             return super(File,self).__exit__(*args, **kwargs)
-
 
 class log(hoomd.analyze._analyzer):
     R""" Log a number of calculated quantities or matrices to a hdf5 file.
@@ -72,8 +72,10 @@ class log(hoomd.analyze._analyzer):
         run.
 
     Examples::
+
         with hoomd.hdf5.File("log.h5", "w") as h5file:
            #general setup
+
            log = hoomd.hdf5.log(filename='log.h5', quantities=['my_quantity', 'cosm'], matrix_quantities = ['random_matrix'], period=100)
            log.register_callback('my_quantity', lambda timestep: timestep**2)
            log.register_callback('cosm', lambda timestep: math.cos(logger.query('my_quantity')))
@@ -82,7 +84,6 @@ class log(hoomd.analyze._analyzer):
            log.register_callback('random_matrix', random_matrix, True)
            #more setup
            run(200)
-
     """
     def __init__(self, h5file, period, quantities=list(), matrix_quantities=list(), phase=0):
         hoomd.util.print_status_line()
