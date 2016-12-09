@@ -75,6 +75,7 @@ endif (libgetar_DIR)
 set(cmake_files CMake/hoomd/HOOMDCFlagsSetup.cmake
                 CMake/hoomd/HOOMDCommonLibsSetup.cmake
                 CMake/hoomd/HOOMDCUDASetup.cmake
+                CMake/hoomd/test.cc
                 CMake/hoomd/HOOMDMacros.cmake
                 CMake/hoomd/HOOMDMPISetup.cmake
                 CMake/hoomd/HOOMDNumpySetup.cmake
