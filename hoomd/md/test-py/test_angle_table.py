@@ -9,6 +9,8 @@ import os
 import math
 import numpy
 
+numpy.random.seed(10)
+
 # tests md.angle.table
 class angle_table_tests (unittest.TestCase):
     def setUp(self):
@@ -81,10 +83,10 @@ class angle_table_tests (unittest.TestCase):
             f_2 = harmonic_2.forces[i]
             # we have to have a very rough tolerance (~10%) because
             # of 1) discretization of the potential and 2) different handling of precision issues in both potentials
-            self.assertAlmostEqual(f_1.energy, f_2.energy,3)
-            self.assertAlmostEqual(f_1.force[0], f_2.force[0],2)
-            self.assertAlmostEqual(f_1.force[1], f_2.force[1],2)
-            self.assertAlmostEqual(f_1.force[2], f_2.force[2],2)
+            numpy.testing.assert_allclose(f_1.energy, f_2.energy,rtol=0.001)
+            numpy.testing.assert_allclose(f_1.force[0], f_2.force[0],rtol=0.01)
+            numpy.testing.assert_allclose(f_1.force[1], f_2.force[1],rtol=0.01)
+            numpy.testing.assert_allclose(f_1.force[2], f_2.force[2],rtol=0.01)
 
     def tearDown(self):
         del self.sys
