@@ -6,6 +6,7 @@
 #include "hoomd/Updater.h"
 #include "hoomd/extern/saruprng.h"
 #include "IntegratorHPMCMono.h"
+#include "hoomd/HOOMDMPI.h"
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
@@ -78,7 +79,7 @@ protected:
 
 private:
     unsigned int                m_seed;           //!< Random number seed
-    unsigned int                m_global_partition;           //!< Random number seed
+    int                m_global_partition;           //!< Random number seed
     unsigned int                m_nselect;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
@@ -107,11 +108,11 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  unsigned int nselect,
                                  bool pretend,
                                  bool multiphase)
-    : Updater(sysdef), m_seed(seed), m_nselect(nselect),
+    : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
-      m_pretend(pretend), m_initialized(false), m_global_partition(0), m_update_order(seed), m_multi_phase(multiphase)
+      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_update_order(seed)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
@@ -127,7 +128,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     //TODO: add a sanity check to makesure that MPI is setup correctly
     if(m_multi_phase)
     {
-    #ifdef MPI_ENABLED
+    #ifdef ENABLE_MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &m_global_partition);
     assert(m_global_partition < 2);
     #endif
@@ -234,7 +235,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-        Saru rng_i(typ_i, m_seed + m_exec_conf->getRank()*m_nselect + typ_i, timestep); //TODO: think about the seed for MPI.
+        Saru rng_i(typ_i, m_seed + typ_i, timestep); //TODO: think about the seed for MPI.
         m_move_function->construct(timestep, typ_i, param, rng_i);
         h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
         m_exec_conf->msg->notice(10) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
@@ -254,16 +255,37 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     m_exec_conf->msg->notice(8) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
     if(m_multi_phase)
         {
-        #ifdef MPI_ENABLED
+        //m_exec_conf->msg->notice(8) << " Random (b) seed is " << p << std::endl;
+        #ifdef ENABLE_MPI
         // make sure random seeds are equal
-        Scalar Z_0 = 1.0, Z_1 = 1.0;
-        if(m_global_partition == 0)
+        //m_exec_conf->msg->notice(8) << " Random seed is " << p << std::endl;
+        Scalar Z_0 = Z;
+        Scalar Z_1 = Z;
+        //Scalar Z_0 = 1.0, Z_1 = 1.0;
+/*        if(m_global_partition == 0)
+            {
             Z_0 = Z;
+            m_exec_conf->msg->notice(8) << timestep <<" Z0 (b) is " << Z_0 << std::endl;
+
+            //MPI_Send( &Z_loc, 1, MPI_HOOMD_SCALAR, 1, 0, MPI_COMM_WORLD);
+            //MPI_Status stat;
+            //MPI_Recv( &Z_other, 1, MPI_HOOMD_SCALAR, 1, 0, MPI_COMM_WORLD, &stat);
+            }
         else if (m_global_partition == 1)
+            {
             Z_1 = Z;
-        MPI_Bcast( &Z_0, 1, HOOMD_SCALAR, 0, MPI_COMM_WORLD );
-        MPI_Bcast( &Z_1, 1, HOOMD_SCALAR, 1, MPI_COMM_WORLD );
+            m_exec_conf->msg->notice(8) << timestep <<" Z1 (b) is " << Z_1 << std::endl;
+
+            //MPI_Send( &Z_loc, 1, MPI_HOOMD_SCALAR, 0, 0, MPI_COMM_WORLD);
+            //MPI_Status stat;
+            //MPI_Recv( &Z_other, 1, MPI_HOOMD_SCALAR, 0, 0, MPI_COMM_WORLD, &stat);
+            }
+*/
+        MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
+        MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
         Z = Z_0*Z_1;
+        m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", z=" << Z << std::endl;
+
         #endif
         }
 
@@ -273,16 +295,36 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         accept = ! m_mc->countOverlaps(timestep, true);
         if(m_multi_phase)
             {
-            #ifdef MPI_ENABLED
+            #ifdef ENABLE_MPI
             // make sure random seeds are equal
-            Scalar a_0 = false, a_1 = false;
-            if(m_global_partition == 0)
+            bool a_0 = accept, a_1 = accept;
+            //Scalar a_other;
+/*            if(m_global_partition == 0)
+                {
                 a_0 = accept;
+                m_exec_conf->msg->notice(8) << timestep <<" a_0 (b) is " << a_0 << std::endl;
+                
+            //    MPI_Send( &a_0, 1, MPI_C_BOOL, 1, 0, MPI_COMM_WORLD);
+            //    MPI_Status stat;
+            //    MPI_Recv( &a_1, 1, MPI_C_BOOL, 1, 0, MPI_COMM_WORLD, &stat);
+                }
             else if (m_global_partition == 1)
+                {
                 a_1 = accept;
-            MPI_Bcast( &a_0, 1, MPI_BOOL, 0, MPI_COMM_WORLD );
-            MPI_Bcast( &a_1, 1, MPI_BOOL, 1, MPI_COMM_WORLD );
+                m_exec_conf->msg->notice(8) << timestep << " a_1 (b) is " << a_1 << std::endl;
+                
+            //   
+            //    MPI_Status stat;
+            //    MPI_Recv( &a_0, 1, MPI_C_BOOL, 0, 0, MPI_COMM_WORLD, &stat);
+            //    MPI_Send( &a_1, 1, MPI_C_BOOL, 0, 0, MPI_COMM_WORLD);
+                }*/
+            MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
+            MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
+            //m_exec_conf->msg->notice(8) << " a_0 is " << a_0 << std::endl;
+            //m_exec_conf->msg->notice(8) << " a_1 is " << a_1 << std::endl;
             accept = a_0 && a_1;
+            m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
+
             #endif
             }
         }
