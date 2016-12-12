@@ -95,7 +95,7 @@ set(cmake_files CMake/hoomd/HOOMDCFlagsSetup.cmake
 # copy cmake scripts we currently use into build directory
 MACRO(copy_cmake file)
     add_custom_command (
-        OUTPUT ${file}
+        OUTPUT hoomd/${file}
         POST_BUILD
         COMMAND    ${CMAKE_COMMAND}
         ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/hoomd/${file}
