@@ -174,7 +174,7 @@ class log(hoomd.analyze._analyzer):
         Args:
             name (str): Name of the quantity
             callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
-            matrix (bool): Is the callback a computing a numpy array matrix?
+            matrix (bool): Is the callback a computing a matrix and thus returning a numpy array instead of a single float?
 
         The callback method must take a single argument, the current
         timestep, and return a single floating point value to be
