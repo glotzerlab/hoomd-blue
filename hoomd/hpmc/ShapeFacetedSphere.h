@@ -122,16 +122,16 @@ class SupportFuncFacetedSphere
                     {
                     // yes, compute supporting vertex on intersection boundary (circle)
                     // between plane and sphere
-                    OverlapReal alpha = dot(n,n_p);
-                    OverlapReal arg = (nsq-alpha*alpha/np_sq);
+                    OverlapReal alpha = dot(max_vec,n_p);
+                    OverlapReal arg = (dot(max_vec,max_vec)-alpha*alpha/np_sq);
                     vec3<OverlapReal> v;
-                    if (arg >= OverlapReal(SMALL)*nsq)
+                    if (arg >= OverlapReal(SMALL)*dot(max_vec,max_vec))
                         {
                         OverlapReal arg2 = R*R-b*b/np_sq;
                         OverlapReal invgamma = fast::sqrt(arg2/arg);
 
                         // Intersection vertex that maximizes support function
-                        v = invgamma*(n-alpha/np_sq*n_p)-n_p*b/np_sq;
+                        v = invgamma*(max_vec-alpha/np_sq*n_p)-n_p*b/np_sq;
                         }
                     else
                         {
