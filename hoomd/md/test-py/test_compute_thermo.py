@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 # Maintainer: joaander
+from __future__ import print_function
+from __future__ import division
 
 from hoomd import *
 from hoomd import md
