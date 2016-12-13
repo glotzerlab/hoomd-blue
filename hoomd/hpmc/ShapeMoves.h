@@ -460,7 +460,7 @@ public:
             for (int j=0;j<3;j++)
             {
               alpha(i,j) =  rng.s(-m_step_size[type_id], m_step_size[type_id]);
-              std::cout << alpha(i,j) << std::endl;
+              //std::cout << alpha(i,j) << std::endl;
             }
           }
          //std::cout << "alpha_max = " << a_max << std::endl;
@@ -472,7 +472,7 @@ public:
         m_Fbar[type_id] = Fbar*m_Fbar[type_id];
         // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
-        std::cout << Fbar << std::endl;
+        //std::cout << Fbar << std::endl;
         for(unsigned int i = 0; i < param.N; i++)
             {
             vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
@@ -599,10 +599,11 @@ public:
         }
         } */
         //std::cout << "Particle volume = " << m_volume << std::endl ; OK
-        std::cout << "Stiffness = " << m_k << std::endl ;
-        std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
+        //std::cout << "Stiffness = " << m_k << std::endl ;
+        //std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
         // This is still not what we want! How do we make it correct?
-        return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        //return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
