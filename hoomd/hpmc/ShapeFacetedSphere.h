@@ -70,7 +70,6 @@ struct faceted_sphere_params : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        verts.load_shared(ptr, available_bytes);
         additional_verts.load_shared(ptr, available_bytes);
         }
 
@@ -78,7 +77,6 @@ struct faceted_sphere_params : param_base
     //! Attach managed memory to CUDA stream
     void attach_to_stream(cudaStream_t stream) const
         {
-        verts.attach_to_stream(stream);
         additional_verts.attach_to_stream(stream);
         }
     #endif
@@ -108,11 +106,11 @@ class SupportFuncFacetedSphere
             OverlapReal nsq = dot(n,n);
             vec3<OverlapReal> max_vec = n*fast::rsqrt(nsq)*R;
             bool intersecting = false;
-            bool valid = true;
 
             // iterate over intersecting planes
             for (unsigned int i = 0; i < params.N; i++)
                 {
+                bool valid = true;
                 const vec3<OverlapReal> &n_p = params.n[i];
                 OverlapReal np_sq = dot(n_p,n_p);
                 OverlapReal b = params.offset[i];
@@ -168,21 +166,9 @@ class SupportFuncFacetedSphere
                 detail::SupportFuncConvexPolyhedron s(params.additional_verts);
                 vec3<OverlapReal> v = s(n);
 
-                if (!valid)
+                if (dot(v,n)>dot(max_vec,n))
                     {
                     max_vec = v;
-                    }
-                if (params.verts.N)
-                    {
-                    // determine polyhedron support
-                    detail::SupportFuncConvexPolyhedron t(params.verts);
-                    vec3<OverlapReal> p  = t(n);
-
-                    // does the shape intersect within the sphere?
-                    if (dot(p,p) <= R*R && dot(p,n) > dot(max_vec,n))
-                        {
-                        max_vec = p;
-                        }
                     }
                 }
 
