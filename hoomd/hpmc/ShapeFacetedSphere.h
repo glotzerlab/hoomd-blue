@@ -323,7 +323,7 @@ struct ShapeFacetedSphere
                         }
                     }
 
-                if (allowed && dot(v1,v1) < R*R)
+                if (allowed)
                     {
                     _params.additional_verts.x[_params.additional_verts.N] = v1.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v1.y;
@@ -348,7 +348,7 @@ struct ShapeFacetedSphere
                         }
                     }
 
-                if (allowed && dot(v2,v2) < R*R)
+                if (allowed)
                     {
                     _params.additional_verts.x[_params.additional_verts.N] = v2.x;
                     _params.additional_verts.y[_params.additional_verts.N] = v2.y;
