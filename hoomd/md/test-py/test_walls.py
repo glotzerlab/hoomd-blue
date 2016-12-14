@@ -98,6 +98,10 @@ class wall_lj_tests (unittest.TestCase):
         lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
         run(100)
 
+    # test missing coefficients
+    def test_missing_A(self):
+        lj_wall = md.wall.lj(self.walls);
+        self.assertRaises(RuntimeError, lj_wall.update_coeffs)
 
     # test setting coefficients
     def test_force_coeff(self):

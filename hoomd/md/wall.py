@@ -623,7 +623,7 @@ class wallpotential(external._external_force):
     # \brief Fixes negative values to zero before squaring
     def update_coeffs(self):
         if not self.force_coeff.verify(self.required_coeffs):
-            raise RuntimeError('Error updateing force coefficients')
+            raise RuntimeError('Error updating force coefficients')
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         for i in range(0,ntypes):
