@@ -98,6 +98,17 @@ class SupportFuncFacetedSphere
             {
             }
 
+        DEVICE inline bool isInside(const vec3<OverlapReal>& v,unsigned int plane) const
+            {
+            // is this vertex masked by a plane?
+            const vec3<OverlapReal> &np = params.n[plane];
+            OverlapReal b = params.offset[plane];
+
+            // is current supporting vertex inside the half-space defined by this plane?
+            return (dot(np,v) + b <= OverlapReal(0.0));
+            }
+
+
         //! Compute the support function
         /*! \param n Normal vector input (in the local frame)
             \returns Local coords of the point furthest in the direction of n
@@ -106,78 +117,86 @@ class SupportFuncFacetedSphere
             {
             OverlapReal R(params.diameter/OverlapReal(2.0));
             OverlapReal nsq = dot(n,n);
-            vec3<OverlapReal> max_vec = n*fast::rsqrt(nsq)*R;
-            bool intersecting = false;
+            vec3<OverlapReal> n_sphere = n*fast::rsqrt(nsq)*R;
+
+            vec3<OverlapReal> max_vec = n_sphere;
+            bool have_vertex = true;
+
+            unsigned int n_planes = params.N;
+            for (unsigned int i = 0; i < n_planes; ++i)
+                {
+                if (! isInside(max_vec,i))
+                    {
+                    have_vertex = false;
+                    break;
+                    }
+                }
 
             // iterate over intersecting planes
-            for (unsigned int i = 0; i < params.N; i++)
+            for (unsigned int i = 0; i < n_planes; i++)
                 {
-                bool valid = true;
                 const vec3<OverlapReal> &n_p = params.n[i];
                 OverlapReal np_sq = dot(n_p,n_p);
                 OverlapReal b = params.offset[i];
 
-                // is current supporting vertex outside the half-space defined by this plane?
-                if (dot(n_p,max_vec) + b >= OverlapReal(0.0))
+                // compute supporting vertex on intersection boundary (circle)
+                // between plane and sphere
+                OverlapReal alpha = dot(n_sphere,n_p);
+                OverlapReal arg = (R*R-alpha*alpha/np_sq);
+                vec3<OverlapReal> v;
+                if (arg >= OverlapReal(SMALL)*R*R)
                     {
-                    // yes, compute supporting vertex on intersection boundary (circle)
-                    // between plane and sphere
-                    OverlapReal alpha = dot(max_vec,n_p);
-                    OverlapReal arg = (dot(max_vec,max_vec)-alpha*alpha/np_sq);
-                    vec3<OverlapReal> v;
-                    if (arg >= OverlapReal(SMALL)*dot(max_vec,max_vec))
+                    OverlapReal arg2 = R*R-b*b/np_sq;
+                    OverlapReal invgamma = fast::sqrt(arg2/arg);
+
+                    // Intersection vertex that maximizes support function
+                    v = invgamma*(n_sphere-alpha/np_sq*n_p)-n_p*b/np_sq;
+                    }
+                else
+                    {
+                    // degenerate case
+                    v = -b*n_p/np_sq;
+                    }
+
+                bool valid = true;
+                for (unsigned int j = 0; j < n_planes; ++j)
+                    {
+                    if (i!=j && !isInside(v,j))
                         {
-                        OverlapReal arg2 = R*R-b*b/np_sq;
-                        OverlapReal invgamma = fast::sqrt(arg2/arg);
-
-                        // Intersection vertex that maximizes support function
-                        v = invgamma*(max_vec-alpha/np_sq*n_p)-n_p*b/np_sq;
+                        valid = false;
+                        break;
                         }
-                    else
-                        {
-                        // degenerate case
-                        v = -b*n_p/np_sq;
-                        }
+                    }
 
-                    intersecting = true;
-
-                    // is this vertex masked by another plane?
-                    valid = true;
-                    for (unsigned int j = 0; j < params.N; j++)
-                        {
-                        const vec3<OverlapReal> &np_2 = params.n[j];
-                        OverlapReal b_2 = params.offset[j];
-
-                        // is current supporting vertex outside the half-space defined by this plane?
-                        if (dot(np_2,v) + b_2 >= OverlapReal(0.0) && j != i)
-                            {
-                            valid = false;
-                            }
-                        }
-
-                    if (valid)
-                        {
-                        max_vec = v;
-                        }
+                if (valid && (!have_vertex || dot(v,n) > dot(max_vec,n)))
+                    {
+                    max_vec = v;
+                    have_vertex = true;
                     }
                 }
 
-            // do we have to take into account plane-plane intersection vertices?
-            if (intersecting && params.additional_verts.N)
+            // plane-sphere intersection vertices
+            if (params.additional_verts.N)
                 {
                 detail::SupportFuncConvexPolyhedron s(params.additional_verts);
                 vec3<OverlapReal> v = s(n);
 
-                if (dot(v,n)>dot(max_vec,n))
+                if (! have_vertex || dot(v,n)>dot(max_vec,n))
                     {
                     max_vec = v;
+                    have_vertex = true;
                     }
+                }
 
-                detail::SupportFuncConvexPolyhedron w(params.verts);
-                v = w(n);
-                if (dot(v,v) <= R*R && dot(v,n) > dot(max_vec,n))
+            // plane-plane intersections from user input
+            if (params.verts.N)
+                {
+                detail::SupportFuncConvexPolyhedron s(params.verts);
+                vec3<OverlapReal> v = s(n);
+                if (dot(v,v) <= R*R && (!have_vertex || dot(v,n) > dot(max_vec,n)))
                     {
                     max_vec = v;
+                    have_vertex = true;
                     }
                 }
 
