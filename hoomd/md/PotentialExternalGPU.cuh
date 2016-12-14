@@ -52,7 +52,7 @@ struct external_potential_args_t
     const unsigned int block_size;  //!< Block size to execute
     };
 
-//! Driver class for compute external field kernel
+//! Driver function for compute external field kernel
 /*!
  * \param external_potential_args External potential parameters
  * \param d_params External evaluator parameters
