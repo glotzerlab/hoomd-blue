@@ -70,6 +70,7 @@ struct faceted_sphere_params : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
+        verts.load_shared(ptr,available_bytes);
         additional_verts.load_shared(ptr, available_bytes);
         }
 
@@ -77,6 +78,7 @@ struct faceted_sphere_params : param_base
     //! Attach managed memory to CUDA stream
     void attach_to_stream(cudaStream_t stream) const
         {
+        verts.attach_to_stream(stream);
         additional_verts.attach_to_stream(stream);
         }
     #endif
@@ -167,6 +169,13 @@ class SupportFuncFacetedSphere
                 vec3<OverlapReal> v = s(n);
 
                 if (dot(v,n)>dot(max_vec,n))
+                    {
+                    max_vec = v;
+                    }
+
+                detail::SupportFuncConvexPolyhedron w(params.verts);
+                v = w(n);
+                if (dot(v,v) <= R*R && dot(v,n) > dot(max_vec,n))
                     {
                     max_vec = v;
                     }
