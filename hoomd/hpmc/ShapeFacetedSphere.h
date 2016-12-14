@@ -175,7 +175,7 @@ class SupportFuncFacetedSphere
                     }
                 }
 
-            // plane-sphere intersection vertices
+            // plane-plane-sphere intersection vertices
             if (params.additional_verts.N)
                 {
                 detail::SupportFuncConvexPolyhedron s(params.additional_verts);
