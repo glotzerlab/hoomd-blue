@@ -425,7 +425,7 @@ class balance(_updater):
         _updater.__init__(self);
 
         # balancing cannot be done without mpi
-        if not _hoomd.is_MPI_available():
+        if not _hoomd.is_MPI_available() or hoomd.context.current.decomposition is None:
             hoomd.context.msg.warning("Ignoring balance command, not supported in current configuration.\n")
             return
 
