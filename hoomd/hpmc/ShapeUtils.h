@@ -202,9 +202,9 @@ public:
         for(unsigned int i = 0; i < param.N; i++)
             {
             m_points.push_back(vec3<Scalar>(param.x[i], param.y[i], param.z[i]));
-            m_ravg += m_points[i];
+            // m_ravg += m_points[i];
             }
-        m_ravg /= Scalar(param.N);
+        // m_ravg /= Scalar(param.N);
         }
 
     void compute()
@@ -241,7 +241,7 @@ public:
             }
 
         unsigned int faceid = 0;
-        write_pos_frame(inside);
+        // write_pos_frame(inside);
         while(faceid < m_faces.size())
             {
             if(m_deleted[faceid]) // this facet is deleted so we can skip it.
@@ -318,7 +318,7 @@ public:
             inside[_id] = true;
             assert(m_deleted.size() == m_faces.size() && m_faces.size() == m_adjacency.size());
             faceid++;
-            write_pos_frame(inside);
+            // write_pos_frame(inside);
             #ifndef NDEBUG
             for(size_t i = 0; i < m_faces.size(); i++)
                 {
@@ -507,6 +507,12 @@ private:
                 }
             throw(std::runtime_error("Could not initialize ConvexHull: found only nearly coplanar points"));
             }
+        m_ravg = vec3<Scalar>(0,0,0);
+        for(size_t i = 0; i < Nsym; i++)
+            {
+            m_ravg += m_points[ik[i]];
+            }
+        m_ravg /= Scalar(Nsym);
 
         std::vector<unsigned int> face(3);
         // face 0
