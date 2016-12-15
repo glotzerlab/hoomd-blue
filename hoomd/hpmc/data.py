@@ -234,7 +234,7 @@ class convex_spheropolyhedron_params(_param):
     def make_param(cls, vertices, sweep_radius = 0.0, ignore_statistics=False):
         if cls.max_verts < len(vertices):
             raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(cls.max_verts,len(vertices)));
-        return cls.make_fn(cls.ensure_list(vertices),
+        return cls.make_fn( cls.ensure_list(vertices),
                             float(sweep_radius),
                             ignore_statistics);
 
@@ -339,7 +339,6 @@ class sphere_union_params(_param):
         self._py_params = ['colors'];
         self.colors = None;
         self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
-        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_sphere_union_params", self.mc.max_members);
 
     def __str__(self):
         # should we put this in the c++ side?
@@ -365,7 +364,8 @@ class sphere_union_params(_param):
     @classmethod
     def get_sized_class(cls, max_members):
         sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", max_members);
-        return type(cls.__name__ + str(max_members), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
+        mk_fn = hoomd.hpmc.integrate._get_sized_entry("make_sphere_union_params", max_members);
+        return type(cls.__name__ + str(max_members), (cls, sized_class), dict(cpp_class=sized_class, make_fn=mk_fn)); # cpp_class is just for easier reference to call the constructor
 
     @classmethod
     def make_param(cls, diameters, centers, overlap=None, ignore_statistics=False):
@@ -375,8 +375,8 @@ class sphere_union_params(_param):
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
-        return _hpmc.make_sphere_union_params(  cls.ensure_list(members),
-                                                cls.ensure_list(centers),
-                                                cls.ensure_list([[1,0,0,0] for i in range(N)]),
-                                                cls.ensure_list(overlap),
-                                                ignore_statistics);
+        return cls.make_fn( cls.ensure_list(members),
+                            cls.ensure_list(centers),
+                            cls.ensure_list([[1,0,0,0] for i in range(N)]),
+                            cls.ensure_list(overlap),
+                            ignore_statistics);
