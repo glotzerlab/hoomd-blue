@@ -12,6 +12,7 @@ Not yet released
 * (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+* update.balance() is properly ignored when only one rank is available
 
 * Other changes *
 
