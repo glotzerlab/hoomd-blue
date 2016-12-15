@@ -132,34 +132,6 @@ inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, 
     Scalar d = dot(n, di);
     if(fabs(d) < thresh)
         throw(std::runtime_error("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
-
-    // assert(face.size() == 3);
-    // vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]], n;
-    // n = cross((b - a),(c - a));
-    // normalize_inplace(n);
-    // bool flip = false, bBreak = false;
-    // for( unsigned int f = 0; f < faces.size() && !bBreak; f++)
-    //     {
-    //     assert(faces[f].size() == 3);
-    //     if(f == faceid)
-    //         continue;
-    //
-    //     for( unsigned int ff = 0; ff < faces[f].size() && !bBreak; ff++)
-    //         {
-    //         Scalar d = dot(n, points[faces[f][ff]] - a);
-    //         if(fabs(d) > thresh) // found a non-coplanar point on the convex body.
-    //             {
-    //             bBreak = true;
-    //             if( d > 0) // by convexity
-    //                 {
-    //                 flip = true;
-    //                 break;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // if( flip )
-    //     n = -n;
     return (d > 0) ? -n : n;
     }
 
