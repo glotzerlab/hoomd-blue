@@ -209,6 +209,7 @@ void SFCPackUpdaterGPU::applySortOrder()
             d_inertia_alt.data,
             d_net_virial.data,
             d_net_virial_alt.data,
+            m_pdata->getNetVirial().getPitch(),
             d_net_force.data,
             d_net_force_alt.data,
             d_net_torque.data,

@@ -11,6 +11,7 @@ md.constrain
     md.constrain.distance
     md.constrain.rigid
     md.constrain.sphere
+    md.constrain.oneD
 
 .. rubric:: Details
 

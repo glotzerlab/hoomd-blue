@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 #include "hoomd/Integrator.h"
 #include "HPMCPrecisionSetup.h"
@@ -204,6 +205,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<bool> mapOverlaps();
 
+        //! Return a python list that is an unwrapped overlap map
+        virtual pybind11::list PyMapOverlaps();
+
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int)
             {
@@ -211,6 +215,27 @@ class IntegratorHPMCMono : public IntegratorHPMC
             m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
             }
+
+        #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            CommFlags flags(0);
+            flags[comm_flag::position] = 1;
+            flags[comm_flag::tag] = 1;
+
+            std::ostringstream o;
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
+            if (m_hasOrientation)
+                {
+                flags[comm_flag::orientation] = 1;
+                o << "orientation ";
+                }
+
+            m_exec_conf->msg->notice(9) << o.str() << std::endl;
+            return flags;
+            }
+        #endif
 
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
@@ -243,17 +268,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                CommFlags flags(0);
-                flags[comm_flag::position] = 1;
-                flags[comm_flag::tag] = 1;
-
-                if (m_hasOrientation)
-                    flags[comm_flag::orientation] = 1;
-
-                // we need tags
-                flags[comm_flag::tag] = 1;
-
-                m_comm->setFlags(flags);
+                // this is kludgy but necessary since we are calling the communications methods directly
+                m_comm->setFlags(getCommFlags(0));
 
                 if (migrate)
                     m_comm->migrateParticles();
@@ -1238,7 +1254,22 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     return overlap_map;
     }
 
-
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
+    {
+    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
+    pybind11::list overlap_map;
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
+        {
+        overlap_map.append(pybind11::cast<bool>(i));
+        }
+    return overlap_map;
+    }
 
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
@@ -1251,7 +1282,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           ;
     }
 

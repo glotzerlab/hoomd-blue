@@ -14,6 +14,10 @@
 #define DEVICE
 #endif
 
+#ifndef NVCC
+#include <sstream>
+#endif
+
 namespace hpmc
 {
 
@@ -44,7 +48,9 @@ class GPUTree
             {
             if (tree.getNumNodes() >= max_nodes)
                 {
-                throw std::runtime_error("GPUTree: Too many nodes.");
+                std::ostringstream oss;
+                oss << "GPUTree: Too many nodes (" << tree.getNumNodes() << " > " << max_nodes << ")" << std::endl;
+                throw std::runtime_error(oss.str());
                 }
 
             // load data from AABTree
@@ -72,7 +78,7 @@ class GPUTree
             m_num_nodes = tree.getNumNodes();
 
             // update auxillary information for tandem traversal
-            updateRCL(0, tree, 0, true, 0, 0);
+            updateRCL(0, tree, 0, true, m_num_nodes, 0);
             }
         #endif
 

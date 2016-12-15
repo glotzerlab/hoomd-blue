@@ -25,3 +25,4 @@ md
     module-md-pair
     module-md-update
     module-md-wall
+    module-md-special_pair

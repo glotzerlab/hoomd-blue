@@ -12,6 +12,21 @@ set(_dem_cu_sources_raw DEM2DForce_NF_SWCA.cu
                         DEM3DForce_NF_SWCA.cu
                         DEM3DForce_NF_WCA.cu)
 
+set(_dem_headers
+    atomics.cuh
+    DEM2DForceComputeGPU.h
+    DEM2DForceCompute.h
+    DEM2DForceGPU.cuh
+    DEM3DForceComputeGPU.h
+    DEM3DForceCompute.h
+    DEM3DForceGPU.cuh
+    DEMEvaluator.h
+    NoFriction.h
+    SWCAPotential.h
+    VectorMath.h
+    WCAPotential.h
+    )
+
 foreach(src ${_dem_cpu_sources})
   list(APPEND _dem_sources templateInstances/${src})
 endforeach()
@@ -89,6 +104,31 @@ foreach(file ${files})
 endforeach()
 
 add_custom_target(copy_dem ALL DEPENDS ${files})
+
+# copy python modules to the build directory to make it a working python package
+MACRO(copy_header file)
+    add_custom_command (
+        OUTPUT ${file}
+        POST_BUILD
+        COMMAND    ${CMAKE_COMMAND}
+        ARGS       -E copy ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${CMAKE_CURRENT_BINARY_DIR}/../include/hoomd/dem/${file}
+        COMMENT    "Copy hoomd/include/hoomd/dem/${file}"
+    )
+ENDMACRO(copy_header)
+
+# install headers in installation target
+install(FILES ${_dem_headers}
+        DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/dem
+       )
+
+if (COPY_HEADERS)
+# copy headers into build directory
+foreach(file ${_dem_headers})
+    copy_header(${file})
+endforeach()
+
+add_custom_target(copy_dem_headers ALL DEPENDS ${_dem_headers})
+endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)

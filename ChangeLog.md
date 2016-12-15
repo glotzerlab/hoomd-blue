@@ -2,6 +2,82 @@
 
 [TOC]
 
+## v2.1.2
+
+Not yet released
+
+*Bug fixes*
+
+* (HPMC) Implicit depletants with spheres and faceted spheres now produces correct ensembles
+* (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
+* (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
+* Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+
+* Other changes *
+
+* Drop support for compute 2.0 GPU devices
+* Support cusolver with CUDA 8.0
+
+## v2.1.1
+
+Released 2016/10/23
+
+*Bug fixes*
+
+* Fix `force.active` memory allocation bug
+* Quiet Python.h warnigns when building (python 2.7)
+* Allow multi-character particle types in HPMC (python 2.7)
+* Enable `dump.getar.writeJSON` in MPI
+* Allow the flow to change directions in `md.update.mueller_plathe_flow`
+* Fix critical bug in MPI communication when using HPMC integrators
+
+## v2.1.0
+
+Released 2016/10/04
+
+*New features*
+
+* enable/disable overlap checks between pairs of constituent particles for `hpmc.integrate.sphere_union()`
+* Support for non-additive mixtures in HPMC, overlap checks can now be enabled/disabled per type-pair
+* Add `md.constrain.oned` to constrain particles to move in one dimension
+* `hpmc.integrate.sphere_union()` now takes max_members as an optional argument, allowing to use GPU memory more efficiently
+* Add `md.special_pair.lj()` to support scaled 1-4 (or other) exclusions in all-atom force fields
+* `md.update.mueller_plathe_flow()`: Method to create shear flows in MD simulations
+* `use_charge` option for `md.pair.reaction_field`
+* `md.charge.pppm()` takes a Debye screening length as an optional parameter
+* `md.charge.pppm()` now computes the rigid body correction to the PPPM energy
+
+*Deprecated*
+
+* HPMC: the `ignore_overlaps` flag is replaced by `hpmc.integrate.interaction_matrix`
+
+*Other changes*
+
+* Optimized MPI simulations of mixed systems with rigid and non-rigid bodies
+* Removed dependency on all boost libraries. Boost is no longer needed to build hoomd
+* Intel compiler builds are no longer supported due to c++11 bugs
+* Shorter compile time for HPMC GPU kernels
+* Include symlinked external components in the build process
+* Add template for external components
+* Optimized dense depletant simulations with HPMC on CPU
+
+*Bug fixes*
+
+* fix invalid mesh energy in non-neutral systems with `md.charge.pppm()`
+* Fix invalid forces in simulations with many bond types (on GPU)
+* fix rare cases where analyze.log() would report a wrong pressure
+* fix possible illegal memory access when using `md.constrain.rigid()` in GPU MPI simulations
+* fix a bug where the potential energy is misreported on the first step with `md.constrain.rigid()`
+* Fix a bug where the potential energy is misreported in MPI simulations with `md.constrain.rigid()`
+* Fix a bug where the potential energy is misreported on the first step with `md.constrain.rigid()`
+* `md.charge.pppm()` computed invalid forces
+* Fix a bug where PPPM interactions on CPU where not computed correctly
+* Match logged quantitites between MPI and non-MPI runs on first time step
+* Fix `md.pair.dpd` and `md.pair.dpdlj` `set_params`
+* Fix diameter handling in DEM shifted WCA potential
+* Correctly handle particle type names in lattice.unitcell
+* Validate `md.group.tag_list` is consistent across MPI ranks
+
 ## v2.0.3
 
 Released 2016/08/30
@@ -29,6 +105,8 @@ Released 2016/08/09
 
 ## v2.0.1
 
+Released 2016/07/15
+
 *Bug fixes*
 
 * Fix acceptance criterion in mu-V-T simulations with implicit depletants (HPMC).
@@ -39,6 +117,8 @@ Released 2016/08/09
 * Clarify definition of the dihedral angle.
 
 ## v2.0.0
+
+Released 2016/06/22
 
 HOOMD-blue v2.0 is released under a clean BSD 3-clause license.
 

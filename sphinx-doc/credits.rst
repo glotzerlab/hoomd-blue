@@ -87,6 +87,7 @@ Jens Glaser, University of Michigan
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
  * hpmc interaction_matrix
+ * special_pair framework
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -150,6 +151,7 @@ Matthew Spellings, Univeristy of Michigan
  * anisotropic particle integrators
  * Gay-Berne, dipole pair potentials
  * GTAR file format
+ * External components in hoomd 2.x
 
 James Proctor, University of Michigan
  * Refactor external potential framework
@@ -177,10 +179,17 @@ Vyas Ramasubramani, University of Michigan
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
 
+Bryan VanSaders, University of Michigan
+ * constrain.oneD
+
+Ludwig Schneider, Georg-August Univeristy Goettingen
+  * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+
+
 HPMC developers
 ---------------
 
-The following people contributed to the :py:mod:`hpmc` package.
+The following people contributed to the :py:mod:`hoomd.hpmc` package.
 
 * Joshua Anderson, University of Michigan - Lead developer
     * Vision
@@ -258,7 +267,7 @@ Vyas Ramasubramani, University of Michigan
 DEM developers
 --------------
 
-The following people contributed to the :py:mod:`dem` package.
+The following people contributed to the :py:mod:`hoomd.dem` package.
 
 * Matthew Spellings, University of Michigan - Lead developer
 * Ryan Marson, University of Michigan

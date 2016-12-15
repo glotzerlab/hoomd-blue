@@ -13,6 +13,9 @@
 
 // bring in math.h
 #ifndef NVCC
+
+// include python.h first to silelse _XOPEN_SOURCE redefinition warnings
+#include <Python.h>
 #include <cmath>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif

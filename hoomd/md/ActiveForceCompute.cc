@@ -65,8 +65,11 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
         throw runtime_error("Non-spherical particles and rotational diffusion is ill defined. Instead implement rotational diffusion through the integrator, or if you are working with point particles set orientation_link=False.");
         }
 
-    m_activeVec.resize(group_size);
-    m_activeMag.resize(group_size);
+    GPUArray<Scalar3> tmp_activeVec(group_size, m_exec_conf);
+    GPUArray<Scalar> tmp_activeMag(group_size, m_exec_conf);
+
+    m_activeVec.swap(tmp_activeVec);
+    m_activeMag.swap(tmp_activeMag);
 
     ArrayHandle<Scalar3> h_activeVec(m_activeVec, access_location::host);
     ArrayHandle<Scalar> h_activeMag(m_activeMag, access_location::host);

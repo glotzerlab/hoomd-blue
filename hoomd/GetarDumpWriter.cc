@@ -25,10 +25,10 @@ namespace getardump{
     // Wrapper function
     shared_ptr<SystemSnapshot> takeSystemSnapshot(
         shared_ptr<SystemDefinition> sysdef, bool particles, bool bonds,
-        bool angles, bool dihedrals, bool impropers, bool rigid, bool integrator)
+        bool angles, bool dihedrals, bool impropers, bool pairs, bool rigid, bool integrator)
         {
         return sysdef->takeSnapshot<Scalar>(particles, bonds, angles, dihedrals,
-            impropers, rigid, integrator);
+            impropers, rigid, integrator, pairs);
         }
 
 // greatest common denominator, using Euclid's algorithm
@@ -124,6 +124,16 @@ namespace getardump{
                     default:
                         break;
                     }
+            case NeedPair:
+                switch(prop)
+                    {
+                    case PairNames:
+                    case PairTags:
+                    case PairTypes:
+                        return true;
+                    default:
+                        break;
+                    }
             case NeedRigid:
                 switch(prop)
                     {
@@ -200,6 +210,12 @@ namespace getardump{
             case ImproperTags:
                 return string("tag.u32");
             case ImproperTypes:
+                return string("type.u32");
+            case PairNames:
+                return string("type_names.json");
+            case PairTags:
+                return string("tag.u32");
+            case PairTypes:
                 return string("type.u32");
             case Mass:
                 return string("mass.f32");
@@ -311,7 +327,7 @@ namespace getardump{
                 m_archive.reset(new GTAR(filename, openMode));
             }
 
-        m_systemSnap = takeSystemSnapshot(m_sysdef, true, true, true, true, true, true, true);
+        m_systemSnap = takeSystemSnapshot(m_sysdef, true, true, true, true, true, true, true, true);
         }
 
     GetarDumpWriter::~GetarDumpWriter()
@@ -344,7 +360,7 @@ namespace getardump{
             m_systemSnap = takeSystemSnapshot(m_sysdef,
                 neededSnapshots[NeedPData], neededSnapshots[NeedBond],
                 neededSnapshots[NeedAngle], neededSnapshots[NeedDihedral],
-                neededSnapshots[NeedImproper], neededSnapshots[NeedRigid],
+                neededSnapshots[NeedImproper], neededSnapshots[NeedPair], neededSnapshots[NeedRigid],
                 neededSnapshots[NeedIntegrator]);
 
 #ifdef ENABLE_MPI
@@ -554,6 +570,25 @@ namespace getardump{
             writer.writeIndividual<vector<unsigned int>::iterator, uint32_t>(
                 desc.getFormattedPath(timestep), begin, end, desc.m_compression);
             }
+        else if(desc.m_prop == PairNames)
+            {
+            string json(makeTypeList(m_systemSnap->pair_data.type_mapping));
+            writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
+            }
+        else if(desc.m_prop == PairTags)
+            {
+            GroupTagIterator<2> begin(m_systemSnap->pair_data.groups.begin());
+            GroupTagIterator<2> end(m_systemSnap->pair_data.groups.end());
+            writer.writeIndividual<GroupTagIterator<2>, uint32_t>(
+                desc.getFormattedPath(timestep), begin, end, desc.m_compression);
+            }
+        else if(desc.m_prop == PairTypes)
+            {
+            vector<unsigned int>::iterator begin(m_systemSnap->pair_data.type_id.begin());
+            vector<unsigned int>::iterator end(m_systemSnap->pair_data.type_id.end());
+            writer.writeIndividual<vector<unsigned int>::iterator, uint32_t>(
+                desc.getFormattedPath(timestep), begin, end, desc.m_compression);
+            }
         else if(desc.m_prop == Mass)
             {
             vector<Scalar>::iterator begin(m_systemSnap->particle_data.mass.begin());
@@ -755,6 +790,11 @@ namespace getardump{
             string json(makeTypeList(m_systemSnap->improper_data.type_mapping));
             writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
             }
+        else if(desc.m_prop == PairNames)
+            {
+            string json(makeTypeList(m_systemSnap->pair_data.type_mapping));
+            writer.writeString(desc.getFormattedPath(timestep), json, desc.m_compression);
+            }
         else
             {
             string msg("Unable to write the requested text property");
@@ -839,6 +879,26 @@ namespace getardump{
             }
         }
 
+    void GetarDumpWriter::writeStr(const std::string &name, const std::string &contents, int timestep)
+        {
+        bool dynamic(timestep >= 0);
+        gtar::Record rec("", name, "", gtar::Constant, gtar::UInt8, gtar::Text);
+
+        if(dynamic)
+            {
+            std::ostringstream conv;
+            conv << timestep;
+
+            rec = gtar::Record("", name, conv.str(), gtar::Discrete, gtar::UInt8, gtar::Text);
+            }
+
+#ifdef ENABLE_MPI
+        // only write on root rank
+        if (m_exec_conf->isRoot())
+            m_archive->writeString(rec.getPath(), contents, gtar::FastCompress);
+#endif
+        }
+
     void export_GetarDumpWriter(py::module& m)
         {
         py::class_<GetarDumpWriter, std::shared_ptr<GetarDumpWriter> >(m,"GetarDumpWriter", py::base<Analyzer>())
@@ -847,6 +907,7 @@ namespace getardump{
             .def("getPeriod", &GetarDumpWriter::getPeriod)
             .def("setPeriod", &GetarDumpWriter::setPeriod)
             .def("removeDump", &GetarDumpWriter::removeDump)
+            .def("writeStr", &GetarDumpWriter::writeStr)
         ;
 
 

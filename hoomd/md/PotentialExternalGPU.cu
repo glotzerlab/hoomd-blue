@@ -15,44 +15,7 @@
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairMie.h"
 
-
-template< class evaluator >
-cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
-                     const typename evaluator::param_type *d_params,
-                     const typename evaluator::field_type *d_field)
-    {
-        static unsigned int max_block_size = UINT_MAX;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
-            max_block_size = attr.maxThreadsPerBlock;
-            }
-
-        unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
-
-        // setup the grid to run the kernel
-        dim3 grid( external_potential_args.N / run_block_size + 1, 1, 1);
-        dim3 threads(run_block_size, 1, 1);
-        unsigned int bytes = (sizeof(typename evaluator::field_type)/sizeof(int)+1)*sizeof(int);
-
-        // run the kernel
-        gpu_compute_external_forces_kernel<evaluator><<<grid, threads, bytes>>>(external_potential_args.d_force,
-                                                                                external_potential_args.d_virial,
-                                                                                external_potential_args.virial_pitch,
-                                                                                external_potential_args.N,
-                                                                                external_potential_args.d_pos,
-                                                                                external_potential_args.d_diameter,
-                                                                                external_potential_args.d_charge,
-                                                                                external_potential_args.box,
-                                                                                d_params,
-                                                                                d_field);
-
-        return cudaSuccess;
-    };
-
 //Instantiate external evaluator templates
-
 //! Evaluator for External Periodic potentials.
 template cudaError_t gpu_cpef<EvaluatorExternalPeriodic>(const external_potential_args_t& external_potential_args, const typename EvaluatorExternalPeriodic::param_type *d_params, const typename EvaluatorExternalPeriodic::field_type *d_field);
 //! Evaluator for electric fields

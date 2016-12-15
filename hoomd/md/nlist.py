@@ -27,7 +27,7 @@ system and hardware, you should carefully test which option is fastest for your 
 
 Particles can be excluded from the neighbor list based on certain criteria. Setting :math:`r_\mathrm{cut}(i,j) \le 0`
 will exclude this cross interaction from the neighbor list on build time. Particles can also be excluded by topology
-or for belonging to the same rigid body (see :py:meth:`cell.reset_exclusions()`).
+or for belonging to the same rigid body (see :py:meth:`nlist.reset_exclusions()`).
 
 Examples::
 
@@ -145,7 +145,7 @@ class nlist:
 
         *check_period* should be set so that no particle
         moves a distance more than *r_buff/2.0* during a the *check_period*. If this occurs, a *dangerous*
-        *build* is counted and printed in the neighbor list statistics at the end of a :py:func:`run()`.
+        *build* is counted and printed in the neighbor list statistics at the end of a :py:func:`hoomd.run()`.
 
         When using :py:class:`hoomd.md.pair.slj`, *d_max* **MUST** be set to the maximum diameter that a particle will
         attain at any point during the following :py:func:`hoomd.run()` commands (see :py:class:`hoomd.md.pair.slj` for more

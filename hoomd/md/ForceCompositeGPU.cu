@@ -50,7 +50,8 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  Scalar4* d_body_orientation,
                                                  const unsigned int *d_body_len,
                                                  const unsigned int *d_body,
-                                                 unsigned int *d_flag,
+                                                 const unsigned int *d_tag,
+                                                 uint2 *d_flag,
                                                  Scalar4* d_net_force,
                                                  Scalar4* d_net_torque,
                                                  unsigned int n_mol,
@@ -89,11 +90,19 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         if (group_idx < n_mol)
             {
             mol_idx[m] = group_idx;
-
-            // first ptl is central ptl
             central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
-            body_type[m] = __scalar_as_int(d_postype[central_idx[m]].w);
-            body_orientation[m] = d_orientation[central_idx[m]];
+
+            if (d_tag[central_idx[m]] != d_body[central_idx[m]])
+                {
+                // this is not the central ptl, molecule is incomplete - mark as such
+                body_type[m] = 0xffffffff;
+                body_orientation[m] = make_scalar4(1,0,0,0);
+                }
+            else
+                {
+                body_type[m] = __scalar_as_int(d_postype[central_idx[m]].w);
+                body_orientation[m] = d_orientation[central_idx[m]];
+                }
             }
         else
             {
@@ -103,17 +112,11 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if (mol_idx[m] != NO_BODY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
         unsigned int n_windows = mol_len / window_size + 1;
-
-        if (mol_len != d_body_len[body_type[m]] + 1)
-            {
-            // incomplete molecule
-            atomicMax(d_flag, d_body[central_idx[m]] + 1);
-            }
 
         // slide the window throughout the block
         for (unsigned int start = 0; start < n_windows; start++)
@@ -128,22 +131,15 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                 unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
                 // if this particle is not the central particle
-                if (pidx != central_idx[m])
+                if (body_type[m] != 0xffffffff && pidx != central_idx[m])
                     {
-                    // calculate body force and torques
-                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
                     Scalar4 fi = d_net_force[pidx];
 
                     //will likely need to rotate these components too
                     vec3<Scalar> ti(d_net_torque[pidx]);
 
-                    // tally the force in the per thread counter
-                    sum_force.x += fi.x;
-                    sum_force.y += fi.y;
-                    sum_force.z += fi.z;
-
-                    // sum up energy
-                    sum_force.w += fi.w;
+                    // zero net torque on constituent particles
+                    d_net_torque[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
 
                     // zero force only if we don't need it later
                     if (zero_force)
@@ -153,18 +149,37 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                         d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
                         }
 
-                    vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+                    if (central_idx[m] < N)
+                        {
+                        // at this point, the molecule needs to be complete
+                        if (mol_len != d_body_len[body_type[m]] + 1)
+                            {
+                            // incomplete molecule
+                            atomicMax(&(d_flag->x), d_body[central_idx[m]] + 1);
+                            return;
+                            }
 
-                    // torque = r x f
-                    vec3<Scalar> del_torque(cross(ri, vec3<Scalar>(fi)));
+                        // calculate body force and torques
+                        vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
 
-                    // tally the torque in the per thread counter
-                    sum_torque.x += ti.x+del_torque.x;
-                    sum_torque.y += ti.y+del_torque.y;
-                    sum_torque.z += ti.z+del_torque.z;
+                        // tally the force in the per thread counter
+                        sum_force.x += fi.x;
+                        sum_force.y += fi.y;
+                        sum_force.z += fi.z;
 
-                    // zero net torque on constituent particles
-                    d_net_torque[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
+                        // sum up energy
+                        sum_force.w += fi.w;
+
+                        vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+
+                        // torque = r x f
+                        vec3<Scalar> del_torque(cross(ri, vec3<Scalar>(fi)));
+
+                        // tally the torque in the per thread counter
+                        sum_torque.x += ti.x+del_torque.x;
+                        sum_torque.y += ti.y+del_torque.y;
+                        sum_torque.z += ti.z+del_torque.z;
+                        }
                     }
                 }
             }
@@ -201,7 +216,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         }
 
     // thread 0 within this body writes out the total force and torque for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
         {
         d_force[central_idx[m]] = body_force[threadIdx.x];
         d_torque[central_idx[m]] = make_scalar4(body_torque[threadIdx.x].x, body_torque[threadIdx.x].y, body_torque[threadIdx.x].z, 0.0f);
@@ -219,6 +234,8 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                                                 Scalar4* d_body_orientation,
                                                 Scalar4* d_net_force,
                                                 Scalar* d_net_virial,
+                                                const unsigned int *d_body,
+                                                const unsigned int *d_tag,
                                                 unsigned int n_mol,
                                                 unsigned int N,
                                                 unsigned int net_virial_pitch,
@@ -267,8 +284,18 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
             // first ptl is central ptl
             central_idx[m] = d_molecule_list[molecule_indexer(group_idx, 0)];
-            body_type[m] = __scalar_as_int(d_postype[central_idx[m]].w);
-            body_orientation[m] = d_orientation[central_idx[m]];
+
+            if (d_tag[central_idx[m]] != d_body[central_idx[m]])
+                {
+                // this is not the central ptl, molecule is incomplete - mark as such
+                body_type[m] = 0xffffffff;
+                body_orientation[m] = make_scalar4(1,0,0,0);
+                }
+            else
+                {
+                body_type[m] = __scalar_as_int(d_postype[central_idx[m]].w);
+                body_orientation[m] = d_orientation[central_idx[m]];
+                }
             }
         else
             {
@@ -278,7 +305,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
     __syncthreads();
 
-    if (mol_idx[m] != NO_BODY && central_idx[m] < N)
+    if (mol_idx[m] != NO_BODY)
         {
         // compute the number of windows that we need to loop over
         unsigned int mol_len = d_molecule_len[mol_idx[m]];
@@ -296,13 +323,10 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                 // determine the particle idx of the particle
                 unsigned int pidx = d_molecule_list[molecule_indexer(mol_idx[m],k)];
 
-                // if this particle is not the central particle
-                if (pidx != central_idx[m])
+                if (body_type[m] != 0xffffffff && pidx != central_idx[m])
                     {
                     // calculate body force and torques
-                    vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
                     Scalar4 fi = d_net_force[pidx];
-                    vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
 
                     // sum up virial
                     Scalar virialxx = d_net_virial[0*net_virial_pitch+pidx];
@@ -312,22 +336,30 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                     Scalar virialyz = d_net_virial[4*net_virial_pitch+pidx];
                     Scalar virialzz = d_net_virial[5*net_virial_pitch+pidx];
 
-                    // subtract intra-body virial prt
-                    sum_virial_xx += virialxx - fi.x*ri.x;
-                    sum_virial_xy += virialxy - fi.x*ri.y;
-                    sum_virial_xz += virialxz - fi.x*ri.z;
-                    sum_virial_yy += virialyy - fi.y*ri.y;
-                    sum_virial_yz += virialyz - fi.y*ri.z;
-                    sum_virial_zz += virialzz - fi.z*ri.z;
-
                     // zero force and virial on constituent particles
                     d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
+
                     d_net_virial[0*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[1*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[2*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[3*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[4*net_virial_pitch+pidx] = Scalar(0.0);
                     d_net_virial[5*net_virial_pitch+pidx] = Scalar(0.0);
+
+                    // if this particle is not the central particle (incomplete molcules can't have local members)
+                    if (central_idx[m] < N)
+                        {
+                        vec3<Scalar> particle_pos(d_body_pos[body_indexer(body_type[m], k-1)]);
+                        vec3<Scalar> ri = rotate(quat<Scalar>(body_orientation[m]), particle_pos);
+
+                        // subtract intra-body virial prt
+                        sum_virial_xx += virialxx - fi.x*ri.x;
+                        sum_virial_xy += virialxy - fi.x*ri.y;
+                        sum_virial_xz += virialxz - fi.x*ri.z;
+                        sum_virial_yy += virialyy - fi.y*ri.y;
+                        sum_virial_yz += virialyz - fi.y*ri.z;
+                        sum_virial_zz += virialzz - fi.z*ri.z;
+                        }
                     }
                 }
             }
@@ -366,7 +398,7 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
         }
 
     // thread 0 within this body writes out the total virial for the body
-    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY)
+    if ((threadIdx.x & thread_mask) == 0 && mol_idx[m] != NO_BODY && central_idx[m] < N)
         {
         d_virial[0*virial_pitch+central_idx[m]] = body_virial_xx[threadIdx.x];
         d_virial[1*virial_pitch+central_idx[m]] = body_virial_xy[threadIdx.x];
@@ -392,7 +424,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_body_orientation,
                  const unsigned int *d_body_len,
                  const unsigned int *d_body,
-                 unsigned int *d_flag,
+                 const unsigned int *d_tag,
+                 uint2 *d_flag,
                  Scalar4* d_net_force,
                  Scalar4* d_net_torque,
                  unsigned int n_mol,
@@ -452,6 +485,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         d_body_orientation,
         d_body_len,
         d_body,
+        d_tag,
         d_flag,
         d_net_force,
         d_net_torque,
@@ -476,6 +510,8 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  Scalar4* d_body_orientation,
                  Scalar4* d_net_force,
                  Scalar* d_net_virial,
+                 const unsigned int *d_body,
+                 const unsigned int *d_tag,
                  unsigned int n_mol,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
@@ -484,7 +520,7 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  unsigned int block_size,
                  const cudaDeviceProp& dev_prop)
     {
-    // reset force and torque
+    // reset virial
     cudaMemset(d_virial,0, sizeof(Scalar)*virial_pitch*6);
 
     dim3 force_grid(n_mol / n_bodies_per_block + 1, 1, 1);
@@ -532,6 +568,8 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
         d_body_orientation,
         d_net_force,
         d_net_virial,
+        d_body,
+        d_tag,
         n_mol,
         N,
         net_virial_pitch,
@@ -559,7 +597,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
-    unsigned int *d_flag)
+    uint2 *d_flag)
     {
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -572,7 +610,17 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     unsigned int central_idx = d_rtag[central_tag];
 
-    if (central_idx == NOT_LOCAL && idx >= N) return;
+    if (central_idx >= N + n_ghost)
+        {
+        // if a molecule with a local member has no central particle, error out
+        if (idx < N)
+            {
+            atomicMax(&(d_flag->x), idx+1);
+            }
+
+        // otherwise, ignore
+        return;
+        }
 
     // do not overwrite central ptl
     if (idx == central_idx) return;
@@ -591,7 +639,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
         // if a molecule with a local member is incomplete, this is an error
         if (idx < N)
             {
-            atomicMax(d_flag, central_tag+1);
+            atomicMax(&(d_flag->y), idx+1);
             }
 
         // otherwise, ignore
@@ -635,7 +683,7 @@ void gpu_update_composite(unsigned int N,
     int3 *d_image,
     const BoxDim box,
     unsigned int block_size,
-    unsigned int *d_flag)
+    uint2 *d_flag)
     {
     unsigned int run_block_size = block_size;
 

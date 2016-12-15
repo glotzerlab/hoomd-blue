@@ -5,3 +5,9 @@ class IntegratorAnisotropicMode(object):
     Automatic = None;
     Anisotropic = None;
     Isotropic = None;
+
+class MuellerPlatheFlow(object):
+    class Direction(object):
+        X = None;
+        Y = None;
+        Z = None;

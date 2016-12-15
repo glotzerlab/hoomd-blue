@@ -94,7 +94,7 @@ namespace getardump{
         const map<set<Record>, string> &modes)
         {
         shared_ptr<SystemSnapshot> snap(
-            takeSystemSnapshot(sysdef, true, true, true, true, true, true, true));
+            takeSystemSnapshot(sysdef, true, true, true, true, true, true, true, true));
         restoreSnapshot(snap, modes);
 
         sysdef->initializeFromSnapshot(snap);
@@ -321,6 +321,27 @@ namespace getardump{
                 }
             }
 
+        unsigned int pair_N(snapshot->pair_data.type_id.size());
+
+        if(snapshot->pair_data.groups.size() != pair_N)
+            {
+            stringstream message;
+            message << "Expected to find " << pair_N << " pairs, but found " <<
+                snapshot->pair_data.groups.size() << " (i, j) pairs" << endl;
+            throw runtime_error(message.str());
+            }
+
+        if(pair_N)
+            {
+            unsigned int maxpairtype(*std::max_element(snapshot->pair_data.type_id.begin(),
+                    snapshot->pair_data.type_id.end()));
+            for(unsigned int i(snapshot->pair_data.type_mapping.size()); i < maxpairtype + 1; ++i)
+                {
+                snapshot->pair_data.type_mapping.push_back(string(1, 'A' + (char) i));
+                }
+            }
+
+
         unsigned int angle_N(snapshot->angle_data.type_id.size());
 
         if(snapshot->angle_data.groups.size() != angle_N)
@@ -531,6 +552,10 @@ namespace getardump{
                     {
                     snap->improper_data.type_id = data;
                     }
+                else if(rec.getGroup() == "pair")
+                    {
+                    snap->pair_data.type_id = data;
+                    }
                 else
                     {
                     snap->particle_data.type = data;
@@ -562,6 +587,12 @@ namespace getardump{
                     vector<group_storage<4> > groupData(InvGroupTagIterator<4>(data.begin()),
                         InvGroupTagIterator<4>(data.end()));
                     snap->improper_data.groups = groupData;
+                    }
+                if(rec.getGroup() == "pair")
+                    {
+                    vector<group_storage<2> > groupData(InvGroupTagIterator<2>(data.begin()),
+                        InvGroupTagIterator<2>(data.end()));
+                    snap->pair_data.groups = groupData;
                     }
                 }
             else
@@ -968,6 +999,10 @@ namespace getardump{
                 {
                 snap->improper_data.type_mapping = names;
                 }
+            else if(rec.getGroup() == "pair")
+                {
+                snap->pair_data.type_mapping = names;
+                }
             else
                 {
                 snap->particle_data.type_mapping = names;
@@ -1065,7 +1100,11 @@ namespace getardump{
             recGroup = "improper";
             recName = name.substr(9);
             }
-
+        else if(name.substr(0, 5) == "pair_")
+            {
+            recGroup = "pair";
+            recName = name.substr(5);
+            }
         if(recName == "type_names")
             recName = "type_names.json";
 
