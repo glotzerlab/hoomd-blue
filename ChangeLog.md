@@ -13,6 +13,7 @@ Not yet released
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 * update.balance() is properly ignored when only one rank is available
+* Add missing headers to plugin install build
 
 * Other changes *
 
