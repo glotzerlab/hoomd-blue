@@ -994,9 +994,6 @@ class polyhedron(mode_hpmc):
 
     Only triangle meshes and spheres are supported. The mesh must be free of self-intersections.
 
-    The orientation of the mesh assumes outward-facing normals, that is, if viewed from the shape's *origin*,
-    all triangles are oriented clockwise.
-
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1023,6 +1020,8 @@ class polyhedron(mode_hpmc):
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
         * .. versionadded:: 2.2
     * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
+        * .. versionadded:: 2.2
+    * *hull_only* (**default: True **) - if True, only consider intersections between hull polygons
         * .. versionadded:: 2.2
 
     Warning:
