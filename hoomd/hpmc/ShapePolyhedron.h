@@ -50,7 +50,7 @@ struct poly3d_data : param_base
     #ifndef NVCC
     //! Constructor
     poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, bool _managed)
-        : n_faces(_n_faces)
+        : n_faces(_n_faces), hull_only(0)
         {
         verts = poly3d_verts(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
@@ -65,6 +65,7 @@ struct poly3d_data : param_base
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
     vec3<OverlapReal> origin;                       //!< A point *inside* the surface
+    unsigned int hull_only;                         //!< If 1, only the hull of the shape is considered for overlaps
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
@@ -896,8 +897,11 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
 
     for (unsigned int ord = 0; ord < 2; ++ord)
         {
-        // load pair of shapes
+        // load shape
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
+
+        // if the shape is a hull only, skip
+        if (s1.data.hull_only) continue;
 
         vec3<OverlapReal> p;
 

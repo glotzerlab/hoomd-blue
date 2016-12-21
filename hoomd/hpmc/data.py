@@ -224,15 +224,15 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','sweep_radius', 'capacity'];
+        self._keys += ['vertices', 'faces','sweep_radius', 'capacity','origin','hull_only'];
         self.make_fn = _hpmc.make_poly3d_data;
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces,self.sweep_radius, capacity);
+        string = "polyhedron(vertices = {}, faces = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces,self.sweep_radius, self.capacity, self.hull_only);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True):
         face_offs = []
         face_verts = []
         offs = 0
@@ -261,6 +261,7 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
                             ignore_statistics,
                             capacity,
                             self.ensure_list(origin),
+                            int(hull_only),
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
 class faceted_sphere_params(_hpmc.faceted_sphere_param_proxy, _param):
