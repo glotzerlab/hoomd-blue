@@ -692,7 +692,7 @@ DEVICE inline Real perpdot(const vec2<Real>& a, const vec2<Real>& b)
 
 
 template<class Real>
-class rotmat3;
+struct rotmat3;
 
 /////////////////////////////// quat ///////////////////////////////////
 
