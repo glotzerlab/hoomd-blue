@@ -154,6 +154,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
                              pybind11::list face_offs, OverlapReal R, bool ignore_stats,
                              unsigned int leaf_capacity,
                              pybind11::list origin,
+                             unsigned int hull_only,
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ShapePolyhedron::param_type result;
@@ -162,6 +163,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     result.verts.sweep_radius = R;
     result.n_faces = len(face_offs)-1;
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
+    result.hull_only = hull_only;
 
     for (unsigned int i = 0; i < len(face_offs); i++)
         {
@@ -639,6 +641,13 @@ public:
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         return m_access(params[m_typeid]).tree.getLeafNodeCapacity();
         }
+
+    bool getHullOnly() const
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).hull_only;
+        }
+
 };
 
 template< typename Shape, class AccessType = access<Shape> >
@@ -937,6 +946,7 @@ void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     .def_property_readonly("origin", &proxy_class::getOrigin)
     .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
     .def_property_readonly("capacity", &proxy_class::getCapacity)
+    .def_property_readonly("hull_only", &proxy_class::getHullOnly)
     ;
     }
 
