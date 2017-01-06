@@ -62,9 +62,10 @@ struct OBB
     vec3<OverlapReal> lengths; // half-axes
     vec3<OverlapReal> center;
     quat<OverlapReal> rotation;
+    unsigned int mask;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() {}
+    DEVICE OBB() : mask(1) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -74,12 +75,14 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
+        mask = 1;
         }
 
     DEVICE OBB(const detail::AABB& aabb)
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
+        mask = 1;
         }
 
     //! Construct an OBB from an AABB
@@ -132,6 +135,9 @@ struct OBB
 */
 DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
+    // exit early if the masks don't match
+    if (! (a.mask & b.mask)) return false;
+
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
 

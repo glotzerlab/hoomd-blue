@@ -293,8 +293,17 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
             }
         }
 
+    // combine masks
+    unsigned int mask = 0;
+
+    for (unsigned int i = start; i < start+len; ++i)
+        {
+        mask |= obbs[i].mask;
+        }
+
     // merge internal coordinates
     my_obb = compute_obb(merge_internal_coordinates, vertex_radius);
+    my_obb.mask = mask;
 
     // handle the case of a leaf node creation
     if (len <= m_leaf_capacity)

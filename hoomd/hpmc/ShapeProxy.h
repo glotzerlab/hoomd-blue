@@ -420,6 +420,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
 
         obbs[i] = detail::OBB(dummy.getAABB(pos));
+        obbs[i].mask = result.moverlap[i];
         }
 
     // set the diameter
