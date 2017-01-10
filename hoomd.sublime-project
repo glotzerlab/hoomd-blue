@@ -25,28 +25,43 @@
     "build_systems":
     [
         {
-            "name": "Build Project",
+            "name": "Build Project (make)",
             "cmd": ["make", "-j4"],
             "working_dir": "${project_path}/build",
             // this regex first ignores all messages that start with citelist
             // then it matches strings like: filename:line message OR filename(line): message
             // the first is output by g++, the latter by nvcc
             "file_regex": "^(?!citelist)(..[^:(]*)[:(]([0-9]+)[:)]?([0-9]+)?:? (.*)$",
-            
+
             // include latex and macports on the path in osx
             "osx":
             {
                 "path": "/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/usr/X11/bin:/usr/texbin"
             },
-            
+
             // add a make clean option
-            "variants": 
+            "variants":
             [
-                { 
+                {
                     "cmd": ["make", "clean"],
                     "name": "Clean"
                 }
             ]
+        },
+        {
+            "name": "Build Project (ninja)",
+            "cmd": ["ninja"],
+            "working_dir": "${project_path}/build",
+            // this regex first ignores all messages that start with citelist
+            // then it matches strings like: filename:line message OR filename(line): message
+            // the first is output by g++, the latter by nvcc
+            "file_regex": "^(?!citelist)(..[^:(]*)[:(]([0-9]+)[:)]?([0-9]+)?:? (.*)$",
+
+            // include latex and macports on the path in osx
+            "osx":
+            {
+                "path": "/opt/local/bin:/opt/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/usr/X11/bin:/usr/texbin"
+            }
         }
     ]
 }
