@@ -82,9 +82,12 @@ void MuellerPlatheFlow::update(unsigned int timestep)
     bool smaller_swap_needed = m_flow_target->getValue(timestep) < this->summed_exchanged_momentum()/area;
     smaller_swap_needed &=  this->get_min_slab() < this->get_max_slab();
 
-    if( bigger_swap_needed || smaller_swap_needed
-        &&  fabs( m_flow_target->getValue(timestep) - this->summed_exchanged_momentum()/area ) > this->get_flow_epsilon())
+    if( ( bigger_swap_needed || smaller_swap_needed )
+        &&  ( fabs( m_flow_target->getValue(timestep) - this->summed_exchanged_momentum()/area )
+              > this->get_flow_epsilon() ) )
+        {
         this->swap_min_max_slab();
+        }
     //Sign for summed exchanged momentum depends on hierachy of min and max slab.
     const int sign = this->get_max_slab() > this->get_min_slab() ? 1 : -1;
 

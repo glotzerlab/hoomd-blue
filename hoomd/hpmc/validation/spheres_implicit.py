@@ -119,14 +119,13 @@ class implicit_test (unittest.TestCase):
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
 
-        # number of test depletant to throw for measuring free volume
-        nsample = 10000
-
-        # no depletants during compression
+        # no depletants during tuning
         self.mc.set_params(nR=0)
 
-        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4*d_sphere,0.5],gamma=1,target=0.3)
-
+        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
+        for i in range(10):
+            run(100, quiet=True)
+            self.mc_tune.update()
         # warm up
         run(2000);
 
@@ -135,7 +134,7 @@ class implicit_test (unittest.TestCase):
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR, ntrial=ntrial)
 
-        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=100000, test_type='B')
+        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
 
         eta_p_measure = []
@@ -145,7 +144,7 @@ class implicit_test (unittest.TestCase):
             if comm.get_rank() == 0:
                 print('eta_p =', v);
 
-        run(1e5,callback=log_callback,callback_period=100)
+        run(4e5,callback=log_callback,callback_period=100)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(eta_p_measure)
