@@ -4,7 +4,7 @@
 
 ## v2.1.2
 
-Not yet released
+Released 2017/01/11
 
 *Bug fixes*
 
