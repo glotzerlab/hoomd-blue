@@ -14,6 +14,7 @@ Not yet released
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
 * update.balance() is properly ignored when only one rank is available
 * Add missing headers to plugin install build
+* Fix a bug where charge.pppm calculated an incorrect pressure
 
 * Other changes *
 
