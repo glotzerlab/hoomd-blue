@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2016 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 from hoomd import _hoomd
@@ -929,11 +929,11 @@ class convex_spheropolygon(mode_hpmc):
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            result.append(dict(type='ConvexPolyhedron',
+            result.append(dict(type='Polygon',
                                    rounding_radius=shape.sweep_radius,
                                    vertices=shape.vertices))
-        return result
 
+        return result
 
 class simple_polygon(mode_hpmc):
     R""" HPMC integration for simple polygons (2D).
@@ -1544,6 +1544,26 @@ class convex_spheropolyhedron(mode_hpmc):
             shape_def += '{0} {1} {2} '.format(*v);
 
         return shape_def
+
+    def get_type_shapes(self):
+        """ Get all the types of shapes in the current simulation
+        Returns:
+            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.shape_param.get(typename)
+            dim = hoomd.context.current.system_definition.getNDimensions()
+            # Currently can't trivially pull the radius for nonspherical shapes
+            result.append(dict(type='ConvexPolyhedron',
+                                   rounding_radius=shape.sweep_radius,
+                                   vertices=shape.vertices))
+
+        return result
 
 class ellipsoid(mode_hpmc):
     R""" HPMC integration for ellipsoids (2D/3D).
