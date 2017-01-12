@@ -453,6 +453,8 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
     vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX,FLT_MAX,FLT_MAX);
     vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX,-FLT_MAX,-FLT_MAX);
 
+    OverlapReal max_r = -FLT_MAX;
+
     // project points onto axes
     for (unsigned int i = 0; i < n; ++i)
         {
@@ -461,26 +463,38 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const
         proj.y = dot(pts[i]-mean, axis[1]);
         proj.z = dot(pts[i]-mean, axis[2]);
 
-        if (proj.x+vertex_radii[i] > proj_max.x) proj_max.x = proj.x+vertex_radii[i];
-        if (proj.y+vertex_radii[i] > proj_max.y) proj_max.y = proj.y+vertex_radii[i];
-        if (proj.z+vertex_radii[i] > proj_max.z) proj_max.z = proj.z+vertex_radii[i];
+        if (make_sphere)
+            {
+            if (sqrt(dot(proj,proj))+vertex_radii[i] > max_r)
+                {
+                max_r = sqrt(dot(proj,proj)) + vertex_radii[i];
+                }
+            }
+        else
+            {
+            if (proj.x+vertex_radii[i] > proj_max.x) proj_max.x = proj.x+vertex_radii[i];
+            if (proj.y+vertex_radii[i] > proj_max.y) proj_max.y = proj.y+vertex_radii[i];
+            if (proj.z+vertex_radii[i] > proj_max.z) proj_max.z = proj.z+vertex_radii[i];
 
-        if (proj.x-vertex_radii[i] < proj_min.x) proj_min.x = proj.x-vertex_radii[i];
-        if (proj.y-vertex_radii[i] < proj_min.y) proj_min.y = proj.y-vertex_radii[i];
-        if (proj.z-vertex_radii[i] < proj_min.z) proj_min.z = proj.z-vertex_radii[i];
+            if (proj.x-vertex_radii[i] < proj_min.x) proj_min.x = proj.x-vertex_radii[i];
+            if (proj.y-vertex_radii[i] < proj_min.y) proj_min.y = proj.y-vertex_radii[i];
+            if (proj.z-vertex_radii[i] < proj_min.z) proj_min.z = proj.z-vertex_radii[i];
+            }
         }
 
     res.center = mean;
-    res.center += OverlapReal(0.5)*(proj_max.x + proj_min.x)*axis[0];
-    res.center += OverlapReal(0.5)*(proj_max.y + proj_min.y)*axis[1];
-    res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
-    res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
-
-    if (make_sphere)
+    if (! make_sphere)
         {
-        OverlapReal max_length = std::max(res.lengths.x, std::max(res.lengths.y, res.lengths.z));
-        res.lengths.x = res.lengths.y = res.lengths.z = max_length;
+        res.center += OverlapReal(0.5)*(proj_max.x + proj_min.x)*axis[0];
+        res.center += OverlapReal(0.5)*(proj_max.y + proj_min.y)*axis[1];
+        res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
+
+        res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
+        }
+    else
+        {
+        res.lengths.x = res.lengths.y = res.lengths.z = max_r;
         res.is_sphere = 1;
         }
 
