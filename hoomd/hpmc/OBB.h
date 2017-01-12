@@ -63,9 +63,10 @@ struct OBB
     vec3<OverlapReal> center;
     quat<OverlapReal> rotation;
     unsigned int mask;
+    unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() : mask(1) {}
+    DEVICE OBB() : mask(1), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -76,6 +77,7 @@ struct OBB
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
         mask = 1;
+        is_sphere = 1;
         }
 
     DEVICE OBB(const detail::AABB& aabb)
@@ -83,6 +85,7 @@ struct OBB
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
         mask = 1;
+        is_sphere = 0;
         }
 
     //! Construct an OBB from an AABB
@@ -90,6 +93,12 @@ struct OBB
     DEVICE vec3<OverlapReal> getPosition() const
         {
         return center;
+        }
+
+    //! Return true if this OBB is a sphere
+    DEVICE bool isSphere() const
+        {
+        return is_sphere;
         }
 
     //! Get list of OBB corners
@@ -138,11 +147,19 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     // exit early if the masks don't match
     if (! (a.mask & b.mask)) return false;
 
-    // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
-
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
+
+    // if both OBBs are spheres, simplify overlap check
+    if (a.isSphere() && b.isSphere())
+        {
+        OverlapReal rsq = dot(t,t);
+        OverlapReal RaRb = a.lengths.x + b.lengths.x;
+        return rsq <= RaRb*RaRb;
+        }
+
+    // rotate B in A's coordinate frame
+    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
 
     // rotate translation into A's frame
     t = rotate(conj(a.rotation),t);
@@ -341,7 +358,8 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
     }
 
 #ifndef NVCC
-DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
+DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const std::vector<OverlapReal>& vertex_radii,
+    bool make_sphere)
     {
     // compute mean
     OBB res;
@@ -443,13 +461,13 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         proj.y = dot(pts[i]-mean, axis[1]);
         proj.z = dot(pts[i]-mean, axis[2]);
 
-        if (proj.x > proj_max.x) proj_max.x = proj.x;
-        if (proj.y > proj_max.y) proj_max.y = proj.y;
-        if (proj.z > proj_max.z) proj_max.z = proj.z;
+        if (proj.x+vertex_radii[i] > proj_max.x) proj_max.x = proj.x+vertex_radii[i];
+        if (proj.y+vertex_radii[i] > proj_max.y) proj_max.y = proj.y+vertex_radii[i];
+        if (proj.z+vertex_radii[i] > proj_max.z) proj_max.z = proj.z+vertex_radii[i];
 
-        if (proj.x < proj_min.x) proj_min.x = proj.x;
-        if (proj.y < proj_min.y) proj_min.y = proj.y;
-        if (proj.z < proj_min.z) proj_min.z = proj.z;
+        if (proj.x-vertex_radii[i] < proj_min.x) proj_min.x = proj.x-vertex_radii[i];
+        if (proj.y-vertex_radii[i] < proj_min.y) proj_min.y = proj.y-vertex_radii[i];
+        if (proj.z-vertex_radii[i] < proj_min.z) proj_min.z = proj.z-vertex_radii[i];
         }
 
     res.center = mean;
@@ -459,9 +477,12 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
     res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
 
-    res.lengths.x += vertex_radius;
-    res.lengths.y += vertex_radius;
-    res.lengths.z += vertex_radius;
+    if (make_sphere)
+        {
+        OverlapReal max_length = std::max(res.lengths.x, std::max(res.lengths.y, res.lengths.z));
+        res.lengths.x = res.lengths.y = res.lengths.z = max_length;
+        res.is_sphere = 1;
+        }
 
     return res;
     }

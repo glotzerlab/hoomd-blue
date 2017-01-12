@@ -212,6 +212,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         {
         std::vector<vec3<OverlapReal> > face_vec;
 
+        unsigned int n_vert = 0;
         for (unsigned int j = result.face_offs[i]; j < result.face_offs[i+1]; ++j)
             {
             vec3<OverlapReal> v;
@@ -220,8 +221,10 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
             v.z = result.verts.z[result.face_verts[j]];
 
             face_vec.push_back(v);
+            n_vert++;
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, result.verts.sweep_radius);
+        std::vector<OverlapReal> vertex_radii(n_vert, result.verts.sweep_radius);
+        obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         internal_coordinates.push_back(face_vec);
         }
 
@@ -419,7 +422,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
         Scalar d = sqrt(dot(pos,pos));
         diameter = max(diameter, OverlapReal(2*d + dummy.getCircumsphereDiameter()));
 
-        obbs[i] = detail::OBB(dummy.getAABB(pos));
+        obbs[i] = detail::OBB(pos,dummy.getCircumsphereDiameter()/2.0);
         obbs[i].mask = result.moverlap[i];
         }
 
@@ -429,7 +432,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
     // build tree and store GPU accessible version in parameter structure
     typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
     OBBTree tree;
-    tree.buildTree(obbs, result.N, leaf_capacity);
+    tree.buildTree(obbs, result.N, leaf_capacity, true);
     delete [] obbs;
     result.tree = gpu_tree_type(tree,exec_conf->isCUDAEnabled());
 
