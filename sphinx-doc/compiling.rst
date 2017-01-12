@@ -317,6 +317,7 @@ Other option changes take effect at any time. These can be set from within `ccma
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
 * **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
+* **COPY_HEADERS** - When ON (OFF is default), copy header files into the build directory to make it a valid plugin build source
 
 These options control CUDA compilation:
 

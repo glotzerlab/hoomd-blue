@@ -29,7 +29,7 @@ if(NOT PASSED_FIRST_CONFIGURE)
         set(_common_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas")
         set(_common_cxx_options "-march=${GCC_ARCH} -Wall -Wno-unknown-pragmas")
 
-        if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+        if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND APPLE)
             set(_common_cxx_options "${_common_cxx_options} -Wno-c++14-extensions")
         endif()
 

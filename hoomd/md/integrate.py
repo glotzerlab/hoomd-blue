@@ -70,7 +70,7 @@ class mode_standard(_integrator):
     - :py:class:`nph`
 
     There can only be one integration mode active at a time. If there are more than one ``integrate.mode_*`` commands in
-    a hoomd script, only the most recent before a given :py:func:`run()` will take effect.
+    a hoomd script, only the most recent before a given :py:func:`hoomd.run()` will take effect.
 
     Examples::
 
@@ -191,6 +191,7 @@ class nvt(_integration_method):
             group_copy.name = "__nvt_all";
             hoomd.util.quiet_status();
             thermo = hoomd.compute.thermo(group_copy);
+            thermo.cpp_compute.setLoggingEnabled(False);
             hoomd.util.unquiet_status();
         else:
             thermo = hoomd.compute._get_unique_thermo(group=group);
@@ -394,6 +395,7 @@ class npt(_integration_method):
             group_copy.name = "__npt_all";
             hoomd.util.quiet_status();
             thermo_group = hoomd.compute.thermo(group_copy);
+            thermo_group.cpp_compute.setLoggingEnabled(False);
             hoomd.util.unquiet_status();
         else:
             thermo_group = hoomd.compute._get_unique_thermo(group=group);
@@ -589,7 +591,7 @@ class nph(npt):
     R""" NPH Integration via MTK barostat-thermostat..
 
     Args:
-        params (keyword arguments): passed to :py:class:`npt`.
+        params: keyword arguments passed to :py:class:`npt`.
 
     :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation

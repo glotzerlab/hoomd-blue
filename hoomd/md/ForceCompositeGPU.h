@@ -68,7 +68,7 @@ class ForceCompositeGPU : public ForceComposite
         std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel
 
-        GPUFlags<unsigned int> m_flag;               //!< Flag to read out error condition
+        GPUFlags<uint2> m_flag;               //!< Flag to read out error condition
     };
 
 //! Exports the ForceCompositeGPU to python

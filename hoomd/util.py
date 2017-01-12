@@ -25,7 +25,7 @@ def quiet_status():
     code that executes each hoomd script command. Call :py:func:`hoomd.util.unquiet_status()` to
     enable the status messages again. Messages are only enabled after a number of
     :py:func:`hoomd.util.unquiet_status()` calls equal to the number of prior
-    :py:func:`hoomd.quiet_status()` calls.
+    :py:func:`hoomd.util.quiet_status()` calls.
     """
     global _status_quiet_count;
     _status_quiet_count = _status_quiet_count+1;

@@ -1075,7 +1075,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
+            m_r_extra_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
+            m_has_ghost_particles(false),
             m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
@@ -1084,7 +1086,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_dihedral_comm(*this, m_sysdef->getDihedralData()),
             m_improper_comm(*this, m_sysdef->getImproperData()),
             m_constraint_comm(*this, m_sysdef->getConstraintData()),
-            m_is_first_step(true)
+            m_pair_comm(*this, m_sysdef->getPairData())
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -1118,6 +1120,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
     m_r_ghost.swap(r_ghost);
 
+    GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+    m_r_ghost_body.swap(r_ghost_body);
+
     /*
      * Bonded group communication
      */
@@ -1135,6 +1140,9 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
 
     m_constraints_changed = true;
     m_sysdef->getConstraintData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setConstraintsChanged>(this);
+
+    m_pairs_changed = true;
+    m_sysdef->getPairData()->getGroupNumChangeSignal().connect<Communicator, &Communicator::setPairsChanged>(this);
 
     // allocate memory
     GPUArray<unsigned int> neighbors(NEIGH_MAX,m_exec_conf);
@@ -1169,6 +1177,7 @@ Communicator::~Communicator()
     m_sysdef->getDihedralData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setDihedralsChanged>(this);
     m_sysdef->getImproperData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setImpropersChanged>(this);
     m_sysdef->getConstraintData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setConstraintsChanged>(this);
+    m_sysdef->getPairData()->getGroupNumChangeSignal().disconnect<Communicator, &Communicator::setPairsChanged>(this);
     }
 
 void Communicator::initializeNeighborArrays()
@@ -1270,15 +1279,14 @@ void Communicator::communicate(unsigned int timestep)
     m_is_communicating = true;
 
     // update ghost communication flags
+    m_flags = CommFlags(0);
     m_requested_flags.emit_accumulate( [&](CommFlags f)
                                         {
                                         m_flags |= f;
                                         }
                                       , timestep);
 
-    bool has_ghost_particles = !(m_force_migrate || m_is_first_step);
-
-    if (!m_compute_callbacks.empty() && has_ghost_particles)
+    if (!m_compute_callbacks.empty() && m_has_ghost_particles)
         {
         // do an obligatory update before determining whether to migrate
         beginUpdateGhosts(timestep);
@@ -1286,18 +1294,24 @@ void Communicator::communicate(unsigned int timestep)
 
         // call subscribers after ghost update, but before distance check
         m_compute_callbacks.emit(timestep);
+
+        // by now, local particles may have moved outside the box due to the rigid body update
+        // we will make sure that they are inside by doing a second migrate if necessary
         }
 
-    // distance check (synchronizes the GPU execution stream), needs to be called
-    // before any particle reorder
     bool migrate_request = false;
-    m_migrate_requests.emit_accumulate( [&](bool r)
-                                            {
-                                            migrate_request = migrate_request || r;
-                                            },
-                                        timestep);
+    if (! m_force_migrate)
+        {
+        // distance check, may not be called directly after particle reorder (such as
+        // due to SFCPackUpdater running before)
+        m_migrate_requests.emit_accumulate( [&](bool r)
+                                                {
+                                                migrate_request = migrate_request || r;
+                                                },
+                                            timestep);
+        }
 
-    bool migrate = migrate_request || !has_ghost_particles;
+    bool migrate = migrate_request || m_force_migrate || !m_has_ghost_particles;
 
     // Update ghosts if we are not migrating
     if (!migrate && m_compute_callbacks.empty())
@@ -1307,27 +1321,21 @@ void Communicator::communicate(unsigned int timestep)
         finishUpdateGhosts(timestep);
         }
 
-    if (!m_compute_callbacks.empty() && !has_ghost_particles)
-        {
-        // initialize ghosts a first time
-        migrateParticles();
-        exchangeGhosts();
-
-        // update particle data now that ghosts are available
-        m_compute_callbacks.emit(timestep);
-        }
-
     // Check if migration of particles is requested
     if (migrate)
         {
         m_force_migrate = false;
-        m_is_first_step = false;
 
         // If so, migrate atoms
         migrateParticles();
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
+ 
+        // update particle data now that ghosts are available
+        m_compute_callbacks.emit(timestep);
+        
+        m_has_ghost_particles = true;
         }
 
     m_is_communicating = false;
@@ -1389,6 +1397,10 @@ void Communicator::migrateParticles()
         // Bonds
         m_bond_comm.migrateGroups(m_bonds_changed, true);
         m_bonds_changed = false;
+
+        // Special pairs
+        m_pair_comm.migrateGroups(m_pairs_changed, true);
+        m_pairs_changed = false;
 
         // Angles
         m_angle_comm.migrateGroups(m_angles_changed, true);
@@ -1466,6 +1478,17 @@ void Communicator::migrateParticles()
 
 void Communicator::updateGhostWidth()
     {
+        {
+        // reset values (this may not be needed in most cases, but it doesn't harm to be safe
+        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::overwrite);
+        for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
+            {
+            h_r_ghost.data[cur_type] = Scalar(0.0);
+            h_r_ghost_body.data[cur_type] = Scalar(0.0);
+            }
+        }
+
     if (!m_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
@@ -1489,7 +1512,7 @@ void Communicator::updateGhostWidth()
     if (!m_extra_ghost_layer_width_requests.empty())
         {
         // update the ghost layer width only if subscribers are available
-        ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::readwrite);
 
         Scalar r_extra_ghost_max = 0.0;
         for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
@@ -1502,10 +1525,10 @@ void Communicator::updateGhostWidth()
                                                             ,cur_type);
 
             // add to the maximum ghost layer width
-            h_r_ghost.data[cur_type] = r_extra_ghost_i + m_r_ghost_max;
-            if (r_extra_ghost_i > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
+            h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
+            if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
-        m_r_ghost_max += r_extra_ghost_max;
+        m_r_extra_ghost_max = r_extra_ghost_max;
         }
     }
 
@@ -1544,16 +1567,20 @@ void Communicator::exchangeGhosts()
 
     // compute the ghost layer widths as fractions
     ArrayHandle<Scalar> h_r_ghost(m_r_ghost, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_r_ghost_body(m_r_ghost_body, access_location::host, access_mode::read);
     const Scalar3 box_dist = box.getNearestPlaneDistance();
     std::vector<Scalar3> ghost_fractions(m_pdata->getNTypes());
+    std::vector<Scalar3> ghost_fractions_body(m_pdata->getNTypes());
     for (unsigned int cur_type = 0; cur_type < m_pdata->getNTypes(); ++cur_type)
         {
         ghost_fractions[cur_type] = h_r_ghost.data[cur_type] / box_dist;
+        ghost_fractions_body[cur_type] = h_r_ghost_body.data[cur_type] / box_dist;
         }
 
         {
         // scan all local atom positions if they are within r_ghost from a neighbor
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::readwrite);
 
         for (unsigned int idx = 0; idx < m_pdata->getN(); idx++)
@@ -1563,7 +1590,12 @@ void Communicator::exchangeGhosts()
 
             // get the ghost fraction for this particle type
             const unsigned int type = __scalar_as_int(postype.w);
-            const Scalar3 ghost_fraction = ghost_fractions[type];
+            Scalar3 ghost_fraction = ghost_fractions[type];
+
+            if (h_body.data[idx] != NO_BODY)
+                {
+                ghost_fraction = m_r_ghost_max/ box_dist + ghost_fractions_body[type];
+                }
 
             Scalar3 f = box.makeFraction(pos);
             if (f.x >= Scalar(1.0) - ghost_fraction.x)
@@ -1594,6 +1626,9 @@ void Communicator::exchangeGhosts()
 
     // bonds
     m_bond_comm.markGhostParticles(m_plan, mask);
+
+    // special pairs
+    m_pair_comm.markGhostParticles(m_plan, mask);
 
     // angles
     m_angle_comm.markGhostParticles(m_plan,mask);

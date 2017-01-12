@@ -50,6 +50,7 @@ HOOMDInitializer::HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration>
     m_parser_map["angle"] = std::bind(&HOOMDInitializer::parseAngleNode, this, std::placeholders::_1);
     m_parser_map["dihedral"] = std::bind(&HOOMDInitializer::parseDihedralNode, this, std::placeholders::_1);
     m_parser_map["improper"] = std::bind(&HOOMDInitializer::parseImproperNode, this, std::placeholders::_1);
+    m_parser_map["pair"] = std::bind(&HOOMDInitializer::parsePairNode, this, std::placeholders::_1);
     m_parser_map["constraint"] = std::bind(&HOOMDInitializer::parseConstraintsNode, this, std::placeholders::_1);
     m_parser_map["charge"] = std::bind(&HOOMDInitializer::parseChargeNode, this, std::placeholders::_1);
     m_parser_map["orientation"] = std::bind(&HOOMDInitializer::parseOrientationNode, this, std::placeholders::_1);
@@ -269,7 +270,7 @@ std::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() co
     idata.type_mapping = m_improper_type_mapping;
 
     /*
-     * Initialize improper data
+     * Initialize constraint data
      */
     ConstraintData::Snapshot& cdata = snapshot->constraint_data;
 
@@ -285,6 +286,23 @@ std::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() co
 
     // initialize with empty vector
     cdata.type_mapping = std::vector<std::string>();
+
+    /*
+     * Initialize pair data
+     */
+    PairData::Snapshot& pair_data = snapshot->pair_data;
+
+    // allocate memory
+    pair_data.resize(m_pairs.size());
+
+    // loop through all the pairs and add a special pair for each
+    for (unsigned int i = 0; i < m_pairs.size(); i++)
+        {
+        pair_data.groups[i] = m_pairs[i];
+        pair_data.type_id[i] = m_pair_types[i];
+        }
+
+    pair_data.type_mapping = m_pair_type_mapping;
 
     return snapshot;
     }
@@ -344,6 +362,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.5");
     valid_versions.push_back("1.6");
     valid_versions.push_back("1.7");
+    valid_versions.push_back("1.8");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -511,6 +530,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_constraints.size() > 0)
         m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
+    if (m_pairs.size() > 0)
+        m_exec_conf->msg->notice(2) << m_pairs.size() << " special pairs" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_orientation.size() > 0)
@@ -918,6 +939,40 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b dihedral node and fills out m_dihedrals. The number
+    of dihedrals in the array is determined dynamically.
+*/
+void HOOMDInitializer::parsePairNode(const XMLNode &node)
+    {
+    // check that this is actually a pair node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("pair"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        string type_name;
+        unsigned int a, b;
+        parser >> type_name >> a >> b;
+        if (parser.good())
+            {
+            PairData::members_t pair;
+            pair.tag[0] = a; pair.tag[1] = b;
+            m_pairs.push_back(pair);
+            m_pair_types.push_back(getPairTypeId(type_name));
+            }
+        }
+    }
+
+
+/*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b constraint node and fills out m_constraints. The number
     of constraints in the array is determined dynamically.
 */
@@ -1163,6 +1218,24 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     m_improper_type_mapping.push_back(name);
     return (unsigned int)m_improper_type_mapping.size()-1;
     }
+
+/*! \param name Name to get type id of
+    If \a name has already been added, this returns the type index of that name.
+    If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getPairTypeId(const std::string& name)
+    {
+    // search for the type mapping
+    for (unsigned int i = 0; i < m_pair_type_mapping.size(); i++)
+        {
+        if (m_pair_type_mapping[i] == name)
+            return i;
+        }
+    // add a new one if it is not found
+    m_pair_type_mapping.push_back(name);
+    return (unsigned int)m_pair_type_mapping.size()-1;
+    }
+
 
 void export_HOOMDInitializer(py::module& m)
     {

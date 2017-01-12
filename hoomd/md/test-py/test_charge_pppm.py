@@ -140,6 +140,54 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
         del self.s
         context.initialize();
 
+# charge.pppm
+class charge_pppm_screening_test(unittest.TestCase):
+    def setUp(self):
+        print
+        # initialize a two particle system in a triclinic box
+        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(L=25))
+
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.position[1] = (0,0,1.2)
+            snap.particles.charge[0] = -1
+            snap.particles.charge[1] = 1
+
+        self.s = init.read_snapshot(snap);
+
+    # test PPPM for Yukawa interaction
+    def test_screening(self):
+        all = group.all()
+        nl = md.nlist.cell()
+        c = md.charge.pppm(all, nlist = nl);
+        c.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=1.5, alpha=0.5);
+        log = analyze.log(quantities = ['potential_energy'], period = 1, filename=None);
+        md.integrate.mode_standard(dt=0.0);
+        md.integrate.nve(all);
+        # trick to allow larger decompositions
+        nl.set_params(r_buff=0.1)
+        context.current.sorter.disable()
+        run(1);
+
+        self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.6117382645606995, 3)
+
+        self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.6117382645606995, 3)
+
+        pe = log.query('potential_energy')
+        self.assertAlmostEqual(pe,-0.4572266042,2)
+
+        del all
+        del c
+        del log
+
+    def tearDown(self):
+        del self.s
+        context.initialize();
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

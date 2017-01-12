@@ -159,22 +159,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
         assert(m_d_max_changed.size() > body_typeid);
 
         // make sure central particle will be communicated
-        m_d_max[body_typeid] = Scalar(0.0);
-
-        for (unsigned int i = 0; i < pos.size(); ++i)
-            {
-            Scalar3 dr = pos[i];
-
-            // it would suffice to pull in central particles within R=|dr| from the boundary
-            // however, to account for boundary cases where it is exactly at R, we still
-            // need to update local constituent particles, so multiply by two to be safe
-            Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
-
-            if (d > m_d_max[body_typeid])
-                {
-                m_d_max[body_typeid] = d;
-                }
-            }
+        m_d_max_changed[body_typeid] = true;
 
         // also update diameter on constituent particles
         for (unsigned int i = 0; i < type.size(); ++i)
@@ -216,11 +201,6 @@ void ForceComposite::slotNumTypesChange()
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
     {
-    // the default ghost layer is there to ensure that constituent particles are always
-    // communicated for every central particle
-
-    // central particle may stick out a particle radius from the boundary, therefore constituent
-    // particles can be found within 2*R
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     if (m_d_max_changed[type])
@@ -237,7 +217,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
         // find maximum body radius over all bodies this type participates in
         for (unsigned int body_type = 0; body_type < ntypes; ++body_type)
             {
-            bool is_part_of_body = false;
+            bool is_part_of_body = body_type == type;
             for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                 {
                 if (h_body_type.data[m_body_idx(body_type,i)] == type)
@@ -250,12 +230,29 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                 {
                 for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
                     {
-                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
-                    Scalar d = Scalar(2.0)*sqrt(dot(dr,dr));
+                    if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
 
+                    // distance to central particle 
+                    Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+                    Scalar d = sqrt(dot(dr,dr));
                     if (d > m_d_max[type])
                         {
                         m_d_max[type] = d;
+                        }
+
+                    if (body_type != type) 
+                        {
+                        // for non-central particles, distance to every other particle
+                        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+                            { 
+                            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+                            d = sqrt(dot(dr,dr));
+
+                            if (d > m_d_max[type])
+                                {
+                                m_d_max[type] = d;
+                                }
+                            }
                         }
                     }
                 }
@@ -658,6 +655,14 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
 //! Compute the forces and torques on the central particle
 void ForceComposite::computeForces(unsigned int timestep)
     {
+    // access local molecule data
+    // need to move this on top because of scoping issues
+    Index2D molecule_indexer = getMoleculeIndexer();
+    unsigned int nmol = molecule_indexer.getW();
+
+    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
+
     // access particle data
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
@@ -675,14 +680,6 @@ void ForceComposite::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> h_torque(m_torque, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
 
-    // for each local body
-    Index2D molecule_indexer = getMoleculeIndexer();
-    unsigned int nmol = molecule_indexer.getW();
-
-    // access local molecule data
-    ArrayHandle<unsigned int> h_molecule_length(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_list(getMoleculeList(), access_location::host, access_mode::read);
-
     // access rigid body definition
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
@@ -692,7 +689,7 @@ void ForceComposite::computeForces(unsigned int timestep)
     memset(h_torque.data,0, sizeof(Scalar4)*m_pdata->getN());
     memset(h_virial.data,0, sizeof(Scalar)*m_virial.getNumElements());
 
-    unsigned int nptl_local = m_pdata->getN();
+    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
     unsigned int net_virial_pitch = m_pdata->getNetVirial().getPitch();
 
     PDataFlags flags = m_pdata->getFlags();
@@ -702,6 +699,7 @@ void ForceComposite::computeForces(unsigned int timestep)
         compute_virial = true;
         }
 
+    // loop over all molecules, also incomplete ones
     for (unsigned int ibody = 0; ibody < nmol; ibody++)
         {
         unsigned int len = h_molecule_length.data[ibody];
@@ -716,7 +714,6 @@ void ForceComposite::computeForces(unsigned int timestep)
         assert(central_tag <= m_pdata->getMaximumTag());
         unsigned int central_idx = h_rtag.data[central_tag];
 
-        // do not compute force on ghost particles
         if (central_idx >= nptl_local) continue;
 
         // the central ptl must be present
@@ -729,13 +726,6 @@ void ForceComposite::computeForces(unsigned int timestep)
         // body type
         unsigned int type = __scalar_as_int(postype.w);
 
-        if (len != h_body_len.data[type] + 1)
-            {
-            m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
-                << std::endl << std::endl;
-            throw std::runtime_error("Error computing composite particle forces.\n");
-            }
-
         // sum up forces and torques from constituent particles
         for (unsigned int jptl = 0; jptl < len; ++jptl)
             {
@@ -747,68 +737,78 @@ void ForceComposite::computeForces(unsigned int timestep)
 
             // force and torque on particle
             Scalar4 net_force = h_net_force.data[idxj];
+            Scalar4 net_torque = h_net_torque.data[idxj];
             vec3<Scalar> f(net_force);
 
-            // sum up center of mass force
-            h_force.data[central_idx].x += f.x;
-            h_force.data[central_idx].y += f.y;
-            h_force.data[central_idx].z += f.z;
-
-            // sum up energy
-            h_force.data[central_idx].w += h_net_force.data[idxj].w;
-
             // zero net energy on constituent ptls to avoid double counting
-            // also zero net force for consistency
+            // also zero net force and torque for consistency
             h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
-
-            // fetch relative position from rigid body definition
-            vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
-
-            // rotate into space frame
-            vec3<Scalar> dr_space = rotate(orientation, dr);
-
-            // torque = r x f
-            vec3<Scalar> delta_torque(cross(dr_space,f));
-            h_torque.data[central_idx].x += delta_torque.x;
-            h_torque.data[central_idx].y += delta_torque.y;
-            h_torque.data[central_idx].z += delta_torque.z;
-
-            /* from previous rigid body implementation: Access Torque elements from a single particle. Right now I will am assuming that the particle
-                and rigid body reference frames are the same. Probably have to rotate first.
-             */
-            Scalar4 net_torque = h_net_torque.data[idxj];
-            h_torque.data[central_idx].x += net_torque.x;
-            h_torque.data[central_idx].y += net_torque.y;
-            h_torque.data[central_idx].z += net_torque.z;
-
-            // zero net torqe on constituent particle
             h_net_torque.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
 
-            if (compute_virial)
+            // only add forces for local central particles
+            if (central_idx < m_pdata->getN())
                 {
-                // sum up virial
-                Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
-                Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
-                Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
-                Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
-                Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
-                Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+                // if the central particle is local, the molecule should be complete
+                if (len != h_body_len.data[type] + 1)
+                    {
+                    m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << central_tag << " incomplete"
+                        << std::endl << std::endl;
+                    throw std::runtime_error("Error computing composite particle forces.\n");
+                    }
 
-                // zero net virial
-                h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-                h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
+                // sum up center of mass force
+                h_force.data[central_idx].x += f.x;
+                h_force.data[central_idx].y += f.y;
+                h_force.data[central_idx].z += f.z;
 
-                // subtract intra-body virial prt
-                h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
-                h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
-                h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
-                h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
-                h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
-                h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                // sum up energy
+                h_force.data[central_idx].w += net_force.w;
+
+                // fetch relative position from rigid body definition
+                vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
+
+                // rotate into space frame
+                vec3<Scalar> dr_space = rotate(orientation, dr);
+
+                // torque = r x f
+                vec3<Scalar> delta_torque(cross(dr_space,f));
+                h_torque.data[central_idx].x += delta_torque.x;
+                h_torque.data[central_idx].y += delta_torque.y;
+                h_torque.data[central_idx].z += delta_torque.z;
+
+                /* from previous rigid body implementation: Access Torque elements from a single particle. Right now I will am assuming that the particle
+                    and rigid body reference frames are the same. Probably have to rotate first.
+                 */
+                h_torque.data[central_idx].x += net_torque.x;
+                h_torque.data[central_idx].y += net_torque.y;
+                h_torque.data[central_idx].z += net_torque.z;
+
+                if (compute_virial)
+                    {
+                    // sum up virial
+                    Scalar virialxx = h_net_virial.data[0*net_virial_pitch+idxj];
+                    Scalar virialxy = h_net_virial.data[1*net_virial_pitch+idxj];
+                    Scalar virialxz = h_net_virial.data[2*net_virial_pitch+idxj];
+                    Scalar virialyy = h_net_virial.data[3*net_virial_pitch+idxj];
+                    Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
+                    Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
+
+                    // zero net virial
+                    h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
+                    h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
+
+                    // subtract intra-body virial prt
+                    h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
+                    h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
+                    h_virial.data[2*m_virial_pitch+central_idx] += virialxz - f.x*dr_space.z;
+                    h_virial.data[3*m_virial_pitch+central_idx] += virialyy - f.y*dr_space.y;
+                    h_virial.data[4*m_virial_pitch+central_idx] += virialyz - f.y*dr_space.z;
+                    h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
+                    }
                 }
             }
         }
@@ -820,6 +820,11 @@ void ForceComposite::computeForces(unsigned int timestep)
 
 void ForceComposite::updateCompositeParticles(unsigned int timestep)
     {
+    // access molecule order (this needs to be on top because of ArrayHandle scope)
+    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
+
     // access the particle data arrays
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
@@ -833,11 +838,6 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-
-    // access molecule order
-    ArrayHandle<unsigned int> h_molecule_order(getMoleculeOrder(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_len(getMoleculeLengths(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_molecule_idx(getMoleculeIndex(), access_location::host, access_mode::read);
 
     // access body positions and orientations
     ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);

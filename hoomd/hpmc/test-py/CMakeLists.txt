@@ -63,6 +63,7 @@ set(TEST_LIST_CPU
     external_lattice.py
     test_shape_utils.py
     shape_updater.py
+    map_overlap.py
     )
 
 set(TEST_LIST_GPU
@@ -91,6 +92,7 @@ set(EXCLUDE_FROM_MPI
     test_sdf.py
     test_shape_utils.py
     shape_updater.py
+    map_overlap.py
    )
 
 set(MPI_ONLY
@@ -98,11 +100,15 @@ set(MPI_ONLY
     )
 
 foreach (CUR_TEST ${TEST_LIST_CPU})
-    add_script_test_cpu(${CUR_TEST})
+    if (TEST_CPU_IN_GPU_BUILDS OR NOT ENABLE_CUDA)
+        add_script_test_cpu(${CUR_TEST})
+    endif()
 endforeach (CUR_TEST)
 
 foreach (CUR_TEST ${MPI_ONLY})
-    add_script_test_cpu_mpi(${CUR_TEST})
+    if (TEST_CPU_IN_GPU_BUILDS OR NOT ENABLE_CUDA)
+        add_script_test_cpu_mpi(${CUR_TEST})
+    endif()
 endforeach (CUR_TEST)
 
 if (ENABLE_CUDA)

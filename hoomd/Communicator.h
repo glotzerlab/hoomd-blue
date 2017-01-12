@@ -261,7 +261,7 @@ class Communicator
         //! Get the current maximum ghost layer width
         Scalar getGhostLayerMaxWidth() const
             {
-            return m_r_ghost_max;
+            return m_r_ghost_max + m_r_extra_ghost_max;
             }
 
         //! Set the ghost communication flags
@@ -495,9 +495,12 @@ class Communicator
 
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer
+        GPUArray<Scalar> m_r_ghost_body;         //!< Extra ghost width for rigid bodies
         Scalar m_r_ghost_max;                    //!< Maximum ghost layer width
+        Scalar m_r_extra_ghost_max;              //!< Maximum extra ghost layer width
 
         unsigned int m_ghosts_added;             //!< Number of ghosts added
+        bool m_has_ghost_particles;              //!< True if we have a current copy of ghost particles
 
         //! Update the ghost width array
         void updateGhostWidth();
@@ -563,6 +566,12 @@ class Communicator
             m_constraints_changed = true;
             }
 
+        /* Pairs communication */
+        bool m_pairs_changed;                          //!< True if pair information needs to be refreshed
+        void setPairsChanged()
+            {
+            m_pairs_changed = true;
+            }
 
         //! Remove tags of ghost particles
         virtual void removeGhostParticleTags();
@@ -573,9 +582,10 @@ class Communicator
             Scalar3 L= m_pdata->getBox().getNearestPlaneDistance();
             const Index3D& di = m_decomposition->getDomainIndexer();
 
-            if ((m_r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
-                (m_r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
-                (m_r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
+            Scalar r_ghost_max = getGhostLayerMaxWidth();
+            if ((r_ghost_max >= L.x/Scalar(2.0) && di.getW() > 1) ||
+                (r_ghost_max >= L.y/Scalar(2.0) && di.getH() > 1) ||
+                (r_ghost_max >= L.z/Scalar(2.0) && di.getD() > 1))
                 {
                 m_exec_conf->msg->error() << "Simulation box too small for domain decomposition." << std::endl;
                 throw std::runtime_error("Error during communication");
@@ -602,7 +612,9 @@ class Communicator
         GroupCommunicator<ConstraintData> m_constraint_comm; //!< Communicator helper for constraints
         friend class GroupCommunicator<ConstraintData>;
 
-        bool m_is_first_step;                    //!< True if no communication has yet occured
+        /* Communication of bonded groups */
+        GroupCommunicator<PairData> m_pair_comm;    //!< Communication helper for special pairs
+        friend class GroupCommunicator<PairData>;
 
         //! Reallocate the ghost layer width arrays when number of types change
         void slotNumTypesChanged()
@@ -615,6 +627,9 @@ class Communicator
 
             GPUArray<Scalar> r_ghost(m_pdata->getNTypes(), m_exec_conf);
             m_r_ghost.swap(r_ghost);
+
+            GPUArray<Scalar> r_ghost_body(m_pdata->getNTypes(), m_exec_conf);
+            m_r_ghost_body.swap(r_ghost_body);
             }
 
         //! Helper function to initialize adjacency arrays
@@ -624,6 +639,7 @@ class Communicator
         void slotGhostParticlesRemoved()
             {
             removeGhostParticleTags();
+            m_has_ghost_particles = false;
             }
 
     };

@@ -209,7 +209,7 @@ def cuboid(name, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=Non
     ``xmin <= x < xmax`` (and so forth for y and z) so that directly adjacent cuboids do not have overlapping group members.
 
     Note:
-        Membership in :py:class:`group.cuboid` is defined at time of group creation. Once created,
+        Membership in :py:class:`cuboid` is defined at time of group creation. Once created,
         any particles added to the system will not be added to the group. Any particles that move
         into the cuboid region will not be added automatically, and any that move out will not be
         removed automatically.
@@ -453,7 +453,7 @@ def type(type, name=None, update=False):
     commands (such as analyze.msd) to specify which particles should be operated on.
 
     Note:
-        Membership in :py:func:`group.type()` is defined at time of group creation. Once created,
+        Membership in :py:func:`hoomd.group.type()` is defined at time of group creation. Once created,
         any particles added to the system will be added to the group if *update* is set to *True*.
         However, if you change a particle type it will not be added to or removed from this group.
 

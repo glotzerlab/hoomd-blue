@@ -283,21 +283,31 @@ class IntegratorHPMC : public Integrator
             }
 
         #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            return CommFlags(0);
+            }
+
         //! Set the MPI communicator
         /*! \param comm the communicator
             This method is overridden so that we can register with the signal to set the ghost layer width.
         */
         virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
-            if (!m_comm)
+            if (! m_communicator_ghost_width_connected)
                 {
                 // only add the migrate request on the first call
                 assert(comm);
-                #ifdef HOOMD_COMM_GHOST_LAYER_WIDTH_REQUEST
                 comm->getGhostLayerWidthRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getGhostLayerWidth>(this);
-                #else
-                #error "Unsupported HOOMD version."
-                #endif
+                m_communicator_ghost_width_connected = true;
+                }
+            if (! m_communicator_flags_connected)
+                {
+                // only add the migrate request on the first call
+                assert(comm);
+                comm->getCommFlagsRequestSignal().connect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
+                m_communicator_flags_connected = true;
                 }
 
             // set the member variable
@@ -308,6 +318,9 @@ class IntegratorHPMC : public Integrator
     private:
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
+ 
+        bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
+        bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
     };
 
 //! Export the IntegratorHPMC class to python

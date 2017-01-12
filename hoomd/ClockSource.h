@@ -15,6 +15,8 @@
 #ifndef __CLOCK_SOURCE_H__
 #define __CLOCK_SOURCE_H__
 
+#include "HOOMDMath.h"
+
 // The clock code uses 64 bit integers for big numbers of nanoseconds.
 #include <stdint.h>
 

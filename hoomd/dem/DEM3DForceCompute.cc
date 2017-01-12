@@ -653,7 +653,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
             Real rsq = dot(dx, dx);
 
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
-            if (rsq < r_cut_sq)
+            if (m_evaluator.withinCutoff(rsq,r_cut_sq))
                 {
                 // local forces and torques for particles i and j
                 vec3<Real> forceij, forceji;

@@ -950,5 +950,14 @@ struct Constraint {
 //! Definition of ConstraintData
 typedef BondedGroupData<2, Constraint, name_constraint_data, false> ConstraintData;
 
+/*
+ * PairData
+ *
+ * used for pair potentials between special particle pairs
+ */
+extern char name_pair_data[];
+
+//! Definition of PairData
+typedef BondedGroupData<2, Bond, name_pair_data> PairData;
 
 #endif

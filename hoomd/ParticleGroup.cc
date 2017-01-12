@@ -335,6 +335,21 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
             }
         }
 
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        // do a simple sanity check
+        unsigned int nptl = member_tags.size();
+        bcast(nptl, 0, m_exec_conf->getMPICommunicator());
+
+        if (nptl != member_tags.size())
+            {
+            m_exec_conf->msg->error() << "group.*: Member tag list is inconsistent among MPI ranks." << std::endl;
+            throw std::runtime_error("Error creating ParticleGroup\n");
+            }
+        }
+    #endif
+ 
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
     sort(sorted_member_tags.begin(), sorted_member_tags.end());

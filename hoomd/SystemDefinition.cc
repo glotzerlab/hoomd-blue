@@ -57,6 +57,7 @@ SystemDefinition::SystemDefinition(unsigned int N,
     m_dihedral_data = std::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
     m_improper_data = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
+    m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, 0));
     m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
@@ -93,6 +94,7 @@ SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<Real> > s
     m_improper_data = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
     m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
+    m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
     m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
@@ -119,6 +121,7 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param impropers True if improper data should be saved
  *  \param constraints True if constraint data should be saved
  *  \param integrators True if integrator data should be saved
+ *  \param pairs True if pair data should be saved
  */
 template <class Real>
 std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool particles,
@@ -127,7 +130,8 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
                                                    bool dihedrals,
                                                    bool impropers,
                                                    bool constraints,
-                                                   bool integrators)
+                                                   bool integrators,
+                                                   bool pairs)
     {
     std::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
 
@@ -183,6 +187,14 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
     else
         snap->has_constraint_data = false;
 
+    if (pairs)
+        {
+        m_pair_data->takeSnapshot(snap->pair_data);
+        snap->has_pair_data = true;
+        }
+    else
+        snap->has_pair_data = false;
+
     if (integrators)
         {
         for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
@@ -229,6 +241,9 @@ void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemDat
     if (snapshot->has_constraint_data)
         m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
 
+    if (snapshot->has_pair_data)
+        m_pair_data->initializeFromSnapshot(snapshot->pair_data);
+
     // it is an error to load variables for more integrators than are
     // currently registered
     if (snapshot->has_integrator_data)
@@ -258,7 +273,8 @@ template std::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnap
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool integrators);
+                                                                                              bool integrators,
+                                                                                              bool pairs);
 template void SystemDefinition::initializeFromSnapshot<float>(std::shared_ptr< SnapshotSystemData<float> > snapshot);
 
 template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<double> > snapshot,
@@ -270,7 +286,8 @@ template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSna
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool integrators);
+                                                                                              bool integrators,
+                                                                                              bool pairs);
 template void SystemDefinition::initializeFromSnapshot<double>(std::shared_ptr< SnapshotSystemData<double> > snapshot);
 
 void export_SystemDefinition(py::module& m)
@@ -292,6 +309,7 @@ void export_SystemDefinition(py::module& m)
     .def("getImproperData", &SystemDefinition::getImproperData)
     .def("getConstraintData", &SystemDefinition::getConstraintData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
+    .def("getPairData", &SystemDefinition::getPairData)
     .def("takeSnapshot_float", &SystemDefinition::takeSnapshot<float>)
     .def("takeSnapshot_double", &SystemDefinition::takeSnapshot<double>)
     .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<float>)

@@ -42,8 +42,10 @@ include(FindLocalFFT.cmake)
 
 configure_file (
   "${CMAKE_CURRENT_SOURCE_DIR}/src/dfft_lib_config.h.in"
-  "${HOOMD_BINARY_DIR}/include/dfft_lib_config.h"
+  "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h"
    )
+
+install(FILES "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h" DESTINATION ${PYTHON_MODULE_BASE_DIR}/include/hoomd/extern/dfftlib/src)
 
 # Using manual source configuration below
 # library source

@@ -101,7 +101,7 @@ class MolecularForceCompute : public ForceConstraint
         const GPUVector<unsigned int>& getMoleculeIndex()
             {
             checkParticlesSorted();
-            
+
             return m_molecule_idx;
             }
 
@@ -117,17 +117,24 @@ class MolecularForceCompute : public ForceConstraint
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 
+        bool m_dirty;                               //!< True if we need to rebuild indices
+
+        void setDirty()
+            {
+            m_dirty = true;
+            }
+
         //! construct a list of local molecules
         virtual void initMolecules();
 
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         void checkParticlesSorted()
             {
-            if (m_particles_sorted)
+            if (m_dirty)
                 {
                 // rebuild molecule list
                 initMolecules();
-                m_particles_sorted = false;
+                m_dirty = false;
                 }
             }
 

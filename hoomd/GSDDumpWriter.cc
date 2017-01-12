@@ -75,7 +75,7 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(1,0));
+                            gsd_make_version(1,1));
         if (retval != 0)
             {
             m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
@@ -255,8 +255,11 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         ConstraintData::Snapshot cdata_snapshot;
         m_sysdef->getConstraintData()->takeSnapshot(cdata_snapshot);
 
+        PairData::Snapshot pdata_snapshot;
+        m_sysdef->getPairData()->takeSnapshot(pdata_snapshot);
+
         if (root)
-            writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot);
+            writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot, pdata_snapshot);
         }
 
     if (root)
@@ -678,6 +681,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
     \param dihedral Dihedral data snapshot
     \param improper Improper data snapshot
     \param constraint Constraint data snapshot
+    \param pair Special pair data snapshot
 
     Write out all the snapshot data to the GSD file
 */
@@ -685,7 +689,8 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
                                   AngleData::Snapshot& angle,
                                   DihedralData::Snapshot& dihedral,
                                   ImproperData::Snapshot& improper,
-                                  ConstraintData::Snapshot& constraint)
+                                  ConstraintData::Snapshot& constraint,
+                                  PairData::Snapshot& pair)
     {
     if (bond.size > 0)
         {
@@ -775,6 +780,24 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
 
         m_exec_conf->msg->notice(10) << "dump.gsd: writing constraints/group" << endl;
         retval = gsd_write_chunk(&m_handle, "constraints/group", GSD_TYPE_UINT32, N, 2, 0, (void *)&constraint.groups[0]);
+        checkError(retval);
+        }
+
+    if (pair.size > 0)
+        {
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing pairs/N" << endl;
+        uint32_t N = pair.size;
+        int retval = gsd_write_chunk(&m_handle, "pairs/N", GSD_TYPE_UINT32, 1, 1, 0, (void *)&N);
+        checkError(retval);
+
+        writeTypeMapping("pairs/types", pair.type_mapping);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing pairs/typeid" << endl;
+        retval = gsd_write_chunk(&m_handle, "pairs/typeid", GSD_TYPE_UINT32, N, 1, 0, (void *)&pair.type_id[0]);
+        checkError(retval);
+
+        m_exec_conf->msg->notice(10) << "dump.gsd: writing pairs/group" << endl;
+        retval = gsd_write_chunk(&m_handle, "pairs/group", GSD_TYPE_UINT32, N, 2, 0, (void *)&pair.groups[0]);
         checkError(retval);
         }
     }
