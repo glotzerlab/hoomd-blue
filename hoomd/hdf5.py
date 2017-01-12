@@ -92,7 +92,7 @@ class log(hoomd.analyze._analyzer):
     def __init__(self, h5file, period, quantities=list(), matrix_quantities=list(), phase=0):
         hoomd.util.print_status_line()
         if not isinstance(h5file, hoomd.hdf5.File):
-            hoomd.context.msg.error("HDF5 file descriptor is no instance the hoomd thin wrapper of h5py.File.")
+            hoomd.context.msg.error("HDF5 file descriptor is no instance of h5py.File, which is the hoomd thin wrapper for hdf5 file descriptors.")
             raise RuntimeError("Error creating hoomd.hdf5.log")
         # store metadata
         self.metadata_fields = ['h5file', 'period']
