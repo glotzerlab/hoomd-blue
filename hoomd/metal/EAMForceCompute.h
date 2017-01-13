@@ -73,7 +73,7 @@ protected:
 
 
     std::vector<Scalar> electronDensity;         //!< array rho(r), electron density
-    std::vector<Scalar2> pairPotential;          //!< array r*phi(r), pairwise energy
+    std::vector<Scalar> pairPotential;          //!< array r*phi(r), pairwise energy
     std::vector<Scalar> embeddingFunction;       //!< array F(rho), embedding energy
 
     std::vector<Scalar> derivativeElectronDensity;    //!< array d(rho(r))/dr

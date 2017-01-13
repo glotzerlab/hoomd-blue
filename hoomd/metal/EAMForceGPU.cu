@@ -26,7 +26,9 @@ texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 //! Texture for reading electron density
 texture<Scalar, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
-texture<Scalar2, 1, cudaReadModeElementType> pairPotential_tex;
+texture<Scalar, 1, cudaReadModeElementType> pairPotential_tex;
+//! Texture for reading derivative EAM pair potential
+texture<Scalar, 1, cudaReadModeElementType> derivativePairPotential_tex;
 //! Texture for reading the embedding function
 texture<Scalar, 1, cudaReadModeElementType> embeddingFunction_tex;
 //! Texture for reading the derivative of the electron density
@@ -40,7 +42,9 @@ texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
 //! Texture for reading electron density
 texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
-texture<int4, 1, cudaReadModeElementType> pairPotential_tex;
+texture<int2, 1, cudaReadModeElementType> pairPotential_tex;
+//! Texture for reading derivative EAM pair potential
+texture<int2, 1, cudaReadModeElementType> derivativePairPotential_tex;
 //! Texture for reading the embedding function
 texture<int2, 1, cudaReadModeElementType> embeddingFunction_tex;
 //! Texture for reading the derivative of the electron density
@@ -224,10 +228,10 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		position = r * eam_data_ti.rdr;
 		position = min(position, Scalar(nr - 1));
 		int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
-		Scalar2 pair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
-		Scalar pair_eng = pair_potential.x * inverseR;
-
-		Scalar derivativePhi = (pair_potential.y - pair_eng) * inverseR;
+		Scalar aspair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
+		Scalar derivative_pair_potential = tex1D(derivativePairPotential_tex, position + shift + Scalar(0.5));
+		Scalar pair_eng = aspair_potential * inverseR;
+		Scalar derivativePhi = (derivative_pair_potential - pair_eng) * inverseR;
 		Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * ntypes * nr + typej * nr + Scalar(0.5));
 		Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * ntypes * nr + typei * nr + Scalar(0.5));
 		Scalar fullDerivativePhi = adef * derivativeRhoJ +
@@ -294,6 +298,12 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 	pairPotential_tex.normalized = false;
 	pairPotential_tex.filterMode = cudaFilterModeLinear;
 	error = cudaBindTextureToArray(pairPotential_tex, eam_tex.pairPotential);
+	if (error != cudaSuccess)
+	return error;
+
+	derivativePairPotential_tex.normalized = false;
+	derivativePairPotential_tex.filterMode = cudaFilterModeLinear;
+	error = cudaBindTextureToArray(derivativePairPotential_tex, eam_tex.derivativePairPotential);
 	if (error != cudaSuccess)
 	return error;
 

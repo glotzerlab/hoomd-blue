@@ -174,7 +174,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
         for (j = 0; j <= k; j++) {
             for (i = 0; i < nr; i++) {
                 res = fscanf(fp, "%lg", &tmp);
-                pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].x = (Scalar) tmp;
+                pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i] = (Scalar) tmp;
             }
         }
 
@@ -205,9 +205,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
         for (j = 0; j <= k; j++) {
             for (i = 0; i < (nr - 1); i++) {
                 if ((i + 1) % nr == 0) continue;
-                pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].y =
-                        (pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i + 1].x -
-                         pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].x) / dr;
+                derivativePairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i] =
+                        (pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i + 1] -
+                         pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i]) / dr;
             }
         }
 
@@ -407,9 +407,9 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             position = position - (Scalar) r_index;
             int shift = (typei >= typej) ? (int) (0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr :
                         (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
-            Scalar pair_eng = (pairPotential[r_index + shift].x +
-                               pairPotential[r_index + shift].y * position * dr) * inverseR;
-            Scalar derivativePhi = (pairPotential[r_index + shift].y - pair_eng) * inverseR;
+            Scalar pair_eng = (pairPotential[r_index + shift] +
+                        derivativePairPotential[r_index + shift] * position * dr) * inverseR;
+            Scalar derivativePhi = (derivativePairPotential[r_index + shift] - pair_eng) * inverseR;
             Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * ntypes * nr + typej * nr];
             Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * ntypes * nr + typei * nr];
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +

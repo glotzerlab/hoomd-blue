@@ -65,6 +65,14 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0],
                       nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
 
+    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
+    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0],
+                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
+
+    cudaMallocArray(&eam_tex_data.derivativePairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
+    cudaMemcpyToArray(eam_tex_data.derivativePairPotential, 0, 0, &derivativePairPotential[0],
+                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
+
     cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
     cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar),
                       cudaMemcpyHostToDevice);
@@ -77,11 +85,6 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0],
                       m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
 
-    eam_desc = cudaCreateChannelDesc<Scalar2>();
-    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
-    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0],
-                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar2), cudaMemcpyHostToDevice);
-
     CHECK_CUDA_ERROR();
 }
 
@@ -90,6 +93,7 @@ EAMForceComputeGPU::~EAMForceComputeGPU() {
     // free the coefficients on the GPU
     cudaFree(d_atomDerivativeEmbeddingFunction);
     cudaFreeArray(eam_tex_data.pairPotential);
+    cudaFreeArray(eam_tex_data.derivativePairPotential);
     cudaFreeArray(eam_tex_data.electronDensity);
     cudaFreeArray(eam_tex_data.embeddingFunction);
     cudaFreeArray(eam_tex_data.derivativeElectronDensity);
