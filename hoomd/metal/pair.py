@@ -81,20 +81,34 @@ class eam(force._force):
             self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file);
 
         #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
-        r_cut_new = self.cpp_force.get_r_cut();
+        self.r_cut_new = self.cpp_force.get_r_cut();
         self.nlist = nlist
-        self.nlist.subscribe(lambda : r_cut_new)
+        self.nlist.subscribe(lambda : self.get_rcut())
         self.nlist.update_rcut()
 
         #Load neighbor list to compute.
-        self.cpp_force.set_neighbor_list(self.nlist);
+        self.cpp_force.set_neighbor_list(self.nlist.cpp_nlist);
         if hoomd.context.exec_conf.isCUDAEnabled():
-            self.nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
 
-        hoomd.context.msg.notice(2, "Set r_cut = " + str(r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
+        hoomd.context.msg.notice(2, "Set r_cut = " + str(self.r_cut_new) + " from potential`s file '" +  str(file) + "'.\n");
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
-        self.pair_coeff = coeff();
+        self.pair_coeff = hoomd.md.pair.coeff();
+
+    def get_rcut(self):
+        # go through the list of only the active particle types in the simulation
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes()
+        type_list = []
+        for i in range(0, ntypes):
+            type_list.append(hoomd.context.current.system_definition.getParticleData().getNameByType(i))
+        # update the rcut by pair type
+        r_cut_dict = nl.rcut()
+        for i in range(0, ntypes):
+            for j in range(i, ntypes):
+                # get the r_cut value
+                r_cut_dict.set_pair(type_list[i], type_list[j], self.r_cut_new)
+        return r_cut_dict
 
     def update_coeffs(self):
         # check that the pair coefficients are valid
