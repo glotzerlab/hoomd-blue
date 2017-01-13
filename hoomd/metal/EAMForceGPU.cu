@@ -137,11 +137,13 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(
         if (rsq < eam_data_ti.r_cutsq)
             {
             Scalar position_scalar = sqrtf(rsq) * eam_data_ti.rdr;
-            atomElectronDensity += tex1D(electronDensity_tex, position_scalar + nr * (typei * ntypes + typej) + Scalar(0.5) ); //electronDensity[r_index + eam_data_ti.nr * typej] + derivativeElectronDensity[r_index + eam_data_ti.nr * typej] * position * eam_data_ti.dr;
+            position_scalar = min(position_scalar, Scalar(nr - 1));
+            atomElectronDensity += tex1D(electronDensity_tex, position_scalar + nr * (typej * ntypes + typei) + Scalar(0.5) );
             }
         }
 
     Scalar position = atomElectronDensity * eam_data_ti.rdrho;
+    position = min(position, Scalar(eam_data_ti.nrho - 1));
     /*unsigned int r_index = (unsigned int)position;
     position -= (Scalar)r_index;*/
     atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
@@ -239,16 +241,14 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(
         Scalar inverseR = rsqrtf(rsq);
         Scalar r = Scalar(1.0) / inverseR;
         position = r * eam_data_ti.rdr;
-        int shift = (typei>=typej)?(int)((2 * ntypes - typej -1)*typej/2 + typei) * nr:(int)((2 * ntypes - typei -1)*typei/2 + typej) * nr;
+        position = min(position, Scalar(nr - 1));
+        int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
         Scalar2 pair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
         Scalar pair_eng =  pair_potential.x * inverseR;
 
         Scalar derivativePhi = (pair_potential.y - pair_eng) * inverseR;
-
-        Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * eam_data_ti.nr + Scalar(0.5));
-
-        Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * eam_data_ti.nr + Scalar(0.5));
-
+        Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * ntypes * nr + typej * nr + Scalar(0.5));
+        Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * ntypes * nr + typei * nr + Scalar(0.5));
         Scalar fullDerivativePhi = adef * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
         pairForce = - fullDerivativePhi * inverseR;
@@ -344,7 +344,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(
         return error;
     #endif
     // run the kernel
-    cudaMemcpyToSymbol("eam_data_ti", &eam_data, sizeof(EAMTexInterData));
+    cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
 
     if (compute_capability < 35 && size_nlist > max_tex1d_width)
         {

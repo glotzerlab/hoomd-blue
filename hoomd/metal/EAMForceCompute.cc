@@ -152,26 +152,23 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         //Read Rho's arrays
         //If FS we need read N arrays
         //If Alloy we ned read 1 array, and then duplicate N-1 times.
-        unsigned int count = 1;
-        if(type_of_file == 1) count = m_ntypes;
         //Read
-        for(j = 0; j < count; j++)
-            {
-            for(i = 0 ; i < nr; i++)
-                {
-                res = fscanf(fp, "%lg", &tmp);
-                electronDensity[types[type] * m_ntypes * nr + j * nr + i] = (Scalar)tmp;
+            if (type_of_file == 1) {
+                for (j = 0; j < m_ntypes; j++) {
+                    for(i = 0 ; i < nr; i++) {
+                        res = fscanf(fp, "%lg", &tmp);
+                        electronDensity[types[type] * m_ntypes * nr + types[j] * nr + i] = (Scalar)tmp;
+                    }
                 }
             }
-
-        for(j = 1; j <= m_ntypes - count; j++)
-            {
-            for(i = 0 ; i < nr; i++)
-                {
-                electronDensity[types[type] * m_ntypes * nr + j * nr + i] = electronDensity[i];
+            else {
+                for(i = 0 ; i < nr; i++) {
+                    res = fscanf(fp, "%lg", &tmp);
+                    electronDensity[types[type] * m_ntypes * nr + i] = (Scalar)tmp;
+                    for(j = 1; j < m_ntypes; j++) {
+                        electronDensity[types[type] * m_ntypes * nr + j * nr + i] = electronDensity[types[type] * m_ntypes * nr + i];
+                    }
                 }
-
-
             }
         }
 
@@ -188,8 +185,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             for(i = 0 ; i < nr; i++)
                 {
                 res = fscanf(fp, "%lg", &tmp);
-                pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k] + types[j]) * nr + i].x = (Scalar)tmp;
-
+                    pairPotential[(int)(0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].x = (Scalar)tmp;
                 }
             }
 
@@ -213,9 +209,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
             {
             for(i = 0 ; i < nr - 1; i++)
                 {
-                derivativeElectronDensity[types[type] * m_ntypes * nr +  j * nr + i ] =
-                    (electronDensity[types[type] * m_ntypes * nr +  j * nr + i + 1] -
-                    electronDensity[types[type] * m_ntypes * nr +  j * nr + i]) / dr;
+                derivativeElectronDensity[types[type] * m_ntypes * nr +  types[j] * nr + i ] =
+                    (electronDensity[types[type] * m_ntypes * nr +  types[j] * nr + i + 1] -
+                    electronDensity[types[type] * m_ntypes * nr +  types[j] * nr + i]) / dr;
                 }
             }
 
@@ -228,12 +224,12 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file)
         {
         for(j = 0; j <= k; j++)
             {
-            for(i = 0 ; i < nr; i++)
+            for(i = 0 ; i < (nr - 1); i++)
                 {
                 if((i + 1)%nr == 0) continue;
-                pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k])  + types[j] * nr + i].y =
-                (pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i + 1].x - pairPotential[(unsigned int)ceil(0.5 *(2 * m_ntypes - types[k] -1) * types[k]) + types[j] * nr + i].x) / dr;
-
+                    pairPotential[(int)(0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].y =
+                            (pairPotential[(int)(0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i + 1].x -
+                                    pairPotential[(int)(0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i].x) / dr;
                 }
             }
 
@@ -362,13 +358,14 @@ void EAMForceCompute::computeForces(unsigned int timestep)
                  Scalar position_scalar = sqrt(rsq) * rdr;
                  Scalar position = position_scalar;
                  unsigned int r_index = (unsigned int)position;
-                 r_index = min(r_index,nr);
+                 r_index = min(r_index,nr - 1);
                  position -= r_index;
-                 atomElectronDensity[i] += electronDensity[r_index + nr * (typei * ntypes + typej)] + derivativeElectronDensity[r_index + nr * (typei * ntypes + typej)] * position * dr;
+                    atomElectronDensity[i] += electronDensity[r_index + nr * (typej * ntypes + typei)]
+                                              + derivativeElectronDensity[r_index + nr * (typej * ntypes + typei)] * position * dr;
                  if(third_law)
                     {
-                    atomElectronDensity[k] += electronDensity[r_index + nr * (typej * ntypes + typei)]
-                        + derivativeElectronDensity[r_index + nr * (typej * ntypes + typei)] * position * dr;
+                        atomElectronDensity[k] += electronDensity[r_index + nr * (typei * ntypes + typej)]
+                                                  + derivativeElectronDensity[r_index + nr * (typei * ntypes + typej)] * position * dr;
                     }
                 }
             }
@@ -380,7 +377,7 @@ void EAMForceCompute::computeForces(unsigned int timestep)
 
         Scalar position = atomElectronDensity[i] * rdrho;
         unsigned int r_index = (unsigned int)position;
-        r_index = min(r_index,nrho);
+        r_index = min(r_index,nrho - 1);
         position -= (Scalar)r_index;
         atomDerivativeEmbeddingFunction[i] = derivativeEmbeddingFunction[r_index + typei * nrho];
 
@@ -436,16 +433,16 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             if (rsq >= r_cut_sq) continue;
             Scalar r = sqrt(rsq);
             Scalar inverseR = 1.0 / r;
-            Scalar position = r * rdr;
-            unsigned int r_index = (unsigned int)position;
-            position = position - (Scalar)r_index;
+                Scalar position = r * rdr;
+                unsigned int r_index = (unsigned int) position;
+                r_index = min(r_index, nr - 1);
+                position = position - (Scalar) r_index;
             int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
-            //r_index = min(r_index,nr - 1);
             Scalar pair_eng = (pairPotential[r_index + shift].x +
                 pairPotential[r_index + shift].y * position * dr) * inverseR;
             Scalar derivativePhi = (pairPotential[r_index + shift].y - pair_eng) * inverseR;
-            Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * nr];
-            Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * nr];
+                Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * ntypes * nr + typej * nr];
+                Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * ntypes * nr + typei * nr];
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
                 atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
             Scalar pairForce = - fullDerivativePhi * inverseR;
@@ -460,13 +457,14 @@ void EAMForceCompute::computeForces(unsigned int timestep)
             fxi += dx.x * pairForce;
             fyi += dx.y * pairForce;
             fzi += dx.z * pairForce;
-            pei += pair_eng;
+            pei += pair_eng * 0.5;
 
             if (third_law)
                 {
                 h_force.data[k].x -= dx.x * pairForce;
                 h_force.data[k].y -= dx.y * pairForce;
                 h_force.data[k].z -= dx.z * pairForce;
+                    h_force.data[k].w += pair_eng * 0.5;
                 }
             }
         h_force.data[i].x += fxi;

@@ -55,6 +55,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     eam_data.rdrho = 1.0/drho;
     eam_data.r_cut = m_r_cut;
     eam_data.r_cutsq = m_r_cut * m_r_cut;
+    eam_data.ntypes = m_ntypes;
 
     cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
@@ -62,21 +63,21 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     //Allocate mem on GPU for tables for EAM in cudaArray
     cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc< Scalar >();
 
-    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, m_ntypes * nr, 1);
-    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0], m_ntypes * nr * sizeof(Scalar), cudaMemcpyHostToDevice);
+    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
+    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0], nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
     cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
 
-    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, m_ntypes * nr, 1);
-    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0], m_ntypes * nr * sizeof(Scalar), cudaMemcpyHostToDevice);
+    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
+    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0], nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
     cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0], m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     eam_desc = cudaCreateChannelDesc< Scalar2 >();
-    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc,  ((m_ntypes * m_ntypes / 2) + 1) * nr, 1);
-    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0], ((m_ntypes * m_ntypes / 2) + 1) * nr *sizeof(Scalar2), cudaMemcpyHostToDevice);
+    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
+    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0], (int)(0.5 * nr * (m_ntypes + 1) * m_ntypes) *sizeof(Scalar2), cudaMemcpyHostToDevice);
 
     CHECK_CUDA_ERROR();
     }
