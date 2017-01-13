@@ -22,37 +22,35 @@
 //! Computes Lennard-Jones forces on each particle using the GPU
 /*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
 */
-class EAMForceComputeGPU : public EAMForceCompute
-    {
-    public:
-        //! Constructs the compute
-        EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+class EAMForceComputeGPU : public EAMForceCompute {
+public:
+    //! Constructs the compute
+    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
-        //! Destructor
-        virtual ~EAMForceComputeGPU();
+    //! Destructor
+    virtual ~EAMForceComputeGPU();
 
-        //! Set autotuner parameters
-        /*! \param enable Enable/disable autotuning
-            \param period period (approximate) in time steps when returning occurs
-        */
-        virtual void setAutotunerParams(bool enable, unsigned int period)
-            {
-            EAMForceCompute::setAutotunerParams(enable, period);
-            m_tuner->setPeriod(period);
-            m_tuner->setEnabled(enable);
-            }
+    //! Set autotuner parameters
+    /*! \param enable Enable/disable autotuning
+        \param period period (approximate) in time steps when returning occurs
+    */
+    virtual void setAutotunerParams(bool enable, unsigned int period) {
+        EAMForceCompute::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+    }
 
-    protected:
-        EAMTexInterData eam_data;                   //!< Undocumented parameter
-        EAMtex eam_tex_data;                        //!< Undocumented parameter
-        Scalar * d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-        std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
+protected:
+    EAMTexInterData eam_data;                   //!< Undocumented parameter
+    EAMtex eam_tex_data;                        //!< Undocumented parameter
+    Scalar *d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
+    std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
 
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-    };
+    //! Actually compute the forces
+    virtual void computeForces(unsigned int timestep);
+};
 
 //! Exports the EAMForceComputeGPU class to python
-void export_EAMForceComputeGPU(pybind11::module& m);
+void export_EAMForceComputeGPU(pybind11::module &m);
 
 #endif
