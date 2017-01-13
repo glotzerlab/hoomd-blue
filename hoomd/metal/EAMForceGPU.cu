@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// Maintainer: morozov
+// Maintainer: Alex Travesset
 
 /**
  powered by:
- Moscow group.
+ Iowa State University.
  */
 
 #include "EAMForceGPU.cuh"
@@ -122,7 +122,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		// apply periodic boundary conditions: (FLOPS 12)
 		dx = box.minImage(dx);
 
-		// calculate r squard (FLOPS: 5)
+		// calculate r squared (FLOPS: 5)
 		Scalar rsq = dot(dx, dx);;
 		if (rsq < eam_data_ti.r_cutsq)
 		{
@@ -134,8 +134,6 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 
 	Scalar position = atomElectronDensity * eam_data_ti.rdrho;
 	position = min(position, Scalar(eam_data_ti.nrho - 1));
-	/*unsigned int r_index = (unsigned int)position;
-	 position -= (Scalar)r_index;*/
 	atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5)); //derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
 
 	force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
@@ -216,7 +214,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		// apply periodic boundary conditions: (FLOPS 12)
 		dx = box.minImage(dx);
 
-		// calculate r squard (FLOPS: 5)
+		// calculate r squared (FLOPS: 5)
 		Scalar rsq = dot(dx, dx);
 
 		if (rsq > eam_data_ti.r_cutsq) continue;

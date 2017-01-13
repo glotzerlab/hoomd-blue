@@ -17,7 +17,7 @@ namespace py = pybind11;
 
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
-    \param type_of_file Undocumented parameter
+    \param type_of_file EAM/Alloy=0, EAM/FS=1
 */
 EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
         : ForceCompute(sysdef) {
@@ -86,7 +86,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
         types_set[tid] = true;
     }
 
-    //Check that all types of atopms in xml file have description in potential file
+    //Check that all types of atoms in xml file have description in potential file
     unsigned int count_types_set = 0;
     for (i = 0; i < m_pdata->getNTypes(); i++) {
         if (types_set[i])
@@ -143,10 +143,9 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
             res = fscanf(fp, "%lg", &tmp);
             embeddingFunction[types[type] * nrho + i] = (Scalar) tmp;
         }
-        //Read Rho's arrays
+        //Read rho's arrays
         //If FS we need read N arrays
-        //If Alloy we ned read 1 array, and then duplicate N-1 times.
-        //Read
+        //If Alloy we need read 1 array, and then duplicate N-1 times.
         if (type_of_file == 1) {
             for (j = 0; j < m_ntypes; j++) {
                 for (i = 0; i < nr; i++) {
@@ -170,7 +169,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
         m_exec_conf->msg->error() << "pair.eam: EAM file is truncated " << endl;
         throw runtime_error("Error loading file");
     }
-    //Read V(r)'s arrays
+    //Read r*phi(r)'s arrays
     for (k = 0; k < m_ntypes; k++) {
         for (j = 0; j <= k; j++) {
             for (i = 0; i < nr; i++) {
@@ -183,7 +182,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
 
     fclose(fp);
 
-    //Cumpute derivative of Embedding Function and Electron Density.
+    //Compute derivative of Embedding Function and Electron Density.
     for (type = 0; type < m_ntypes; type++) {
         for (i = 0; i < nrho - 1; i++) {
             derivativeEmbeddingFunction[i + types[type] * nrho] =
@@ -200,7 +199,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     }
 
 
-    //Cumpute derivative of Pair Potential.
+    //Compute derivative of Pair Potential.
 
     for (k = 0; k < m_ntypes; k++) {
         for (j = 0; j <= k; j++) {
@@ -232,7 +231,7 @@ Scalar EAMForceCompute::getLogValue(const std::string &quantity, unsigned int ti
     }
 }
 
-/*! \post The lennard jones forces are computed for the given timestep. The neighborlist's
+/*! \post The EAM forces are computed for the given timestep. The neighborlist's
      compute method is called to ensure that it is up to date.
 
     \param timestep specifies the current time step of the simulation
@@ -273,10 +272,10 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     // get a local copy of the simulation box too
     const BoxDim &box = m_pdata->getBox();
 
-    // create a temporary copy of r_cut sqaured
+    // create a temporary copy of r_cut squared
     Scalar r_cut_sq = m_r_cut * m_r_cut;
 
-    // tally up the number of forces calculated
+    // sum up the number of forces calculated
     int64_t n_calc = 0;
 
     // for each particle
@@ -323,7 +322,7 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             // start computing the force
             // calculate r squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);;
-            // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
+            // only compute the force if the particles are closer than the cut-off (FLOPS: 1)
             if (rsq < r_cut_sq) {
                 Scalar position_scalar = sqrt(rsq) * rdr;
                 Scalar position = position_scalar;
@@ -383,11 +382,11 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             // sanity check
             assert(k < m_pdata->getN());
 
-            // calculate dr (MEM TRANSFER: 3 scalars / FLOPS: 3)
+            // calculate \Delta r (MEM TRANSFER: 3 scalars / FLOPS: 3)
             Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
             Scalar3 dx = pi - pk;
 
-            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar
+            // access the type of the neighbor particle (MEM TRANSFER: 1 scalar)
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
@@ -416,8 +415,6 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
                                        atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
             Scalar pairForce = -fullDerivativePhi * inverseR;
-            // are the virial and potential energy correctly calculated
-            // with respect to double counting?
             viriali[0] += dx.x * dx.x * pairForce;
             viriali[1] += dx.x * dx.y * pairForce;
             viriali[2] += dx.x * dx.z * pairForce;

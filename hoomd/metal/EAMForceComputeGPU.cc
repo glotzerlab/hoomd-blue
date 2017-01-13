@@ -3,11 +3,11 @@
 
 
 
-// Maintainer: morozov
+// Maintainer: Alex Travesset
 
 /**
 powered by:
-Moscow group.
+Iowa State University.
 */
 
 /*! \file EAMForceComputeGPU.cc
@@ -27,7 +27,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
-    \param type_of_file Undocumented parameter
+    \param type_of_file EAM/Alloy=0, EAM/FS=1
 */
 EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
         : EAMForceCompute(sysdef, filename, type_of_file) {
@@ -43,7 +43,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_eam", this->m_exec_conf));
 
-    // allocate the coeff data on the GPU
+    // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
     eam_data.nr = nr;
     eam_data.nrho = nrho;
@@ -58,7 +58,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
 
-    //Allocate mem on GPU for tables for EAM in cudaArray
+    //Allocate memory on GPU for tables for EAM in cudaArray
     cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc<Scalar>();
 
     cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);

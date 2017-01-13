@@ -19,7 +19,7 @@
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
 
-//! Computes Lennard-Jones forces on each particle
+//! Computes EAM forces on each particle
 /*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
     neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
     to identify these neighbors. Calling compute() in this class will in turn result in a call to the
@@ -58,28 +58,27 @@ public:
 
 
 protected:
-    std::shared_ptr<NeighborList> m_nlist;       //!< The neighborlist to use for the computation
-    Scalar m_r_cut;                                //!< Cuttoff radius beyond which the force is set to 0
-    unsigned int m_ntypes;                         //!< Store the width and height of lj1 and lj2 here
+    std::shared_ptr<NeighborList> m_nlist;       //!< the neighborlist to use for the computation
+    Scalar m_r_cut;                              //!< cut-off radius
+    unsigned int m_ntypes;                       //!< number of potential element types
+    unsigned int nr;                             //!< number of tabulated values of rho(r), r*phi(r)
+    unsigned int nrho;                           //!< number of tabulated values of F(rho)
+    Scalar dr;                                   //!< interval of r
+    Scalar rdr;                                  //!< 1.0 / dr
+    Scalar drho;                                 //!< interval of rho
+    Scalar rdrho;                                //!< 1.0 / drho
+    std::vector<Scalar> mass;                    //!< array mass(type)
+    std::vector<int> types;                      //!< array type(id)
+    std::vector<std::string> names;              //!< array names(type)
 
-    Scalar drho;                                   //!< Undocumented parameter
-    Scalar dr;                                     //!< Undocumented parameter
-    Scalar rdrho;                                  //!< Undocumented parameter
-    Scalar rdr;                                    //!< Undocumented parameter
-    std::vector<Scalar> mass;                           //!< Undocumented parameter
-    std::vector<int> types;                             //!< Undocumented parameter
-    std::vector<std::string> names;                          //!< Undocumented parameter
-    unsigned int nr;                               //!< Undocumented parameter
-    unsigned int nrho;                             //!< Undocumented parameter
 
+    std::vector<Scalar> electronDensity;         //!< array rho(r), electron density
+    std::vector<Scalar2> pairPotential;          //!< array r*phi(r), pairwise energy
+    std::vector<Scalar> embeddingFunction;       //!< array F(rho), embedding energy
 
-    std::vector<Scalar> electronDensity;                //!< array rho(r)
-    std::vector<Scalar2> pairPotential;                  //!< array Z(r)
-    std::vector<Scalar> embeddingFunction;              //!< array F(rho)
-
-    std::vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
-    std::vector<Scalar> derivativePairPotential;        //!< array Z'(r)
-    std::vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
+    std::vector<Scalar> derivativeElectronDensity;    //!< array d(rho(r))/dr
+    std::vector<Scalar> derivativePairPotential;      //!< array d(r*phi(r))/dr
+    std::vector<Scalar> derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);

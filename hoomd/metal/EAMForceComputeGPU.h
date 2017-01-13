@@ -19,7 +19,7 @@
 #ifndef __EAMForceComputeGPU_H__
 #define __EAMForceComputeGPU_H__
 
-//! Computes Lennard-Jones forces on each particle using the GPU
+//! Computes EAM forces on each particle using the GPU
 /*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
 */
 class EAMForceComputeGPU : public EAMForceCompute {
@@ -41,10 +41,10 @@ public:
     }
 
 protected:
-    EAMTexInterData eam_data;                   //!< Undocumented parameter
-    EAMtex eam_tex_data;                        //!< Undocumented parameter
-    Scalar *d_atomDerivativeEmbeddingFunction; //!< array F'(rho) for each particle
-    std::unique_ptr<Autotuner> m_tuner;       //!< Autotuner for block size
+    EAMTexInterData eam_data;                   //!< EAM parameters to be communicated
+    EAMtex eam_tex_data;                        //!< EAM parameters on GPU
+    Scalar *d_atomDerivativeEmbeddingFunction;  //!< array d(F(rho))/drho for each particle
+    std::unique_ptr<Autotuner> m_tuner;         //!< autotuner for block size
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
