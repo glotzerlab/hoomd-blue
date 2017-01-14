@@ -53,9 +53,8 @@ public:
     //! Calculates the requested log value and returns it
     virtual Scalar getLogValue(const std::string &quantity, unsigned int timestep);
 
-    //! Shifting modes that can be applied to the energy
+    //! Load EAM potential file
     virtual void loadFile(char *filename, int type_of_file);
-
 
 protected:
     std::shared_ptr<NeighborList> m_nlist;       //!< the neighborlist to use for the computation
@@ -69,16 +68,34 @@ protected:
     Scalar rdrho;                                //!< 1.0 / drho
     std::vector<Scalar> mass;                    //!< array mass(type)
     std::vector<int> types;                      //!< array type(id)
+    std::vector<int> nproton;                    //!< atomic number
+    std::vector<Scalar> lconst;                  //!< lattice constant
+    std::vector<std::string> atomcomment;        //!< atom comment
     std::vector<std::string> names;              //!< array names(type)
 
 
     std::vector<Scalar> electronDensity;         //!< array rho(r), electron density
-    std::vector<Scalar> pairPotential;          //!< array r*phi(r), pairwise energy
+    std::vector<Scalar> pairPotential;           //!< array r*phi(r), pairwise energy
     std::vector<Scalar> embeddingFunction;       //!< array F(rho), embedding energy
 
     std::vector<Scalar> derivativeElectronDensity;    //!< array d(rho(r))/dr
     std::vector<Scalar> derivativePairPotential;      //!< array d(r*phi(r))/dr
     std::vector<Scalar> derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
+
+    // TODO: interpolation
+    /* begin */
+    std::vector<Scalar> newelectronDensity;         //!< array rho(r), electron density
+    std::vector<Scalar> newpairPotential;           //!< array r*phi(r), pairwise energy
+    std::vector<Scalar> newembeddingFunction;       //!< array F(rho), embedding energy
+    std::vector<Scalar> newderivativeElectronDensity;    //!< array d(rho(r))/dr
+    std::vector<Scalar> newderivativePairPotential;      //!< array d(r*phi(r))/dr
+    std::vector<Scalar> newderivativeEmbeddingFunction;  //!< array d(F(rho))/drho
+    //! 3rd order interpolation
+    std::vector< std::vector< Scalar > > irho;  // as the same as LAMMPS's rhor_spline
+    std::vector< std::vector< Scalar > > irphi; // as the same as LAMMPS's z2r_spline
+    std::vector< std::vector< Scalar > > iemb; // as the same as LAMMPS's frho_spline
+    virtual void interpolate(int num_all, int num_per, Scalar delta, std::vector< Scalar >* f, std::vector< std::vector< Scalar > >* spline);
+    /* end */
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
