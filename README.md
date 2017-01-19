@@ -1,3 +1,6 @@
+## Please go to [downloads](https://bitbucket.org/glotzer/hoomd-blue-alchemy-hpmc/downloads) to get the documentation (doc.tar) open the index.html file. 
+
+
 [![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
 
 # HOOMD-blue
