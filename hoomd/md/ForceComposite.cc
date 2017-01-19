@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -232,7 +232,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                     {
                     if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
 
-                    // distance to central particle 
+                    // distance to central particle
                     Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
                     Scalar d = sqrt(dot(dr,dr));
                     if (d > m_d_max[type])
@@ -240,11 +240,11 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                         m_d_max[type] = d;
                         }
 
-                    if (body_type != type) 
+                    if (body_type != type)
                         {
                         // for non-central particles, distance to every other particle
                         for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                            { 
+                            {
                             dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
                             d = sqrt(dot(dr,dr));
 

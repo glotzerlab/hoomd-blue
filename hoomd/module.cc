@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,6 +27,7 @@
 #include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
+#include "LogPlainTXT.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -371,6 +372,7 @@ PYBIND11_PLUGIN(_hoomd)
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
     export_Logger(m);
+    export_LogPlainTXT(m);
     export_CallbackAnalyzer(m);
     export_ParticleGroup(m);
 

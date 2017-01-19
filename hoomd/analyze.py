@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -412,7 +412,7 @@ class log(_analyzer):
             period = 1;
 
         # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.Logger(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.LogPlainTXT(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities

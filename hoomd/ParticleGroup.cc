@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -349,7 +349,7 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
             }
         }
     #endif
- 
+
     // let's make absolutely sure that the tag order given from outside is sorted
     std::vector<unsigned int> sorted_member_tags =  member_tags;
     sort(sorted_member_tags.begin(), sorted_member_tags.end());
