@@ -123,44 +123,23 @@ inline vec3<Scalar> normalize(const vec3<Scalar>& v) { return v / sqrt(dot(v,v))
 // face is assumed to be an array of indices of triangular face of a convex body.
 // points may contain points inside or outside the body defined by faces.
 // faces may include faces that contain vertices that are inside the body.
-inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, const std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
+inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, const vec3<Scalar>& inside_point, const std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
     {
     const std::vector<unsigned int>& face = faces[faceid];
-    assert(face.size() == 3);
-    vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]], n;
+    vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]];
+    vec3<Scalar> di = (inside_point - a), n;
     n = cross((b - a),(c - a));
-    normalize_inplace(n);
-    bool flip = false, bBreak = false;
-    for( unsigned int f = 0; f < faces.size() && !bBreak; f++)
-        {
-        assert(faces[f].size() == 3);
-        if(f == faceid)
-            continue;
-
-        for( unsigned int ff = 0; ff < faces[f].size() && !bBreak; ff++)
-            {
-            Scalar d = dot(n, points[faces[f][ff]] - a);
-            if(fabs(d) > thresh) // found a non-coplanar point on the convex body.
-                {
-                bBreak = true;
-                if( d > 0) // by convexity
-                    {
-                    flip = true;
-                    break;
-                    }
-                }
-            }
-        }
-    if( flip )
-        n = -n;
-    return n;
+    Scalar d = dot(n, di);
+    if(fabs(d) < thresh)
+        throw(std::runtime_error("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
+    return (d > 0) ? -n : n;
     }
 
-inline void sortFace(const std::vector< vec3<Scalar> >& points, std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
+inline void sortFace(const std::vector< vec3<Scalar> >& points, const vec3<Scalar>& inside_point, std::vector< std::vector<unsigned int> >& faces, const unsigned int& faceid, Scalar thresh = 0.0001)
     {
     assert(faces[faceid].size() == 3);
     vec3<Scalar> a = points[faces[faceid][0]], b = points[faces[faceid][1]], c = points[faces[faceid][2]], n, nout;
-    nout = getOutwardNormal(points, faces, faceid, thresh);
+    nout = getOutwardNormal(points, inside_point, faces, faceid, thresh);
     n = cross((b - a),(c - a));
     if ( dot(nout, n) < 0 )
         std::reverse(faces[faceid].begin(), faces[faceid].end());
@@ -168,8 +147,15 @@ inline void sortFace(const std::vector< vec3<Scalar> >& points, std::vector< std
 
 inline void sortFaces(const std::vector< vec3<Scalar> >& points, std::vector< std::vector<unsigned int> >& faces, Scalar thresh = 0.0001)
     {
+    vec3<Scalar> inside_point(0.0,0.0,0.0);
+    for(size_t i = 0; i < points.size(); i++)
+        {
+        inside_point += points[i];
+        }
+    inside_point /= Scalar(points.size());
+
     for( unsigned int f = 0; f < faces.size(); f++ )
-        sortFace(points, faces, f, thresh);
+        sortFace(points, inside_point, faces, f, thresh);
     }
 
 // Right now I am just solving the problem in 3d but I think that it should be easy to generalize to 2d as well.
@@ -178,13 +164,19 @@ class ConvexHull
     static const unsigned int invalid_index;
     static const Scalar       zero;
 public:
-    ConvexHull() {}
+    ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
     template<unsigned int _max_verts>
     ConvexHull(const poly3d_verts<_max_verts>& param)
         {
         m_points.reserve(param.N);
+        m_ravg = vec3<Scalar>(0.0,0.0,0.0);
+        m_points.clear();
         for(unsigned int i = 0; i < param.N; i++)
+            {
             m_points.push_back(vec3<Scalar>(param.x[i], param.y[i], param.z[i]));
+            // m_ravg += m_points[i];
+            }
+        // m_ravg /= Scalar(param.N);
         }
 
     void compute()
@@ -331,6 +323,7 @@ private:
         std::ofstream file("convex_hull.pos", std::ios_base::out | std::ios_base::app);
         std::string inside_sphere  = "def In \"sphere 0.1 005F5F5F\"";
         std::string outside_sphere  = "def Out \"sphere 0.1 00FF5F5F\"";
+        std::string avg_sphere  = "def avg \"sphere 0.2 00981C1D\"";
         std::stringstream ss, connections;
         std::set<unsigned int> verts;
         for(size_t f = 0; f < m_faces.size(); f++)
@@ -350,9 +343,11 @@ private:
         // file<< "boxMatrix 10 0 0 0 10 0 0 0 10" << std::endl;
         file<< inside_sphere << std::endl;
         file<< outside_sphere << std::endl;
+        file<< avg_sphere << std::endl;
         // file<< hull << std::endl;
         // file << "hull 0 0 0 1 0 0 0" << std::endl;
         file << connections.str();
+        file << "avg "<< m_ravg.x << " " << m_ravg.y << " " << m_ravg.z << " " << std::endl;
         for(size_t i = 0; i < m_points.size(); i++)
             {
             if(inside[i])
@@ -366,7 +361,7 @@ private:
 
     Scalar signed_distance(const unsigned int& i, const unsigned int& faceid)
         {
-        vec3<Scalar> n = getOutwardNormal(m_points, m_faces, faceid, zero);
+        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, zero);
         vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];
         normalize_inplace(dx);
         return dot(dx, n); // signed distance. eiter in the plane or outside.
@@ -484,6 +479,12 @@ private:
                 }
             throw(std::runtime_error("Could not initialize ConvexHull: found only nearly coplanar points"));
             }
+        m_ravg = vec3<Scalar>(0,0,0);
+        for(size_t i = 0; i < Nsym; i++)
+            {
+            m_ravg += m_points[ik[i]];
+            }
+        m_ravg /= Scalar(Nsym);
 
         std::vector<unsigned int> face(3);
         // face 0
@@ -653,6 +654,7 @@ public:
         }
 
 protected:
+    vec3<Scalar>                                m_ravg;
     std::vector< vec3<Scalar> >                 m_points;
     std::vector< std::vector<unsigned int> >    m_faces; // Always have 3 vertices in a face.
     std::vector< std::vector<unsigned int> >    m_edges; // Always have 2 vertices in an edge.
