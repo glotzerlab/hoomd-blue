@@ -187,32 +187,18 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     // TODO: interpolation
     /* begin */
     unsigned int setnrho, setnr, newnrho, newnr;
-    Scalar newdrho, newdr;
-    int ratiorho, ratior;
-    setnrho = 4000;
-    setnr = 21000;
-    // new nrho
-    if (setnrho <= nrho) {
-        ratiorho = (int) (nrho / setnrho);
-        newnrho = (int) (nrho / ratiorho);
-        newdrho = drho * ratiorho;
-    }
-    else {
-        ratiorho = (int) (setnrho / nrho);
-        newnrho = (int) (nrho * ratiorho);
-        newdrho = drho / ratiorho;
-    }
-    // new nr
-    if (setnr <= nr) {
-        ratior = (int) (nr / setnr);
-        newnr = (int) (nr / ratior);
-        newdr = dr * ratior;
-    }
-    else {
-        ratior = (int) (setnr / nr);
-        newnr = (int) (nr * ratior);
-        newdr = dr / ratior;
-    }
+    double newdrho, newdr;
+    double ratiorho, ratior;
+    setnrho = 15000;
+    setnr = 15000;
+
+    ratiorho = (double) nrho / (double) setnrho;
+    newnrho = setnrho;
+    newdrho = drho * ratiorho;
+
+    ratior = (double) nr / (double) setnr;
+    newnr = setnr;
+    newdr = dr * ratior;
 
     newembeddingFunction.resize(newnrho * m_ntypes);
     newelectronDensity.resize(newnr * m_ntypes * m_ntypes);
@@ -230,17 +216,17 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     interpolate((int)(0.5 * nr * (m_ntypes + 1) * m_ntypes), nr, dr, &pairPotential, &irphi);
 
     // Interpolation
-    Scalar position;  // position
+    double position;  // position
     unsigned int idxold;  // index relative to old array
-    Scalar crho;  // current rho
-    Scalar cr; // current r
+    double crho;  // current rho
+    double cr; // current r
     for (type = 0; type < m_ntypes; type++) {
         // embeddingFunction: F
         for (i = 0; i < newnrho; i++) {
             crho = newdrho * i;
             position = crho * rdrho;
             idxold = (unsigned int) position ;
-            position -= (Scalar) idxold;
+            position -= (double) idxold;
             newembeddingFunction[type * newnrho + i] =
                     iemb.at(6).at(idxold + type * nrho) +
                     iemb.at(5).at(idxold + type * nrho) * position +
@@ -296,7 +282,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
         }
     }
 
-    FILE *f = fopen("pot.eam", "w");
+    FILE *f = fopen("/home/lyang/Repository/eam-potential/pot.eam", "w");
     if (f == NULL)
     {
         printf("Error opening file!\n");
