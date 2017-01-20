@@ -2,8 +2,9 @@
 #define _SHAPE_MOVES_H
 
 #include <hoomd/extern/saruprng.h>
-#include "ShapeUtils.h"
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include "ShapeUtils.h"
+#include "Moves.h"
 
 namespace hpmc {
 
@@ -203,9 +204,11 @@ public:
 
         m_determinantInertiaTensor = 1.0;
         m_scale = 1.0;
-        m_step_size.clear();
-        m_step_size.resize(ntypes, stepsize);
+        std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+        m_calculated.resize(ntypes, false);
+        m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
         m_select_ratio = fmin(mixratio, 1.0)*65535;
+        m_step_size_backup = m_step_size;
         }
 
     void prepare(unsigned int timestep)
@@ -215,19 +218,24 @@ public:
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename ShapeConvexPolyhedronType::param_type& shape, RNG& rng)
         {
-        // type_id = type_id;
+        if(!m_calculated[type_id])
+            {
+            detail::ConvexHull convex_hull(shape); // compute the convex_hull.
+            convex_hull.compute();
+            detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
+            m_centroids[type_id] = mp.getCenterOfMass();
+            m_calculated[type_id] = true;
+            }
         // mix the shape.
         for(size_t i = 0; i < shape.N; i++)
             {
             if( (rng.u32()& 0xffff) < m_select_ratio )
                 {
-                Scalar x = rng.s(-1.0, 1.0);
-                Scalar y = rng.s(-1.0, 1.0);
-                Scalar z = rng.s(-1.0, 1.0);
-                Scalar mag = rng.s(0.0, m_step_size[type_id])/sqrt(x*x + y*y + z*z);
-                shape.x[i] += x*mag;
-                shape.y[i] += y*mag;
-                shape.z[i] += z*mag;
+                vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
+                move_translate(vert, rng,  m_step_size[type_id], 3);
+                shape.x[i] = vert.x;
+                shape.y[i] = vert.y;
+                shape.z[i] = vert.z;
                 }
             }
 
@@ -235,17 +243,17 @@ public:
         convex_hull.compute();
         detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
         Scalar volume = mp.getVolume();
-        vec3<Scalar> centroid = mp.getCenterOfMass();
+        vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
         m_scale = pow(m_volume/volume, 1.0/3.0);
         Scalar rsq = 0.0;
         std::vector< vec3<Scalar> > points(shape.N);
         for(size_t i = 0; i < shape.N; i++)
             {
-            shape.x[i] -= centroid.x;
+            shape.x[i] += dr.x;
             shape.x[i] *= m_scale;
-            shape.y[i] -= centroid.y;
+            shape.y[i] += dr.y;
             shape.y[i] *= m_scale;
-            shape.z[i] -= centroid.z;
+            shape.z[i] += dr.z;
             shape.z[i] *= m_scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
@@ -273,6 +281,8 @@ private:
     unsigned int            m_select_ratio;
     Scalar                  m_scale;
     Scalar                  m_volume;
+    std::vector< vec3<Scalar> > m_centroids;
+    std::vector<bool>       m_calculated;
 };
 
 template <class Shape, class RNG>
