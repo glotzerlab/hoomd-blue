@@ -918,6 +918,7 @@ class shape_update(_updater):
             param_ratio (float): average fraction of vertices to change each update
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             shape_up.vertex_shape_move( stepsize=0.001, param_ratio=0.25, volume=1.0)
 
@@ -972,6 +973,7 @@ class shape_update(_updater):
             integrator.
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             # convex_polyhedron
             shape_up.constant_shape_move(vertices=verts)
@@ -1029,6 +1031,7 @@ class shape_update(_updater):
             move_ratio (float): fraction of scale to shear moves.
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             shape_up.scale_shear_shape_move(stepsize=0.01)
 
@@ -1127,6 +1130,7 @@ class shape_update(_updater):
             The total number of moves attempted by the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1148,6 +1152,7 @@ class shape_update(_updater):
             The total number of moves accepted by the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1168,6 +1173,7 @@ class shape_update(_updater):
             The acceptance ratio for a particle type
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1192,6 +1198,7 @@ class shape_update(_updater):
             The shape move stepsize for a particle type
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1206,6 +1213,7 @@ class shape_update(_updater):
         R""" Reset the acceptance statistics for the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1228,7 +1236,9 @@ class shape_update(_updater):
         Args:
             type (str): Particle type (string) or list of types
             stepsize (float): Shape move stepsize to set for each type
+
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1256,6 +1266,7 @@ class alchemy(shape_update):
     Additional comments here. what enseble are we simulating etc.
 
     Example::
+
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         alchem = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
 
@@ -1309,6 +1320,7 @@ class elastic_shape(shape_update):
         explain how to write the function here.
 
     Example::
+    
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
