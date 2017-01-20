@@ -177,7 +177,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 template < class Shape >
 void UpdaterShape<Shape>::update(unsigned int timestep)
     {
-    m_exec_conf->msg->notice(10) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << " @ " << std::hex << this << std::dec << std::endl;
+    m_exec_conf->msg->notice(8) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << " @ " << std::hex << this << std::dec << std::endl;
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
@@ -222,7 +222,11 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
         Saru rng_i(typ_i, m_seed + m_exec_conf->getRank()*m_nselect + typ_i, timestep); //TODO: think about the seed for MPI.
+        // std::cout << "---- Param Before ----" << std::endl;
+        // print_param<typename Shape::param_type>(param);
         m_move_function->construct(timestep, typ_i, param, rng_i);
+        // std::cout << "---- Param After ----" << std::endl;
+        // print_param<typename Shape::param_type>(param);
         h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
         m_exec_conf->msg->notice(10) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
         // energy and moment of interia change.
@@ -241,8 +245,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     m_exec_conf->msg->notice(8) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
     if( p < Z)
         {
-        m_exec_conf->msg->notice(8) << " UpdaterShape counting overlaps" << std::endl;
-        accept = ! m_mc->countOverlaps(timestep, true);
+        unsigned int overlaps = m_mc->countOverlaps(timestep, true);
+        accept = !overlaps;
+        m_exec_conf->msg->notice(8) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
         }
 
     if( !accept ) // catagorically reject the move.
