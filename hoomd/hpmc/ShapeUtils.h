@@ -19,6 +19,20 @@
 
 namespace hpmc{
 
+
+template<class ShapeParam>
+inline void print_param(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
+
+template< >
+inline void print_param< ShapeConvexPolyhedron<16>::param_type >(const ShapeConvexPolyhedron<16>::param_type& param)
+    {
+        for(size_t i = 0; i < param.N; i++)
+            {
+            std::cout << "vert " << i << ": [" << param.x[i] << ", " << param.y[i] << ", " << param.z[i] << "]" << std::endl;
+            }
+
+    }
+
 template < unsigned int old_max_verts, unsigned int new_max_verts >
 detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
     {
