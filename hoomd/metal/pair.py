@@ -46,7 +46,7 @@ class eam(force._force):
         eam = pair.eam(file='al1.mendelev.eam.fs', type='FS', nlist=nl)
 
     """
-    def __init__(self, file, type, nlist):
+    def __init__(self, file, type, nlist, ifinter=False, nrho=10000, nr=10000):
         c = hoomd.cite.article(cite_key = 'morozov2011',
                          author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
                          title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
@@ -73,12 +73,16 @@ class eam(force._force):
         if(type == 'Alloy'): type_of_file = 0;
         elif(type == 'FS'): type_of_file = 1;
         else: raise RuntimeError('Unknown EAM input file type');
+        # Translate interpolation command
+        if(ifinter == True): inter = 1;
+        elif(ifinter == False): inter = 0;
+        else: raise RuntimeError('Unknown EAM interpolation command');
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _metal.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file);
+            self.cpp_force = _metal.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file, inter, nrho, nr);
         else:
-            self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file);
+            self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file, inter, nrho, nr);
 
         #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
         self.r_cut_new = self.cpp_force.get_r_cut();

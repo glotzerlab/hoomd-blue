@@ -3,11 +3,14 @@
 
 
 
-// Maintainer: Alex Travesset
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
 
 /**
-powered by:
+Powered by:
 Iowa State University.
+Previous by:
+Moscow Group
 */
 
 /*! \file EAMForceComputeGPU.cc
@@ -29,8 +32,8 @@ using namespace std;
     \param filename Name of EAM potential file to load
     \param type_of_file EAM/Alloy=0, EAM/FS=1
 */
-EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
-        : EAMForceCompute(sysdef, filename, type_of_file) {
+EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr)
+        : EAMForceCompute(sysdef, filename, type_of_file, ifinter, setnrho, setnr) {
 #ifndef SINGLE_PRECISION
     m_exec_conf->msg->warning() << "pair.eam does not work on the GPU in double precision builds" << endl;
 #endif
@@ -44,7 +47,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_eam", this->m_exec_conf));
 
     // allocate the coefficients data on the GPU
-    loadFile(filename, type_of_file);
+    loadFile(filename, type_of_file, ifinter, setnrho, setnr);
     eam_data.nr = nr;
     eam_data.nrho = nrho;
     eam_data.dr = dr;
@@ -157,5 +160,5 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
 void export_EAMForceComputeGPU(py::module &m) {
     py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU> >(m, "EAMForceComputeGPU",
                                                                          py::base<EAMForceCompute>())
-            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
+            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int, int, int, int>());
 }

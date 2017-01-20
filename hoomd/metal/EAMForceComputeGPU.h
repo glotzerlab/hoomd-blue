@@ -25,7 +25,7 @@
 class EAMForceComputeGPU : public EAMForceCompute {
 public:
     //! Constructs the compute
-    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
+    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr);
 
     //! Destructor
     virtual ~EAMForceComputeGPU();

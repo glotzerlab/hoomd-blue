@@ -1,12 +1,15 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-// Maintainer: Alex Travesset
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
 
 /**
- powered by:
- Iowa State University.
- */
+Powered by:
+Iowa State University.
+Previous by:
+Moscow Group
+*/
 
 #include "EAMForceGPU.cuh"
 #include "hoomd/TextureTools.h"
