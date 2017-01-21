@@ -22,8 +22,8 @@
 //! Collection of parameters for EAM force GPU kernels
 struct EAMTexInterData {
 	int ntypes;             //!< number of potential element types
-	int nr;                 //!< number of tabulated values of rho(r), r*phi(r)
 	int nrho;               //!< number of tabulated values of F(rho)
+	int nr;                 //!< number of tabulated values of rho(r), r*phi(r)
 	int block_size;         //!< block size, for GPU kernel
 	Scalar dr;              //!< interval of r
 	Scalar rdr;             //!< 1.0 / dr

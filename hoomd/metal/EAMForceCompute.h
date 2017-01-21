@@ -60,18 +60,18 @@ protected:
     std::shared_ptr<NeighborList> m_nlist;       //!< the neighborlist to use for the computation
     Scalar m_r_cut;                              //!< cut-off radius
     unsigned int m_ntypes;                       //!< number of potential element types
-    unsigned int rawnr;                             //!< number of tabulated values of rho(r), r*phi(r)
-    unsigned int rawnrho;                           //!< number of tabulated values of F(rho)
-    Scalar rawdr;                                   //!< interval of r
-    unsigned int nrho;
-    unsigned int nr;
-    Scalar drho;
-    Scalar dr;
-    Scalar rawrdr;                                  //!< 1.0 / dr
-    Scalar rawdrho;                                 //!< interval of rho
-    Scalar rawrdrho;                                //!< 1.0 / drho
-    Scalar rdr;
-    Scalar rdrho;
+    unsigned int rawnrho;                        //!< number of tabulated values of F(rho) in file
+    Scalar rawdrho;                              //!< interval of rho in file
+    unsigned int rawnr;                          //!< number of tabulated values of rho(r), r*phi(r) in file
+    Scalar rawdr;                                //!< interval of r in file
+    unsigned int nrho;                           //!< number of tabulated values of interpolated F(rho)
+    Scalar drho;                                 //!< interval of rho in interpolated table
+    unsigned int nr;                             //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    Scalar dr;                                   //!< interval of r in interpolated table
+    Scalar rawrdrho;                             //!< 1.0 / rawdrho
+    Scalar rawrdr;                               //!< 1.0 / rawdr
+    Scalar rdrho;                                //!< 1.0 / drho
+    Scalar rdr;                                  //!< 1.0 / dr
     std::vector<Scalar> mass;                    //!< array mass(type)
     std::vector<int> types;                      //!< array type(id)
     std::vector<int> nproton;                    //!< atomic number
@@ -79,22 +79,22 @@ protected:
     std::vector<std::string> atomcomment;        //!< atom comment
     std::vector<std::string> names;              //!< array names(type)
 
-
-    std::vector<Scalar> rawelectronDensity;         //!< array rho(r), electron density
-    std::vector<Scalar> rawpairPotential;           //!< array r*phi(r), pairwise energy
-    std::vector<Scalar> rawembeddingFunction;       //!< array F(rho), embedding energy
+    std::vector<Scalar> rawembeddingFunction;    //!< array F(rho), embedding energy in file
+    std::vector<Scalar> rawelectronDensity;      //!< array rho(r), electron density in file
+    std::vector<Scalar> rawpairPotential;        //!< array r*phi(r), pairwise energy in file
 
     // interpolation
-    std::vector<Scalar> electronDensity;         //!< array rho(r), electron density
-    std::vector<Scalar> pairPotential;           //!< array r*phi(r), pairwise energy
-    std::vector<Scalar> embeddingFunction;       //!< array F(rho), embedding energy
-    std::vector<Scalar> derivativeElectronDensity;    //!< array d(rho(r))/dr
-    std::vector<Scalar> derivativePairPotential;      //!< array d(r*phi(r))/dr
-    std::vector<Scalar> derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
-    //! 3rd order interpolation
-    std::vector< std::vector< Scalar > > irho;  // as the same as LAMMPS's rhor_spline
-    std::vector< std::vector< Scalar > > irphi; // as the same as LAMMPS's z2r_spline
-    std::vector< std::vector< Scalar > > iemb; // as the same as LAMMPS's frho_spline
+    std::vector<Scalar> embeddingFunction;       //!< array F(rho), interpolated embedding energy
+    std::vector<Scalar> electronDensity;         //!< array rho(r), interpolated electron density
+    std::vector<Scalar> pairPotential;           //!< array r*phi(r), interpolated pairwise energy
+    std::vector<Scalar> derivativeEmbeddingFunction;  //!< interpolated array d(F(rho))/drho
+    std::vector<Scalar> derivativeElectronDensity;    //!< interpolated array d(rho(r))/dr
+    std::vector<Scalar> derivativePairPotential;      //!< interpolated array d(r*phi(r))/dr
+
+    //! 3rd order interpolation parameters
+    std::vector< std::vector< Scalar > > iemb;  // param for F
+    std::vector< std::vector< Scalar > > irho;  // param for rho
+    std::vector< std::vector< Scalar > > irphi; // param for r*phi
     virtual void interpolate(int num_all, int num_per, Scalar delta, std::vector< Scalar >* f, std::vector< std::vector< Scalar > >* spline);
 
     //! Actually compute the forces

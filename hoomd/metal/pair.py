@@ -21,12 +21,21 @@ class eam(force._force):
         file (str): Filename with potential tables in Alloy or FS format
         type (str): Type of file potential ('Alloy', 'FS')
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
+        ifinter (bool): Interpolation of the array turn on (True) or off (False)
+        nrho (int):  (if ifinter=True) the number of values in the interpolated embedding function arrays
+        nr (int): (if ifinter=True) the number of values in the interpolated density function and the pair potential function arrays
 
     :py:class:`eam` specifies that a EAM (embedded atom method) pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     No coefficients need to be set for :py:class:`eam`. All specifications, including the cutoff radius, form of the
     potential, etc. are read in from the specified file.
+
+    Denser or sparser potential data points can be used by turning on the interpolation function, which adopts Stephen Foiles's
+    interpolation method in LAMMPS to interpolate the original potential data, and export a file "eambyhoomd.pot" in the current
+    directory. The number of values in the interpolated embedding function arrays is set by nrho, that in the interpolated density
+    function and the pair potential function is set by nr. It is not suggested to set nrho or nr above 10000, in practice, more than
+    10000 data points will not improve the accuracy very much **ADD REF**, but will saturate the memory easily.
 
     Particle type names must match those referenced in the EAM potential file.
 
@@ -44,6 +53,7 @@ class eam(force._force):
 
         nl = nlist.cell()
         eam = pair.eam(file='al1.mendelev.eam.fs', type='FS', nlist=nl)
+        eam = pair.eam(file='al1.mendelev.eam.alloy', type='Alloy', nlist=nl, ifinter=True, nrho=10000, nr=10000)
 
     """
     def __init__(self, file, type, nlist, ifinter=False, nrho=10000, nr=10000):

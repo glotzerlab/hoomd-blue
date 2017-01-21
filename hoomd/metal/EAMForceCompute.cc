@@ -18,6 +18,9 @@ namespace py = pybind11;
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
     \param type_of_file EAM/Alloy=0, EAM/FS=1
+    \param ifinter turn interpolation on=1, off=0
+    \param setnrho the number of rho data points if interpolation is turned on
+    \param setnr the number of r data points if interpolation is turned on
 */
 EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr)
         : ForceCompute(sysdef) {
@@ -181,8 +184,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
 
     fclose(fp);
 
-    // TODO: interpolation
-    /* begin */
+    // interpolate the raw table from the potential file
 
     double ratiorho, ratior;
 
@@ -219,6 +221,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
     dr = rawdr * ratior;
     rdr = (Scalar) (1.0 / dr);
 
+    // Resize the tables used in the computing
     embeddingFunction.resize(nrho * m_ntypes);
     electronDensity.resize(nr * m_ntypes * m_ntypes);
     pairPotential.resize((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes));
@@ -301,74 +304,78 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
         }
     }
 
-    FILE *f = fopen("/home/lyang/Repository/eam-potential/pot.eam", "w");
-    if (f == NULL)
-    {
-        printf("Error opening file!\n");
-        exit(1);
-    }
-    /* print title text */
-    fprintf(f, "%s:\n", "Interpolated potential from");
-    fprintf(f, "\"%s\"\n", filename);
-    if (type_of_file == 0) {
-        fprintf(f, "%s\n", "EAM/Alloy");
-    }
-    else {
-        fprintf(f, "%s\n", "EAM/FS");
-    }
-    /* print type */
-    fprintf(f, "%d %2s %2s\n", m_ntypes, names[0].c_str(), names[1].c_str());
-    /* print new EAM global parameter */
-    fprintf(f, "%d %lg %d %lg %lg\n", nrho, drho, nr, dr, m_r_cut);
-    /* print EAM */
-    for (type = 0; type < m_ntypes; type++) {
-        // subtitle
-        fprintf(f, "%d %lg %lg %3s\n", nproton[type], mass[type], lconst[type], atomcomment[type].c_str());
-        // embeddingFunction: F(rho)
-        for (i=0; i<nrho; i++) {
-            fprintf(f, "%lg ", embeddingFunction[types[type] * nrho + i]);
-            if ((i+1)%5 == 0) {
-                fprintf(f, "\n");
-            }
+    if (ifinter == 1) {
+        FILE *f = fopen("eambyhoomd.pot", "w");
+        if (fp == NULL) {
+            m_exec_conf->msg->error() << "pair.eam: Can not open new file for interpolated data" << endl;
+            throw runtime_error("Error opening file");
         }
-        // electronDensity: rho(r)
-        if (type_of_file == 1) {
-            for (j = 0; j < m_ntypes; j++) {
+        if (f == NULL)
+        {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+        /* print title text */
+        fprintf(f, "%s:\n", "Interpolated potential from");
+        fprintf(f, "\"%s\"\n", filename);
+        if (type_of_file == 0) {
+            fprintf(f, "%s\n", "EAM/Alloy");
+        }
+        else {
+            fprintf(f, "%s\n", "EAM/FS");
+        }
+        /* print type */
+        fprintf(f, "%d %2s %2s\n", m_ntypes, names[0].c_str(), names[1].c_str());
+        /* print new EAM global parameter */
+        fprintf(f, "%d %lg %d %lg %lg\n", nrho, drho, nr, dr, m_r_cut);
+        /* print EAM */
+        for (type = 0; type < m_ntypes; type++) {
+            // subtitle
+            fprintf(f, "%d %lg %lg %3s\n", nproton[type], mass[type], lconst[type], atomcomment[type].c_str());
+            // embeddingFunction: F(rho)
+            for (i=0; i<nrho; i++) {
+                fprintf(f, "%lg ", embeddingFunction[types[type] * nrho + i]);
+                if ((i+1)%5 == 0) {
+                    fprintf(f, "\n");
+                }
+            }
+            // electronDensity: rho(r)
+            if (type_of_file == 1) {
+                for (j = 0; j < m_ntypes; j++) {
+                    for (i = 0; i < nr; i++) {
+                        fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + types[j] * nr + i]);
+                        if ((i+1)%5 == 0) {
+                            fprintf(f, "\n");
+                        }
+                    }
+                }
+            } else {
                 for (i = 0; i < nr; i++) {
-                    fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + types[j] * nr + i]);
+                    fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + i]);
                     if ((i+1)%5 == 0) {
                         fprintf(f, "\n");
                     }
                 }
             }
-        } else {
-            for (i = 0; i < nr; i++) {
-                fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + i]);
-                if ((i+1)%5 == 0) {
-                    fprintf(f, "\n");
+        }
+        // pariPotential: r*phi(r)
+        for (k = 0; k < m_ntypes; k++) {
+            for (j = 0; j <= k; j++) {
+                for (i = 0; i < nr; i++) {
+                    fprintf(f, "%lg ", pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i]);
+                    if ((i+1)%5 == 0) {
+                        fprintf(f, "\n");
+                    }
                 }
             }
         }
+        fclose(f);
     }
-    // pariPotential: r*phi(r)
-    for (k = 0; k < m_ntypes; k++) {
-        for (j = 0; j <= k; j++) {
-            for (i = 0; i < nr; i++) {
-                fprintf(f, "%lg ", pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i]);
-                if ((i+1)%5 == 0) {
-                    fprintf(f, "\n");
-                }
-            }
-        }
-    }
-    fclose(f);
 
     // free vectors
     irho.clear();
     irphi.clear();
     iemb.clear();
-
-    /* end */
 
 }
 
@@ -436,7 +443,6 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
 
     // start the profile for this compute
     if (m_prof) m_prof->push("EAM pair");
-
 
     // depending on the neighborlist settings, we can take advantage of newton's third law
     // to reduce computations at the cost of memory access complexity: set that flag now
