@@ -235,7 +235,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
-            m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
+            m_exec_conf->msg->notice(7) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
             }
 
@@ -382,6 +382,11 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
 
     // Connect to the BoxChange signal
     m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
@@ -442,6 +447,11 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
     }
 
 template <class Shape>
