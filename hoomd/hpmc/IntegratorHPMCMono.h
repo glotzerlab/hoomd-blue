@@ -111,12 +111,35 @@ class UpdateOrder
             {
             shuffle(timestep, select);
             Saru rng(timestep, m_seed+select+1, 0xfa870af6);
-            unsigned int N = m_update_order.size();
-            for (unsigned int i = 0; i < N; i++)
+            std::shuffle(m_update_order.begin(), m_update_order.end(), rng);
+            }
+
+        //! randomly choose a subset of the list
+        /*! \param timestep Current timestep of the simulation
+            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
+            timestep.
+            \param k The number of elements to choose
+            the first k elements are the ones chosen.
+        */
+        void choose(unsigned int timestep, unsigned int k, unsigned int select = 0)
+            {
+            // this is an implementation of the classic reservoir sampling
+            // algorithm.
+            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
+            std::vector<unsigned int>::iterator next, iter, end, last;
+            next = m_update_order.begin();
+            iter = next;
+            end = next+k+1;
+            last = m_update_order.end();
+            while(next != end && end <= last)
                 {
-                unsigned int ri = N*rng.s(0.0,1.0);
-                unsigned int rj = N*rng.s(0.0,1.0);
-                std::swap(m_update_order[ri], m_update_order[rj]);
+                Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
+                if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
+                    {
+                    std::swap(*next, *iter);
+                    next++;
+                    }
+                iter++;
                 }
             }
 
