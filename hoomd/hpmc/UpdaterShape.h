@@ -201,7 +201,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getNTypes());
-    m_update_order.choose(timestep, m_nselect);
+    m_update_order.choose(timestep, m_nselect); // this returns a sorted array. Should we shuffle? 
 
     Scalar log_boltz = 0.0;
     m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
@@ -231,7 +231,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
         // energy and moment of interia change.
         log_boltz += (*m_log_boltz_function)(
-                                                h_ntypes.data[typ_i],           // number of particles of type typ_i
+                                                h_ntypes.data[typ_i],           // number of particles of type typ_i,
+                                                typ_i,                          // the type id
                                                 param,                          // new shape parameter
                                                 h_det.data[typ_i],              // new determinant
                                                 h_param_backup.data[typ_i],     // old shape parameter
