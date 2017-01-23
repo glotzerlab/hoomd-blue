@@ -195,9 +195,7 @@ public:
         for(unsigned int i = 0; i < param.N; i++)
             {
             m_points.push_back(vec3<Scalar>(param.x[i], param.y[i], param.z[i]));
-            // m_ravg += m_points[i];
             }
-        // m_ravg /= Scalar(param.N);
         }
 
     void compute()
@@ -519,35 +517,6 @@ private:
         bool coplanar = true;
         while( coplanar )
             {
-            // for(size_t k = 1; k < Nsym; k++)
-            //     {
-            //     std::vector<Scalar> min_dsq(m_points.size());
-            //     for(size_t p = 0; p < m_points.size(); p++)
-            //         {
-            //         for(size_t i = 0; i < k; i++)
-            //             {
-            //             vec3<Scalar> dr = m_points[p] - m_points[ik[i]];
-            //             Scalar dsq = dot(dr, dr);
-            //             if(i == 0)
-            //                 {
-            //                 min_dsq[p] = dsq;
-            //                 }
-            //             else
-            //                 {
-            //                 if(dsq < min_dsq[p])
-            //                     {
-            //                     min_dsq[p] = dsq;
-            //                     }
-            //
-            //                 if(k == Nsym-1 && is_coplanar(ik[0], ik[1], ik[2], p))
-            //                     {
-            //                     min_dsq[p] = 0; // take the point out of the running.
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     ik[k] = std::distance(min_dsq.begin(), std::max_element(min_dsq.begin(), min_dsq.end()));
-            //     }
             ik[1] = farthest_point_point(ik[0], true); // will only search for points with a higher index than ik[0].
             ik[2] = farthest_point_line(ik[0], ik[1]);
             ik[3] = farthest_point_plane(ik[0], ik[1], ik[2]);
