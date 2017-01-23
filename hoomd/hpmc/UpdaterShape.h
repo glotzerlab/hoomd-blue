@@ -201,7 +201,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getNTypes());
-    m_update_order.choose(timestep, m_nselect); // this returns a sorted array. Should we shuffle? 
+    m_update_order.choose(timestep, m_nselect); // this returns a sorted array. Should we shuffle?
 
     Scalar log_boltz = 0.0;
     m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
