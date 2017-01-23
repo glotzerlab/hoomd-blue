@@ -129,14 +129,14 @@ class UpdateOrder
             std::vector<unsigned int>::iterator next, iter, end, last;
             next = m_update_order.begin();
             iter = next;
-            end = next+k+1;
+            end = next+k;
             last = m_update_order.end();
             while(next != end && end <= last)
                 {
                 Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
                 if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
                     {
-                    std::swap(*next, *iter);
+                    std::swap((*next), (*iter));
                     next++;
                     }
                 iter++;
