@@ -110,7 +110,7 @@ class UpdateOrder
         void randomize(unsigned int timestep, unsigned int select = 0)
             {
             shuffle(timestep, select);
-            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
+            Saru rng(timestep, m_seed+select+0xbaddab, 0xfa870af6);
             std::shuffle(m_update_order.begin(), m_update_order.end(), rng);
             }
 
@@ -125,18 +125,18 @@ class UpdateOrder
             {
             // this is an implementation of the classic reservoir sampling
             // algorithm.
-            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
+            Saru rng(timestep, m_seed+select+0xd0dd, 0xfa870af6);
             std::vector<unsigned int>::iterator next, iter, end, last;
             next = m_update_order.begin();
             iter = next;
-            end = next+k+1;
+            end = next+k;
             last = m_update_order.end();
             while(next != end && end <= last)
                 {
                 Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
                 if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
                     {
-                    std::swap(*next, *iter);
+                    std::swap((*next), (*iter));
                     next++;
                     }
                 iter++;

@@ -156,22 +156,22 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             detail::mass_properties<Shape> mp(h_params.data[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
-        return volume;
-        }
-    else
-        {
-        for(size_t i = 0; i < m_num_params; i++)
-            {
-            if(quantity == getParamName(i))
-                {
-                return m_move_function->getParam(i);
-                }
-            }
+		return volume;
+		}
+	    else
+		{
+		for(size_t i = 0; i < m_num_params; i++)
+		    {
+		    if(quantity == getParamName(i))
+			{
+			return m_move_function->getParam(i);
+			}
+		    }
 
-        m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting log value");
-        }
-    }
+		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
+		throw std::runtime_error("Error getting log value");
+		}
+	    }
 
 /*! Perform Metropolis Monte Carlo shape deformations
 \param timestep Current time step of the simulation
@@ -187,21 +187,21 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if(!m_initialized)
         initialize();
 
-    if(!m_move_function || !m_log_boltz_function){
-        if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
-        return;
-    }
+	    if(!m_move_function || !m_log_boltz_function){
+		if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
+		return;
+	    }
 
     Saru rng(m_move_ratio, m_seed, timestep);
     unsigned int move_type_select = rng.u32() & 0xffff;
     bool move = (move_type_select < m_move_ratio);
 
-    if (!move)
-        return;
+	    if (!move)
+		return;
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getNTypes());
-    m_update_order.choose(timestep, m_nselect);
+    m_update_order.choose(timestep, m_nselect); // this returns a sorted array. Should we shuffle?
 
     Scalar log_boltz = 0.0;
     m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
@@ -231,7 +231,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
         // energy and moment of interia change.
         log_boltz += (*m_log_boltz_function)(
-                                                h_ntypes.data[typ_i],           // number of particles of type typ_i
+                                                h_ntypes.data[typ_i],           // number of particles of type typ_i,
+                                                typ_i,                          // the type id
                                                 param,                          // new shape parameter
                                                 h_det.data[typ_i],              // new determinant
                                                 h_param_backup.data[typ_i],     // old shape parameter
