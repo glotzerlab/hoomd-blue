@@ -110,13 +110,36 @@ class UpdateOrder
         void randomize(unsigned int timestep, unsigned int select = 0)
             {
             shuffle(timestep, select);
-            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
-            unsigned int N = m_update_order.size();
-            for (unsigned int i = 0; i < N; i++)
+            Saru rng(timestep, m_seed+select+0xbaddab, 0xfa870af6);
+            std::shuffle(m_update_order.begin(), m_update_order.end(), rng);
+            }
+
+        //! randomly choose a subset of the list
+        /*! \param timestep Current timestep of the simulation
+            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
+            timestep.
+            \param k The number of elements to choose
+            the first k elements are the ones chosen.
+        */
+        void choose(unsigned int timestep, unsigned int k, unsigned int select = 0)
+            {
+            // this is an implementation of the classic reservoir sampling
+            // algorithm.
+            Saru rng(timestep, m_seed+select+0xd0dd, 0xfa870af6);
+            std::vector<unsigned int>::iterator next, iter, end, last;
+            next = m_update_order.begin();
+            iter = next;
+            end = next+k;
+            last = m_update_order.end();
+            while(next != end && end <= last)
                 {
-                unsigned int ri = N*rng.s(0.0,1.0);
-                unsigned int rj = N*rng.s(0.0,1.0);
-                std::swap(m_update_order[ri], m_update_order[rj]);
+                Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
+                if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
+                    {
+                    std::swap((*next), (*iter));
+                    next++;
+                    }
+                iter++;
                 }
             }
 
@@ -212,7 +235,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
-            m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
+            m_exec_conf->msg->notice(7) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
             }
 
@@ -359,6 +382,11 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
 
     // Connect to the BoxChange signal
     m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
@@ -419,6 +447,11 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
     }
 
 template <class Shape>

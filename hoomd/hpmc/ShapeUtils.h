@@ -20,6 +20,12 @@
 namespace hpmc{
 
 
+class shape_util_error : public std::runtime_error
+    {
+    public:
+        shape_util_error(const std::string& msg) : runtime_error(msg) {}
+    };
+
 template<class ShapeParam>
 inline void print_param(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
 
@@ -143,9 +149,10 @@ inline vec3<Scalar> getOutwardNormal(const std::vector< vec3<Scalar> >& points, 
     vec3<Scalar> a = points[face[0]], b = points[face[1]], c = points[face[2]];
     vec3<Scalar> di = (inside_point - a), n;
     n = cross((b - a),(c - a));
+    normalize_inplace(n);
     Scalar d = dot(n, di);
     if(fabs(d) < thresh)
-        throw(std::runtime_error("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
+        throw(shape_util_error("ShapeUtils.h::getOutwardNormal -- inner point is in the plane"));
     return (d > 0) ? -n : n;
     }
 
@@ -188,13 +195,14 @@ public:
         for(unsigned int i = 0; i < param.N; i++)
             {
             m_points.push_back(vec3<Scalar>(param.x[i], param.y[i], param.z[i]));
-            // m_ravg += m_points[i];
             }
-        // m_ravg /= Scalar(param.N);
         }
 
     void compute()
         {
+        std::vector<bool> inside(m_points.size(), false); // all points are outside.
+        std::vector<unsigned int> outside(m_points.size(), invalid_index);
+        try{
         if(m_points.size() < 4) // problem is not well posed.
             return;
         // My thoughts:
@@ -205,8 +213,6 @@ public:
 
         // step 1: create a tetrahedron from the first 4 points.
         initialize(); // makes the tetrahedron
-        std::vector<bool> inside(m_points.size(), false); // all points are outside.
-        std::vector<unsigned int> outside(m_points.size(), invalid_index);
         for(unsigned int i = 0; i < m_points.size(); i++)
             {
             // step 2: initialize the outside and inside sets
@@ -330,6 +336,11 @@ public:
         build_edge_list();
         sortFaces(m_points, m_faces, zero);
         }
+        catch(shape_util_error e){
+            write_pos_frame(inside);
+            throw(e);
+        }
+        }
 
 private:
     void write_pos_frame(const std::vector<bool>& inside)
@@ -375,10 +386,9 @@ private:
 
     Scalar signed_distance(const unsigned int& i, const unsigned int& faceid)
         {
-        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, zero);
-        vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];
-        normalize_inplace(dx);
-        return dot(dx, n); // signed distance. eiter in the plane or outside.
+        vec3<Scalar> n = getOutwardNormal(m_points, m_ravg, m_faces, faceid, zero); // unit normal
+        vec3<Scalar> dx = m_points[i] -  m_points[m_faces[faceid][0]];              //
+        return dot(dx, n); // signed distance. either in the plane or outside.
         }
 
     bool is_above(const unsigned int& i, const unsigned int& faceid)
@@ -393,13 +403,11 @@ private:
         if( i == j || i == k || i == l || j == k || j == l || k == l)
             return true;
 
-        vec3<Scalar> d1 = m_points[j] - m_points[i];
-        normalize_inplace(d1);
-        vec3<Scalar> d2 = m_points[k] - m_points[i];
-        normalize_inplace(d2);
-        vec3<Scalar> d3 = m_points[l] - m_points[i];
-        normalize_inplace(d3);
-        Scalar d = dot(d3, cross(d1, d2));
+        const vec3<Scalar>& x1 = m_points[i], x2 = m_points[j],x3 = m_points[k],x4 = m_points[l];
+        Scalar d = dot(x3-x1, cross(x2-x1, x4-x3));
+        // std::cout << "is_coplanar: " << d << " <= " << zero << std::boolalpha << (fabs(d) <= zero) << std::endl;
+        // TODO: Note I have seen that this will often times return false for nearly coplanar points!!
+        //       How do we choose a good threshold. (an absolute threshold is not good)
         return fabs(d) <= zero;
         }
 
@@ -418,6 +426,76 @@ private:
             edge.push_back(max(e1, e2));
             edges.push_back(edge);
             }
+        }
+
+    unsigned int farthest_point_point(const unsigned int& a, bool greater=false)
+        {
+        unsigned int ndx = a;
+        Scalar maxdsq = 0.0;
+        for(unsigned int p = greater ? a+1 : 0; p < m_points.size(); p++)
+            {
+            vec3<Scalar> dr = m_points[p] - m_points[a];
+            Scalar distsq = dot(dr,dr);
+            if(distsq > maxdsq)
+                {
+                ndx = p;
+                maxdsq = distsq;
+                }
+            }
+        return ndx;
+        }
+
+    unsigned int farthest_point_line(const unsigned int& a, const unsigned int& b)
+        {
+        unsigned int ndx = a;
+        Scalar maxdsq = 0.0, denom = 0.0;
+        const vec3<Scalar>& x1 = m_points[a],x2 = m_points[b];
+        vec3<Scalar> x3;
+        x3 = x2-x1;
+        denom = dot(x3,x3);
+        if(denom <= zero)
+            return a;
+        for(unsigned int p = 0; p < m_points.size(); p++)
+            {
+            if( p == a || p == b)
+                continue;
+            const vec3<Scalar>& x0 = m_points[p];
+            vec3<Scalar> cr = cross(x3,x1-x0);
+            Scalar numer = dot(cr,cr), distsq;
+            distsq = numer/denom;
+            if(distsq > maxdsq)
+                {
+                ndx = p;
+                maxdsq = distsq;
+                }
+            }
+        return ndx;
+        }
+
+    unsigned int farthest_point_plane(const unsigned int& a, const unsigned int& b, const unsigned int& c)
+        {
+        unsigned int ndx = a;
+        Scalar maxd = 0.0, denom = 0.0;
+        const vec3<Scalar>& x1 = m_points[a],x2 = m_points[b], x3 = m_points[c];
+        vec3<Scalar> n;
+        n = cross(x2-x1, x3-x1);
+        denom = dot(n,n);
+        if(denom <= zero)
+            return a;
+        normalize_inplace(n);
+        for(unsigned int p = 0; p < m_points.size(); p++)
+            {
+            if(p == a || p == b || p == c)
+                continue;
+            const vec3<Scalar>& x0 = m_points[p];
+            Scalar dist = fabs(dot(n,x0-x1));
+            if(dist > maxd)
+                {
+                ndx = p;
+                maxd = dist;
+                }
+            }
+        return ndx;
         }
 
     void initialize()
@@ -439,36 +517,9 @@ private:
         bool coplanar = true;
         while( coplanar )
             {
-            for(size_t k = 1; k < Nsym; k++)
-                {
-                std::vector<Scalar> min_dsq(m_points.size());
-                for(size_t p = 0; p < m_points.size(); p++)
-                    {
-                    for(size_t i = 0; i < k; i++)
-                        {
-                        vec3<Scalar> dr = m_points[p] - m_points[ik[i]];
-                        Scalar dsq = dot(dr, dr);
-                        if(i == 0)
-                            {
-                            min_dsq[p] = dsq;
-                            }
-                        else
-                            {
-                            if(dsq < min_dsq[p])
-                                {
-                                min_dsq[p] = dsq;
-                                }
-
-                            if(k == Nsym-1 && is_coplanar(ik[0], ik[1], ik[2], p))
-                                {
-                                min_dsq[p] = 0; // take the point out of the running.
-                                }
-                            }
-                        }
-                    }
-                ik[k] = std::distance(min_dsq.begin(), std::max_element(min_dsq.begin(), min_dsq.end()));
-                }
-
+            ik[1] = farthest_point_point(ik[0], true); // will only search for points with a higher index than ik[0].
+            ik[2] = farthest_point_line(ik[0], ik[1]);
+            ik[3] = farthest_point_plane(ik[0], ik[1], ik[2]);
             if(!is_coplanar(ik[0], ik[1], ik[2], ik[3]))
                 {
                 coplanar = false;

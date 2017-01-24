@@ -75,7 +75,7 @@ Saru n=s.fork<123>();
 
 class Saru {
  public:
-
+  typedef unsigned int result_type;
   Saru() : state(0x12345678), wstate(12345678) {};
   inline Saru(unsigned int seed);
   inline Saru(unsigned int seed1, unsigned int seed2);
@@ -109,6 +109,9 @@ class Saru {
   inline double d();
   inline float f(float low, float high);
   inline double d(double low, double high);
+  inline result_type operator()();
+  static constexpr result_type min() { return 0; }
+  static constexpr result_type max() { return 0xffffffff; } // Just a guess for right now
 
   template<class Real> inline Real s();
   template<class Real> inline Real s(Real low, Real high);
@@ -322,6 +325,10 @@ inline unsigned int Saru::u32()
   return u32<1>();
 }
 
+inline Saru::result_type Saru::operator()()
+{
+  return u32();
+}
 
 /* Floats have 23 bits of mantissa. We take 31 p-rand bits, cast to
    signed int and simply multiply to get the (0,1] range. We shift and cast
