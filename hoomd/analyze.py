@@ -13,6 +13,7 @@ to see what they do.
 from hoomd import _hoomd;
 import hoomd;
 import sys;
+import numpy
 
 ## \internal
 # \brief Base class for analyzers
@@ -485,8 +486,9 @@ class log(_analyzer):
             name (str): Name of the quantity
             callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
 
-        The callback method must take a single argument, the current timestep, and return a single floating point value to
-        be logged.
+        The callback method must take a single argument, the current
+        timestep, and return a single floating point value to be
+        logged.
 
         Note:
             One callback can query the value of another, but logged quantities are evaluated in order from left to right.

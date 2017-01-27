@@ -184,6 +184,7 @@ Bryan VanSaders, University of Michigan
 
 Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+  * Matrix logging and hdf5 logging: hoomd.hdf5.log
 
 
 HPMC developers
