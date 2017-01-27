@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.2.0
+
+Not yet released
+
+*New features*
+
+* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+
 ## v2.1.2
 
 Released 2017/01/11
@@ -20,8 +28,6 @@ Released 2017/01/11
 
 * Drop support for compute 2.0 GPU devices
 * Support cusolver with CUDA 8.0
-
-* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 
 ## v2.1.1
 
