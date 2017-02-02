@@ -9,7 +9,6 @@
 
 #ifndef NVCC
 #include <string>
-#include <boost/python.hpp>
 #endif
 
 #define HOOMD_GB_MIN(i,j) ((i > j) ? j : i)
@@ -27,10 +26,6 @@
 #define DEVICE __device__
 #else
 #define DEVICE
-#endif
-
-#ifndef NVCC
-using namespace boost::python;
 #endif
 
 /*!

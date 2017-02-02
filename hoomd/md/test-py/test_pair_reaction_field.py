@@ -13,7 +13,7 @@ context.initialize()
 class pair_reaction_field_tests (unittest.TestCase):
     def setUp(self):
         print
-        deprecated.init.create_random(N=100, phi_p=0.05);
+        system = deprecated.init.create_random(N=100, phi_p=0.05);
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
@@ -63,6 +63,8 @@ class test_pair_reaction_field_potential(unittest.TestCase):
     def setUp(self):
         snap = data.make_snapshot(N=2, box=data.boxdim(L=10),particle_types=['A'])
         if comm.get_rank() == 0:
+            snap.particles.charge[0] = 2
+            snap.particles.charge[1] = 2
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (1.5,0,0)
         init.read_snapshot(snap)
@@ -139,6 +141,79 @@ class test_pair_reaction_field_potential(unittest.TestCase):
 
         rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=0)
         rf.set_params(mode="no_shift")
+
+    # test the calculation of force and potential taking into account particle charges
+    def test_use_charge(self):
+        rf = md.pair.reaction_field(r_cut=2.0, nlist = self.nl)
+
+        # basic test case
+        rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=3.0, use_charge=True)
+        rf.set_params(mode="no_shift")
+
+        md.integrate.mode_standard(dt=0)
+        nve = md.integrate.nve(group = group.all())
+        run(1)
+        f0 = rf.forces[0].force
+        f1 = rf.forces[1].force
+        e0 = rf.forces[0].energy
+        e1 = rf.forces[1].energy
+
+        self.assertAlmostEqual(e0,4*0.5*1.49405,3)
+        self.assertAlmostEqual(e1,4*0.5*1.49405,3)
+
+        self.assertAlmostEqual(f0[0],-4*0.674603,3)
+        self.assertAlmostEqual(f0[1],0)
+        self.assertAlmostEqual(f0[2],0)
+
+        self.assertAlmostEqual(f1[0],4*0.674603,3)
+        self.assertAlmostEqual(f1[1],0)
+        self.assertAlmostEqual(f1[2],0)
+
+        # test energy shift
+        rf.set_params(mode="shift")
+        run(1)
+
+        f0 = rf.forces[0].force
+        f1 = rf.forces[1].force
+        e0 = rf.forces[0].energy
+        e1 = rf.forces[1].energy
+
+        self.assertAlmostEqual(e0,4*0.5*(1.49405-1.28571),3)
+        self.assertAlmostEqual(e1,4*0.5*(1.49405-1.28571),3)
+
+        self.assertAlmostEqual(f0[0],-4*0.674603,3)
+        self.assertAlmostEqual(f0[1],0)
+        self.assertAlmostEqual(f0[2],0)
+
+        self.assertAlmostEqual(f1[0],4*0.674603,3)
+        self.assertAlmostEqual(f1[1],0)
+        self.assertAlmostEqual(f1[2],0)
+
+        # test infinite eps_rf
+        rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=0,use_charge=True)
+        rf.set_params(mode="no_shift")
+
+        run(1)
+
+        f0 = rf.forces[0].force
+        f1 = rf.forces[1].force
+        e0 = rf.forces[0].energy
+        e1 = rf.forces[1].energy
+
+        self.assertAlmostEqual(e0,4*0.5*1.61458,3)
+        self.assertAlmostEqual(e1,4*0.5*1.61458,3)
+
+        self.assertAlmostEqual(f0[0],-4*0.513889,3)
+        self.assertAlmostEqual(f0[1],0)
+        self.assertAlmostEqual(f0[2],0)
+
+        self.assertAlmostEqual(f1[0],4*0.513889,3)
+        self.assertAlmostEqual(f1[1],0)
+        self.assertAlmostEqual(f1[2],0)
+
+        rf.pair_coeff.set('A','A', epsilon=2.0, eps_rf=0)
+        rf.set_params(mode="no_shift")
+
 
     def tearDown(self):
         del self.nl

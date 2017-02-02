@@ -10,11 +10,7 @@
 
 #include "Integrator.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
+namespace py = pybind11;
 
 #ifdef ENABLE_CUDA
 #include "Integrator.cuh"
@@ -29,7 +25,7 @@ using namespace std;
 /*! \param sysdef System to update
     \param deltaT Time step to use
 */
-Integrator::Integrator(boost::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
+Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT) : Updater(sysdef), m_deltaT(deltaT)
     {
     if (m_deltaT <= 0.0)
         m_exec_conf->msg->warning() << "integrate.*: A timestep of less than 0.0 was specified" << endl;
@@ -39,16 +35,16 @@ Integrator::~Integrator()
     {
     #ifdef ENABLE_MPI
     // disconnect
-    if (m_request_flags_connection.connected())
-        m_request_flags_connection.disconnect();
-    if (m_callback_connection.connected())
-        m_callback_connection.disconnect();
+    if (m_request_flags_connected && m_comm)
+        m_comm->getCommFlagsRequestSignal().disconnect<Integrator, &Integrator::determineFlags>(this);
+    if (m_signals_connected && m_comm)
+        m_comm->getComputeCallbackSignal().disconnect<Integrator, &Integrator::computeCallback>(this);
     #endif
     }
 
 /*! \param fc ForceCompute to add
 */
-void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
+void Integrator::addForceCompute(std::shared_ptr<ForceCompute> fc)
     {
     assert(fc);
     m_forces.push_back(fc);
@@ -57,7 +53,7 @@ void Integrator::addForceCompute(boost::shared_ptr<ForceCompute> fc)
 
 /*! \param fc ForceConstraint to add
 */
-void Integrator::addForceConstraint(boost::shared_ptr<ForceConstraint> fc)
+void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     {
     assert(fc);
     m_constraint_forces.push_back(fc);
@@ -104,7 +100,7 @@ unsigned int Integrator::getNDOFRemoved()
     unsigned int n = 0;
 
     // loop through all constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_compute;
     for (force_compute = m_constraint_forces.begin(); force_compute != m_constraint_forces.end(); ++force_compute)
         n += (*force_compute)->getNDOFRemoved();
 
@@ -301,7 +297,7 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
 */
 void Integrator::computeNetForce(unsigned int timestep)
     {
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
 
@@ -403,7 +399,7 @@ void Integrator::computeNetForce(unsigned int timestep)
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -418,9 +414,9 @@ void Integrator::computeNetForce(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray<Scalar4>& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(net_virial, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(net_torque, access_location::host, access_mode::readwrite);
         unsigned int net_virial_pitch = net_virial.getPitch();
 
         // now, add up the net forces
@@ -488,7 +484,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // compute all the normal forces first
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
@@ -675,7 +671,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     #endif
 
     // compute all the constraint forces next
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
 
@@ -690,9 +686,9 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
         const GPUArray< Scalar >& net_virial = m_pdata->getNetVirial();
         const GPUArray< Scalar4 >& net_torque = m_pdata->getNetTorqueArray();
-        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force(net_force, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(net_virial, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::readwrite);
 
         unsigned int nparticles = m_pdata->getN();
         assert(nparticles <= net_force.getNumElements());
@@ -855,12 +851,12 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     CommFlags flags(0);
 
     // query all forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         flags |= (*force_compute)->getRequestedCommFlags(timestep);
 
     // query all constraints
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         flags |= (*force_constraint)->getRequestedCommFlags(timestep);
 
@@ -868,23 +864,27 @@ CommFlags Integrator::determineFlags(unsigned int timestep)
     }
 
 
-void Integrator::setCommunicator(boost::shared_ptr<Communicator> comm)
+void Integrator::setCommunicator(std::shared_ptr<Communicator> comm)
     {
     // call base class method
     Updater::setCommunicator(comm);
 
     // connect to ghost communication flags request
-    if (! m_request_flags_connection.connected() && m_comm)
-        m_request_flags_connection = m_comm->addCommFlagsRequest(boost::bind(&Integrator::determineFlags, this, _1));
+    if (! m_request_flags_connected && m_comm)
+        m_comm->getCommFlagsRequestSignal().connect<Integrator, &Integrator::determineFlags>(this);
 
-    if (! m_callback_connection.connected() && m_comm)
-        m_callback_connection = comm->addComputeCallback(bind(&Integrator::computeCallback, this, _1));
+    m_request_flags_connected = true;
+
+    if (! m_signals_connected && m_comm)
+        comm->getComputeCallbackSignal().connect<Integrator, &Integrator::computeCallback>(this);
+
+    m_signals_connected = true;
     }
 
 void Integrator::computeCallback(unsigned int timestep)
     {
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->preCompute(timestep);
@@ -895,23 +895,23 @@ bool Integrator::getAnisotropic()
     {
     bool aniso = false;
     // pre-compute all active forces
-    std::vector< boost::shared_ptr<ForceCompute> >::iterator force_compute;
+    std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         aniso |= (*force_compute)->isAnisotropic();
 
     // pre-compute all active constraint forces
-    std::vector< boost::shared_ptr<ForceConstraint> >::iterator force_constraint;
+    std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         aniso |= (*force_constraint)->isAnisotropic();
 
     return aniso;
     }
 
-void export_Integrator()
+void export_Integrator(py::module& m)
     {
-    class_<Integrator, boost::shared_ptr<Integrator>, bases<Updater>, boost::noncopyable>
-    ("Integrator", init< boost::shared_ptr<SystemDefinition>, Scalar >())
+    py::class_<Integrator, std::shared_ptr<Integrator> >(m,"Integrator",py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
     .def("removeForceComputes", &Integrator::removeForceComputes)

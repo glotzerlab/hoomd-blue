@@ -9,17 +9,14 @@
 */
 
 #include "ComputeThermo.h"
-#include <boost/python.hpp>
 #include "VectorMath.h"
-using namespace boost::python;
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #include "HOOMDMPI.h"
 #endif
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 using namespace std;
@@ -28,8 +25,8 @@ using namespace std;
     \param group Subset of the system over which properties are calculated
     \param suffix Suffix to append to all logged quantity names
 */
-ComputeThermo::ComputeThermo(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
+ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
     : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0)
     {
@@ -404,12 +401,10 @@ void ComputeThermo::reduceProperties()
     }
 #endif
 
-void export_ComputeThermo()
+void export_ComputeThermo(py::module& m)
     {
-    class_<ComputeThermo, boost::shared_ptr<ComputeThermo>, bases<Compute>, boost::noncopyable >
-    ("ComputeThermo", init< boost::shared_ptr<SystemDefinition>,
-                      boost::shared_ptr<ParticleGroup>,
-                      const std::string& >())
+    py::class_<ComputeThermo, std::shared_ptr<ComputeThermo> >(m,"ComputeThermo",py::base<Compute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,std::shared_ptr<ParticleGroup>,const std::string& >())
     .def("setNDOF", &ComputeThermo::setNDOF)
     .def("setRotationalNDOF", &ComputeThermo::setRotationalNDOF)
     .def("getTemperature", &ComputeThermo::getTemperature)

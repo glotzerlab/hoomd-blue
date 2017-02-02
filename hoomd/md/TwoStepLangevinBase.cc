@@ -8,8 +8,7 @@
 
 #include "TwoStepLangevinBase.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepLangevinBase.h
@@ -23,9 +22,9 @@ using namespace std;
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
 */
-TwoStepLangevinBase::TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sysdef,
-                           boost::shared_ptr<ParticleGroup> group,
-                           boost::shared_ptr<Variant> T,
+TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
+                           std::shared_ptr<ParticleGroup> group,
+                           std::shared_ptr<Variant> T,
                            unsigned int seed,
                            bool use_lambda,
                            Scalar lambda)
@@ -47,7 +46,7 @@ TwoStepLangevinBase::TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sys
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::overwrite);
     for (unsigned int i = 0; i < m_gamma.size(); i++)
         h_gamma.data[i] = Scalar(1.0);
-        
+
     // allocate memory for the per-type gamma_r storage and initialize them to 0.0 (no rotational noise by default)
     GPUVector<Scalar> gamma_r(m_pdata->getNTypes(), m_exec_conf);
     m_gamma_r.swap(gamma_r);
@@ -56,13 +55,13 @@ TwoStepLangevinBase::TwoStepLangevinBase(boost::shared_ptr<SystemDefinition> sys
         h_gamma_r.data[i] = Scalar(1.0);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_num_type_change_connection = m_pdata->connectNumTypesChange(boost::bind(&TwoStepLangevinBase::slotNumTypesChange, this));
+    m_pdata->getNumTypesChangeSignal().connect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 TwoStepLangevinBase::~TwoStepLangevinBase()
     {
     m_exec_conf->msg->notice(5) << "Destroying TwoStepLangevinBase" << endl;
-    m_num_type_change_connection.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<TwoStepLangevinBase, &TwoStepLangevinBase::slotNumTypesChange>(this);
     }
 
 void TwoStepLangevinBase::slotNumTypesChange()
@@ -77,10 +76,10 @@ void TwoStepLangevinBase::slotNumTypesChange()
     unsigned int old_ntypes = m_gamma.size();
     m_gamma.resize(m_pdata->getNTypes());
     m_gamma_r.resize(m_pdata->getNTypes());
-    
+
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::readwrite);
-    
+
     for (unsigned int i = old_ntypes; i < m_gamma.size(); i++)
         {
         h_gamma.data[i] = Scalar(1.0);
@@ -108,11 +107,11 @@ void TwoStepLangevinBase::setGamma(unsigned int typ, Scalar gamma)
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::readwrite);
     h_gamma.data[typ] = gamma;
     }
-    
-    
+
+
 /*! \param typ Particle type to set gamma_r (2D rotational noise) for
     \param gamma The gamma_r value to set
-*/    
+*/
 void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
     {
     // check for user errors
@@ -131,12 +130,12 @@ void TwoStepLangevinBase::setGamma_r(unsigned int typ, Scalar gamma_r)
     h_gamma_r.data[typ] = gamma_r;
     }
 
-void export_TwoStepLangevinBase()
+void export_TwoStepLangevinBase(py::module& m)
     {
-    class_<TwoStepLangevinBase, boost::shared_ptr<TwoStepLangevinBase>, bases<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("TwoStepLangevinBase", init< boost::shared_ptr<SystemDefinition>,
-                                boost::shared_ptr<ParticleGroup>,
-                                boost::shared_ptr<Variant>,
+    py::class_<TwoStepLangevinBase, std::shared_ptr<TwoStepLangevinBase> >(m, "TwoStepLangevinBase", py::base<IntegrationMethodTwoStep>())
+        .def(py::init< std::shared_ptr<SystemDefinition>,
+                                std::shared_ptr<ParticleGroup>,
+                                std::shared_ptr<Variant>,
                                 unsigned int,
                                 bool,
                                 Scalar

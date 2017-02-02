@@ -15,23 +15,20 @@
 #include "ParticleData.h"
 
 #include "HOOMDMPI.h"
-#include <boost/python.hpp>
-
-#include <boost/serialization/set.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #include <algorithm>
 #include <cmath>
-#include <functional>
 #include <numeric>
 
 using namespace std;
-using namespace boost::python;
+namespace py = pybind11;
 
 //! Constructor
 /*! The constructor performs a spatial domain decomposition of the simulation box of processor with rank \b exec_conf->getMPIroot().
  * The domain dimensions are distributed on the other processors.
  */
-DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                Scalar3 L,
                                unsigned int nx,
                                unsigned int ny,
@@ -62,7 +59,7 @@ DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguratio
  * If a fraction is not specified, a default value is chosen with uniform spacing. Note that the chosen value for the
  * number of processors is not guaranteed to be optimal.
  */
-DomainDecomposition::DomainDecomposition(boost::shared_ptr<ExecutionConfiguration> exec_conf,
+DomainDecomposition::DomainDecomposition(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                          Scalar3 L,
                                          const std::vector<Scalar>& fxs,
                                          const std::vector<Scalar>& fys,
@@ -667,16 +664,16 @@ void DomainDecomposition::initializeTwoLevel()
     }
 
 //! Export DomainDecomposition class to python
-void export_DomainDecomposition()
+void export_DomainDecomposition(py::module& m)
     {
-    class_<DomainDecomposition, boost::shared_ptr<DomainDecomposition>, boost::noncopyable >("DomainDecomposition",
-        init<boost::shared_ptr<ExecutionConfiguration>,
+    py::class_<DomainDecomposition, std::shared_ptr<DomainDecomposition> >(m,"DomainDecomposition")
+    .def(py::init<std::shared_ptr<ExecutionConfiguration>,
               Scalar3,
               unsigned int,
               unsigned int,
               unsigned int,
               bool>())
-    .def(init<boost::shared_ptr<ExecutionConfiguration>,
+    .def(py::init<std::shared_ptr<ExecutionConfiguration>,
               Scalar3,
               const std::vector<Scalar>&,
               const std::vector<Scalar>&,

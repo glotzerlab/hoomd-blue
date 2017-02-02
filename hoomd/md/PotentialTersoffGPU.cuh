@@ -88,33 +88,15 @@ struct tersoff_args_t
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
-#if (__CUDA_ARCH__ >= 300)
-// need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
-// double specialization
-__device__ inline
-double __my_shfl(double var, unsigned int srcLane, int width=32)
-    {
-    int2 a = *reinterpret_cast<int2*>(&var);
-    a.x = __shfl(a.x, srcLane, width);
-    a.y = __shfl(a.y, srcLane, width);
-    return *reinterpret_cast<double*>(&a);
-    }
-
-__device__ inline
-float __my_shfl(float var, unsigned int srcLane, int width=32)
-    {
-    return __shfl(var, srcLane, width);
-    }
-#endif
-
-#ifndef SINGLE_PRECISION
+#if !defined(SINGLE_PRECISION)
+#if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 
     \param address Address to write the double to
     \param val Value to add to address
 */
-static __device__ inline double atomicAdd(double* address, double val)
+__device__ double myAtomicAdd(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
@@ -128,7 +110,18 @@ static __device__ inline double atomicAdd(double* address, double val)
 
     return __longlong_as_double(old);
     }
+#else // CUDA_ARCH > 600)
+__device__ double myAtomicAdd(double* address, double val)
+    {
+    return atomicAdd(address, val);
+    }
 #endif
+#endif // (!defined(SINGLE_PRECISION))
+
+__device__ float myAtomicAdd(float* address, float val)
+    {
+    return atomicAdd(address, val);
+    }
 
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the potentials and
@@ -620,20 +613,20 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                             forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
                             forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
 
-                            atomicAdd(&d_force[cur_k].x, forcek.x);
-                            atomicAdd(&d_force[cur_k].y, forcek.y);
-                            atomicAdd(&d_force[cur_k].z, forcek.z);
+                            myAtomicAdd(&d_force[cur_k].x, forcek.x);
+                            myAtomicAdd(&d_force[cur_k].y, forcek.y);
+                            myAtomicAdd(&d_force[cur_k].z, forcek.z);
 
                             if (compute_virial)
                                 {
                                 Scalar force_div2r_ij = Scalar(0.5)*force_divr_ij.z;
                                 Scalar force_div2r_ik = Scalar(0.5)*force_divr_ik.z;
-                                atomicAdd(&d_virial[0*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x);
-                                atomicAdd(&d_virial[1*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y);
-                                atomicAdd(&d_virial[2*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z);
-                                atomicAdd(&d_virial[3*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y);
-                                atomicAdd(&d_virial[4*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z);
-                                atomicAdd(&d_virial[5*virial_pitch+cur_k],force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z);
+                                myAtomicAdd(&d_virial[0*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.x + force_div2r_ik*dxik.x*dxik.x);
+                                myAtomicAdd(&d_virial[1*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.y + force_div2r_ik*dxik.x*dxik.y);
+                                myAtomicAdd(&d_virial[2*virial_pitch+cur_k],force_div2r_ij*dxij.x*dxij.z + force_div2r_ik*dxik.x*dxik.z);
+                                myAtomicAdd(&d_virial[3*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.y + force_div2r_ik*dxik.y*dxik.y);
+                                myAtomicAdd(&d_virial[4*virial_pitch+cur_k],force_div2r_ij*dxij.y*dxij.z + force_div2r_ik*dxik.y*dxik.z);
+                                myAtomicAdd(&d_virial[5*virial_pitch+cur_k],force_div2r_ij*dxij.z*dxij.z + force_div2r_ik*dxik.z*dxik.z);
                                 }
                             }
                         }
@@ -641,36 +634,36 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
                 }
 
             // write out the result for particle j
-            atomicAdd(&d_force[cur_j].x, forcej.x);
-            atomicAdd(&d_force[cur_j].y, forcej.y);
-            atomicAdd(&d_force[cur_j].z, forcej.z);
-            atomicAdd(&d_force[cur_j].w, forcej.w);
+            myAtomicAdd(&d_force[cur_j].x, forcej.x);
+            myAtomicAdd(&d_force[cur_j].y, forcej.y);
+            myAtomicAdd(&d_force[cur_j].z, forcej.z);
+            myAtomicAdd(&d_force[cur_j].w, forcej.w);
 
             if (compute_virial)
                 {
-                atomicAdd(&d_virial[0*virial_pitch+cur_j], virialj_xx);
-                atomicAdd(&d_virial[1*virial_pitch+cur_j], virialj_xy);
-                atomicAdd(&d_virial[2*virial_pitch+cur_j], virialj_xz);
-                atomicAdd(&d_virial[3*virial_pitch+cur_j], virialj_yy);
-                atomicAdd(&d_virial[4*virial_pitch+cur_j], virialj_yz);
-                atomicAdd(&d_virial[5*virial_pitch+cur_j], virialj_zz);
+                myAtomicAdd(&d_virial[0*virial_pitch+cur_j], virialj_xx);
+                myAtomicAdd(&d_virial[1*virial_pitch+cur_j], virialj_xy);
+                myAtomicAdd(&d_virial[2*virial_pitch+cur_j], virialj_xz);
+                myAtomicAdd(&d_virial[3*virial_pitch+cur_j], virialj_yy);
+                myAtomicAdd(&d_virial[4*virial_pitch+cur_j], virialj_yz);
+                myAtomicAdd(&d_virial[5*virial_pitch+cur_j], virialj_zz);
                 }
             }
         }
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-    atomicAdd(&d_force[idx].x, forcei.x);
-    atomicAdd(&d_force[idx].y, forcei.y);
-    atomicAdd(&d_force[idx].z, forcei.z);
-    atomicAdd(&d_force[idx].w, forcei.w);
+    myAtomicAdd(&d_force[idx].x, forcei.x);
+    myAtomicAdd(&d_force[idx].y, forcei.y);
+    myAtomicAdd(&d_force[idx].z, forcei.z);
+    myAtomicAdd(&d_force[idx].w, forcei.w);
 
     if (compute_virial)
         {
-        atomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
-        atomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
-        atomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
-        atomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
-        atomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
-        atomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
+        myAtomicAdd(&d_virial[0*virial_pitch+idx], viriali_xx);
+        myAtomicAdd(&d_virial[1*virial_pitch+idx], viriali_xy);
+        myAtomicAdd(&d_virial[2*virial_pitch+idx], viriali_xz);
+        myAtomicAdd(&d_virial[3*virial_pitch+idx], viriali_yy);
+        myAtomicAdd(&d_virial[4*virial_pitch+idx], viriali_yz);
+        myAtomicAdd(&d_virial[5*virial_pitch+idx], viriali_zz);
         }
     }
 

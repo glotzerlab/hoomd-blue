@@ -34,16 +34,19 @@
 
     EvaluatorPairEwald evaluates the function:
 
-    \f[ V_{\mathrm{Ewald}}(r) = q_i q_j erfc(\kappa r)/r \f]
+    \f[ V_{\mathrm{ewald}}(r)  = q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
+                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)
+    \f]
 
-    The Ewald potential does not need diameter. One parameters is specified and stored in a Scalar.
-    \a kappa is placed in \a params
+    The Ewald potential does not need diameter. Two parameters is specified and stored in a Scalar2.
+    \a kappa is placed in \a params.x
+    \a alpha is placed in \a params.y
 */
 class EvaluatorPairEwald
     {
     public:
         //! Define the parameter type used by this pair potential evaluator
-        typedef Scalar param_type;
+        typedef Scalar2 param_type;
 
         //! Constructs the pair potential evaluator
         /*! \param _rsq Squared distance beteen the particles
@@ -51,7 +54,7 @@ class EvaluatorPairEwald
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairEwald(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
-          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params)
+          : rsq(_rsq), rcutsq(_rcutsq), kappa(_params.x), alpha(_params.y)
             {
             }
 
@@ -91,10 +94,15 @@ class EvaluatorPairEwald
                 Scalar r = Scalar(1.0) / rinv;
                 Scalar r2inv = Scalar(1.0) / rsq;
 
-                Scalar erfc_by_r_val = fast::erfc(kappa * r) * rinv;
+                Scalar arg1 = kappa*r+alpha/(Scalar(2.0)*kappa);
+                Scalar arg2 = kappa*r-alpha/(Scalar(2.0)*kappa);
+                Scalar expfac1 = fast::exp(alpha*r);
+                Scalar expfac2 = fast::exp(-alpha*r);
+                Scalar val = Scalar(0.5)*(fast::erfc(arg1)*expfac1 + fast::erfc(arg2)*expfac2)*rinv;
 
-                force_divr = qiqj * r2inv * (erfc_by_r_val + Scalar(2.0)*kappa*fast::rsqrt(Scalar(M_PI)) * fast::exp(-kappa*kappa* rsq));
-                pair_eng = qiqj * erfc_by_r_val ;
+                force_divr = qiqj * r2inv * (val + expfac2*Scalar(2.0)*kappa*fast::exp(-arg2*arg2)/fast::sqrt(Scalar(M_PI))
+                    + alpha*Scalar(0.5)*expfac2*fast::erfc(arg2) - alpha*Scalar(0.5)*expfac1*fast::erfc(arg1));
+                pair_eng = qiqj * val;
 
                 return true;
                 }
@@ -116,7 +124,8 @@ class EvaluatorPairEwald
     protected:
         Scalar rsq;     //!< Stored rsq from the constructor
         Scalar rcutsq;  //!< Stored rcutsq from the constructor
-        Scalar kappa;   //!< kappa parameter extracted from the params passed to the constructor
+        Scalar kappa;   //!< Splitting parameter
+        Scalar alpha;   //!< Debye screening parameter
         Scalar qiqj;    //!< product of qi and qj
     };
 

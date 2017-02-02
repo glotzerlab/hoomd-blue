@@ -1,19 +1,5 @@
 # Maintainer: joaander
 
-###############################
-# need a few settings for the unit test library
-# first, they need the boost unit test framework added as a library
-set(ADDITIONAL_LIBS _hoomd
-        ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
-        )
-
-# boost 1.60.0 requires the boost timer and chrono be linked to unit tests
-if (Boost_MINOR_VERSION GREATER 59)
-list(APPEND ADDITIONAL_LIBS ${Boost_TIMER_LIBRARY} ${Boost_CHRONO_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-endif ()
-
-add_definitions(-DBOOST_TEST_DYN_LINK)
-
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
@@ -61,7 +47,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} ${ADDITIONAL_LIBS} ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hoomd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)

@@ -3,7 +3,7 @@
 
 #include "PPPMForceCompute.h"
 
-using namespace boost::python;
+namespace py = pybind11;
 
 bool is_pow2(unsigned int n)
     {
@@ -23,9 +23,9 @@ const Scalar cpu_sinc_coeff[] = {Scalar(1.0), Scalar(-1.0/6.0), Scalar(1.0/120.0
     \param nz Number of cells along third axis
     \param mode Per-type modes to multiply density
  */
-PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
-    boost::shared_ptr<ParticleGroup> group)
+PPPMForceCompute::PPPMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<ParticleGroup> group)
     : ForceCompute(sysdef),
       m_nlist(nlist),
       m_group(group),
@@ -41,11 +41,13 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
       m_box_changed(false),
       m_q(0.0),
       m_q2(0.0),
+      m_body_energy(0.0),
+      m_ptls_added_removed(false),
       m_kiss_fft_initialized(false),
       m_dfft_initialized(false)
     {
 
-    m_boxchange_connection = m_pdata->connectBoxChange(boost::bind(&PPPMForceCompute::setBoxChange, this));
+    m_pdata->getBoxChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     // reset virial
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
@@ -57,13 +59,17 @@ PPPMForceCompute::PPPMForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
     m_kappa = Scalar(0.0);
     m_rcut = Scalar(0.0);
     m_order = 0;
+    m_alpha = Scalar(0.0);
+
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<PPPMForceCompute, &PPPMForceCompute::slotGlobalParticleNumberChange>(this);
     }
 
 void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int nz,
-    unsigned int order, Scalar kappa, Scalar rcut)
+    unsigned int order, Scalar kappa, Scalar rcut, Scalar alpha)
     {
     m_kappa = kappa;
     m_rcut = rcut;
+    m_alpha = alpha;
 
     m_mesh_points = make_uint3(nx, ny, nz);
     m_global_dim = m_mesh_points;
@@ -136,6 +142,8 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
 
 PPPMForceCompute::~PPPMForceCompute()
     {
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::slotGlobalParticleNumberChange>(this);
+
     if (m_kiss_fft_initialized)
         {
         free(m_kiss_fft);
@@ -149,7 +157,7 @@ PPPMForceCompute::~PPPMForceCompute()
         dfft_destroy_plan(m_dfft_plan_inverse);
         }
     #endif
-    m_boxchange_connection.disconnect();
+    m_pdata->getBoxChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     }
 
 //! Compute auxillary table for influence function
@@ -314,9 +322,9 @@ void PPPMForceCompute::setupCoeffs()
         }
     #endif
 
-    if (fabs(m_q) > 1e-5)
+    if (fabs(m_q) > 1e-5 && m_alpha==Scalar(0.0))
         {
-        m_exec_conf->msg->warning() << "charge.pppm: system in not neutral, the net charge is " << m_q << std::endl;
+        m_exec_conf->msg->warning() << "charge.pppm: system is not neutral and unscreened interactions are calculated, the net charge is " << m_q << std::endl;
         }
 
     // compute RMS force error
@@ -402,7 +410,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        Scalar r_buff = m_nlist->getRBuff();
+        Scalar r_buff = m_nlist->getRBuff()/2.0;
 
         const BoxDim& box = m_pdata->getBox();
         Scalar3 cell_width = box.getNearestPlaneDistance() /
@@ -679,7 +687,7 @@ void PPPMForceCompute::computeInfluenceFunction()
 
                         Scalar3 kn = knx + kny + knz;
                         Scalar dot1 = dot(kn, k);
-                        Scalar dot2 = dot(kn, kn);
+                        Scalar dot2 = dot(kn, kn)+m_alpha*m_alpha;
 
                         Scalar arg_gauss = Scalar(0.25)*dot2/m_kappa/m_kappa;
                         Scalar gauss = exp(-arg_gauss);
@@ -764,6 +772,11 @@ void PPPMForceCompute::assignParticles()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -779,10 +792,6 @@ void PPPMForceCompute::assignParticles()
             // ignore, error will be thrown elsewhere (in CellList)
             continue;
             }
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
@@ -1044,6 +1053,10 @@ void PPPMForceCompute::interpolateForces()
         int iy = (reduced_pos.y + shift);
         int iz = (reduced_pos.z + shift);
 
+        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
+        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
+        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
+
         // handle particles on the boundary
         if (ix == (int) m_grid_dim.x && !m_n_ghost_cells.x)
             ix = 0;
@@ -1061,10 +1074,6 @@ void PPPMForceCompute::interpolateForces()
             }
 
         Scalar3 force = make_scalar3(0.0,0.0,0.0);
-
-        Scalar dx = shiftone+(Scalar)ix-reduced_pos.x;
-        Scalar dy = shiftone+(Scalar)iy-reduced_pos.y;
-        Scalar dz = shiftone+(Scalar)iz-reduced_pos.z;
 
         int mult_fact = 2*m_order+1;
         Scalar Wx, Wy, Wz;
@@ -1187,10 +1196,16 @@ Scalar PPPMForceCompute::computePE()
 
     if (m_exec_conf->getRank()==0)
         {
-        // add correction on rank 0
-        sum -= m_q2 * m_kappa / Scalar(1.772453850905516027298168);
-        sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
+        // subtract self-energy on rank 0 (see Frenkel and Smit, and Salin and Caillol)
+        sum -= m_q2 * (m_kappa/sqrt(Scalar(M_PI))*exp(-m_alpha*m_alpha/(Scalar(4.0)*m_kappa*m_kappa))
+            - Scalar(0.5)*m_alpha*erfc(m_alpha/(Scalar(2.0)*m_kappa)));
+
+        // k = 0 term already accounted for by exclude_dc
+        //sum -= Scalar(0.5*M_PI)*m_q*m_q / (m_kappa*m_kappa* V);
         }
+
+    // apply rigid body correction
+    sum += m_body_energy;
 
     // store this rank's contribution as external potential energy
     m_external_energy = sum;
@@ -1221,7 +1236,7 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
 
     if (m_prof) m_prof->push("PPPM");
 
-    if (m_need_initialize)
+    if (m_need_initialize || m_ptls_added_removed)
         {
         if (!m_params_set)
             {
@@ -1237,7 +1252,15 @@ void PPPMForceCompute::computeForces(unsigned int timestep)
         setupCoeffs();
 
         computeInfluenceFunction();
+
+        if (m_nlist->getFilterBody())
+            {
+            m_exec_conf->msg->notice(2) << "PPPM: calculating rigid body correction (N^2)" << std::endl;
+            computeBodyCorrection();
+            }
+
         m_need_initialize = false;
+        m_ptls_added_removed = false;
         }
 
     bool ghost_cell_num_changed = false;
@@ -1349,6 +1372,78 @@ void PPPMForceCompute::computeVirial()
     if (m_prof) m_prof->pop();
     }
 
+//! The real space form of the long-range interaction part, for exclusions
+inline void eval_pppm_real_space(Scalar alpha, Scalar kappa, Scalar rsq, Scalar &pair_eng, Scalar &force_divr)
+    {
+    const Scalar sqrtpi = sqrt(M_PI);
+
+    Scalar r = sqrtf(rsq);
+    Scalar expfac = fast::exp(-alpha*r);
+    Scalar arg1 = kappa * r - alpha/Scalar(2.0)/kappa;
+    Scalar arg2 = kappa * r + alpha/Scalar(2.0)/kappa;
+    Scalar erffac = (::erf(arg1)*expfac + expfac - ::erfc(arg2)*exp(alpha*r))/(Scalar(2.0)*r);
+
+    pair_eng = erffac;
+    force_divr = -(expfac*Scalar(2.0)*kappa/sqrtpi*fast::exp(-arg1*arg1)
+        - Scalar(0.5)*alpha*(expfac*::erfc(arg1)+fast::exp(alpha*r)*::erfc(arg2)) - erffac)/rsq;
+    }
+
+void PPPMForceCompute::computeBodyCorrection()
+    {
+    if (m_prof) m_prof->push("rigid body correction");
+
+    // do an N^2 search over particles, subtracting the real-space long-range part from the PPPM energy
+    unsigned int nptl = m_pdata->getN();
+    unsigned int nghost = m_pdata->getNGhosts();
+
+    // access particle data
+    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+    const BoxDim& box = m_pdata->getBox();
+
+    m_body_energy = Scalar(0.0);
+
+    unsigned int group_size = m_group->getNumMembers();
+    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+        {
+        unsigned int i = m_group->getMemberIndex(group_idx);
+
+        unsigned int ibody = h_body.data[i];
+        vec3<Scalar> posi(h_postype.data[i]);
+        Scalar qi(h_charge.data[i]);
+
+        for (unsigned int j = 0; j < nptl + nghost; ++j)
+            {
+            // strictly we would have to check if j is member of the group
+            // assuming that rigid bodies are completely included here
+
+            unsigned jbody = h_body.data[j];
+            vec3<Scalar> posj(h_postype.data[j]);
+            Scalar qj(h_charge.data[j]);
+
+            Scalar qiqj = qi*qj;
+
+            if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
+                {
+                Scalar3 dx = box.minImage(vec_to_scalar3(posi-posj));
+                Scalar rsq = dot(dx,dx);
+
+                Scalar force_divr(0.0);
+                Scalar pair_eng(0.0);
+
+                // compute correction
+                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                // subtract
+                m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                }
+            }
+        }
+    if (m_prof) m_prof->pop();
+    }
+
 void PPPMForceCompute::fixExclusions()
     {
     unsigned int group_size = m_group->getNumMembers();
@@ -1364,6 +1459,9 @@ void PPPMForceCompute::fixExclusions()
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
+
+    // reset force for ALL particles
+    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
 
     ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
@@ -1388,7 +1486,6 @@ void PPPMForceCompute::fixExclusions()
         Scalar qi = h_charge.data[idx];
 
         unsigned int n_neigh = d_n_ex.data[idx];
-        const Scalar sqrtpi = sqrt(M_PI);
         unsigned int cur_j = 0;
 
         for (unsigned int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
@@ -1405,13 +1502,23 @@ void PPPMForceCompute::fixExclusions()
 
             // apply periodic boundary conditions:
             dx = box.minImage(dx);
-
             Scalar rsq = dot(dx, dx);
-            Scalar r = sqrtf(rsq);
-            Scalar qiqj = qi * qj;
-            Scalar erffac = erf(m_kappa * r) / r;
-            Scalar force_divr = qiqj * (-Scalar(2.0) * exp(-rsq * m_kappa * m_kappa) * m_kappa / (sqrtpi * rsq) + erffac / rsq);
-            Scalar pair_eng = qiqj * erffac;
+
+            Scalar pair_eng(0.0);
+            Scalar force_divr(0.0);
+
+            Scalar qiqj = qi*qj;
+
+            if (qiqj != Scalar(0.0))
+                {
+                // evaluate the long-range pair potential
+                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                // subtract long-range part of pair-interaction
+                force_divr = -qiqj * force_divr;
+                pair_eng = -qiqj * pair_eng;
+                }
+
             virial[0]+= Scalar(0.5) * dx.x * dx.x * force_divr;
             virial[1]+= Scalar(0.5) * dx.y * dx.x * force_divr;
             virial[2]+= Scalar(0.5) * dx.z * dx.x * force_divr;
@@ -1424,12 +1531,12 @@ void PPPMForceCompute::fixExclusions()
             force.w += pair_eng;
             }
         force.w *= Scalar(0.5);
-        h_force.data[idx].x -= force.x;
-        h_force.data[idx].y -= force.y;
-        h_force.data[idx].z -= force.z;
-        h_force.data[idx].w = -force.w;
+        h_force.data[idx].x += force.x;
+        h_force.data[idx].y += force.y;
+        h_force.data[idx].z += force.z;
+        h_force.data[idx].w += force.w;
         for (unsigned int k = 0; k < 6; k++)
-            h_virial.data[k*virial_pitch+idx] = -virial[k];
+            h_virial.data[k*virial_pitch+idx] += virial[k];
         }
 
     if (m_prof) m_prof->pop();
@@ -1501,11 +1608,10 @@ Scalar PPPMForceCompute::getQ2Sum()
     return q2;
     }
 
-void export_PPPMForceCompute()
+void export_PPPMForceCompute(py::module& m)
     {
-    class_<PPPMForceCompute, boost::shared_ptr<PPPMForceCompute>, bases<ForceCompute>, boost::noncopyable >
-        ("PPPMForceCompute", init< boost::shared_ptr<SystemDefinition>,
-            boost::shared_ptr<NeighborList>, boost::shared_ptr<ParticleGroup> >())
+    py::class_<PPPMForceCompute, std::shared_ptr<PPPMForceCompute> >(m, "PPPMForceCompute", py::base<ForceCompute>())
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, std::shared_ptr<ParticleGroup> >())
         .def("setParams", &PPPMForceCompute::setParams)
         .def("getQSum", &PPPMForceCompute::getQSum)
         .def("getQ2Sum", &PPPMForceCompute::getQ2Sum)

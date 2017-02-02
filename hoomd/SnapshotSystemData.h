@@ -20,6 +20,10 @@
 #include "BondedGroupData.h"
 #include "IntegratorData.h"
 
+#ifndef NVCC
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#endif
+
 /*! \ingroup data_structs
 */
 
@@ -31,7 +35,7 @@
  * Snapshots are temporary data-structures, they are only used for passing around data.
  *
  * A SnapshotSystemData is just a super-structure that holds snapshots of other data, such
- * as particles, bonds, rigid bodies, etc. It is used by the SystemDefinition class to initially
+ * as particles, bonds, etc. It is used by the SystemDefinition class to initially
  * set up these data structures, and can also be obtained from an object of that class to
  * analyze the current system state.
  *
@@ -47,6 +51,7 @@ struct SnapshotSystemData {
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data
     ImproperData::Snapshot improper_data;    //!< The improper data
     ConstraintData::Snapshot constraint_data;//!< The constraint data
+    PairData::Snapshot pair_data;            //!< The pair data
     std::vector<IntegratorVariables> integrator_data;  //!< The integrator data
 
     bool has_particle_data;                //!< True if snapshot contains particle data
@@ -55,7 +60,7 @@ struct SnapshotSystemData {
     bool has_dihedral_data;                //!< True if snapshot contains dihedral data
     bool has_improper_data;                //!< True if snapshot contains improper data
     bool has_constraint_data;              //!< True if snapshot contains constraint data
-    bool has_rigid_data;                   //!< True if snapshot contains rigid data
+    bool has_pair_data;                    //!< True if snapshot contains pair data
     bool has_integrator_data;              //!< True if snapshot contains integrator data
 
     //! Constructor
@@ -70,7 +75,7 @@ struct SnapshotSystemData {
         has_dihedral_data = true;
         has_improper_data = true;
         has_constraint_data = true;
-        has_rigid_data = true;
+        has_pair_data = true;
         has_integrator_data = true;
         }
 
@@ -85,10 +90,11 @@ struct SnapshotSystemData {
     /*! \param exec_conf The execution configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
     */
-    void broadcast(boost::shared_ptr<ExecutionConfiguration> exec_conf);
+    void broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
 //! Export SnapshotParticleData to python
-void export_SnapshotSystemData();
+
+void export_SnapshotSystemData(pybind11::module& m);
 
 #endif

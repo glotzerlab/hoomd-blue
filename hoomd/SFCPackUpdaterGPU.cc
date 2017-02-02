@@ -14,10 +14,6 @@
 #include "SFCPackUpdaterGPU.h"
 #include "SFCPackUpdaterGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-using namespace boost;
-
 #include <math.h>
 #include <stdexcept>
 #include <algorithm>
@@ -25,11 +21,12 @@ using namespace boost;
 #include <iostream>
 
 using namespace std;
+namespace py = pybind11;
 
 //! Constructor
 /*! \param sysdef System to perform sorts on
  */
-SFCPackUpdaterGPU::SFCPackUpdaterGPU(boost::shared_ptr<SystemDefinition> sysdef)
+SFCPackUpdaterGPU::SFCPackUpdaterGPU(std::shared_ptr<SystemDefinition> sysdef)
         : SFCPackUpdater(sysdef)
     {
     m_exec_conf->msg->notice(5) << "Constructing SFCPackUpdaterGPU" << endl;
@@ -212,6 +209,7 @@ void SFCPackUpdaterGPU::applySortOrder()
             d_inertia_alt.data,
             d_net_virial.data,
             d_net_virial_alt.data,
+            m_pdata->getNetVirial().getPitch(),
             d_net_force.data,
             d_net_force_alt.data,
             d_net_torque.data,
@@ -238,10 +236,10 @@ void SFCPackUpdaterGPU::applySortOrder()
     m_pdata->swapNetTorque();
     }
 
-void export_SFCPackUpdaterGPU()
+void export_SFCPackUpdaterGPU(py::module& m)
     {
-    class_<SFCPackUpdaterGPU, bases<SFCPackUpdater>, boost::shared_ptr<SFCPackUpdaterGPU>, boost::noncopyable>
-    ("SFCPackUpdaterGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<SFCPackUpdaterGPU, std::shared_ptr<SFCPackUpdaterGPU> >(m,"SFCPackUpdaterGPU",py::base<SFCPackUpdater>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }
 

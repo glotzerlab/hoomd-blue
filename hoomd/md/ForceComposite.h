@@ -23,6 +23,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
@@ -30,7 +32,7 @@ class ForceComposite : public MolecularForceCompute
     {
     public:
         //! Constructs the compute
-        ForceComposite(boost::shared_ptr<SystemDefinition> sysdef);
+        ForceComposite(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~ForceComposite();
@@ -61,10 +63,8 @@ class ForceComposite : public MolecularForceCompute
 
         //! Update the constituent particles of a composite particle
         /*  Using the position, velocity and orientation of the central particle
-         * \param remote If true, consider remote bodies, otherwise bodies
-         *        with a local central particle
          */
-        virtual void updateCompositeParticles(unsigned int timestep, bool remote);
+        virtual void updateCompositeParticles(unsigned int timestep);
 
         //! Validate or create copies of rigid body constituent particles
         /*! \param create If true, expand central particle types into rigid bodies, modifying the number of particles
@@ -97,20 +97,20 @@ class ForceComposite : public MolecularForceCompute
             }
 
         //! Return the requested minimum ghost layer width
-        virtual Scalar requestGhostLayerWidth(unsigned int type);
+        virtual Scalar requestExtraGhostLayerWidth(unsigned int type);
 
         #ifdef ENABLE_MPI
         //! Set the communicator object
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             // call base class method to set m_comm
             MolecularForceCompute::setCommunicator(comm);
 
-            if (!m_comm_ghost_layer_connection.connected())
+            if (!m_comm_ghost_layer_connected)
                 {
                 // register this class with the communciator
-                m_comm_ghost_layer_connection = m_comm->addGhostLayerWidthRequest(
-                    boost::bind(&ForceComposite::requestGhostLayerWidth, this, _1));
+                m_comm->getExtraGhostLayerWidthRequestSignal().connect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
+                m_comm_ghost_layer_connected = true;
                 }
            }
         #endif
@@ -119,16 +119,10 @@ class ForceComposite : public MolecularForceCompute
         virtual void computeForces(unsigned int timestep);
 
     private:
-        //! Connection o the signal notifying when number of particle types changes
-        boost::signals2::connection m_num_type_change_connection;
-
-        //! Connection to particle data signal when particle number changes
-        boost::signals2::connection m_global_ptl_num_change_connection;
-
-        boost::signals2::connection m_comm_ghost_layer_connection; //!< Connection to be asked for ghost layer width requests
+        bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected ghost layer width requests
     };
 
 //! Exports the ForceComposite to python
-void export_ForceComposite();
+void export_ForceComposite(pybind11::module& m);
 
 #endif

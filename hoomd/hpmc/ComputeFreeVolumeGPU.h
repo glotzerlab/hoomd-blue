@@ -13,13 +13,8 @@ using namespace std;
 #include "hoomd/CellList.h"
 #include "hoomd/Autotuner.h"
 
-#include <boost/python.hpp>
 #include "HPMCPrecisionSetup.h"
-
 #include "IntegratorHPMCMono.h"
-
-#include <boost/python.hpp>
-
 #include "ComputeFreeVolume.h"
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
@@ -33,6 +28,8 @@ using namespace std;
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 namespace hpmc
 {
 
@@ -45,9 +42,9 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
     {
     public:
         //! Construct the integrator
-        ComputeFreeVolumeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                             boost::shared_ptr<CellList> cl,
+        ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                             std::shared_ptr<CellList> cl,
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
@@ -78,17 +75,17 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
 
-        boost::scoped_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
-        boost::scoped_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+        std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
+        std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
 
         void initializeExcellMem();
     };
 
 
 template< class Shape >
-ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                                    boost::shared_ptr<IntegratorHPMCMono<Shape> > mc,
-                                                    boost::shared_ptr<CellList> cl,
+ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                    std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
+                                                    std::shared_ptr<CellList> cl,
                                                     unsigned int seed,
                                                     std::string suffix)
     : ComputeFreeVolume<Shape>(sysdef,mc,cl, seed,suffix)
@@ -208,6 +205,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     // access the particle data
     ArrayHandle<Scalar4> d_postype(this->m_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_orientation(this->m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_overlaps(this->m_mc->getInteractionMatrix(), access_location::device, access_mode::read);
+
+    const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
     ArrayHandle<typename Shape::param_type> d_params(this->m_mc->getParams(), access_location::device, access_mode::read);
@@ -252,7 +252,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    group_size,
                                                    this->m_pdata->getMaxN(),
                                                    d_n_overlap_all.data,
-                                                   this->m_cl->getGhostWidth());
+                                                   this->m_cl->getGhostWidth(),
+                                                   d_overlaps.data,
+                                                   overlap_idx);
 
 
         // invoke kernel for counting total overlap volume
@@ -297,12 +299,12 @@ void ComputeFreeVolumeGPU< Shape >::initializeExcellMem()
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
 */
-template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& name)
+template < class Shape > void export_ComputeFreeVolumeGPU(pybind11::module& m, const std::string& name)
     {
-     boost::python::class_<ComputeFreeVolumeGPU<Shape>, boost::shared_ptr< ComputeFreeVolumeGPU<Shape> >, boost::python::bases< ComputeFreeVolume<Shape> >, boost::noncopyable >
-              (name.c_str(), boost::python::init< boost::shared_ptr<SystemDefinition>,
-                boost::shared_ptr<IntegratorHPMCMono<Shape> >,
-                boost::shared_ptr<CellList>,
+     pybind11::class_<ComputeFreeVolumeGPU<Shape>, std::shared_ptr< ComputeFreeVolumeGPU<Shape> > >(m, name.c_str(), pybind11::base< ComputeFreeVolume<Shape> >())
+              .def(pybind11::init< std::shared_ptr<SystemDefinition>,
+                std::shared_ptr<IntegratorHPMCMono<Shape> >,
+                std::shared_ptr<CellList>,
                 unsigned int,
                 std::string >())
         ;
@@ -313,4 +315,3 @@ template < class Shape > void export_ComputeFreeVolumeGPU(const std::string& nam
 #endif // ENABLE_CUDA
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__
-

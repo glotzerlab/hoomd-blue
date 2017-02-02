@@ -19,6 +19,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps in the NPT ensemble
 /*! This is a version of TwoStepNPTMTK that runs on the GPU.
  *
@@ -28,17 +30,29 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepNPTMTKGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                   boost::shared_ptr<ParticleGroup> group,
-                   boost::shared_ptr<ComputeThermo> thermo_group,
-                   boost::shared_ptr<ComputeThermo> thermo_group_t,
+        TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                   std::shared_ptr<ParticleGroup> group,
+                   std::shared_ptr<ComputeThermo> thermo_group,
+                   std::shared_ptr<ComputeThermo> thermo_group_t,
                    Scalar tau,
                    Scalar tauP,
-                   boost::shared_ptr<Variant> T,
-                   boost::python::list S,
+                   std::shared_ptr<Variant> T,
+                   pybind11::list S,
                    couplingMode couple,
                    unsigned int flags,
                    const bool nph=false);
+
+       TwoStepNPTMTKGPU(std::shared_ptr<SystemDefinition> sysdef,
+                  std::shared_ptr<ParticleGroup> group,
+                  std::shared_ptr<ComputeThermo> thermo_group,
+                  std::shared_ptr<ComputeThermo> thermo_group_t,
+                  Scalar tau,
+                  Scalar tauP,
+                  std::shared_ptr<Variant> T,
+                 std::shared_ptr<Variant> S,
+                  couplingMode couple,
+                  unsigned int flags,
+                  const bool nph=false);
         virtual ~TwoStepNPTMTKGPU();
 
         //! Performs the first step of the integration
@@ -56,6 +70,6 @@ class TwoStepNPTMTKGPU : public TwoStepNPTMTK
     };
 
 //! Exports the TwoStepNPTMTKGPU class to python
-void export_TwoStepNPTMTKGPU();
+void export_TwoStepNPTMTKGPU(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_NPT_MTK_GPU_H__

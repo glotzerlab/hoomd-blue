@@ -17,6 +17,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 //! Integrates part of the system forward in two steps with Langevin dynamics
 /*! Implements Langevin dynamics.
 
@@ -30,9 +32,9 @@ class TwoStepLangevin : public TwoStepLangevinBase
     {
     public:
         //! Constructs the integration method and associates it with the system
-        TwoStepLangevin(boost::shared_ptr<SystemDefinition> sysdef,
-                     boost::shared_ptr<ParticleGroup> group,
-                     boost::shared_ptr<Variant> T,
+        TwoStepLangevin(std::shared_ptr<SystemDefinition> sysdef,
+                     std::shared_ptr<ParticleGroup> group,
+                     std::shared_ptr<Variant> T,
                      unsigned int seed,
                      bool use_lambda,
                      Scalar lambda,
@@ -70,6 +72,6 @@ class TwoStepLangevin : public TwoStepLangevinBase
     };
 
 //! Exports the TwoStepLangevin class to python
-void export_TwoStepLangevin();
+void export_TwoStepLangevin(pybind11::module& m);
 
 #endif // #ifndef __TWO_STEP_LANGEVIN_H__

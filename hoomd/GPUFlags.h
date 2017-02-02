@@ -48,7 +48,7 @@ template<class T> class GPUFlags
         //! Constructs a NULL GPUFlags
         GPUFlags();
         //! Constructs a GPUFlags attached to a GPU
-        GPUFlags(boost::shared_ptr<const ExecutionConfiguration> exec_conf);
+        GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf);
         //! Frees memory
         ~GPUFlags();
 
@@ -81,7 +81,7 @@ template<class T> class GPUFlags
 #endif
 
     private:
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf;    //!< execution configuration for working with CUDA
         bool m_mapped;          //!< Set to true when using host mapped memory
 
 #ifdef ENABLE_CUDA
@@ -113,7 +113,7 @@ template<class T> GPUFlags<T>::GPUFlags() :
 
 /*! \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
 */
-template<class T> GPUFlags<T>::GPUFlags(boost::shared_ptr<const ExecutionConfiguration> exec_conf) :
+template<class T> GPUFlags<T>::GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf) :
         m_exec_conf(exec_conf), m_mapped(false),
 #ifdef ENABLE_CUDA
         d_data(NULL),

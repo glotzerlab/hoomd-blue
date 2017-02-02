@@ -214,10 +214,10 @@ class unitcell(object):
                 raise ValueError("Particle properties must have length N");
 
     def get_type_list(self):
-        R""" Get a list of type names in the unit cell.
+        R""" Get a list of the unique type names in the unit cell.
 
         Returns:
-            A :py:class:`list` of the type names present in the unit cell.
+            A :py:class:`list` of the unique type names present in the unit cell.
         """
 
         type_list = [];
@@ -262,7 +262,7 @@ class unitcell(object):
 
         if hoomd.comm.get_rank() == 0:
             snap.particles.types = self.get_type_list();
-            snap.particles.typeid[:] = [mapping[name] for name in snap.particles.types];
+            snap.particles.typeid[:] = [mapping[name] for name in self.type_name];
             snap.particles.mass[:] = self.mass[:];
             snap.particles.charge[:] = self.charge[:];
             snap.particles.diameter[:] = self.diameter[:];

@@ -20,8 +20,8 @@
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
+
 using namespace std;
 
 // File position of NFILE in DCD header
@@ -62,10 +62,10 @@ static unsigned int read_int(fstream &file)
     the time step inforamtion in the file will be invalid. analyze() will print a warning
     if it is called out of sequence.
 */
-DCDDumpWriter::DCDDumpWriter(boost::shared_ptr<SystemDefinition> sysdef,
+DCDDumpWriter::DCDDumpWriter(std::shared_ptr<SystemDefinition> sysdef,
                              const std::string &fname,
                              unsigned int period,
-                             boost::shared_ptr<ParticleGroup> group,
+                             std::shared_ptr<ParticleGroup> group,
                              bool overwrite)
     : Analyzer(sysdef), m_fname(fname), m_start_timestep(0), m_period(period), m_group(group),
       m_num_frames_written(0), m_last_written_step(0), m_appending(false),
@@ -89,19 +89,22 @@ void DCDDumpWriter::initFileIO(unsigned int timestep)
         m_exec_conf->msg->notice(3) << "dump.dcd: Appending to existing DCD file \"" << m_fname << "\"" << endl;
 
         // open the file and get data from the header
-        fstream file;
-        m_file.open(m_fname.c_str(), ios::ate | ios::in | ios::out | ios::binary);
+        m_file.open(m_fname.c_str(), ios::in | ios::out | ios::binary);
         m_file.seekp(NFILE_POS);
 
-        m_num_frames_written = read_int(file);
-        m_start_timestep = read_int(file);
-        unsigned int file_period = read_int(file);
+        m_num_frames_written = read_int(m_file);
+        m_start_timestep = read_int(m_file);
+        unsigned int file_period = read_int(m_file);
+
+        m_exec_conf->msg->notice(4) << "dump.dcd: File has " << m_num_frames_written
+                                    << " frames | start timestep: " << m_start_timestep
+                                    << " | and period " << m_period << endl;
 
         // warn the user if we are now dumping at a different period
         if (file_period != m_period)
             m_exec_conf->msg->warning() << "dump.dcd: appending to a file that has period " << file_period << " that is not the same as the requested period of " << m_period << endl;
 
-        m_last_written_step = read_int(file);
+        m_last_written_step = read_int(m_file);
 
         // check for errors
         if (!m_file.good())
@@ -200,6 +203,10 @@ void DCDDumpWriter::analyze(unsigned int timestep)
 */
 void DCDDumpWriter::write_file_header(std::fstream &file)
     {
+     m_exec_conf->msg->notice(4) << "dump.dcd: Creating dcd file "
+                                 << " | start timestep: " << m_start_timestep
+                                 << " | and period " << m_period << endl;
+
     // the first 4 bytes in the file must be 84
     write_int(file, 84);
 
@@ -402,10 +409,10 @@ void DCDDumpWriter::write_updated_header(std::fstream &file, unsigned int timest
     write_int(file, timestep);
     }
 
-void export_DCDDumpWriter()
+void export_DCDDumpWriter(py::module& m)
     {
-    class_<DCDDumpWriter, boost::shared_ptr<DCDDumpWriter>, bases<Analyzer>, boost::noncopyable>
-    ("DCDDumpWriter", init< boost::shared_ptr<SystemDefinition>, std::string, unsigned int, boost::shared_ptr<ParticleGroup>, bool>())
+    py::class_<DCDDumpWriter, std::shared_ptr<DCDDumpWriter> >(m,"DCDDumpWriter",py::base<Analyzer>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::string, unsigned int, std::shared_ptr<ParticleGroup>, bool>())
     .def("setUnwrapFull", &DCDDumpWriter::setUnwrapFull)
     .def("setUnwrapRigid", &DCDDumpWriter::setUnwrapRigid)
     .def("setAngleZ", &DCDDumpWriter::setAngleZ)

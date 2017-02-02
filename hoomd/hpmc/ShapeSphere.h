@@ -133,10 +133,7 @@ struct ShapeSphere
     DEVICE bool hasOrientation() const { return false; }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return params.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const { return params.ignore & 0x01; }
+    DEVICE bool ignoreStatistics() const { return params.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const
@@ -161,7 +158,7 @@ struct ShapeSphere
 
     quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
 
-    sph_params params;        //!< Sphere and ignore flags
+    const sph_params &params;        //!< Sphere and ignore flags
     };
 
 //! Check if circumspheres overlap

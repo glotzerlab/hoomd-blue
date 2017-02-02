@@ -9,12 +9,11 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
  * Required:
      * Python >= 2.7
      * numpy >= 1.7
-     * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5, intel 15)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
-     * MPI (tested with OpenMPI, MVAPICH, impi)
+     * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
  * Useful developer tools
      * Git >= 1.7.0
@@ -23,8 +22,8 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
 Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Most cluster administrators provide versions of python, numpy, mpi, and cuda as modules. Some provide boost, and a few
-provide boost with a working boost::python. Here are the module commands necessary to load prerequisites at national
+Most cluster administrators provide versions of python, numpy, mpi, and cuda as modules.
+Here are the module commands necessary to load prerequisites at national
 supercomputers. Each code block also specifies a recommended install location ``${SOFTWARE_ROOT}`` where hoomd can
 be loaded on the compute nodes with minimal file system impact. On many clusters, administrators will block your account
 without warning if you launch hoomd from ``$HOME``.
@@ -41,9 +40,9 @@ without warning if you launch hoomd from ``$HOME``.
 
 Put these commands in your ``~/.modules`` file to have a working environment available every time you log in.
 
-You must specify ``BOOST_ROOT`` manually on the cmake command line. You can select python2 or python3::
+You can select python2 or python3::
 
-    cmake /path/to/hoomd -DPYTHON_EXECUTABLE=`which python3` -DBOOST_ROOT=${BWPY_DIR} -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
+    cmake /path/to/hoomd -DPYTHON_EXECUTABLE=`which python3` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
 To run hoomd on blue waters, set ``PYTHONPATH``, and execute aprun::
 
@@ -54,12 +53,11 @@ To run hoomd on blue waters, set ``PYTHONPATH``, and execute aprun::
 
     module unload PrgEnv-pgi
     module load PrgEnv-gnu
-    module load cmake/2.8.11.2
+    module load cmake
     module load git
     module load cudatoolkit
-    module load python/3.4.3
+    module load python/3.5.1
     module load python_numpy/1.9.2
-    module load boost/1.60.0
     # need gcc first on the search path
     module unload gcc/4.9.0
     module load gcc/4.9.0
@@ -75,7 +73,6 @@ For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/
     module load git
     module load python/3.4.3
     module load python_numpy/1.9.2
-    module load boost/1.60.0
     export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/eos
     # need gcc first on the search path
     module unload gcc/4.9.0
@@ -90,25 +87,16 @@ For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/
 
     module purge
     module load python
-    module unload intel
-    module load intel/2015.2.164
+    module load gnu
     module load mvapich2_ib
     module load gnutools
     module load scipy
     module load cmake
     module load cuda/7.0
 
-    export CC=`which icc`
-    export CXX=`which icpc`
+    export CC=`which gcc`
+    export CXX=`which g++`
     export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
-
-Comet's boost module includes boost::python, but it is broken so you need to build boost (see :ref:`building-boost`).
-
-.. note::
-    The python module on comet provides both python2. You need to force hoomd to build
-    against python2::
-
-        cmake $HOME/devel/hoomd -DPYTHON_EXECUTABLE=`which python2` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
 .. note::
     CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
@@ -133,18 +121,17 @@ XSEDE TACC Stampede::
     export CXX=`which icpc`
     export SOFTWARE_ROOT=${WORK}/software
 
-Stampede's boost module does not include boost::python, you need to build boost (see :ref:`building-boost`).
-
-.. note::
-    Stampede admins highly recommend building with the intel compiler and MPI libraries. They attribute random crashes
-    to the mvapich library and GNU compiler.
-
 .. note::
     CUDA libraries are only available on GPU nodes on Stampede. To run on the CPU-only nodes, you must build hoomd
     with ENABLE_CUDA=off.
 
 .. note::
     Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
+
+.. warning:
+    HOOMD-blue is no longer tested with the intel compiler. Numerous compiler bugs in Intel 2015 prevent it from
+    building hoomd. HOOMD developers do not currently have access to stampede to generate new build instructions
+    using gcc.
 
 For more information, see: https://portal.tacc.utexas.edu/user-guides/stampede
 
@@ -157,7 +144,6 @@ If you are running on Darwin and will not be using GPUs::
     module load default-impi
     module load cmake
     module load python/2.7.10
-    module load boost/1.60/gcc-5.2.0-python-2.7.10
 
     export CC=`which gcc`
     export CXX=`which c++`
@@ -166,10 +152,7 @@ If you are running on Darwin and will not be using GPUs::
 To build, include the following additional `cmake` options::
 
     -DPYTHON_EXECUTABLE=`which python` \
-    -DBOOST_ROOT=$BOOST_HOME \
     -DENABLE_MPI=ON \
-    -DBOOST_LIBRARYDIR=${BOOST_HOME}/lib \
-    -DBoost_REALPATH=ON \
     -DMPIEXEC=`which mpirun`
 
 If you are running on Wilkes, you will need to include CUDA support::
@@ -180,7 +163,6 @@ If you are running on Wilkes, you will need to include CUDA support::
     module load cmake
     module load gcc/4.9.2
     module load python/2.7.5
-    module load boost/1.55/boost_1.55.0-gcc-python_2.7.5
     module load cuda
 
     export CC=`which gcc`
@@ -191,10 +173,7 @@ To build, include the following additional `cmake` options::
 
     -DPYTHON_EXECUTABLE=`which python` \
     -DHOOMD_PYTHON_LIBRARY=/usr/local/Cluster-Apps/python/2.7.5/lib64/libpython2.7.so \
-    -DBOOST_ROOT=$BOOST_HOME \
     -DENABLE_MPI=ON \
-    -DBOOST_LIBRARYDIR=${BOOST_HOME}/lib \
-    -DBoost_REALPATH=ON \
     -DMPIEXEC=`which mpirun`
 
 Note that the Darwin and Wilkes clusters have the same software environment
@@ -202,67 +181,27 @@ and shared filesystems, so you can build for Wilkes and use on Darwin.
 However, as of March 2016, module incompatibilities necessitate older modules
 and a quirk in the python installation requires explicitly setting the `libpython` location.
 
-.. _building-boost:
-
-Building boost on clusters
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Not all clusters have a functioning boost::python library. On these systems, you will need to build your own boost
-library. Download and unpack the latest version of the boost source code.
-
-Then run the following in the shell. The variables are set for Comet, you will need to change the python version
-and root directory to match your cluster::
-
-    PREFIX="${SOFTWARE_ROOT}"
-    PY_VER="2.7"
-    PYTHON="/opt/python/bin/python2.7"
-    PYTHON_ROOT="/opt/python"
-
-    ./bootstrap.sh \
-            --prefix="${PREFIX}" \
-            --with-python="${PYTHON}" \
-            --with-python-root="${PYTHON_ROOT} : ${PYTHON_ROOT}/include/python${PY_VER}m ${PYTHON_ROOT}/include/python${PY_VER}"
-
-    ./b2 -q \
-            --ignore-site-config \
-            variant=release \
-            architecture=x86 \
-            debug-symbols=off \
-            threading=multi \
-            runtime-link=shared \
-            link=shared \
-            toolset=gcc \
-            python="${PY_VER}" \
-            --layout=system \
-            -j20 \
-            install
-
-Then set ``BOOST_ROOT=${SOFTWARE_ROOT}`` before running cmake.
-
 Installing prerequisites on a workstation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On your workstation, use your systems package manager to install all of the prerequisite libraries. Some linux
-distributions separate ``-dev`` and normal packages, you need the development packages to build hoomd. Also, many linux
-distributions ship both python2 and python3, but only build boost against python2. On such systems, you need to force
-hoomd to build against python2. Check the hoomd-users mailing lists for posts by users who share their hoomd build
-instructions on a variety of distributions.
+distributions separate ``-dev`` and normal packages, you need the development packages to build hoomd.
 
 Installing prerequisites with conda
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Conda is very useful as a delivery platform for `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_,
-and we do recommend only using it for that purpose. However, many users do wish to use conda to provide development
+and we do recommend only using it for that purpose. However, many users wish to use conda to provide development
 perquisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
-ensure that all libraries (mpi, boost, python, etc...) are linked from the conda environment. First, install miniconda.
+ensure that all libraries (mpi, python, etc...) are linked from the conda environment. First, install miniconda.
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
     conda uninstall hoomd
-    conda install boost sphinx git mpich2 numpy cmake pkg-config sqlite
+    conda install sphinx git mpich2 numpy cmake pkg-config sqlite
 
-Check the CMake configuration to ensure that it finds python, boost, numpy, and MPI from within the conda installation.
+Check the CMake configuration to ensure that it finds python, numpy, and MPI from within the conda installation.
 If any of these library or include files reference directories other than your conda environment, you will need to
-set the appropriate setting for ``BOOST_ROOT``, ``PYTHON_EXECUTABLE``, etc...
+set the appropriate setting for ``PYTHON_EXECUTABLE``, etc...
 
 .. _compile-hoomd:
 
@@ -341,7 +280,6 @@ Options that specify library versions only take effect on a clean invocation of 
 remove `CMakeCache.txt` and then run cmake and specify these options on the command line:
 
 * **PYTHON_EXECUTABLE** - Specify python to build against. Example: /usr/bin/python2
-* **BOOST_ROOT** - Specify root directory to search for boost. Example: /sw/rhel7/boost-1.60.0
 
 Other option changes take effect at any time. These can be set from within `ccmake` or on the command line:
 
@@ -379,6 +317,7 @@ Other option changes take effect at any time. These can be set from within `ccma
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
 * **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
+* **COPY_HEADERS** - When ON (OFF is default), copy header files into the build directory to make it a valid plugin build source
 
 These options control CUDA compilation:
 

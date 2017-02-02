@@ -33,13 +33,9 @@
 /*! \file module.cc
     \brief Export classes to python
 */
-
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
-
-using namespace boost::python;
 using namespace hpmc;
 using namespace std;
+namespace py = pybind11;
 
 namespace hpmc
 {
@@ -60,66 +56,88 @@ namespace detail
 using namespace hpmc::detail;
 
 //! Define the _hpmc python module exports
-BOOST_PYTHON_MODULE(_hpmc)
+PYBIND11_PLUGIN(_hpmc)
     {
-    export_IntegratorHPMC();
+    py::module m("_hpmc");
 
-    export_UpdaterBoxMC();
-    export_external_fields();
-    export_shape_params();
+    export_IntegratorHPMC(m);
 
-    export_sphere();
-    export_convex_polygon();
-    export_simple_polygon();
-    export_spheropolygon();
-    export_polyhedron();
-    export_ellipsoid();
-    export_faceted_sphere();
-    export_sphinx();
-    export_union_sphere();
-    export_convex_polyhedron8();
-    export_convex_polyhedron16();
-    export_convex_polyhedron32();
-    export_convex_polyhedron64();
-    export_convex_polyhedron128();
-    export_convex_spheropolyhedron8();
-    export_convex_spheropolyhedron16();
-    export_convex_spheropolyhedron32();
-    export_convex_spheropolyhedron64();
-    export_convex_spheropolyhedron128();
+    export_UpdaterBoxMC(m);
+    export_external_fields(m);
+    export_shape_params(m);
 
-    class_<sph_params, boost::shared_ptr<sph_params> >("sph_params");
-    class_<ell_params, boost::shared_ptr<ell_params> >("ell_params");
-    class_<poly2d_verts, boost::shared_ptr<poly2d_verts> >("poly2d_verts");
-    class_<poly3d_data, boost::shared_ptr<poly3d_data> >("poly3d_data");
-    class_< poly3d_verts<8>, boost::shared_ptr< poly3d_verts<8> > >("poly3d_verts8");
-    class_< poly3d_verts<16>, boost::shared_ptr< poly3d_verts<16> > >("poly3d_verts16");
-    class_< poly3d_verts<32>, boost::shared_ptr< poly3d_verts<32> > >("poly3d_verts32");
-    class_< poly3d_verts<64>, boost::shared_ptr< poly3d_verts<64> > >("poly3d_verts64");
-    class_< poly3d_verts<128>, boost::shared_ptr< poly3d_verts<128> > >("poly3d_verts128");
-    class_<ShapePolyhedron::param_type, boost::shared_ptr<ShapePolyhedron::param_type> >("poly3d_params");
-    class_<faceted_sphere_params, boost::shared_ptr<faceted_sphere_params> >("faceted_sphere_params");
-    class_<sphinx3d_params, boost::shared_ptr<sphinx3d_params> >("sphinx3d_params")
+    export_sphere(m);
+    export_convex_polygon(m);
+    export_simple_polygon(m);
+    export_spheropolygon(m);
+    export_polyhedron(m);
+    export_ellipsoid(m);
+    export_faceted_sphere(m);
+    export_sphinx(m);
+    export_union_sphere8(m);
+    export_union_sphere16(m);
+    export_union_sphere32(m);
+    export_union_sphere64(m);
+    export_union_sphere128(m);
+    export_union_sphere256(m);
+    export_union_sphere512(m);
+    export_convex_polyhedron8(m);
+    export_convex_polyhedron16(m);
+    export_convex_polyhedron32(m);
+    export_convex_polyhedron64(m);
+    export_convex_polyhedron128(m);
+    export_convex_spheropolyhedron8(m);
+    export_convex_spheropolyhedron16(m);
+    export_convex_spheropolyhedron32(m);
+    export_convex_spheropolyhedron64(m);
+    export_convex_spheropolyhedron128(m);
+
+    py::class_<sph_params, std::shared_ptr<sph_params> >(m, "sph_params");
+    py::class_<ell_params, std::shared_ptr<ell_params> >(m, "ell_params");
+    py::class_<poly2d_verts, std::shared_ptr<poly2d_verts> >(m, "poly2d_verts");
+    py::class_<poly3d_data, std::shared_ptr<poly3d_data> >(m, "poly3d_data");
+    py::class_< poly3d_verts<8>, std::shared_ptr< poly3d_verts<8> > >(m, "poly3d_verts8");
+    py::class_< poly3d_verts<16>, std::shared_ptr< poly3d_verts<16> > >(m, "poly3d_verts16");
+    py::class_< poly3d_verts<32>, std::shared_ptr< poly3d_verts<32> > >(m, "poly3d_verts32");
+    py::class_< poly3d_verts<64>, std::shared_ptr< poly3d_verts<64> > >(m, "poly3d_verts64");
+    py::class_< poly3d_verts<128>, std::shared_ptr< poly3d_verts<128> > >(m, "poly3d_verts128");
+    py::class_<ShapePolyhedron::param_type, std::shared_ptr<ShapePolyhedron::param_type> >(m, "poly3d_params");
+    py::class_<faceted_sphere_params, std::shared_ptr<faceted_sphere_params> >(m, "faceted_sphere_params");
+    py::class_<sphinx3d_params, std::shared_ptr<sphinx3d_params> >(m, "sphinx3d_params")
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
-    class_< union_params<ShapeSphere>, boost::shared_ptr< union_params<ShapeSphere> > >("msph_params");
+    py::class_< ShapeUnion<ShapeSphere, 8>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 8>::param_type> >(m, "msph_params8");
+    py::class_< ShapeUnion<ShapeSphere, 16>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 16>::param_type> >(m, "msph_params16");
+    py::class_< ShapeUnion<ShapeSphere, 32>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 32>::param_type> >(m, "msph_params32");
+    py::class_< ShapeUnion<ShapeSphere, 64>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 64>::param_type> >(m, "msph_params64");
+    py::class_< ShapeUnion<ShapeSphere, 128>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 128>::param_type> >(m, "msph_params128");
+    py::class_< ShapeUnion<ShapeSphere, 256>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 256>::param_type> >(m, "msph_params256");
+    py::class_< ShapeUnion<ShapeSphere, 512>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 512>::param_type> >(m, "msph_params512");
 
-    def("make_poly2d_verts", &make_poly2d_verts);
-    def("make_poly3d_data", &make_poly3d_data);
-    def("make_poly3d_verts8", &make_poly3d_verts<8>);
-    def("make_poly3d_verts16", &make_poly3d_verts<16>);
-    def("make_poly3d_verts32", &make_poly3d_verts<32>);
-    def("make_poly3d_verts64", &make_poly3d_verts<64>);
-    def("make_poly3d_verts128", &make_poly3d_verts<128>);
-    def("make_ell_params", &make_ell_params);
-    def("make_sph_params", &make_sph_params);
-    def("make_faceted_sphere", &make_faceted_sphere);
-    def("make_sphinx3d_params", &make_sphinx3d_params);
-    def("make_sphere_union_params", &make_union_params<ShapeSphere>);
-    def("make_overlapreal3", &make_overlapreal3);
-    def("make_overlapreal4", &make_overlapreal4);
+    m.def("make_poly2d_verts", &make_poly2d_verts);
+    m.def("make_poly3d_data", &make_poly3d_data);
+    m.def("make_poly3d_verts8", &make_poly3d_verts<8>);
+    m.def("make_poly3d_verts16", &make_poly3d_verts<16>);
+    m.def("make_poly3d_verts32", &make_poly3d_verts<32>);
+    m.def("make_poly3d_verts64", &make_poly3d_verts<64>);
+    m.def("make_poly3d_verts128", &make_poly3d_verts<128>);
+    m.def("make_ell_params", &make_ell_params);
+    m.def("make_sph_params", &make_sph_params);
+    m.def("make_faceted_sphere", &make_faceted_sphere);
+    m.def("make_sphinx3d_params", &make_sphinx3d_params);
+    m.def("make_sphere_union_params8", &make_union_params<ShapeSphere, 8>);
+    m.def("make_sphere_union_params16", &make_union_params<ShapeSphere, 16>);
+    m.def("make_sphere_union_params32", &make_union_params<ShapeSphere, 32>);
+    m.def("make_sphere_union_params64", &make_union_params<ShapeSphere, 64>);
+    m.def("make_sphere_union_params128", &make_union_params<ShapeSphere, 128>);
+    m.def("make_sphere_union_params256", &make_union_params<ShapeSphere, 256>);
+    m.def("make_sphere_union_params512", &make_union_params<ShapeSphere, 512>);
+    m.def("make_overlapreal3", &make_overlapreal3);
+    m.def("make_overlapreal4", &make_overlapreal4);
 
     // export counters
-    export_hpmc_implicit_counters();
+    export_hpmc_implicit_counters(m);
+
+    return m.ptr();
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

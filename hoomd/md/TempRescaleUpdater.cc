@@ -11,8 +11,7 @@
 
 #include "TempRescaleUpdater.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #include <iostream>
 #include <math.h>
@@ -24,9 +23,9 @@ using namespace std;
     \param thermo ComputeThermo to compute the temperature with
     \param tset Temperature set point
 */
-TempRescaleUpdater::TempRescaleUpdater(boost::shared_ptr<SystemDefinition> sysdef,
-                                       boost::shared_ptr<ComputeThermo> thermo,
-                                       boost::shared_ptr<Variant> tset)
+TempRescaleUpdater::TempRescaleUpdater(std::shared_ptr<SystemDefinition> sysdef,
+                                       std::shared_ptr<ComputeThermo> thermo,
+                                       std::shared_ptr<Variant> tset)
         : Updater(sysdef), m_thermo(thermo), m_tset(tset)
     {
     m_exec_conf->msg->notice(5) << "Constructing TempRescaleUpdater" << endl;
@@ -113,17 +112,17 @@ void TempRescaleUpdater::update(unsigned int timestep)
 /*! \param tset New temperature set point
     \note The new set point doesn't take effect until the next call to update()
 */
-void TempRescaleUpdater::setT(boost::shared_ptr<Variant> tset)
+void TempRescaleUpdater::setT(std::shared_ptr<Variant> tset)
     {
     m_tset = tset;
     }
 
-void export_TempRescaleUpdater()
+void export_TempRescaleUpdater(py::module& m)
     {
-    class_<TempRescaleUpdater, boost::shared_ptr<TempRescaleUpdater>, bases<Updater>, boost::noncopyable>
-    ("TempRescaleUpdater", init< boost::shared_ptr<SystemDefinition>,
-                                 boost::shared_ptr<ComputeThermo>,
-                                 boost::shared_ptr<Variant> >())
+    py::class_<TempRescaleUpdater, std::shared_ptr<TempRescaleUpdater> >(m, "TempRescaleUpdater", py::base<Updater>())
+    .def(py::init< std::shared_ptr<SystemDefinition>,
+                                 std::shared_ptr<ComputeThermo>,
+                                 std::shared_ptr<Variant> >())
     .def("setT", &TempRescaleUpdater::setT)
     ;
     }

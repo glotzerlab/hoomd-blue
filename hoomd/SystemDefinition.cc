@@ -15,10 +15,9 @@
 #include "Communicator.h"
 #endif
 
-#include <boost/python.hpp>
+namespace py = pybind11;
 
 using namespace std;
-using namespace boost::python;
 
 /*! \post All shared pointers contained in SystemDefinition are NULL
 */
@@ -47,18 +46,19 @@ SystemDefinition::SystemDefinition(unsigned int N,
                                    unsigned int n_angle_types,
                                    unsigned int n_dihedral_types,
                                    unsigned int n_improper_types,
-                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                   boost::shared_ptr<DomainDecomposition> decomposition)
+                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   std::shared_ptr<DomainDecomposition> decomposition)
     {
     m_n_dimensions = 3;
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
+    m_particle_data = std::shared_ptr<ParticleData>(new ParticleData(N, box, n_types, exec_conf, decomposition));
+    m_bond_data = std::shared_ptr<BondData>(new BondData(m_particle_data, n_bond_types));
 
-    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
-    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
-    m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
-    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
-    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData());
+    m_angle_data = std::shared_ptr<AngleData>(new AngleData(m_particle_data, n_angle_types));
+    m_dihedral_data = std::shared_ptr<DihedralData>(new DihedralData(m_particle_data, n_dihedral_types));
+    m_improper_data = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, n_improper_types));
+    m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, 0));
+    m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, 0));
+    m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData());
     }
 
 /*! Evaluates the snapshot and initializes the respective *Data classes using
@@ -68,13 +68,13 @@ SystemDefinition::SystemDefinition(unsigned int N,
     \param decomposition (optional) The domain decomposition layout
 */
 template <class Real>
-SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> > snapshot,
-                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                   boost::shared_ptr<DomainDecomposition> decomposition)
+SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<Real> > snapshot,
+                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   std::shared_ptr<DomainDecomposition> decomposition)
     {
     setNDimensions(snapshot->dimensions);
 
-    m_particle_data = boost::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
+    m_particle_data = std::shared_ptr<ParticleData>(new ParticleData(snapshot->particle_data,
                  snapshot->global_box,
                  exec_conf,
                  decomposition));
@@ -85,16 +85,17 @@ SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<Real> >
         bcast(m_n_dimensions, 0,exec_conf->getMPICommunicator());
     #endif
 
-    m_bond_data = boost::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
+    m_bond_data = std::shared_ptr<BondData>(new BondData(m_particle_data, snapshot->bond_data));
 
-    m_angle_data = boost::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
+    m_angle_data = std::shared_ptr<AngleData>(new AngleData(m_particle_data, snapshot->angle_data));
 
-    m_dihedral_data = boost::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
+    m_dihedral_data = std::shared_ptr<DihedralData>(new DihedralData(m_particle_data, snapshot->dihedral_data));
 
-    m_improper_data = boost::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
+    m_improper_data = std::shared_ptr<ImproperData>(new ImproperData(m_particle_data, snapshot->improper_data));
 
-    m_constraint_data = boost::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
-    m_integrator_data = boost::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
+    m_constraint_data = std::shared_ptr<ConstraintData>(new ConstraintData(m_particle_data, snapshot->constraint_data));
+    m_pair_data = std::shared_ptr<PairData>(new PairData(m_particle_data, snapshot->pair_data));
+    m_integrator_data = std::shared_ptr<IntegratorData>(new IntegratorData(snapshot->integrator_data));
     }
 
 /*! Sets the dimensionality of the system.  When quantities involving the dof of
@@ -120,17 +121,19 @@ void SystemDefinition::setNDimensions(unsigned int n_dimensions)
  *  \param impropers True if improper data should be saved
  *  \param constraints True if constraint data should be saved
  *  \param integrators True if integrator data should be saved
+ *  \param pairs True if pair data should be saved
  */
 template <class Real>
-boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool particles,
+std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool particles,
                                                    bool bonds,
                                                    bool angles,
                                                    bool dihedrals,
                                                    bool impropers,
                                                    bool constraints,
-                                                   bool integrators)
+                                                   bool integrators,
+                                                   bool pairs)
     {
-    boost::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
+    std::shared_ptr< SnapshotSystemData<Real> > snap(new SnapshotSystemData<Real>);
 
     // always save dimensions and global box
     snap->dimensions = m_n_dimensions;
@@ -184,6 +187,14 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
     else
         snap->has_constraint_data = false;
 
+    if (pairs)
+        {
+        m_pair_data->takeSnapshot(snap->pair_data);
+        snap->has_pair_data = true;
+        }
+    else
+        snap->has_pair_data = false;
+
     if (integrators)
         {
         for (unsigned int i = 0; i < m_integrator_data->getNumIntegrators(); ++i)
@@ -197,9 +208,9 @@ boost::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(boo
 
 //! Re-initialize the system from a snapshot
 template <class Real>
-void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemData<Real> > snapshot)
+void SystemDefinition::initializeFromSnapshot(std::shared_ptr< SnapshotSystemData<Real> > snapshot)
     {
-    boost::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
+    std::shared_ptr<const ExecutionConfiguration> exec_conf = m_particle_data->getExecConf();
 
     m_n_dimensions = snapshot->dimensions;
 
@@ -230,6 +241,9 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     if (snapshot->has_constraint_data)
         m_constraint_data->initializeFromSnapshot(snapshot->constraint_data);
 
+    if (snapshot->has_pair_data)
+        m_pair_data->initializeFromSnapshot(snapshot->pair_data);
+
     // it is an error to load variables for more integrators than are
     // currently registered
     if (snapshot->has_integrator_data)
@@ -250,39 +264,42 @@ void SystemDefinition::initializeFromSnapshot(boost::shared_ptr< SnapshotSystemD
     }
 
 // instantiate both float and double methods
-template SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<float> > snapshot,
-                                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                                   boost::shared_ptr<DomainDecomposition> decomposition);
-template boost::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnapshot<float>(bool particles,
+template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<float> > snapshot,
+                                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                                   std::shared_ptr<DomainDecomposition> decomposition);
+template std::shared_ptr< SnapshotSystemData<float> > SystemDefinition::takeSnapshot<float>(bool particles,
                                                                                               bool bonds,
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool integrators);
-template void SystemDefinition::initializeFromSnapshot<float>(boost::shared_ptr< SnapshotSystemData<float> > snapshot);
+                                                                                              bool integrators,
+                                                                                              bool pairs);
+template void SystemDefinition::initializeFromSnapshot<float>(std::shared_ptr< SnapshotSystemData<float> > snapshot);
 
-template SystemDefinition::SystemDefinition(boost::shared_ptr< SnapshotSystemData<double> > snapshot,
-                                                   boost::shared_ptr<ExecutionConfiguration> exec_conf,
-                                                   boost::shared_ptr<DomainDecomposition> decomposition);
-template boost::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSnapshot<double>(bool particles,
+template SystemDefinition::SystemDefinition(std::shared_ptr< SnapshotSystemData<double> > snapshot,
+                                                   std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                                   std::shared_ptr<DomainDecomposition> decomposition);
+template std::shared_ptr< SnapshotSystemData<double> > SystemDefinition::takeSnapshot<double>(bool particles,
                                                                                               bool bonds,
                                                                                               bool angles,
                                                                                               bool dihedrals,
                                                                                               bool impropers,
                                                                                               bool constraints,
-                                                                                              bool integrators);
-template void SystemDefinition::initializeFromSnapshot<double>(boost::shared_ptr< SnapshotSystemData<double> > snapshot);
+                                                                                              bool integrators,
+                                                                                              bool pairs);
+template void SystemDefinition::initializeFromSnapshot<double>(std::shared_ptr< SnapshotSystemData<double> > snapshot);
 
-void export_SystemDefinition()
+void export_SystemDefinition(py::module& m)
     {
-    class_<SystemDefinition, boost::shared_ptr<SystemDefinition> >("SystemDefinition", init<>())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
-    .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
-    .def(init<boost::shared_ptr< SnapshotSystemData<float> >, boost::shared_ptr<ExecutionConfiguration> >())
-    .def(init<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr<ExecutionConfiguration>, boost::shared_ptr<DomainDecomposition> >())
-    .def(init<boost::shared_ptr< SnapshotSystemData<double> >, boost::shared_ptr<ExecutionConfiguration> >())
+    py::class_<SystemDefinition, std::shared_ptr<SystemDefinition> >(m,"SystemDefinition")
+    .def(py::init<>())
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    .def(py::init<unsigned int, const BoxDim&, unsigned int, unsigned int, unsigned int, unsigned int, unsigned int, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<float> >, std::shared_ptr<ExecutionConfiguration> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(py::init<std::shared_ptr< SnapshotSystemData<double> >, std::shared_ptr<ExecutionConfiguration> >())
     .def("setNDimensions", &SystemDefinition::setNDimensions)
     .def("getNDimensions", &SystemDefinition::getNDimensions)
     .def("getParticleData", &SystemDefinition::getParticleData)
@@ -292,6 +309,7 @@ void export_SystemDefinition()
     .def("getImproperData", &SystemDefinition::getImproperData)
     .def("getConstraintData", &SystemDefinition::getConstraintData)
     .def("getIntegratorData", &SystemDefinition::getIntegratorData)
+    .def("getPairData", &SystemDefinition::getPairData)
     .def("takeSnapshot_float", &SystemDefinition::takeSnapshot<float>)
     .def("takeSnapshot_double", &SystemDefinition::takeSnapshot<double>)
     .def("initializeFromSnapshot", &SystemDefinition::initializeFromSnapshot<float>)

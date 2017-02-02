@@ -7,8 +7,7 @@
 #include "SystemDefinition.h"
 #include "Profiler.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -22,6 +21,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -42,7 +43,7 @@
     calculate forces, and calculate temperatures, just to name a few.
 
     For performance and simplicity, each compute is associated with a ParticleData
-    on construction. ParticleData pointers are managed with reference counted boost::shared_ptr.
+    on construction. ParticleData pointers are managed with reference counted std::shared_ptr.
     Since each ParticleData cannot change size, this allows the Compute to preallocate
     any data structures that it may need.
 
@@ -55,18 +56,18 @@
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class Compute : boost::noncopyable
+class Compute
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
-        Compute(boost::shared_ptr<SystemDefinition> sysdef);
+        Compute(std::shared_ptr<SystemDefinition> sysdef);
         virtual ~Compute() {};
 
         //! Abstract method that performs the computation
         /*! \param timestep Current time step
             Derived classes will implement this method to calculate their results
         */
-        virtual void compute(unsigned int timestep) = 0;
+        virtual void compute(unsigned int timestep){}
 
         //! Abstract method that performs a benchmark
         virtual double benchmark(unsigned int num_iters);
@@ -76,21 +77,17 @@ class Compute : boost::noncopyable
             call all of the Compute's printStats functions at the end of a run
             so the user can see useful information
         */
-        virtual void printStats()
-            {
-            }
+        virtual void printStats(){}
 
         //! Reset stat counters
         /*! If derived classes implement printStats, they should also implement resetStats() to clear any running
             counters printed by printStats. System will reset the stats before any run() so that stats printed
             at the end of the run only apply to that run() alone.
         */
-        virtual void resetStats()
-            {
-            }
+        virtual void resetStats(){}
 
         //! Sets the profiler for the compute to use
-        void setProfiler(boost::shared_ptr<Profiler> prof);
+        void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -134,27 +131,27 @@ class Compute : boost::noncopyable
          *  been calculated earlier in this timestep)
          * \param timestep current timestep
          */
-        virtual void forceCompute(unsigned int timestep);
+        void forceCompute(unsigned int timestep);
 
 #ifdef ENABLE_MPI
         //! Set communicator this Compute is to use
         /*! \param comm The communicator
          */
-        virtual void setCommunicator(boost::shared_ptr<Communicator> comm)
+        virtual void setCommunicator(std::shared_ptr<Communicator> comm)
             {
             m_comm = comm;
             }
 #endif
 
     protected:
-        const boost::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
-        const boost::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
-        boost::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
-        boost::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
+        const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
+        const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
+        std::shared_ptr<Profiler> m_prof;                 //!< The profiler this compute is to use
+        std::shared_ptr<const ExecutionConfiguration> exec_conf; //!< Stored shared ptr to the execution configuration
 #ifdef ENABLE_MPI
-        boost::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
+        std::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif
-        boost::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_force_compute;           //!< true if calculation is enforced
 
         //! Simple method for testing if the computation should be run or not
@@ -169,6 +166,8 @@ class Compute : boost::noncopyable
     };
 
 //! Exports the Compute class to python
-void export_Compute();
+#ifndef NVCC
+void export_Compute(pybind11::module& m);
+#endif
 
 #endif

@@ -12,17 +12,12 @@
 
 #include "HarmonicImproperForceComputeGPU.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-using namespace boost;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \param sysdef System to compute improper forces on
 */
-HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef)
+HarmonicImproperForceComputeGPU::HarmonicImproperForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef)
         : HarmonicImproperForceCompute(sysdef)
     {
     // can't run on the GPU if there aren't any GPUs in the execution configuration
@@ -105,9 +100,9 @@ void HarmonicImproperForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
-void export_HarmonicImproperForceComputeGPU()
+void export_HarmonicImproperForceComputeGPU(py::module& m)
     {
-    class_<HarmonicImproperForceComputeGPU, boost::shared_ptr<HarmonicImproperForceComputeGPU>, bases<HarmonicImproperForceCompute>, boost::noncopyable >
-    ("HarmonicImproperForceComputeGPU", init< boost::shared_ptr<SystemDefinition> >())
+    py::class_<HarmonicImproperForceComputeGPU, std::shared_ptr<HarmonicImproperForceComputeGPU> >(m, "HarmonicImproperForceComputeGPU", py::base<HarmonicImproperForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition> >())
     ;
     }

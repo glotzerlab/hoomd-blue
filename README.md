@@ -1,3 +1,5 @@
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
+
 # HOOMD-blue
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
@@ -5,7 +7,7 @@ of a variety of shape classes, and molecular dynamics simulations of particles w
 and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
 many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab.engin.umich.edu/hoomd-blue).
 
-# Installing HOOMD-blue
+## Installing HOOMD-blue
 
 Official binaries of HOOMD-blue are available via [conda](http://conda.pydata.org/docs/) through
 the [glotzer channel](https://anaconda.org/glotzer).
@@ -18,7 +20,16 @@ $ conda config --add channels glotzer
 $ conda install hoomd
 ```
 
-# Compiling HOOMD-blue
+## Tutorials and examples
+
+The [hoomd-examples git repository](https://bitbucket.org/glotzer/hoomd-examples) demonstrates how to use hoomd
+with jupyter notebooks.
+
+* View a [static version of hoomd-examples at nbviewer.org](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
+* Launch an [executable version of hoomd-examples at mybinder.org](http://mybinder.org:/repo/joaander/hoomd-examples) (CPU only).
+* Or, clone the hoomd-examples repository and run on your local system.
+
+## Compiling HOOMD-blue
 
 Use cmake to configure an out of source build and make to build hoomd.
 
@@ -35,22 +46,21 @@ To run out of the build directory, add the build directory to your `PYTHONPATH`:
 export PYTHONPATH=`pwd`:$PYTHONPATH
 ```
 
-For more detailed instructions, [see the documentation](http://glotzerlab.engin.umich.edu/hoomd-blue/doc/page_compile_guide.html).
+For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
 
-## Prerequisites
+### Prerequisites
 
  * Required:
      * Python >= 2.7
      * numpy >= 1.7
-     * boost >= 1.39.0
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5, intel 15)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
-     * MPI (tested with OpenMPI, MVAPICH, impi)
+     * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
 
-# Job scripts
+## Job scripts
 
 HOOMD-blue job scripts are python scripts. You can control system initialization, run protocol, analyze simulation data,
 or develop complex workflows all with python code in your job.
@@ -71,22 +81,22 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
 all = hoomd.group.all();
 md.integrate.mode_standard(dt=0.005)
-md.integrate.nvt(group=all, kT=1.2, tau=0.5)
+hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
 # run 10,000 time steps
 hoomd.run(10e3)
 ```
 
 Save this as `lj.py` and run with `python lj.py`.
 
-# Documentation
+## Documentation
 
 Documentation for current and previous releases is available at [readthedocs](http://hoomd-blue.readthedocs.io).
 
-# Change log
+## Change log
 
 See [ChangeLog.md](ChangeLog.md).
 
-# Contributing to HOOMD-blue.
+## Contributing to HOOMD-blue.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md)
 

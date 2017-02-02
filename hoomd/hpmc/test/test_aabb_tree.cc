@@ -1,15 +1,15 @@
-//! Name the unit test module
-#define BOOST_TEST_MODULE aabb_tree
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN();
+
+
+
 #include "hoomd/AABBTree.h"
 
 #include <iostream>
 #include <algorithm>
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 
 #include "hoomd/VectorMath.h"
@@ -25,7 +25,7 @@ bool in(unsigned int i, const std::vector<unsigned int>& v)
     return (it != v.end());
     }
 
-BOOST_AUTO_TEST_CASE( basic )
+UP_TEST( basic )
     {
     // build a simple test AABB tree
     AABB aabbs[3];
@@ -42,23 +42,23 @@ BOOST_AUTO_TEST_CASE( basic )
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(2,2,0), vec3<Scalar>(2.1, 2.1, 0.1)));
-    BOOST_CHECK(in(0, hits));
+    UP_ASSERT(in(0, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.5,3,0), vec3<Scalar>(0.6, 3.1, 0.1)));
-    BOOST_CHECK(in(1, hits));
+    UP_ASSERT(in(1, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.5,0.5,0), vec3<Scalar>(0.6, 0.6, 0.1)));
-    BOOST_CHECK(in(2, hits));
+    UP_ASSERT(in(2, hits));
 
     hits.clear();
     tree.query(hits, AABB(vec3<Scalar>(0.9,0.9,0), vec3<Scalar>(1.1, 1.1, 0.1)));
-    BOOST_CHECK_EQUAL(hits.size(), 3);
+    UP_ASSERT_EQUAL(hits.size(), 3);
     }
 
 
-BOOST_AUTO_TEST_CASE( bigger )
+UP_TEST( bigger )
     {
     const unsigned int N = 1000;
     Saru rng(1);
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE( bigger )
         {
         hits.clear();
         tree.query(hits, AABB(points[i], Scalar(0.01)));
-        BOOST_CHECK(in(i, hits));
+        UP_ASSERT(in(i, hits));
         }
 
     // now move all the points with the update method and ensure that they are still found
@@ -98,6 +98,6 @@ BOOST_AUTO_TEST_CASE( bigger )
         {
         hits.clear();
         tree.query(hits, AABB(points[i], Scalar(0.01)));
-        BOOST_CHECK(in(i, hits));
+        UP_ASSERT(in(i, hits));
         }
     }

@@ -70,10 +70,7 @@ struct ShapeEllipsoid
     DEVICE bool hasOrientation() const { return !(axes.x==axes.y&&axes.x==axes.z); }
 
     //!Ignore flag for acceptance statistics
-    DEVICE bool ignoreStatistics() const { return axes.ignore>>1 & 0x01; }
-
-    //!Ignore flag for overlaps
-    DEVICE bool ignoreOverlaps() const {return axes.ignore & 0x01;}
+    DEVICE bool ignoreStatistics() const { return axes.ignore; }
 
     //! Get the circumsphere diameter
     DEVICE OverlapReal getCircumsphereDiameter() const

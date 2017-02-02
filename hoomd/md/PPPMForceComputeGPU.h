@@ -30,9 +30,9 @@ class PPPMForceComputeGPU : public PPPMForceCompute
     {
     public:
         //! Constructor
-        PPPMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-            boost::shared_ptr<NeighborList> nlist,
-            boost::shared_ptr<ParticleGroup> group);
+        PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+            std::shared_ptr<NeighborList> nlist,
+            std::shared_ptr<ParticleGroup> group);
         virtual ~PPPMForceComputeGPU();
 
         //! Set autotuner parameters
@@ -83,19 +83,19 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         virtual void fixExclusions();
 
     private:
-        boost::scoped_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
-        boost::scoped_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
-        boost::scoped_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
-        boost::scoped_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
-        boost::scoped_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
+        std::unique_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
+        std::unique_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
+        std::unique_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
+        std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
+        std::unique_ptr<Autotuner> m_tuner_influence; //!< Autotuner for computing the influence function
 
         cufftHandle m_cufft_plan;          //!< The FFT plan
         bool m_local_fft;                  //!< True if we are only doing local FFTs (not distributed)
 
         #ifdef ENABLE_MPI
         typedef CommunicatorGridGPU<cufftComplex> CommunicatorGridGPUComplex;
-        boost::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
-        boost::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_forward; //!< Communicate mesh
+        std::shared_ptr<CommunicatorGridGPUComplex> m_gpu_grid_comm_reverse; //!< Communicate fourier mesh
 
         dfft_plan m_dfft_plan_forward;     //!< Forward distributed FFT
         dfft_plan m_dfft_plan_inverse;     //!< Forward distributed FFT
@@ -128,7 +128,7 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         GPUArray<Scalar4> m_max_partial;           //!< Scratch space for reduction of maximum Fourier amplitude
     };
 
-void export_PPPMForceComputeGPU();
+void export_PPPMForceComputeGPU(pybind11::module& m);
 
 #endif // ENABLE_CUDA
 #endif // __PPPM_FORCE_COMPUTE_GPU_H__

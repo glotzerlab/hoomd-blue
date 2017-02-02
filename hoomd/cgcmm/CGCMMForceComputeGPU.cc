@@ -13,13 +13,8 @@
 #include "cuda_runtime.h"
 
 #include <stdexcept>
+namespace py = pybind11;
 
-#include <boost/python.hpp>
-using namespace boost::python;
-
-#include <boost/bind.hpp>
-
-using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
@@ -31,8 +26,8 @@ using namespace std;
     \note The CGCMMForceComputeGPU does not own the Neighborlist, the caller should
     delete the neighborlist when done.
 */
-CGCMMForceComputeGPU::CGCMMForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                                           boost::shared_ptr<NeighborList> nlist,
+CGCMMForceComputeGPU::CGCMMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                           std::shared_ptr<NeighborList> nlist,
                                            Scalar r_cut)
     : CGCMMForceCompute(sysdef, nlist, r_cut), m_block_size(64)
     {
@@ -146,7 +141,7 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     ArrayHandle<unsigned int> d_n_neigh(this->m_nlist->getNNeighArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_nlist(this->m_nlist->getNListArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_head_list(this->m_nlist->getHeadList(), access_location::device, access_mode::read);
-    
+
     ArrayHandle<Scalar4> d_coeffs(m_coeffs, access_location::device, access_mode::read);
 
     // access the particle data
@@ -183,10 +178,10 @@ void CGCMMForceComputeGPU::computeForces(unsigned int timestep)
     if (m_prof) m_prof->pop(exec_conf, flops, mem_transfer);
     }
 
-void export_CGCMMForceComputeGPU()
+void export_CGCMMForceComputeGPU(py::module& m)
     {
-    class_<CGCMMForceComputeGPU, boost::shared_ptr<CGCMMForceComputeGPU>, bases<CGCMMForceCompute>, boost::noncopyable >
-    ("CGCMMForceComputeGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<NeighborList>, Scalar >())
+    py::class_<CGCMMForceComputeGPU, std::shared_ptr<CGCMMForceComputeGPU> >(m, "CGCMMForceComputeGPU", py::base<CGCMMForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, Scalar >())
     .def("setBlockSize", &CGCMMForceComputeGPU::setBlockSize)
     ;
     }

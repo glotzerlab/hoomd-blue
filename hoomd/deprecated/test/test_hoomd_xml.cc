@@ -14,15 +14,13 @@
 
 #include <iostream>
 #include <sstream>
-#include <boost/shared_ptr.hpp>
-using namespace boost;
+#include <memory>
 
 #include <fstream>
 using namespace std;
 
-//! Name the unit test module
-#define BOOST_TEST_MODULE XMLReaderWriterTest
-#include "boost_utf_configure.h"
+#include "hoomd/test/upp11_config.h"
+HOOMD_UP_MAIN();
 
 /*! \file xml_reader_writer_test.cc
     \brief Unit tests for HOOMDDumpWriter and HOOMDumpReader
@@ -30,7 +28,7 @@ using namespace std;
 */
 
 //! Performs low level tests of HOOMDDumpWriter
-BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
+UP_TEST( HOOMDDumpWriterBasicTests )
     {
     // temporary directory for files
     std::string tmp_path = ".";
@@ -48,8 +46,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
     int n_dihedral_types = 0;
     int n_improper_types = 0;
 
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(5, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(5, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // set recognizable values for the particle
         {
@@ -228,9 +226,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         }
 
     // create the writer
-    boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,4));
-    boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
+    std::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,4));
+    std::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
 
     writer->setOutputPosition(false);
 
@@ -242,34 +240,34 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->analyze(0);
 
         // make sure the file was created
-        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000000.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000000.xml").c_str());
         string line;
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"4\" >");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"4\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</configuration>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
@@ -282,7 +280,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         writer->analyze(10);
 
         // make sure the file was created
-        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000010.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000010.xml"));
 
         // assume that the first lines tested in the first case are still OK and skip them
         ifstream f((tmp_path+"/test.0000000010.xml").c_str());
@@ -293,27 +291,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<position num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<position num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.5 2.5 -5.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 -5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.5 2.5 -3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 -3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 2.5 3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 2.5 3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</position>");
+        UP_ASSERT_EQUAL(line, "</position>");
 
         getline(f, line); // </configuration
         getline(f, line); // </HOOMD_xml
@@ -338,27 +336,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<image num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<image num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1 -5 6");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -5 6");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "10 500 900");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 500 900");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "10 500 900");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 500 900");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "105 5005 9005");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "105 5005 9005");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</image>");
+        UP_ASSERT_EQUAL(line, "</image>");
         f.close();
         unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
@@ -380,27 +378,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<velocity num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<velocity num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 56.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 56.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -10.5 5.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -10.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</velocity>");
+        UP_ASSERT_EQUAL(line, "</velocity>");
         f.close();
         unlink((tmp_path+"/test.0000000030.xml").c_str());
         }
@@ -422,27 +420,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<acceleration num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<acceleration num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1 -2 -3");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -2 -3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5 -2.5 -3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5 -2.5 -3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.5 5.5 6.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-7.5 -8.5 -9.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-7.5 -8.5 -9.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</acceleration>");
+        UP_ASSERT_EQUAL(line, "</acceleration>");
         f.close();
         unlink((tmp_path+"/test.0000000040.xml").c_str());
         }
@@ -464,27 +462,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<mass num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<mass num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</mass>");
+        UP_ASSERT_EQUAL(line, "</mass>");
         f.close();
         unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
@@ -506,27 +504,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<charge num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<charge num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</charge>");
+        UP_ASSERT_EQUAL(line, "</charge>");
         f.close();
         unlink((tmp_path+"/test.0000000060.xml").c_str());
         }
@@ -548,27 +546,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<diameter num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<diameter num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</diameter>");
+        UP_ASSERT_EQUAL(line, "</diameter>");
         f.close();
         unlink((tmp_path+"/test.0000000070.xml").c_str());
         }
@@ -590,27 +588,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<type num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<type num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "D");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "D");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "A");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "A");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "B");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "B");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "B");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "B");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</type>");
+        UP_ASSERT_EQUAL(line, "</type>");
         f.close();
         unlink((tmp_path+"/test.0000000080.xml").c_str());
         }
@@ -632,27 +630,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<body num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<body num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</body>");
+        UP_ASSERT_EQUAL(line, "</body>");
         f.close();
         unlink((tmp_path+"/test.0000000090.xml").c_str());
         }
@@ -674,27 +672,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<orientation num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<orientation num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "3 2 1 0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "3 2 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4 5 6 7");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4 5 6 7");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "7 6 5 4");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "7 6 5 4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-1 -2 -3 -4");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-1 -2 -3 -4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</orientation>");
+        UP_ASSERT_EQUAL(line, "</orientation>");
         f.close();
         unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
@@ -716,27 +714,27 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<moment_inertia num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<moment_inertia num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 1 2");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "5 4 3");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "5 4 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1 11 21");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 11 21");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "51 41 31");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "51 41 31");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</moment_inertia>");
+        UP_ASSERT_EQUAL(line, "</moment_inertia>");
         f.close();
         unlink((tmp_path+"/test.0000000110.xml").c_str());
         }
@@ -758,34 +756,34 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriterBasicTests )
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<angmom num=\"4\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<angmom num=\"4\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 1 2 3");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 2 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "9 8 7 6");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "9 8 7 6");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1 2 3 4");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 2 3 4");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "51 41 31 21");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "51 41 31 21");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</angmom>");
+        UP_ASSERT_EQUAL(line, "</angmom>");
         f.close();
         unlink((tmp_path+"/test.0000000120.xml").c_str());
         }
     }
 
 //! Tests the ability of HOOMDDumpWriter to write out the system topology
-BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
+UP_TEST( HOOMDDumpWriter_topology_test)
     {
     // temporary directory for files
     std::string tmp_path = ".";
@@ -801,7 +799,7 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
     int n_dihedral_types = 1;
     int n_improper_types = 1;
 
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(4, box, n_types, n_bond_types, n_angle_types, n_dihedral_types, n_improper_types));
 
     // add a few bonds too
     sysdef->getBondData()->addBondedGroup(Bond(0, 0, 1));
@@ -825,50 +823,50 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
 
     // 1. if the group is not all, then the xml file should be empty
         {
-        boost::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,2));
-        boost::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
-        boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
+        std::shared_ptr<ParticleSelector> select_tag(new ParticleSelectorTag(sysdef,1,2));
+        std::shared_ptr<ParticleGroup> group_tag(new ParticleGroup(sysdef, select_tag, true));
+        std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_tag));
         writer->setOutputPosition(false);
         writer->setOutputBond(true);
 
         writer->analyze(0);
 
         // make sure the file was created
-        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000000.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000000.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000000.xml").c_str());
         string line;
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"2\" >");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"0\" dimensions=\"3\" natoms=\"2\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"35\" ly=\"55\" lz=\"125\" xy=\"1\" xz=\"0.5\" yz=\"0.25\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</configuration>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000000.xml").c_str());
         }
 
-    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
+    std::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
     writer->setOutputPosition(false);
     // 1. bonds
         {
@@ -886,19 +884,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<bond num=\"2\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<bond num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "bondA 0 1");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "bondA 0 1");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "bondB 1 0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "bondB 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</bond>");
+        UP_ASSERT_EQUAL(line, "</bond>");
         f.close();
         unlink((tmp_path+"/test.0000000010.xml").c_str());
         }
@@ -920,19 +918,19 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<angle num=\"2\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<angle num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "angleA 0 1 2");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "angleA 0 1 2");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "angleA 1 2 0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "angleA 1 2 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</angle>");
+        UP_ASSERT_EQUAL(line, "</angle>");
         f.close();
         unlink((tmp_path+"/test.0000000020.xml").c_str());
         }
@@ -954,15 +952,15 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<dihedral num=\"1\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<dihedral num=\"1\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "dihedralA 0 1 2 3");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "dihedralA 0 1 2 3");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</dihedral>");
+        UP_ASSERT_EQUAL(line, "</dihedral>");
         f.close();
         unlink((tmp_path+"/test.0000000030.xml").c_str());
         }
@@ -984,15 +982,15 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<improper num=\"1\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<improper num=\"1\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "improperA 3 2 1 0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "improperA 3 2 1 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</improper>");
+        UP_ASSERT_EQUAL(line, "</improper>");
         f.close();
         unlink((tmp_path+"/test.0000000040.xml").c_str());
         }
@@ -1014,26 +1012,26 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_topology_test)
         getline(f, line); // <Box
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<constraint num=\"2\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<constraint num=\"2\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 1 1.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 1 1.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1 2 2.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1 2 2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</constraint>");
+        UP_ASSERT_EQUAL(line, "</constraint>");
         f.close();
         unlink((tmp_path+"/test.0000000050.xml").c_str());
         }
     }
 
 //! Tests the ability of HOOMDDumpWriter to handle tagged and reordered particles
-BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
+UP_TEST( HOOMDDumpWriter_tag_test )
     {
     // temporary directory for files
     std::string tmp_path = ".";
@@ -1041,8 +1039,8 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     // start by creating a single particle system: see it the correct file is written
     BoxDim box(Scalar(100.5), Scalar(120.5), Scalar(130.5));
     int n_types = 10;
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(6, box, n_types));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // this is the shuffle order of the particles
     unsigned int tags[6] = { 5, 2, 3, 1, 0, 4 };
@@ -1083,9 +1081,9 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
     }
 
     // create the writer
-    boost::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
-    boost::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
-    boost::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
+    std::shared_ptr<ParticleSelectorAll> select_all(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, select_all, true));
+    std::shared_ptr<HOOMDDumpWriter> writer(new HOOMDDumpWriter(sysdef, tmp_path+"/test", group_all));
 
     // write the file with all outputs enabled
     writer->setOutputPosition(true);
@@ -1099,171 +1097,171 @@ BOOST_AUTO_TEST_CASE( HOOMDDumpWriter_tag_test )
         writer->analyze(100);
 
         // make sure the file was created
-        BOOST_REQUIRE(filesystem::exists(tmp_path+"/test.0000000100.xml"));
+        UP_ASSERT(filesystem::exists(tmp_path+"/test.0000000100.xml"));
 
         // check the output line by line
         ifstream f((tmp_path+"/test.0000000100.xml").c_str());
         string line;
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<hoomd_xml version=\"1.7\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<hoomd_xml version=\"1.7\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\" natoms=\"6\" >");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<configuration time_step=\"100\" dimensions=\"3\" natoms=\"6\" >");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\" xy=\"0\" xz=\"0\" yz=\"0\"/>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "<box lx=\"100.5\" ly=\"120.5\" lz=\"130.5\" xy=\"0\" xz=\"0\" yz=\"0\"/>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<position num=\"6\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<position num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         // check all the positions
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0.5 1.5 2.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0.5 1.5 2.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "1.5 2.5 3.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "1.5 2.5 3.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "2.5 3.5 4.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "2.5 3.5 4.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "3.5 4.5 5.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "3.5 4.5 5.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "4.5 5.5 6.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "4.5 5.5 6.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "5.5 6.5 7.5");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "5.5 6.5 7.5");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</position>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</position>");
+        UP_ASSERT(!f.bad());
 
         // check all the images
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<image num=\"6\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<image num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-10 -11 50");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-10 -11 50");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-9 -10 51");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-9 -10 51");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-8 -9 52");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-8 -9 52");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-7 -8 53");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-7 -8 53");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-6 -7 54");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-6 -7 54");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "-5 -6 55");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "-5 -6 55");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</image>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</image>");
+        UP_ASSERT(!f.bad());
 
         // check all velocities
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<velocity num=\"6\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<velocity num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "0 0 0");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "0 0 0");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "10 11 12");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "10 11 12");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "20 22 24");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "20 22 24");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "30 33 36");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "30 33 36");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "40 44 48");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "40 44 48");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "50 55 60");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "50 55 60");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</velocity>");
+        UP_ASSERT_EQUAL(line, "</velocity>");
 
         // check all types
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "<type num=\"6\">");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "<type num=\"6\">");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "C");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "C");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "D");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "D");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "E");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "E");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "F");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "F");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "G");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "G");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "H");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line, "H");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line, "</type>");
+        UP_ASSERT_EQUAL(line, "</type>");
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</configuration>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</configuration>");
+        UP_ASSERT(!f.bad());
 
         getline(f, line);
-        BOOST_CHECK_EQUAL(line,  "</hoomd_xml>");
-        BOOST_REQUIRE(!f.bad());
+        UP_ASSERT_EQUAL(line,  "</hoomd_xml>");
+        UP_ASSERT(!f.bad());
         f.close();
         unlink((tmp_path+"/test.0000000100.xml").c_str());
         }
     }
 
 //! Test basic functionality of HOOMDInitializer
-BOOST_AUTO_TEST_CASE( HOOMDInitializer_basic_tests )
+UP_TEST( HOOMDInitializer_basic_tests )
     {
     // temporary directory for files
     std::string tmp_path = ".";
@@ -1382,24 +1380,24 @@ im_b 5 4 3 2\n\
     f.close();
 
     // now that we have created a test file, load it up into a pdata
-    boost::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
     HOOMDInitializer init(exec_conf,tmp_path+"/test_input.xml");
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot;
     snapshot = init.getSnapshot();
-    boost::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
-    boost::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snapshot));
+    std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // verify all parameters
-    BOOST_CHECK_EQUAL(init.getTimeStep(), (unsigned int)150000000);
-    BOOST_CHECK_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
-    BOOST_CHECK_EQUAL(pdata->getN(), (unsigned int)6);
-    BOOST_CHECK_EQUAL(pdata->getNTypes(), (unsigned int)6);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().x, 20.05, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().y, 32.12345, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getL().z, 45.098, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXY(), 0.12, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXZ(), 0.23, tol);
-    MY_BOOST_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorYZ(), 0.34, tol);
+    UP_ASSERT_EQUAL(init.getTimeStep(), (unsigned int)150000000);
+    UP_ASSERT_EQUAL(sysdef->getNDimensions(), (unsigned int)2);
+    UP_ASSERT_EQUAL(pdata->getN(), (unsigned int)6);
+    UP_ASSERT_EQUAL(pdata->getNTypes(), (unsigned int)6);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getL().x, 20.05, tol);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getL().y, 32.12345, tol);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getL().z, 45.098, tol);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXY(), 0.12, tol);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorXZ(), 0.23, tol);
+    MY_CHECK_CLOSE(pdata->getGlobalBox().getTiltFactorYZ(), 0.34, tol);
 
     {
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
@@ -1416,197 +1414,197 @@ im_b 5 4 3 2\n\
 
     for (int i = 0; i < 6; i++)
         {
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].x, Scalar(i) + Scalar(1.4), tol);
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].y, Scalar(i) + Scalar(2.567890), tol);
-        MY_BOOST_CHECK_CLOSE(h_pos.data[i].z, Scalar(i) + Scalar(3.45), tol);
+        MY_CHECK_CLOSE(h_pos.data[i].x, Scalar(i) + Scalar(1.4), tol);
+        MY_CHECK_CLOSE(h_pos.data[i].y, Scalar(i) + Scalar(2.567890), tol);
+        MY_CHECK_CLOSE(h_pos.data[i].z, Scalar(i) + Scalar(3.45), tol);
 
-        BOOST_CHECK_EQUAL(h_image.data[i].x, 10 + i);
-        BOOST_CHECK_EQUAL(h_image.data[i].y, 20 + i);
-        BOOST_CHECK_EQUAL(h_image.data[i].z, 30 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].x, 10 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].y, 20 + i);
+        UP_ASSERT_EQUAL(h_image.data[i].z, 30 + i);
 
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].x, Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].y, Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].z, Scalar(i+1) + Scalar(0.056), tol);
+        MY_CHECK_CLOSE(h_vel.data[i].x, Scalar(i+1)*Scalar(10.0) + Scalar(0.12), tol);
+        MY_CHECK_CLOSE(h_vel.data[i].y, Scalar(i+1)*Scalar(10.0) + Scalar(2.1567), tol);
+        MY_CHECK_CLOSE(h_vel.data[i].z, Scalar(i+1) + Scalar(0.056), tol);
 
-        MY_BOOST_CHECK_CLOSE(h_vel.data[i].w, Scalar(i+1), tol); // mass
+        MY_CHECK_CLOSE(h_vel.data[i].w, Scalar(i+1), tol); // mass
 
-        MY_BOOST_CHECK_CLOSE(h_diameter.data[i], Scalar(i+7), tol);
+        MY_CHECK_CLOSE(h_diameter.data[i], Scalar(i+7), tol);
 
-        MY_BOOST_CHECK_CLOSE(h_charge.data[i], Scalar(i)*Scalar(10.0), tol);
+        MY_CHECK_CLOSE(h_charge.data[i], Scalar(i)*Scalar(10.0), tol);
 
-        BOOST_CHECK_EQUAL(h_body.data[i], (unsigned int)(i-1));
+        UP_ASSERT_EQUAL(h_body.data[i], (unsigned int)(i-1));
 
         // checking that the type is correct becomes tricky because types are identified by
         // string
         ostringstream type_name;
         type_name << 5-i;   // the expected type is the integer 5-i
-        BOOST_CHECK_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
-        BOOST_CHECK_EQUAL(h_tag.data[i], (unsigned int)i);
-        BOOST_CHECK_EQUAL(h_rtag.data[i], (unsigned int)i);
+        UP_ASSERT_EQUAL((unsigned int)__scalar_as_int(h_pos.data[i].w), pdata->getTypeByName(type_name.str()));
+        UP_ASSERT_EQUAL(h_tag.data[i], (unsigned int)i);
+        UP_ASSERT_EQUAL(h_rtag.data[i], (unsigned int)i);
 
         // check the moment_inertia values
         Scalar3 I;
         I = h_moments.data[i];
-        MY_BOOST_CHECK_CLOSE(I.x, i*10, tol);
-        MY_BOOST_CHECK_CLOSE(I.y, i*10+1, tol);
-        MY_BOOST_CHECK_CLOSE(I.z, i*10+2, tol);
+        MY_CHECK_CLOSE(I.x, i*10, tol);
+        MY_CHECK_CLOSE(I.y, i*10+1, tol);
+        MY_CHECK_CLOSE(I.z, i*10+2, tol);
 
         // check the angular momentum values
         Scalar4 M;
         M = h_angmom.data[i];
-        MY_BOOST_CHECK_CLOSE(M.x, i+1, tol);
-        MY_BOOST_CHECK_CLOSE(M.y, (i+1)*10, tol);
-        MY_BOOST_CHECK_CLOSE(M.z, (i+1)*100, tol);
-        MY_BOOST_CHECK_CLOSE(M.w, (i+1)*1000, tol);
+        MY_CHECK_CLOSE(M.x, i+1, tol);
+        MY_CHECK_CLOSE(M.y, (i+1)*10, tol);
+        MY_CHECK_CLOSE(M.z, (i+1)*100, tol);
+        MY_CHECK_CLOSE(M.w, (i+1)*1000, tol);
         }
     }
 
     // check the bonds
-    boost::shared_ptr<BondData> bond_data = sysdef->getBondData();
+    std::shared_ptr<BondData> bond_data = sysdef->getBondData();
 
     // 4 bonds should have been read in
-    BOOST_REQUIRE_EQUAL(bond_data->getN(), (unsigned int)4);
+    UP_ASSERT_EQUAL(bond_data->getN(), (unsigned int)4);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(bond_data->getNTypes(), (unsigned int)3);
-    BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
-    BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
-    BOOST_CHECK_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
+    UP_ASSERT_EQUAL(bond_data->getNTypes(), (unsigned int)3);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(bond_data->getTypeByName("bond_c"), (unsigned int)2);
 
-    BOOST_CHECK_EQUAL(bond_data->getNameByType(0), string("bond_a"));
-    BOOST_CHECK_EQUAL(bond_data->getNameByType(1), string("bond_b"));
-    BOOST_CHECK_EQUAL(bond_data->getNameByType(2), string("bond_c"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(0), string("bond_a"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(1), string("bond_b"));
+    UP_ASSERT_EQUAL(bond_data->getNameByType(2), string("bond_c"));
 
     // verify each bond
     Bond b = bond_data-> getGroupByTag(0);
-    BOOST_CHECK_EQUAL(b.a, (unsigned int)0);
-    BOOST_CHECK_EQUAL(b.b, (unsigned int)1);
-    BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)0);
 
     b = bond_data-> getGroupByTag(1);
-    BOOST_CHECK_EQUAL(b.a, (unsigned int)1);
-    BOOST_CHECK_EQUAL(b.b, (unsigned int)2);
-    BOOST_CHECK_EQUAL(b.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)1);
 
     b = bond_data-> getGroupByTag(2);
-    BOOST_CHECK_EQUAL(b.a, (unsigned int)2);
-    BOOST_CHECK_EQUAL(b.b, (unsigned int)3);
-    BOOST_CHECK_EQUAL(b.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)3);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)0);
 
     b = bond_data-> getGroupByTag(3);
-    BOOST_CHECK_EQUAL(b.a, (unsigned int)3);
-    BOOST_CHECK_EQUAL(b.b, (unsigned int)4);
-    BOOST_CHECK_EQUAL(b.type, (unsigned int)2);
+    UP_ASSERT_EQUAL(b.a, (unsigned int)3);
+    UP_ASSERT_EQUAL(b.b, (unsigned int)4);
+    UP_ASSERT_EQUAL(b.type, (unsigned int)2);
 
     // check the angles
-    boost::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
+    std::shared_ptr<AngleData> angle_data = sysdef->getAngleData();
 
     // 3 angles should have been read in
-    BOOST_REQUIRE_EQUAL(angle_data->getN(), (unsigned int)3);
+    UP_ASSERT_EQUAL(angle_data->getN(), (unsigned int)3);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(angle_data->getNTypes(), (unsigned int)2);
-    BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
-    BOOST_CHECK_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(angle_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(angle_data->getTypeByName("angle_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(angle_data->getTypeByName("angle_b"), (unsigned int)1);
 
-    BOOST_CHECK_EQUAL(angle_data->getNameByType(0), string("angle_a"));
-    BOOST_CHECK_EQUAL(angle_data->getNameByType(1), string("angle_b"));
+    UP_ASSERT_EQUAL(angle_data->getNameByType(0), string("angle_a"));
+    UP_ASSERT_EQUAL(angle_data->getNameByType(1), string("angle_b"));
 
     // verify each angle
     Angle a = angle_data->getGroupByTag(0);
-    BOOST_CHECK_EQUAL(a.a, (unsigned int)0);
-    BOOST_CHECK_EQUAL(a.b, (unsigned int)1);
-    BOOST_CHECK_EQUAL(a.c, (unsigned int)2);
-    BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)0);
 
     a = angle_data->getGroupByTag(1);
-    BOOST_CHECK_EQUAL(a.a, (unsigned int)1);
-    BOOST_CHECK_EQUAL(a.b, (unsigned int)2);
-    BOOST_CHECK_EQUAL(a.c, (unsigned int)3);
-    BOOST_CHECK_EQUAL(a.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)1);
 
     a = angle_data->getGroupByTag(2);
-    BOOST_CHECK_EQUAL(a.a, (unsigned int)2);
-    BOOST_CHECK_EQUAL(a.b, (unsigned int)3);
-    BOOST_CHECK_EQUAL(a.c, (unsigned int)4);
-    BOOST_CHECK_EQUAL(a.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(a.a, (unsigned int)2);
+    UP_ASSERT_EQUAL(a.b, (unsigned int)3);
+    UP_ASSERT_EQUAL(a.c, (unsigned int)4);
+    UP_ASSERT_EQUAL(a.type, (unsigned int)0);
 
     // check the dihedrals
-    boost::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
+    std::shared_ptr<DihedralData> dihedral_data = sysdef->getDihedralData();
 
     // 2 dihedrals should have been read in
-    BOOST_REQUIRE_EQUAL(dihedral_data->getN(), (unsigned int)2);
+    UP_ASSERT_EQUAL(dihedral_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(dihedral_data->getNTypes(), (unsigned int)2);
-    BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
-    BOOST_CHECK_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(dihedral_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(dihedral_data->getTypeByName("di_b"), (unsigned int)1);
 
-    BOOST_CHECK_EQUAL(dihedral_data->getNameByType(0), string("di_a"));
-    BOOST_CHECK_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
+    UP_ASSERT_EQUAL(dihedral_data->getNameByType(0), string("di_a"));
+    UP_ASSERT_EQUAL(dihedral_data->getNameByType(1), string("di_b"));
 
     // verify each dihedral
     Dihedral d = dihedral_data->getGroupByTag(0);
-    BOOST_CHECK_EQUAL(d.a, (unsigned int)0);
-    BOOST_CHECK_EQUAL(d.b, (unsigned int)1);
-    BOOST_CHECK_EQUAL(d.c, (unsigned int)2);
-    BOOST_CHECK_EQUAL(d.d, (unsigned int)3);
-    BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)0);
 
     d = dihedral_data->getGroupByTag(1);
-    BOOST_CHECK_EQUAL(d.a, (unsigned int)1);
-    BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
-    BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
-    BOOST_CHECK_EQUAL(d.d, (unsigned int)4);
-    BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)4);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)1);
 
 
     // check the impropers
-    boost::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
+    std::shared_ptr<ImproperData> improper_data = sysdef->getImproperData();
 
     // 2 dihedrals should have been read in
-    BOOST_REQUIRE_EQUAL(improper_data->getN(), (unsigned int)2);
+    UP_ASSERT_EQUAL(improper_data->getN(), (unsigned int)2);
 
     // check that the types have been named properly
-    BOOST_REQUIRE_EQUAL(improper_data->getNTypes(), (unsigned int)2);
-    BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
-    BOOST_CHECK_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
+    UP_ASSERT_EQUAL(improper_data->getNTypes(), (unsigned int)2);
+    UP_ASSERT_EQUAL(improper_data->getTypeByName("im_a"), (unsigned int)0);
+    UP_ASSERT_EQUAL(improper_data->getTypeByName("im_b"), (unsigned int)1);
 
-    BOOST_CHECK_EQUAL(improper_data->getNameByType(0), string("im_a"));
-    BOOST_CHECK_EQUAL(improper_data->getNameByType(1), string("im_b"));
+    UP_ASSERT_EQUAL(improper_data->getNameByType(0), string("im_a"));
+    UP_ASSERT_EQUAL(improper_data->getNameByType(1), string("im_b"));
 
     // verify each dihedral
     d = improper_data->getGroupByTag(0);
-    BOOST_CHECK_EQUAL(d.a, (unsigned int)3);
-    BOOST_CHECK_EQUAL(d.b, (unsigned int)2);
-    BOOST_CHECK_EQUAL(d.c, (unsigned int)1);
-    BOOST_CHECK_EQUAL(d.d, (unsigned int)0);
-    BOOST_CHECK_EQUAL(d.type, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)0);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)0);
 
     d = improper_data->getGroupByTag(1);
-    BOOST_CHECK_EQUAL(d.a, (unsigned int)5);
-    BOOST_CHECK_EQUAL(d.b, (unsigned int)4);
-    BOOST_CHECK_EQUAL(d.c, (unsigned int)3);
-    BOOST_CHECK_EQUAL(d.d, (unsigned int)2);
-    BOOST_CHECK_EQUAL(d.type, (unsigned int)1);
+    UP_ASSERT_EQUAL(d.a, (unsigned int)5);
+    UP_ASSERT_EQUAL(d.b, (unsigned int)4);
+    UP_ASSERT_EQUAL(d.c, (unsigned int)3);
+    UP_ASSERT_EQUAL(d.d, (unsigned int)2);
+    UP_ASSERT_EQUAL(d.type, (unsigned int)1);
 
     // check the constraints
-    boost::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
+    std::shared_ptr<ConstraintData> constraint_data = sysdef->getConstraintData();
 
     // 2 dihedrals should have been read in
-    BOOST_REQUIRE_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);
+    UP_ASSERT_EQUAL(constraint_data->getNGlobal(), (unsigned int)2);
 
     // verify each dihedral
     Constraint c = constraint_data->getGroupByTag(0);
-    BOOST_CHECK_EQUAL(c.a, (unsigned int)0);
-    BOOST_CHECK_EQUAL(c.b, (unsigned int)1);
-    BOOST_CHECK_EQUAL(c.d, Scalar(1.5));
+    UP_ASSERT_EQUAL(c.a, (unsigned int)0);
+    UP_ASSERT_EQUAL(c.b, (unsigned int)1);
+    UP_ASSERT_EQUAL(c.d, Scalar(1.5));
 
     // verify each dihedral
     c = constraint_data->getGroupByTag(1);
-    BOOST_CHECK_EQUAL(c.a, (unsigned int)1);
-    BOOST_CHECK_EQUAL(c.b, (unsigned int)2);
-    BOOST_CHECK_EQUAL(c.d, Scalar(2.5));
+    UP_ASSERT_EQUAL(c.a, (unsigned int)1);
+    UP_ASSERT_EQUAL(c.b, (unsigned int)2);
+    UP_ASSERT_EQUAL(c.d, Scalar(2.5));
 
 
     // clean up after ourselves

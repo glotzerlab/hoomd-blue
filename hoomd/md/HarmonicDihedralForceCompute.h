@@ -7,7 +7,7 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/BondedGroupData.h"
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -18,6 +18,8 @@
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
 #endif
+
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __HARMONICDIHEDRALFORCECOMPUTE_H__
 #define __HARMONICDIHEDRALFORCECOMPUTE_H__
@@ -32,7 +34,7 @@ class HarmonicDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        HarmonicDihedralForceCompute(boost::shared_ptr<SystemDefinition> sysdef);
+        HarmonicDihedralForceCompute(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
         virtual ~HarmonicDihedralForceCompute();
@@ -64,13 +66,13 @@ class HarmonicDihedralForceCompute : public ForceCompute
         Scalar *m_sign;  //!< sign parameter for multiple dihedral types
         Scalar *m_multi; //!< multiplicity parameter for multiple dihedral types
 
-        boost::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
+        std::shared_ptr<DihedralData> m_dihedral_data;    //!< Dihedral data to use in computing dihedrals
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
     };
 
 //! Exports the DihedralForceCompute class to python
-void export_HarmonicDihedralForceCompute();
+void export_HarmonicDihedralForceCompute(pybind11::module& m);
 
 #endif

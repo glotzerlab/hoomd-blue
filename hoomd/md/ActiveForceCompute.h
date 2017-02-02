@@ -6,7 +6,7 @@
 
 #include "hoomd/ForceCompute.h"
 #include "hoomd/ParticleGroup.h"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "hoomd/extern/saruprng.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -22,6 +22,8 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 #ifndef __ACTIVEFORCECOMPUTE_H__
 #define __ACTIVEFORCECOMPUTE_H__
 
@@ -32,9 +34,9 @@ class ActiveForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ActiveForceCompute(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group,
-                             int seed, boost::python::list f_lst,
+        ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group,
+                             int seed, pybind11::list f_lst,
                              bool orientation_link, bool orientation_reverse_link,
                              Scalar rotation_diff,
                              Scalar3 P,
@@ -58,7 +60,7 @@ class ActiveForceCompute : public ForceCompute
         //! Set constraints if particles confined to a surface
         virtual void setConstraint();
 
-        boost::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
+        std::shared_ptr<ParticleGroup> m_group;   //!< Group of particles on which this force is applied
         bool m_orientationLink;
         bool m_orientationReverseLink;
         Scalar m_rotationDiff;
@@ -74,5 +76,5 @@ class ActiveForceCompute : public ForceCompute
     };
 
 //! Exports the ActiveForceComputeClass to python
-void export_ActiveForceCompute();
+void export_ActiveForceCompute(pybind11::module& m);
 #endif

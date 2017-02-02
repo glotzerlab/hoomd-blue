@@ -11,10 +11,7 @@
 #include "NeighborListTree.h"
 #include "hoomd/SystemDefinition.h"
 
-#include <boost/bind.hpp>
-#include <boost/python.hpp>
-using namespace boost;
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -23,7 +20,7 @@ using namespace boost::python;
 using namespace std;
 using namespace hpmc::detail;
 
-NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
+NeighborListTree::NeighborListTree(std::shared_ptr<SystemDefinition> sysdef,
                                        Scalar r_cut,
                                        Scalar r_buff)
     : NeighborList(sysdef, r_cut, r_buff), m_box_changed(true), m_max_num_changed(true), m_remap_particles(true),
@@ -31,19 +28,19 @@ NeighborListTree::NeighborListTree(boost::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing NeighborListTree" << endl;
 
-    m_num_type_change_conn = m_pdata->connectNumTypesChange(bind(&NeighborListTree::slotNumTypesChanged, this));
-    m_boxchange_connection = m_pdata->connectBoxChange(bind(&NeighborListTree::slotBoxChanged, this));
-    m_max_numchange_conn = m_pdata->connectMaxParticleNumberChange(bind(&NeighborListTree::slotMaxNumChanged, this));
-    m_sort_conn = m_pdata->connectParticleSort(bind(&NeighborListTree::slotRemapParticles, this));
+    m_pdata->getNumTypesChangeSignal().connect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().connect<NeighborListTree, &NeighborListTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().connect<NeighborListTree, &NeighborListTree::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().connect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
 NeighborListTree::~NeighborListTree()
     {
     m_exec_conf->msg->notice(5) << "Destroying NeighborListTree" << endl;
-    m_num_type_change_conn.disconnect();
-    m_boxchange_connection.disconnect();
-    m_max_numchange_conn.disconnect();
-    m_sort_conn.disconnect();
+    m_pdata->getNumTypesChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotNumTypesChanged>(this);
+    m_pdata->getBoxChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotBoxChanged>(this);
+    m_pdata->getMaxParticleNumberChangeSignal().disconnect<NeighborListTree, &NeighborListTree::slotMaxNumChanged>(this);
+    m_pdata->getParticleSortSignal().disconnect<NeighborListTree, &NeighborListTree::slotRemapParticles>(this);
     }
 
 void NeighborListTree::buildNlist(unsigned int timestep)
@@ -372,9 +369,9 @@ void NeighborListTree::traverseTree()
     if (this->m_prof) this->m_prof->pop();
     }
 
-void export_NeighborListTree()
+void export_NeighborListTree(py::module& m)
     {
-    class_<NeighborListTree, boost::shared_ptr<NeighborListTree>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListTree", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListTree, std::shared_ptr<NeighborListTree> >(m, "NeighborListTree", py::base<NeighborList>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      ;
     }

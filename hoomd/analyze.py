@@ -120,6 +120,7 @@ class _analyzer(hoomd.meta._metadata):
 
         self.prev_period = hoomd.context.current.system.getAnalyzerPeriod(self.analyzer_name);
         hoomd.context.current.system.removeAnalyzer(self.analyzer_name);
+        hoomd.context.current.analyzers.remove(self)
         self.enabled = False;
 
     def enable(self):
@@ -140,6 +141,7 @@ class _analyzer(hoomd.meta._metadata):
             return;
 
         hoomd.context.current.system.addAnalyzer(self.cpp_analyzer, self.analyzer_name, self.prev_period, self.phase);
+        hoomd.context.current.analyzers.append(self)
         self.enabled = True;
 
     def set_period(self, period):
@@ -286,7 +288,7 @@ class log(_analyzer):
 
       - **pair_dpd_energy** (:py:class:`hoomd.md.pair.dpd`) - Total DPD conservative potential energy (in energy units)
       - **pair_dpdlj_energy** (:py:class:`hoomd.md.pair.dpdlj`) - Total DPDLJ conservative potential energy (in energy units)
-      - **pair_eam_energy** (:py:class:`hoomd.md.pair.eam`) - Total EAM potential energy (in energy units)
+      - **pair_eam_energy** (:py:class:`hoomd.metal.pair.eam`) - Total EAM potential energy (in energy units)
       - **pair_ewald_energy** (:py:class:`hoomd.md.pair.ewald`) - Short ranged part of the electrostatic energy (in energy units)
       - **pair_gauss_energy** (:py:class:`hoomd.md.pair.gauss`) - Total Gaussian potential energy (in energy units)
       - **pair_lj_energy** (:py:class:`hoomd.md.pair.lj`) - Total Lennard-Jones potential energy (in energy units)
@@ -310,6 +312,9 @@ class log(_analyzer):
     - Dihedral potentials
 
       - **dihedral_harmonic_energy** (:py:class:`hoomd.md.dihedral.harmonic`) - Total harmonic dihedral potential energy (in energy units)
+
+    - Special pair interactions
+      - **special_pair_lj_energy** (:py:class:`hoomd.md.special_pair.lj`) - Total energy of special pair interactions (in energy units)
 
     - External potentials
 
@@ -407,7 +412,7 @@ class log(_analyzer):
             period = 1;
 
         # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.Logger(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.LogPlainTXT(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities
@@ -503,6 +508,44 @@ class log(_analyzer):
 
         # re-register all computes and updater
         hoomd.context.current.system.registerLogger(self.cpp_analyzer);
+
+    def disable(self):
+        R""" Disable the logger.
+
+        Examples::
+
+            logger.disable()
+
+
+        Executing the disable command will remove the logger from the system.
+        Any :py:func:`hoomd.run()` command executed after disabling the logger will not use that
+        logger during the simulation. A disabled logger can be re-enabled
+        with :py:meth:`enable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.disable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.remove(self)
+
+    def enable(self):
+        R""" Enables the logger
+
+        Examples::
+
+            logger.enable()
+
+        See :py:meth:`disable()`.
+        """
+        hoomd.util.print_status_line()
+
+        hoomd.util.quiet_status()
+        _analyzer.enable(self)
+        hoomd.util.unquiet_status()
+
+        hoomd.context.current.loggers.append(self)
 
 class callback(_analyzer):
     R""" Callback analyzer.

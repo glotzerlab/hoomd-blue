@@ -10,8 +10,8 @@
 
 #include "DEM3DForceCompute.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
 
 #include <stdexcept>
 #include <utility>
@@ -35,8 +35,8 @@ using namespace std;
 */
 template<typename Real, typename Real4, typename Potential>
 DEM3DForceCompute<Real, Real4, Potential>::DEM3DForceCompute(
-    boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+    std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Real r_cut, Potential potential)
     : ForceCompute(sysdef), m_nlist(nlist), m_r_cut(r_cut),
       m_evaluator(potential), m_nextFace(0, this->m_exec_conf),
@@ -74,7 +74,7 @@ DEM3DForceCompute<Real, Real4, Potential>::~DEM3DForceCompute()
 */
 template<typename Real, typename Real4, typename Potential>
 void DEM3DForceCompute<Real, Real4, Potential>::setParams(
-    unsigned int type, const boost::python::list &pyVertices, const boost::python::list &pyFaces)
+    unsigned int type, const pybind11::list &pyVertices, const pybind11::list &pyFaces)
     {
     if (type >= m_pdata->getNTypes())
         {
@@ -92,16 +92,16 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
     // build a vector of points
     vector<vec3<Real> > points;
 
-    for(size_t i(0); i < (size_t) len(pyVertices); ++i)
+    for(size_t i(0); i < (size_t) pybind11::len(pyVertices); ++i)
         {
-        const boost::python::tuple pyPoint = extract<boost::python::tuple>(pyVertices[i]);
+        const pybind11::tuple pyPoint = pybind11::cast<pybind11::tuple>(pyVertices[i]);
 
-        if(len(pyPoint) != 3)
+        if(pybind11::len(pyPoint) != 3)
             throw runtime_error("Non-3D vertex given for DEM3DForceCompute::setParams");
 
-        const Real x = extract<Real>(pyPoint[0]);
-        const Real y = extract<Real>(pyPoint[1]);
-        const Real z = extract<Real>(pyPoint[2]);
+        const Real x = pybind11::cast<Real>(pyPoint[0]);
+        const Real y = pybind11::cast<Real>(pyPoint[1]);
+        const Real z = pybind11::cast<Real>(pyPoint[2]);
         const vec3<Real> point(x, y, z);
         points.push_back(point);
         }
@@ -110,17 +110,18 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
     vector<vector<unsigned int> > faces;
     vector<vector<unsigned int> > NxtFaces;
 
-    for(size_t i(0); i < (size_t) len(pyFaces); ++i)
+    for(size_t i(0); i < (size_t) pybind11::len(pyFaces); ++i)
         {
         vector<unsigned int> face;
         vector<unsigned int> NxtFace;
+        pybind11::list pyFaces_i = pybind11::cast<pybind11::list>(pyFaces[i]);
 
-        for(size_t j(0); j + 1 < (size_t) len(pyFaces[i]); ++j)
+        for(size_t j(0); j + 1 < (size_t) pybind11::len(pyFaces_i); ++j)
             {
-            face.push_back(extract<unsigned int>(pyFaces[i][j]));
+            face.push_back(pybind11::cast<unsigned int>(pyFaces_i[j]));
             }
 
-        face.push_back(extract<unsigned int>(pyFaces[i][len(pyFaces[i]) - 1]));
+        face.push_back(pybind11::cast<unsigned int>(pyFaces_i[pybind11::len(pyFaces[i]) - 1]));
 
         faces.push_back(face);
         }
@@ -652,7 +653,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
             Real rsq = dot(dx, dx);
 
             // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
-            if (rsq < r_cut_sq)
+            if (m_evaluator.withinCutoff(rsq,r_cut_sq))
                 {
                 // local forces and torques for particles i and j
                 vec3<Real> forceij, forceji;

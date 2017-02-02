@@ -36,10 +36,10 @@
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
-// Include boost.python to do the exporting
-#include <boost/python.hpp>
 
-using namespace boost::python;
+
+
+namespace py = pybind11;
 using namespace hpmc;
 
 using namespace hpmc::detail;
@@ -48,27 +48,27 @@ namespace hpmc
 {
 
 //! Export the base HPMCMono integrators
-void export_convex_polyhedron32()
+void export_convex_polyhedron32(py::module& m)
     {
-    export_IntegratorHPMCMono< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoConvexPolyhedron32");
-    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoImplicitConvexPolyhedron32");
-    export_ComputeFreeVolume< ShapeConvexPolyhedron<32> >("ComputeFreeVolumeConvexPolyhedron32");
-    export_AnalyzerSDF< ShapeConvexPolyhedron<32> >("AnalyzerSDFConvexPolyhedron32");
-    export_UpdaterMuVT< ShapeConvexPolyhedron<32> >("UpdaterMuVTConvexPolyhedron32");
-    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron<32> >("UpdaterMuVTImplicitConvexPolyhedron32");
+    export_IntegratorHPMCMono< ShapeConvexPolyhedron<32> >(m, "IntegratorHPMCMonoConvexPolyhedron32");
+    export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron<32> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedron32");
+    export_ComputeFreeVolume< ShapeConvexPolyhedron<32> >(m, "ComputeFreeVolumeConvexPolyhedron32");
+    export_AnalyzerSDF< ShapeConvexPolyhedron<32> >(m, "AnalyzerSDFConvexPolyhedron32");
+    export_UpdaterMuVT< ShapeConvexPolyhedron<32> >(m, "UpdaterMuVTConvexPolyhedron32");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron<32> >(m, "UpdaterMuVTImplicitConvexPolyhedron32");
 
-    export_ExternalFieldInterface<ShapeConvexPolyhedron<32> >("ExternalFieldConvexPolyhedron32");
-    export_LatticeField<ShapeConvexPolyhedron<32> >("ExternalFieldLatticeConvexPolyhedron32");
-    export_ExternalFieldComposite<ShapeConvexPolyhedron<32> >("ExternalFieldCompositeConvexPolyhedron32");
-    export_RemoveDriftUpdater<ShapeConvexPolyhedron<32> >("RemoveDriftUpdaterConvexPolyhedron32");
-    export_ExternalFieldWall<ShapeConvexPolyhedron<32> >("WallConvexPolyhedron32");
-    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<32> >("UpdaterExternalFieldWallConvexPolyhedron32");
+    export_ExternalFieldInterface<ShapeConvexPolyhedron<32> >(m, "ExternalFieldConvexPolyhedron32");
+    export_LatticeField<ShapeConvexPolyhedron<32> >(m, "ExternalFieldLatticeConvexPolyhedron32");
+    export_ExternalFieldComposite<ShapeConvexPolyhedron<32> >(m, "ExternalFieldCompositeConvexPolyhedron32");
+    export_RemoveDriftUpdater<ShapeConvexPolyhedron<32> >(m, "RemoveDriftUpdaterConvexPolyhedron32");
+    export_ExternalFieldWall<ShapeConvexPolyhedron<32> >(m, "WallConvexPolyhedron32");
+    export_UpdaterExternalFieldWall<ShapeConvexPolyhedron<32> >(m, "UpdaterExternalFieldWallConvexPolyhedron32");
 
     #ifdef ENABLE_CUDA
 
-    export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoGPUConvexPolyhedron32");
-    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<32> >("IntegratorHPMCMonoImplicitGPUConvexPolyhedron32");
-    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<32> >("ComputeFreeVolumeGPUConvexPolyhedron32");
+    export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron<32> >(m, "IntegratorHPMCMonoGPUConvexPolyhedron32");
+    export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron<32> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedron32");
+    export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron<32> >(m, "ComputeFreeVolumeGPUConvexPolyhedron32");
 
     #endif
     }

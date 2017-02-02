@@ -9,11 +9,7 @@
 #include "TwoStepNVEGPU.h"
 #include "TwoStepNVEGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
-#include <boost/bind.hpp>
-using namespace boost;
-
+namespace py = pybind11;
 using namespace std;
 
 /*! \file TwoStepNVEGPU.h
@@ -23,8 +19,8 @@ using namespace std;
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
     \param group The group of particles this integration method is to work on
 */
-TwoStepNVEGPU::TwoStepNVEGPU(boost::shared_ptr<SystemDefinition> sysdef,
-                             boost::shared_ptr<ParticleGroup> group)
+TwoStepNVEGPU::TwoStepNVEGPU(std::shared_ptr<SystemDefinition> sysdef,
+                             std::shared_ptr<ParticleGroup> group)
     : TwoStepNVE(sysdef, group)
     {
     // only one GPU is supported
@@ -171,9 +167,9 @@ void TwoStepNVEGPU::integrateStepTwo(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
-void export_TwoStepNVEGPU()
+void export_TwoStepNVEGPU(py::module& m)
     {
-    class_<TwoStepNVEGPU, boost::shared_ptr<TwoStepNVEGPU>, bases<TwoStepNVE>, boost::noncopyable>
-        ("TwoStepNVEGPU", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+    py::class_<TwoStepNVEGPU, std::shared_ptr<TwoStepNVEGPU> >(m, "TwoStepNVEGPU", py::base<TwoStepNVE>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         ;
     }

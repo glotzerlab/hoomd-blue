@@ -81,6 +81,8 @@ def _hoomd_sys_excepthook(type, value, traceback):
     if context.exec_conf is not None:
         _hoomd.abort_mpi(context.exec_conf);
 
+sys.excepthook = _hoomd_sys_excepthook
+
 __version__ = "{0}.{1}.{2}".format(*_hoomd.__version__)
 
 def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_period=0, callback=None, quiet=False):
@@ -93,7 +95,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
         profile limit_hours (float): If not None, limit this run to a given number of hours.
         limit_multiple (int): When stopping the run due to walltime limits, only stop when the time step is a
                               multiple of limit_multiple.
-        callback (python callable): Sets a Python function to be called regularly during a run.
+        callback (callable): Sets a Python function to be called regularly during a run.
         callback_period (int): Sets the period, in time steps, between calls made to ``callback``.
         quiet (bool): Set to True to disable the status information printed to the screen by the run.
 
@@ -202,11 +204,10 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
 def run_upto(step, **keywords):
     """Runs the simulation up to a given time step number.
 
-
     Args:
 
         step (int): Final time step of the simulation which to run
-        keywords (see below): Catch for all keyword arguments to pass on to :py:func:`run()`
+        keywords: Catch for all keyword arguments to pass on to :py:func:`run()`
 
     :py:func:`run_upto()` runs the simulation, but only until it reaches the given time step. If the simulation has already
     reached the specified step, a message is printed and no simulation steps are run.
@@ -259,7 +260,12 @@ def get_step():
     return context.current.system.getCurrentTimeStep();
 
 # Check to see if we are built without MPI support and the user used mpirun
-if (not _hoomd.is_MPI_available()) and ('OMPI_COMM_WORLD_RANK' in os.environ or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ):
+if (not _hoomd.is_MPI_available()
+    and (    'OMPI_COMM_WORLD_RANK' in os.environ
+          or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
+          or 'PMI_RANK' in os.environ
+          or 'ALPS_APP_PE' in os.environ)
+   ):
     print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
     print('exiting now to prevent many sequential jobs from starting');
     raise RuntimeError('Error launching hoomd')

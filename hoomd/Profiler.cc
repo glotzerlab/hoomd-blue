@@ -14,9 +14,9 @@
 #include <sstream>
 
 
-#include <boost/python.hpp>
-using namespace boost::python;
 using namespace std;
+namespace py = pybind11;
+
 
 ////////////////////////////////////////////////////
 // ProfileDataElem members
@@ -245,9 +245,10 @@ string print_profiler(Profiler *prof)
     return s.str();
     }
 
-void export_Profiler()
+void export_Profiler(py::module& m)
     {
-    class_<Profiler>("Profiler", init<const std::string&>())
+    py::class_<Profiler>(m,"Profiler")
+    .def(py::init<const std::string&>())
     .def("__str__", &print_profiler)
     ;
     }

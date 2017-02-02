@@ -53,3 +53,14 @@ if (ENABLE_DOXYGEN)
         endif (${DOXYGEN_VERSION} VERSION_GREATER 1.8.4)
     endif ()
 endif ()
+
+option(COPY_HEADERS "Copy the headers into the build directories for plugins" off)
+
+###############################
+## In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
+## this option turns off CPU only tests in builds with ENABLE_CUDA=ON
+option(TEST_CPU_IN_GPU_BUILDS "Test CPU code path in GPU enabled builds" on)
+mark_as_advanced(TEST_CPU_IN_GPU_BUILDS)
+if (NOT TEST_CPU_IN_GPU_BUILDS AND ENABLE_CUDA)
+    message(STATUS "Warning: Skipping CPU tests")
+endif()

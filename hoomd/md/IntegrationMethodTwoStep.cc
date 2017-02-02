@@ -8,8 +8,7 @@
 
 #include "IntegrationMethodTwoStep.h"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -25,8 +24,8 @@ using namespace std;
     \param group The group of particles this integration method is to work on
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefinition> sysdef,
-                                                   boost::shared_ptr<ParticleGroup> group)
+IntegrationMethodTwoStep::IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
+                                                   std::shared_ptr<ParticleGroup> group)
     : m_sysdef(sysdef), m_group(group), m_pdata(m_sysdef->getParticleData()), m_exec_conf(m_pdata->getExecConf()),
       m_aniso(false), m_deltaT(Scalar(0.0)), m_valid_restart(false)
     {
@@ -43,11 +42,11 @@ IntegrationMethodTwoStep::IntegrationMethodTwoStep(boost::shared_ptr<SystemDefin
     This method does not need to be called, as Computes will not profile themselves
     on a NULL profiler
     \param prof Pointer to a profiler for the compute to use. Set to NULL
-        (boost::shared_ptr<Profiler>()) to stop the
+        (std::shared_ptr<Profiler>()) to stop the
         analyzer from profiling itself.
     \note Derived classes MUST check if m_prof is set before calling any profiler methods.
 */
-void IntegrationMethodTwoStep::setProfiler(boost::shared_ptr<Profiler> prof)
+void IntegrationMethodTwoStep::setProfiler(std::shared_ptr<Profiler> prof)
     {
     m_prof = prof;
     }
@@ -99,7 +98,7 @@ bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std:
     group assigned to the method. Hence, the base class IntegrationMethodTwoStep will implement that counting.
     Derived classes can ovveride if needed.
 */
-unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> query_group)
+unsigned int IntegrationMethodTwoStep::getNDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersecion between query_group and m_group
     unsigned int intersect_size = ParticleGroup::groupIntersection(query_group, m_group)->getNumMembersGlobal();
@@ -107,10 +106,10 @@ unsigned int IntegrationMethodTwoStep::getNDOF(boost::shared_ptr<ParticleGroup> 
     return m_sysdef->getNDimensions() * intersect_size;
     }
 
-unsigned int IntegrationMethodTwoStep::getRotationalNDOF(boost::shared_ptr<ParticleGroup> query_group)
+unsigned int IntegrationMethodTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group)
     {
     // get the size of the intersecion between query_group and m_group
-    boost::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
+    std::shared_ptr<ParticleGroup> intersect = ParticleGroup::groupIntersection(query_group, m_group);
 
     unsigned int local_group_size = intersect->getNumMembers();
 
@@ -185,10 +184,10 @@ void IntegrationMethodTwoStep::validateGroup()
     }
 
 
-void export_IntegrationMethodTwoStep()
+void export_IntegrationMethodTwoStep(py::module& m)
     {
-    class_<IntegrationMethodTwoStep, boost::shared_ptr<IntegrationMethodTwoStep>, boost::noncopyable>
-        ("IntegrationMethodTwoStep", init< boost::shared_ptr<SystemDefinition>, boost::shared_ptr<ParticleGroup> >())
+    py::class_<IntegrationMethodTwoStep, std::shared_ptr<IntegrationMethodTwoStep> >(m, "IntegrationMethodTwoStep")
+        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup> >())
         .def("validateGroup", &IntegrationMethodTwoStep::validateGroup)
 #ifdef ENABLE_MPI
         .def("setCommunicator", &IntegrationMethodTwoStep::setCommunicator)

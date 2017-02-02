@@ -24,7 +24,7 @@ import platform;
 # Returns True if a previous init.create* or init.read* command has completed successfully and initialized the system.
 # Returns False otherwise.
 def is_initialized():
-    if hoomd.context.current.system is None:
+    if hoomd.context.current is None or hoomd.context.current.system is None:
         return False;
     else:
         return True;
@@ -213,7 +213,7 @@ def read_snapshot(snapshot):
     R""" Initializes the system from a snapshot.
 
     Args:
-        snapshot (:py:class:`hoomd.data.snapshot`): The snapshot to initialize the system.
+        snapshot (:py:mod:`hoomd.data` snapshot): The snapshot to initialize the system.
 
     Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
     single object. They can be used to start or restart a simulation.
@@ -287,8 +287,10 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         hoomd.context.msg.error("Cannot initialize more than once\n");
         raise RuntimeError("Error initializing");
 
-
-    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
+    if restart is not None and os.path.exists(restart):
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, frame);
+    else:
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
     snapshot = reader.getSnapshot();
     if time_step is None:
         time_step = reader.getTimeStep();
@@ -319,7 +321,9 @@ def restore_getar(filename, modes={'any': 'any'}):
     """
     hoomd.util.print_status_line();
 
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
+    # the getar initializer opens the file on all ranks: need to broadcast the string from rank 0
+    filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename_bcast);
 
     newModes = _parse_getar_modes(modes);
 

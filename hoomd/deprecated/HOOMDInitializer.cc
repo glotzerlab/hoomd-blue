@@ -18,17 +18,12 @@
 #include <algorithm>
 
 using namespace std;
-
-#include <boost/python.hpp>
-
-using namespace boost::python;
-
-using namespace boost;
+namespace py = pybind11;
 
 /*! \param fname File name with the data to load
     The file will be read and parsed fully during the constructor call.
 */
-HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguration> exec_conf,
+HOOMDInitializer::HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration> exec_conf,
     const std::string &fname,
     bool wrap_coordinates)
     : m_timestep(0),
@@ -43,23 +38,24 @@ HOOMDInitializer::HOOMDInitializer(boost::shared_ptr<const ExecutionConfiguratio
     m_num_dimensions = 3;
 
     // initialize the parser map
-    m_parser_map["box"] = bind(&HOOMDInitializer::parseBoxNode, this, _1);
-    m_parser_map["position"] = bind(&HOOMDInitializer::parsePositionNode, this, _1);
-    m_parser_map["image"] = bind(&HOOMDInitializer::parseImageNode, this, _1);
-    m_parser_map["velocity"] = bind(&HOOMDInitializer::parseVelocityNode, this, _1);
-    m_parser_map["mass"] = bind(&HOOMDInitializer::parseMassNode, this, _1);
-    m_parser_map["diameter"] = bind(&HOOMDInitializer::parseDiameterNode, this, _1);
-    m_parser_map["type"] = bind(&HOOMDInitializer::parseTypeNode, this, _1);
-    m_parser_map["body"] = bind(&HOOMDInitializer::parseBodyNode, this, _1);
-    m_parser_map["bond"] = bind(&HOOMDInitializer::parseBondNode, this, _1);
-    m_parser_map["angle"] = bind(&HOOMDInitializer::parseAngleNode, this, _1);
-    m_parser_map["dihedral"] = bind(&HOOMDInitializer::parseDihedralNode, this, _1);
-    m_parser_map["improper"] = bind(&HOOMDInitializer::parseImproperNode, this, _1);
-    m_parser_map["constraint"] = bind(&HOOMDInitializer::parseConstraintsNode, this, _1);
-    m_parser_map["charge"] = bind(&HOOMDInitializer::parseChargeNode, this, _1);
-    m_parser_map["orientation"] = bind(&HOOMDInitializer::parseOrientationNode, this, _1);
-    m_parser_map["moment_inertia"] = bind(&HOOMDInitializer::parseMomentInertiaNode, this, _1);
-    m_parser_map["angmom"] = bind(&HOOMDInitializer::parseAngularMomentumNode, this, _1);
+    m_parser_map["box"] = std::bind(&HOOMDInitializer::parseBoxNode, this, std::placeholders::_1);
+    m_parser_map["position"] = std::bind(&HOOMDInitializer::parsePositionNode, this, std::placeholders::_1);
+    m_parser_map["image"] = std::bind(&HOOMDInitializer::parseImageNode, this, std::placeholders::_1);
+    m_parser_map["velocity"] = std::bind(&HOOMDInitializer::parseVelocityNode, this, std::placeholders::_1);
+    m_parser_map["mass"] = std::bind(&HOOMDInitializer::parseMassNode, this, std::placeholders::_1);
+    m_parser_map["diameter"] = std::bind(&HOOMDInitializer::parseDiameterNode, this, std::placeholders::_1);
+    m_parser_map["type"] = std::bind(&HOOMDInitializer::parseTypeNode, this, std::placeholders::_1);
+    m_parser_map["body"] = std::bind(&HOOMDInitializer::parseBodyNode, this, std::placeholders::_1);
+    m_parser_map["bond"] = std::bind(&HOOMDInitializer::parseBondNode, this, std::placeholders::_1);
+    m_parser_map["angle"] = std::bind(&HOOMDInitializer::parseAngleNode, this, std::placeholders::_1);
+    m_parser_map["dihedral"] = std::bind(&HOOMDInitializer::parseDihedralNode, this, std::placeholders::_1);
+    m_parser_map["improper"] = std::bind(&HOOMDInitializer::parseImproperNode, this, std::placeholders::_1);
+    m_parser_map["pair"] = std::bind(&HOOMDInitializer::parsePairNode, this, std::placeholders::_1);
+    m_parser_map["constraint"] = std::bind(&HOOMDInitializer::parseConstraintsNode, this, std::placeholders::_1);
+    m_parser_map["charge"] = std::bind(&HOOMDInitializer::parseChargeNode, this, std::placeholders::_1);
+    m_parser_map["orientation"] = std::bind(&HOOMDInitializer::parseOrientationNode, this, std::placeholders::_1);
+    m_parser_map["moment_inertia"] = std::bind(&HOOMDInitializer::parseMomentInertiaNode, this, std::placeholders::_1);
+    m_parser_map["angmom"] = std::bind(&HOOMDInitializer::parseAngularMomentumNode, this, std::placeholders::_1);
 
     // read in the file
     readFile(fname);
@@ -82,9 +78,9 @@ void HOOMDInitializer::setTimeStep(unsigned int ts)
     }
 
 /*! initializes a snapshot with the internally stored copy of the system data */
-boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() const
+std::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() const
     {
-    boost::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
+    std::shared_ptr< SnapshotSystemData<Scalar> > snapshot(new SnapshotSystemData<Scalar>());
 
     // we only execute on rank 0
     if (m_exec_conf->getRank()) return snapshot;
@@ -274,7 +270,7 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
     idata.type_mapping = m_improper_type_mapping;
 
     /*
-     * Initialize improper data
+     * Initialize constraint data
      */
     ConstraintData::Snapshot& cdata = snapshot->constraint_data;
 
@@ -290,6 +286,23 @@ boost::shared_ptr< SnapshotSystemData<Scalar> > HOOMDInitializer::getSnapshot() 
 
     // initialize with empty vector
     cdata.type_mapping = std::vector<std::string>();
+
+    /*
+     * Initialize pair data
+     */
+    PairData::Snapshot& pair_data = snapshot->pair_data;
+
+    // allocate memory
+    pair_data.resize(m_pairs.size());
+
+    // loop through all the pairs and add a special pair for each
+    for (unsigned int i = 0; i < m_pairs.size(); i++)
+        {
+        pair_data.groups[i] = m_pairs[i];
+        pair_data.type_id[i] = m_pair_types[i];
+        }
+
+    pair_data.type_mapping = m_pair_type_mapping;
 
     return snapshot;
     }
@@ -349,6 +362,7 @@ void HOOMDInitializer::readFile(const string &fname)
     valid_versions.push_back("1.5");
     valid_versions.push_back("1.6");
     valid_versions.push_back("1.7");
+    valid_versions.push_back("1.8");
     bool valid = false;
     vector<string>::iterator i;
     for (i = valid_versions.begin(); i != valid_versions.end(); ++i)
@@ -402,7 +416,7 @@ void HOOMDInitializer::readFile(const string &fname)
         string name = node.getName();
         transform(name.begin(), name.end(), name.begin(), ::tolower);
 
-        std::map< std::string, boost::function< void (const XMLNode&) > >::iterator parser;
+        std::map< std::string, std::function< void (const XMLNode&) > >::iterator parser;
         parser = m_parser_map.find(name);
         if (parser != m_parser_map.end())
             parser->second(node);
@@ -516,6 +530,8 @@ void HOOMDInitializer::readFile(const string &fname)
         m_exec_conf->msg->notice(2) << m_impropers.size() << " impropers" << endl;
     if (m_constraints.size() > 0)
         m_exec_conf->msg->notice(2) << m_constraints.size() << " constraints" << endl;
+    if (m_pairs.size() > 0)
+        m_exec_conf->msg->notice(2) << m_pairs.size() << " special pairs" << endl;
     if (m_charge_array.size() > 0)
         m_exec_conf->msg->notice(2) << m_charge_array.size() << " charges" << endl;
     if (m_orientation.size() > 0)
@@ -923,6 +939,40 @@ void HOOMDInitializer::parseImproperNode(const XMLNode &node)
     }
 
 /*! \param node XMLNode passed from the top level parser in readFile
+    This function extracts all of the data in a \b dihedral node and fills out m_dihedrals. The number
+    of dihedrals in the array is determined dynamically.
+*/
+void HOOMDInitializer::parsePairNode(const XMLNode &node)
+    {
+    // check that this is actually a pair node
+    string name = node.getName();
+    transform(name.begin(), name.end(), name.begin(), ::tolower);
+    assert(name == string("pair"));
+
+    // extract the data from the node
+    string all_text;
+    for (int i = 0; i < node.nText(); i++)
+        all_text += string(node.getText(i)) + string("\n");
+
+    istringstream parser;
+    parser.str(all_text);
+    while (parser.good())
+        {
+        string type_name;
+        unsigned int a, b;
+        parser >> type_name >> a >> b;
+        if (parser.good())
+            {
+            PairData::members_t pair;
+            pair.tag[0] = a; pair.tag[1] = b;
+            m_pairs.push_back(pair);
+            m_pair_types.push_back(getPairTypeId(type_name));
+            }
+        }
+    }
+
+
+/*! \param node XMLNode passed from the top level parser in readFile
     This function extracts all of the data in a \b constraint node and fills out m_constraints. The number
     of constraints in the array is determined dynamically.
 */
@@ -1169,10 +1219,29 @@ unsigned int HOOMDInitializer::getImproperTypeId(const std::string& name)
     return (unsigned int)m_improper_type_mapping.size()-1;
     }
 
-void export_HOOMDInitializer()
+/*! \param name Name to get type id of
+    If \a name has already been added, this returns the type index of that name.
+    If \a name has not yet been added, it is added to the list and the new id is returned.
+*/
+unsigned int HOOMDInitializer::getPairTypeId(const std::string& name)
     {
-    class_< HOOMDInitializer >("HOOMDInitializer", init<boost::shared_ptr<const ExecutionConfiguration>, const string&>())
-    .def(init<boost::shared_ptr<const ExecutionConfiguration>, const string&, bool>())
+    // search for the type mapping
+    for (unsigned int i = 0; i < m_pair_type_mapping.size(); i++)
+        {
+        if (m_pair_type_mapping[i] == name)
+            return i;
+        }
+    // add a new one if it is not found
+    m_pair_type_mapping.push_back(name);
+    return (unsigned int)m_pair_type_mapping.size()-1;
+    }
+
+
+void export_HOOMDInitializer(py::module& m)
+    {
+    py::class_< HOOMDInitializer >(m,"HOOMDInitializer")
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&>())
+    .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, bool>())
     .def("getTimeStep", &HOOMDInitializer::getTimeStep)
     .def("setTimeStep", &HOOMDInitializer::setTimeStep)
     .def("getSnapshot", &HOOMDInitializer::getSnapshot)

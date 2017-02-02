@@ -11,8 +11,7 @@
 #include "NeighborListGPU.h"
 #include "NeighborListGPU.cuh"
 
-#include <boost/python.hpp>
-using namespace boost::python;
+namespace py = pybind11;
 
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
@@ -66,14 +65,14 @@ void NeighborListGPU::buildNlist(unsigned int timestep)
     throw runtime_error("Error updating neighborlist bins");
     }
 
-void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
+bool NeighborListGPU::distanceCheck(unsigned int timestep)
     {
     // prevent against unnecessary calls
     if (! shouldCheckDistance(timestep))
         {
-        m_distcheck_scheduled = false;
-        return;
+        return false;
         }
+
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
@@ -90,9 +89,8 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     Scalar lambda_min = (lambda.x < lambda.y) ? lambda.x : lambda.y;
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
-    ArrayHandle<unsigned int> d_flags(m_flags, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
-    gpu_nlist_needs_update_check_new(d_flags.data,
+    gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,
                                      m_pdata->getN(),
@@ -107,29 +105,9 @@ void NeighborListGPU::scheduleDistanceCheck(unsigned int timestep)
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_distcheck_scheduled = true;
-    m_last_schedule_tstep = timestep;
-
-    // record synchronization point
-    cudaEventRecord(m_event);
-
     if (m_prof) m_prof->pop(m_exec_conf);
-    }
-
-bool NeighborListGPU::distanceCheck(unsigned int timestep)
-    {
-    // check if we have scheduled a kernel for the current time step
-    if (! m_distcheck_scheduled || m_last_schedule_tstep != timestep)
-        scheduleDistanceCheck(timestep);
-
-    m_distcheck_scheduled = false;
-
-    ArrayHandleAsync<unsigned int> h_flags(m_flags, access_location::host, access_mode::read);
-
-    // wait for kernel to complete
-    cudaEventSynchronize(m_event);
-
-    bool result = (*h_flags.data == m_checkn);
+    
+    bool result = m_flags.readFlags() == m_checkn;
 
     #ifdef ENABLE_MPI
     if (m_pdata->getDomainDecomposition())
@@ -148,7 +126,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
         if (m_prof) m_prof->pop();
         }
     #endif
-
 
     return result;
     }
@@ -249,10 +226,10 @@ void NeighborListGPU::buildHeadList()
     if (m_prof) m_prof->pop(exec_conf);
     }
 
-void export_NeighborListGPU()
+void export_NeighborListGPU(py::module& m)
     {
-    class_<NeighborListGPU, boost::shared_ptr<NeighborListGPU>, bases<NeighborList>, boost::noncopyable >
-                     ("NeighborListGPU", init< boost::shared_ptr<SystemDefinition>, Scalar, Scalar >())
+    py::class_<NeighborListGPU, std::shared_ptr<NeighborListGPU> >(m, "NeighborListGPU", py::base<NeighborList>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar >())
                      .def("benchmarkFilter", &NeighborListGPU::benchmarkFilter)
                      ;
     }

@@ -20,12 +20,8 @@
 
 #include <stdexcept>
 
-#include <boost/python.hpp>
-using namespace boost::python;
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-#include <boost/bind.hpp>
-
-using namespace boost;
 using namespace std;
 
 /*! \param sysdef System to compute forces on
@@ -39,8 +35,8 @@ using namespace std;
   delete the neighborlist when done.
 */
 template<typename Real, typename Real4, typename Potential>
-DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(boost::shared_ptr<SystemDefinition> sysdef,
-    boost::shared_ptr<NeighborList> nlist,
+DEM3DForceComputeGPU<Real, Real4, Potential>::DEM3DForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<NeighborList> nlist,
     Real r_cut, Potential potential)
     : DEM3DForceCompute<Real, Real4, Potential>(sysdef, nlist, r_cut, potential)
     {
