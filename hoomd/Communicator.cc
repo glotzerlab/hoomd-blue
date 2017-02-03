@@ -1096,6 +1096,13 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     assert(m_mpi_comm);
     assert(m_decomposition);
 
+    CommFlags flags = getFlags();
+    if (flags[comm_flag::reverse_net_force] && this->m_exec_conf->isCUDAEnabled())
+    {
+        this->m_exec_conf->msg->error() << "Reverse force communication is not enabled on the GPU." << std::endl;
+        throw std::runtime_error("Error during communication");
+    }
+
     m_exec_conf->msg->notice(5) << "Constructing Communicator" << endl;
 
     for (unsigned int dir = 0; dir < 6; dir ++)
