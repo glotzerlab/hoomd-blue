@@ -89,6 +89,15 @@ struct tersoff_args_t
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 #if !defined(SINGLE_PRECISION)
+__device__ inline
+double __my_shfl(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl(a.x, srcLane, width);
+    a.y = __shfl(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
 #if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
@@ -116,7 +125,13 @@ __device__ double myAtomicAdd(double* address, double val)
     return atomicAdd(address, val);
     }
 #endif
-#endif // (!defined(SINGLE_PRECISION))
+#else // (!defined(SINGLE_PRECISION))
+__device__ inline
+float __my_shfl(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl(var, srcLane, width);
+    }
+#endif
 
 __device__ float myAtomicAdd(float* address, float val)
     {
