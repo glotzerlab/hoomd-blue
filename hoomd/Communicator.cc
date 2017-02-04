@@ -1669,31 +1669,6 @@ void Communicator::exchangeGhosts()
     // ghost particle flags
     CommFlags flags = getFlags();
 
-    // resize buffers
-    // Why do we even need this if it's going to resize again immediately in the loop?
-    m_plan_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::position])
-        m_pos_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::charge])
-        m_charge_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::body])
-        m_body_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::image])
-        m_image_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::diameter])
-        m_diameter_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::velocity])
-        m_velocity_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::orientation])
-        m_orientation_copybuf.resize(m_pdata->getN());
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (! isCommunicating(dir) ) continue;
