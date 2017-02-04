@@ -494,13 +494,9 @@ class Communicator
         unsigned int m_num_copy_ghosts[6];       //!< Number of local particles that are sent to neighboring processors
         unsigned int m_num_recv_ghosts[6];       //!< Number of ghosts received per direction
 
-        // I moved this up to avoid warnings regarding initialization order while keeping all of my new variables in one place
         GPUVector<unsigned int> m_plan;          //!< Array of per-direction flags that determine the sending route
 
-        /******************************
-         * Starting Vyas's Code
-         ******************************/
-        // Start variables for exchangeGhosts
+        // Variables needed for sending ghost particles backwards
         GPUVector<unsigned int> m_plan_reverse;          //!< Array of flags that determine the reverse sending route for ghosts
         GPUVector<unsigned int> m_tag_reverse;          //!< Array of flags that determine which ghost particles are being sent back. This has no analog normally because particles actually store their tags, but in this case we don't want to so we have to make a vector. This vector corresponds to the m_copy_ghosts_reverse copybuf (m_copy_ghosts writes directly to m_pdata->getTags())
         GPUVector<unsigned int> m_copy_ghosts_reverse[6]; //!< Per-direction list of indices of particles to send back as ghosts. Copy buffer for m_tag_reverse
@@ -508,22 +504,14 @@ class Communicator
         unsigned int m_num_copy_local_ghosts_reverse[6];       //!< Number of ghost particles in local domain that may need forwarding. Size of m_plan_reverse and m_tag_reverse
         unsigned int m_num_recv_local_ghosts_reverse[6];       //!< Number of ghost particles in local domain that may need forwarding. Receive buffer corresponding to m_num_copy_local_ghosts_reverse
 
-        // The below data are not actually stored as state data since that would double count particles, so instead of a main dataset and a copybuf there is a copybuf and a receive buffer
+        // This is for forwarding ghost particles if they traverse multiple MPI decomposition domains. They are stored separately from the main dataset to avoid double counting, so instead of a main dataset and a copybuf there is a copybuf and a receive buffer
         unsigned int m_num_forward_ghosts_reverse[6];       //!< Number of ghost particles forwarded to this domain that may need forwarding to neighboring processors. Size of m_recv_tag_reverse and m_recv_tag_reverse
         unsigned int m_num_recv_forward_ghosts_reverse[6];       //!< Number of reverse ghosts received per direction. Receive buffer corresponding to m_num_forward_ghosts_reverse
         GPUVector<unsigned int> m_forward_ghosts_reverse[6];    //!< Indicates the index in the forwarded ghosts array containing a given particle in the received array
 
-        // I don't think we actually care about these total numbers
-        //unsigned int m_num_copy_ghosts_reverse[6];       //!< Total number of particles that are sent back to neighboring processors. The sum of m_num_forward_ghosts_reverse and m_num_copy_local_ghosts_reverse
-        //unsigned int m_num_recv_ghosts_reverse[6];       //!< Number of reverse ghosts received per direction. Receive buffer corresponding to m_num_copy_ghosts_reverse
-
         // Start variables for updateNetForce
         GPUVector<Scalar4> m_netforce_reverse_copybuf;            //!< Buffer for reverse net force from ghosts
         GPUVector<Scalar4> m_netforce_reverse_recvbuf;            //!< Buffer for the reverse net force. Receive buffer for m_netforce_reverse_copybuf
-
-        /******************************
-         * Ending Vyas's Code
-         ******************************/
 
         BoxDim m_global_box;                     //!< Global simulation box
         GPUArray<Scalar> m_r_ghost;              //!< Width of ghost layer

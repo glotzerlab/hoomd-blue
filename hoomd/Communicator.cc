@@ -1075,10 +1075,10 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
             m_plan(m_exec_conf),
-            m_plan_reverse(m_exec_conf), // Added by Vyas
-            m_tag_reverse(m_exec_conf), // Added by Vyas
-            m_netforce_reverse_copybuf(m_exec_conf), // Added by Vyas
-            m_netforce_reverse_recvbuf(m_exec_conf), // Added by Vyas
+            m_plan_reverse(m_exec_conf), 
+            m_tag_reverse(m_exec_conf), 
+            m_netforce_reverse_copybuf(m_exec_conf),
+            m_netforce_reverse_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
             m_r_extra_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
@@ -1096,13 +1096,6 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     assert(m_mpi_comm);
     assert(m_decomposition);
 
-    CommFlags flags = getFlags();
-    if (flags[comm_flag::reverse_net_force] && this->m_exec_conf->isCUDAEnabled())
-    {
-        this->m_exec_conf->msg->error() << "Reverse force communication is not enabled on the GPU." << std::endl;
-        throw std::runtime_error("Error during communication");
-    }
-
     m_exec_conf->msg->notice(5) << "Constructing Communicator" << endl;
 
     for (unsigned int dir = 0; dir < 6; dir ++)
@@ -1118,9 +1111,7 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
         m_num_recv_ghosts[dir] = 0;
         }
 
-    /******************************
-     * Starting Vyas's Code
-     ******************************/
+    // All buffers corresponding to sending ghosts in reverse
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         GPUVector<unsigned int> copy_ghosts_reverse(m_exec_conf);
@@ -1130,20 +1121,11 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
         m_num_copy_local_ghosts_reverse[dir] = 0;
         m_num_recv_local_ghosts_reverse[dir] = 0;
 
-        //GPUVector<unsigned int> forward_ghosts_reverse_copybuf(m_exec_conf);
-        //m_forward_ghosts_reverse_copybuf[dir].swap(forward_ghosts_reverse_copybuf);
-        //GPUVector<unsigned int> forward_plan_reverse_copybuf(m_exec_conf);
-        //m_forward_plan_reverse_copybuf[dir].swap(forward_plan_reverse_copybuf);
         GPUVector<unsigned int> forward_ghosts_reverse(m_exec_conf);
         m_forward_ghosts_reverse[dir].swap(forward_ghosts_reverse);
         m_num_forward_ghosts_reverse[dir] = 0;
         m_num_recv_forward_ghosts_reverse[dir] = 0;
         }
-
-    /******************************
-     * Ending Vyas's Code
-     ******************************/
-
 
     // connect to particle sort signal
     m_pdata->getParticleSortSignal().connect<Communicator, &Communicator::forceMigrate>(this);
