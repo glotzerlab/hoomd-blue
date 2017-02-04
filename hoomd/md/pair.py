@@ -2341,7 +2341,7 @@ class dipole(ai_pair):
 
         return params
 
-    def set_params(self, coeff):
+    def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
 
         raise RuntimeError('Not implemented for dipole');

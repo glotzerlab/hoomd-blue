@@ -509,7 +509,7 @@ class Communicator
         unsigned int m_num_recv_forward_ghosts_reverse[6];       //!< Number of reverse ghosts received per direction. Receive buffer corresponding to m_num_forward_ghosts_reverse
         GPUVector<unsigned int> m_forward_ghosts_reverse[6];    //!< Indicates the index in the forwarded ghosts array containing a given particle in the received array
 
-        // Start variables for updateNetForce
+        // Variables for sending forces in reverse
         GPUVector<Scalar4> m_netforce_reverse_copybuf;            //!< Buffer for reverse net force from ghosts
         GPUVector<Scalar4> m_netforce_reverse_recvbuf;            //!< Buffer for the reverse net force. Receive buffer for m_netforce_reverse_copybuf
 

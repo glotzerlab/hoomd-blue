@@ -2042,7 +2042,6 @@ void Communicator::exchangeGhosts()
     m_constraint_comm.exchangeGhostGroups(m_plan, mask);
 
     m_last_flags = flags;
-
     
     /***********************************************************************************************************************************************************
      * For multi-body force fields we must allow particles to send information back through their ghosts. 
@@ -2116,7 +2115,7 @@ void Communicator::exchangeGhosts()
             m_plan_reverse_copybuf[dir].resize(max_copy_ghosts);
             m_forward_ghosts_reverse[dir].resize(max_copy_ghosts);
 
-            // Determinee which ghosts need to be forwarded
+            // Determine which ghosts need to be forwarded
                 {
                 ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse, access_location::host, access_mode::read);
@@ -2169,7 +2168,7 @@ void Communicator::exchangeGhosts()
             std::vector<MPI_Request> reqs;
             MPI_Request req;
 
-            // Commmunicate the number of ghosts to forward. We keep separate counts of the local ghosts we are forwarding for the first time and the ghosts that were forwarded to this domain that are being forwarded further
+            // Communicate the number of ghosts to forward. We keep separate counts of the local ghosts we are forwarding for the first time and the ghosts that were forwarded to this domain that are being forwarded further
             MPI_Isend(&m_num_forward_ghosts_reverse[dir],
                     sizeof(unsigned int),
                     MPI_BYTE,
