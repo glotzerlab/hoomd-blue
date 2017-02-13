@@ -2,9 +2,12 @@
 
 [TOC]
 
-## v2.2.0
+
+Not yet released
 
 *New features*
+
+* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 
 Deprecated*
@@ -19,11 +22,10 @@ Deprecated*
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-* Faster simulations with implicit depletants on CPU
 
 ## v2.1.2
 
-Not yet released
+Released 2017/01/11
 
 *Bug fixes*
 
@@ -31,6 +33,9 @@ Not yet released
 * (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+* update.balance() is properly ignored when only one rank is available
+* Add missing headers to plugin install build
+* Fix a bug where charge.pppm calculated an incorrect pressure
 
 * Other changes *
 

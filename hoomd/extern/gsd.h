@@ -1,4 +1,4 @@
-// Copyright (c) 2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause License.
 
 #ifndef __GSD_H__

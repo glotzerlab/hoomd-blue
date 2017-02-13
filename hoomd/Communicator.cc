@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1331,10 +1331,10 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
- 
+
         // update particle data now that ghosts are available
         m_compute_callbacks.emit(timestep);
-        
+
         m_has_ghost_particles = true;
         }
 
