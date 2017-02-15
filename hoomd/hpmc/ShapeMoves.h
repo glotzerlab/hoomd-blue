@@ -476,14 +476,17 @@ public:
           }
          //std::cout << "alpha_max = " << a_max << std::endl;
          F = I + alpha;
+         F(0,1) = F(1,0);
+         F(0,2) = F(2,0);
+         F(1,2) = F(2,1);
         //  std::cout << "det(F) = " << F.determinant() << std::endl;
          Fbar = F / pow(F.determinant(),1.0/3.0);
         //  std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
         
         // Make Fbar symmetric
-        Fbar(0,1) = Fbar(1,0);
-        Fbar(0,2) = Fbar(2,0);
-        Fbar(1,2) = Fbar(2,1);
+        //Fbar(0,1) = Fbar(1,0);
+        //Fbar(0,2) = Fbar(2,0);
+        //Fbar(1,2) = Fbar(2,1);
 
         m_Fbar[type_id] = Fbar*m_Fbar[type_id];
         // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
