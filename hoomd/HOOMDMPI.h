@@ -34,10 +34,19 @@
 #ifdef SINGLE_PRECISION
 //! Define MPI_FLOAT as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_FLOAT;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_FLOAT_INT;
 #else
 //! Define MPI_DOUBLE as Scalar MPI data type
 const MPI_Datatype MPI_HOOMD_SCALAR = MPI_DOUBLE;
+const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #endif
+
+
+typedef struct{
+    Scalar s;
+    int i;
+    }Scalar_Int;
+
 
 namespace cereal
    {
@@ -331,6 +340,66 @@ void all_gather_v(const T& in_value, std::vector<T> & out_values, const MPI_Comm
     delete[] recv_counts;
     delete[] rbuf;
     }
+
+//! Wrapper around MPI_Send that handles any serializable object
+template<typename T>
+void send(const T& val,const unsigned int dest, const MPI_Comm mpi_comm)
+    {
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+    if(rank == static_cast<int>(dest) ) //Quick exit, if dest is src
+      return;
+    char *buf = NULL;
+    int recv_count;
+
+    std::stringstream s(std::ios_base::out | std::ios_base::binary);
+    cereal::BinaryOutputArchive ar(s);
+
+    // serialize object
+    ar << val;
+
+    // do not forget to flush stream
+    s.flush();
+
+    // copy string to send buffer
+    std::string str = s.str();
+    recv_count = str.size();
+    buf = new char[recv_count];
+    str.copy(buf, recv_count);
+
+    MPI_Send(&recv_count, 1 , MPI_INT, dest, 0, mpi_comm);
+
+    MPI_Send(buf, recv_count, MPI_BYTE, dest, 0 , mpi_comm);
+
+    delete[] buf;
+    }
+
+//! Wrapper around MPI_Recv that handles any serializable object
+template<typename T>
+void recv(T& val,const unsigned int src, const MPI_Comm mpi_comm)
+    {
+    int rank;
+    MPI_Comm_rank(mpi_comm, &rank);
+    if( rank == static_cast<int>(src) ) //Quick exit if src is dest.
+      return;
+
+    int recv_count;
+
+    MPI_Recv(&recv_count, 1, MPI_INT, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+
+    char *buf = NULL;
+    buf = new char[recv_count];
+
+    MPI_Recv(buf, recv_count, MPI_BYTE, src, 0 , mpi_comm, MPI_STATUS_IGNORE);
+
+    // de-serialize
+    std::stringstream s(std::string(buf, recv_count), std::ios_base::in | std::ios_base::binary);
+    cereal::BinaryInputArchive ar(s);
+    ar >> val;
+
+    delete[] buf;
+    }
+
 
 #endif // ENABLE_MPI
 #endif // __HOOMD_MATH_H__

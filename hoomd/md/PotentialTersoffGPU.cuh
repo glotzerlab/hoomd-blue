@@ -74,17 +74,14 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
-template<class T>
-__device__ T myAtomicAdd(T* address, T val);
-
-#if !defined(SINGLE_PRECISION) && (__CUDA_ARCH__ < 600)
+#if !defined(SINGLE_PRECISION)
+#if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
 
     \param address Address to write the double to
     \param val Value to add to address
 */
-template<>
 __device__ double myAtomicAdd(double* address, double val)
     {
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
@@ -99,13 +96,18 @@ __device__ double myAtomicAdd(double* address, double val)
 
     return __longlong_as_double(old);
     }
-#else
-template<>
-__device__ float myAtomicAdd(float* address, float val)
+#else // CUDA_ARCH > 600)
+__device__ double myAtomicAdd(double* address, double val)
     {
     return atomicAdd(address, val);
     }
 #endif
+#endif // (!defined(SINGLE_PRECISION))
+
+__device__ float myAtomicAdd(float* address, float val)
+    {
+    return atomicAdd(address, val);
+    }
 
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the potentials and

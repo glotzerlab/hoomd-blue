@@ -43,14 +43,6 @@ class pair_dipole_tests (unittest.TestCase):
         dipole = md.pair.dipole(r_cut=3.0, nlist = self.nl);
         self.assertRaises(RuntimeError, dipole.update_coeffs);
 
-    # test set params
-    def test_set_params(self):
-        dipole = md.pair.dipole(r_cut=3.0, nlist = self.nl);
-        dipole.set_params(mode="no_shift");
-        dipole.set_params(mode="shift");
-        # xplor is not implemented for anisotropic pair potentials
-        self.assertRaises(RuntimeError, dipole.set_params, mode="blah");
-
     # test nlist subscribe
     def test_nlist_subscribe(self):
         dipole = md.pair.dipole(r_cut=2.5, nlist = self.nl);

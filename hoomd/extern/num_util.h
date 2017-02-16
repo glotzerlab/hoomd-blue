@@ -63,7 +63,7 @@ namespace num_util{
   template<typename T> NPY_TYPES getEnum(void)
   {
     PyErr_SetString(PyExc_ValueError, "no mapping available for this type");
-    pybind11::error_already_set();
+    throw pybind11::error_already_set();
     return NPY_VOID;
   }
 

@@ -2,8 +2,11 @@
 #define _SHAPE_MOVES_H
 
 #include <hoomd/extern/saruprng.h>
-#include "ShapeUtils.h"
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include "ShapeUtils.h"
+#include "Moves.h"
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/Eigen/Dense>
 
 namespace hpmc {
 
@@ -203,9 +206,11 @@ public:
 
         m_determinantInertiaTensor = 1.0;
         m_scale = 1.0;
-        m_step_size.clear();
-        m_step_size.resize(ntypes, stepsize);
+        std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+        m_calculated.resize(ntypes, false);
+        m_centroids.resize(ntypes, vec3<Scalar>(0,0,0));
         m_select_ratio = fmin(mixratio, 1.0)*65535;
+        m_step_size_backup = m_step_size;
         }
 
     void prepare(unsigned int timestep)
@@ -215,19 +220,24 @@ public:
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename ShapeConvexPolyhedronType::param_type& shape, RNG& rng)
         {
-        // type_id = type_id;
+        if(!m_calculated[type_id])
+            {
+            detail::ConvexHull convex_hull(shape); // compute the convex_hull.
+            convex_hull.compute();
+            detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
+            m_centroids[type_id] = mp.getCenterOfMass();
+            m_calculated[type_id] = true;
+            }
         // mix the shape.
         for(size_t i = 0; i < shape.N; i++)
             {
             if( (rng.u32()& 0xffff) < m_select_ratio )
                 {
-                Scalar x = rng.s(-1.0, 1.0);
-                Scalar y = rng.s(-1.0, 1.0);
-                Scalar z = rng.s(-1.0, 1.0);
-                Scalar mag = rng.s(0.0, m_step_size[type_id])/sqrt(x*x + y*y + z*z);
-                shape.x[i] += x*mag;
-                shape.y[i] += y*mag;
-                shape.z[i] += z*mag;
+                vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
+                move_translate(vert, rng,  m_step_size[type_id], 3);
+                shape.x[i] = vert.x;
+                shape.y[i] = vert.y;
+                shape.z[i] = vert.z;
                 }
             }
 
@@ -235,17 +245,17 @@ public:
         convex_hull.compute();
         detail::mass_properties<ShapeConvexPolyhedronType> mp(convex_hull.getPoints(), convex_hull.getFaces());
         Scalar volume = mp.getVolume();
-        vec3<Scalar> centroid = mp.getCenterOfMass();
+        vec3<Scalar> dr = m_centroids[type_id] - mp.getCenterOfMass();
         m_scale = pow(m_volume/volume, 1.0/3.0);
         Scalar rsq = 0.0;
         std::vector< vec3<Scalar> > points(shape.N);
         for(size_t i = 0; i < shape.N; i++)
             {
-            shape.x[i] -= centroid.x;
+            shape.x[i] += dr.x;
             shape.x[i] *= m_scale;
-            shape.y[i] -= centroid.y;
+            shape.y[i] += dr.y;
             shape.y[i] *= m_scale;
-            shape.z[i] -= centroid.z;
+            shape.z[i] += dr.z;
             shape.z[i] *= m_scale;
             vec3<Scalar> vert(shape.x[i], shape.y[i], shape.z[i]);
             rsq = fmax(rsq, dot(vert, vert));
@@ -273,6 +283,8 @@ private:
     unsigned int            m_select_ratio;
     Scalar                  m_scale;
     Scalar                  m_volume;
+    std::vector< vec3<Scalar> > m_centroids;
+    std::vector<bool>       m_calculated;
 };
 
 template <class Shape, class RNG>
@@ -341,6 +353,8 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
         scale_max = (1.0+movesize);
         scale_min = 1.0/scale_max;
         }
+                 // () name of perator and second (...) are the parameters
+                 //  You can overload the () operator to call your object as if it was a function
     void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
         {
         Scalar sx, sy, sz;
@@ -391,12 +405,15 @@ public:
 
 template<class Shape, class RNG>
 class elastic_shape_move_function : public shape_move_function<Shape, RNG>
-{
+{  // Derived class from shape_move_function base class
     // using shape_move_function<Shape, RNG>::m_shape;
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
+    std::vector <Eigen::Matrix3f> m_Fbar_last;
+    std::vector <Eigen::Matrix3f> m_Fbar;
+    //Scalar a_max= 0.01;
 public:
     elastic_shape_move_function(
                                     unsigned int ntypes,
@@ -406,16 +423,25 @@ public:
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
+        m_Fbar.resize(ntypes, Eigen::Matrix3f::Identity());
+        m_Fbar_last.resize(ntypes, Eigen::Matrix3f::Identity());
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
+        //m_Fbar = Eigen::Matrix3f::Identity();
+        m_determinantInertiaTensor = 1.0;
         }
 
-    void prepare(unsigned int timestep) { /* Nothing to do. */ }
-    //! construct is called at the beginning of every update()
-    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+    void prepare(unsigned int timestep)
         {
-        unsigned int move_type_select = rng.u32() & 0xffff;
+            // make a backup for the Fbar.
+            m_Fbar_last = m_Fbar;
+        }
+    //! construct is called at the beginning of every update()                                            # param was shape - Luis
+    void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
+        {
+        using Eigen::Matrix3f;
+        // unsigned int move_type_select = rng.u32() & 0xffff;
         // Saru rng(m_select_ratio, m_seed, timestep);
-        if( move_type_select < m_select_ratio)
+        /*if( move_type_select < m_select_ratio)
             {
             scale<Shape, RNG> move(m_step_size[type_id], false);
             move(shape, rng); // always make the move
@@ -426,14 +452,69 @@ public:
             move(shape, rng); // always make the move
             }
         m_mass_props[type_id].updateParam(shape, false); // update allows caching since for some shapes a full compute is not necessary.
-        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
+        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); */
+
+        // look for Saru
+        //
+          Matrix3f I(3,3);
+          Matrix3f alpha(3,3);
+          Matrix3f F(3,3), Fbar(3,3);
+          Matrix3f eps(3,3), E(3,3);
+
+          // TODO: Define I as global?
+          I << 1.0, 0.0, 0.0,
+               0.0, 1.0, 0.0,
+               0.0, 0.0, 1.0;
+
+          for(int i=0;i<3;i++)
+          {
+            for (int j=0;j<3;j++)
+            {
+              alpha(i,j) =  rng.s(-m_step_size[type_id], m_step_size[type_id]);
+              //std::cout << alpha(i,j) << std::endl;
+            }
+          }
+         //std::cout << "alpha_max = " << a_max << std::endl;
+         F = I + alpha;
+        //  std::cout << "det(F) = " << F.determinant() << std::endl;
+         Fbar = F / pow(F.determinant(),1.0/3.0);
+        //  std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
+        //
+        m_Fbar[type_id] = Fbar*m_Fbar[type_id];
+        // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
+         //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
+        //std::cout << Fbar << std::endl;
+        for(unsigned int i = 0; i < param.N; i++)
+            {
+            vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
+            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
+            param.x[i] = Fbar(0,0)*vert.x + Fbar(0,1)*vert.y + Fbar(0,2)*vert.z;
+            param.y[i] = Fbar(1,0)*vert.x + Fbar(1,1)*vert.y + Fbar(1,2)*vert.z;
+            param.z[i] = Fbar(2,0)*vert.x + Fbar(2,1)*vert.y + Fbar(2,2)*vert.z;
+            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
+            vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
+            //dsq = fmax(dsq, dot(vert, vert));
+            }
         }
+
+        Eigen::Matrix3f getEps(unsigned int type_id)
+            {
+            return 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - Eigen::Matrix3f::Identity();
+            }
+
+        Eigen::Matrix3f getEpsLast(unsigned int type_id)
+            {
+            return 0.5*(m_Fbar_last[type_id].transpose() + m_Fbar_last[type_id]) - Eigen::Matrix3f::Identity();
+            }
 
     //! advance whenever the proposed move is accepted.
     // void advance(unsigned int timestep){ /* Nothing to do. */ }
 
     //! retreat whenever the proposed move is rejected.
-    void retreat(unsigned int timestep){ /* Nothing to do. */ }
+    void retreat(unsigned int timestep)
+        {
+        m_Fbar = m_Fbar_last;
+        }
 
 protected:
     unsigned int            m_select_ratio;
@@ -444,14 +525,14 @@ template<class Shape>
 class ShapeLogBoltzmannFunction
 {
 public:
-    virtual Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
+    virtual Scalar operator()(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
 };
 
 template<class Shape>
 class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 {
 public:
-    virtual Scalar operator()(const unsigned int& N, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    virtual Scalar operator()(const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
         return (Scalar(N)/Scalar(2.0))*log(inew/iold);
         }
@@ -462,15 +543,18 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
     Scalar m_k;
+    Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
     ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
     {
         (*m_reference_shape) = shape;
+        detail::mass_properties<Shape> mp(*m_reference_shape);
+        m_volume = mp.getVolume();
     }
 };
 
-template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> {/* Empty base template will fail on export to python. */ };
+/*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };
 
 template <>
 class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
@@ -486,30 +570,51 @@ public:
         Scalar x_old = shape_old.x/shape_old.y;
         return m_k*(log(x_old)*log(x_old) - log(x_new)*log(x_new)); // -\beta dH
         }
-};
+};*/
 
-template<unsigned int max_verts>
-class ShapeSpring< ShapeConvexPolyhedron<max_verts> > : public ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >
+template<class Shape>
+class ShapeSpring : public ShapeSpringBase< Shape >
 {
-    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_k;
-    using ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >::m_reference_shape;
+    using ShapeSpringBase< Shape >::m_k;
+
+    using ShapeSpringBase< Shape >::m_reference_shape;
+    using ShapeSpringBase< Shape >::m_volume;
+    //using elastic_shape_move_function<Shape, Saru>;
+    std::shared_ptr<elastic_shape_move_function<Shape, Saru> > m_shape_move;
 public:
-    ShapeSpring(Scalar k, typename ShapeConvexPolyhedron<max_verts>::param_type ref ) : ShapeSpringBase< ShapeConvexPolyhedron<max_verts> >(k, ref)
+    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
-    Scalar operator()(const unsigned int& N, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_new, const Scalar& inew, const typename ShapeConvexPolyhedron<max_verts>::param_type& shape_old, const Scalar& iold)
+    Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        AlchemyLogBoltzmannFunction< ShapeConvexPolyhedron<max_verts> > fn;
-        Scalar U_old = 0.0, U_new = 0.0;
-        for(unsigned int i = 0; i < m_reference_shape->N; i++)
-            {
-            vec3<Scalar> v_old(shape_old.x[i], shape_old.y[i], shape_old.z[i]), v_new(shape_new.x[i], shape_new.y[i], shape_new.z[i]), v_ref(m_reference_shape->x[i], m_reference_shape->y[i], m_reference_shape->z[i]), dro, drn;
-            dro = v_old - v_ref;
-            drn = v_new - v_ref;
-            U_old += m_k*dot(dro, dro);
-            U_new += m_k*dot(drn, drn);
-            }
-        return (U_old - U_new) + fn(N, shape_new, inew, shape_old, iold); // -\beta dH
+        //using Eigen::Matrix3f;
+        Eigen::Matrix3f eps = m_shape_move->getEps(type_id);
+        Eigen::Matrix3f eps_last = m_shape_move->getEpsLast(type_id);
+        AlchemyLogBoltzmannFunction< Shape > fn;
+        //Scalar dv;
+        Scalar e_ddot_e = 0.0, e_ddot_e_last = 0.0;
+        // detail::mass_properties<Shape> mp(shape_new);
+        //dv = mp.getVolume()-m_volume;
+        e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
+                 eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
+                 eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
+
+        e_ddot_e_last = eps_last(0,0)*eps_last(0,0) + eps_last(0,1)*eps_last(1,0) + eps_last(0,2)*eps_last(2,0) +
+                 eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
+                 eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
+        /*  for (unsigned int i=0; i<3;i++)
+        {
+        for (unsigned int j=0; j<3;i++)
+        {
+          eps_ddot += eps(i,j)*eps(j,i)
+        }
+        } */
+        //std::cout << "Particle volume = " << m_volume << std::endl ; OK
+        //std::cout << "Stiffness = " << m_k << std::endl ;
+        //std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
+        // This is still not what we want! How do we make it correct?
+        //return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 

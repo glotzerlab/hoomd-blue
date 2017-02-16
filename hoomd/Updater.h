@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+#include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
 

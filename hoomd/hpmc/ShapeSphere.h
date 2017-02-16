@@ -158,7 +158,7 @@ struct ShapeSphere
 
     quat<Scalar> orientation;    //!< Orientation of the sphere (unused)
 
-    sph_params params;        //!< Sphere and ignore flags
+    const sph_params &params;        //!< Sphere and ignore flags
     };
 
 //! Check if circumspheres overlap

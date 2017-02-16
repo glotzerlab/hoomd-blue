@@ -16,7 +16,7 @@ class param_dict(dict):
     Parameters are specified per particle type. Every HPMC integrator has a member shape_param that can read and
     set parameters of the shapes.
 
-    :py:class:`shape_param` can be used as a dictionary to access parameters by type. You can read individual parameters
+    :py:class:`param_dict` can be used as a dictionary to access parameters by type. You can read individual parameters
     or set parameters with :py:meth:`set`.
 
     Example::
@@ -87,7 +87,7 @@ class param_dict(dict):
 
 class _param(object):
     def __init__(self, mc, typid):
-        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False));
+        self.__dict__.update(dict(_keys=['ignore_statistics'], mc=mc, typid=typid, make_fn=None, is_set=False, _py_params=[]));
 
     @classmethod
     def ensure_list(cls, li):
@@ -115,6 +115,10 @@ class _param(object):
             super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])
             # do not pass to C++
             params.pop('ignore_overlaps',None)
+
+        for pname in self._py_params:
+            if pname in params:
+                self.__setattr__(pname, params.pop(pname, None))
 
         self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
 
@@ -230,7 +234,7 @@ class convex_spheropolyhedron_params(_param):
     def make_param(cls, vertices, sweep_radius = 0.0, ignore_statistics=False):
         if cls.max_verts < len(vertices):
             raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided"%(cls.max_verts,len(vertices)));
-        return cls.make_fn(cls.ensure_list(vertices),
+        return cls.make_fn( cls.ensure_list(vertices),
                             float(sweep_radius),
                             ignore_statistics);
 
@@ -295,6 +299,7 @@ class sphinx_params(_hpmc.sphinx3d_param_proxy, _param):
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
         self._keys += ['diameters', 'centers', 'diameter', 'colors'];
+        self._py_params = ['colors'];
         self.colors = None;
 
     def __str__(self):
@@ -326,18 +331,18 @@ class ellipsoid_params(_hpmc.ell_param_proxy, _param):
                                         float(c),
                                         ignore_statistics);
 
-class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
+class sphere_union_params(_param):
     def __init__(self, mc, index):
-        _hpmc.sphere_union_param_proxy.__init__(self, mc.cpp_integrator, index);
+        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
-        self._keys += ['centers', 'orientations', 'diameter', 'colors'];
+        self._py_params = ['colors'];
         self.colors = None;
-        # cls.colors = None if colors is None else cls.ensure_list(colors);
+        self._keys += ['centers', 'orientations', 'diameter', 'colors','overlap'];
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "sphere union(centers = {}, orientations = {}, diameter = {})\n".format(self.centers, self.orientations, self.diameter);
+        string = "sphere union(centers = {}, orientations = {}, diameter = {}, overlap = {})\n".format(self.centers, self.orientations, self.diameter, self.overlap);
         ct = 0;
         members = self.members;
         for m in members:
@@ -357,12 +362,21 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy, _param):
         return data;
 
     @classmethod
-    def make_param(cls, diameters, centers, ignore_statistics=False):
+    def get_sized_class(cls, max_members):
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("sphere_union_param_proxy", max_members);
+        mk_fn = hoomd.hpmc.integrate._get_sized_entry("make_sphere_union_params", max_members);
+        return type(cls.__name__ + str(max_members), (cls, sized_class), dict(cpp_class=sized_class, make_fn=mk_fn)); # cpp_class is just for easier reference to call the constructor
+
+    @classmethod
+    def make_param(cls, diameters, centers, overlap=None, ignore_statistics=False):
+        if overlap is None:
+            overlap = [1 for c in centers]
         members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
-        return _hpmc.make_sphere_union_params(  cls.ensure_list(members),
-                                                cls.ensure_list(centers),
-                                                cls.ensure_list([[1,0,0,0] for i in range(N)]),
-                                                ignore_statistics);
+        return cls.make_fn( cls.ensure_list(members),
+                            cls.ensure_list(centers),
+                            cls.ensure_list([[1,0,0,0] for i in range(N)]),
+                            cls.ensure_list(overlap),
+                            ignore_statistics);

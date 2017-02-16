@@ -739,6 +739,7 @@ class tune(object):
                     newval = float(1e-6)
                 if (newval > max_val):
                     newval = max_val
+
             self.tunables[tunable]['set'](float(newval))
         hoomd.util.unquiet_status();
 

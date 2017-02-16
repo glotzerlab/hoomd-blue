@@ -8,8 +8,8 @@ dem.pair
 .. autosummary::
     :nosignatures:
 
-    hoomd.dem.pair.WCA
-    hoomd.dem.pair.SWCA
+    WCA
+    SWCA
 
 .. rubric:: Details
 

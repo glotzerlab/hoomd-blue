@@ -71,7 +71,7 @@ UP_TEST( ComputeThermoGPU_basic )
     ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::readwrite);
     h_pos.data[0].x = h_pos.data[0].y = h_pos.data[0].z = 0.0;
-    h_vel.data[0].x = 1.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
+    h_vel.data[0].x = 3.0; h_vel.data[0].y = 2.0; h_vel.data[0].z = 3.0;
     h_pos.data[1].x = h_pos.data[1].y = h_pos.data[1].z = 1.0;
     h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
     }
@@ -84,7 +84,9 @@ UP_TEST( ComputeThermoGPU_basic )
     // check that we can actually compute temperature
     tc->setNDOF(3*pdata->getN());
     tc->compute(0);
-    MY_CHECK_CLOSE(tc->getTemperature(), 15.1666666666666666666667, tol);
+    Scalar cur_T = tc->getTemperature();
+    cout << "Testing: T=" << cur_T << endl;
+    MY_CHECK_CLOSE(cur_T, 16.5, tol);
     }
 #endif
 

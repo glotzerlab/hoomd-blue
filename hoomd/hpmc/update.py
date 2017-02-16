@@ -351,9 +351,9 @@ class wall(_updater):
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        walls (:py:class:`hoomd.hpmc.compute.wall`): the wall class instance to be updated
+        walls (:py:class:`hoomd.hpmc.field.wall`): the wall class instance to be updated
         py_updater (callable): the python callback that performs the update moves. This must be a python method that is a function of the timestep of the simulation.
-               It must actually update the :py:class:`hoomd.hpmc.compute.wall`) managed object.
+               It must actually update the :py:class:`hoomd.hpmc.field.wall`) managed object.
         move_ratio (float): the probability with which an update move is attempted
         seed (int): the seed of the pseudo-random number generator that determines whether or not an update move is attempted
         period (int): the number of timesteps between update move attempt attempts
@@ -526,7 +526,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.UpdaterMuVTImplicitSphereUnion;
+                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.max_members);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -550,7 +550,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.UpdaterMuVTSphereUnion;
+                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.max_members);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -660,7 +660,7 @@ class remove_drift(_updater):
 
     Args:
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
-        external_lattice (:py:class:`hoomd.hpmc.compute.lattice_field`): lattice field where the lattice is defined.
+        external_lattice (:py:class:`hoomd.hpmc.field.lattice_field`): lattice field where the lattice is defined.
         period (int): the period to call the updater
 
     The command hpmc.update.remove_drift sets up an updater that removes the center of mass
@@ -702,7 +702,7 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls =_hpmc.RemoveDriftUpdaterSphereUnion;
+                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.max_members);
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
@@ -920,6 +920,7 @@ class shape_update(_updater):
             param_ratio (float): average fraction of vertices to change each update
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             shape_up.vertex_shape_move( stepsize=0.001, param_ratio=0.25, volume=1.0)
 
@@ -974,6 +975,7 @@ class shape_update(_updater):
             integrator.
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             # convex_polyhedron
             shape_up.constant_shape_move(vertices=verts)
@@ -1021,7 +1023,7 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, [self.mc.shape_class.make_param(**shape_params)]);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def scale_shear_shape_move(self, stepsize, move_ratio=0.5):
+    def elastic_shape_move(self, stepsize, move_ratio=0.5):
         R"""
         Enable scale and shear shape move and set parameters. Changes a particle shape by
         scaling the particle and shearing the particle.
@@ -1031,6 +1033,7 @@ class shape_update(_updater):
             move_ratio (float): fraction of scale to shear moves.
 
         Example::
+
             shape_up = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
             shape_up.scale_shear_shape_move(stepsize=0.01)
 
@@ -1129,6 +1132,7 @@ class shape_update(_updater):
             The total number of moves attempted by the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1150,6 +1154,7 @@ class shape_update(_updater):
             The total number of moves accepted by the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1170,6 +1175,7 @@ class shape_update(_updater):
             The acceptance ratio for a particle type
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1194,6 +1200,7 @@ class shape_update(_updater):
             The shape move stepsize for a particle type
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1208,6 +1215,7 @@ class shape_update(_updater):
         R""" Reset the acceptance statistics for the updater
 
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1230,7 +1238,9 @@ class shape_update(_updater):
         Args:
             type (str): Particle type (string) or list of types
             stepsize (float): Shape move stepsize to set for each type
+
         Example::
+
             mc = hpmc.integrate.shape(..);
             mc.shape_param[name].set(....);
             shape_updater = hpmc.update.shape_update(mc, move_ratio=0.25, seed=9876)
@@ -1258,6 +1268,7 @@ class alchemy(shape_update):
     Additional comments here. what enseble are we simulating etc.
 
     Example::
+
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         alchem = hpmc.update.alchemy(mc, move_ratio=0.25, seed=9876)
 
@@ -1311,6 +1322,7 @@ class elastic_shape(shape_update):
         explain how to write the function here.
 
     Example::
+    
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
@@ -1319,6 +1331,7 @@ class elastic_shape(shape_update):
     def __init__(   self,
                     stiffness,
                     reference,
+                    stepsize,
                     **params):
         hoomd.util.print_status_line();
         # initialize base class
@@ -1326,15 +1339,18 @@ class elastic_shape(shape_update):
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
+        self.elastic_shape_move(stepsize);
 
         if isinstance(self.mc, integrate.convex_polyhedron):
             clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
-            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape);
+            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape, self.move_cpp);
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
 
         ref_shape = self.mc.shape_class.make_param(**reference);
-        self.boltzmann_function = clss(stiffness, ref_shape);
+        self.boltzmann_function = clss(stiffness, ref_shape, self.move_cpp);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
+        #del self.vertex_shape_move
+        #del self.python_shape_move

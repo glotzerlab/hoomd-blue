@@ -14,6 +14,9 @@
 #ifndef __VARIANT_H__
 #define __VARIANT_H__
 
+// ensure that HOOMDMath.h is the first thing included
+#include "HOOMDMath.h"
+
 #include <map>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 

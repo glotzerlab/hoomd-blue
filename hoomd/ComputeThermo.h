@@ -291,12 +291,24 @@ class ComputeThermo : public Compute
         //! Calculates the requested log value and returns it
         virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
+        //! Control the enable_logging flag
+        /*! Set this flag to false to prevent this compute from providing logged quantities.
+            This is useful for internal computes that should not appear in the logs.
+
+            \param enable Flag to set
+        */
+        void setLoggingEnabled(bool enable)
+            {
+            m_logging_enabled = enable;
+            }
+
     protected:
         std::shared_ptr<ParticleGroup> m_group;     //!< Group to compute properties for
         GPUArray<Scalar> m_properties;  //!< Stores the computed properties
         unsigned int m_ndof;            //!< Stores the number of translational degrees of freedom in the system
         unsigned int m_ndof_rot;        //!< Stores the number of rotational degrees of freedom in the system
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
+        bool m_logging_enabled;         //!< Set to false to disable communication with the logger
 
         //! Does the actual computation
         virtual void computeProperties();

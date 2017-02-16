@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 
 #include "hoomd/Integrator.h"
 #include "HPMCPrecisionSetup.h"
@@ -109,13 +110,36 @@ class UpdateOrder
         void randomize(unsigned int timestep, unsigned int select = 0)
             {
             shuffle(timestep, select);
-            Saru rng(timestep, m_seed+select+1, 0xfa870af6);
-            unsigned int N = m_update_order.size();
-            for (unsigned int i = 0; i < N; i++)
+            Saru rng(timestep, m_seed+select+0xbaddab, 0xfa870af6);
+            std::shuffle(m_update_order.begin(), m_update_order.end(), rng);
+            }
+
+        //! randomly choose a subset of the list
+        /*! \param timestep Current timestep of the simulation
+            \note \a timestep is used to seed the RNG, thus assuming that the order is shuffled only once per
+            timestep.
+            \param k The number of elements to choose
+            the first k elements are the ones chosen.
+        */
+        void choose(unsigned int timestep, unsigned int k, unsigned int select = 0)
+            {
+            // this is an implementation of the classic reservoir sampling
+            // algorithm.
+            Saru rng(timestep, m_seed+select+0xd0dd, 0xfa870af6);
+            std::vector<unsigned int>::iterator next, iter, end, last;
+            next = m_update_order.begin();
+            iter = next;
+            end = next+k;
+            last = m_update_order.end();
+            while(next != end && end <= last)
                 {
-                unsigned int ri = N*rng.s(0.0,1.0);
-                unsigned int rj = N*rng.s(0.0,1.0);
-                std::swap(m_update_order[ri], m_update_order[rj]);
+                Scalar p = rng.s(Scalar(0.0),Scalar(1.0));
+                if(p < Scalar(std::distance(next,end))/Scalar(std::distance(iter, last)))
+                    {
+                    std::swap((*next), (*iter));
+                    next++;
+                    }
+                iter++;
                 }
             }
 
@@ -204,13 +228,37 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<bool> mapOverlaps();
 
+        //! Return a python list that is an unwrapped overlap map
+        virtual pybind11::list PyMapOverlaps();
+
         //! Return the requested ghost layer width
         virtual Scalar getGhostLayerWidth(unsigned int)
             {
             Scalar ghost_width = m_nominal_width + m_extra_ghost_width;
-            m_exec_conf->msg->notice(9) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
+            m_exec_conf->msg->notice(7) << "IntegratorHPMCMono: ghost layer width of " << ghost_width << std::endl;
             return ghost_width;
             }
+
+        #ifdef ENABLE_MPI
+        //! Return the requested communication flags for ghost particles
+        virtual CommFlags getCommFlags(unsigned int)
+            {
+            CommFlags flags(0);
+            flags[comm_flag::position] = 1;
+            flags[comm_flag::tag] = 1;
+
+            std::ostringstream o;
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
+            if (m_hasOrientation)
+                {
+                flags[comm_flag::orientation] = 1;
+                o << "orientation ";
+                }
+
+            m_exec_conf->msg->notice(9) << o.str() << std::endl;
+            return flags;
+            }
+        #endif
 
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
@@ -243,17 +291,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #ifdef ENABLE_MPI
             if (m_comm)
                 {
-                CommFlags flags(0);
-                flags[comm_flag::position] = 1;
-                flags[comm_flag::tag] = 1;
-
-                if (m_hasOrientation)
-                    flags[comm_flag::orientation] = 1;
-
-                // we need tags
-                flags[comm_flag::tag] = 1;
-
-                m_comm->setFlags(flags);
+                // this is kludgy but necessary since we are calling the communications methods directly
+                m_comm->setFlags(getCommFlags(0));
 
                 if (migrate)
                     m_comm->migrateParticles();
@@ -343,6 +382,11 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_overlap_idx = Index2D(m_pdata->getNTypes());
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
 
     // Connect to the BoxChange signal
     m_pdata->getBoxChangeSignal().template connect<IntegratorHPMCMono<Shape>, &IntegratorHPMCMono<Shape>::slotBoxChanged>(this);
@@ -403,6 +447,11 @@ void IntegratorHPMCMono<Shape>::slotNumTypesChange()
 
     GPUArray<unsigned int> overlaps(m_overlap_idx.getNumElements(), m_exec_conf);
     m_overlaps.swap(overlaps);
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::readwrite);
+    for(unsigned int i = 0; i < m_overlap_idx.getNumElements(); i++)
+        {
+        h_overlaps.data[i] = 1; // Assume we want to check overlaps.
+        }
     }
 
 template <class Shape>
@@ -1238,7 +1287,22 @@ std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     return overlap_map;
     }
 
-
+/*! Function for returning a python list of all overlaps in a system by particle
+  tag. returns an unraveled form of an NxN matrix with true/false indicating
+  the overlap status of the ith and jth particle
+ */
+template <class Shape>
+pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
+    {
+    std::vector<bool> v = IntegratorHPMCMono<Shape>::mapOverlaps();
+    pybind11::list overlap_map;
+    // for( unsigned int i = 0; i < sizeof(v)/sizeof(v[0]); i++ )
+    for (auto i: v)
+        {
+        overlap_map.append(pybind11::cast<bool>(i));
+        }
+    return overlap_map;
+    }
 
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
@@ -1251,7 +1315,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
-          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::mapOverlaps)
+          .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           ;
     }
 

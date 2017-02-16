@@ -261,9 +261,8 @@ class sphinx_test(unittest.TestCase):
         context.initialize()
 
     def test_metadata_dump(self):
-        shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)] )
+        shape_param = dict(diameters=[2,-2.2,-2.2], centers=[(0,0,0), (0,0,1.15), (0,0,-1.15)], colors=['ff','ffff00','ffff00'])
         self.mc.shape_param.set('A',  **shape_param)
-        self.mc.shape_param['A'].colors=['ff','ffff00','ffff00']
         context.current.sorter.set_params(grid=8)
         meta_data = meta.dump_metadata()
         self.assertIn('hoomd.hpmc.integrate.sphinx', meta_data)

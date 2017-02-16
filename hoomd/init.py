@@ -213,7 +213,7 @@ def read_snapshot(snapshot):
     R""" Initializes the system from a snapshot.
 
     Args:
-        snapshot (:py:class:`hoomd.data.snapshot`): The snapshot to initialize the system.
+        snapshot (:py:mod:`hoomd.data` snapshot): The snapshot to initialize the system.
 
     Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
     single object. They can be used to start or restart a simulation.
@@ -321,7 +321,9 @@ def restore_getar(filename, modes={'any': 'any'}):
     """
     hoomd.util.print_status_line();
 
-    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename);
+    # the getar initializer opens the file on all ranks: need to broadcast the string from rank 0
+    filename_bcast = _hoomd.mpi_bcast_str(filename, hoomd.context.exec_conf);
+    initializer = _hoomd.GetarInitializer(hoomd.context.exec_conf, filename_bcast);
 
     newModes = _parse_getar_modes(modes);
 

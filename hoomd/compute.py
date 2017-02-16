@@ -85,7 +85,6 @@ class _compute:
             return;
 
         hoomd.context.current.system.removeCompute(self.compute_name);
-        hoomd.context.current.computes.remove(self)
         self.enabled = False;
 
     def enable(self):
@@ -106,7 +105,6 @@ class _compute:
             return;
 
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
-        hoomd.context.current.computes.append(self)
         self.enabled = True;
 
 # set default counter

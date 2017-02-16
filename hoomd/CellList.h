@@ -4,6 +4,7 @@
 
 // Maintainer: joaander
 
+#include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GPUFlags.h"
 

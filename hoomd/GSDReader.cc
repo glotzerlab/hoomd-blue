@@ -338,6 +338,19 @@ void GSDReader::readTopology()
 
         readChunk(&m_snapshot->constraint_data.groups[0], m_frame, "constraints/group", N*8, N);
         }
+
+    if (m_handle.header.schema_version >= gsd_make_version(1,1))
+        {
+        N = 0;
+        readChunk(&N, m_frame, "pairs/N", 4);
+        if (N > 0)
+            {
+            m_snapshot->pair_data.resize(N);
+            m_snapshot->pair_data.type_mapping = readTypes(m_frame, "pairs/types");
+            readChunk(&m_snapshot->pair_data.type_id[0], m_frame, "pairs/typeid", N*4, N);
+            readChunk(&m_snapshot->pair_data.groups[0], m_frame, "pairs/group", N*8, N);
+            }
+        }
     }
 
 void export_GSDReader(py::module& m)
