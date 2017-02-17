@@ -406,7 +406,7 @@ public:
 template<class Shape, class RNG>
 class elastic_shape_move_function : public shape_move_function<Shape, RNG>
 {  // Derived class from shape_move_function base class
-    // using shape_move_function<Shape, RNG>::m_shape;
+    //using shape_move_function<Shape, RNG>::m_shape;
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
@@ -450,12 +450,10 @@ public:
             {
             shear<Shape, RNG> move(m_step_size[type_id]);
             move(shape, rng); // always make the move
-            }
-        m_mass_props[type_id].updateParam(shape, false); // update allows caching since for some shapes a full compute is not necessary.
-        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); */
-
-        // look for Saru
-        //
+            }*/                              // was shape instead of param
+          m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
+          m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); 
+          //std::cout << m_determinantInertiaTensor << std::endl; This is inew
           Matrix3f I(3,3);
           Matrix3f alpha(3,3);
           Matrix3f F(3,3), Fbar(3,3);
@@ -621,8 +619,9 @@ public:
         //std::cout << "Stiffness = " << m_k << std::endl ;
         //std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
         // This is still not what we want! How do we make it correct?
-        //return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
-        return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        //std::cout << iold << inew << std::endl;
+        return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        //return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 };
 
