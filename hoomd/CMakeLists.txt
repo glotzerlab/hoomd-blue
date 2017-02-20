@@ -20,6 +20,7 @@ set(_hoomd_sources Analyzer.cc
                    Compute.cc
                    ComputeThermo.cc
                    ConstForceCompute.cc
+                   ConstTorqueCompute.cc
                    DCDDumpWriter.cc
                    DomainDecomposition.cc
                    ExecutionConfiguration.cc
@@ -84,6 +85,7 @@ set(_hoomd_headers
     ComputeThermo.h
     ComputeThermoTypes.h
     ConstForceCompute.h
+    ConstTorqueCompute.h
     DCDDumpWriter.h
     DomainDecomposition.h
     ExecutionConfiguration.h

@@ -21,6 +21,7 @@
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
 #include "ConstForceCompute.h"
+#include "ConstTorqueCompute.h"
 #include "Analyzer.h"
 #include "IMDInterface.h"
 #include "DCDDumpWriter.h"
@@ -358,6 +359,7 @@ PYBIND11_PLUGIN(_hoomd)
     export_ForceCompute(m);
     export_ForceConstraint(m);
     export_ConstForceCompute(m);
+    export_ConstTorqueCompute(m);
 
 #ifdef ENABLE_CUDA
     export_CellListGPU(m);

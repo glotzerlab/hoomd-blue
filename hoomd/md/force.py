@@ -190,6 +190,7 @@ class constant(_force):
         fx (float): x-component of the force (in force units).
         fy (float): y-component of the force (in force units).
         fz (float): z-component of the force (in force units).
+        is_torque (bool): indicates that a torque should be applied
         group (:py:mod:`hoomd.group`): Group for which the force will be set.
 
     :py:class:`constant` specifies that a constant force should be added to every
@@ -201,7 +202,7 @@ class constant(_force):
         const = force.constant(fx=0.4, fy=1.0, fz=0.5)
         const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
     """
-    def __init__(self, fx, fy, fz, group=None):
+    def __init__(self, fx, fy, fz, is_torque=False, group=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -209,15 +210,22 @@ class constant(_force):
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
+            if is_torque:
+                self.cpp_force = _hoomd.ConstTorqueCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
+            else:
+                self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
         else:
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
+            if is_torque:
+                self.cpp_force = _hoomd.ConstTorqueCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
+            else:
+                self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
 
         # store metadata
-        self.metadata_fields = ['fx','fy','fz']
+        self.metadata_fields = ['fx','fy','fz','is_torque']
         self.fx = fx
         self.fy = fy
         self.fz = fz
+        self.is_torque = is_torque
         if group is not None:
             self.metadata_fields.append('group')
             self.group = group
@@ -241,16 +249,23 @@ class constant(_force):
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5)
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
     # \endcode
-    def set_force(self, fx, fy, fz, group=None):
+    def set_force(self, fx, fy, fz, is_torque=False, group=None):
         self.check_initialization();
         if (group is not None):
-            self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
+            if is_torque:
+                self.cpp_force.setGroupTorque(group.cpp_group,fx,fy,fz);
+            else:
+                self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
         else:
-            self.cpp_force.setForce(fx, fy, fz);
+            if is_torque:
+                self.cpp_force.setTorque(fx, fy, fz);
+            else:
+                self.cpp_force.setForce(fx, fy, fz);
 
         self.fx = fx
         self.fy = fy
         self.fz = fz
+        self.is_torque = is_torque
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
