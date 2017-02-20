@@ -187,10 +187,11 @@ class constant(_force):
     R""" Constant force.
 
     Args:
-        fx (float): x-component of the force (in force units).
-        fy (float): y-component of the force (in force units).
-        fz (float): z-component of the force (in force units).
-        is_torque (bool): indicates that a torque should be applied
+        fvec (3-tuple of floats): force vector (in force units)
+        tvec (3-tuple of floats): torque vector (in torque units)
+        fx (float): x compent of force, retained for backwards compatibility
+        fy (float): y compent of force, retained for backwards compatibility
+        fz (float): z compent of force, retained for backwards compatibility
         group (:py:mod:`hoomd.group`): Group for which the force will be set.
 
     :py:class:`constant` specifies that a constant force should be added to every
@@ -198,34 +199,50 @@ class constant(_force):
 
     Examples::
 
-        force.constant(fx=1.0, fy=0.5, fz=0.25)
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5)
-        const = force.constant(fx=0.4, fy=1.0, fz=0.5,group=fluid)
+        force.constant(fx=1.0, fy=0.5, fz=0.25))
+        const = force.constant(fvec=(0.4,1.0,0.5))
+        const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
+        const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
     """
-    def __init__(self, fx, fy, fz, is_torque=False, group=None):
+    def __init__(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None):
         hoomd.util.print_status_line();
 
+        if (fx is not None) and (fy is not None) and (fz is not None):
+            self.fvec = (fx,fy,fz)
+        elif (fvec is not None):
+            self.fvec = fvec
+        else:
+            self.fvec = (0,0,0)
+
+        if (tvec is not None):
+            self.tvec = tvec
+        else:
+            self.tvec = (0,0,0)
+
+        if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0)): 
+            hoomd.context.msg.warning("The constant force specified has no non-zero components\n");
+        
         # initialize the base class
         _force.__init__(self);
 
         # create the c++ mirror class
         if (group is not None):
-            if is_torque:
-                self.cpp_force = _hoomd.ConstTorqueCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
-            else:
-                self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, fx, fy, fz);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, self.fvec[0], 
+                                                                                                                self.fvec[1], 
+                                                                                                                self.fvec[2], 
+                                                                                                                self.tvec[0], 
+                                                                                                                self.tvec[1], 
+                                                                                                                self.tvec[2]);
         else:
-            if is_torque:
-                self.cpp_force = _hoomd.ConstTorqueCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
-            else:
-                self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, fx, fy, fz);
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, self.fvec[0],
+                                                                                                                                          self.fvec[1],
+                                                                                                                                          self.fvec[2],
+                                                                                                                                          self.tvec[0],
+                                                                                                                                          self.tvec[1],
+                                                                                                                                          self.tvec[2]);
 
         # store metadata
-        self.metadata_fields = ['fx','fy','fz','is_torque']
-        self.fx = fx
-        self.fy = fy
-        self.fz = fz
-        self.is_torque = is_torque
+        self.metadata_fields = ['fvec', 'tvec']
         if group is not None:
             self.metadata_fields.append('group')
             self.group = group
@@ -237,6 +254,9 @@ class constant(_force):
     # \param fx New x-component of the force (in force units)
     # \param fy New y-component of the force (in force units)
     # \param fz New z-component of the force (in force units)
+    # \param fvec New force vector
+    # \param tvec New torque vector
+
     # \param group Group for which the force will be set
     #
     # Using set_force() requires that you saved the created constant force in a variable. i.e.
@@ -248,24 +268,31 @@ class constant(_force):
     # \code
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5)
     # const.set_force(fx=0.2, fy=0.1, fz=-0.5, group=fluid)
+    # const.set_force(fvec=(0.2,0.1,-0.5), tvec=(0,0,1), group=fluid)
     # \endcode
-    def set_force(self, fx, fy, fz, is_torque=False, group=None):
+    def set_force(self, fx=None, fy=None, fz=None, fvec=None, tvec=None, group=None):
+
+        if (fx is not None) and (fy is not None) and (fx is not None):
+            self.fvec = (fx,fy,fz)
+        elif fvec is not None:
+            self.fvec = fvec
+        else:
+            self.fvec = (0,0,0)
+
+        if tvec is not None:
+            self.tvec = tvec
+        else:
+            self.tvec = (0,0,0)
+
+        if (fvec==(0,0,0)) and (tvec==(0,0,0)):
+            hoomd.contex.msg.warning("You are setting the constant force to have no non-zero components\n")
+
         self.check_initialization();
         if (group is not None):
-            if is_torque:
-                self.cpp_force.setGroupTorque(group.cpp_group,fx,fy,fz);
-            else:
-                self.cpp_force.setGroupForce(group.cpp_group,fx,fy,fz);
+            self.cpp_force.setGroupForce(group.cpp_group, self.fvec[0], self.fvec[1], self.fvec[2],
+                                                          self.tvec[0], self.tvec[1], self.tvec[2]);
         else:
-            if is_torque:
-                self.cpp_force.setTorque(fx, fy, fz);
-            else:
-                self.cpp_force.setForce(fx, fy, fz);
-
-        self.fx = fx
-        self.fy = fy
-        self.fz = fz
-        self.is_torque = is_torque
+            self.cpp_force.setForce(self.fvec[0], self.fvec[1], self.fvec[2], self.tvec[0], self.tvec[1], self.tvec[2]);
 
     # there are no coeffs to update in the constant force compute
     def update_coeffs(self):
@@ -277,6 +304,7 @@ class active(_force):
     Args:
         seed (int): required user-specified seed number for random number generator.
         f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
+        t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
         group (:py:mod:`hoomd.group`): Group for which the force will be set
         orientation_link (bool): When True, particle orientation is coupled to the active force vector. Only
           relevant for non-point-like anisotropic particles.
@@ -307,17 +335,33 @@ class active(_force):
         ellipsoid = update.constraint_ellipsoid(group=groupA, P=(0,0,0), rx=3, ry=4, rz=5)
         force.active( seed=7, f_list=[tuple(1,2,3) for i in range(N)], orientation_link=False, rotation_diff=100, constraint=ellipsoid)
     """
-    def __init__(self, seed, f_lst, group, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
+    def __init__(self, seed, group, f_lst=None, t_lst=None, orientation_link=True, orientation_reverse_link=False, rotation_diff=0, constraint=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
         _force.__init__(self);
+
+        if (f_lst is None) and (t_lst is None):
+            raise RuntimeError('No forces or torques are being set')
 
         # input check
         if (f_lst is not None):
             for element in f_lst:
                 if type(element) != tuple or len(element) != 3:
                     raise RuntimeError("Active force passed in should be a list of 3-tuples (fx, fy, fz)")
+        else:
+            f_lst = []
+            for element in t_lst:
+                f_lst.append((0,0,0))
+
+        if (t_lst is not None):
+            for element in t_lst:
+                if type(element) != tuple or len(element) != 3:
+                    raise RuntimeError("Active torque passed in should be a list of 3-tuples (tx, ty, tz)")
+        else:
+            t_lst = []
+            for element in f_lst:
+                t_lst.append((0,0,0))
 
         # assign constraints
         if (constraint is not None):
@@ -336,11 +380,13 @@ class active(_force):
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
+            self.cpp_force = _md.ActiveForceCompute(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
                                                       orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
+
         else:
-            self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst,
+            self.cpp_force = _md.ActiveForceComputeGPU(hoomd.context.current.system_definition, group.cpp_group, seed, f_lst, t_lst,
                                                          orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz);
+
 
         # store metadata
         self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']

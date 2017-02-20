@@ -28,7 +28,7 @@ class ActiveForceComputeGPU : public ActiveForceCompute
         //! Constructs the compute
         ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, pybind11::list f_lst,
+                             int seed, pybind11::list f_lst, pybind11::list t_lst,
                              bool orientation_link, bool orientation_reverse_link, Scalar rotation_diff,
                              Scalar3 P,
                              Scalar rx,

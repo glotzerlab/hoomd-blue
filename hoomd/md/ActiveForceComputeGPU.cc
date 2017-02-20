@@ -29,6 +29,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
                                         std::shared_ptr<ParticleGroup> group,
                                         int seed,
                                         pybind11::list f_lst,
+                                        pybind11::list t_lst,
                                         bool orientation_link,
                                         bool orientation_reverse_link,
                                         Scalar rotation_diff,
@@ -36,7 +37,7 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
                                         Scalar rx,
                                         Scalar ry,
                                         Scalar rz)
-        : ActiveForceCompute(sysdef, group, seed, f_lst, orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
+        : ActiveForceCompute(sysdef, group, seed, f_lst, t_lst, orientation_link, orientation_reverse_link, rotation_diff, P, rx, ry, rz), m_block_size(256)
     {
     if (!m_exec_conf->isCUDAEnabled())
         {
@@ -46,16 +47,22 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
 
     unsigned int N = m_pdata->getNGlobal();
     unsigned int group_size = m_group->getNumMembersGlobal();
-    GPUArray<Scalar3> tmp_activeVec(N, m_exec_conf);
-    GPUArray<Scalar> tmp_activeMag(N, m_exec_conf);
+    GPUArray<Scalar3> tmp_f_activeVec(N, m_exec_conf);
+    GPUArray<Scalar3> tmp_t_activeVec(N, m_exec_conf);
+    GPUArray<Scalar> tmp_f_activeMag(N, m_exec_conf);
+    GPUArray<Scalar> tmp_t_activeMag(N, m_exec_conf);
     GPUArray<unsigned int> tmp_groupTags(group_size, m_exec_conf);
 
         {
-        ArrayHandle<Scalar3> old_activeVec(m_activeVec, access_location::host);
-        ArrayHandle<Scalar> old_activeMag(m_activeMag, access_location::host);
+        ArrayHandle<Scalar3> old_f_activeVec(m_f_activeVec, access_location::host);
+        ArrayHandle<Scalar3> old_t_activeVec(m_t_activeVec, access_location::host);
+        ArrayHandle<Scalar> old_f_activeMag(m_f_activeMag, access_location::host);
+        ArrayHandle<Scalar> old_t_activeMag(m_t_activeMag, access_location::host);
 
-        ArrayHandle<Scalar3> activeVec(tmp_activeVec, access_location::host);
-        ArrayHandle<Scalar> activeMag(tmp_activeMag, access_location::host);
+        ArrayHandle<Scalar3> f_activeVec(tmp_f_activeVec, access_location::host);
+        ArrayHandle<Scalar3> t_activeVec(tmp_t_activeVec, access_location::host);
+        ArrayHandle<Scalar> f_activeMag(tmp_f_activeMag, access_location::host);
+        ArrayHandle<Scalar> t_activeMag(tmp_t_activeMag, access_location::host);
         ArrayHandle<unsigned int> groupTags(tmp_groupTags, access_location::host);
 
         // for each of the particles in the group
@@ -63,34 +70,47 @@ ActiveForceComputeGPU::ActiveForceComputeGPU(std::shared_ptr<SystemDefinition> s
             {
             unsigned int tag = m_group->getMemberTag(i);
             groupTags.data[i] = tag;
-            activeMag.data[tag] = old_activeMag.data[i];
-            activeVec.data[tag] = old_activeVec.data[i];
+            f_activeMag.data[tag] = old_f_activeMag.data[i];
+            f_activeVec.data[tag] = old_f_activeVec.data[i];
+
+            t_activeMag.data[tag] = old_t_activeMag.data[i];
+            t_activeVec.data[tag] = old_t_activeVec.data[i];
+
             }
 
         last_computed = 10;
         }
 
-    m_activeVec.swap(tmp_activeVec);
-    m_activeMag.swap(tmp_activeMag);
+    m_f_activeVec.swap(tmp_f_activeVec);
+    m_f_activeMag.swap(tmp_f_activeMag);
+    m_t_activeVec.swap(tmp_t_activeVec);
+    m_t_activeMag.swap(tmp_t_activeMag);
     m_groupTags.swap(tmp_groupTags);
     }
 
-/*! This function sets appropriate active forces on all active particles.
+/*! This function sets appropriate active forces and torques on all active particles.
 */
 void ActiveForceComputeGPU::setForces()
     {
     //  array handles
-    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_actMag(m_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_f_actMag(m_f_activeMag, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+
+    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_t_actMag(m_t_activeMag, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
+
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
     // sanity check
     assert(d_force.data != NULL);
-    assert(d_actVec.data != NULL);
-    assert(d_actMag.data != NULL);
+    assert(d_f_actVec.data != NULL);
+    assert(d_f_actMag.data != NULL);
+    assert(d_t_actVec.data != NULL);
+    assert(d_t_actMag.data != NULL);
     assert(d_orientation.data != NULL);
     assert(d_rtag.data != NULL);
     assert(d_groupTags.data != NULL);
@@ -103,9 +123,12 @@ void ActiveForceComputeGPU::setForces()
                                      d_rtag.data,
                                      d_groupTags.data,
                                      d_force.data,
+                                     d_torque.data,
                                      d_orientation.data,
-                                     d_actVec.data,
-                                     d_actMag.data,
+                                     d_f_actVec.data,
+                                     d_f_actMag.data,
+                                     d_t_actVec.data,
+                                     d_t_actMag.data,
                                      m_P,
                                      m_rx,
                                      m_ry,
@@ -116,15 +139,18 @@ void ActiveForceComputeGPU::setForces()
                                      m_block_size);
     }
 
-/*! This function applies rotational diffusion to all active particles
+/*! This function applies rotational diffusion to all active particles. The angle between the torque vector and 
+ * force vector does not change
     \param timestep Current timestep
 */
 void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
     {
     //  array handles
-    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -138,7 +164,9 @@ void ActiveForceComputeGPU::rotationalDiffusion(unsigned int timestep)
                                                 d_groupTags.data,
                                                 d_pos.data,
                                                 d_force.data,
-                                                d_actVec.data,
+                                                d_torque.data,
+                                                d_f_actVec.data,
+                                                d_t_actVec.data,
                                                 m_P,
                                                 m_rx,
                                                 m_ry,
@@ -157,9 +185,11 @@ void ActiveForceComputeGPU::setConstraint()
     EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
 
     //  array handles
-    ArrayHandle<Scalar3> d_actVec(m_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_f_actVec(m_f_activeVec, access_location::device, access_mode::readwrite);
+    ArrayHandle<Scalar3> d_t_actVec(m_t_activeVec, access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_pos(m_pdata -> getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_torque(m_torque, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_rtag(m_pdata->getRTags(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_groupTags(m_groupTags, access_location::device, access_mode::read);
 
@@ -172,7 +202,9 @@ void ActiveForceComputeGPU::setConstraint()
                                              d_groupTags.data,
                                              d_pos.data,
                                              d_force.data,
-                                             d_actVec.data,
+                                             d_torque.data,
+                                             d_f_actVec.data,
+                                             d_t_actVec.data,
                                              m_P,
                                              m_rx,
                                              m_ry,
@@ -186,6 +218,7 @@ void export_ActiveForceComputeGPU(py::module& m)
         .def(py::init<  std::shared_ptr<SystemDefinition>,
                         std::shared_ptr<ParticleGroup>,
                         int,
+                        pybind11::list,
                         pybind11::list,
                         bool,
                         bool,
