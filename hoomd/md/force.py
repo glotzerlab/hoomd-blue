@@ -187,8 +187,8 @@ class constant(_force):
     R""" Constant force.
 
     Args:
-        fvec (3-tuple of floats): force vector (in force units)
-        tvec (3-tuple of floats): torque vector (in torque units)
+        fvec (tuple): force vector (in force units)
+        tvec (tuple): torque vector (in torque units)
         fx (float): x compent of force, retained for backwards compatibility
         fy (float): y compent of force, retained for backwards compatibility
         fz (float): z compent of force, retained for backwards compatibility
