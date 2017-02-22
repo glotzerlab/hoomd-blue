@@ -200,13 +200,14 @@ def initialize(args=None):
 
     """
     global exec_conf, msg, options, current, _prev_args
-    _prev_args = args;
 
     if exec_conf is not None:
         if args != _prev_args:
             msg.warning("Ignoring new options, cannot change execution mode after initialization.\n");
         current = SimulationContext();
         return current
+
+    _prev_args = args;
 
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
