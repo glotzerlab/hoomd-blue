@@ -211,7 +211,12 @@ void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& nam
     {
     // sanity check
     assert(updater);
-    assert(period != 0);
+
+    if (period == 0)
+        {
+        m_exec_conf->msg->error() << "The period cannot be set to 0!" << endl;
+        throw runtime_error("System: cannot add Updater");
+        }
 
     // first check that the name is unique
     vector<updater_item>::iterator i;
