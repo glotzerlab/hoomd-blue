@@ -92,10 +92,14 @@ template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
     {
     m_seed = seed;
+    // In case of MPI run, every rank should be initialized with the same seed.
+    // For simplicity we broadcast the seed of rank 0 to all ranks.
+#ifdef ENABLE_MPI
+    bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
+#endif//ENABLE_MPI
 
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
-
     }
 
 /*! \param T the temperature the system is thermostated on this time step.
