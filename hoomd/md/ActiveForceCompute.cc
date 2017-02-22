@@ -42,7 +42,6 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
         : ForceCompute(sysdef), m_group(group), m_orientationLink(orientation_link), m_orientationReverseLink(orientation_reverse_link),
             m_rotationDiff(rotation_diff), m_P(P), m_rx(rx), m_ry(ry), m_rz(rz)
     {
-    m_exec_conf->msg->notice(5) << "Constructing ActiveForceCompute" << endl;
 
     unsigned int group_size = m_group->getNumMembersGlobal();
     if (group_size == 0)
@@ -141,7 +140,6 @@ ActiveForceCompute::~ActiveForceCompute()
 void ActiveForceCompute::setForces()
     {
 
-    m_exec_conf->msg->notice(0) << "inside setForces" << endl;
     //  array handles
     ArrayHandle<Scalar3> h_f_actVec(m_f_activeVec, access_location::host, access_mode::read);
     ArrayHandle<Scalar3> h_t_actVec(m_t_activeVec, access_location::host, access_mode::read);
