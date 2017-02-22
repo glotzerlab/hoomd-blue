@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -41,7 +41,7 @@ struct union_params : aligned_struct
     vec3<Scalar> mpos[max_n_members];        //!< Position vectors of member shapes
     quat<Scalar> morientation[max_n_members];//!< Orientation of member shapes
     mparam_type mparams[max_n_members];      //!< Parameters of member shapes
-    unsigned int moverlap[max_n_members];    //!< only check overlaps for which moverlap[i] & moverlap[j] 
+    unsigned int moverlap[max_n_members];    //!< only check overlaps for which moverlap[i] & moverlap[j]
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
     gpu_tree_type tree;                      //!< OBB tree for constituent shapes

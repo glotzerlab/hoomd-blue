@@ -18,7 +18,7 @@ macro(add_script_test_gpu_mpi script USER_VAR)
     # execute on two processors
     SET(nproc 2)
     if (ENABLE_MPI)
-        if(NOT "${EXCLUDE_FROM_MPI}" MATCHES ${script})
+        if(NOT "${EXCLUDE_FROM_GPU_MPI}" MATCHES ${script})
             add_test(NAME ${script}-mpi-gpu-${USER_VAR}
                 COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} ${nproc}
                 ${MPIEXEC_POSTFLAGS} ${PYTHON_EXECUTABLE} "-u" ${CMAKE_CURRENT_SOURCE_DIR}/${script} "--mode=gpu" "--gpu_error_checking" "--user=${USER_VAR}")
@@ -58,6 +58,10 @@ set(TEST_LIST_GPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
 disk_eos.py 0 0
+)
+
+set(EXCLUDE_FROM_GPU_MPI
+    spheres_implicit.py
 )
 
 set(EXCLUDE_FROM_MPI

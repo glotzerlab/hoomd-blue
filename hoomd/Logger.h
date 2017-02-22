@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -48,7 +48,7 @@
 class Logger : public Analyzer
     {
     public:
-        //! Constructs a logger and opens the file
+        //! Constructs a logger
         Logger(std::shared_ptr<SystemDefinition> sysdef);
 
         //! Destructor
@@ -68,6 +68,9 @@ class Logger : public Analyzer
 
         //! Selects which quantities to log
         virtual void setLoggedQuantities(const std::vector< std::string >& quantities);
+
+        //! Returns the currently logged quantities
+        std::vector<std::string> getLoggedQuantities(void)const{return m_logged_quantities;}
 
         //! Query the current value for a given quantity
         virtual Scalar getQuantity(const std::string& quantity, unsigned int timestep, bool use_cache);

@@ -1,8 +1,8 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
-/*! \file Logger.cc
-    \brief Defines the Logger class
+/*! \file LogPlainTXT.cc
+    \brief Defines the LogPlainTXT class
 */
 
 #include "LogPlainTXT.h"
@@ -43,7 +43,6 @@ LogPlainTXT::LogPlainTXT(std::shared_ptr<SystemDefinition> sysdef,
 
 void LogPlainTXT::openOutputFiles()
     {
-    cout<<__FILE__<<":"<<__LINE__<<endl;
     // do nothing if we are not writing a file
     if (!m_file_output)
         return;
