@@ -87,6 +87,7 @@ PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<Syst
     }
 
 /*! \param seed Stored seed for PRNG
+ \note All ranks other than 0 ignore the seed input and use the value of ranke 0.
 */
 template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
@@ -95,7 +96,8 @@ void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
     // In case of MPI run, every rank should be initialized with the same seed.
     // For simplicity we broadcast the seed of rank 0 to all ranks.
 #ifdef ENABLE_MPI
-    bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
+    if( this->m_pdata->getDomainDecomposition() )
+        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
 #endif//ENABLE_MPI
 
     // Hash the User's Seed to make it less likely to be a low positive integer
