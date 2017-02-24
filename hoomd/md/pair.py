@@ -2450,6 +2450,7 @@ class square_density(pair):
     non-bonded particle pair in the simulation, that is harmonic in the local density.
 
     The self energy per particle takes the form
+
     .. math::
         :nowrap:
 
@@ -2474,6 +2475,7 @@ class square_density(pair):
         \end{equation}
 
     The local density at the location of particle $i$ is defined as
+
     .. math::
         \begin{equation}
         n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
