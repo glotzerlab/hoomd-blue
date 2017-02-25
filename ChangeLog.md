@@ -10,6 +10,10 @@ Not yet released
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 
+*Other changes*
+
+* Improved performance of rigid bodies in MPI simulations
+
 ## v2.1.2
 
 Released 2017/01/11
