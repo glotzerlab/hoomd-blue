@@ -3,7 +3,7 @@ HOOMD-blue
 
 Welcome to the user documentation for HOOMD-blue!
 
-The `hoomd-examples git repository <https://bitbucket.org/glotzer/hoomd-examples>`_ compliments this documentation with
+The `hoomd-examples git repository <https://bitbucket.org/glotzer/hoomd-examples>`_ complements this documentation with
 a tutorial oriented introduction.
 
   * `View static examples at nbviewer.org <http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb>`_
