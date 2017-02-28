@@ -34,6 +34,11 @@ class utils(unittest.TestCase):
             self.assertAlmostEqual(moment0[5], moment[5])
 
     def test_mass_properties_3d(self, tries=32):
+        try:
+            from scipy.spatial import ConvexHull as _
+        except ImportError:
+            msg = 'Convex hull not available, skipping hoomd.dem.utils.convexHull test'
+            raise unittest.SkipTest(msg)
 
         for _ in range(tries):
             # take a random displacement; make sure that convexHull works

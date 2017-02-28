@@ -14,6 +14,14 @@ Not yet released
 
 * Improved performance of rigid bodies in MPI simulations
 
+## v2.1.3
+
+Released 2017/02/07
+
+*Bug fixes*
+
+* Fixed a bug where the WalltimeLimitReached was ignored
+
 ## v2.1.2
 
 Released 2017/01/11
