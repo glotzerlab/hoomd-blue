@@ -409,6 +409,7 @@ class System
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
         Scalar m_cur_tps;               //!< Current average TPS
+        std::vector<Scalar> m_tps_list; //!< vector containing the last 10 tps
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
         uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called
