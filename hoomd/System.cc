@@ -623,7 +623,7 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
     if (timeout_end_run && walltime_stop != NULL)
         {
         PyErr_SetString(walltimeLimitExceptionTypeObj, "HOOMD_WALLTIME_STOP reached");
-        py::error_already_set();
+        throw py::error_already_set();
         }
     }
 
@@ -843,7 +843,7 @@ PyObject* createExceptionClass(py::module& m, const char* name, PyObject* baseTy
     char* qualifiedName1 = const_cast<char*>(qualifiedName0.c_str());
 
     PyObject* typeObj = PyErr_NewException(qualifiedName1, baseTypeObj, 0);
-    if(!typeObj) py::error_already_set();
+    if(!typeObj) throw py::error_already_set();
     m.attr(name) = py::object(typeObj,true);
     return typeObj;
     }
