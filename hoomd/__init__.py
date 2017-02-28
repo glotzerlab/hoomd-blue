@@ -65,12 +65,6 @@ from hoomd import lattice
 
 from hoomd._hoomd import WalltimeLimitReached;
 
-# output the version info on import
-context.msg.notice(1, _hoomd.output_version_info())
-
-# ensure creation of global bibliography to print HOOMD base citations
-cite._ensure_global_bib()
-
 _default_excepthook = sys.excepthook;
 
 ## \internal
