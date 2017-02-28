@@ -41,6 +41,8 @@ System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_ts
     assert(m_sysdef);
     m_exec_conf = m_sysdef->getParticleData()->getExecConf();
 
+    // initialize tps array
+    m_tps_list.resize(0);
     #ifdef ENABLE_MPI
     // the initial time step is defined on the root processor
     if (m_sysdef->getParticleData()->getDomainDecomposition())
@@ -786,7 +788,25 @@ void System::generateStatusLine()
 
     // time steps per second
     Scalar TPS = Scalar(m_cur_tstep - m_last_status_tstep) / Scalar(cur_time - m_last_status_time) * Scalar(1e9);
-    m_cur_tps = TPS;
+    // put into the tps list
+    size_t tps_size = m_tps_list.size();
+    if ((unsigned int)tps_size < 10)
+        {
+        // add to list if list less than 10
+        m_tps_list.push_back(TPS);
+        }
+    else
+        {
+        // remove the first item, add to the end
+        m_tps_list.erase(m_tps_list.begin());
+        m_tps_list.push_back(TPS);
+        }
+    tps_size = m_tps_list.size();
+    std::vector<Scalar> l_tps_list = m_tps_list;
+    std::sort(l_tps_list.begin(), l_tps_list.end());
+    // not the "true" median calculation, but it doesn't really matter in this case
+    Scalar median = l_tps_list[tps_size / 2];
+    m_cur_tps = median;
 
     // estimated time to go (base on current TPS)
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
