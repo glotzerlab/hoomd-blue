@@ -409,6 +409,7 @@ class System
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
         Scalar m_cur_tps;               //!< Current average TPS
+        Scalar m_med_tps;               //!< Current median TPS
         std::vector<Scalar> m_tps_list; //!< vector containing the last 10 tps
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
