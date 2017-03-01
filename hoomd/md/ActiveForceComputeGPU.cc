@@ -17,10 +17,9 @@ using namespace std;
 
 /*! \param seed required user-specified seed number for random number generator.
     \param f_list An array of (x,y,z) tuples for the active force vector for each individual particle.
-    \param orientation_link if True then particle orientation is coupled to the active force vector. Only
-    relevant for non-point-like anisotropic particles.
-    /param orientation_reverse_link When True, the active force vector is coupled to particle orientation. Useful for
-    for using a particle's orientation to log the active force vector.
+    \param orientation_link if True then forces and torques are applied in the particle's reference frame. If false, then the box reference fra    me is used. Only relevant for non-point-like anisotropic particles.
+    /param orientation_reverse_link When True, the particle's orientation is set to match the active force vector. Useful for
+    for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles
     \param rotation_diff rotational diffusion constant for all particles.
     \param constraint specifies a constraint surface, to which particles are confined,
     such as update.constraint_ellipsoid.

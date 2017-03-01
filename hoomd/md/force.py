@@ -306,10 +306,11 @@ class active(_force):
         f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
         t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
         group (:py:mod:`hoomd.group`): Group for which the force will be set
-        orientation_link (bool): When True, particle orientation is coupled to the active force vector. Only
-          relevant for non-point-like anisotropic particles.
-        orientation_reverse_link (bool): When True, the active force vector is coupled to particle orientation. Useful for
-          for using a particle's orientation to log the active force vector. Quaternion rotation assumes base vector of (0,0,1).
+        orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box 
+         reference frame is used. Only relevant for non-point-like anisotropic particles.
+        orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for
+         for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation 
+         assumes base vector of (0,0,1).
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
         constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,
           such as update.constraint_ellipsoid.
