@@ -501,8 +501,13 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 time_t predict_time = time(NULL);
 
                 // predict when the next limit_multiple will be reached
-                if (m_cur_tps != Scalar(0))
-                    predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
+                size_t tps_size = m_tps_list.size();
+                std::vector<Scalar> l_tps_list = m_tps_list;
+                std::sort(l_tps_list.begin(), l_tps_list.end());
+                // not the "true" median calculation, but it doesn't really matter in this case
+                Scalar median = l_tps_list[tps_size / 2];
+                if (median != Scalar(0))
+                    predict_time += time_t(Scalar(limit_multiple) / median);
 
                 if (predict_time >= end_time)
                     timeout_end_run = 1;
@@ -801,12 +806,7 @@ void System::generateStatusLine()
         m_tps_list.erase(m_tps_list.begin());
         m_tps_list.push_back(TPS);
         }
-    tps_size = m_tps_list.size();
-    std::vector<Scalar> l_tps_list = m_tps_list;
-    std::sort(l_tps_list.begin(), l_tps_list.end());
-    // not the "true" median calculation, but it doesn't really matter in this case
-    Scalar median = l_tps_list[tps_size / 2];
-    m_cur_tps = median;
+    m_cur_tps = TPS;
 
     // estimated time to go (base on current TPS)
     string ETA = ClockSource::formatHMS(int64_t((m_end_tstep - m_cur_tstep) / TPS * Scalar(1e9)));
