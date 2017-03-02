@@ -41,6 +41,7 @@ a tutorial oriented introduction.
    package-cgcmm
    package-deprecated
    package-metal
+   package-mpcd
 
 .. toctree::
    :maxdepth: 3

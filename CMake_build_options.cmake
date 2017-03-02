@@ -56,6 +56,20 @@ endif ()
 
 option(COPY_HEADERS "Copy the headers into the build directories for plugins" off)
 
+###################################
+## Components
+option(BUILD_MD "Build the md package" on)
+if (NOT SINGLE_PRECISION)
+option(BUILD_HPMC "Build the hpmc package" on)
+else ()
+option(BUILD_HPMC "Build the hpmc package" off)
+endif()
+option(BUILD_DEPRECATED "Build the deprecated package" on)
+option(BUILD_METAL "Build the metal package" on)
+option(BUILD_DEM "Build the dem package" on)
+option(BUILD_CGCMM "Build the cgcmm package" on)
+option(BUILD_MPCD "Build the mpcd package" on)
+
 ###############################
 ## In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
 ## this option turns off CPU only tests in builds with ENABLE_CUDA=ON
