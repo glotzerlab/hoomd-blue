@@ -49,83 +49,81 @@ namespace kernel
  * remove:      1,2 -> 0,1
  * \endverbatim
  */
-__global__ void remove_particles(
-    const unsigned int N,
-    const Scalar4 *d_pos,
-    const Scalar4 *d_vel,
-    const unsigned int *d_tag,
-    Scalar4 *d_pos_alt,
-    Scalar4 *d_vel_alt,
-    unsigned int *d_tag_alt,
-    mpcd::detail::pdata_element *d_out,
-    unsigned int *d_comm_flags,
-    unsigned int *d_comm_flags_out,
-    const unsigned int *d_scan)
+__global__ void remove_particles(mpcd::detail::pdata_element *d_out,
+                                 const unsigned int mask,
+                                 const unsigned int N,
+                                 const Scalar4 *d_pos,
+                                 const Scalar4 *d_vel,
+                                 const unsigned int *d_tag,
+                                 const unsigned int *d_comm_flags,
+                                 Scalar4 *d_pos_alt,
+                                 Scalar4 *d_vel_alt,
+                                 unsigned int *d_tag_alt,
+                                 unsigned int *d_comm_flags_alt,
+                                 const unsigned int *d_scan)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
     if (idx >= N) return;
 
-    bool remove = d_comm_flags[idx];
-
     unsigned int scan_remove = d_scan[idx];
     unsigned int scan_keep = idx - scan_remove;
 
-    if (remove)
+    if (d_comm_flags[idx] & mask)
         {
         mpcd::detail::pdata_element p;
         p.pos = d_pos[idx];
         p.vel = d_vel[idx];
         p.tag = d_tag[idx];
+        p.comm_flag = d_comm_flags[idx];
 
         d_out[scan_remove] = p;
-        d_comm_flags_out[scan_remove] = d_comm_flags[idx];
-
-        // reset communication flags
-        d_comm_flags[idx] = 0;
         }
     else
         {
         d_pos_alt[scan_keep] = d_pos[idx];
         d_vel_alt[scan_keep] = d_vel[idx];
         d_tag_alt[scan_keep] = d_tag[idx];
+        d_comm_flags_alt[scan_keep] = d_comm_flags[idx];
         }
-
     }
 
 //! Kernel to transform communication flags for prefix sum
 /*!
- * \param N Number of local particles
+ * \param d_tmp Temporary storage to hold transformation (output)
  * \param d_comm_flags Communication flags
- * \param d_tmp Temporary storage to hold transformation
+ * \param N Number of local particles
+ * \param mask Bitwise mask for \a d_comm_flags
  *
- * Any communication flags which are nonzero are transformed to a 1 and stored
- * in \a d_tmp.
+ * Any communication flags that are bitwise AND with \a mask are transformed to
+ * a 1 and stored in \a d_tmp.
  */
-__global__ void select_sent_particles(unsigned int N,
-                                      unsigned int *d_comm_flags,
-                                      unsigned int *d_tmp)
+__global__ void select_sent_particles(unsigned int *d_tmp,
+                                      const unsigned int *d_comm_flags,
+                                      const unsigned int N,
+                                      const unsigned int mask)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
     if (idx >= N) return;
-    d_tmp[idx] = d_comm_flags[idx] ? 1 : 0;
+    d_tmp[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
     }
 } // end namespace kernel
 } // end namespace gpu
 } // end namespace mpcd
 
 /*!
+ * \param d_out Output array for packed particle data
+ * \param mask Bitwise mask for \a d_comm_flags
  * \param N Number of local particles
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
+ * \param d_comm_flags Device array of communication flags
  * \param d_pos_alt Device array of particle positions (output)
  * \param d_vel_alt Device array of particle velocities (output)
  * \param d_tag_alt Device array of particle tags (output)
- * \param d_out Output array for packed particle data
- * \param d_comm_flags Communication flags (nonzero if particle should be migrated)
- * \param d_comm_flags_out Packed communication flags
+ * \param d_comm_flags_alt Device array of communication flags (output)
  * \param max_n_out Maximum number of elements to write to output array
  * \param d_tmp Temporary storage space for device scan
  * \param mgpu_context Modern GPU context for exclusive scan
@@ -138,16 +136,17 @@ __global__ void select_sent_particles(unsigned int N,
  *    count the number of particles to remove.
  * 3. Particles are removed if sufficient storage has been allocated for packing.
  */
-unsigned int mpcd::gpu::remove_particles(unsigned int N,
+unsigned int mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
+                                         const unsigned int mask,
+                                         unsigned int N,
                                          const Scalar4 *d_pos,
                                          const Scalar4 *d_vel,
                                          const unsigned int *d_tag,
+                                         const unsigned int *d_comm_flags,
                                          Scalar4 *d_pos_alt,
                                          Scalar4 *d_vel_alt,
                                          unsigned int *d_tag_alt,
-                                         mpcd::detail::pdata_element *d_out,
-                                         unsigned int *d_comm_flags,
-                                         unsigned int *d_comm_flags_out,
+                                         unsigned int *d_comm_flags_alt,
                                          unsigned int max_n_out,
                                          unsigned int *d_tmp,
                                          mgpu::ContextPtr mgpu_context)
@@ -158,10 +157,12 @@ unsigned int mpcd::gpu::remove_particles(unsigned int N,
     unsigned int block_size =512;
     unsigned int n_blocks = N/block_size+1;
 
+    // TODO: separate these so that they don't get called multiple times by mistake
     // select nonzero communication flags
-    mpcd::gpu::kernel::select_sent_particles<<<n_blocks, block_size>>>(N, d_comm_flags, d_tmp);
+    mpcd::gpu::kernel::select_sent_particles<<<n_blocks, block_size>>>(d_tmp, d_comm_flags, N, mask);
 
     // perform a scan over the array of ones and zeroes
+    // TODO: switch to CUB
     mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
         N, (unsigned int) 0, mgpu::plus<unsigned int>(),
         (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
@@ -173,16 +174,17 @@ unsigned int mpcd::gpu::remove_particles(unsigned int N,
         unsigned int block_size =512;
         unsigned int n_blocks = N/block_size+1;
 
-        mpcd::gpu::kernel::remove_particles<<<n_blocks, block_size>>>(N,
+        mpcd::gpu::kernel::remove_particles<<<n_blocks, block_size>>>(d_out,
+                                                                      mask,
+                                                                      N,
                                                                       d_pos,
                                                                       d_vel,
                                                                       d_tag,
+                                                                      d_comm_flags,
                                                                       d_pos_alt,
                                                                       d_vel_alt,
                                                                       d_tag_alt,
-                                                                      d_out,
-                                                                      d_comm_flags,
-                                                                      d_comm_flags_out,
+                                                                      d_comm_flags_alt,
                                                                       d_tmp);
         }
 
@@ -204,19 +206,21 @@ namespace kernel
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
- * \param d_in Device array of packed input particle data
  * \param d_comm_flags Device array of communication flags
+ * \param d_in Device array of packed input particle data
+ * \param mask Bitwise mask for received particles to unmask
  *
  * Particle data is appended to the end of the particle data arrays from the
- * packed buffer. Communication flags of new particles are zeroed.
+ * packed buffer. Communication flags of new particles are unmasked.
  */
 __global__ void add_particles(unsigned int old_nparticles,
                               unsigned int num_add_ptls,
                               Scalar4 *d_pos,
                               Scalar4 *d_vel,
                               unsigned int *d_tag,
+                              unsigned int *d_comm_flags,
                               const mpcd::detail::pdata_element *d_in,
-                              unsigned int *d_comm_flags)
+                              const unsigned int mask)
     {
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -228,7 +232,7 @@ __global__ void add_particles(unsigned int old_nparticles,
     d_pos[add_idx] = p.pos;
     d_vel[add_idx] = p.vel;
     d_tag[add_idx] = p.tag;
-    d_comm_flags[add_idx] = 0;
+    d_comm_flags[add_idx] = p.comm_flag & ~mask;
     }
 } // end namespace kernel
 } // end namespace gpu
@@ -240,19 +244,21 @@ __global__ void add_particles(unsigned int old_nparticles,
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
- * \param d_in Device array of packed input particle data
  * \param d_comm_flags Device array of communication flags
+ * \param d_in Device array of packed input particle data
+ * \param mask Bitwise mask for received particles to unmask
  *
  * Particle data is appended to the end of the particle data arrays from the
- * packed buffer. Communication flags of new particles are zeroed.
+ * packed buffer. Communication flags of new particles are unmasked.
  */
 void mpcd::gpu::add_particles(unsigned int old_nparticles,
                               unsigned int num_add_ptls,
                               Scalar4 *d_pos,
                               Scalar4 *d_vel,
                               unsigned int *d_tag,
+                              unsigned int *d_comm_flags,
                               const mpcd::detail::pdata_element *d_in,
-                              unsigned int *d_comm_flags)
+                              const unsigned int mask)
     {
     unsigned int block_size = 512;
     unsigned int n_blocks = num_add_ptls/block_size + 1;
@@ -262,8 +268,9 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                                                                d_pos,
                                                                d_vel,
                                                                d_tag,
+                                                               d_comm_flags,
                                                                d_in,
-                                                               d_comm_flags);
+                                                               mask);
     }
 
 #endif // ENABLE_MPI

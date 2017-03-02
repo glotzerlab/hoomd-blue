@@ -23,16 +23,17 @@ namespace mpcd
 namespace gpu
 {
 //! Pack particle data into output buffer and remove marked particles
-unsigned int remove_particles(unsigned int N,
+unsigned int remove_particles(mpcd::detail::pdata_element *d_out,
+                              const unsigned int mask,
+                              unsigned int N,
                               const Scalar4 *d_pos,
                               const Scalar4 *d_vel,
                               const unsigned int *d_tag,
+                              const unsigned int *d_comm_flags,
                               Scalar4 *d_pos_alt,
                               Scalar4 *d_vel_alt,
                               unsigned int *d_tag_alt,
-                              mpcd::detail::pdata_element *d_out,
-                              unsigned int *d_comm_flags,
-                              unsigned int *d_comm_flags_out,
+                              unsigned int *d_comm_flags_alt,
                               unsigned int max_n_out,
                               unsigned int *d_tmp,
                               mgpu::ContextPtr mgpu_context);
@@ -43,8 +44,9 @@ void add_particles(unsigned int old_nparticles,
                    Scalar4 *d_pos,
                    Scalar4 *d_vel,
                    unsigned int *d_tag,
+                   unsigned int *d_comm_flags,
                    const mpcd::detail::pdata_element *d_in,
-                   unsigned int *d_comm_flags);
+                   const unsigned int mask);
 } // end namespace gpu
 } // end namespace mpcd
 

@@ -8,6 +8,13 @@
 #include "SystemData.h"
 #include "SystemDataSnapshot.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#ifdef ENABLE_CUDA
+#include "CommunicatorGPU.h"
+#endif // ENABLE_CUDA
+#endif // ENABLE_MPI
+
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 //! MPCD component
@@ -59,6 +66,13 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_SystemData(m);
     mpcd::detail::export_SystemDataSnapshot(m);
+
+    #ifdef ENABLE_MPI
+    mpcd::detail::export_Communicator(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_CommunicatorGPU(m);
+    #endif // ENABLE_CUDA
+    #endif // ENABLE_MPI
 
     return m.ptr();
     }

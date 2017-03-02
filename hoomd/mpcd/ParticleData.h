@@ -205,28 +205,62 @@ class ParticleData
             }
         //@}
 
+        //! \name signal methods
+        //@{
+        //! Mark the cell value cached in the last element of the velocity as valid
+        void validateCellCache()
+            {
+            m_valid_cell_cache = true;
+            }
+        //! Mark the cell value cached in the last element of the velocity as invalid
+        void invalidateCellCache()
+            {
+            m_valid_cell_cache = false;
+            }
+        //! Check if the cell value cached in the last element of the velocity is valid
+        /*!
+         * \returns True if the cache is valid, false otherwise
+         */
+        bool checkCellCache() const
+            {
+            return m_valid_cell_cache;
+            }
+        //@}
+
         #ifdef ENABLE_MPI
         //! \name communication methods
         //@{
 
         //! Pack particle data into a buffer
-        void removeParticles(std::vector<mpcd::detail::pdata_element>& out);
+        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask);
 
         //! Add new local particles
-        void addParticles(const std::vector<mpcd::detail::pdata_element>& in);
+        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask);
 
         #ifdef ENABLE_CUDA
         //! Pack particle data into a buffer (GPU version)
-        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, GPUVector<unsigned int>& comm_flags);
+        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask);
 
         //! Add new local particles (GPU version)
-        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in);
+        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask);
         #endif // ENABLE_CUDA
 
         //! Get the MPCD particle communication flags
         const GPUArray<unsigned int>& getCommFlags() const
             {
             return m_comm_flags;
+            }
+
+        //! Get the alternate MPCD particle communication flags
+        const GPUArray<unsigned int>& getAltCommFlags() const
+            {
+            return m_comm_flags_alt;
+            }
+
+        //! Swap out alternate MPCD communication flags
+        void swapCommFlags()
+            {
+            m_comm_flags.swap(m_comm_flags_alt);
             }
 
         //@}
@@ -256,6 +290,11 @@ class ParticleData
         GPUArray<Scalar4> m_pos_alt;        //!< Alternate position array
         GPUArray<Scalar4> m_vel_alt;        //!< Alternate velocity array
         GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
+        #ifdef ENABLE_MPI
+        GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
+        #endif // ENABLE_MPI
+
+        bool m_valid_cell_cache;    //!< Flag for validity of cell cache
 
         //! Check for a valid snapshot
         bool checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot);
