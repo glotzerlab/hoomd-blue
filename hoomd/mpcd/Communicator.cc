@@ -143,7 +143,6 @@ void mpcd::Communicator::initializeNeighborArrays()
             if (h_neighbors.data[j] == h_neighbors.data[i])
                 m |= h_adj_mask.data[j];
 
-        // std::map inserts the same key only once
         neigh_map.insert(std::make_pair(h_neighbors.data[i], m));
         }
 
@@ -210,19 +209,13 @@ void mpcd::Communicator::migrateParticles()
             else
                 recv_neighbor = m_decomposition->getNeighborRank(dir-1);
 
-            if (m_prof)
-                m_prof->push("MPI send/recv");
-
             // communicate size of the message that will contain the particle data
-            MPI_Request reqs[2];
-            MPI_Status status[2];
-
             unsigned int n_recv_ptls;
             unsigned int n_send_ptls = m_sendbuf.size();
-
-            MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            m_reqs.reserve(2); m_stats.reserve(2);
+            MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
 
             // Resize receive buffer
             m_recvbuf.resize(n_recv_ptls);
@@ -231,13 +224,10 @@ void mpcd::Communicator::migrateParticles()
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
-                MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-                MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
-                MPI_Waitall(2, reqs, status);
+                MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
+                MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
+                MPI_Waitall(2, m_reqs.data(), m_stats.data());
                 }
-
-            if (m_prof)
-                m_prof->pop();
 
             // wrap received particles across a global boundary back into global box
                 {

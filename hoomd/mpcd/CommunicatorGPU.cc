@@ -33,10 +33,10 @@ mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_
     // initialize communciation stages
     initializeCommunicationStages();
 
-    GPUArray<unsigned int> begin(neigh_max,m_exec_conf,true);
+    GPUArray<unsigned int> begin(neigh_max,m_exec_conf);
     m_begin.swap(begin);
 
-    GPUArray<unsigned int> end(neigh_max,m_exec_conf,true);
+    GPUArray<unsigned int> end(neigh_max,m_exec_conf);
     m_end.swap(end);
     }
 
@@ -140,21 +140,27 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
 
     // assign stages to unique neighbors
     for (unsigned int i= 0; i < m_n_unique_neigh; i++)
+        {
         for (unsigned int istage = 0; istage < m_num_stages; ++istage)
+            {
             // compare adjacency masks of neighbors to the mask for this stage
             if ((neigh_flags[i] & m_comm_mask[istage]) == neigh_flags[i])
                 {
                 m_stages[i] = istage;
                 break; // associate neighbor with stage of lowest index
                 }
+            }
+        }
 
     m_exec_conf->msg->notice(4) << "MPCD ComunicatorGPU: Using " << m_num_stages
         << " communication stage(s)." << std::endl;
     }
 
-//! Select a particle for migration
 namespace mpcd
 {
+namespace detail
+{
+//! Functor to select a particle for migration
 struct get_migrate_key : public std::unary_function<const unsigned int, unsigned int>
     {
     const uint3 my_pos;      //!< My domain decomposition position
@@ -232,26 +238,28 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
         return h_cart_ranks[di(i,j,k)];
         }
      };
+} // end namespace detail
 } // end namespace mpcd
 
 void mpcd::CommunicatorGPU::migrateParticles()
     {
-    if (m_prof)
-        m_prof->push(m_exec_conf,"comm_migrate");
+    if (m_prof) m_prof->push(m_exec_conf,"migrate");
 
     // TODO: get this from the cell list
     const BoxDim& box = m_pdata->getBox();
 
-    unsigned int req_comm_flags = setCommFlags(box);
+    // reserve per neighbor memory
+    m_n_send_ptls.reserve(m_n_unique_neigh);
+    m_n_recv_ptls.reserve(m_n_unique_neigh);
+    m_offsets.reserve(m_n_unique_neigh);
 
+    unsigned int req_comm_flags = setCommFlags(box);
     while (req_comm_flags)
         {
-        // main communication loop
         for (unsigned int stage = 0; stage < m_num_stages; stage++)
             {
             const unsigned int comm_mask = m_comm_mask[stage];
-            const Index3D& di = m_decomposition->getDomainIndexer();
-            uint3 mypos = m_decomposition->getGridPos();
+            if (!(req_comm_flags & comm_mask)) continue;
 
             // fill send buffer
             m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask);
@@ -264,12 +272,13 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_comm_flags(m_mpcd_pdata->getCommFlags(), access_location::host, access_mode::read);
 
-                ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(), access_location::host,
-                    access_mode::read);
+                ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
                 std::multimap<unsigned int,mpcd::detail::pdata_element> keys;
 
                 // generate keys
-                mpcd::get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
+                const uint3 mypos = m_decomposition->getGridPos();
+                const Index3D& di = m_decomposition->getDomainIndexer();
+                mpcd::detail::get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
                 for (unsigned int i = 0; i < m_sendbuf.size(); ++i)
                     {
                     mpcd::detail::pdata_element elem = h_sendbuf.data[i];
@@ -291,64 +300,46 @@ void mpcd::CommunicatorGPU::migrateParticles()
                     h_sendbuf.data[i++] = it->second;
                 }
 
-
             // communicate total number of particles being sent and received from neighbor ranks
-            unsigned int n_send_ptls[m_n_unique_neigh];
-            unsigned int n_recv_ptls[m_n_unique_neigh];
-            unsigned int offs[m_n_unique_neigh];
             unsigned int n_recv_tot = 0;
                 {
                 ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
 
-                unsigned int send_bytes = 0;
-                unsigned int recv_bytes = 0;
-                if (m_prof) m_prof->push(m_exec_conf, "MPI send/recv");
-
                 // compute send counts
                 for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
-                    n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
-
-                MPI_Request req[2*m_n_unique_neigh];
-                MPI_Status stat[2*m_n_unique_neigh];
-
-                unsigned int nreq = 0;
+                    m_n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
 
                 // loop over neighbors
+                unsigned int nreq = 0;
+                m_reqs.reserve(2*m_n_unique_neigh);
                 for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                     {
-                    if (m_stages[ineigh] != (int) stage)
+                    if (m_stages[ineigh] != (int)stage)
                         {
                         // skip neighbor if not participating in this communication stage
-                        n_send_ptls[ineigh] = 0;
-                        n_recv_ptls[ineigh] = 0;
+                        m_n_send_ptls[ineigh] = 0;
+                        m_n_recv_ptls[ineigh] = 0;
                         continue;
                         }
 
                     // rank of neighbor processor
                     unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
-                    MPI_Isend(&n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &req[nreq++]);
-                    MPI_Irecv(&n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &req[nreq++]);
-                    send_bytes += sizeof(unsigned int);
-                    recv_bytes += sizeof(unsigned int);
+                    MPI_Isend(&m_n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
+                    MPI_Irecv(&m_n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
                     } // end neighbor loop
 
-                MPI_Waitall(nreq, req, stat);
+                m_stats.reserve(nreq);
+                MPI_Waitall(nreq, m_reqs.data(), m_stats.data());
 
                 // sum up receive counts
                 for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                     {
-                    if (ineigh == 0)
-                        offs[ineigh] = 0;
-                    else
-                        offs[ineigh] = offs[ineigh-1] + n_recv_ptls[ineigh-1];
-
-                    n_recv_tot += n_recv_ptls[ineigh];
+                    m_offsets[ineigh] = n_recv_tot;
+                    n_recv_tot += m_n_recv_ptls[ineigh];
                     }
-
-                if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
                 }
 
             // Resize particles from neighbor ranks
@@ -358,55 +349,43 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
                 ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
 
-                if (m_prof) m_prof->push(m_exec_conf,"MPI send/recv");
-
                 ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
 
-                std::vector<MPI_Request> reqs;
-                MPI_Request req;
-
-                unsigned int send_bytes = 0;
-                unsigned int recv_bytes = 0;
-
                 // loop over neighbors
+                unsigned int nreq = 0;
+                m_reqs.reserve(2*m_n_unique_neigh);
                 for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                     {
                     // rank of neighbor processor
                     unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
                     // exchange particle data
-                    if (n_send_ptls[ineigh])
+                    if (m_n_send_ptls[ineigh])
                         {
                         MPI_Isend(h_sendbuf.data+h_begin.data[ineigh],
-                            n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
+                            m_n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
                             MPI_BYTE,
                             neighbor,
                             1,
                             m_mpi_comm,
-                            &req);
-                        reqs.push_back(req);
+                            &m_reqs[nreq++]);
                         }
-                    send_bytes+= n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element);
 
-                    if (n_recv_ptls[ineigh])
+                    if (m_n_recv_ptls[ineigh])
                         {
-                        MPI_Irecv(h_recvbuf.data+offs[ineigh],
-                            n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
+                        MPI_Irecv(h_recvbuf.data+m_offsets[ineigh],
+                            m_n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
                             MPI_BYTE,
                             neighbor,
                             1,
                             m_mpi_comm,
-                            &req);
-                        reqs.push_back(req);
+                            &m_reqs[nreq++]);
                         }
-                    recv_bytes += n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element);
                     }
 
-                std::vector<MPI_Status> stats(reqs.size());
-                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
-
-                if (m_prof) m_prof->pop(m_exec_conf,0,send_bytes+recv_bytes);
+                m_stats.reserve(2*m_n_unique_neigh);
+                MPI_Waitall(nreq, &m_reqs.front(), &m_stats.front());
                 }
 
             // wrap received particles through the global boundary
@@ -490,8 +469,7 @@ void mpcd::detail::export_CommunicatorGPU(py::module& m)
     {
     py::class_<mpcd::CommunicatorGPU, std::shared_ptr<mpcd::CommunicatorGPU> >(m,"CommunicatorGPU",py::base<Communicator>())
         .def(py::init<std::shared_ptr<mpcd::SystemData> >())
-        .def("setMaxStages",&mpcd::CommunicatorGPU::setMaxStages)
-    ;
+        .def("setMaxStages",&mpcd::CommunicatorGPU::setMaxStages);
     }
 
 #endif // ENABLE_CUDA

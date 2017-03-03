@@ -94,6 +94,9 @@ class CommunicatorGPU : public mpcd::Communicator
         GPUArray<unsigned int> m_begin;                 //!< Begin index for every neighbor in send buf
         GPUArray<unsigned int> m_end;                   //!< End index for every neighbor in send buf
         GPUFlags<unsigned int> m_req_comm_flags;        //!< All communication flags requested by particles
+        std::vector<unsigned int> m_n_send_ptls;        //!< Number of particles sent per neighbor
+        std::vector<unsigned int> m_n_recv_ptls;        //!< Number of particles received per neighbor
+        std::vector<unsigned int> m_offsets;            //!< Offsets for particle send buffers
 
         //! Helper function to set up communication stages
         void initializeCommunicationStages();
