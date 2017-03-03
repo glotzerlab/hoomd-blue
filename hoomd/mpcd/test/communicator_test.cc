@@ -26,8 +26,8 @@ typedef std::function<std::shared_ptr<mpcd::Communicator>(std::shared_ptr<mpcd::
 HOOMD_UP_MAIN()
 
 // some convenience macros for casting triclinic boxes into a cubic reference frame
-#define TO_TRICLINIC(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
-#define FROM_TRICLINIC(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
+#define REF_TO_DEST(v) dest_box.makeCoordinates(ref_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
+#define DEST_TO_REF(v) ref_box.makeCoordinates(dest_box.makeFraction(make_scalar3(v.x,v.y,v.z)))
 
 //! Test particle migration of Communicator
 void test_communicator_migrate(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf,
@@ -61,14 +61,14 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         mpcd_snap.type_mapping.push_back("PU");
 
         mpcd_snap.resize(8);
-        mpcd_snap.position[0] = vec3<Scalar>(TO_TRICLINIC(make_scalar3(-0.5,-0.5,-0.5)));
-        mpcd_snap.position[1] = vec3<Scalar>(TO_TRICLINIC(make_scalar3( 0.5,-0.5,-0.5)));
-        mpcd_snap.position[2] = vec3<Scalar>(TO_TRICLINIC(make_scalar3(-0.5, 0.5,-0.5)));
-        mpcd_snap.position[3] = vec3<Scalar>(TO_TRICLINIC(make_scalar3( 0.5, 0.5,-0.5)));
-        mpcd_snap.position[4] = vec3<Scalar>(TO_TRICLINIC(make_scalar3(-0.5,-0.5, 0.5)));
-        mpcd_snap.position[5] = vec3<Scalar>(TO_TRICLINIC(make_scalar3( 0.5,-0.5, 0.5)));
-        mpcd_snap.position[6] = vec3<Scalar>(TO_TRICLINIC(make_scalar3(-0.5, 0.5, 0.5)));
-        mpcd_snap.position[7] = vec3<Scalar>(TO_TRICLINIC(make_scalar3( 0.5, 0.5, 0.5)));
+        mpcd_snap.position[0] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5,-0.5,-0.5)));
+        mpcd_snap.position[1] = vec3<Scalar>(REF_TO_DEST(make_scalar3( 0.5,-0.5,-0.5)));
+        mpcd_snap.position[2] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5,-0.5)));
+        mpcd_snap.position[3] = vec3<Scalar>(REF_TO_DEST(make_scalar3( 0.5, 0.5,-0.5)));
+        mpcd_snap.position[4] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5,-0.5, 0.5)));
+        mpcd_snap.position[5] = vec3<Scalar>(REF_TO_DEST(make_scalar3( 0.5,-0.5, 0.5)));
+        mpcd_snap.position[6] = vec3<Scalar>(REF_TO_DEST(make_scalar3(-0.5, 0.5, 0.5)));
+        mpcd_snap.position[7] = vec3<Scalar>(REF_TO_DEST(make_scalar3( 0.5, 0.5, 0.5)));
 
         mpcd_snap.velocity[0] = vec3<Scalar>(0., -0.5, 0.5);
         mpcd_snap.velocity[1] = vec3<Scalar>(1., -1.5, 1.5);
@@ -89,6 +89,8 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         mpcd_snap.type[7] = 7;
         }
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    // set a small cell size so that nothing will lie in the diffusion layer
+    mpcd_sys->getCellList()->setCellSize(0.05);
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(mpcd_sys, nstages);
@@ -104,7 +106,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     // verify all particles were initialized correctly
         {
         const unsigned int tag = pdata->getTag(0);
-        const Scalar3 pos = FROM_TRICLINIC(pdata->getPosition(0));
+        const Scalar3 pos = DEST_TO_REF(pdata->getPosition(0));
         const Scalar3 vel = pdata->getVelocity(0);
         const unsigned int type = pdata->getType(0);
 
@@ -166,7 +168,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     UP_ASSERT_EQUAL(pdata->getN(), 1);
         {
         const unsigned int tag = pdata->getTag(0);
-        const Scalar3 pos = FROM_TRICLINIC(pdata->getPosition(0));
+        const Scalar3 pos = DEST_TO_REF(pdata->getPosition(0));
         const Scalar3 vel = pdata->getVelocity(0);
         const unsigned int type = pdata->getType(0);
 
@@ -232,35 +234,35 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
             {
             case 0:
                 // move particle 0 into domain 1
-                new_pos = TO_TRICLINIC(make_scalar3(0.1,-0.5,-0.5));
+                new_pos = REF_TO_DEST(make_scalar3(0.1,-0.5,-0.5));
                 break;
             case 1:
                 // move particle 1 into domain 2
-                new_pos = TO_TRICLINIC(make_scalar3(-0.2, 0.5, -0.5));
+                new_pos = REF_TO_DEST(make_scalar3(-0.2, 0.5, -0.5));
                 break;
             case 2:
                 // move particle 2 into domain 3
-                new_pos = TO_TRICLINIC(make_scalar3(0.2, 0.3, -0.5));
+                new_pos = REF_TO_DEST(make_scalar3(0.2, 0.3, -0.5));
                 break;
             case 3:
                 // move particle 3 into domain 4
-                new_pos = TO_TRICLINIC(make_scalar3(-0.5, -0.3, 0.2));
+                new_pos = REF_TO_DEST(make_scalar3(-0.5, -0.3, 0.2));
                 break;
             case 4:
                 // move particle 4 into domain 5
-                new_pos = TO_TRICLINIC(make_scalar3(0.1, -0.3, 0.2));
+                new_pos = REF_TO_DEST(make_scalar3(0.1, -0.3, 0.2));
                 break;
             case 5:
                 // move particle 5 into domain 6
-                new_pos = TO_TRICLINIC(make_scalar3(-0.2, 0.4, 0.2));
+                new_pos = REF_TO_DEST(make_scalar3(-0.2, 0.4, 0.2));
                 break;
             case 6:
                 // move particle 6 into domain 7
-                new_pos = TO_TRICLINIC(make_scalar3(0.6, 0.1, 0.2));
+                new_pos = REF_TO_DEST(make_scalar3(0.6, 0.1, 0.2));
                 break;
             case 7:
                 // move particle 7 into domain 0
-                new_pos = TO_TRICLINIC(make_scalar3(-0.6, -0.1, -0.2));
+                new_pos = REF_TO_DEST(make_scalar3(-0.6, -0.1, -0.2));
                 break;
             };
         h_pos.data[0].x = new_pos.x;
@@ -273,7 +275,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     UP_ASSERT_EQUAL(pdata->getN(), 1);
         {
         const unsigned int tag = pdata->getTag(0);
-        const Scalar3 pos = FROM_TRICLINIC(pdata->getPosition(0));
+        const Scalar3 pos = DEST_TO_REF(pdata->getPosition(0));
         const Scalar3 vel = pdata->getVelocity(0);
         const unsigned int type = pdata->getType(0);
 
@@ -339,35 +341,35 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
             {
             case 0:
                 // particle 7 crosses the global boundary in the -z direction
-                new_pos = TO_TRICLINIC(make_scalar3(-0.6, -0.1,- 1.5));
+                new_pos = REF_TO_DEST(make_scalar3(-0.6, -0.1,- 1.5));
                 break;
             case 1:
                 // particle 0 crosses the global boundary in +x direction
-                new_pos = TO_TRICLINIC(make_scalar3(1.1,-0.5,-0.5));
+                new_pos = REF_TO_DEST(make_scalar3(1.1,-0.5,-0.5));
                 break;
             case 2:
                 // particle 1 crosses the global bounadry in the -x direction
-                new_pos = TO_TRICLINIC(make_scalar3(-1.1, 0.5, -0.5));
+                new_pos = REF_TO_DEST(make_scalar3(-1.1, 0.5, -0.5));
                 break;
             case 3:
                 // particle 2 crosses the global boundary in the +y direction
-                new_pos = TO_TRICLINIC(make_scalar3(0.2, 1.3, -0.5));
+                new_pos = REF_TO_DEST(make_scalar3(0.2, 1.3, -0.5));
                 break;
             case 4:
                 // particle 3 crosses the global boundary in the -y direction
-                new_pos = TO_TRICLINIC(make_scalar3(-0.5, -1.5, 0.2));
+                new_pos = REF_TO_DEST(make_scalar3(-0.5, -1.5, 0.2));
                 break;
             case 5:
                 // particle 4 crosses the global boundary in the +z direction
-                new_pos = TO_TRICLINIC(make_scalar3(0.1, -0.3, 1.6));
+                new_pos = REF_TO_DEST(make_scalar3(0.1, -0.3, 1.6));
                 break;
             case 6:
                 // particle 5 crosses the global boundary in the +z direction and in the -x direction
-                new_pos = TO_TRICLINIC(make_scalar3(-1.1, 0.4, 1.25));
+                new_pos = REF_TO_DEST(make_scalar3(-1.1, 0.4, 1.25));
                 break;
             case 7:
                 // particle 6 crosses the global boundary in the +z direction and in the +x direction
-                new_pos = TO_TRICLINIC(make_scalar3(1.3, 0.1, 1.05));
+                new_pos = REF_TO_DEST(make_scalar3(1.3, 0.1, 1.05));
                 break;
             };
         h_pos.data[0].x = new_pos.x;
@@ -384,7 +386,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         if (pdata->getN())
             {
             tag = pdata->getTag(0);
-            pos = FROM_TRICLINIC(pdata->getPosition(0));
+            pos = DEST_TO_REF(pdata->getPosition(0));
             vel = pdata->getVelocity(0);
             type = pdata->getType(0);
             }
@@ -415,7 +417,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
                     // load up the other particle, which must be particle 4
                     tag = pdata->getTag(1);
-                    pos = FROM_TRICLINIC(pdata->getPosition(1));
+                    pos = DEST_TO_REF(pdata->getPosition(1));
                     vel = pdata->getVelocity(1);
                     type = pdata->getType(1);
 
@@ -433,7 +435,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
                     // load up the other particle, which must be particle 2
                     tag = pdata->getTag(1);
-                    pos = FROM_TRICLINIC(pdata->getPosition(1));
+                    pos = DEST_TO_REF(pdata->getPosition(1));
                     vel = pdata->getVelocity(1);
                     type = pdata->getType(1);
 
@@ -465,7 +467,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
                     // load up the other particle, which must be particle 5
                     tag = pdata->getTag(1);
-                    pos = FROM_TRICLINIC(pdata->getPosition(1));
+                    pos = DEST_TO_REF(pdata->getPosition(1));
                     vel = pdata->getVelocity(1);
                     type = pdata->getType(1);
 
@@ -483,7 +485,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
                     // load up the other particle, which must be particle 1
                     tag = pdata->getTag(1);
-                    pos = FROM_TRICLINIC(pdata->getPosition(1));
+                    pos = DEST_TO_REF(pdata->getPosition(1));
                     vel = pdata->getVelocity(1);
                     type = pdata->getType(1);
 
@@ -538,10 +540,6 @@ UP_TEST( mpcd_communicator_migrate_test )
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(2.0),3);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,2.0,3.0),3);
-    // triclinic box 1
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,0.5,0.6,0.8),3);
-    // triclinic box 2
-    test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,-0.5,0.7,0.3),3);
     }
 
 #ifdef ENABLE_CUDA
@@ -562,10 +560,6 @@ UP_TEST( mpcd_communicator_migrate_test_GPU_one_stage )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0),1);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0),1);
-    // triclinic box 1
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,0.5,0.6,0.8),1);
-    // triclinic box 2
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3),1);
     }
 
 UP_TEST( mpcd_communicator_migrate_test_GPU_two_stage )
@@ -577,10 +571,6 @@ UP_TEST( mpcd_communicator_migrate_test_GPU_two_stage )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0),2);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0),2);
-    // triclinic box 1
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,0.5,0.6,0.8),2);
-    // triclinic box 2
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3),2);
     }
 
 UP_TEST( mpcd_communicator_migrate_test_GPU_three_stage )
@@ -592,10 +582,6 @@ UP_TEST( mpcd_communicator_migrate_test_GPU_three_stage )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0),3);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0),3);
-    // triclinic box 1
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,0.5,0.6,0.8),3);
-    // triclinic box 2
-    test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,-0.5,0.7,0.3),3);
     }
 #endif // ENABLE_CUDA
 

@@ -185,9 +185,7 @@ void mpcd::Communicator::migrateParticles()
     if (m_prof) m_prof->push("migrate");
 
     // determine local particles that are to be sent to neighboring processors
-    // TODO: this should check for "covered" box of the cell list
-    const BoxDim& box = m_pdata->getBox();
-
+    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
     unsigned int req_comm_flags = setCommFlags(box);
     while (req_comm_flags)
         {

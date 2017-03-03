@@ -141,8 +141,9 @@ class CellList : public Compute
             }
 
         //! Get the box that is covered by the cell list
-        const BoxDim& getCoverageBox() const
+        const BoxDim& getCoverageBox()
             {
+            computeDimensions();
             return m_cover_box;
             }
 
