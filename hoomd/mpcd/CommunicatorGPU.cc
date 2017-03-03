@@ -241,7 +241,6 @@ void mpcd::CommunicatorGPU::migrateParticles()
 
     // TODO: get this from the cell list
     const BoxDim& box = m_pdata->getBox();
-    const BoxDim shifted_box = getShiftedBox();
 
     unsigned int req_comm_flags = setCommFlags(box);
 
@@ -413,9 +412,10 @@ void mpcd::CommunicatorGPU::migrateParticles()
             // wrap received particles through the global boundary
                 {
                 ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
+                const BoxDim& global_box = m_pdata->getGlobalBox();
                 mpcd::gpu::wrap_particles(n_recv_tot,
                                           d_recvbuf.data,
-                                          shifted_box);
+                                          global_box);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }

@@ -172,22 +172,22 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
+    if (m_prof) m_prof->push("MPCD comm");
+
     migrateParticles();
+
+    if (m_prof) m_prof->pop();
 
     m_is_communicating = false;
     }
 
 void mpcd::Communicator::migrateParticles()
     {
-    if (m_prof)
-        m_prof->push("comm_migrate");
+    if (m_prof) m_prof->push("migrate");
 
     // determine local particles that are to be sent to neighboring processors
     // TODO: this should check for "covered" box of the cell list
     const BoxDim& box = m_pdata->getBox();
-
-    // shifted box for wrapping box through global boundaries
-    const BoxDim shifted_box = getShiftedBox();
 
     unsigned int req_comm_flags = setCommFlags(box);
     while (req_comm_flags)
@@ -242,6 +242,7 @@ void mpcd::Communicator::migrateParticles()
             // wrap received particles across a global boundary back into global box
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
+                const BoxDim& global_box = m_pdata->getGlobalBox();
 
                 for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
                     {
@@ -249,7 +250,7 @@ void mpcd::Communicator::migrateParticles()
                     Scalar4& postype = p.pos;
                     int3 image = make_int3(0,0,0);
 
-                    shifted_box.wrap(postype, image);
+                    global_box.wrap(postype, image);
                     }
                 }
 
@@ -260,8 +261,7 @@ void mpcd::Communicator::migrateParticles()
         req_comm_flags = setCommFlags(box);
         }
 
-    if (m_prof)
-        m_prof->pop();
+    if (m_prof) m_prof->pop();
     }
 
 /*!
@@ -300,84 +300,6 @@ unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
 
     MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
     return req_comm_flags;
-    }
-
-const BoxDim mpcd::Communicator::getShiftedBox() const
-    {
-    // construct the shifted global box for applying global boundary conditions
-    BoxDim shifted_box = m_pdata->getGlobalBox();
-    Scalar3 f= make_scalar3(0.5,0.5,0.5);
-
-    // Shift the global box by half the size of the domain that you received from
-    uint3 grid_pos = m_decomposition->getGridPos();
-    const Index3D& di = m_decomposition->getDomainIndexer();
-    Scalar tol = 0.0001;
-    for (unsigned int dir = 0; dir < 6; ++dir)
-        {
-        const mpcd::detail::face d = static_cast<mpcd::detail::face>(dir);
-        if (m_decomposition->isAtBoundary(dir) && isCommunicating(d))
-            {
-            if (d == mpcd::detail::face::east)
-                {
-                int neigh = (int)grid_pos.x + 1;
-                if (neigh == (int)di.getW()) neigh = 0;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(0, neigh+1) - m_decomposition->getCumulativeFraction(0, neigh));
-                f.x += (shift + tol);
-                }
-            else if (d == mpcd::detail::face::west)
-                {
-                int neigh = (int)grid_pos.x - 1;
-                if (neigh == -1) neigh = di.getW() - 1;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(0, neigh+1) - m_decomposition->getCumulativeFraction(0, neigh));
-                f.x -= (shift + tol);
-                }
-            else if (d == mpcd::detail::face::north)
-                {
-                int neigh = (int)grid_pos.y + 1;
-                if (neigh == (int)di.getH()) neigh = 0;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(1, neigh+1) - m_decomposition->getCumulativeFraction(1, neigh));
-                f.y += (shift + tol);
-                }
-            else if (d == mpcd::detail::face::south)
-                {
-                int neigh = (int)grid_pos.y - 1;
-                if (neigh == -1) neigh = di.getH() - 1;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(1, neigh+1) - m_decomposition->getCumulativeFraction(1, neigh));
-                f.y -= (shift + tol);
-                }
-            else if (d == mpcd::detail::face::up)
-                {
-                int neigh = (int)grid_pos.z + 1;
-                if (neigh == (int)di.getD()) neigh = 0;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(2, neigh+1) - m_decomposition->getCumulativeFraction(2, neigh));
-                f.z += (shift + tol);
-                }
-            else if (d == mpcd::detail::face::down)
-                {
-                int neigh = (int)grid_pos.z - 1;
-                if (neigh == -1) neigh = di.getD() - 1;
-                Scalar shift = Scalar(0.5)*(m_decomposition->getCumulativeFraction(2, neigh+1) - m_decomposition->getCumulativeFraction(2, neigh));
-                f.z -= (shift + tol);
-                }
-            }
-        }
-    Scalar3 dx = shifted_box.makeCoordinates(f);
-    Scalar3 lo = shifted_box.getLo();
-    Scalar3 hi = shifted_box.getHi();
-    lo += dx;
-    hi += dx;
-    shifted_box.setLoHi(lo, hi);
-
-    // only apply global boundary conditions along the communication directions
-    uchar3 periodic = make_uchar3(0,0,0);
-
-    periodic.x = isCommunicating(mpcd::detail::face::east) ? 1 : 0;
-    periodic.y = isCommunicating(mpcd::detail::face::north) ? 1 : 0;
-    periodic.z = isCommunicating(mpcd::detail::face::up) ? 1 : 0;
-
-    shifted_box.setPeriodic(periodic);
-
-    return shifted_box;
     }
 
 /*!

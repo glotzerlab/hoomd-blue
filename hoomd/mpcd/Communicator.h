@@ -146,9 +146,6 @@ class Communicator
             return res;
             }
 
-        //! Obtain a shifted box for wrapping through the global boundary
-        const BoxDim getShiftedBox() const;
-
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;               //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< HOOMD system definition
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
@@ -180,7 +177,7 @@ namespace detail
 {
 //! Export mpcd::Communicator to python
 void export_Communicator(pybind11::module& m);
-}
+} // end namespace detail
 
 } // end namespace mpcd
 
