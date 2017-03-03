@@ -9,6 +9,7 @@ Released 2017/02/07
 *Bug fixes*
 
 * Fixed a bug where the WalltimeLimitReached was ignored
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
 
 ## v2.1.2
 
