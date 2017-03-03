@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.1.4
+
+Not yet released
+
+*Bug fixes*
+
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
+
 ## v2.1.3
 
 Released 2017/02/07
@@ -9,7 +17,6 @@ Released 2017/02/07
 *Bug fixes*
 
 * Fixed a bug where the WalltimeLimitReached was ignored
-* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
 
 ## v2.1.2
 
