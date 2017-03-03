@@ -9,6 +9,7 @@ Released 2017/02/07
 *Bug fixes*
 
 * Fixed a bug where the WalltimeLimitReached was ignored
+* Fixed a bug re-enabling disabled integration methods
 
 ## v2.1.2
 
