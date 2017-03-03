@@ -3,6 +3,7 @@
 ###################################
 ## Setup all of the test executables in a for loop
 set(TEST_LIST
+    cell_list
     )
 
 if(ENABLE_MPI)
@@ -12,6 +13,7 @@ if(ENABLE_MPI)
     ENDMACRO(ADD_TO_MPI_TESTS)
 
     # define every test together with the number of processors
+    ADD_TO_MPI_TESTS(cell_list_mpi 8)
     ADD_TO_MPI_TESTS(communicator 8)
 endif()
 
@@ -41,13 +43,13 @@ endforeach (CUR_TEST)
 
 # add non-MPI tests to test list first
 foreach (CUR_TEST ${TEST_LIST})
-    # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
+    # set executable path
+    get_target_property(CUR_TEST_EXE ${CUR_TEST}_test LOCATION)
 
     if (ENABLE_MPI)
-        add_test(${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
+        add_test(mpcd-core-${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
     else()
-        add_test(${CUR_TEST} ${CUR_TEST_EXE})
+        add_test(mpcd-core-${CUR_TEST} ${CUR_TEST_EXE})
     endif()
 endforeach(CUR_TEST)
 
@@ -56,10 +58,7 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
     # add it to the unit test list
     get_target_property(CUR_TEST_EXE ${CUR_TEST}_test LOCATION)
 
-    # add mpi- prefix to distinguish these tests
-    set(MPI_TEST_NAME mpcd-${CUR_TEST}-mpi)
-
-    add_test(${MPI_TEST_NAME}
+    add_test(mpcd-core-${CUR_TEST}-mpi
              ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
              ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
              ${CUR_TEST_EXE})

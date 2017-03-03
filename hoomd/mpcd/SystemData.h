@@ -15,6 +15,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#include "CellList.h"
+#ifdef ENABLE_CUDA
+#include "CellListGPU.h"
+#endif // ENABLE_CUDA
 #include "ParticleData.h"
 #include "SystemDataSnapshot.h"
 #include "hoomd/SystemDefinition.h"
@@ -38,6 +42,12 @@ class SystemData
             return m_particles;
             }
 
+        //! Get the MPCD cell list
+        std::shared_ptr<mpcd::CellList> getCellList() const
+            {
+            return m_cl;
+            }
+
         //! Get the HOOMD system definition
         std::shared_ptr<::SystemDefinition> getSystemDefinition() const
             {
@@ -59,6 +69,7 @@ class SystemData
     private:
         std::shared_ptr<::SystemDefinition> m_sysdef;       //!< HOOMD system definition
         std::shared_ptr<mpcd::ParticleData> m_particles;    //!< MPCD particle data
+        std::shared_ptr<mpcd::CellList> m_cl;               //!< MPCD cell list
         const BoxDim m_global_box;  //!< Global simulation box
 
         //! Check that the simulation box has not changed from the cached value on initialization
