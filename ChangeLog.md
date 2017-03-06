@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.1.4
+
+Not yet released
+
+*Bug fixes*
+
+* Fixed a bug re-enabling disabled integration methods
+
 ## v2.1.3
 
 Released 2017/02/07
