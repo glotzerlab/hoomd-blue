@@ -8,6 +8,7 @@ Not yet released
 
 *Bug fixes*
 
+* Fixed a bug re-enabling disabled integration methods
 * Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
 
 ## v2.1.3
