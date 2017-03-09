@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.1.5
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a compile error on Mac
+
 ## v2.1.4
 
 Released 2017/03/09
