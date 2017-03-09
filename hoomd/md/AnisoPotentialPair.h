@@ -164,8 +164,8 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     m_log_name = std::string("aniso_pair_") + aniso_evaluator::getName() + std::string("_energy") + log_suffix;
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
-    m_pdata->getNumTypesChangeSignal().connect<AnisoPotentialPair<aniso_evaluator>,
-                                              &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template connect<AnisoPotentialPair<aniso_evaluator>,
+                                                        &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
     }
 
 template<class aniso_evaluator>
@@ -174,8 +174,8 @@ AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
     m_exec_conf->msg->notice(5) << "Destroying AnisoPotentialPair<" << aniso_evaluator::getName() << ">" << std::endl;
 
     // disconnect from type change signal
-    m_pdata->getNumTypesChangeSignal().disconnect<AnisoPotentialPair<aniso_evaluator>,
-                                                 &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
+    m_pdata->getNumTypesChangeSignal().template disconnect<AnisoPotentialPair<aniso_evaluator>,
+                                                           &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair
