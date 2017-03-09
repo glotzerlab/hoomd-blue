@@ -1,13 +1,9 @@
 HOOMD-blue
 ++++++++++
 
-Welcome to the user documentation for HOOMD-blue!
+Welcome to the reference documentation for HOOMD-blue!
 
-The `hoomd-examples git repository <https://bitbucket.org/glotzer/hoomd-examples>`_ complements this documentation with
-a tutorial oriented introduction.
-
-  * `View static examples at nbviewer.org <http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb>`_
-  * `Run the examples at mybinder.org <http://mybinder.org:/repo/joaander/hoomd-examples>`_ (CPU only).
+The HOOMD examples and tutorials complement this documentation. `Read the HOOMD-blue tutorial online <http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb>`_
 
 .. toctree::
     :maxdepth: 2

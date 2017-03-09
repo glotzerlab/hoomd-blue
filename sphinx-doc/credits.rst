@@ -129,6 +129,7 @@ Michael P. Howard, Princeton University
  * Wall potentials extrapolated mode
  * XML dump by particle group
  * Fix references when disabling/enabling objects
+ * Misc. bug fixes
 
 James Antonaglia, University of Michigan
  * pair.mie
