@@ -103,4 +103,4 @@ contributed to the code.
 
 ## Update ChangeLog.md
 
-Add a short concise entry describing the change to the ChangeLog.md.
+Propose a short concise entry describing the change to the ChangeLog.md in the PR description.
