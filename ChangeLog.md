@@ -13,6 +13,7 @@ Not yet released
 *Other changes*
 
 * Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
 
 ## v2.1.5
 
