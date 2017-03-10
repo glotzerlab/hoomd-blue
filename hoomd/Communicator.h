@@ -261,7 +261,7 @@ class Communicator
         //! Get the current maximum ghost layer width
         Scalar getGhostLayerMaxWidth() const
             {
-            return m_r_ghost_max + m_r_extra_ghost_max;
+            return std::max(m_r_ghost_max,m_r_extra_ghost_max);
             }
 
         //! Set the ghost communication flags
