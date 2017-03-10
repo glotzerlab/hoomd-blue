@@ -13,6 +13,7 @@ Not yet released
 *Other changes*
 
 * Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
 
 ## v2.1.5
 
@@ -45,7 +46,6 @@ Released 2017/02/07
 *Bug fixes*
 
 * Fixed a bug where the WalltimeLimitReached was ignored
-* Support triclinic boxes with rigid bodies
 
 ## v2.1.2
 
