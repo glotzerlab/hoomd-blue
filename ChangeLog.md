@@ -9,11 +9,13 @@ Not yet released
 *New features*
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+* force.constand and force.active can now apply torques
 
 *Other changes*
 
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
+* Raise an error when an updater is given a period of 0
 
 ## v2.1.5
 
