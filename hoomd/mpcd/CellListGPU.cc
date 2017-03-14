@@ -13,9 +13,10 @@
 
 mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-        : mpcd::CellList(sysdef, mpcd_pdata)
+        : mpcd::CellList(sysdef, mpcd_pdata), m_migrate_flag(m_exec_conf)
     {
     m_tuner_cell.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell", m_exec_conf));
+    m_tuner_embed_migrate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
     }
 
 mpcd::CellListGPU::~CellListGPU()
@@ -99,6 +100,39 @@ void mpcd::CellListGPU::buildCellList()
         m_tuner_cell->end();
         }
     }
+
+#ifdef ENABLE_MPI
+bool mpcd::CellListGPU::needsEmbedMigrate(unsigned int timestep)
+    {
+    // no migrate needed if no embedded particles
+    if (!m_embed_group) return false;
+
+    // ensure that the cell list has been sized first
+    computeDimensions();
+
+    // particle data
+    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_group(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
+
+    // check if any particles have left this rank on the gpu
+    m_tuner_embed_migrate->begin();
+    mpcd::gpu::cell_check_migrate_embed(m_migrate_flag.getDeviceFlags(),
+                                        d_pos.data,
+                                        d_group.data,
+                                        m_cover_box,
+                                        m_sysdef->getNDimensions(),
+                                        m_embed_group->getNumMembers(),
+                                        m_tuner_embed_migrate->getParam());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    m_tuner_embed_migrate->end();
+
+    // read flags from the gpu, and reduce across all ranks
+    char migrate = static_cast<char>(m_migrate_flag.readFlags());
+    MPI_Allreduce(MPI_IN_PLACE, &migrate, 1, MPI_CHAR, MPI_MAX, m_exec_conf->getMPICommunicator());
+
+    return static_cast<bool>(migrate);
+    }
+#endif // ENABLE_MPI
 
 void mpcd::detail::export_CellListGPU(pybind11::module& m)
     {

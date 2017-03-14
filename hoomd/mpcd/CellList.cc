@@ -5,6 +5,11 @@
 
 #include "CellList.h"
 
+#ifdef ENABLE_MPI
+#include "Communicator.h"
+#include "hoomd/Communicator.h"
+#endif // ENABLE_MPI
+
 /*!
  * \file mpcd/CellList.cc
  * \brief Definition of mpcd::CellList
@@ -63,6 +68,20 @@ void mpcd::CellList::compute(unsigned int timestep)
         computeDimensions();
         force = true;
         }
+
+    #ifdef ENABLE_MPI
+    // perform mpcd communication before building the cell list so particles are safely on rank now
+    if (m_mpcd_comm)
+        {
+        m_mpcd_comm->communicate(timestep);
+        }
+
+    // exchange embedded particles if necessary
+    if (m_comm && needsEmbedMigrate(timestep))
+        {
+        m_comm->migrateParticles();
+        }
+    #endif // ENABLE_MPI
 
     // resize to be able to hold the number of embedded particles
     if (m_embed_group)
@@ -595,6 +614,49 @@ void mpcd::CellList::buildCellList()
 
     if (m_prof) m_prof->pop();
     }
+
+#ifdef ENABLE_MPI
+bool mpcd::CellList::needsEmbedMigrate(unsigned int timestep)
+    {
+    // no migrate needed if no embedded particles
+    if (!m_embed_group) return false;
+
+    // ensure that the cell list has been sized first
+    computeDimensions();
+
+    // coverage box dimensions, assuming orthorhombic
+    const Scalar3 lo = m_cover_box.getLo();
+    const Scalar3 hi = m_cover_box.getHi();
+    const uchar3 periodic = m_cover_box.getPeriodic();
+    const unsigned int ndim = m_sysdef->getNDimensions();
+
+    // particle data
+    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_group(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
+    const unsigned int N = m_embed_group->getNumMembers();
+
+    // check if any particle lies outside of the box on this rank
+    char migrate = 0;
+    for (unsigned int i=0; i < N && !migrate; ++i)
+        {
+        const unsigned int idx = h_group.data[i];
+        const Scalar4 postype = h_pos.data[idx];
+        const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+        if ( (!periodic.x && (pos.x >= hi.x || pos.x < lo.x)) ||
+             (!periodic.y && (pos.y >= hi.y || pos.y < lo.y)) ||
+             (!periodic.z && ndim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
+             {
+             migrate = 1;
+             }
+        }
+
+    // reduce across all ranks
+    MPI_Allreduce(MPI_IN_PLACE, &migrate, 1, MPI_CHAR, MPI_MAX, m_exec_conf->getMPICommunicator());
+
+    return static_cast<bool>(migrate);
+    }
+#endif // ENABLE_MPI
 
 bool mpcd::CellList::checkConditions()
     {
