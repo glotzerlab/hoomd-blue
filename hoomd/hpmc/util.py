@@ -622,7 +622,7 @@ class tune(object):
         max_scale (float): maximum amount to scale a parameter in a single update
         gamma (float): damping factor (>= 0.0) to keep from scaling parameter values too fast
         type (str): Name of a single hoomd particle type for which to tune move sizes.
-            If :py:const:`None` (default), all types are tuned with the same statistics.
+            If None (default), all types are tuned with the same statistics.
         tunable_map (dict): For each tunable, provide a dictionary of values and methods to be used by the tuner (see below)
         args: Additional positional arguments
         kwargs: Additional keyword arguments
@@ -647,7 +647,7 @@ class tune(object):
 
     Details:
 
-    If ``gamma == 0``, each call to :py:func:`.update` rescales the current
+    If ``gamma == 0``, each call to :py:meth:`.update` rescales the current
     value of the tunable\(s\) by the ratio of the observed acceptance rate to the
     target value. For ``gamma > 0``, the scale factor is the reciprocal of
     a weighted mean of the above ratio with 1, according to
@@ -663,17 +663,17 @@ class tune(object):
     parameter. The value of this outer :py:class:`dict` is another :py:class:`dict`
     with the following four keys: 'get', 'acceptance', 'set', and 'maximum'.
 
-    Default ``tunable_map``s are provided but can be modified or extended by setting
+    A default ``tunable_map`` is provided but can be modified or extended by setting
     the following dictionary key/value pairs in the entry for tunable.
 
-    * get (:py:obj:`lambda`): function called by tuner (no arguments) to retrieve curent tunable value
-    * acceptance (:py:obj:`lambda`): function called by tuner (no arguments) to get relevant accemptance rate
-    * set (:py:obj:`lambda` x): function to call to set new value (optional). If not provided,
-      obj.set_params(tunable=x) will be called to set the new value.
+    * get (:py:obj:`callable`): function called by tuner (no arguments) to retrieve curent tunable value
+    * acceptance (:py:obj:`callable`): function called by tuner (no arguments) to get relevant acceptance rate
+    * set (:py:obj:`callable`): function to call to set new value (optional). Must take one argument (the new value).
+      If not provided, ``obj.set_params(tunable=x)`` will be called to set the new value.
     * maximum (:py:class:`float`): maximum value the tuner may set for the tunable parameter
 
-    The default ``tunable_map`` defines the :py:lambda: for 'set' to call
-    :py:func:`hoomd.hpmc.integrate.set_params` with ``tunable={type: newval}``
+    The default ``tunable_map`` defines the :py:obj:`callable` for 'set' to call
+    :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params` with ``tunable={type: newval}``
     instead of ``tunable=newval`` if the ``type`` argument is given when creating
     the ``tune`` object.
 
