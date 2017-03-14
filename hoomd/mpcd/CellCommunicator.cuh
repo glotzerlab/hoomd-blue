@@ -114,6 +114,7 @@ __global__ void pack_cell_buffer(T *d_left_buf,
  * buffer cell. This cell is mapped into the 3d cell list, and the \a reduction_op
  * is applied to the current value of the cell.
  *
+ */
 template<typename T, class ReductionOpT>
 __global__ void unpack_cell_buffer(T *d_props,
                                    ReductionOpT reduction_op,
