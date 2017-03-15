@@ -811,5 +811,8 @@ void mpcd::detail::export_CellList(pybind11::module& m)
         .def_property("cell_size", &mpcd::CellList::setCellSize, &mpcd::CellList::getCellSize)
         .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
         .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup)
+        #ifdef ENABLE_MPI
+        .def("setMPCDCommunicator", &mpcd::CellList::setMPCDCommunicator)
+        #endif // ENABLE_MPI
         ;
     }

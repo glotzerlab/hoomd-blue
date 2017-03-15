@@ -9,6 +9,12 @@
 #include "SystemData.h"
 #include "SystemDataSnapshot.h"
 
+// cell list
+#include "CellList.h"
+#ifdef ENABLE_CUDA
+#include "CellListGPU.h"
+#endif // ENABLE_CUDA
+
 // integration
 #include "Integrator.h"
 #include "CollisionMethod.h"
@@ -73,6 +79,11 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_SystemData(m);
     mpcd::detail::export_SystemDataSnapshot(m);
+
+    mpcd::detail::export_CellList(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_CellListGPU(m);
+    #endif // ENABLE_CUDA
 
     mpcd::detail::export_Integrator(m);
     mpcd::detail::export_CollisionMethod(m);

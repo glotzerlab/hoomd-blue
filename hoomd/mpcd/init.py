@@ -48,9 +48,9 @@ def read_snapshot(snapshot):
         hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
 
-    if hoomd.context.current.mpcd_system_data is not None:
+    if hoomd.context.current.mpcd is not None:
         hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
-    hoomd.context.current.mpcd_system_data = _mpcd.SystemData(snapshot.sys_snap)
-    return data.system_data(hoomd.context.current.mpcd_system_data)
+    hoomd.context.current.mpcd = data.system(_mpcd.SystemData(snapshot.sys_snap))
+    return hoomd.context.current.mpcd

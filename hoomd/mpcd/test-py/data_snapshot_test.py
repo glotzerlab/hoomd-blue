@@ -65,7 +65,7 @@ class mpcd_snapshot(unittest.TestCase):
         self.s = mpcd.init.read_snapshot(snap)
 
         # check on the initialization
-        pdata = self.s.sysdata.getParticleData()
+        pdata = self.s.particles
         self.assertEqual(pdata.N_global, 3)
         if hoomd.comm.get_num_ranks() > 1:
             # mpi test by rank
@@ -154,7 +154,7 @@ class mpcd_snapshot(unittest.TestCase):
         self.s.restore_snapshot(snap)
 
         # check the particle data as it was reinitialized matches what we set
-        pdata = self.s.sysdata.getParticleData()
+        pdata = self.s.particles
         self.assertEqual(pdata.N_global, 3)
         if hoomd.comm.get_num_ranks() > 1:
             # mpi test by rank

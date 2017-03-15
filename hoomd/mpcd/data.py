@@ -105,6 +105,7 @@ following particle properties are recorded:
 """
 
 import hoomd
+from hoomd import _hoomd
 from . import _mpcd
 
 class snapshot(hoomd.meta._metadata):
@@ -168,7 +169,7 @@ class snapshot(hoomd.meta._metadata):
 
         self.sys_snap.replicate(nx, ny, nz)
 
-class system_data(hoomd.meta._metadata):
+class system(hoomd.meta._metadata):
     R""" MPCD system data
 
     Args:
@@ -179,10 +180,33 @@ class system_data(hoomd.meta._metadata):
 
     """
     def __init__(self, sysdata):
-        super(system_data, self).__init__()
+        super(system, self).__init__()
 
-        self.sysdata = sysdata
-        self.particles = sysdata.getParticleData()
+        self.data = sysdata
+
+        # if MPI is enabled, automatically add a communicator to the system
+        if hoomd.comm.get_num_ranks() > 1:
+            if not hoomd.context.exec_conf.isCUDAEnabled():
+                self.comm = _mpcd.Communicator(self.data)
+            else:
+                self.comm = _mpcd.CommunicatorGPU(self.data)
+
+            # ensure system data members get their communicators set now
+            # (why bother deferring until runtime?)
+            self.cell.setMPCDCommunicator(self.comm)
+        else:
+            self.comm = None
+
+        # no sorter by default
+        self.sorter = None
+
+    @property
+    def particles(self):
+        return self.data.getParticleData()
+
+    @property
+    def cell(self):
+        return self.data.getCellList()
 
     def restore_snapshot(self, snapshot):
         R""" Replaces the current MPCD system state
@@ -201,7 +225,7 @@ class system_data(hoomd.meta._metadata):
         """
         hoomd.util.print_status_line()
 
-        self.sysdata.initializeFromSnapshot(snapshot.sys_snap)
+        self.data.initializeFromSnapshot(snapshot.sys_snap)
 
     def take_snapshot(self, particles=True):
         R""" Takes a snapshot of the current state of the MPCD system
@@ -215,7 +239,7 @@ class system_data(hoomd.meta._metadata):
 
         """
         hoomd.util.print_status_line()
-        return snapshot(self.sysdata.takeSnapshot(particles))
+        return snapshot(self.data.takeSnapshot(particles))
 
 def make_snapshot(N=0):
     R"""Creates an empty MPCD system snapshot

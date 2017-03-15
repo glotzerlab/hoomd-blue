@@ -80,6 +80,7 @@ void mpcd::detail::export_SystemData(pybind11::module& m)
     py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData> >(m,"SystemData")
     .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot> >())
     .def("getParticleData", &mpcd::SystemData::getParticleData)
+    .def("getCellList", &mpcd::SystemData::getCellList)
     .def("takeSnapshot", &mpcd::SystemData::takeSnapshot)
     .def("initializeFromSnapshot", &mpcd::SystemData::initializeFromSnapshot);
     }
