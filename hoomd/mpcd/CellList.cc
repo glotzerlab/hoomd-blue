@@ -69,28 +69,29 @@ void mpcd::CellList::compute(unsigned int timestep)
         force = true;
         }
 
-    #ifdef ENABLE_MPI
-    // perform mpcd communication before building the cell list so particles are safely on rank now
-    if (m_mpcd_comm)
-        {
-        m_mpcd_comm->communicate(timestep);
-        }
-
-    // exchange embedded particles if necessary
-    if (m_comm && needsEmbedMigrate(timestep))
-        {
-        m_comm->migrateParticles();
-        }
-    #endif // ENABLE_MPI
-
-    // resize to be able to hold the number of embedded particles
-    if (m_embed_group)
-        {
-        m_embed_cell_ids.resize(m_embed_group->getNumMembers());
-        }
-
     if (shouldCompute(timestep) || force)
         {
+        #ifdef ENABLE_MPI
+        // perform mpcd communication before building the cell list so particles are safely on rank now
+        if (m_mpcd_comm)
+            {
+            m_mpcd_comm->communicate(timestep);
+            }
+
+        // exchange embedded particles if necessary
+        if (m_comm && needsEmbedMigrate(timestep))
+            {
+            m_comm->forceMigrate();
+            m_comm->communicate(timestep);
+            }
+        #endif // ENABLE_MPI
+
+        // resize to be able to hold the number of embedded particles
+        if (m_embed_group)
+            {
+            m_embed_cell_ids.resize(m_embed_group->getNumMembers());
+            }
+
         bool overflowed = false;
         do
             {
