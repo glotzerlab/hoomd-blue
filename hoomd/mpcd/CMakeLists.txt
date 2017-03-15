@@ -7,9 +7,12 @@ set(_mpcd_sources
     module.cc
     CellThermoCompute.cc
     CellList.cc
+    CollisionMethod.cc
     Communicator.cc
+    Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
     )
@@ -18,11 +21,14 @@ set(_mpcd_headers
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
+    CollisionMethod.h
     Communicator.h
     CommunicatorUtilities.h
+    Integrator.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
     )

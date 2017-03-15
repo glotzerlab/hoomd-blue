@@ -16,5 +16,9 @@ MPCD is a mesoscale, particle-based simulation for hydrodynamics.
 **Maintainer:** Michael P. Howard, Princeton University.
 """
 
+# these imports are necessary in order to link derived types between modules
+from hoomd import _hoomd
+from hoomd.md import _md
+
 from hoomd.mpcd import data
 from hoomd.mpcd import init

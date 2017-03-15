@@ -3,11 +3,18 @@
 
 // Maintainer: mphoward
 
+// particle data
 #include "ParticleData.h"
 #include "ParticleDataSnapshot.h"
 #include "SystemData.h"
 #include "SystemDataSnapshot.h"
 
+// integration
+#include "Integrator.h"
+#include "CollisionMethod.h"
+#include "StreamingMethod.h"
+
+// communicator
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #ifdef ENABLE_CUDA
@@ -66,6 +73,10 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_SystemData(m);
     mpcd::detail::export_SystemDataSnapshot(m);
+
+    mpcd::detail::export_Integrator(m);
+    mpcd::detail::export_CollisionMethod(m);
+    mpcd::detail::export_StreamingMethod(m);
 
     #ifdef ENABLE_MPI
     mpcd::detail::export_Communicator(m);

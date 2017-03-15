@@ -835,6 +835,7 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
     if (m_prof) m_prof->pop();
 
     // TODO: signal particle data has changed
+    invalidateCellCache();
     }
 
 /*!
@@ -878,6 +879,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
     if (m_prof) m_prof->pop();
 
     // TODO: signal particle data has changed
+    invalidateCellCache();
     }
 
 #ifdef ENABLE_CUDA
@@ -972,6 +974,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
     swapCommFlags();
 
     // TODO: notify particle data has changed
+    invalidateCellCache();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -1016,6 +1019,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         }
 
     // TODO: notify particle data has changed
+    invalidateCellCache();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
