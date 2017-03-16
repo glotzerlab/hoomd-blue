@@ -68,7 +68,7 @@ class StreamingMethod
          * the streaming operation is called, the particles advance across the
          * full MPCD interval.
          */
-        void setDeltaT(Scalar deltaT)
+        virtual void setDeltaT(Scalar deltaT)
             {
             m_mpcd_dt = Scalar(m_period)*deltaT;
             }

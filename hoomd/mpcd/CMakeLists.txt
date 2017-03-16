@@ -38,6 +38,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     CellCommunicator.cuh
@@ -48,6 +49,8 @@ list(APPEND _mpcd_headers
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
+    StreamingMethodGPU.cuh
+    StreamingMethodGPU.h
     )
 endif()
 
@@ -57,6 +60,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    StreamingMethodGPU.cu
     )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc

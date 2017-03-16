@@ -19,6 +19,9 @@
 #include "Integrator.h"
 #include "CollisionMethod.h"
 #include "StreamingMethod.h"
+#ifdef ENABLE_CUDA
+#include "StreamingMethodGPU.h"
+#endif // ENABLE_CUDA
 
 // communicator
 #ifdef ENABLE_MPI
@@ -88,6 +91,9 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_Integrator(m);
     mpcd::detail::export_CollisionMethod(m);
     mpcd::detail::export_StreamingMethod(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_StreamingMethodGPU(m);
+    #endif // ENABLE_CUDA
 
     #ifdef ENABLE_MPI
     mpcd::detail::export_Communicator(m);
