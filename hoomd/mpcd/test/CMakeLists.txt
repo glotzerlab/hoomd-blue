@@ -5,6 +5,7 @@
 set(TEST_LIST
     cell_list
     cell_thermo_compute
+    streaming_method
     )
 
 if(ENABLE_MPI)

@@ -73,6 +73,12 @@ class StreamingMethod
             m_mpcd_dt = Scalar(m_period)*deltaT;
             }
 
+        //! Get the timestep
+        Scalar getDeltaT() const
+            {
+            return m_mpcd_dt;
+            }
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
