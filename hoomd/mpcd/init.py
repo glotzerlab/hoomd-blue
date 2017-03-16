@@ -22,7 +22,7 @@ def read_snapshot(snapshot):
         snapshot (:py:class:`hoomd.mpcd.data.snapshot`): MPCD system data snapshot
 
     Returns:
-        Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system_data`)
+        Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system`)
 
     An MPCD system can be initialized from a snapshot **after** the HOOMD system
     is first initialized (see :py:mod:`hoomd.init`). The system can only be

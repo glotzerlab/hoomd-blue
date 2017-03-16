@@ -25,11 +25,18 @@ mpcd::StreamingMethod::StreamingMethod(std::shared_ptr<mpcd::SystemData> sysdata
       m_pdata(m_sysdef->getParticleData()),
       m_mpcd_pdata(m_mpcd_sys->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
-      m_mpcd_dt(0.0), m_period(period), m_phase(phase)
+      m_mpcd_dt(0.0), m_period(period)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD StreamingMethod" << std::endl;
 
-    setCurrentTimestep(cur_timestep);
+    // setup next timestep for streaming
+    m_next_timestep = cur_timestep;
+    if (phase >= 0)
+        {
+        // determine next step that is in line with period + phase
+        unsigned int multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
+        m_next_timestep = multiple * m_period + phase;
+        }
     }
 
 mpcd::StreamingMethod::~StreamingMethod()

@@ -77,21 +77,6 @@ class CollisionMethod
             m_cl->setEmbeddedGroup(m_embed_group);
             }
 
-        //! Set the current timestep
-        /*!
-         * \param cur_timestep Current timestep
-         */
-        void setCurrentTimestep(unsigned int cur_timestep)
-            {
-            m_next_timestep = cur_timestep;
-            if (m_phase >= 0)
-                {
-                // determine next step that is in line with period + phase
-                unsigned int multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
-                m_next_timestep = multiple * m_period + m_phase;
-                }
-            }
-
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
@@ -104,7 +89,6 @@ class CollisionMethod
         std::shared_ptr<ParticleGroup> m_embed_group;  //!< Embedded particles
 
         unsigned int m_period;                  //!< Number of timesteps between collisions
-        unsigned int m_phase;                   //!< Phase shift for periodic collisions
         unsigned int m_next_timestep;           //!< Timestep next collision should be performed
         unsigned int m_seed;        //!< Random number seed
 

@@ -140,35 +140,20 @@ void mpcd::Integrator::prepRun(unsigned int timestep)
     {
     IntegratorTwoStep::prepRun(timestep);
 
-    // synchronize embedded group across methods
+    // synchronize timestep in mpcd methods
     if (m_collide)
         {
-        m_collide->setCurrentTimestep(timestep);
-        m_collide->setEmbeddedGroup(m_embed_group);
         m_collide->drawGridShift(timestep);
-        }
-    if (m_stream)
-        {
-        m_stream->setCurrentTimestep(timestep);
         }
 
     #ifdef ENABLE_MPI
+    // force a communication step if present
     if (m_mpcd_comm)
         {
         m_mpcd_comm->communicate(timestep);
         }
     #endif // ENABLE_MPI
     }
-
-#ifdef ENABLE_MPI
-void mpcd::Integrator::setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
-    {
-    m_mpcd_comm = comm;
-
-    // ensure that the MPCD communicator is synced across classes that need it
-    m_mpcd_sys->getCellList()->setMPCDCommunicator(comm);
-    }
-#endif
 
 /*! \param enable Enable/disable autotuning
     \param period period (approximate) in time steps when returning occurs
@@ -190,5 +175,12 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
     namespace py = pybind11;
     py::class_<mpcd::Integrator, std::shared_ptr<mpcd::Integrator> >(m, "Integrator", py::base<::IntegratorTwoStep>())
         .def(py::init<std::shared_ptr<mpcd::SystemData>, Scalar>())
-        .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator);
+        .def("setCollisionMethod", &mpcd::Integrator::setCollisionMethod)
+        .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
+        .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
+        .def("removeStreamingMethod", &mpcd::Integrator::removeStreamingMethod)
+        #ifdef ENABLE_MPI
+        .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator)
+        #endif // ENABLE_MPI
+        ;
     }

@@ -73,21 +73,6 @@ class StreamingMethod
             m_mpcd_dt = Scalar(m_period)*deltaT;
             }
 
-        //! Set the current timestep
-        /*!
-         * \param cur_timestep Current timestep
-         */
-        void setCurrentTimestep(unsigned int cur_timestep)
-            {
-            m_next_timestep = cur_timestep;
-            if (m_phase >= 0)
-                {
-                // determine next step that is in line with period + phase
-                unsigned int multiple = cur_timestep / m_period + (cur_timestep % m_period != 0);
-                m_next_timestep = multiple * m_period + m_phase;
-                }
-            }
-
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
@@ -98,7 +83,6 @@ class StreamingMethod
 
         Scalar m_mpcd_dt;               //!< Integration time step
         unsigned int m_period;          //!< Number of MD timesteps between streaming steps
-        unsigned int m_phase;           //!< Phase shift for periodic streaming
         unsigned int m_next_timestep;   //!< Timestep next streaming step should be performed
 
         //! Check if streaming should occur

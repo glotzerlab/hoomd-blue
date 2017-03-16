@@ -115,6 +115,7 @@ set(files
     __init__.py
     data.py
     init.py
+    integrate.py
     )
 
 install(FILES ${files}

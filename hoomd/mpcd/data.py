@@ -34,8 +34,8 @@ Similarly, :py:class:`~hoomd.update.box_resize` will also fail after the MPCD
 system has been initialized.
 
 During a simulation, the MPCD particle data can be read, modified, and restored
-using :py:meth:`~hoomd.mpcd.data.system_data.take_snapshot()` and
-:py:meth:`~hoomd.mpcd.data.system_data.restore_snapshot()`::
+using :py:meth:`~hoomd.mpcd.data.system.take_snapshot()` and
+:py:meth:`~hoomd.mpcd.data.system.restore_snapshot()`::
 
     snap = mpcd_sys.take_snapshot()
     # modify snapshot
@@ -118,11 +118,11 @@ class snapshot(hoomd.meta._metadata):
 
     This class is not intended to be initialized directly by the user, but rather
     returned by :py:func:`~hoomd.mpcd.data.make_snapshot()` or
-    :py:meth:`~hoomd.mpcd.data.system_data.take_snapshot()`.
+    :py:meth:`~hoomd.mpcd.data.system.take_snapshot()`.
 
     """
     def __init__(self, sys_snap):
-        super(snapshot, self).__init__()
+        hoomd.meta._metadata.__init__(self)
 
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
@@ -180,7 +180,7 @@ class system(hoomd.meta._metadata):
 
     """
     def __init__(self, sysdata):
-        super(system, self).__init__()
+        hoomd.meta._metadata.__init__(self)
 
         self.data = sysdata
 

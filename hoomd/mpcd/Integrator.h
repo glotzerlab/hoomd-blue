@@ -52,27 +52,66 @@ class Integrator : public ::IntegratorTwoStep
 
 #ifdef ENABLE_MPI
         //! Set the MPCD communicator to use
-        virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm);
+        virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
+            {
+            m_mpcd_comm = comm;
+            }
 #endif
 
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
 
-        //! Set the embedded particle group
-        void setEmbeddedGroup(std::shared_ptr<ParticleGroup> group)
+        //! Get current collision method
+        std::shared_ptr<mpcd::CollisionMethod> getCollisionMethod() const
             {
-            m_embed_group = group;
+            return m_collide;
             }
 
-        //! Remove the embedded particle group
-        void removeEmbeddedGroup()
+        //! Set collision method
+        /*!
+         * \param collide Collision method to use
+         */
+        void setCollisionMethod(std::shared_ptr<mpcd::CollisionMethod> collide)
             {
-            m_embed_group = std::make_shared<ParticleGroup>();
+            m_collide = collide;
+            }
+
+        //! Remove the collision method
+        /*!
+         * \post The collision method is set to a null shared pointer.
+         */
+        void removeCollisionMethod()
+            {
+            m_collide.reset();
+            }
+
+        //! Get current streaming method
+        std::shared_ptr<mpcd::StreamingMethod> getStreamingMethod() const
+            {
+            return m_stream;
+            }
+
+        //! Set the streaming method
+        /*!
+         * \param stream Streaming method to use
+         */
+        void setStreamingMethod(std::shared_ptr<mpcd::StreamingMethod> stream)
+            {
+            m_stream = stream;
+            m_stream->setDeltaT(m_deltaT);
+            }
+
+        //! Remove the streaming method
+        /*!
+         * \post The streaming method is set to a null shared pointer.
+         */
+        void removeStreamingMethod()
+            {
+            m_stream.reset();
             }
 
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;   //!< MPCD system
-        std::shared_ptr<ParticleGroup> m_embed_group;   //!< Embedded particle group
         std::shared_ptr<mpcd::CollisionMethod> m_collide;   //!< MPCD collision rule
         std::shared_ptr<mpcd::StreamingMethod> m_stream;    //!< MPCD streaming rule
 
