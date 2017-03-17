@@ -183,6 +183,7 @@ class system(hoomd.meta._metadata):
         hoomd.meta._metadata.__init__(self)
 
         self.data = sysdata
+        hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
 
         # if MPI is enabled, automatically add a communicator to the system
         if hoomd.comm.get_num_ranks() > 1:

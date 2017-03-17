@@ -51,7 +51,7 @@ void mpcd::StreamingMethod::stream(unsigned int timestep)
     {
     if (!shouldStream(timestep)) return;
 
-    if (m_prof) m_prof->push("stream");
+    if (m_prof) m_prof->push("MPCD stream");
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -76,10 +76,10 @@ void mpcd::StreamingMethod::stream(unsigned int timestep)
 
         h_pos.data[cur_p] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
         }
-    if (m_prof) m_prof->pop();
 
     // particles have moved, so the cell cache is no longer valid
     m_mpcd_pdata->invalidateCellCache();
+    if (m_prof) m_prof->pop();
     }
 
 /*!

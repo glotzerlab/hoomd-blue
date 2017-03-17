@@ -40,6 +40,10 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
         m_collide->setProfiler(prof);
     if (m_stream)
         m_stream->setProfiler(prof);
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->setProfiler(prof);
+    #endif // ENABLE_MPI
     }
 
 /*!
@@ -61,9 +65,7 @@ void mpcd::Integrator::update(unsigned int timestep)
     // velocities are updated first
     if (m_collide)
         {
-        if (m_prof) m_prof->push("MPCD integrate");
         m_collide->collide(timestep);
-        if (m_prof) m_prof->pop();
         }
 
     // perform the first MD integration step
@@ -93,9 +95,7 @@ void mpcd::Integrator::update(unsigned int timestep)
     // execute the MPCD streaming step now that MD particles are communicated onto their final domains
     if (m_stream)
         {
-        if (m_prof) m_prof->push("MPCD integrate");
         m_stream->stream(timestep);
-        if (m_prof) m_prof->pop();
         }
 
     // compute the net force on the MD particles

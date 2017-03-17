@@ -23,7 +23,8 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
       m_pdata(m_sysdef->getParticleData()),
       m_mpcd_pdata(m_mpcd_sys->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
-      m_period(period), m_seed(seed), m_enable_grid_shift(false)
+      m_cl(m_mpcd_sys->getCellList()),
+      m_period(period), m_seed(seed), m_enable_grid_shift(true)
     {
     // setup next timestep for collision
     m_next_timestep = cur_timestep;

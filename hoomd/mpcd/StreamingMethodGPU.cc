@@ -33,7 +33,7 @@ void mpcd::StreamingMethodGPU::stream(unsigned int timestep)
     {
     if (!shouldStream(timestep)) return;
 
-    if (m_prof) m_prof->push(m_exec_conf, "stream");
+    if (m_prof) m_prof->push(m_exec_conf, "MPCD stream");
 
     ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::readwrite);
     ArrayHandle<Scalar4> d_vel(m_mpcd_pdata->getVelocities(), access_location::device, access_mode::read);
@@ -47,10 +47,10 @@ void mpcd::StreamingMethodGPU::stream(unsigned int timestep)
                       m_tuner->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner->end();
-    if (m_prof) m_prof->pop(m_exec_conf);
 
     // particles have moved, so the cell cache is no longer valid
     m_mpcd_pdata->invalidateCellCache();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void mpcd::detail::export_StreamingMethodGPU(pybind11::module& m)

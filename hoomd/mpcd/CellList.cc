@@ -53,7 +53,7 @@ mpcd::CellList::~CellList()
 
 void mpcd::CellList::compute(unsigned int timestep)
     {
-    if (m_prof) m_prof->push("MPCD cell list");
+    if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
 
     bool force = false;
 
@@ -72,6 +72,8 @@ void mpcd::CellList::compute(unsigned int timestep)
     if (shouldCompute(timestep) || force)
         {
         #ifdef ENABLE_MPI
+        if (m_prof) m_prof->pop(m_exec_conf);
+
         // perform mpcd communication before building the cell list so particles are safely on rank now
         if (m_mpcd_comm)
             {
@@ -84,6 +86,7 @@ void mpcd::CellList::compute(unsigned int timestep)
             m_comm->forceMigrate();
             m_comm->communicate(timestep);
             }
+        if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
         #endif // ENABLE_MPI
 
         // resize to be able to hold the number of embedded particles
@@ -109,7 +112,7 @@ void mpcd::CellList::compute(unsigned int timestep)
 
     // signal to the ParticleData that the cell list cache is now valid
     m_mpcd_pdata->validateCellCache();
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellList::reallocate()
@@ -480,8 +483,6 @@ bool mpcd::CellList::isCommunicating(mpcd::detail::face dir)
  */
 void mpcd::CellList::buildCellList()
     {
-    if (m_prof) m_prof->push("compute");
-
     const BoxDim& box = m_pdata->getBox();
     const uchar3 periodic = box.getPeriodic();
 
@@ -612,8 +613,6 @@ void mpcd::CellList::buildCellList()
 
     // write out the conditions
     m_conditions.resetFlags(conditions);
-
-    if (m_prof) m_prof->pop();
     }
 
 #ifdef ENABLE_MPI
