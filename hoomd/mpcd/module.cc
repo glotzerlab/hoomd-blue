@@ -11,13 +11,16 @@
 
 // cell list
 #include "CellList.h"
+#include "CellThermoCompute.h"
 #ifdef ENABLE_CUDA
 #include "CellListGPU.h"
+#include "CellThermoComputeGPU.h"
 #endif // ENABLE_CUDA
 
 // integration
 #include "Integrator.h"
 #include "CollisionMethod.h"
+#include "SRDCollisionMethod.h"
 #include "StreamingMethod.h"
 #ifdef ENABLE_CUDA
 #include "StreamingMethodGPU.h"
@@ -84,12 +87,15 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_SystemDataSnapshot(m);
 
     mpcd::detail::export_CellList(m);
+    mpcd::detail::export_CellThermoCompute(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_CellListGPU(m);
+    mpcd::detail::export_CellThermoComputeGPU(m);
     #endif // ENABLE_CUDA
 
     mpcd::detail::export_Integrator(m);
     mpcd::detail::export_CollisionMethod(m);
+    mpcd::detail::export_SRDCollisionMethod(m);
     mpcd::detail::export_StreamingMethod(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_StreamingMethodGPU(m);

@@ -271,7 +271,8 @@ void mpcd::CellList::computeDimensions()
         m_origin_idx = make_int3(0,0,0);
         }
 
-    // resize the cell indexer and per-cell counter
+    // resize the cell indexers and per-cell counter
+    m_global_cell_indexer = Index3D(m_global_cell_dim.x, m_global_cell_dim.y, m_global_cell_dim.z);
     m_cell_indexer = Index3D(m_cell_dim.x, m_cell_dim.y, m_cell_dim.z);
     m_cell_np.resize(m_cell_indexer.getNumElements());
 

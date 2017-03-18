@@ -73,6 +73,12 @@ class CellList : public Compute
             return m_cell_indexer;
             }
 
+        //! Get the global cell indexer
+        const Index3D& getGlobalCellIndexer() const
+            {
+            return m_global_cell_indexer;
+            }
+
         //! Get the cell list indexer
         const Index2D& getCellListIndexer() const
             {
@@ -83,6 +89,12 @@ class CellList : public Compute
         const uint3& getDim() const
             {
             return m_cell_dim;
+            }
+
+        //! Get the global number of cells in each dimension
+        const uint3& getGlobalDim() const
+            {
+            return m_global_cell_dim;
             }
 
         const int3& getOriginIndex() const
@@ -231,6 +243,7 @@ class CellList : public Compute
         uint3 m_cell_dim;                           //!< Number of cells in each direction
         uint3 m_global_cell_dim;                    //!< Number of cells in each direction of global simulation box
         Index3D m_cell_indexer;                     //!< Indexer from 3D into cell list 1D
+        Index3D m_global_cell_indexer;              //!< Indexer from 3D into 1D for global cell indexes
         Index2D m_cell_list_indexer;                //!< Indexer into cell list members
         unsigned int m_cell_np_max;                 //!< Maximum number of particles per cell
         GPUVector<unsigned int> m_cell_np;          //!< Number of particles per cell

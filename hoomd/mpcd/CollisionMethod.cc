@@ -3,6 +3,11 @@
 
 // Maintainer: mphoward
 
+/*!
+ * \file mpcd/CollisionMethod.h
+ * \brief Definition of mpcd::CollisionMethod
+ */
+
 #include "CollisionMethod.h"
 #include "hoomd/extern/saruprng.h"
 

@@ -66,9 +66,6 @@ class integrator(hoomd.integrate._integrator):
                                     self.period,
                                     -1)
 
-        # default collision method is None to be set by other methods
-        self._collide = None
-
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
         True: _md.IntegratorAnisotropicMode.Anisotropic,
@@ -119,8 +116,13 @@ class integrator(hoomd.integrate._integrator):
             hoomd.context.msg.warning("Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()
 
-        if self._collide is not None:
-            self.cpp_integrator.setCollisionMethod(self._collide)
+        collide = hoomd.context.current.mpcd._collide
+        if collide is not None:
+            if collide.period % self.period != 0:
+                hoomd.context.msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
+                raise ValueError('Collision period must be multiple of integration period')
+
+            self.cpp_integrator.setCollisionMethod(collide._cpp)
         else:
             hoomd.context.msg.warning("Running mpcd without a collision method!\n")
             self.cpp_integrator.removeCollisionMethod()

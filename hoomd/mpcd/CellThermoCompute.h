@@ -103,7 +103,8 @@ class CellThermoCompute : public Compute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             #ifdef ENABLE_MPI
-            m_cell_comm->setAutotunerParams(enable, period);
+            if (m_cell_comm)
+                m_cell_comm->setAutotunerParams(enable, period);
             #endif // ENABLE_MPI
             }
 

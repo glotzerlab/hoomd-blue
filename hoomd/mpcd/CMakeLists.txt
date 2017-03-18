@@ -12,6 +12,7 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    SRDCollisionMethod.cc
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
@@ -28,6 +29,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    SRDCollisionMethod.h
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
@@ -117,6 +119,7 @@ ENDMACRO(copy_file)
 
 set(files
     __init__.py
+    collide.py
     data.py
     init.py
     integrate.py

@@ -19,6 +19,7 @@ MPCD is a mesoscale, particle-based simulation for hydrodynamics.
 from hoomd import _hoomd
 from hoomd.md import _md
 
+from hoomd.mpcd import collide
 from hoomd.mpcd import data
 from hoomd.mpcd import init
 from hoomd.mpcd import integrate
