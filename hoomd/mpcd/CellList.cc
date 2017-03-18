@@ -307,7 +307,7 @@ void mpcd::CellList::checkDomainBoundaries()
         MPI_Status status[2];
 
         // check that the number received is the same as that being sent from neighbor
-        const unsigned int n_send = m_num_comm[dir];
+        unsigned int n_send = m_num_comm[dir];
         unsigned int n_expect_recv;
         if (dir % 2 == 0)
             n_expect_recv = m_num_comm[dir+1];
