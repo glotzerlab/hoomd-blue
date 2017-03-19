@@ -761,8 +761,6 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
 void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
                                          unsigned int mask)
     {
-    if (m_prof) m_prof->push("pack");
-
     // count the number of particles to remove
     const unsigned int old_nparticles = m_N;
     unsigned int num_remove_ptls = 0;
@@ -831,8 +829,6 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
 
     // resize self down (just changes value of m_N since removing)
     resize(new_nparticles);
-
-    if (m_prof) m_prof->pop();
 
     // TODO: signal particle data has changed
     invalidateCellCache();
