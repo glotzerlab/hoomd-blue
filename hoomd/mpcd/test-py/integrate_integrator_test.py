@@ -29,7 +29,6 @@ class mpcd_integrator_test(unittest.TestCase):
     def test_create(self):
         ig = mpcd.integrator(dt=0.001)
         self.assertTrue(type(ig._stream) is not None)
-        self.assertEqual(ig._collide, None)
         self.assertEqual(hoomd.context.current.integrator, ig)
 
         mpcd.integrator(dt=0.001, period=50)
