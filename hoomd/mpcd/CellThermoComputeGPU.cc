@@ -30,6 +30,7 @@ mpcd::CellThermoComputeGPU::~CellThermoComputeGPU()
 
 void mpcd::CellThermoComputeGPU::computeCellProperties()
     {
+    if (m_prof) m_prof->push(m_exec_conf,"MPCD thermo");
     // Sum the momentum, mass, and kinetic energy per-cell
         {
         ArrayHandle<Scalar4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
@@ -83,8 +84,10 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
     // Reduce cell properties across ranks
     if (m_cell_comm)
         {
+        if (m_prof) m_prof->pop(m_exec_conf);
         m_cell_comm->reduce(m_cell_vel, mpcd::ops::Sum());
         m_cell_comm->reduce(m_cell_energy, mpcd::detail::SumScalar2Int());
+        if (m_prof) m_prof->push(m_exec_conf,"MPCD thermo");
         }
     #endif // ENABLE_MPI
 
@@ -100,10 +103,12 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         m_end_tuner->end();
         }
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void mpcd::CellThermoComputeGPU::computeNetProperties()
     {
+    if (m_prof) m_prof->push(m_exec_conf, "MPCD thermo");
     // first reduce the properties on the rank
         {
         const Index3D& ci = m_cl->getCellIndexer();
@@ -197,6 +202,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 void mpcd::detail::export_CellThermoComputeGPU(pybind11::module& m)

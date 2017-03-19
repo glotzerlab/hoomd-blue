@@ -40,6 +40,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SRDCollisionMethodGPU.cc
     StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
@@ -51,6 +52,8 @@ list(APPEND _mpcd_headers
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
+    SRDCollisionMethodGPU.cuh
+    SRDCollisionMethodGPU.h
     StreamingMethodGPU.cuh
     StreamingMethodGPU.h
     )
@@ -62,6 +65,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    SRDCollisionMethodGPU.cu
     StreamingMethodGPU.cu
     )
 

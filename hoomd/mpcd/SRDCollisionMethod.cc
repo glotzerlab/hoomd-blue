@@ -11,6 +11,8 @@
 #include "SRDCollisionMethod.h"
 #include "hoomd/extern/saruprng.h"
 
+#define MPCD_2PI 6.283185307179586
+
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
                                              unsigned int period,
@@ -73,7 +75,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 Saru saru(global_idx, timestep, m_seed);
 
                 // calculate the random rotation vector for the cell
-                const double theta = saru.d(0, 2.0*M_PI);
+                const double theta = saru.d(0, MPCD_2PI);
                 const double u = saru.d(-1.0, 1.0);
 
                 /*
@@ -106,9 +108,9 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     std::unique_ptr< ArrayHandle<unsigned int> > h_embed_group;
     if (m_embed_group)
         {
-        h_embed_cell_ids.reset(new ArrayHandle<unsigned int>(m_cl->getEmbeddedGroupCellIds(), access_location::host, access_mode::overwrite));
-        h_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getVelocities(), access_location::host, access_mode::read));
         h_embed_group.reset(new ArrayHandle<unsigned int>(m_embed_group->getIndexArray(), access_location::host, access_mode::read));
+        h_vel_embed.reset(new ArrayHandle<Scalar4>(m_pdata->getVelocities(), access_location::host, access_mode::readwrite));
+        h_embed_cell_ids.reset(new ArrayHandle<unsigned int>(m_cl->getEmbeddedGroupCellIds(), access_location::host, access_mode::read));
         N_tot += m_embed_group->getNumMembers();
         }
 

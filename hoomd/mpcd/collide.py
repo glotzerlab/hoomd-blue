@@ -13,6 +13,7 @@ import hoomd
 from hoomd.md import _md
 
 from . import _mpcd
+import numpy as np
 
 class _collision_method(hoomd.meta._metadata):
     def __init__(self, seed, period):
@@ -101,4 +102,4 @@ class srd(_collision_method):
 
         if angle is not None:
             self.angle = angle
-            self._cpp.setRotationAngle(angle)
+            self._cpp.setRotationAngle(angle * np.pi / 180.)

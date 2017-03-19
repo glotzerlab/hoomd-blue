@@ -934,6 +934,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
             ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
 
             // get temporary buffer
+            // TODO: FIX THIS, CACHED ALLOCATOR LEAKS MEMORY!
             ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
 
             n_out = mpcd::gpu::remove_particles(d_out.data,

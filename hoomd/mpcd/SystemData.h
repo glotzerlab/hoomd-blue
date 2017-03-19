@@ -16,9 +16,6 @@
 #endif
 
 #include "CellList.h"
-#ifdef ENABLE_CUDA
-#include "CellListGPU.h"
-#endif // ENABLE_CUDA
 #include "ParticleData.h"
 #include "SystemDataSnapshot.h"
 #include "hoomd/SystemDefinition.h"

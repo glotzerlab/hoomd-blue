@@ -9,6 +9,9 @@
  */
 
 #include "SystemData.h"
+#ifdef ENABLE_CUDA
+#include "CellListGPU.h"
+#endif // ENABLE_CUDA
 
 /*!
  * \param snapshot MPCD system snapshot to initialize from

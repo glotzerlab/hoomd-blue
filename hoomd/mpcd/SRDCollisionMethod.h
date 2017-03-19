@@ -39,16 +39,16 @@ class SRDCollisionMethod : public mpcd::CollisionMethod
         virtual void collide(unsigned int timestep);
 
         //! Get the MPCD rotation angle
-        Scalar getRotationAngle() const
+        double getRotationAngle() const
             {
             return m_angle;
             }
 
         //! Set the MPCD rotation angle
         /*!
-         * \param mpcd_angle MPCD rotation angle in degrees
+         * \param angle MPCD rotation angle in radians
          */
-        void setRotationAngle(Scalar angle)
+        void setRotationAngle(double angle)
             {
             m_angle = angle;
             }
@@ -56,7 +56,7 @@ class SRDCollisionMethod : public mpcd::CollisionMethod
     protected:
         std::shared_ptr<mpcd::CellThermoCompute> m_thermo;  //!< Cell thermo
         GPUVector<double3> m_rotvec;    //!< MPCD rotation vectors
-        Scalar m_angle; //!< MPCD rotation angle (degrees)
+        double m_angle; //!< MPCD rotation angle (radians)
 
         //! Randomly draw cell rotation vectors
         virtual void drawRotationVectors(unsigned int timestep);
