@@ -371,3 +371,58 @@ class sphere_union_params(_param):
                             self.ensure_list([[1,0,0,0] for i in range(N)]),
                             self.ensure_list(overlap),
                             ignore_statistics);
+
+class convex_polyhedron_union_params(_param):
+    def __init__(self, mc, index):
+        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
+        _param.__init__(self, mc, index);
+        self.__dict__.update(dict(colors=None));
+        self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap'];
+        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_convex_polyhedron_union_params", self.mc.max_members);
+
+    def __str__(self):
+        # should we put this in the c++ side?
+        string = "convex polyhedron union(centers = {}, orientations = {}, vertices = {}, overlap = {})\n".format(self.centers, self.orientations, self.vertices, self.overlap);
+        ct = 0;
+        members = self.members;
+        for m in members:
+            end = "\n" if ct < (len(members)-1) else "";
+            string+="convex polyhedron-{}(v = {}){}".format(ct, m.vertices, end)
+            ct+=1
+        return string;
+
+    def get_metadata(self):
+        data = {}
+        for key in self._keys:
+            # if key == 'vertices':
+            #     val = [ m.vertices for m in self.members ];
+            # else:
+            val = getattr(self, key);
+            data[key] = val;
+        return data;
+
+    @classmethod
+    def get_sized_class(cls, max_members):
+        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_polyhedron_union_param_proxy", max_members);
+        return type(cls.__name__ + str(max_members), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
+
+    def make_param(self, centers, orientations, vertices, overlap=None, ignore_statistics=False, colors=None):
+        if overlap is None:
+            overlap = [1 for c in centers]
+
+        members = []
+        for i, verts in enumerate(vertices):
+            if self.mc.max_verts < len(verts):
+                raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided for member %g"%(self.mc.max_verts,len(verts),i));
+
+            members.append(_hpmc.make_convex_polyhedron_params(verts, False))
+
+        N = len(vertices)
+        if len(centers) != N or len(orientations)!= N:
+            raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")
+        self.colors = None if colors is None else self.ensure_list(colors);
+        return self.make_fn(self.ensure_list(members),
+                            self.ensure_list(centers),
+                            self.ensure_list(orientations),
+                            self.ensure_list(overlap),
+                            ignore_statistics);

@@ -27,3 +27,6 @@ class ell_param_proxy(object):
 
 class sphere_union_param_proxy(object):
     pass
+
+class convex_polyhedron_union_param_proxy(object):
+    pass
