@@ -53,6 +53,12 @@ class SRDCollisionMethod : public mpcd::CollisionMethod
             m_angle = angle;
             }
 
+        //! Get the cell rotation vectors from the last call
+        const GPUVector<double3>& getRotationVectors() const
+            {
+            return m_rotvec;
+            }
+
     protected:
         std::shared_ptr<mpcd::CellThermoCompute> m_thermo;  //!< Cell thermo
         GPUVector<double3> m_rotvec;    //!< MPCD rotation vectors
