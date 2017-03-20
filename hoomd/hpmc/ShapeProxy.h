@@ -776,6 +776,9 @@ struct get_member_proxy{};
 template<typename Shape, unsigned int max_n_members, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeSphere, max_n_members>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
+template<typename Shape, unsigned int max_n_members, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron<128>, max_n_members>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
+
 
 template< class ShapeUnionType >
 struct access_shape_union_members
@@ -919,16 +922,16 @@ void export_poly2d_proxy(pybind11::module& m, std::string class_name, bool sweep
         }
     }
 
-template<class ShapeType>
+template<class ShapeType, class AccessType>
 void export_poly3d_proxy(pybind11::module& m, std::string class_name, bool sweep_radius_valid)
     {
     using detail::shape_param_proxy;
     using detail::poly3d_param_proxy;
-    typedef shape_param_proxy<ShapeType>    proxy_base;
-    typedef poly3d_param_proxy<ShapeType>   proxy_class;
+    typedef shape_param_proxy<ShapeType, AccessType>    proxy_base;
+    typedef poly3d_param_proxy<ShapeType, AccessType>   proxy_class;
     std::string base_name=class_name+"_base";
 
-    export_shape_param_proxy<ShapeType, detail::access<ShapeType> >(m, base_name);
+    export_shape_param_proxy<ShapeType, AccessType >(m, base_name);
     if (sweep_radius_valid)
         {
         pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
@@ -1038,17 +1041,17 @@ void export_shape_params(pybind11::module& m)
     export_poly2d_proxy<ShapeSpheropolygon>(m, "convex_spheropolygon_param_proxy", true);
     export_poly2d_proxy<ShapeSimplePolygon>(m, "simple_polygon_param_proxy", false);
 
-    export_poly3d_proxy< ShapeConvexPolyhedron<8> >(m, "convex_polyhedron_param_proxy8", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<16> >(m, "convex_polyhedron_param_proxy16", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<32> >(m, "convex_polyhedron_param_proxy32", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<64> >(m, "convex_polyhedron_param_proxy64", false);
-    export_poly3d_proxy< ShapeConvexPolyhedron<128> >(m, "convex_polyhedron_param_proxy128", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron<8>, detail::access<ShapeConvexPolyhedron<8> > >(m, "convex_polyhedron_param_proxy8", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron<16>, detail::access<ShapeConvexPolyhedron<16> > >(m, "convex_polyhedron_param_proxy16", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron<32>, detail::access<ShapeConvexPolyhedron<32> > >(m, "convex_polyhedron_param_proxy32", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron<64>, detail::access<ShapeConvexPolyhedron<64> > >(m, "convex_polyhedron_param_proxy64", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron<128>, detail::access<ShapeConvexPolyhedron<128> > >(m, "convex_polyhedron_param_proxy128", false);
 
-    export_poly3d_proxy< ShapeSpheropolyhedron<8> >(m, "convex_spheropolyhedron_param_proxy8", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<16> >(m, "convex_spheropolyhedron_param_proxy16", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<32> >(m, "convex_spheropolyhedron_param_proxy32", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<64> >(m, "convex_spheropolyhedron_param_proxy64", true);
-    export_poly3d_proxy< ShapeSpheropolyhedron<128> >(m, "convex_spheropolyhedron_param_proxy128", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron<8>, detail::access<ShapeSpheropolyhedron<8> > >(m, "convex_spheropolyhedron_param_proxy8", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron<16>, detail::access<ShapeSpheropolyhedron<16> > >(m, "convex_spheropolyhedron_param_proxy16", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron<32>, detail::access<ShapeSpheropolyhedron<32> > >(m, "convex_spheropolyhedron_param_proxy32", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron<64>, detail::access<ShapeSpheropolyhedron<64> > >(m, "convex_spheropolyhedron_param_proxy64", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron<128>, detail::access<ShapeSpheropolyhedron<128> > >(m, "convex_spheropolyhedron_param_proxy128", true);
 
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
@@ -1060,6 +1063,8 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeSphere, 128>(m, "sphere_union_param_proxy128", export_sphere_proxy<ShapeUnion<ShapeSphere, 128>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 128 > > >);
     export_shape_union_proxy<ShapeSphere, 256>(m, "sphere_union_param_proxy256", export_sphere_proxy<ShapeUnion<ShapeSphere, 256>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 256 > > >);
     export_shape_union_proxy<ShapeSphere, 512>(m, "sphere_union_param_proxy512", export_sphere_proxy<ShapeUnion<ShapeSphere, 512>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 512 > > >);
+
+    export_shape_union_proxy<ShapeConvexPolyhedron<128>, 8>(m, "convex_polyhedron_union_param_proxy8", export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron<128>, 8>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron<128>, 8 > > >);
     }
 
 } // end namespace hpmc

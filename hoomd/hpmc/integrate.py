@@ -343,6 +343,8 @@ class mode_hpmc(_integrator):
             shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
         elif isinstance(self, sphere_union):
             shape_param_type = data.sphere_union_params.get_sized_class(self.max_members);
+        elif isinstance(self, convex_polyhedron_union):
+            shape_param_type = data.convex_polyhedron_union_params.get_sized_class(self.max_members);
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
 
