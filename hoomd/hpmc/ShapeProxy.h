@@ -471,6 +471,9 @@ struct get_max_verts { /* nothing here */ }; // will probably get an error if yo
 template< template<unsigned int> class ShapeParamType, unsigned int _max_verts >
 struct get_max_verts< ShapeParamType<_max_verts> > { static const unsigned int max_verts=_max_verts; };
 
+template<class Shape, unsigned int max_n_members, unsigned int capacity, unsigned int max_n_nodes>
+struct get_max_verts< union_params<Shape, max_n_members, capacity, max_n_nodes> > { static const unsigned int max_verts=get_max_verts<Shape>::max_verts; };
+
 template< typename Shape >
 struct get_param_data_type { typedef typename Shape::param_type type; };
 
@@ -1064,7 +1067,8 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeSphere, 256>(m, "sphere_union_param_proxy256", export_sphere_proxy<ShapeUnion<ShapeSphere, 256>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 256 > > >);
     export_shape_union_proxy<ShapeSphere, 512>(m, "sphere_union_param_proxy512", export_sphere_proxy<ShapeUnion<ShapeSphere, 512>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 512 > > >);
 
-    export_shape_union_proxy<ShapeConvexPolyhedron<128>, 8>(m, "convex_polyhedron_union_param_proxy8", export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron<128>, 8>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron<128>, 8 > > >);
+    auto export_fncn = std::bind(export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron<128>, 8>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron<128>, 8 > > >, std::placeholders::_1, std::placeholders::_2, false);
+    export_shape_union_proxy<ShapeConvexPolyhedron<128>, 8>(m, "convex_polyhedron_union_param_proxy8", export_fncn);
     }
 
 } // end namespace hpmc
