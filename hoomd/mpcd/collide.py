@@ -16,6 +16,17 @@ from . import _mpcd
 import numpy as np
 
 class _collision_method(hoomd.meta._metadata):
+    """ Base collision method
+
+    Args:
+        seed (int): Seed to the collision method random number generator (must be positive)
+        period (int): Number of integration steps between collisions
+
+    This class is not intended to be initialized directly by the user. Instead,
+    initialize a specific collision method directly. It is included in the documentation
+    to supply signatures for common methods.
+
+    """
     def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
@@ -33,16 +44,51 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','enabled']
+        self.metadata_fields = ['period','seed','group','shift','enabled']
 
         self.period = period
         self.seed = seed
+        self.group = None
+        self.shift = True
         self.enabled = True
         self._cpp = None
 
         hoomd.util.quiet_status()
         self.enable()
         hoomd.util.unquiet_status()
+
+    def embed(self, group):
+        """ Embed a particle group into the MPCD collision
+
+        Args:
+            group (:py:mod:`hoomd.group`): Group of particles to embed
+
+        The *group* is embedded into the MPCD collision step and cell properties.
+        During collisions, the embedded particles are included in determining
+        per-cell quantities, and the collisions are applied to the embedded
+        particles.
+
+        No integrator is generated for *group*. Usually, you will need to create
+        a separate method to integrate the embedded particles. The recommended
+        (and most common) integrator to use is :py:class:`~hoomd.md.integrate.nve`.
+        It is generally **not** a good idea to use thermostatting integrator for
+        the embedded particles, since the MPCD particles themselves already act
+        as a heat bath that will thermalize the embedded particles.
+
+        Note:
+            The group momentum is included in any net properties reported to the
+            logger. Be aware of this when computing the energy of the system.
+
+        Examples::
+            polymer = hoomd.group.type('P')
+            md.integrate.nve(group=polymer)
+            method.embed(polymer)
+
+        """
+        hoomd.util.print_status_line()
+
+        self.group = group
+        self._cpp.setEmbeddedGroup(group.cpp_group)
 
     def enable(self):
         """ Enable the collision method
@@ -76,7 +122,57 @@ class _collision_method(hoomd.meta._metadata):
         hoomd.context.current.mpcd._collide = None
 
 class srd(_collision_method):
-    def __init__(self, seed, period, angle):
+    """ Base collision method
+
+    Args:
+        seed (int): Seed to the collision method random number generator (must be positive)
+        period (int): Number of integration steps between collisions
+        angle (float): SRD rotation angle (degrees)
+        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+
+    This class implements the classic stochastic rotation dynamics collision
+    rule for MPCD. Every *period* steps, the particles are binned into cells
+    (see XX). The particle velocities are then rotated by *angle* around an
+    axis randomly drawn from the unit sphere. The rotation is done relative to
+    the average velocity, so this rotation rule conserves momentum and energy
+    within each cell, and so also globally.
+
+    The properties of the SRD fluid are tuned using *period*, *angle*, the
+    underlying size of the MPCD cell list (see XX), and the particle density.
+    These parameters combine in a nontrivial way to set specific fluid properties.
+    See XX for a discussion of how to choose these values.
+
+    Note:
+        The *period* must be chosen as a multiple of the MPCD
+        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
+        result in an error when :py:meth:`hoomd.run()` is called.
+
+    When the total mean-free path of the MPCD particles is small, the underlying
+    MPCD cell list must be randomly shifted in order to ensure Galilean
+    invariance. Because the performance penalty from grid shifting is small,
+    shifting is enabled by default in all simulations. Disable it using
+    :py:meth:`set_params()` if you are sure that you do not want to use it.
+
+    HOOMD particles in *group* can be embedded into the collision step. See
+    :py:meth:`embed()`. A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    must be specified in order to integrate the positions of particles in *group*.
+    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+
+    The SRD method naturally imparts the NVE ensemble to the system comprising
+    the MPCD particles and *group*. Accordingly, the system must be properly
+    initialized to the correct temperature. (SRD has an H theorem, and so
+    particles exchange momentum to reach an equilibrium temperature.) A thermostat
+    can be applied in conjunction with the SRD method, in which case the particle
+    velocities are rescaled. The thermostat causes the SRD algorithm to still
+    conserve momentum, but energy is no longer conserved. See XX for a
+    description of available thermostats.
+
+    Examples::
+        collide.srd(seed=42, period=1, angle=130.)
+        collide.srd(seed=77, period=50, angle=130., group=hoomd.group.all())
+
+    """
+    def __init__(self, seed, period, angle, group=None):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
@@ -95,11 +191,27 @@ class srd(_collision_method):
 
         hoomd.util.quiet_status()
         self.set_params(angle=angle)
+        if group is not None:
+            self.embed(group)
         hoomd.util.unquiet_status()
 
-    def set_params(self, angle=None):
+    def set_params(self, angle=None, shift=None):
+        """ Set parameters for the SRD collision method
+
+        Args:
+            angle (float): SRD rotation angle (degrees)
+            shift (bool): If True, perform a random shift of the underlying cell list
+
+        Examples::
+            srd.set_params(angle=90.)
+            srd.set_params(shift=False)
+            srd.set_params(angle=130., shift=True)
+        """
         hoomd.util.print_status_line()
 
         if angle is not None:
             self.angle = angle
             self._cpp.setRotationAngle(angle * np.pi / 180.)
+        if shift is not None:
+            self.shift = shift
+            self._cpp.enableGridShifting(shift)

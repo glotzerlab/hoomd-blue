@@ -1,8 +1,9 @@
 # Maintainer: mphoward
 
 set(TEST_LIST
-   data_snapshot
-   integrate_integrator
+    collide_srd
+    data_snapshot
+    integrate_integrator
     )
 SET(EXCLUDE_FROM_MPI
     )
