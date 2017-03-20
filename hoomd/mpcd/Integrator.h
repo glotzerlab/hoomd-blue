@@ -38,7 +38,7 @@ class Integrator : public ::IntegratorTwoStep
         //! Destructor
         virtual ~Integrator();
 
-        //! Sets the profiler for the compute to use
+        //! Sets the profiler for the integrator to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Take one timestep forward

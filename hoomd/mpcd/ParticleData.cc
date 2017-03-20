@@ -841,8 +841,6 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
 void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
                                       unsigned int mask)
     {
-    if (m_prof) m_prof->push("unpack");
-
     unsigned int num_add_ptls = in.size();
 
     unsigned int old_nparticles = m_N;
@@ -872,8 +870,6 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
             }
         }
 
-    if (m_prof) m_prof->pop();
-
     // TODO: signal particle data has changed
     invalidateCellCache();
     }
@@ -892,8 +888,6 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
 void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
                                             unsigned int mask)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "pack");
-
     // this is the maximum number of elements we can possibly write to out
     // (use getNumElements rather than size, since this gives the capacity of the vector)
     unsigned int max_n_out = out.getNumElements();
@@ -972,8 +966,6 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 
     // TODO: notify particle data has changed
     invalidateCellCache();
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -982,8 +974,6 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
                                          unsigned int mask)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "unpack");
-
     unsigned int old_nparticles = m_N;
     unsigned int num_add_ptls = in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;
@@ -1017,8 +1007,6 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
 
     // TODO: notify particle data has changed
     invalidateCellCache();
-
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
