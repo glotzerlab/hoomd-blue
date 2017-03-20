@@ -541,7 +541,6 @@ UP_TEST( mpcd_communicator_migrate_test )
     // orthorhombic box
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,2.0,3.0),3);
     }
-
 #ifdef ENABLE_CUDA
 std::shared_ptr<mpcd::Communicator> gpu_communicator_creator(std::shared_ptr<mpcd::SystemData> mpcd_sys,
                                                              unsigned int nstages)
@@ -584,5 +583,4 @@ UP_TEST( mpcd_communicator_migrate_test_GPU_three_stage )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0),3);
     }
 #endif // ENABLE_CUDA
-
 #endif // ENABLE_MPI

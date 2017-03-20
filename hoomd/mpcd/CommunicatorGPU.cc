@@ -388,10 +388,10 @@ void mpcd::CommunicatorGPU::migrateParticles()
             // wrap received particles through the global boundary
                 {
                 ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
-                const BoxDim& global_box = m_pdata->getGlobalBox();
+                const BoxDim wrap_box = getWrapBox(box);
                 mpcd::gpu::wrap_particles(n_recv_tot,
                                           d_recvbuf.data,
-                                          global_box);
+                                          wrap_box);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }

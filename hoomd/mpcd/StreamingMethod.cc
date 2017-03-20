@@ -53,7 +53,7 @@ void mpcd::StreamingMethod::stream(unsigned int timestep)
 
     if (m_prof) m_prof->push("MPCD stream");
 
-    const BoxDim& box = m_pdata->getBox();
+    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::read);
