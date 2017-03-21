@@ -80,6 +80,7 @@ class _collision_method(hoomd.meta._metadata):
             logger. Be aware of this when computing the energy of the system.
 
         Examples::
+
             polymer = hoomd.group.type('P')
             md.integrate.nve(group=polymer)
             method.embed(polymer)
@@ -94,6 +95,7 @@ class _collision_method(hoomd.meta._metadata):
         """ Enable the collision method
 
         Examples::
+
             method.enable()
 
         Enabling the collision method adds it to the current MPCD system definition.
@@ -110,6 +112,7 @@ class _collision_method(hoomd.meta._metadata):
         """ Disable the collision method
 
         Examples::
+
             method.disable()
 
         Disabling the collision method removes it from the current MPCD system definition.
@@ -122,7 +125,7 @@ class _collision_method(hoomd.meta._metadata):
         hoomd.context.current.mpcd._collide = None
 
 class srd(_collision_method):
-    """ Base collision method
+    """ Stochastic rotation dynamics method
 
     Args:
         seed (int): Seed to the collision method random number generator (must be positive)
@@ -168,6 +171,7 @@ class srd(_collision_method):
     description of available thermostats.
 
     Examples::
+
         collide.srd(seed=42, period=1, angle=130.)
         collide.srd(seed=77, period=50, angle=130., group=hoomd.group.all())
 
@@ -203,6 +207,7 @@ class srd(_collision_method):
             shift (bool): If True, perform a random shift of the underlying cell list
 
         Examples::
+
             srd.set_params(angle=90.)
             srd.set_params(shift=False)
             srd.set_params(angle=130., shift=True)

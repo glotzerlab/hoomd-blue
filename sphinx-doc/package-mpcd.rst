@@ -12,6 +12,7 @@ mpcd
 .. toctree::
     :maxdepth: 3
 
+    module-mpcd-collide
     module-mpcd-data
     module-mpcd-init
     module-mpcd-integrate
