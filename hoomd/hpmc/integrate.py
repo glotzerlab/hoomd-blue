@@ -1828,20 +1828,20 @@ class convex_polyhedron_union(mode_hpmc):
     def format_param_pos(self, param):
         # build up shape_def string in a loop
         vertices = [m.vertices for m in param.members]
-        orientations = [m.orientation for m in param.members]
+        orientations = param.orientations
         centers = param.centers
         colors = param.colors
-        N = len(centers);
-        shape_def = 'convex_polyhedron_union {0} '.format(N);
         if param.colors is None:
             # default
             colors = ["ff5984ff" for c in centers]
+        N = len(centers);
+        shape_def = 'convex_polyhedron_union {0} '.format(N);
 
 
         for verts,q,p,c in zip(vertices, orientations, centers, colors):
             shape_def += '{0} '.format(len(verts));
             for v in verts:
-                shape_def += '{0} {1} {2}'.format(*v);
+                shape_def += '{0} {1} {2} '.format(*v);
             shape_def += '{0} {1} {2} '.format(*p);
             shape_def += '{0} {1} {2} {3} '.format(*q);
             shape_def += '{0} '.format(c);

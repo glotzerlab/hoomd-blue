@@ -378,8 +378,6 @@ class convex_polyhedron_union_params(_param):
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
         self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap'];
-        # convex polyhedra are just hard-coded to have 128 vertices right now?
-        self.member_fn = hoomd.integrate._get_sized_entry("make_poly3d_verts", self.mc.max_verts);
         self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_convex_polyhedron_union_params", self.mc.max_members);
 
     def __str__(self):
@@ -414,10 +412,13 @@ class convex_polyhedron_union_params(_param):
 
         members = []
         for i, verts in enumerate(vertices):
-            if self.mc.max_verts < len(verts):
+            # convex polyhedra are just hard-coded to have 128 vertices right now. lame?
+            if 128 < len(verts):
                 raise RuntimeError("max_verts param expects up to %d vertices, but %d are provided for member %g"%(self.mc.max_verts,len(verts),i));
 
-            members.append(self.member_fn(self.ensure_list(verts), float(0), ignore_statistics))
+            # convex polyhedra are just hard-coded to have 128 vertices right now. lame?
+            member_fn = hoomd.hpmc.integrate._get_sized_entry("make_poly3d_verts", 128);
+            members.append(member_fn(self.ensure_list(verts), float(0), ignore_statistics))
 
         N = len(vertices)
         if len(centers) != N or len(orientations)!= N:
