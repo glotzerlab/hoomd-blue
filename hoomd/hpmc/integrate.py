@@ -1835,7 +1835,7 @@ class convex_polyhedron_union(mode_hpmc):
             # default
             colors = ["ff5984ff" for c in centers]
         N = len(centers);
-        shape_def = 'convex_polyhedron_union {0} '.format(N);
+        shape_def = 'poly3d_union {0} '.format(N);
 
 
         for verts,q,p,c in zip(vertices, orientations, centers, colors):
