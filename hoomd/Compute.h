@@ -186,6 +186,9 @@ class Compute
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);
 
+        //! Peek to see if computation should be run without updating internal state
+        virtual bool peekCompute(unsigned int timestep) const;
+
     private:
         unsigned int m_last_computed;   //!< Stores the last timestep compute was called
         bool m_first_compute;           //!< true if compute has not yet been called

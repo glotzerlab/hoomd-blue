@@ -6,6 +6,7 @@
 // particle data
 #include "ParticleData.h"
 #include "ParticleDataSnapshot.h"
+#include "Sorter.h"
 #include "SystemData.h"
 #include "SystemDataSnapshot.h"
 
@@ -86,6 +87,7 @@ PYBIND11_PLUGIN(_mpcd)
 
     mpcd::detail::export_ParticleData(m);
     mpcd::detail::export_ParticleDataSnapshot(m);
+    mpcd::detail::export_Sorter(m);
     mpcd::detail::export_SystemData(m);
     mpcd::detail::export_SystemDataSnapshot(m);
 

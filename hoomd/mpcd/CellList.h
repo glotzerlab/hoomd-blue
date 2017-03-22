@@ -272,6 +272,11 @@ class CellList : public Compute
         //! Builds the cell list and handles cell list memory
         virtual void buildCellList();
 
+        //! Callback to sort cell list when particle data is sorted
+        virtual void sort(unsigned int timestep,
+                          const GPUArray<unsigned int>& order,
+                          const GPUArray<unsigned int>& rorder);
+
     private:
         bool m_needs_compute_dim;   //!< True if the dimensions need to be (re-)computed
         //! Slot for box resizing

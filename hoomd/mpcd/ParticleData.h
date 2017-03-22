@@ -29,6 +29,8 @@
 #include "hoomd/GPUVector.h"
 #include "hoomd/Profiler.h"
 
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
+
 // pybind11
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
@@ -225,6 +227,34 @@ class ParticleData
             {
             return m_valid_cell_cache;
             }
+
+        //! Signature for particle sort signal
+        typedef Nano::Signal<void (unsigned int, const GPUArray<unsigned int>&, const GPUArray<unsigned int>&)> SortSignal;
+
+        //! Get the sort signal
+        /*!
+         * \returns A sort signal that subscribers can attach a callback to for sorting
+         *          their own per-particle data.
+         */
+        SortSignal& getSortSignal()
+            {
+            return m_sort_signal;
+            }
+
+        //! Notify subscribers of a particle sort
+        /*!
+         * \param timestep Timestep that the sorting occurred
+         * \param order Mapping of sorted particle indexes onto old particle indexes
+         * \param rorder Mapping of old particle indexes onto sorted particle indexes
+         *
+         * This method notifies the subscribers of the sort occurring at \a timestep.
+         * Subscribers may choose to use \a order and \a rorder to reorder their
+         * per-particle data immediately, or delay the sort until their next call.
+         */
+        void notifySort(unsigned int timestep, const GPUArray<unsigned int>& order, const GPUArray<unsigned int>& rorder)
+            {
+            m_sort_signal.emit(timestep, order, rorder);
+            }
         //@}
 
         #ifdef ENABLE_MPI
@@ -295,6 +325,7 @@ class ParticleData
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache
+        SortSignal m_sort_signal;   //!< Signal triggered when particles are sorted
 
         //! Check for a valid snapshot
         bool checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot);

@@ -12,6 +12,7 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    Sorter.cc
     SRDCollisionMethod.cc
     StreamingMethod.cc
     SystemData.cc
@@ -29,6 +30,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    Sorter.h
     SRDCollisionMethod.h
     StreamingMethod.h
     SystemData.h
