@@ -30,7 +30,7 @@ class sort(hoomd.update._updater):
     the sort operation obviously depends on the number of particles, and so the *period*
     should be tuned to give the maximum performance.
 
-    Warning:
+    Note:
         The *period* should be no smaller than the MPCD collision period, or unnecessary
         cell list builds will occur.
 
@@ -42,6 +42,7 @@ class sort(hoomd.update._updater):
         # the sorter is only available after initialization
         s.sorter.set_period(period=5)
         s.sorter.disable()
+
     """
 
     def __init__(self, system):
@@ -61,4 +62,33 @@ class sort(hoomd.update._updater):
         else:
             cpp_class = _mpcd.SorterGPU
         self.cpp_updater = cpp_class(system.data)
-        self.setupUpdater(1)
+
+        self.metadata_fields = ['period']
+        self.period = 50
+
+        self.setupUpdater(self.period)
+
+    def set_period(self, period):
+        """ Change the sorting period.
+
+        Args:
+            period (int): New period to set.
+
+        Examples::
+
+            sorter.set_period(100)
+            sorter.set_period(1)
+
+        While the simulation is running, the action of each updater
+        is executed every *period* time steps. Changing the period does
+        not change the phase set when the analyzer was first created.
+
+        """
+        hoomd.util.print_status_line()
+
+        # call base updater's set period method
+        hoomd.util.quiet_status()
+        hoomd.update._updater.set_period(self, period)
+        hoomd.util.unquiet_status()
+        # and save the period into ourselves as metadata
+        self.period = period

@@ -4,6 +4,7 @@ set(TEST_LIST
     collide_srd
     data_snapshot
     integrate_integrator
+    update_sort
     )
 SET(EXCLUDE_FROM_MPI
     )

@@ -120,7 +120,6 @@ class mpcd_collide_srd_test(unittest.TestCase):
 
     def tearDown(self):
         del self.ig
-        pass
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
