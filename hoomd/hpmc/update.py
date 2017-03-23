@@ -1091,10 +1091,11 @@ class shape_update(_updater):
 
             shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
             shape_up.scale_shear_shape_move(stepsize=0.1);
-            tuner = shape_up.get_tuner(average=True);
+            tuner = shape_up.get_tuner(average=True); # average stats over all particle types.
             for _ in range(100):
                 hoomd.run(1000, quiet=True);
                 tuner.update();
+                shape_up.reset_statistics(); # reset the shape stats
 
         """
         from . import util
@@ -1320,7 +1321,7 @@ class elastic_shape(shape_update):
         explain how to write the function here.
 
     Example::
-    
+
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
