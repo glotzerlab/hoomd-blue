@@ -307,13 +307,6 @@ void ParticleData::setTypeName(unsigned int type, const std::string& name)
 */
 void ParticleData::allocate(unsigned int N)
     {
-    // check the input
-    if (N == 0)
-        {
-        m_exec_conf->msg->error() << "ParticleData is being asked to allocate 0 particles.... this makes no sense whatsoever" << endl;
-        throw runtime_error("Error allocating ParticleData");
-        }
-
     // maximum number is the current particle number
     m_max_nparticles = N;
 
@@ -383,8 +376,6 @@ void ParticleData::allocate(unsigned int N)
 */
 void ParticleData::allocateAlternateArrays(unsigned int N)
     {
-    assert(N>0);
-
     // positions
     GPUArray< Scalar4 > pos_alt(N, m_exec_conf);
     m_pos_alt.swap(pos_alt);
