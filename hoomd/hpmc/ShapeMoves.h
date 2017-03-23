@@ -490,6 +490,7 @@ public:
         // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
          //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
         //std::cout << Fbar << std::endl;
+        Scalar dsq = 0.0;
         for(unsigned int i = 0; i < param.N; i++)
             {
             vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
@@ -499,9 +500,11 @@ public:
             param.z[i] = Fbar(2,0)*vert.x + Fbar(2,1)*vert.y + Fbar(2,2)*vert.z;
             // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
             vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
-            //dsq = fmax(dsq, dot(vert, vert));
+            dsq = fmax(dsq, dot(vert, vert));
             }
-        }
+        param.diameter = 2.0*sqrt(dsq);
+        } 
+    
 
         Eigen::Matrix3f getEps(unsigned int type_id)
             {

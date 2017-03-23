@@ -179,25 +179,23 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
 template < class Shape >
 void UpdaterShape<Shape>::update(unsigned int timestep)
     {
-    if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "ElasticShape update");
-
     m_exec_conf->msg->notice(4) << "UpdaterShape update: " << timestep << ", initialized: "<< std::boolalpha << m_initialized << " @ " << std::hex << this << std::dec << std::endl;
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
-
-	    if(!m_move_function || !m_log_boltz_function){
-		if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
-		return;
-	    }
+    if(!m_move_function || !m_log_boltz_function){
+	if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
+	return;
+    }
 
     Saru rng(m_move_ratio, m_seed, timestep);
     unsigned int move_type_select = rng.u32() & 0xffff;
     bool move = (move_type_select < m_move_ratio);
+    if (!move)
+        return;
+    if (this->m_prof)
+        this->m_prof->push(this->m_exec_conf, "ElasticShape update");
 
-	    if (!move)
-		return;
 
     // Shuffle the order of particles for this step
     m_update_order.resize(m_pdata->getNTypes());
@@ -288,7 +286,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
             }
         }
-    if (m_prof)
+    if (this->m_prof)
         this->m_prof->pop();
     m_exec_conf->msg->notice(4) << " UpdaterShape update done" << std::endl;
     }
