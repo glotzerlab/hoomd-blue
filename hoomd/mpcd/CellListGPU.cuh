@@ -53,6 +53,14 @@ cudaError_t cell_check_migrate_embed(unsigned int *d_migrate_flag,
                                      const unsigned int N,
                                      const unsigned int block_size);
 
+//! Kernel drive to apply sorted order to MPCD particles in cell list
+cudaError_t cell_apply_sort(unsigned int *d_cell_list,
+                            const unsigned int *d_rorder,
+                            const unsigned int *d_cell_np,
+                            const Index2D& cli,
+                            const unsigned int N_mpcd,
+                            const unsigned int block_size);
+
 } // end namespace gpu
 } // end namespace mpcd
 

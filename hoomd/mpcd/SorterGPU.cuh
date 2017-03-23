@@ -14,6 +14,7 @@
 #include <cuda_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/Index1D.h"
 
 namespace mpcd
 {
@@ -28,6 +29,25 @@ cudaError_t sort_apply(Scalar4 *d_pos_alt,
                        const unsigned int *d_order,
                        const unsigned int N,
                        const unsigned int block_size);
+
+cudaError_t sort_set_sentinel(unsigned int *d_cell_list,
+                              const unsigned int *d_cell_np,
+                              const Index2D& cli,
+                              const unsigned int sentinel,
+                              const unsigned int block_size);
+
+cudaError_t sort_cell_compact(unsigned int *d_order,
+                              unsigned int *d_num_select,
+                              void *d_tmp_storage,
+                              size_t& tmp_storage_bytes,
+                              const unsigned int *d_cell_list,
+                              const unsigned int num_items,
+                              const unsigned int N_mpcd);
+
+cudaError_t sort_gen_reverse(unsigned int *d_rorder,
+                             const unsigned int *d_order,
+                             const unsigned int N,
+                             const unsigned int block_size);
 } // end namespace gpu
 } // end namespace mpcd
 

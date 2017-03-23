@@ -17,6 +17,7 @@
 
 #include "Sorter.h"
 #include "hoomd/Autotuner.h"
+#include "hoomd/GPUFlags.h"
 
 namespace mpcd
 {
@@ -40,14 +41,21 @@ class SorterGPU : public mpcd::Sorter
             {
             mpcd::Sorter::setAutotunerParams(enable, period);
 
-            m_apply_tuner->setEnabled(enable);
-            m_apply_tuner->setPeriod(period);
+            m_sentinel_tuner->setEnabled(enable); m_sentinel_tuner->setPeriod(period/10);
+            m_reverse_tuner->setEnabled(enable); m_reverse_tuner->setPeriod(period/10);
+            m_apply_tuner->setEnabled(enable); m_apply_tuner->setPeriod(period/10);
             }
 
     protected:
-        std::unique_ptr<Autotuner> m_apply_tuner;   //!< Kernel tuner for applying sorted order
-        //! Compute the sorting order at the current timestep
-//         virtual void computeOrder(unsigned int timestep);
+        std::unique_ptr<Autotuner> m_sentinel_tuner;    //!< Kernel tuner for filling sentinels in cell list
+        std::unique_ptr<Autotuner> m_reverse_tuner;     //!< Kernel tuner for setting reverse map
+        std::unique_ptr<Autotuner> m_apply_tuner;       //!< Kernel tuner for applying sorted order
+
+        GPUVector<unsigned char> m_tmp_storage;     //!< Temporary storage allocated for sorting
+        GPUFlags<unsigned int> m_compact_flag;      //!< Flag for value returned by compaction
+
+        //! Compute the sorting order at the current timestep on the GPU
+        virtual void computeOrder(unsigned int timestep);
 
         //! Apply the sorting order on the GPU
         virtual void applyOrder() const;

@@ -195,6 +195,36 @@ __global__ void cell_check_migrate_embed(unsigned int *d_migrate_flag,
          atomicMax(d_migrate_flag, 0xffffffff);
          }
     }
+
+__global__ void cell_apply_sort(unsigned int *d_cell_list,
+                                const unsigned int *d_rorder,
+                                const unsigned int *d_cell_np,
+                                const Index2D cli,
+                                const unsigned int N_mpcd,
+                                const unsigned int N_cli)
+    {
+    // one thread per cell-list entry
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= N_cli)
+        return;
+
+    // convert the entry 1D index into a 2D index
+    const unsigned int cell = idx / cli.getW();
+    const unsigned int offset = idx - (cell * cli.getW());
+
+    /* here comes some terrible execution divergence */
+    // check if the cell is filled
+    const unsigned int np = d_cell_np[cell];
+    if (offset < np)
+        {
+        // check if this is an MPCD particle
+        const unsigned int pid = d_cell_list[idx];
+        if (pid < N_mpcd)
+            {
+            d_cell_list[idx] = d_rorder[pid];
+            }
+        }
+    }
 } // end namespace kernel
 } // end namespace gpu
 } // end namespace mpcd
@@ -319,6 +349,35 @@ cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int *d_migrate_flag,
                                                                           box,
                                                                           num_dim,
                                                                           N);
+
+    return cudaSuccess;
+    }
+
+cudaError_t mpcd::gpu::cell_apply_sort(unsigned int *d_cell_list,
+                                       const unsigned int *d_rorder,
+                                       const unsigned int *d_cell_np,
+                                       const Index2D& cli,
+                                       const unsigned int N_mpcd,
+                                       const unsigned int block_size)
+    {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_apply_sort);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    const unsigned int N_cli = cli.getNumElements();
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N_cli / run_block_size + 1);
+    mpcd::gpu::kernel::cell_apply_sort<<<grid, run_block_size>>>(d_cell_list,
+                                                                 d_rorder,
+                                                                 d_cell_np,
+                                                                 cli,
+                                                                 N_mpcd,
+                                                                 N_cli);
 
     return cudaSuccess;
     }

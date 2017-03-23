@@ -27,9 +27,6 @@ namespace mpcd
 /*!
  * The Sorter puts MPCD particles into an order that is more cache-friendly.
  * The natural way to do this for the algorithm is cell list order.
- *
- * \warning Any Sorter that builds the cell list in order to sort its data must
- *          also sort the cell list.
  */
 class Sorter : public ::Updater
     {
