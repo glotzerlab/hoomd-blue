@@ -21,6 +21,11 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
     snap->global_box = BoxDim(2.0);
     snap->particle_data.type_mapping.push_back("A");
+        {
+        // embed one particle
+        snap->particle_data.resize(1);
+        snap->particle_data.pos[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        }
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // place eight mpcd particles, one per cell
@@ -65,6 +70,12 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         mpcd_snap.type[0] = 7;
         }
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+
+    // add an embedded group
+    std::shared_ptr<ParticleData> embed_pdata = sysdef->getParticleData();
+    std::shared_ptr<ParticleSelector> selector(new ParticleSelectorAll(sysdef));
+    std::shared_ptr<ParticleGroup> group(new ParticleGroup(sysdef, selector));
+    mpcd_sys->getCellList()->setEmbeddedGroup(group);
 
     // run the sorter
     std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys);
@@ -134,8 +145,8 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         const Index3D& ci = cl->getCellIndexer();
         const Index2D& cli = cl->getCellListIndexer();
 
-        // all cells should have one particle
-        UP_ASSERT_EQUAL(h_np.data[ci(0,0,0)], 1);
+        // all cells should have one particle, except the first cell, which has the embedded one
+        UP_ASSERT_EQUAL(h_np.data[ci(0,0,0)], 2);
         UP_ASSERT_EQUAL(h_np.data[ci(1,0,0)], 1);
         UP_ASSERT_EQUAL(h_np.data[ci(0,1,0)], 1);
         UP_ASSERT_EQUAL(h_np.data[ci(1,1,0)], 1);
@@ -145,7 +156,6 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         UP_ASSERT_EQUAL(h_np.data[ci(1,1,1)], 1);
 
         // the particles should be in ascending order
-        UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(0,0,0))], 0);
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(1,0,0))], 1);
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(0,1,0))], 2);
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(1,1,0))], 3);
@@ -153,6 +163,10 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(1,0,1))], 5);
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(0,1,1))], 6);
         UP_ASSERT_EQUAL(h_cl.data[cli(0,ci(1,1,1))], 7);
+        // do first cell separately, since it needs to be a sorted list
+        std::vector<unsigned int> cell_0 = {h_cl.data[cli(0,ci(0,0,0))], h_cl.data[cli(1,ci(0,0,0))]};
+        std::sort(cell_0.begin(), cell_0.end());
+        UP_ASSERT_EQUAL(cell_0, std::vector<unsigned int>{0,8});
         }
     }
 
