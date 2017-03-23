@@ -5,7 +5,7 @@
 
 #include "hoomd/mpcd/Sorter.h"
 #ifdef ENABLE_CUDA
-// #include "hoomd/mpcd/CellListGPU.h"
+#include "hoomd/mpcd/SorterGPU.h"
 #endif // ENABLE_CUDA
 
 #include "hoomd/SnapshotSystemData.h"
@@ -161,3 +161,9 @@ UP_TEST( mpcd_sorter_test )
     {
     sorter_test<mpcd::Sorter>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
+#ifdef ENABLE_CUDA
+UP_TEST( mpcd_sorter_test_gpu )
+    {
+    sorter_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    }
+#endif // ENABLE_CUDA

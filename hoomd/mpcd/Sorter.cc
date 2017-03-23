@@ -102,7 +102,6 @@ void mpcd::Sorter::applyOrder() const
     // apply the sorted order
         {
         ArrayHandle<unsigned int> h_order(m_order, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_rorder(m_rorder, access_location::host, access_mode::read);
 
         ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::read);
