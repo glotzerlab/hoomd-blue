@@ -17,7 +17,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/transform.h>
 
-#include "hoomd/extern/cub/cub.cuh"
+#include "hoomd/extern/cub/cub/device/device_reduce.cuh"
 
 namespace mpcd
 {
