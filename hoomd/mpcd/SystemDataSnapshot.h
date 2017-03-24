@@ -63,7 +63,11 @@ class SystemDataSnapshot
         //! Get the domain decomposition
         std::shared_ptr<::DomainDecomposition> getDomainDecomposition() const
             {
+            #ifdef ENABLE_MPI
             return m_hoomd_pdata->getDomainDecomposition();
+            #else
+            return std::shared_ptr<::DomainDecomposition>();
+            #endif // ENABLE_MPI
             }
 
         mpcd::ParticleDataSnapshot particles;   //!< MPCD particle data snapshot
