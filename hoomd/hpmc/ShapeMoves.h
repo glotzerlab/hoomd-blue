@@ -401,7 +401,47 @@ public:
         }
 };
 
+inline bool isIn(Scalar x, Scalar y, Scalar alpha)
+    {
+    const Scalar one = 1.0;
+    if(x < one && y > one/(alpha*x)) return true;
+    else if(x >= one && y < alpha/x) return true;
+    return false;
+    }
 
+
+template <class RNG>
+inline void generate_scale_R(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
+    {
+    do
+        {
+        x = rng.s(Scalar(1)/alpha, alpha);
+        y = rng.s(Scalar(1)/alpha, alpha);
+        }while(!isIn(x,y,alpha));
+    }
+template <class RNG>
+inline void generate_scale_S(Scalar& x, Scalar& y, RNG& rng, Scalar alpha)
+    {
+    Scalar sigma_max = 0.0, sigma = 0.0, U = 0.0;
+    sigma_max = sqrt(pow(alpha, 4) + pow(alpha, 2) + 1);
+    do
+        {
+        generate_scale_R(x,y,rng,alpha);
+        sigma = sqrt((1.0/(x*x*x*x*y*y)) + (1.0/(x*x*y*y*y*y)) + 1);
+        U = rng.s(0.0,1.0);
+        }while(U > sigma/sigma_max);
+    }
+
+template <class RNG>
+inline void generate_scale(Eigen::Matrix3d& S, RNG& rng, Scalar alpha)
+    {
+    Scalar x = 0.0, y = 0.0, z = 0.0;
+    generate_scale_S(x, y, rng, alpha);
+    z = 1.0/x/y;
+    S << x, 0.0, 0.0,
+        0.0, y, 0.0,
+        0.0, 0.0, z;
+    }
 
 template<class Shape, class RNG>
 class elastic_shape_move_function : public shape_move_function<Shape, RNG>
@@ -411,8 +451,8 @@ class elastic_shape_move_function : public shape_move_function<Shape, RNG>
     using shape_move_function<Shape, RNG>::m_step_size;
     // using shape_move_function<Shape, RNG>::m_scale;
     // using shape_move_function<Shape, RNG>::m_select_ratio;
-    std::vector <Eigen::Matrix3f> m_Fbar_last;
-    std::vector <Eigen::Matrix3f> m_Fbar;
+    std::vector <Eigen::Matrix3d> m_Fbar_last;
+    std::vector <Eigen::Matrix3d> m_Fbar;
     //Scalar a_max= 0.01;
 public:
     elastic_shape_move_function(
@@ -423,10 +463,10 @@ public:
         {
         m_select_ratio = fmin(move_ratio, 1.0)*65535;
         m_step_size.resize(ntypes, stepsize);
-        m_Fbar.resize(ntypes, Eigen::Matrix3f::Identity());
-        m_Fbar_last.resize(ntypes, Eigen::Matrix3f::Identity());
+        m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
+        m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
-        //m_Fbar = Eigen::Matrix3f::Identity();
+        //m_Fbar = Eigen::Matrix3d::Identity();
         m_determinantInertiaTensor = 1.0;
         }
 
@@ -438,83 +478,55 @@ public:
     //! construct is called at the beginning of every update()                                            # param was shape - Luis
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
         {
-        using Eigen::Matrix3f;
-        // unsigned int move_type_select = rng.u32() & 0xffff;
-        // Saru rng(m_select_ratio, m_seed, timestep);
-        /*if( move_type_select < m_select_ratio)
+        using Eigen::Matrix3d;
+        Matrix3d transform;
+        if( (rng.u32()& 0xffff) < m_select_ratio ) // perform a scaling move
             {
-            scale<Shape, RNG> move(m_step_size[type_id], false);
-            move(shape, rng); // always make the move
+            generate_scale(transform, rng, m_step_size[type_id]);
             }
-        else
+        else                                        // perform a rotation-scale-rotation move
             {
-            shear<Shape, RNG> move(m_step_size[type_id]);
-            move(shape, rng); // always make the move
-            }*/                              // was shape instead of param
-          m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
-          m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant(); 
-          //std::cout << m_determinantInertiaTensor << std::endl; This is inew
-          Matrix3f I(3,3);
-          Matrix3f alpha(3,3);
-          Matrix3f F(3,3), Fbar(3,3);
-          Matrix3f eps(3,3), E(3,3);
-
-          // TODO: Define I as global?
-          I << 1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0,
-               0.0, 0.0, 1.0;
-
-          for(int i=0;i<3;i++)
-          {
-            for (int j=0;j<3;j++)
-            {
-              alpha(i,j) =  rng.s(-m_step_size[type_id], m_step_size[type_id]);
-              //std::cout << alpha(i,j) << std::endl;
+            quat<Scalar> q(1.0,vec3<Scalar>(0.0,0.0,0.0));
+            move_rotate(q, rng, 0.5, 3);
+            Matrix3d rot, rot_inv, scale;
+            Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
+            rot = eq.toRotationMatrix();
+            rot_inv = rot.transpose();
+            generate_scale(scale, rng, m_step_size[type_id]);
+            transform = rot*scale*rot_inv;
             }
-          }
-         //std::cout << "alpha_max = " << a_max << std::endl;
-         F = I + alpha;
-         F(0,1) = F(1,0);
-         F(0,2) = F(2,0);
-         F(1,2) = F(2,1);
-        //  std::cout << "det(F) = " << F.determinant() << std::endl;
-         Fbar = F / pow(F.determinant(),1.0/3.0);
-        //  std::cout << "det(Fbar) = " << Fbar.determinant() << std::endl;
-        
-        // Make Fbar symmetric
-        //Fbar(0,1) = Fbar(1,0);
-        //Fbar(0,2) = Fbar(2,0);
-        //Fbar(1,2) = Fbar(2,1);
 
-        m_Fbar[type_id] = Fbar*m_Fbar[type_id];
-        // eps = 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - I ;
-         //E   = 0.5(Fbar.transpose() * Fbar - I) ; for future reference
-        //std::cout << Fbar << std::endl;
+        m_Fbar[type_id] = transform*m_Fbar[type_id];
         Scalar dsq = 0.0;
         for(unsigned int i = 0; i < param.N; i++)
             {
             vec3<Scalar> vert(param.x[i], param.y[i], param.z[i]);
-            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
-            param.x[i] = Fbar(0,0)*vert.x + Fbar(0,1)*vert.y + Fbar(0,2)*vert.z;
-            param.y[i] = Fbar(1,0)*vert.x + Fbar(1,1)*vert.y + Fbar(1,2)*vert.z;
-            param.z[i] = Fbar(2,0)*vert.x + Fbar(2,1)*vert.y + Fbar(2,2)*vert.z;
-            // std::cout << "Vert["<< i << "] = (" << param.x[i]<< ", "<<  param.y[i]<< ", "<< param.z[i] << ")" << std::endl;
+            param.x[i] = transform(0,0)*vert.x + transform(0,1)*vert.y + transform(0,2)*vert.z;
+            param.y[i] = transform(1,0)*vert.x + transform(1,1)*vert.y + transform(1,2)*vert.z;
+            param.z[i] = transform(2,0)*vert.x + transform(2,1)*vert.y + transform(2,2)*vert.z;
             vert = vec3<Scalar>( param.x[i], param.y[i], param.z[i]);
             dsq = fmax(dsq, dot(vert, vert));
             }
         param.diameter = 2.0*sqrt(dsq);
-        } 
-    
+        m_mass_props[type_id].updateParam(param, false); // update allows caching since for some shapes a full compute is not necessary.
+        m_determinantInertiaTensor = m_mass_props[type_id].getDeterminant();
+        #ifdef DEBUG
+            detail::mass_properties<Shape> mp(param);
+            m_determinantInertiaTensor = mp.getDeterminant();
+            assert(fabs(m_determinantInertiaTensor-mp.getDeterminant()) < 1e-5);
+        #endif
+        }
 
-        Eigen::Matrix3f getEps(unsigned int type_id)
-            {
-            return 0.5*(m_Fbar[type_id].transpose() + m_Fbar[type_id]) - Eigen::Matrix3f::Identity();
-            }
 
-        Eigen::Matrix3f getEpsLast(unsigned int type_id)
-            {
-            return 0.5*(m_Fbar_last[type_id].transpose() + m_Fbar_last[type_id]) - Eigen::Matrix3f::Identity();
-            }
+    Eigen::Matrix3d getEps(unsigned int type_id)
+        {
+        return 0.5*((m_Fbar[type_id].transpose()*m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
+        }
+
+    Eigen::Matrix3d getEpsLast(unsigned int type_id)
+        {
+        return 0.5*((m_Fbar_last[type_id].transpose()*m_Fbar_last[type_id]) - Eigen::Matrix3d::Identity());
+        }
 
     //! advance whenever the proposed move is accepted.
     // void advance(unsigned int timestep){ /* Nothing to do. */ }
@@ -596,9 +608,9 @@ public:
         }
     Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        //using Eigen::Matrix3f;
-        Eigen::Matrix3f eps = m_shape_move->getEps(type_id);
-        Eigen::Matrix3f eps_last = m_shape_move->getEpsLast(type_id);
+        //using Eigen::Matrix3d;
+        Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
+        Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;
         //Scalar dv;
         Scalar e_ddot_e = 0.0, e_ddot_e_last = 0.0;

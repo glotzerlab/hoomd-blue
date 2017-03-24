@@ -85,6 +85,7 @@ private:
     std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
     std::shared_ptr< IntegratorHPMCMono<Shape> >          m_mc;
     std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >   m_log_boltz_function;
+    Scalar m_Energy;
 
     GPUArray< Scalar >          m_determinant;
     GPUArray< unsigned int >    m_ntypes;
@@ -104,7 +105,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  unsigned int nselect,
                                  bool pretend)
     : Updater(sysdef), m_seed(seed), m_nselect(nselect),
-      m_move_ratio(move_ratio*65535), m_mc(mc),
+      m_move_ratio(move_ratio*65535), m_mc(mc), m_Energy(0.0),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
       m_pretend(pretend), m_initialized(false), m_update_order(seed)
@@ -114,6 +115,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_nselect = (m_pdata->getNTypes() < m_nselect) ? m_pdata->getNTypes() : m_nselect;
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
+    m_ProvidedQuantities.push_back("shape_move_energy");
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -158,6 +160,10 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
 		return volume;
 		}
+        else if(quantity == "shape_move_energy")
+            {
+            return m_Energy;
+            }
 	    else
 		{
 		for(size_t i = 0; i < m_num_params; i++)
@@ -238,6 +244,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                             );
         m_mc->setParam(typ_i, param);
         }
+    m_Energy = log_boltz;
     // calculate boltzmann factor.
     bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
     Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);

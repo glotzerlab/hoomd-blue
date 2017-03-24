@@ -100,6 +100,7 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RNG& rng, Scalar a, unsigned 
         }
     }
 
+
 //! Select a random index
 /*! \param rng Saru RNG to utilize in the move
     \param max Maximum index to select
@@ -170,6 +171,7 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
             fast::sqrt(u1)*fast::sin(Scalar(2.0*M_PI)*u3)));
 
     }
+
 
 }; // end namespace hpmc
 
