@@ -34,7 +34,7 @@ void mpcd::SorterGPU::computeOrder(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
     // compute the cell list at current timestep, guarantees owned particles are on rank
     m_cl->compute(timestep);
-    if (m_prof) m_prof->push(m_exec_conf,"sort");
+    if (m_prof) m_prof->push(m_exec_conf,"MPCD sort");
 
     // fill the empty cell list entries with a sentinel larger than number of MPCD particles
         {
