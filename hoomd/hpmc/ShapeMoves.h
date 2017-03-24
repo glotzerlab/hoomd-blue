@@ -482,7 +482,7 @@ public:
         Matrix3d transform;
         if( (rng.u32()& 0xffff) < m_select_ratio ) // perform a scaling move
             {
-            generate_scale(transform, rng, m_step_size[type_id]);
+            generate_scale(transform, rng, m_step_size[type_id]+1.0);
             }
         else                                        // perform a rotation-scale-rotation move
             {
@@ -492,7 +492,7 @@ public:
             Eigen::Quaternion<double> eq(q.s, q.v.x, q.v.y, q.v.z);
             rot = eq.toRotationMatrix();
             rot_inv = rot.transpose();
-            generate_scale(scale, rng, m_step_size[type_id]);
+            generate_scale(scale, rng, m_step_size[type_id]+1.0);
             transform = rot*scale*rot_inv;
             }
 
@@ -547,6 +547,7 @@ class ShapeLogBoltzmannFunction
 {
 public:
     virtual Scalar operator()(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
+    virtual Scalar computeEnergy(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia) {return 0.0;}
 };
 
 template<class Shape>
@@ -606,16 +607,13 @@ public:
     ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
+
     Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        //using Eigen::Matrix3d;
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;
-        //Scalar dv;
         Scalar e_ddot_e = 0.0, e_ddot_e_last = 0.0;
-        // detail::mass_properties<Shape> mp(shape_new);
-        //dv = mp.getVolume()-m_volume;
         e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
                  eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
                  eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
@@ -623,20 +621,18 @@ public:
         e_ddot_e_last = eps_last(0,0)*eps_last(0,0) + eps_last(0,1)*eps_last(1,0) + eps_last(0,2)*eps_last(2,0) +
                  eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
                  eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
-        /*  for (unsigned int i=0; i<3;i++)
-        {
-        for (unsigned int j=0; j<3;i++)
-        {
-          eps_ddot += eps(i,j)*eps(j,i)
+        // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
+        return N*m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
-        } */
-        //std::cout << "Particle volume = " << m_volume << std::endl ; OK
-        //std::cout << "Stiffness = " << m_k << std::endl ;
-        //std::cout << "eps ddot eps = " << e_ddot_e << std::endl ;
-        // This is still not what we want! How do we make it correct?
-        //std::cout << iold << inew << std::endl;
-        return m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
-        //return m_k*(e_ddot_e_last-e_ddot_e) + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+
+    Scalar computeEnergy(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
+        {
+        Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
+        Scalar e_ddot_e = 0.0;
+        e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
+                 eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
+                 eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
+        return N*m_k*e_ddot_e*m_volume;
         }
 };
 
