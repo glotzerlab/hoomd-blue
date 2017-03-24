@@ -30,6 +30,11 @@ mpcd::Sorter::~Sorter()
     m_exec_conf->msg->notice(5) << "Destroying MPCD Sorter" << std::endl;
     }
 
+/*!
+ * \param timestep Current simulation timestep
+ *
+ * This method is just a driver for the computeOrder() and applyOrder() methods.
+ */
 void mpcd::Sorter::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "sort");

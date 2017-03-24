@@ -25,7 +25,7 @@ mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata)
 /*!
  * \param timestep Current timestep
  *
- * Loop through the computed cell list and generate a compacted list of the order
+ * Performs stream compaction on the GPU of the computed cell list into the order
  * particles appear. This will put the particles into a cell-list order, which
  * should be more friendly for other MPCD cell-based operations.
  */
@@ -53,7 +53,7 @@ void mpcd::SorterGPU::computeOrder(unsigned int timestep)
 
     // use CUB to select out the indexes of MPCD particles
         {
-        // size the required temporary storage
+        // size the required temporary storage for compaction
         ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_order(m_order, access_location::device, access_mode::overwrite);
         void *d_tmp_storage = NULL;
