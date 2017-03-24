@@ -40,9 +40,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
                                  const BoxDim& global_box,
                                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0),
-      m_exec_conf(exec_conf),
-      m_mass(1.0)
+    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -89,9 +87,7 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
                                  const BoxDim& global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0),
-      m_exec_conf(exec_conf),
-      m_mass(1.0)
+    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -456,7 +452,6 @@ bool mpcd::ParticleData::checkSnapshot(const mpcd::ParticleDataSnapshot& snapsho
         {
         valid_snapshot = snapshot.validate();
         }
-
     #ifdef ENABLE_MPI
     if (m_decomposition)
         {
@@ -548,7 +543,7 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         GPUArray<unsigned int> comm_flags(N_max, m_exec_conf);
         m_comm_flags.swap(comm_flags);
         }
-    #endif
+    #endif // ENABLE_MPI
 
     // Allocate the alternate data
     GPUArray<Scalar4> pos_alt(N_max, m_exec_conf);
@@ -559,6 +554,14 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
 
     GPUArray<unsigned int> tag_alt(N_max, m_exec_conf);
     m_tag_alt.swap(tag_alt);
+
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        GPUArray<unsigned int> comm_flags_alt(N_max, m_exec_conf);
+        m_comm_flags_alt.swap(comm_flags_alt);
+        }
+    #endif // ENABLE_MPI
     }
 
 /*!
@@ -581,12 +584,18 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
         {
         m_comm_flags.resize(N_max);
         }
-    #endif
+    #endif // ENABLE_MPI
 
     // Reallocate the alternate data
     m_pos_alt.resize(N_max);
     m_vel_alt.resize(N_max);
     m_tag_alt.resize(N_max);
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        m_comm_flags_alt.resize(N_max);
+        }
+    #endif // ENABLE_MPI
     }
 
 /*!
@@ -649,7 +658,6 @@ unsigned int mpcd::ParticleData::getTypeByName(const std::string &name) const
 
     m_exec_conf->msg->error() << "MPCD particle type " << name << " not found!" << endl;
     throw runtime_error("Error mapping MPCD type name");
-    return 0;
     }
 
 /*!
@@ -742,14 +750,16 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
 #ifdef ENABLE_MPI
 /*!
  * \param out Buffer into which particle data is packed
+ * \param mask Mask for \a m_comm_flags to determine if communication is necessary
  *
- * Packs all particles with communication flags > 0 into a buffer and removes
- * them from the particle data arrays. The output buffer is automatically resized
- * to accommodate the data.
+ * Packs all particles where the communication flags are bitwise AND against \a mask
+ * into a buffer and removes them from the particle data arrays. The output buffer
+ * is automatically resized to accommodate the data.
  *
- * \post The particle data arrays remain compact. Communication flags are zeroed.
+ * \post The particle data arrays remain compact.
  */
-void mpcd::ParticleData::removeParticles(std::vector<mpcd::detail::pdata_element>& out)
+void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
+                                         unsigned int mask)
     {
     if (m_prof) m_prof->push("pack");
 
@@ -763,7 +773,7 @@ void mpcd::ParticleData::removeParticles(std::vector<mpcd::detail::pdata_element
         // count removed particles
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
-            if (h_comm_flags.data[i])
+            if (h_comm_flags.data[i] & mask)
                 {
                 ++num_remove_ptls;
                 }
@@ -774,51 +784,53 @@ void mpcd::ParticleData::removeParticles(std::vector<mpcd::detail::pdata_element
     // resize output buffers
     out.resize(num_remove_ptls);
 
-    // resize self (just changes value of m_N since removing)
-    resize(new_nparticles);
-
     // pack the output buffer
         {
         // access particle data arrays
-        ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::read);
 
         ArrayHandle<Scalar4> h_pos_alt(m_pos_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_vel_alt(m_vel_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_comm_flags_alt(m_comm_flags_alt, access_location::host, access_mode::overwrite);
 
+        ArrayHandle<mpcd::detail::pdata_element> h_out(out, access_location::host, access_mode::overwrite);
         unsigned int n(0), m(0);
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
-            if (!h_comm_flags.data[i])
-                {
-                // copy over to alternate pdata arrays
-                h_pos_alt.data[n] = h_pos.data[i];
-                h_vel_alt.data[n] = h_vel.data[i];
-                h_tag_alt.data[n] = h_tag.data[i];
-                ++n;
-                }
-            else
+            if (h_comm_flags.data[i] & mask)
                 {
                 // write to packed array
                 mpcd::detail::pdata_element p;
                 p.pos = h_pos.data[i];
                 p.vel = h_vel.data[i];
                 p.tag = h_tag.data[i];
-                out[m++] = p;
+                p.comm_flag = h_comm_flags.data[i];
+                h_out.data[m++] = p;
+                }
+            else
+                {
+                // copy over to alternate pdata arrays
+                h_pos_alt.data[n] = h_pos.data[i];
+                h_vel_alt.data[n] = h_vel.data[i];
+                h_tag_alt.data[n] = h_tag.data[i];
+                h_comm_flags_alt.data[n] = h_comm_flags.data[i];
+                ++n;
                 }
             }
-
-        // reset communication flags to zero
-        std::fill(h_comm_flags.data, h_comm_flags.data + new_nparticles, 0);
         }
 
     // swap particle data arrays to update local particle data
     swapPositions();
     swapVelocities();
     swapTags();
+    swapCommFlags();
+
+    // resize self down (just changes value of m_N since removing)
+    resize(new_nparticles);
 
     if (m_prof) m_prof->pop();
 
@@ -827,8 +839,10 @@ void mpcd::ParticleData::removeParticles(std::vector<mpcd::detail::pdata_element
 
 /*!
  * \param in List of particle data elements to fill the particle data with
+ * \param mask Bitmask for direction send occurred
  */
-void mpcd::ParticleData::addParticles(const std::vector<mpcd::detail::pdata_element>& in)
+void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
+                                      unsigned int mask)
     {
     if (m_prof) m_prof->push("unpack");
 
@@ -848,18 +862,17 @@ void mpcd::ParticleData::addParticles(const std::vector<mpcd::detail::pdata_elem
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
 
         // add new particles at the end
+        ArrayHandle<mpcd::detail::pdata_element> h_in(in, access_location::host, access_mode::read);
         unsigned int n = old_nparticles;
-        for (auto it = in.begin(); it != in.end(); ++it)
+        for (unsigned int i = 0 ; i < num_add_ptls; ++i)
             {
-            mpcd::detail::pdata_element p = *it;
+            const mpcd::detail::pdata_element& p = h_in.data[i];
             h_pos.data[n] = p.pos;
             h_vel.data[n] = p.vel;
             h_tag.data[n] = p.tag;
+            h_comm_flags.data[n] = p.comm_flag & ~mask; // unset the bitmask after communication
             n++;
             }
-
-        // reset communication flags
-        std::fill(h_comm_flags.data + old_nparticles, h_comm_flags.data + new_nparticles, 0);
         }
 
     if (m_prof) m_prof->pop();
@@ -870,29 +883,28 @@ void mpcd::ParticleData::addParticles(const std::vector<mpcd::detail::pdata_elem
 #ifdef ENABLE_CUDA
 /*!
  * \param out Buffer into which particle data is packed
- * \param comm_flags Buffer into which communication flags are packed
+ * \param mask Mask for \a m_comm_flags to determine if communication is necessary
  *
- * Pack all particles for which comm_flag > 0 into a buffer and remove them from
- * the particle data using the GPU. The output buffers are automatically resized
- * to accomodate the data.
+ * Packs all particles where the communication flags are bitwise AND against \a mask
+ * into a buffer and removes them from the particle data arrays using the GPU.
+ * The output buffer is automatically resized to accommodate the data.
  *
  * \post The particle data arrays remain compact.
  */
-void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, GPUVector<unsigned int>& comm_flags)
+void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
+                                            unsigned int mask)
     {
     if (m_prof) m_prof->push(m_exec_conf, "pack");
 
     // this is the maximum number of elements we can possibly write to out
+    // (use getNumElements rather than size, since this gives the capacity of the vector)
     unsigned int max_n_out = out.getNumElements();
-    if (comm_flags.getNumElements() < max_n_out)
-        max_n_out = comm_flags.getNumElements();
 
     // allocate array if necessary
     if (!max_n_out)
         {
         max_n_out = 1;
         out.resize(max_n_out);
-        comm_flags.resize(max_n_out);
         }
 
     // number of particles that are to be written out
@@ -907,32 +919,32 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         ArrayHandle<Scalar4> d_pos(m_pos, access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_vel(m_vel, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(m_tag, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
         // access alternate particle data arrays to write to
         ArrayHandle<Scalar4> d_pos_alt(m_pos_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_vel_alt(m_vel_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
-
-        ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_comm_flags_alt(m_comm_flags_alt, access_location::device, access_mode::overwrite);
 
             {
             // Access output array
             ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
-            ArrayHandle<unsigned int> d_comm_flags_out(comm_flags, access_location::device, access_mode::overwrite);
 
             // get temporary buffer
             ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
 
-            n_out = mpcd::gpu::remove_particles(m_N,
+            n_out = mpcd::gpu::remove_particles(d_out.data,
+                                                mask,
+                                                m_N,
                                                 d_pos.data,
                                                 d_vel.data,
                                                 d_tag.data,
+                                                d_comm_flags.data,
                                                 d_pos_alt.data,
                                                 d_vel_alt.data,
                                                 d_tag_alt.data,
-                                                d_out.data,
-                                                d_comm_flags.data,
-                                                d_comm_flags_out.data,
+                                                d_comm_flags_alt.data,
                                                 max_n_out,
                                                 d_tmp.data,
                                                 m_mgpu_context);
@@ -942,13 +954,11 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 
         // resize output vector
         out.resize(n_out);
-        comm_flags.resize(n_out);
 
         // was the array large enough?
         if (n_out <= max_n_out) done = true;
 
         max_n_out = out.getNumElements();
-        if (comm_flags.getNumElements() < max_n_out) max_n_out = comm_flags.getNumElements();
         }
 
     // update particle number
@@ -959,6 +969,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
     swapPositions();
     swapVelocities();
     swapTags();
+    swapCommFlags();
 
     // TODO: notify particle data has changed
 
@@ -968,7 +979,8 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 /*!
  * \param in List of particle data elements to fill the particle data with
  */
-void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in)
+void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
+                                         unsigned int mask)
     {
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
 
@@ -995,8 +1007,9 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                  d_pos.data,
                                  d_vel.data,
                                  d_tag.data,
+                                 d_comm_flags.data,
                                  d_in.data,
-                                 d_comm_flags.data);
+                                 mask);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

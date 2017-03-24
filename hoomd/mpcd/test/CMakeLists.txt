@@ -12,33 +12,29 @@ if(ENABLE_MPI)
     ENDMACRO(ADD_TO_MPI_TESTS)
 
     # define every test together with the number of processors
+    ADD_TO_MPI_TESTS(communicator 8)
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
+    set(TEST_NAME ${CUR_TEST}_test)
     # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
-    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+    set_source_files_properties(${TEST_NAME}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
     # add and link the unit test executable
-    if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-    cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc
-            ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu OPTIONS
-            ${CUDA_ADDITIONAL_OPTIONS})
-    else(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc)
-    endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_NAME}.cc)
 
-    add_dependencies(test_all ${CUR_TEST})
+    add_dependencies(test_all ${TEST_NAME})
 
-    target_link_libraries(${CUR_TEST} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
-    fix_cudart_rpath(${CUR_TEST})
+    target_link_libraries(${TEST_NAME} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
+    fix_cudart_rpath(${TEST_NAME})
 
     if (ENABLE_MPI)
         # set appropriate compiler/linker flags
         if(MPI_COMPILE_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+            set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
         endif(MPI_COMPILE_FLAGS)
         if(MPI_LINK_FLAGS)
-            set_target_properties(${CUR_TEST} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+            set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
         endif(MPI_LINK_FLAGS)
     endif (ENABLE_MPI)
 endforeach (CUR_TEST)
@@ -58,10 +54,10 @@ endforeach(CUR_TEST)
 # add MPI tests
 foreach (CUR_TEST ${MPI_TEST_LIST})
     # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
+    get_target_property(CUR_TEST_EXE ${CUR_TEST}_test LOCATION)
 
     # add mpi- prefix to distinguish these tests
-    set(MPI_TEST_NAME mpi-${CUR_TEST})
+    set(MPI_TEST_NAME mpcd-${CUR_TEST}-mpi)
 
     add_test(${MPI_TEST_NAME}
              ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}

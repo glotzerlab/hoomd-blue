@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    Communicator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
     SystemData.cc
@@ -12,6 +13,8 @@ set(_mpcd_sources
     )
 
 set(_mpcd_headers
+    Communicator.h
+    CommunicatorUtilities.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
@@ -21,13 +24,17 @@ set(_mpcd_headers
 
 if (ENABLE_CUDA)
 list(APPEND _mpcd_sources
+    CommunicatorGPU.cc
     )
 list(APPEND _mpcd_headers
+    CommunicatorGPU.cuh
+    CommunicatorGPU.h
     ParticleData.cuh
     )
 endif()
 
 set(_mpcd_cu_sources
+    CommunicatorGPU.cu
     ParticleData.cu
     )
 
