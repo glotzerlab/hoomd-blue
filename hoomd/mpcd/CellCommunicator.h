@@ -358,18 +358,35 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
             const unsigned int num_right_bytes = m_idx[right_face].getNumElements()*sizeof(T);
             const unsigned int num_left_bytes = m_idx[left_face].getNumElements()*sizeof(T);
             if (m_prof) m_prof->push("MPI send/recv");
-            std::vector<MPI_Request> reqs(4);
-            std::vector<MPI_Status> stats(reqs.size());
+            if (m_neigh[left_face] != m_neigh[right_face])
+                {
+                std::vector<MPI_Request> reqs(4);
+                std::vector<MPI_Status> stats(reqs.size());
+                // send left, receive right
+                /*
+                 * the send buffer is packed left face-right face, but the
+                 * receive buffer is packed right face-left face so that if
+                 * the left/right neighbors are the same, the send buffer
+                 * can be sent in one call rather than two
+                 */
+                MPI_Isend(h_send_buf.data, num_left_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
+                MPI_Irecv(h_recv_buf.data, num_right_bytes, MPI_BYTE, m_neigh[right_face], 0, m_mpi_comm, &reqs[1]);
 
-            // send left, receive right
-            MPI_Isend(h_send_buf.data, num_left_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_recv_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_neigh[right_face], 0, m_mpi_comm, &reqs[1]);
+                // send right, receive left
+                MPI_Isend(h_send_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_neigh[right_face], 1, m_mpi_comm, &reqs[2]);
+                MPI_Irecv(h_recv_buf.data + num_right_bytes, num_left_bytes, MPI_BYTE, m_neigh[left_face], 1, m_mpi_comm, &reqs[3]);
 
-            // send right, receive left
-            MPI_Isend(h_send_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_neigh[right_face], 1, m_mpi_comm, &reqs[2]);
-            MPI_Irecv(h_recv_buf.data, num_left_bytes, MPI_BYTE, m_neigh[left_face], 1, m_mpi_comm, &reqs[3]);
+                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                }
+            else
+                {
+                std::vector<MPI_Request> reqs(2);
+                std::vector<MPI_Status> stats(reqs.size());
+                MPI_Isend(h_send_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
+                MPI_Irecv(h_recv_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[1]);
 
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                }
             if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
             }
 
@@ -495,9 +512,24 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
         right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
         }
 
-    // unpack the left buffer
+    // unpack the right buffer
     ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
     T* recv_buf = reinterpret_cast<T*>(h_recv_buf.data);
+    for (unsigned int k=0; k < right_idx.getD(); ++k)
+        {
+        for (unsigned int j=0; j < right_idx.getH(); ++j)
+            {
+            for (unsigned int i=0; i < right_idx.getW(); ++i)
+                {
+                const unsigned int target = ci(right_offset.x+i,right_offset.y+j,right_offset.z+k);
+                const T cur_val = h_props.data[target];
+                h_props.data[target] = reduction_op(recv_buf[right_idx(i,j,k)], cur_val);
+                }
+            }
+        }
+
+    // unpack the left buffer
+    recv_buf += right_idx.getNumElements();
     for (unsigned int k=0; k < left_idx.getD(); ++k)
         {
         for (unsigned int j=0; j < left_idx.getH(); ++j)
@@ -511,20 +543,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
             }
         }
 
-    // unpack the right buffer
-    recv_buf += left_idx.getNumElements();
-    for (unsigned int k=0; k < right_idx.getD(); ++k)
-        {
-        for (unsigned int j=0; j < right_idx.getH(); ++j)
-            {
-            for (unsigned int i=0; i < right_idx.getW(); ++i)
-                {
-                const unsigned int target = ci(right_offset.x+i,right_offset.y+j,right_offset.z+k);
-                const T cur_val = h_props.data[target];
-                h_props.data[target] = reduction_op(recv_buf[right_idx(i,j,k)], cur_val);
-                }
-            }
-        }
+
     if (m_prof) m_prof->pop();
     }
 
@@ -622,8 +641,8 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, Reduction
     mpcd::gpu::unpack_cell_buffer(d_props.data,
                                   reduction_op,
                                   m_cl->getCellIndexer(),
+                                  recv_buf + right_idx.getNumElements(),
                                   recv_buf,
-                                  recv_buf + left_idx.getNumElements(),
                                   left_idx,
                                   right_idx,
                                   right_offset,
