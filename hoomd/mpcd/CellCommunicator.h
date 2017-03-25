@@ -300,17 +300,17 @@ class CellCommunicator
 template<typename T, class ReductionOpT>
 void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduction_op)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "MPCD cell comm");
+    if (m_prof) m_prof->push("MPCD cell comm");
     if (props.getNumElements() < m_cl->getNCells())
         {
         m_exec_conf->msg->error() << "mpcd: cell property to be reduced is smaller than cell list dimensions" << std::endl;
         throw std::runtime_error("MPCD cell property has insufficient dimensions");
         }
 
-    if (m_prof) m_prof->push(m_exec_conf, "init");
+    if (m_prof) m_prof->push("init");
     if (m_needs_init) initialize();
     sizeBuffers(sizeof(T));
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
 
     // Communicate along each dimensions
     for (unsigned int dim = 0; dim < m_sysdef->getNDimensions(); ++dim)
@@ -332,10 +332,10 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         // send along dir, and receive along the opposite direction from sending
         // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
             {
-            if (m_prof) m_prof->push(m_exec_conf, "copy");
+            if (m_prof) m_prof->push("copy");
             ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
             ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
-            if (m_prof) m_prof->pop(m_exec_conf);
+            if (m_prof) m_prof->pop();
 
             // determine face for operations
             unsigned int right_face,left_face;
@@ -384,7 +384,7 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
             unpackBuffer(props, reduction_op, static_cast<axis>(dim));
             }
         }
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
     }
 
 /*!
@@ -591,10 +591,10 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, axis dim)
 template<typename T, class ReductionOpT>
 void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "copy");
+    if (m_prof) m_prof->push("copy");
     ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
     T* recv_buf = reinterpret_cast<T*>(d_recv_buf.data);
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
 
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
     ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
