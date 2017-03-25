@@ -52,8 +52,8 @@ class CellCommunicator
               m_mpi_comm(m_exec_conf->getMPICommunicator()),
               m_decomposition(m_pdata->getDomainDecomposition()),
               m_cl(cl),
-              m_left_buf(m_exec_conf),
-              m_right_buf(m_exec_conf)
+              m_send_buf(m_exec_conf),
+              m_recv_buf(m_exec_conf)
             {
             m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
             #ifdef ENABLE_CUDA
@@ -133,8 +133,8 @@ class CellCommunicator
         unsigned int m_right_neigh;             //!< Neighbor rank to the right
         Index3D m_left_idx;                     //!< Communication indexer for receive buffers
         Index3D m_right_idx;                    //!< Communication indexer for send buffers
-        GPUVector<unsigned char> m_left_buf;    //!< MPI buffer for left face
-        GPUVector<unsigned char> m_right_buf;   //!< MPI buffer for right face
+        GPUVector<unsigned char> m_send_buf;    //!< MPI buffer for sending
+        GPUVector<unsigned char> m_recv_buf;    //!< MPI buffer for receiving
         uint3 m_right_offset;                   //!< Offset for reading out of properties on the face
 
         //! Packs the property buffer
@@ -217,8 +217,9 @@ class CellCommunicator
                 }
 
             // resize buffer memory
-            m_left_buf.resize(2 * elem_bytes * m_left_idx.getNumElements());
-            m_right_buf.resize(2 * elem_bytes * m_right_idx.getNumElements());
+            const unsigned int comm_bytes = elem_bytes * (m_left_idx.getNumElements() + m_right_idx.getNumElements());
+            m_send_buf.resize(comm_bytes);
+            m_recv_buf.resize(comm_bytes);
 
             // validate that the box size is OK (not overdecomposed)
             checkBoxSize();
@@ -305,8 +306,8 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
             {
             if (m_prof) m_prof->push(m_exec_conf, "copy");
-            ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
             if (m_prof) m_prof->pop(m_exec_conf);
 
             const unsigned int num_right_bytes = m_right_idx.getNumElements()*sizeof(T);
@@ -315,13 +316,13 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
             std::vector<MPI_Request> reqs(4);
             std::vector<MPI_Status> stats(reqs.size());
 
-            // send through right face and receive through left face
-            MPI_Isend(h_right_buf.data, num_right_bytes, MPI_BYTE, m_right_neigh, 0, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_left_buf.data+num_left_bytes, num_left_bytes, MPI_BYTE, m_left_neigh, 0, m_mpi_comm, &reqs[1]);
+            // send left, receive right
+            MPI_Isend(h_send_buf.data, num_left_bytes, MPI_BYTE, m_left_neigh, 0, m_mpi_comm, &reqs[0]);
+            MPI_Irecv(h_recv_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_right_neigh, 0, m_mpi_comm, &reqs[1]);
 
-            // send through left face and receive through right face
-            MPI_Isend(h_left_buf.data, num_left_bytes, MPI_BYTE, m_left_neigh, 1, m_mpi_comm, &reqs[2]);
-            MPI_Irecv(h_right_buf.data+num_right_bytes, num_right_bytes, MPI_BYTE, m_right_neigh, 1, m_mpi_comm, &reqs[3]);
+            // send right, receive left
+            MPI_Isend(h_send_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_right_neigh, 1, m_mpi_comm, &reqs[2]);
+            MPI_Irecv(h_recv_buf.data, num_left_bytes, MPI_BYTE, m_left_neigh, 1, m_mpi_comm, &reqs[3]);
 
             MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
             if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
@@ -360,41 +361,35 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
 template<typename T>
 void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
     {
-    assert(m_right_buf.getNumElements() >= 2 * sizeof(T) * m_right_idx.getNumElements());
-    assert(m_left_buf.getNumElements() >= 2 * sizeof(T) * m_left_idx.getNumElements());
+    assert(m_send_buf.getNumElements() >= sizeof(T) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
 
     if (m_prof) m_prof->push("pack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
+    ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
+    T* send_buf = reinterpret_cast<T*>(h_send_buf.data);
 
-    // pack the left buffer
+    // then pack for sending through left face
+    for (unsigned int k=0; k < m_left_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::overwrite);
-        T* left_buf = reinterpret_cast<T*>(h_left_buf.data);
-        for (unsigned int k=0; k < m_left_idx.getD(); ++k)
+        for (unsigned int j=0; j < m_left_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_left_idx.getH(); ++j)
+            for (unsigned int i=0; i < m_left_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_left_idx.getW(); ++i)
-                    {
-                    left_buf[m_left_idx(i,j,k)] = h_props.data[ci(i,j,k)];
-                    }
+                send_buf[m_left_idx(i,j,k)] = h_props.data[ci(i,j,k)];
                 }
             }
         }
 
-    // pack the right buffer
+    // pack for sending through right face first
+    send_buf += m_left_idx.getNumElements();
+    for (unsigned int k=0; k < m_right_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::overwrite);
-        T* right_buf = reinterpret_cast<T*>(h_right_buf.data);
-        for (unsigned int k=0; k < m_right_idx.getD(); ++k)
+        for (unsigned int j=0; j < m_right_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_right_idx.getH(); ++j)
+            for (unsigned int i=0; i < m_right_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_right_idx.getW(); ++i)
-                    {
-                    right_buf[m_right_idx(i,j,k)] = h_props.data[ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k)];
-                    }
+                send_buf[m_right_idx(i,j,k)] = h_props.data[ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k)];
                 }
             }
         }
@@ -418,37 +413,32 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
     ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
 
     // unpack the left buffer
+    ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
+    T* recv_buf = reinterpret_cast<T*>(h_recv_buf.data);
+    for (unsigned int k=0; k < m_left_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::read);
-        T* left_recv_buf = reinterpret_cast<T*>(h_left_buf.data) + m_left_idx.getNumElements();
-        for (unsigned int k=0; k < m_left_idx.getD(); ++k)
+        for (unsigned int j=0; j < m_left_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_left_idx.getH(); ++j)
+            for (unsigned int i=0; i < m_left_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_left_idx.getW(); ++i)
-                    {
-                    const unsigned int target = ci(i,j,k);
-                    const T cur_val = h_props.data[target];
-                    h_props.data[target] = reduction_op(left_recv_buf[m_left_idx(i,j,k)], cur_val);
-                    }
+                const unsigned int target = ci(i,j,k);
+                const T cur_val = h_props.data[target];
+                h_props.data[target] = reduction_op(recv_buf[m_left_idx(i,j,k)], cur_val);
                 }
             }
         }
 
     // unpack the right buffer
+    recv_buf += m_left_idx.getNumElements();
+    for (unsigned int k=0; k < m_right_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::read);
-        T* right_recv_buf = reinterpret_cast<T*>(h_right_buf.data) + m_right_idx.getNumElements();
-        for (unsigned int k=0; k < m_right_idx.getD(); ++k)
+        for (unsigned int j=0; j < m_right_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_right_idx.getH(); ++j)
+            for (unsigned int i=0; i < m_right_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_right_idx.getW(); ++i)
-                    {
-                    const unsigned int target = ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k);
-                    const T cur_val = h_props.data[target];
-                    h_props.data[target] = reduction_op(right_recv_buf[m_right_idx(i,j,k)], cur_val);
-                    }
+                const unsigned int target = ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k);
+                const T cur_val = h_props.data[target];
+                h_props.data[target] = reduction_op(recv_buf[m_right_idx(i,j,k)], cur_val);
                 }
             }
         }
@@ -466,23 +456,16 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
 template<typename T>
 void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props)
     {
-    assert(m_right_buf.getNumElements() >= 2 * sizeof(T) * m_right_idx.getNumElements());
-    assert(m_left_buf.getNumElements() >= 2 * sizeof(T) * m_left_idx.getNumElements());
+    assert(m_send_buf.getNumElements() >= sizeof(T) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
+    if (m_prof) m_prof->push(m_exec_conf,"pack");
 
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
+    ArrayHandle<unsigned char> d_send_buf(m_send_buf, access_location::device, access_mode::overwrite);
+    T* send_buf = reinterpret_cast<T*>(d_send_buf.data);
 
-    if (m_prof) m_prof->push(m_exec_conf, "copy");
-    ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::overwrite);
-    T* left_buf = reinterpret_cast<T*>(d_left_buf.data);
-
-    ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::overwrite);
-    T* right_buf = reinterpret_cast<T*>(d_right_buf.data);
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    if (m_prof) m_prof->push(m_exec_conf,"pack");
     m_tuner_pack->begin();
-    mpcd::gpu::pack_cell_buffer(left_buf,
-                                right_buf,
+    mpcd::gpu::pack_cell_buffer(send_buf,
+                                send_buf + m_left_idx.getNumElements(),
                                 m_left_idx,
                                 m_right_idx,
                                 m_right_offset,
@@ -509,21 +492,17 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, Reduction
     ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
 
     if (m_prof) m_prof->push(m_exec_conf, "copy");
-    ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::read);
-    T* left_buf = reinterpret_cast<T*>(d_left_buf.data) + m_left_idx.getNumElements();;
-
-    ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::read);
-    T* right_buf = reinterpret_cast<T*>(d_right_buf.data) + m_right_idx.getNumElements();
+    ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
+    T* recv_buf = reinterpret_cast<T*>(d_recv_buf.data);
     if (m_prof) m_prof->pop(m_exec_conf);
-
 
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
     m_tuner_unpack->begin();
     mpcd::gpu::unpack_cell_buffer(d_props.data,
                                   reduction_op,
                                   m_cl->getCellIndexer(),
-                                  left_buf,
-                                  right_buf,
+                                  recv_buf,
+                                  recv_buf + m_left_idx.getNumElements(),
                                   m_left_idx,
                                   m_right_idx,
                                   m_right_offset,
