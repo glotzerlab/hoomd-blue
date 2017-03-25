@@ -307,8 +307,10 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         throw std::runtime_error("MPCD cell property has insufficient dimensions");
         }
 
+    if (m_prof) m_prof->push(m_exec_conf, "init");
     if (m_needs_init) initialize();
     sizeBuffers(sizeof(T));
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // Communicate along each dimensions
     for (unsigned int dim = 0; dim < m_sysdef->getNDimensions(); ++dim)
@@ -589,14 +591,14 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, axis dim)
 template<typename T, class ReductionOpT>
 void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim)
     {
-    ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
-
     if (m_prof) m_prof->push(m_exec_conf, "copy");
     ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
     T* recv_buf = reinterpret_cast<T*>(d_recv_buf.data);
     if (m_prof) m_prof->pop(m_exec_conf);
 
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
+    ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
+
     // get the offsets based on the comm dimension
     uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
     Index3D left_idx, right_idx;
