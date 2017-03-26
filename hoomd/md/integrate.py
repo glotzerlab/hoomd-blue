@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -191,7 +191,7 @@ class nvt(_integration_method):
             group_copy.name = "__nvt_all";
             hoomd.util.quiet_status();
             thermo = hoomd.compute.thermo(group_copy);
-            thermo.disable();
+            thermo.cpp_compute.setLoggingEnabled(False);
             hoomd.util.unquiet_status();
         else:
             thermo = hoomd.compute._get_unique_thermo(group=group);
@@ -395,7 +395,7 @@ class npt(_integration_method):
             group_copy.name = "__npt_all";
             hoomd.util.quiet_status();
             thermo_group = hoomd.compute.thermo(group_copy);
-            thermo_group.disable();
+            thermo_group.cpp_compute.setLoggingEnabled(False);
             hoomd.util.unquiet_status();
         else:
             thermo_group = hoomd.compute._get_unique_thermo(group=group);

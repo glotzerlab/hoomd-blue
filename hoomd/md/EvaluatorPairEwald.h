@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -34,8 +34,9 @@
 
     EvaluatorPairEwald evaluates the function:
 
-    \f[ V_{\mathrm{ewald}}(r)  = q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
-                                    \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)
+    \f[
+    V_{\mathrm{ewald}}(r)  = q_i q_j \left[\mathrm{erfc}\left(\kappa r + \frac{\alpha}{2\kappa}\right) \exp(\alpha r)+
+                                           \mathrm{erfc}\left(\kappa r - \frac{\alpha}{2 \kappa}\right) \exp(-\alpha r)\right]
     \f]
 
     The Ewald potential does not need diameter. Two parameters is specified and stored in a Scalar2.

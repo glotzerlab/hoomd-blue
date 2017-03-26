@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceComputeGPU.h"
@@ -667,6 +667,9 @@ void PPPMForceComputeGPU::fixExclusions()
 
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
+
+    // reset virial
+    cudaMemset(d_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
     Index2D nex = m_nlist->getExListIndexer();
 

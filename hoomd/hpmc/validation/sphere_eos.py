@@ -79,7 +79,7 @@ class sphereEOS_test(unittest.TestCase):
         run(1e4)
 
         # sample
-        run(4e4,callback=log_callback, callback_period=50)
+        run(16e4,callback=log_callback, callback_period=50)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(phi_p_measure)

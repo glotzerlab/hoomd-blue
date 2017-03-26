@@ -1,3 +1,5 @@
+.. _mpi-domain-decomposition:
+
 MPI domain decomposition
 ========================
 
@@ -115,7 +117,7 @@ GPUDirect RDMA
 ^^^^^^^^^^^^^^
 
 HOOMD does support *GPUDirect RDMA* with network adapters that support it (i.e. Mellanox) and compatible GPUs (Kepler),
-through a cuda-aware MPI library (i.e. OpenMPI 1.7.5 or MVAPICH 2.0b GDR). On HOOMD's side, nothing is required beyond setting
+through a CUDA-aware MPI library (i.e. OpenMPI 1.7.5 or MVAPICH 2.0b GDR). On HOOMD's side, nothing is required beyond setting
 ``ENABLE_MPI_CUDA`` to **ON** before compilation. On the side of the MPI library, special flags may need to be set
 to enable *GPUDirect RDMA*, consult the documentation of your MPI library for that.
 
@@ -134,7 +136,7 @@ The optimum value of the **r_buff** value of the neighbor list
 may be different between single- and multi-GPU runs. In multi-GPU
 runs, the buffering length also determines the width of the ghost layer
 runs and sets the size of messages exchanged between the processors.
-To determine the optimum value, use TODO: reference nlist.tune.
+To determine the optimum value, use :py:meth:`hoomd.md.nlist.nlist.tune()`.
 command with the same number of MPI ranks that will be used for the production simulation.
 
 Running with multiple partitions (--nrank command-line option)
@@ -183,8 +185,8 @@ Troubleshooting
    One reason for slow performance can be the distance check, which, by default,
    is applied every step to check if the neighbor list needs to be rebuild. It requires
    synchronization between all MPI ranks and is therefore slow.
-   See TODO: reference nlist set_params on how to increase
-   the interval (**check_period**) between distance checks, to improve performance.
+   See :py:meth:`hoomd.md.nlist.nlist.set_params()` to increase the interval (**check_period**)
+   between distance checks, to improve performance.
 
 - **My simulation crashes on multiple GPUs when I set ENABLE_MPI_CUDA=ON**
    First, check that cuda-aware MPI support is enabled in your MPI library. Usually this is

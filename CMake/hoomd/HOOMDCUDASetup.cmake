@@ -98,7 +98,7 @@ if (ENABLE_CUDA)
         # CUDA 8.0 requires that libgomp be linked in - see if we can link it
         try_compile(_can_link_gomp
                     ${CMAKE_CURRENT_BINARY_DIR}/tmp
-                    ${CMAKE_CURRENT_SOURCE_DIR}/CMake/hoomd/test.cc
+                    ${CMAKE_CURRENT_LIST_DIR}/test.cc
                     LINK_LIBRARIES gomp
                    )
 

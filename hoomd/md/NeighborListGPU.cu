@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -44,7 +44,7 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
     // cache delta max into shared memory
     // shared data for per type pair parameters
     extern __shared__ unsigned char s_data[];
-    
+
     // pointer for the r_listsq data
     Scalar *s_maxshiftsq = (Scalar *)(&s_data[0]);
 
@@ -60,8 +60,8 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int *d_result,
             }
         }
     __syncthreads();
-    
-    
+
+
     // each thread will compare vs it's old position to see if the list needs updating
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -94,7 +94,7 @@ cudaError_t gpu_nlist_needs_update_check_new(unsigned int *d_result,
                                              const unsigned int checkn)
     {
     const unsigned int shared_bytes = sizeof(Scalar) * ntypes;
-    
+
     unsigned int block_size = 128;
     int n_blocks = N/block_size+1;
     gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size, shared_bytes>>>(d_result,
@@ -428,6 +428,6 @@ cudaError_t gpu_nlist_build_head_list(unsigned int *d_head_list,
     thrust::exclusive_scan(t_head_list, t_head_list+N, t_head_list);
 
     gpu_nlist_get_nlist_size_kernel<<<1,1>>>(d_req_size_nlist, d_head_list, N);
-    
+
     return cudaSuccess;
     }

@@ -3,7 +3,6 @@
 [TOC]
 
 ## v2.2.0
-
 Not yet released
 
 *New features*
@@ -17,9 +16,41 @@ Deprecated*
 * Optimized performance of HPMC sphere union overlap check
 * Drop support for compute 2.0 GPU devices
 
+## v2.1.5
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a compile error on Mac
+
+## v2.1.4
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a bug re-enabling disabled integration methods
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
+* scipy is no longer required to execute DEM component unit tests
+* Issue a warning when a subsequent call to context.initialize is given different arguments
+* DPD now uses the seed from rank 0 to avoid incorrect simulations when users provide different seeds on different ranks
+* Miscellaneous documentation updates
+* Defer initialization message until context.initialize
+* Fixed a problem where a momentary dip in TPS would cause walltime limited jobs to exit prematurely
+* HPMC and DEM components now correctly print citation notices
+
+## v2.1.3
+
+Released 2017/02/07
+
+*Bug fixes*
+
+* Fixed a bug where the WalltimeLimitReached was ignored
+
 ## v2.1.2
 
-Not yet released
+Released 2017/01/11
 
 *Bug fixes*
 
@@ -27,6 +58,9 @@ Not yet released
 * (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+* update.balance() is properly ignored when only one rank is available
+* Add missing headers to plugin install build
+* Fix a bug where charge.pppm calculated an incorrect pressure
 
 * Other changes *
 
