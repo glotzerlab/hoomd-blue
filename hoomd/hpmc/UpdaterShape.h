@@ -115,12 +115,14 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_energy");
-    ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
-    for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
-        h_det.data[i] = 0.0;
-        h_ntypes.data[i] = 0;
+        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+        for(size_t i = 0; i < m_pdata->getNTypes(); i++)
+            {
+            h_det.data[i] = 0.0;
+            h_ntypes.data[i] = 0;
+            }
         }
     countTypes(); // TODO: connect to ntypes change/particle changes to resize arrays and count them up again.
     }
@@ -241,6 +243,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
         m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
         // energy and moment of interia change.
+        assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
         log_boltz += (*m_log_boltz_function)(
                                                 h_ntypes.data[typ_i],           // number of particles of type typ_i,
                                                 typ_i,                          // the type id
