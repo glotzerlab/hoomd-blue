@@ -1021,7 +1021,7 @@ class shape_update(_updater):
         self.move_cpp = move_cls(ntypes, [self.mc.shape_class.make_param(**shape_params)]);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
-    def elastic_shape_move(self, stepsize, move_ratio=0.5):
+    def elastic_shape_move(self, stepsize, param_ratio=0.5):
         R"""
         Enable scale and shear shape move and set parameters. Changes a particle shape by
         scaling the particle and shearing the particle.
@@ -1078,7 +1078,7 @@ class shape_update(_updater):
             raise RuntimeError("Error initializing update.shape_update");
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-        self.move_cpp = move_cls(ntypes, stepsize, move_ratio);
+        self.move_cpp = move_cls(ntypes, stepsize, param_ratio);
         self.cpp_updater.registerShapeMove(self.move_cpp);
 
     def get_tuner(self, average = False, **kwargs):
@@ -1320,7 +1320,7 @@ class elastic_shape(shape_update):
         explain how to write the function here.
 
     Example::
-    
+
         mc = hpmc.integrate.convex_polyhedron(seed=415236, d=0.3, a=0.5)
         elastic = hpmc.update.elastic_shape(mc, move_ratio=0.25, seed=9876, stiffness=10.0, reference=dict(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]))
         # Add a shape move.
@@ -1330,6 +1330,7 @@ class elastic_shape(shape_update):
                     stiffness,
                     reference,
                     stepsize,
+                    param_ratio,
                     **params):
         hoomd.util.print_status_line();
         # initialize base class
@@ -1337,7 +1338,7 @@ class elastic_shape(shape_update):
         if hoomd.context.exec_conf.isCUDAEnabled():
             hoomd.context.msg.warning("update.elastic_shape: GPU is not implemented defaulting to CPU implementation.\n");
 
-        self.elastic_shape_move(stepsize);
+        self.elastic_shape_move(stepsize, param_ratio);
 
         if isinstance(self.mc, integrate.convex_polyhedron):
             clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
