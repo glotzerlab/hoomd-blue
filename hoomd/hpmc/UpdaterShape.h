@@ -382,6 +382,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             Scalar,
                             unsigned int,
                             unsigned int,
+                            unsigned int,
                             bool >())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
