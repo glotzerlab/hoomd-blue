@@ -24,6 +24,7 @@ public:
                     Scalar move_ratio,
                     unsigned int seed,
                     unsigned int nselect,
+                    unsigned int nsweeps,
                     bool pretend);
 
     ~UpdaterShape();
@@ -78,6 +79,7 @@ protected:
 private:
     unsigned int                m_seed;           //!< Random number seed
     unsigned int                m_nselect;
+    unsigned int                m_nsweeps;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
     unsigned int                m_move_ratio;
@@ -102,8 +104,9 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  Scalar move_ratio,
                                  unsigned int seed,
                                  unsigned int nselect,
+                                 unsigned int nsweeps,
                                  bool pretend)
-    : Updater(sysdef), m_seed(seed), m_nselect(nselect),
+    : Updater(sysdef), m_seed(seed), m_nselect(nselect), m_nsweeps(nsweeps),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
@@ -198,10 +201,11 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     bool warn = !m_initialized;
     if(!m_initialized)
         initialize();
-    if(!m_move_function || !m_log_boltz_function){
-	if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
-	return;
-    }
+    if(!m_move_function || !m_log_boltz_function)
+        {
+    	if(warn) m_exec_conf->msg->warning() << "update.shape: runing without a move function! " << std::endl;
+    	return;
+        }
 
     Saru rng(m_move_ratio, m_seed, timestep);
     unsigned int move_type_select = rng.u32() & 0xffff;
@@ -211,95 +215,97 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if (this->m_prof)
         this->m_prof->push(this->m_exec_conf, "ElasticShape update");
 
-
-    // Shuffle the order of particles for this step
-    m_update_order.resize(m_pdata->getNTypes());
-    m_update_order.choose(timestep, m_nselect); // this returns a sorted array. Should we shuffle?
-
-    Scalar log_boltz = 0.0;
-    m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
-    GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
-    GPUArray< Scalar > determinant_backup(m_determinant);
-    m_move_function->prepare(timestep);
-    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+    for(unsigned int sweep=0; sweep < m_nsweeps; sweep++)
         {
-        // make a trial move for i
-        int typ_i = m_update_order[cur_type];
-        m_exec_conf->msg->notice(5) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
-        m_count_total[typ_i]++;
-        // access parameters
-        typename Shape::param_type param;
-            { // need to scope because we set at the end of loop
-            ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-            param = h_params.data[typ_i];
-            }
-        ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
+        // Shuffle the order of particles for this step
+        m_update_order.resize(m_pdata->getNTypes());
+        m_update_order.choose(timestep+40591, m_nselect, sweep+91193);
 
-        Saru rng_i(typ_i, m_seed + m_nselect + typ_i, timestep);
-        m_move_function->construct(timestep, typ_i, param, rng_i);
-        h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
-        m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
-        // energy and moment of interia change.
-        assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
-        log_boltz += (*m_log_boltz_function)(
-                                                h_ntypes.data[typ_i],           // number of particles of type typ_i,
-                                                typ_i,                          // the type id
-                                                param,                          // new shape parameter
-                                                h_det.data[typ_i],              // new determinant
-                                                h_param_backup.data[typ_i],     // old shape parameter
-                                                h_det_backup.data[typ_i]        // old determinant
-                                            );
-        m_mc->setParam(typ_i, param);
-        }
-    // calculate boltzmann factor.
-    bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
-    Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
-    m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
-    if( p < Z)
-        {
-        unsigned int overlaps = m_mc->countOverlaps(timestep, true);
-        accept = !overlaps;
-        m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
-        }
-
-    if( !accept ) // catagorically reject the move.
-        {
-        m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
-        m_move_function->retreat(timestep);
-        }
-    else if( m_pretend ) // pretend to accept the move but actually reject it.
-        {
-        m_exec_conf->msg->notice(5) << " UpdaterShape move accepted -- pretend mode" << std::endl;
-        m_move_function->retreat(timestep);
+        Scalar log_boltz = 0.0;
+        m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
+        GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
+        GPUArray< Scalar > determinant_backup(m_determinant);
+        m_move_function->prepare(timestep);
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
             {
+            // make a trial move for i
             int typ_i = m_update_order[cur_type];
-            m_count_accepted[typ_i]++;
-            }
-        }
-    else    // actually accept the move.
-        {
-        m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
-        for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
-            {
-            int typ_i = m_update_order[cur_type];
-            m_count_accepted[typ_i]++;
-            }
-        // m_move_function->advance(timestep);
-        reject = false;
-        }
+            m_exec_conf->msg->notice(5) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
+            m_count_total[typ_i]++;
+            // access parameters
+            typename Shape::param_type param;
+                { // need to scope because we set at the end of loop
+                ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+                param = h_params.data[typ_i];
+                }
+            ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
 
-    if(reject)
-        {
-        m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
-        m_determinant.swap(determinant_backup);
-        ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
-        for(size_t typ = 0; typ < m_pdata->getNTypes(); typ++)
+            Saru rng_i(m_seed + m_nselect + sweep + m_nsweeps, typ_i+1046527, timestep+7919);
+            m_move_function->construct(timestep, typ_i, param, rng_i);
+            h_det.data[typ_i] = m_move_function->getDeterminant(); // new determinant
+            m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
+            // energy and moment of interia change.
+            assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
+            log_boltz += (*m_log_boltz_function)(
+                                                    h_ntypes.data[typ_i],           // number of particles of type typ_i,
+                                                    typ_i,                          // the type id
+                                                    param,                          // new shape parameter
+                                                    h_det.data[typ_i],              // new determinant
+                                                    h_param_backup.data[typ_i],     // old shape parameter
+                                                    h_det_backup.data[typ_i]        // old determinant
+                                                );
+            m_mc->setParam(typ_i, param);
+            }
+        // calculate boltzmann factor.
+        bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
+        Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
+        m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
+        if( p < Z)
             {
-            m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
+            unsigned int overlaps = m_mc->countOverlaps(timestep, true);
+            accept = !overlaps;
+            m_exec_conf->msg->notice(5) << " UpdaterShape counted " << overlaps << " overlaps" << std::endl;
+            }
+
+        if( !accept ) // catagorically reject the move.
+            {
+            m_exec_conf->msg->notice(5) << " UpdaterShape move retreating" << std::endl;
+            m_move_function->retreat(timestep);
+            }
+        else if( m_pretend ) // pretend to accept the move but actually reject it.
+            {
+            m_exec_conf->msg->notice(5) << " UpdaterShape move accepted -- pretend mode" << std::endl;
+            m_move_function->retreat(timestep);
+            for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                {
+                int typ_i = m_update_order[cur_type];
+                m_count_accepted[typ_i]++;
+                }
+            }
+        else    // actually accept the move.
+            {
+            m_exec_conf->msg->notice(5) << " UpdaterShape move accepted" << std::endl;
+            for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                {
+                int typ_i = m_update_order[cur_type];
+                m_count_accepted[typ_i]++;
+                }
+            // m_move_function->advance(timestep);
+            reject = false;
+            }
+
+        if(reject)
+            {
+            m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
+            m_determinant.swap(determinant_backup);
+            ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
+            for(size_t typ = 0; typ < m_pdata->getNTypes(); typ++)
+                {
+                m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
+                }
             }
         }
     if (this->m_prof)

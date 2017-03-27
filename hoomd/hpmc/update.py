@@ -780,7 +780,8 @@ class shape_update(_updater):
                     pos=None,
                     setup_pos=True,
                     pos_callback=None,
-                    nselect=1):
+                    nselect=1,
+                    nsweep=1):
         _updater.__init__(self);
 
         cls = None;
@@ -814,6 +815,7 @@ class shape_update(_updater):
                                 move_ratio,
                                 seed,
                                 nselect,
+                                nsweep,
                                 pretend);
         self.move_cpp = None;
         self.boltzmann_function = None;
