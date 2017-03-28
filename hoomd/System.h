@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -409,6 +409,8 @@ class System
         unsigned int m_end_tstep;       //!< Final time step of the current run
         unsigned int m_cur_tstep;       //!< Current time step
         Scalar m_cur_tps;               //!< Current average TPS
+        Scalar m_med_tps;               //!< Current median TPS
+        std::vector<Scalar> m_tps_list; //!< vector containing the last 10 tps
 
         ClockSource m_clk;              //!< A clock counting time from the beginning of the run
         uint64_t m_last_status_time;    //!< Time (measured by m_clk) of the last time generateStatusLine() was called

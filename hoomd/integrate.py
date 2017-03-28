@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -254,7 +254,7 @@ class _integration_method(hoomd.meta._metadata):
             return;
 
         self.enabled = True;
-        hoomd.context.integration_methods.append(self);
+        hoomd.context.current.integration_methods.append(self);
 
     ## \internal
     # \brief Override get_metadata() to add 'enabled' field

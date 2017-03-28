@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -1459,6 +1459,9 @@ void PPPMForceCompute::fixExclusions()
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
+
+    // reset virial
+    memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
 
     // reset force for ALL particles
     memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());

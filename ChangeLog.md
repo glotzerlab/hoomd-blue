@@ -2,24 +2,66 @@
 
 [TOC]
 
-## v2.2.0
-
 Not yet released
 
 *New features*
+
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 
-Deprecated*
+*Deprecated*
 
 * HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-* Drop support for compute 2.0 GPU devices
+
+*Bug fixes*
+
+* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* fix alignment error when running implicit depletants on GPU with ntrial > 0
+
+*Other changes*
+* Optimized performance of HPMC sphere union overlap check
+* Faster simulations with implicit depletants on CPU
+* Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
+* Raise an error when an updater is given a period of 0
+
+## v2.1.5
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a compile error on Mac
+
+## v2.1.4
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a bug re-enabling disabled integration methods
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
+* scipy is no longer required to execute DEM component unit tests
+* Issue a warning when a subsequent call to context.initialize is given different arguments
+* DPD now uses the seed from rank 0 to avoid incorrect simulations when users provide different seeds on different ranks
+* Miscellaneous documentation updates
+* Defer initialization message until context.initialize
+* Fixed a problem where a momentary dip in TPS would cause walltime limited jobs to exit prematurely
+* HPMC and DEM components now correctly print citation notices
+
+## v2.1.3
+
+Released 2017/02/07
+
+*Bug fixes*
+
+* Fixed a bug where the WalltimeLimitReached was ignored
 
 ## v2.1.2
 
-Not yet released
+Released 2017/01/11
 
 *Bug fixes*
 
@@ -27,6 +69,9 @@ Not yet released
 * (HPMC) Implicit depletants with ntrial > 0 now produces correct ensembles
 * (HPMC) NPT ensemble in HPMC (`hpmc.update.boxmc`) now produces correct ensembles
 * Fix a bug where multiple nvt/npt integrators caused warnings from analyze.log.
+* update.balance() is properly ignored when only one rank is available
+* Add missing headers to plugin install build
+* Fix a bug where charge.pppm calculated an incorrect pressure
 
 * Other changes *
 

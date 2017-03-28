@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -149,6 +149,13 @@ HOSTDEVICE inline bool operator== (const Scalar4 &a, const Scalar4 &b)
             a.w == b.w);
     }
 
+//! Vector addition
+HOSTDEVICE inline int3 operator+ (const int3 &a, const int3 &b)
+    {
+    return make_int3(a.x + b.x,
+                    a.y + b.y,
+                    a.z + b.z);
+    }
 
 //! Vector addition
 HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
@@ -157,6 +164,7 @@ HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
                         a.y + b.y,
                         a.z + b.z);
     }
+
 //! Vector addition
 HOSTDEVICE inline Scalar3& operator+= (Scalar3 &a, const Scalar3 &b)
     {
