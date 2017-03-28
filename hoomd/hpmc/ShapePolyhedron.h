@@ -55,6 +55,7 @@ struct poly3d_data : param_base
         verts = poly3d_verts(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
+        face_overlap = ManagedArray<unsigned int>(_n_faces, _managed);
         }
     #endif
 
@@ -62,6 +63,7 @@ struct poly3d_data : param_base
     poly3d_verts verts;                             //!< Holds parameters of convex hull
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
+    ManagedArray<unsigned int> face_overlap;        //!< Overlap mask per face
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
     vec3<OverlapReal> origin;                       //!< A point *inside* the surface
@@ -77,6 +79,7 @@ struct poly3d_data : param_base
         verts.load_shared(ptr, available_bytes);
         face_offs.load_shared(ptr, available_bytes);
         face_verts.load_shared(ptr, available_bytes);
+        face_overlap.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -87,6 +90,7 @@ struct poly3d_data : param_base
         verts.attach_to_stream(stream);
         face_offs.attach_to_stream(stream);
         face_verts.attach_to_stream(stream);
+        face_overlap.attach_to_stream(stream);
         }
     #endif
     } __attribute__((aligned(32)));
@@ -581,6 +585,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
         // Load number of face vertices
         unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
         unsigned int offs_a = a.data.face_offs[iface];
+        unsigned mask_a = a.data.face_overlap[iface];
 
         float U[3][3];
 
@@ -611,6 +616,10 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             // fetch next face of particle b
             nverts_b = b.data.face_offs[jface + 1] - b.data.face_offs[jface];
             offs_b = b.data.face_offs[jface];
+            unsigned int mask_b = b.data.face_overlap[jface];
+
+            // only check overlaps if required
+            if (! (mask_a & mask_b)) continue;
 
             if (nverts_a > 2 && nverts_b > 2)
                 {

@@ -151,7 +151,9 @@ poly2d_verts make_poly2d_verts(pybind11::list verts, OverlapReal sweep_radius, b
 
 //! Helper function to build poly3d_data from python
 inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind11::list face_verts,
-                             pybind11::list face_offs, OverlapReal R, bool ignore_stats,
+                             pybind11::list face_offs,
+                             pybind11::list overlap,
+                             OverlapReal R, bool ignore_stats,
                              unsigned int leaf_capacity,
                              pybind11::list origin,
                              unsigned int hull_only,
@@ -165,10 +167,20 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
     result.hull_only = hull_only;
 
+    if (len(overlap) != result.n_faces)
+        {
+        throw std::runtime_error("Number of member overlap flags must be equal to number faces");
+        }
+
     for (unsigned int i = 0; i < len(face_offs); i++)
         {
         unsigned int offs = pybind11::cast<unsigned int>(face_offs[i]);
         result.face_offs[i] = offs;
+        }
+
+    for (unsigned int i = 0; i < result.n_faces; i++)
+        {
+        result.face_overlap[i] = pybind11::cast<unsigned int>(overlap[i]);
         }
 
     // extract the verts from the python list and compute the radius on the way
@@ -225,6 +237,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
             }
         std::vector<OverlapReal> vertex_radii(n_vert, result.verts.sweep_radius);
         obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
+        obbs[i].mask = result.face_overlap[i];
         internal_coordinates.push_back(face_vec);
         }
 
@@ -627,6 +640,16 @@ public:
         return faces;
         }
 
+    pybind11::list getOverlap()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list overlap;
+        for(size_t i = 0; i < param.n_faces; i++)
+            overlap.append(pybind11::cast<unsigned int>(param.face_overlap[i]));
+        return overlap;
+        }
+
     pybind11::tuple getOrigin()
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
@@ -823,6 +846,16 @@ public:
         return members;
         }
 
+    pybind11::list getOverlap()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        access_type& param = m_access(params[m_typeid]);
+        pybind11::list overlap;
+        for(size_t i = 0; i < param.N; i++)
+            overlap.append(pybind11::cast<unsigned int>(param.moverlap[i]));
+        return overlap;
+        }
+
 
     OverlapReal getDiameter()
         {
@@ -947,6 +980,7 @@ void export_polyhedron_proxy(pybind11::module& m, std::string class_name)
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("vertices", &proxy_class::getVerts)
     .def_property_readonly("faces", &proxy_class::getFaces)
+    .def_property_readonly("overlap", &proxy_class::getOverlap)
     .def_property_readonly("origin", &proxy_class::getOrigin)
     .def_property_readonly("sweep_radius", &proxy_class::getSweepRadius)
     .def_property_readonly("capacity", &proxy_class::getCapacity)
@@ -1014,6 +1048,7 @@ void export_shape_union_proxy(pybind11::module& m, std::string class_name, Expor
     .def_property_readonly("orientations", &proxy_class::getOrientations)
     .def_property_readonly("diameter", &proxy_class::getDiameter)
     .def_property_readonly("members", &proxy_class::getMembers)
+    .def_property_readonly("overlap", &proxy_class::getOverlap)
     ;
 
     }
