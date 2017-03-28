@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -462,13 +462,13 @@ struct BoxDim
         /*! \param v The vector to check
             \returns the integer coordinates of the periodic image
          */
-        HOSTDEVICE int3 getImage(Scalar3 &v) const
+        HOSTDEVICE int3 getImage(const Scalar3 &v) const
             {
             Scalar3 f = makeFraction(v) - make_scalar3(0.5,0.5,0.5);
             int3 img;
-            img.x = (int)((f.x >= Scalar(0.0)) ? f.x + Scalar(0.5) : f.x - Scalar(0.5));
-            img.y = (int)((f.y >= Scalar(0.0)) ? f.y + Scalar(0.5) : f.y - Scalar(0.5));
-            img.z = (int)((f.z >= Scalar(0.0)) ? f.z + Scalar(0.5) : f.z - Scalar(0.5));
+            img.x = m_periodic.x ? ((int)((f.x >= Scalar(0.0)) ? f.x + Scalar(0.5) : f.x - Scalar(0.5))) : 0;
+            img.y = m_periodic.y ? ((int)((f.y >= Scalar(0.0)) ? f.y + Scalar(0.5) : f.y - Scalar(0.5))) : 0;
+            img.z = m_periodic.z ? ((int)((f.z >= Scalar(0.0)) ? f.z + Scalar(0.5) : f.z - Scalar(0.5))) : 0;
             return img;
             }
 

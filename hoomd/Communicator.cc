@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1331,10 +1331,10 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
- 
+
         // update particle data now that ghosts are available
         m_compute_callbacks.emit(timestep);
-        
+
         m_has_ghost_particles = true;
         }
 
@@ -1524,7 +1524,6 @@ void Communicator::updateGhostWidth()
                                                             }
                                                             ,cur_type);
 
-            // add to the maximum ghost layer width
             h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
             if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
@@ -1594,7 +1593,9 @@ void Communicator::exchangeGhosts()
 
             if (h_body.data[idx] != NO_BODY)
                 {
-                ghost_fraction = m_r_ghost_max/ box_dist + ghost_fractions_body[type];
+                ghost_fraction = make_scalar3(std::max(ghost_fraction.x, ghost_fractions_body[type].x),
+                                              std::max(ghost_fraction.y, ghost_fractions_body[type].y),
+                                              std::max(ghost_fraction.z, ghost_fractions_body[type].z));
                 }
 
             Scalar3 f = box.makeFraction(pos);

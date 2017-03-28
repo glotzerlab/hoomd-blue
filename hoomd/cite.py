@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: mphoward / All Developers are free to add commands for new features
@@ -382,6 +382,8 @@ class bibliography(object):
         # otherwise, check if the bibliography has been updated since last save
         return self.updated
 
+_extra_default_entries = []
+
 ## \internal
 # \brief Ensures that the global bibliography is properly initialized
 # \returns Global bibliography
@@ -393,6 +395,8 @@ class bibliography(object):
 # always includes two references: (1) the original HOOMD paper and (2) the HOOMD-blue website, which are automatically
 # put into the global bibliography. Subsequent citations are then added to these citations.
 def _ensure_global_bib():
+    global _extra_default_entries;
+
     if hoomd.context.bib is None:
         hoomd.context.bib = bibliography()
         # the hoomd bibliography always includes the following citations
@@ -428,6 +432,7 @@ def _ensure_global_bib():
 
 
         hoomd.context.bib.add([hoomd_base, hoomd_mpi])
+        hoomd.context.bib.add(_extra_default_entries)
 
     return hoomd.context.bib
 
