@@ -134,7 +134,7 @@ Multi-GPU (and multi-CPU) execution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 HOOMD-blue uses MPI domain decomposition for parallel execution. Execute python with ``mpirun``, ``mpiexec``, or whatever the
-appropriate launcher is on your system. For more information, see TODO (ref MPI page)::
+appropriate launcher is on your system. For more information, see :ref:`mpi-domain-decomposition`::
 
     mpirun -n 8 python script.py
 

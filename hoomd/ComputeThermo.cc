@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -28,7 +28,7 @@ using namespace std;
 ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
                              const std::string& suffix)
-    : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0)
+    : Compute(sysdef), m_group(group), m_ndof(1), m_ndof_rot(0), m_logging_enabled(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing ComputeThermo" << endl;
 
@@ -92,7 +92,14 @@ void ComputeThermo::compute(unsigned int timestep)
 
 std::vector< std::string > ComputeThermo::getProvidedLogQuantities()
     {
-    return m_logname_list;
+    if (m_logging_enabled)
+        {
+        return m_logname_list;
+        }
+    else
+        {
+        return std::vector< std::string >();
+        }
     }
 
 Scalar ComputeThermo::getLogValue(const std::string& quantity, unsigned int timestep)
@@ -413,5 +420,6 @@ void export_ComputeThermo(py::module& m)
     .def("getTranslationalKineticEnergy", &ComputeThermo::getTranslationalKineticEnergy)
     .def("getRotationalKineticEnergy", &ComputeThermo::getRotationalKineticEnergy)
     .def("getPotentialEnergy", &ComputeThermo::getPotentialEnergy)
+    .def("setLoggingEnabled", &ComputeThermo::setLoggingEnabled)
     ;
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -51,6 +51,18 @@ struct external_potential_args_t
     const Scalar *d_charge;         //!< particle charges
     const unsigned int block_size;  //!< Block size to execute
     };
+
+//! Driver function for compute external field kernel
+/*!
+ * \param external_potential_args External potential parameters
+ * \param d_params External evaluator parameters
+ * \param d_field External field parameters
+ * \tparam Evaluator functor
+ */
+template< class evaluator >
+cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
+                     const typename evaluator::param_type *d_params,
+                     const typename evaluator::field_type *d_field);
 
 #ifdef NVCC
 //! Kernel for calculating external forces
@@ -149,10 +161,43 @@ __global__ void gpu_compute_external_forces_kernel(Scalar4 *d_force,
         d_virial[k*virial_pitch+idx] = virial[k];
     }
 
-#endif
-
+/*!
+ * This implements the templated kernel driver. The template must be explicitly
+ * instantiated per potential in a cu file.
+ */
 template< class evaluator >
 cudaError_t gpu_cpef(const external_potential_args_t& external_potential_args,
                      const typename evaluator::param_type *d_params,
-                     const typename evaluator::field_type *d_field);
+                     const typename evaluator::field_type *d_field)
+    {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_external_forces_kernel<evaluator>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(external_potential_args.block_size, max_block_size);
+
+        // setup the grid to run the kernel
+        dim3 grid( external_potential_args.N / run_block_size + 1, 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+        unsigned int bytes = (sizeof(typename evaluator::field_type)/sizeof(int)+1)*sizeof(int);
+
+        // run the kernel
+        gpu_compute_external_forces_kernel<evaluator><<<grid, threads, bytes>>>(external_potential_args.d_force,
+                                                                                external_potential_args.d_virial,
+                                                                                external_potential_args.virial_pitch,
+                                                                                external_potential_args.N,
+                                                                                external_potential_args.d_pos,
+                                                                                external_potential_args.d_diameter,
+                                                                                external_potential_args.d_charge,
+                                                                                external_potential_args.box,
+                                                                                d_params,
+                                                                                d_field);
+
+        return cudaSuccess;
+    };
+#endif // NVCC
 #endif // __POTENTIAL_PAIR_GPU_CUH__

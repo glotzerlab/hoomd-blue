@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -71,7 +71,7 @@ class AnisoPotentialPair : public ForceCompute
                       std::shared_ptr<NeighborList> nlist,
                       const std::string& log_suffix="");
         //! Destructor
-        virtual ~AnisoPotentialPair() { };
+        virtual ~AnisoPotentialPair();
 
         //! Set the pair parameters for a single type pair
         virtual void setParams(unsigned int typ1, unsigned int typ2, const param_type& param);
@@ -108,7 +108,7 @@ class AnisoPotentialPair : public ForceCompute
             return true;
             }
 
-protected:
+    protected:
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
@@ -119,6 +119,25 @@ protected:
 
         //! Actually compute the forces
         virtual void computeForces(unsigned int timestep);
+
+        //! Method to be called when number of types changes
+        void slotNumTypesChange()
+            {
+            // skip the reallocation if the number of types does not change
+            // this keeps old potential coefficients when restoring a snapshot
+            // it will result in invalid coeficients if the snapshot has a different type id -> name mapping
+            if (m_pdata->getNTypes() == m_typpair_idx.getW())
+                return;
+
+            // if the number of types is different, build a new indexer and reallocate memory
+            m_typpair_idx = Index2D(m_pdata->getNTypes());
+
+            // reallocate parameter arrays
+            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            m_rcutsq.swap(rcutsq);
+            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
+            m_params.swap(params);
+            }
     };
 
 /*! \param sysdef System to compute forces on
@@ -131,6 +150,7 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
                                                 const std::string& log_suffix)
     : ForceCompute(sysdef), m_nlist(nlist), m_shift_mode(no_shift), m_typpair_idx(m_pdata->getNTypes())
     {
+    m_exec_conf->msg->notice(5) << "Constructing AnisoPotentialPair<" << aniso_evaluator::getName() << ">" << std::endl;
     assert(m_pdata);
     assert(m_nlist);
 
@@ -142,6 +162,20 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
     m_log_name = std::string("aniso_pair_") + aniso_evaluator::getName() + std::string("_energy") + log_suffix;
+
+    // connect to the ParticleData to receive notifications when the maximum number of particles changes
+    m_pdata->getNumTypesChangeSignal().template connect<AnisoPotentialPair<aniso_evaluator>,
+                                                        &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
+    }
+
+template<class aniso_evaluator>
+AnisoPotentialPair<aniso_evaluator>::~AnisoPotentialPair()
+    {
+    m_exec_conf->msg->notice(5) << "Destroying AnisoPotentialPair<" << aniso_evaluator::getName() << ">" << std::endl;
+
+    // disconnect from type change signal
+    m_pdata->getNumTypesChangeSignal().template disconnect<AnisoPotentialPair<aniso_evaluator>,
+                                                           &AnisoPotentialPair<aniso_evaluator>::slotNumTypesChange>(this);
     }
 
 /*! \param typ1 First type index in the pair

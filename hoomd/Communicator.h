@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -261,7 +261,7 @@ class Communicator
         //! Get the current maximum ghost layer width
         Scalar getGhostLayerMaxWidth() const
             {
-            return m_r_ghost_max + m_r_extra_ghost_max;
+            return std::max(m_r_ghost_max,m_r_extra_ghost_max);
             }
 
         //! Set the ghost communication flags

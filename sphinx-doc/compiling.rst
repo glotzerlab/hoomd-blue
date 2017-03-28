@@ -22,13 +22,13 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
 Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Most cluster administrators provide versions of python, numpy, mpi, and cuda as modules.
+Most cluster administrators provide versions of Python, NumPy, MPI, and CUDA as modules.
 Here are the module commands necessary to load prerequisites at national
 supercomputers. Each code block also specifies a recommended install location ``${SOFTWARE_ROOT}`` where hoomd can
 be loaded on the compute nodes with minimal file system impact. On many clusters, administrators will block your account
 without warning if you launch hoomd from ``$HOME``.
 
-**NCSA Blue waters**::
+**NCSA Blue Waters**::
 
     module switch PrgEnv-cray PrgEnv-gnu
     module load cudatoolkit
@@ -44,7 +44,7 @@ You can select python2 or python3::
 
     cmake /path/to/hoomd -DPYTHON_EXECUTABLE=`which python3` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
 
-To run hoomd on blue waters, set ``PYTHONPATH``, and execute aprun::
+To run hoomd on Blue Waters, set ``PYTHONPATH``, and execute aprun::
 
     PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
     aprun <aprun parameters> python3 script.py
@@ -184,7 +184,7 @@ and a quirk in the python installation requires explicitly setting the `libpytho
 Installing prerequisites on a workstation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On your workstation, use your systems package manager to install all of the prerequisite libraries. Some linux
+On your workstation, use your system's package manager to install all of the prerequisite libraries. Some Linux
 distributions separate ``-dev`` and normal packages, you need the development packages to build hoomd.
 
 Installing prerequisites with conda
@@ -192,7 +192,7 @@ Installing prerequisites with conda
 
 Conda is very useful as a delivery platform for `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_,
 and we do recommend only using it for that purpose. However, many users wish to use conda to provide development
-perquisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
+prerequisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
 ensure that all libraries (mpi, python, etc...) are linked from the conda environment. First, install miniconda.
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
@@ -245,15 +245,15 @@ Compiling with MPI enabled
 
 System provided MPI:
 
-If your cluster administrator provides an installation of MPI, you need to figure out if is in your
-`$PATH`. If the command::
+If your cluster administrator provides an installation of MPI, you need to figure out if it is in your
+``$PATH``. If the command::
 
     $ which mpicc
     /usr/bin/mpicc
 
 succeeds, you're all set. HOOMD-blue should detect your MPI compiler automatically.
 
-If this is not the case, set the `MPI_HOME` environment variable to the location of the MPI installation::
+If this is not the case, set the ``MPI_HOME`` environment variable to the location of the MPI installation::
 
     $ echo ${MPI_HOME}
     /home/software/rhel5/openmpi-1.4.2/gcc
@@ -261,7 +261,7 @@ If this is not the case, set the `MPI_HOME` environment variable to the location
 Build hoomd:
 
 Configure and build HOOMD-blue as normal (see :ref:`compile-hoomd`). During the cmake step, MPI should
-be detected and enabled. For cuda-aware MPI, additionally supply the **ENABLE_MPI_CUDA=ON** option to cmake.
+be detected and enabled. For CUDA-aware MPI, additionally supply the **ENABLE_MPI_CUDA=ON** option to cmake.
 
 Build options
 -------------

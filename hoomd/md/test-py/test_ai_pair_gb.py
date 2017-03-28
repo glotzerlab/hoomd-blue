@@ -12,10 +12,10 @@ import os
 class pair_gb_tests (unittest.TestCase):
     def setUp(self):
         print
-        system = deprecated.init.create_random(N=100, phi_p=0.05);
-        snap = system.take_snapshot(all=True)
+        self.system = deprecated.init.create_random(N=100, phi_p=0.05);
+        snap = self.system.take_snapshot(all=True)
         snap.particles.angmom[:] = 1
-        system.restore_snapshot(snap)
+        self.system.restore_snapshot(snap)
 
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
@@ -68,8 +68,17 @@ class pair_gb_tests (unittest.TestCase):
         self.nl.update_rcut();
         self.assertAlmostEqual(2.0, self.nl.r_cut.get_pair('A','A'));
 
+    # test adding types
+    def test_type_add(self):
+        gb = md.pair.gb(r_cut=2.5, nlist = self.nl);
+        gb.pair_coeff.set('A', 'A', epsilon=1.0, lperp=1.0, lpar=1.5);
+        self.system.particles.types.add('B')
+        self.assertRaises(RuntimeError, gb.update_coeffs);
+        gb.pair_coeff.set(['A','B'], 'B', epsilon=1.0, lperp=1.0, lpar=1.5);
+        gb.update_coeffs();
+
     def tearDown(self):
-        del self.nl
+        del self.system,self.nl
         context.initialize();
 
 

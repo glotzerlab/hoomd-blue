@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -87,15 +87,21 @@ PotentialPairDPDThermo< evaluator >::PotentialPairDPDThermo(std::shared_ptr<Syst
     }
 
 /*! \param seed Stored seed for PRNG
+ \note All ranks other than 0 ignore the seed input and use the value of ranke 0.
 */
 template< class evaluator >
 void PotentialPairDPDThermo< evaluator >::setSeed(unsigned int seed)
     {
     m_seed = seed;
+    // In case of MPI run, every rank should be initialized with the same seed.
+    // For simplicity we broadcast the seed of rank 0 to all ranks.
+#ifdef ENABLE_MPI
+    if( this->m_pdata->getDomainDecomposition() )
+        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
+#endif//ENABLE_MPI
 
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;
-
     }
 
 /*! \param T the temperature the system is thermostated on this time step.

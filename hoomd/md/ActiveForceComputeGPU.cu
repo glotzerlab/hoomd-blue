@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,9 +19,12 @@
     \param d_rtag convert global tag to global index
     \param d_groupTags stores list to convert group index to global tag
     \param d_force particle force on device
+    \param d_torque particle torque on device
     \param d_orientation particle orientation on device
-    \param d_actVec particle active force unit vector
-    \param d_actMag particle active force vector magnitude
+    \param d_f_actVec particle active force unit vector
+    \param d_f_actMag particle active force vector magnitude
+    \param d_t_actVec particle active torque unit vector
+    \param d_t_actMag particle active torque vector magnitude
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -32,9 +35,12 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
                                                     unsigned int *d_rtag,
                                                     unsigned int *d_groupTags,
                                                     Scalar4 *d_force,
+                                                    Scalar4 *d_torque,
                                                     Scalar4 *d_orientation,
-                                                    Scalar3 *d_actVec,
-                                                    Scalar *d_actMag,
+                                                    Scalar3 *d_f_actVec,
+                                                    Scalar *d_f_actMag,
+                                                    Scalar3 *d_t_actVec,
+                                                    Scalar *d_t_actMag,
                                                     const Scalar3& P,
                                                     Scalar rx,
                                                     Scalar ry,
@@ -51,34 +57,51 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     unsigned int idx = d_rtag[tag];
 
     Scalar3 f;
+    Scalar3 t;
     // rotate force according to particle orientation only if orientation is linked to active force vector
     if (orientationLink == true)
         {
         vec3<Scalar> fi;
-        f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
-                        d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
+        f = make_scalar3(d_f_actMag[tag] * d_f_actVec[tag].x,
+                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
         quat<Scalar> quati(d_orientation[idx]);
         fi = rotate(quati, vec3<Scalar>(f));
         d_force[idx].x = fi.x;
         d_force[idx].y = fi.y;
         d_force[idx].z = fi.z;
+
+        vec3<Scalar> ti;
+        t = make_scalar3(d_t_actMag[tag] * d_t_actVec[tag].x,
+                        d_t_actMag[tag] * d_t_actVec[tag].y, d_t_actMag[tag] * d_t_actVec[tag].z);
+        ti = rotate(quati, vec3<Scalar>(t));
+        d_torque[idx].x = ti.x;
+        d_torque[idx].y = ti.y;
+        d_torque[idx].z = ti.z;
+
         }
     else // no orientation link
         {
-        f = make_scalar3(d_actMag[tag] * d_actVec[tag].x,
-                        d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
+        f = make_scalar3(d_f_actMag[tag] * d_f_actVec[tag].x,
+                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
         d_force[idx].x = f.x;
         d_force[idx].y = f.y;
         d_force[idx].z = f.z;
+
+        t = make_scalar3(d_t_actMag[tag] * d_t_actVec[tag].x,
+                        d_t_actMag[tag] * d_t_actVec[tag].y, d_t_actMag[tag] * d_t_actVec[tag].z);
+        d_torque[idx].x = t.x;
+        d_torque[idx].y = t.y;
+        d_torque[idx].z = t.z;
+
         }
-    // rotate particle orientation only if orientation is reverse linked to active force vector
+    // rotate particle orientation only if orientation is reverse linked to active force vector. Ignore torque here
     if (orientationReverseLink == true)
         {
-        vec3<Scalar> f(d_actMag[tag] * d_actVec[tag].x,
-                        d_actMag[tag] * d_actVec[tag].y, d_actMag[tag] * d_actVec[tag].z);
+        vec3<Scalar> f(d_f_actMag[tag] * d_f_actVec[tag].x,
+                        d_f_actMag[tag] * d_f_actVec[tag].y, d_f_actMag[tag] * d_f_actVec[tag].z);
         vec3<Scalar> vecZ(0.0, 0.0, 1.0);
         vec3<Scalar> quatVec = cross(vecZ, f);
-        Scalar quatScal = slow::sqrt(d_actMag[tag]*d_actMag[tag]) + dot(f, vecZ);
+        Scalar quatScal = slow::sqrt(d_f_actMag[tag]*d_f_actMag[tag]) + dot(f, vecZ);
         quat<Scalar> quati(quatScal, quatVec);
         quati = quati * (Scalar(1.0) / slow::sqrt(norm2(quati)));
         d_orientation[idx] = quat_to_scalar4(quati);
@@ -90,7 +113,8 @@ __global__ void gpu_compute_active_force_set_forces_kernel(const unsigned int gr
     \param d_rtag convert global tag to global index
     \param d_groupTags stores list to convert group index to global tag
     \param d_pos particle positions on device
-    \param d_actVec particle active force unit vector
+    \param d_f_actVec particle active force unit vector
+    \param d_t_actVec particle active force unit vector
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -100,7 +124,8 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
-                                                   Scalar3 *d_actVec,
+                                                   Scalar3 *d_f_actVec,
+                                                   Scalar3 *d_t_actVec,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -119,19 +144,34 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
     vec3<Scalar> norm;
     norm = vec3<Scalar>(norm_scalar3);
-    Scalar dot_prod = d_actVec[tag].x * norm.x + d_actVec[tag].y * norm.y + d_actVec[tag].z * norm.z;
+    Scalar f_dot_prod = d_f_actVec[tag].x * norm.x + d_f_actVec[tag].y * norm.y + d_f_actVec[tag].z * norm.z;
+    Scalar t_dot_prod = d_t_actVec[tag].x * norm.x + d_t_actVec[tag].y * norm.y + d_t_actVec[tag].z * norm.z;
 
-    d_actVec[tag].x -= norm.x * dot_prod;
-    d_actVec[tag].y -= norm.y * dot_prod;
-    d_actVec[tag].z -= norm.z * dot_prod;
+    d_f_actVec[tag].x -= norm.x * f_dot_prod;
+    d_f_actVec[tag].y -= norm.y * f_dot_prod;
+    d_f_actVec[tag].z -= norm.z * f_dot_prod;
 
-    Scalar new_norm = slow::sqrt(d_actVec[tag].x * d_actVec[tag].x
-                                 + d_actVec[tag].y * d_actVec[tag].y
-                                 + d_actVec[tag].z * d_actVec[tag].z);
+    d_t_actVec[tag].x -= norm.x * t_dot_prod;
+    d_t_actVec[tag].y -= norm.y * t_dot_prod;
+    d_t_actVec[tag].z -= norm.z * t_dot_prod;
 
-    d_actVec[tag].x /= new_norm;
-    d_actVec[tag].y /= new_norm;
-    d_actVec[tag].z /= new_norm;
+
+    Scalar new_f_norm = slow::sqrt(d_f_actVec[tag].x * d_f_actVec[tag].x
+                                 + d_f_actVec[tag].y * d_f_actVec[tag].y
+                                 + d_f_actVec[tag].z * d_f_actVec[tag].z);
+    Scalar new_t_norm = slow::sqrt(d_t_actVec[tag].x * d_t_actVec[tag].x
+                                 + d_t_actVec[tag].y * d_t_actVec[tag].y
+                                 + d_t_actVec[tag].z * d_t_actVec[tag].z);
+
+
+    d_f_actVec[tag].x /= new_f_norm;
+    d_f_actVec[tag].y /= new_f_norm;
+    d_f_actVec[tag].z /= new_f_norm;
+
+    d_t_actVec[tag].x /= new_t_norm;
+    d_t_actVec[tag].y /= new_t_norm;
+    d_t_actVec[tag].z /= new_t_norm;
+
     }
 
 //! Kernel for applying rotational diffusion to active force vectors on the GPU
@@ -139,7 +179,8 @@ __global__ void gpu_compute_active_force_set_constraints_kernel(const unsigned i
     \param d_rtag convert global tag to global index
     \param d_groupTags stores list to convert group index to global tag
     \param d_pos particle positions on device
-    \param d_actVec particle active force unit vector
+    \param d_f_actVec particle active force unit vector
+    \param d_t_actVec particle active torque unit vector
     \param P position of the ellipsoid constraint
     \param rx radius of the ellipsoid in x direction
     \param ry radius of the ellipsoid in y direction
@@ -152,7 +193,8 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
                                                    unsigned int *d_rtag,
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
-                                                   Scalar3 *d_actVec,
+                                                   Scalar3 *d_f_actVec,
+                                                   Scalar3 *d_t_actVec,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -175,10 +217,11 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
-        theta = atan2(d_actVec[tag].y, d_actVec[tag].x);
+        theta = atan2(d_f_actVec[tag].y, d_f_actVec[tag].x);
         theta += delta_theta;
-        d_actVec[tag].x = cos(theta);
-        d_actVec[tag].y = sin(theta);
+        d_f_actVec[tag].x = cos(theta);
+        d_f_actVec[tag].y = sin(theta);
+        // in 2D there is only one meaningful direction for torque
         }
     else // 3D: Following Stenhammar, Soft Matter, 2014
         {
@@ -196,23 +239,29 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             rand_vec.z = cos(phi);
 
             vec3<Scalar> aux_vec;
-            aux_vec.x = d_actVec[tag].y * rand_vec.z - d_actVec[tag].z * rand_vec.y;
-            aux_vec.y = d_actVec[tag].z * rand_vec.x - d_actVec[tag].x * rand_vec.z;
-            aux_vec.z = d_actVec[tag].x * rand_vec.y - d_actVec[tag].y * rand_vec.x;
+            aux_vec.x = d_f_actVec[tag].y * rand_vec.z - d_f_actVec[tag].z * rand_vec.y;
+            aux_vec.y = d_f_actVec[tag].z * rand_vec.x - d_f_actVec[tag].x * rand_vec.z;
+            aux_vec.z = d_f_actVec[tag].x * rand_vec.y - d_f_actVec[tag].y * rand_vec.x;
             Scalar aux_vec_mag = sqrt(aux_vec.x*aux_vec.x + aux_vec.y*aux_vec.y + aux_vec.z*aux_vec.z);
             aux_vec.x /= aux_vec_mag;
             aux_vec.y /= aux_vec_mag;
             aux_vec.z /= aux_vec_mag;
 
             vec3<Scalar> current_vec;
-            current_vec.x = d_actVec[tag].x;
-            current_vec.y = d_actVec[tag].y;
-            current_vec.z = d_actVec[tag].z;
+            current_vec.x = d_f_actVec[tag].x;
+            current_vec.y = d_f_actVec[tag].y;
+            current_vec.z = d_f_actVec[tag].z;
 
             Scalar delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
-            d_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
-            d_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
-            d_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
+            d_f_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
+            d_f_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
+            d_f_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
+
+            // torque vector rotates rigidly along with force vector
+            d_t_actVec[tag].x = cos(delta_theta)*current_vec.x + sin(delta_theta)*aux_vec.x;
+            d_t_actVec[tag].y = cos(delta_theta)*current_vec.y + sin(delta_theta)*aux_vec.y;
+            d_t_actVec[tag].z = cos(delta_theta)*current_vec.z + sin(delta_theta)*aux_vec.z;
+
             }
         else // if constraint
             {
@@ -225,17 +274,23 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
             norm = vec3<Scalar> (norm_scalar3);
 
             vec3<Scalar> current_vec;
-            current_vec.x = d_actVec[tag].x;
-            current_vec.y = d_actVec[tag].y;
-            current_vec.z = d_actVec[tag].z;
+            current_vec.x = d_f_actVec[tag].x;
+            current_vec.y = d_f_actVec[tag].y;
+            current_vec.z = d_f_actVec[tag].z;
             vec3<Scalar> aux_vec = cross(current_vec, norm); // aux vec for defining direction that active force vector rotates towards.
 
             Scalar delta_theta; // rotational diffusion angle
             delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
 
-            d_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
-            d_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
-            d_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+            d_f_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
+            d_f_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
+            d_f_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+
+            // torque vector rotates rigidly along with force vector
+            d_t_actVec[tag].x = cos(delta_theta) * current_vec.x + sin(delta_theta) * aux_vec.x;
+            d_t_actVec[tag].y = cos(delta_theta) * current_vec.y + sin(delta_theta) * aux_vec.y;
+            d_t_actVec[tag].z = cos(delta_theta) * current_vec.z + sin(delta_theta) * aux_vec.z;
+
             }
         }
     }
@@ -245,9 +300,12 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                            unsigned int *d_rtag,
                                            unsigned int *d_groupTags,
                                            Scalar4 *d_force,
+                                           Scalar4 *d_torque,
                                            Scalar4 *d_orientation,
-                                           Scalar3 *d_actVec,
-                                           Scalar *d_actMag,
+                                           Scalar3 *d_f_actVec,
+                                           Scalar *d_f_actMag,
+                                           Scalar3 *d_t_actVec,
+                                           Scalar *d_t_actMag,
                                            const Scalar3& P,
                                            Scalar rx,
                                            Scalar ry,
@@ -267,9 +325,12 @@ cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_force,
+                                                                    d_torque,
                                                                     d_orientation,
-                                                                    d_actVec,
-                                                                    d_actMag,
+                                                                    d_f_actVec,
+                                                                    d_f_actMag,
+                                                                    d_t_actVec,
+                                                                    d_t_actMag,
                                                                     P,
                                                                     rx,
                                                                     ry,
@@ -285,7 +346,9 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                    unsigned int *d_groupTags,
                                                    const Scalar4 *d_pos,
                                                    Scalar4 *d_force,
-                                                   Scalar3 *d_actVec,
+                                                   Scalar4 *d_torque,
+                                                   Scalar3 *d_f_actVec,
+                                                   Scalar3 *d_t_actVec,
                                                    const Scalar3& P,
                                                    Scalar rx,
                                                    Scalar ry,
@@ -301,7 +364,8 @@ cudaError_t gpu_compute_active_force_set_constraints(const unsigned int group_si
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
-                                                                    d_actVec,
+                                                                    d_f_actVec,
+                                                                    d_t_actVec,
                                                                     P,
                                                                     rx,
                                                                     ry,
@@ -314,7 +378,9 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                        unsigned int *d_groupTags,
                                                        const Scalar4 *d_pos,
                                                        Scalar4 *d_force,
-                                                       Scalar3 *d_actVec,
+                                                       Scalar4 *d_torque,
+                                                       Scalar3 *d_f_actVec,
+                                                       Scalar3 *d_t_actVec,
                                                        const Scalar3& P,
                                                        Scalar rx,
                                                        Scalar ry,
@@ -334,7 +400,8 @@ cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int gro
                                                                     d_rtag,
                                                                     d_groupTags,
                                                                     d_pos,
-                                                                    d_actVec,
+                                                                    d_f_actVec,
+                                                                    d_t_actVec,
                                                                     P,
                                                                     rx,
                                                                     ry,
