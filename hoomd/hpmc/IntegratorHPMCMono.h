@@ -142,7 +142,8 @@ class UpdateOrder
                 iter++;
                 }
             }
-
+        std::vector<unsigned int>::iterator begin() { return m_update_order.begin(); } // TODO: make const?
+        std::vector<unsigned int>::iterator end() { return m_update_order.end(); }
         //! Access element of the shuffled order
         unsigned int operator[](unsigned int i)
             {
@@ -194,6 +195,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
 
+        //! Set the pair parameters for a single type
+        virtual void swapParams(GPUArray<param_type>& swp) { m_params.swap(swp); updateCellWidth(); }
+
         //! Set elements of the interaction matrix
         virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
 
@@ -224,6 +228,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Count overlaps with the option to exit early at the first detected overlap
         virtual unsigned int countOverlaps(unsigned int timestep, bool early_exit);
+
+        //! Count overlaps with the option to exit early at the first detected overlap, for the particle tags specified in first to last
+        template <class IteratorType>
+        unsigned int countOverlapsEx(unsigned int timestep, bool early_exit, IteratorType first, IteratorType last);
 
         //! Return a vector that is an unwrapped overlap map
         virtual std::vector<bool> mapOverlaps();
@@ -731,12 +739,15 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
     m_aabb_tree_invalid = true;
     }
 
-/*! \param timestep current step
-    \param early_exit exit at first overlap found if true
-    \returns number of overlaps if early_exit=false, 1 if early_exit=true
+
+/*
+    NOTE: This is a major hack that should be thought through way more.
+    We can fix this later the main thing we want to do is get a working prototype
+    IteratorType must be a random access iterator.
 */
 template <class Shape>
-unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, bool early_exit)
+template <class IteratorType>
+inline unsigned int IntegratorHPMCMono<Shape>::countOverlapsEx(unsigned int timestep, bool early_exit, IteratorType first, IteratorType last)
     {
     unsigned int overlap_count = 0;
     unsigned int err_count = 0;
@@ -761,14 +772,20 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_rtags(m_pdata->getRTags(), access_location::host, access_mode::read);
 
     // access parameters and interaction matrix
     ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
 
-    // Loop over all particles
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    bool bTags = std::distance(first, last) != 0;
+    unsigned int N = bTags ? std::distance(first, last) : m_pdata->getN();
+    // Loop over all particles or the particles specified by the iterators
+    for (unsigned int j = 0; j < N; j++)
         {
+        unsigned int i = bTags ? h_rtags.data[*first++] : j;
+        if (i >= m_pdata->getN()) // not owned by this processor.
+            continue;
         // read in the current position and orientation
         Scalar4 postype_i = h_postype.data[i];
         Scalar4 orientation_i = h_orientation.data[i];
@@ -863,6 +880,16 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     #endif
 
     return overlap_count;
+    }
+
+/*! \param timestep current step
+    \param early_exit exit at first overlap found if true
+    \returns number of overlaps if early_exit=false, 1 if early_exit=true
+*/
+template <class Shape>
+unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, bool early_exit)
+    {
+    return countOverlapsEx<unsigned int*>(timestep, early_exit, nullptr, nullptr);
     }
 
 template <class Shape>
