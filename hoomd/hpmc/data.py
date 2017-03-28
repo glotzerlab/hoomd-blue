@@ -224,18 +224,20 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.polyhedron_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['vertices', 'faces','overlap', 'sweep_radius', 'capacity','origin','hull_only'];
+        self._keys += ['vertices', 'faces','overlap', 'colors', 'sweep_radius', 'capacity','origin','hull_only'];
         self.make_fn = _hpmc.make_poly3d_data;
+        self.__dict__.update(dict(colors=None));
 
     def __str__(self):
         # should we put this in the c++ side?
-        string = "polyhedron(vertices = {}, faces = {}, overlap = {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces, self.overlap, self.sweep_radius, self.capacity, self.hull_only);
+        string = "polyhedron(vertices = {}, faces = {}, overlap = {}, colors= {}, sweep_radius = {}, capacity = {}, origin = {})".format(self.vertices, self.faces, self.overlap, self.colors, self.sweep_radius, self.capacity, self.hull_only);
         return string;
 
-    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True, overlap=None):
+    def make_param(self, vertices, faces, sweep_radius=0.0, ignore_statistics=False, origin=(0,0,0), capacity=4, hull_only=True, overlap=None, colors=None):
         face_offs = []
         face_verts = []
         offs = 0
+
         for face in faces:
             if len(face) != 3 and len(face) != 1:
                 hoomd.context.msg.error("Only triangulated shapes and spheres are supported.\n")
@@ -247,6 +249,8 @@ class polyhedron_params(_hpmc.polyhedron_param_proxy, _param):
 
         # end offset
         face_offs.append(offs)
+
+        self.colors = None if colors is None else self.ensure_list(colors);
 
         if overlap is None:
             overlap = [1 for f in faces]

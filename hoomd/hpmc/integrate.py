@@ -1100,6 +1100,30 @@ class polyhedron(mode_hpmc):
 
         return shape_def
 
+    def get_type_shapes(self):
+        """ Get all the types of shapes in the current simulation
+        Returns:
+            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.shape_param.get(typename)
+            dim = hoomd.context.current.system_definition.getNDimensions()
+            # Currently can't trivially pull the radius for nonspherical shapes
+            result.append(dict(type='Polyhedron',
+                                   rounding_radius=shape.sweep_radius,
+                                   vertices=shape.vertices,
+                                   faces=shape.faces,
+                                   colors=shape.colors
+                                   ))
+
+        return result
+
+
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
 
