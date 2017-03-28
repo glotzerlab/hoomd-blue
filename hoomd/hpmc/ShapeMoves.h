@@ -472,8 +472,8 @@ public:
 
     void prepare(unsigned int timestep)
         {
-            // make a backup for the Fbar.
-            m_Fbar_last = m_Fbar;
+        // make a backup for the Fbar.
+        m_Fbar_last = m_Fbar;// is there a faster way to copy the data? 
         }
     //! construct is called at the beginning of every update()                                            # param was shape - Luis
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
@@ -534,7 +534,7 @@ public:
     //! retreat whenever the proposed move is rejected.
     void retreat(unsigned int timestep)
         {
-        m_Fbar = m_Fbar_last;
+        m_Fbar.swap(m_Fbar_last); // we can swap because m_Fbar_last will be reset on the next prepare
         }
 
 protected:
