@@ -2,19 +2,27 @@
 
 [TOC]
 
-## v2.2.0
 Not yet released
 
 *New features*
+
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 
-Deprecated*
+*Deprecated*
 
 * HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
 
+*Bug fixes*
+
+* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* fix alignment error when running implicit depletants on GPU with ntrial > 0
+
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-* Drop support for compute 2.0 GPU devices
+* Faster simulations with implicit depletants on CPU
+* Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
+* Raise an error when an updater is given a period of 0
 
 ## v2.1.5
 
