@@ -228,6 +228,7 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         d_molecule_idx.data,
         d_image.data,
         m_pdata->getBox(),
+        m_pdata->getGlobalBox(),
         block_size,
         m_flag.getDeviceFlags());
 

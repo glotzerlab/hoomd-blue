@@ -9,6 +9,7 @@ Not yet released
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 * hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
+* force.constand and force.active can now apply torques
 
 Deprecated*
 
@@ -22,6 +23,41 @@ Deprecated*
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
+* Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
+* Raise an error when an updater is given a period of 0
+
+## v2.1.5
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a compile error on Mac
+
+## v2.1.4
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a bug re-enabling disabled integration methods
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
+* scipy is no longer required to execute DEM component unit tests
+* Issue a warning when a subsequent call to context.initialize is given different arguments
+* DPD now uses the seed from rank 0 to avoid incorrect simulations when users provide different seeds on different ranks
+* Miscellaneous documentation updates
+* Defer initialization message until context.initialize
+* Fixed a problem where a momentary dip in TPS would cause walltime limited jobs to exit prematurely
+* HPMC and DEM components now correctly print citation notices
+
+## v2.1.3
+
+Released 2017/02/07
+
+*Bug fixes*
+
+* Fixed a bug where the WalltimeLimitReached was ignored
 
 ## v2.1.2
 
