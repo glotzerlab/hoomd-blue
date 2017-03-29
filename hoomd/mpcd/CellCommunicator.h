@@ -332,10 +332,17 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         // send along dir, and receive along the opposite direction from sending
         // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
             {
+            #ifdef ENABLE_MPI_CUDA
+            access_location::Enum mpi_loc = (m_exec_conf->isCUDAEnabled()) ? access_location::device : access_location::host;
+            ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
+            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
+            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+            #else
             if (m_prof) m_prof->push("copy");
             ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
             ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
             if (m_prof) m_prof->pop();
+            #endif // ENABLE_MPI_CUDA
 
             // determine face for operations
             unsigned int right_face,left_face;
@@ -387,6 +394,10 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
 
                 MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
                 }
+            #ifdef ENABLE_MPI_CUDA
+            // MPI calls can execute in multiple streams, so force a synchronization before we move on
+            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+            #endif // ENABLE_MPI_CUDA
             if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
             }
 
