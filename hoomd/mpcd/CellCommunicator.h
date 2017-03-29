@@ -64,12 +64,15 @@ class CellCommunicator
                 m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack", m_exec_conf));
                 }
             #endif // ENABLE_CUDA
+
+            m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
             }
 
         //! Destructor
         ~CellCommunicator()
             {
             m_exec_conf->msg->notice(5) << "Destroying MPCD CellCommunicator" << std::endl;
+            m_cl->getSizeChangeSignal().disconnect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
             }
 
         //! Reduce cell list properties
@@ -189,6 +192,12 @@ class CellCommunicator
 
             // initialization succeeded, flip flag
             m_needs_init = false;
+            }
+
+        //! Slot that communicator needs to be reinitialized
+        void slotInit()
+            {
+            m_needs_init = true;
             }
 
         //! Size buffers large enough to hold all send elements

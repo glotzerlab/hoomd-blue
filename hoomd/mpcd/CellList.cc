@@ -283,6 +283,7 @@ void mpcd::CellList::computeDimensions()
 
     // dimensions are now current
     m_needs_compute_dim = false;
+    notifySizeChange();
     }
 
 #ifdef ENABLE_MPI
