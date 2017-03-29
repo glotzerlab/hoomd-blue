@@ -13,8 +13,8 @@
 
 #include <cuda_runtime.h>
 
-#include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/BoxDim.h"
 #include "hoomd/Index1D.h"
 
 namespace mpcd
