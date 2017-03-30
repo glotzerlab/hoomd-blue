@@ -2,6 +2,17 @@
 
 [TOC]
 
+## v2.1.6
+
+Not yet released
+
+*Bug fixes*
+
+* Document hpmc.util.tune_npt
+* Fix dump.getar.writeJSON usage with MPI execution
+* Fix a bug where integrate.langevin and integrate.brownian correlated RNGs between ranks in multiple CPU execution
+* Bump CUB to version 1.6.4 for improved performance on Pascal architectures. CUB is now embedded using a git submodule. Users upgrading existing git repositories should reinitialize their git submodules with ``git submodule update --init``
+
 ## v2.1.5
 
 Released 2017/03/09
