@@ -6,7 +6,7 @@
 #include "NeighborListGPUTree.cuh"
 #include "hoomd/TextureTools.h"
 
-#include "hoomd/extern/cub/cub.cuh"
+#include "hoomd/extern/cub/cub/cub.cuh"
 
 #define MORTON_CODE_BITS   30       //!< Length of the Morton code in bits (k = 10 bits per direction)
 #define MORTON_CODE_N_BINS 1024     //!< Number of bins (2^10) per direction to generate 30 bit Morton codes

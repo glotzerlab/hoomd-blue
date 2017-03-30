@@ -6,7 +6,7 @@
 
 #include "NeighborListGPUStencil.cuh"
 #include "hoomd/TextureTools.h"
-#include "hoomd/extern/cub/cub.cuh"
+#include "hoomd/extern/cub/cub/cub.cuh"
 
 /*! \file NeighborListGPUStencil.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils

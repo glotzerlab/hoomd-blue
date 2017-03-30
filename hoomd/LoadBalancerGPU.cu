@@ -11,7 +11,7 @@
 #ifdef ENABLE_MPI
 
 #include "LoadBalancerGPU.cuh"
-#include "hoomd/extern/cub/cub.cuh"
+#include "hoomd/extern/cub/cub/cub.cuh"
 
 //! Mark the particles that are off rank
 /*!
