@@ -759,6 +759,8 @@ class langevin(_integration_method):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
@@ -975,6 +977,8 @@ class brownian(_integration_method):
     .. attention::
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
 
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,

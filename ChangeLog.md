@@ -2,23 +2,23 @@
 
 [TOC]
 
+## v2.2
 
 Not yet released
 
 *New features*
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
-* hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
-* force.constand and force.active can now apply torques
+* `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+* force.constant and force.active can now apply torques
 
 Deprecated*
 
-* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
-
+* HPMC: `hpmc.integrate.sphere_union()` no longer needs the max_members parameter
 
 *Bug fixes*
 
-* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
 
 *Other changes*
@@ -26,6 +26,18 @@ Deprecated*
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
+
+## v2.1.6
+
+Not yet released
+
+*Bug fixes*
+
+* Document hpmc.util.tune_npt
+* Fix dump.getar.writeJSON usage with MPI execution
+* Fix a bug where integrate.langevin and integrate.brownian correlated RNGs between ranks in multiple CPU execution
+* Bump CUB to version 1.6.4 for improved performance on Pascal architectures. CUB is now embedded using a git submodule. Users upgrading existing git repositories should reinitialize their git submodules with ``git submodule update --init``
+>>>>>>> maint
 
 ## v2.1.5
 
