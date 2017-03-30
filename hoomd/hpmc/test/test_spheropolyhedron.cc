@@ -23,16 +23,11 @@ using namespace std;
 using namespace hpmc::detail;
 
 unsigned int err_count = 0;
-const unsigned int max_verts = 8;
 
 // helper function to compute poly radius
-poly3d_verts<max_verts> setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
+poly3d_verts setup_verts(const vector< vec3<OverlapReal> > vlist, OverlapReal sweep_radius)
     {
-    if (vlist.size() > max_verts)
-        throw runtime_error("Too many polygon vertices");
-
-    poly3d_verts<max_verts> result;
-    result.N = vlist.size();
+    poly3d_verts result(vlist.size(), false);
     result.sweep_radius = sweep_radius;
     result.ignore = 0;
 
@@ -46,7 +41,7 @@ poly3d_verts<max_verts> setup_verts(const vector< vec3<OverlapReal> > vlist, Ove
         result.z[i] = vert.z;
         radius_sq = std::max(radius_sq, dot(vert, vert));
         }
-    for (unsigned int i = vlist.size(); i < max_verts; i++)
+    for (unsigned int i = vlist.size(); i < result.N; i++)
         {
         result.x[i] = 0;
         result.y[i] = 0;
@@ -68,9 +63,9 @@ UP_TEST( construction )
     vlist.push_back(vec3<Scalar>(1,0,0));
     vlist.push_back(vec3<Scalar>(0,1.25,0));
     vlist.push_back(vec3<Scalar>(0,0,1.1));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.25);
+    poly3d_verts verts = setup_verts(vlist, 0.25);
 
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
+    ShapeSpheropolyhedron a(o, verts);
 
     MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
     MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
@@ -102,10 +97,10 @@ UP_TEST( support )
     vlist.push_back(vec3<OverlapReal>(-0.5, 0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, -0.5, 0.5));
     vlist.push_back(vec3<OverlapReal>(0.5, 0.5, -0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
-    SupportFuncSpheropolyhedron<max_verts> sa = SupportFuncSpheropolyhedron<max_verts>(verts);
+    ShapeSpheropolyhedron a(o, verts);
+    SupportFuncSpheropolyhedron sa = SupportFuncSpheropolyhedron(verts);
     vec3<OverlapReal> v1, v2;
 
     v1 = sa(vec3<OverlapReal>(-0.5, -0.5, -0.5));
@@ -171,11 +166,11 @@ UP_TEST( sphere )
 
     // build a sphere
     vector< vec3<OverlapReal> > vlist;
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.5);
+    poly3d_verts verts = setup_verts(vlist, 0.5);
 
     // test overla
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
-    ShapeSpheropolyhedron<max_verts> b(o, verts);
+    ShapeSpheropolyhedron a(o, verts);
+    ShapeSpheropolyhedron b(o, verts);
     UP_ASSERT(test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(test_overlap(-r_ij,b,a,err_count));
     r_ij = vec3<Scalar>(.2,.2,.1);
@@ -198,8 +193,8 @@ UP_TEST( sphere )
 
     // test non-overlap using Minkowski difference
     verts.diameter = 10.0;
-    ShapeSpheropolyhedron<max_verts> c(o, verts);
-    ShapeSpheropolyhedron<max_verts> d(o, verts);
+    ShapeSpheropolyhedron c(o, verts);
+    ShapeSpheropolyhedron d(o, verts);
     r_ij = vec3<Scalar>(3,0,0);
     UP_ASSERT(!test_overlap(r_ij,c,d,err_count));
     UP_ASSERT(!test_overlap(-r_ij,d,c,err_count));
@@ -226,12 +221,12 @@ UP_TEST( overlap_octahedron_no_rot )
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0));
     vlist.push_back(vec3<OverlapReal>(0,0,0.707106781186548));
     vlist.push_back(vec3<OverlapReal>(0,0,-0.707106781186548));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
+    ShapeSpheropolyhedron a(o, verts);
 
     // first test, separate squares by a large distance
-    ShapeSpheropolyhedron<max_verts> b(o, verts);
+    ShapeSpheropolyhedron b(o, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -313,12 +308,12 @@ UP_TEST( overlap_cube_no_rot )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
+    ShapeSpheropolyhedron a(o, verts);
 
     // first test, separate squares by a large distance
-    ShapeSpheropolyhedron<max_verts> b(o, verts);
+    ShapeSpheropolyhedron b(o, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -421,12 +416,12 @@ UP_TEST( overlap_cube_rot1 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o_a, verts);
+    ShapeSpheropolyhedron a(o_a, verts);
 
     // first test, separate squares by a large distance
-    ShapeSpheropolyhedron<max_verts> b(o_b, verts);
+    ShapeSpheropolyhedron b(o_b, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -503,12 +498,12 @@ UP_TEST( overlap_cube_rot2 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o_b, verts);
+    ShapeSpheropolyhedron a(o_b, verts);
 
     // first test, separate cubes by a large distance
-    ShapeSpheropolyhedron<max_verts> b(o_a, verts);
+    ShapeSpheropolyhedron b(o_a, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -588,12 +583,12 @@ UP_TEST( overlap_cube_rot3 )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, 0.0);
+    poly3d_verts verts = setup_verts(vlist, 0.0);
 
-    ShapeSpheropolyhedron<max_verts> a(o_a, verts);
+    ShapeSpheropolyhedron a(o_a, verts);
 
     // first test, separate squares by a large distance
-    ShapeSpheropolyhedron<max_verts> b(o_b, verts);
+    ShapeSpheropolyhedron b(o_b, verts);
     r_ij = vec3<Scalar>(10,0,0);
     UP_ASSERT(!test_overlap(r_ij,a,b,err_count));
     UP_ASSERT(!test_overlap(-r_ij,b,a,err_count));
@@ -705,10 +700,10 @@ UP_TEST( overlap_cube_precise )
     vlist.push_back(vec3<OverlapReal>(0.5,-0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(0.5,0.5,0.5));
     vlist.push_back(vec3<OverlapReal>(-0.5,0.5,0.5));
-    poly3d_verts<max_verts> verts = setup_verts(vlist, R);
+    poly3d_verts verts = setup_verts(vlist, R);
 
-    ShapeSpheropolyhedron<max_verts> a(o, verts);
-    ShapeSpheropolyhedron<max_verts> b(o, verts);
+    ShapeSpheropolyhedron a(o, verts);
+    ShapeSpheropolyhedron b(o, verts);
 
     // test face-face non-overlaps
     r_ij = vec3<Scalar>(1 + 2*R + offset,0,0);

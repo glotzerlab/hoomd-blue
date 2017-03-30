@@ -2,17 +2,27 @@
 
 [TOC]
 
-## v2.2.0
 
 Not yet released
 
 *New features*
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+* hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 * force.constand and force.active can now apply torques
 
-*Other changes*
+Deprecated*
 
+* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
+
+
+*Bug fixes*
+
+* hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
+* fix alignment error when running implicit depletants on GPU with ntrial > 0
+
+*Other changes*
+* Optimized performance of HPMC sphere union overlap check
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
