@@ -473,7 +473,7 @@ public:
     void prepare(unsigned int timestep)
         {
         // make a backup for the Fbar.
-        m_Fbar_last = m_Fbar;// is there a faster way to copy the data? 
+        m_Fbar_last = m_Fbar;// is there a faster way to copy the data?
         }
     //! construct is called at the beginning of every update()                                            # param was shape - Luis
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
