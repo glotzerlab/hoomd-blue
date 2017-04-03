@@ -227,7 +227,15 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
         if (this->m_prof)
             this->m_prof->push(this->m_exec_conf, "ElasticShape copy param");
-        GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
+        GPUArray< typename Shape::param_type > param_copy(m_nselect, m_exec_conf);
+        {
+        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+        ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
+        for (unsigned int i = 0; i < m_nselect; i++)
+            {
+            h_param_backup.data[i] = h_params.data[m_update_order[i]];
+            }
+        }
         if (this->m_prof)
             this->m_prof->pop();
 
@@ -266,10 +274,10 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                     typ_i,                          // the type id
                                                     param,                          // new shape parameter
                                                     h_det.data[typ_i],              // new determinant
-                                                    h_param_backup.data[typ_i],     // old shape parameter
+                                                    h_param_backup.data[cur_type],     // old shape parameter
                                                     h_det_backup.data[typ_i]        // old determinant
                                                 );
-            m_mc->setParam(typ_i, param);
+            m_mc->setParam(typ_i, param, cur_type == (m_nselect-1));
             }
         if (this->m_prof)
             this->m_prof->pop();
@@ -326,12 +334,12 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
             m_determinant.swap(determinant_backup);
-            m_mc->swapParams(param_copy);
-            // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
-            // for(size_t typ = 0; typ < m_pdata->getNTypes(); typ++)
-            //     {
-            //     m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
-            //     }
+            // m_mc->swapParams(param_copy);
+            ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
+            for(size_t typ = 0; typ < m_nselect; typ++)
+                {
+                m_mc->setParam(m_update_order[typ], h_param_copy.data[typ], typ == (m_nselect-1)); // set the params.
+                }
             }
         if (this->m_prof)
             this->m_prof->pop();
