@@ -1067,8 +1067,8 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeSphere, 256>(m, "sphere_union_param_proxy256", export_sphere_proxy<ShapeUnion<ShapeSphere, 256>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 256 > > >);
     export_shape_union_proxy<ShapeSphere, 512>(m, "sphere_union_param_proxy512", export_sphere_proxy<ShapeUnion<ShapeSphere, 512>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 512 > > >);
 
-    auto export_fncn = std::bind(export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron<128>, 8>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron<128>, 8 > > >, std::placeholders::_1, std::placeholders::_2, false);
-    export_shape_union_proxy<ShapeConvexPolyhedron<128>, 8>(m, "convex_polyhedron_union_param_proxy8", export_fncn);
+    auto export_fncn = std::bind(export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron<128>, 32>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron<128>, 32 > > >, std::placeholders::_1, std::placeholders::_2, false);
+    export_shape_union_proxy<ShapeConvexPolyhedron<128>, 32>(m, "convex_polyhedron_union_param_proxy32", export_fncn);
     }
 
 } // end namespace hpmc

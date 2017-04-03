@@ -82,7 +82,7 @@ PYBIND11_PLUGIN(_hpmc)
     export_union_sphere256(m);
     export_union_sphere512(m);
 
-    export_union_convex_polyhedron8(m);
+    export_union_convex_polyhedron32(m);
 
     export_convex_polyhedron8(m);
     export_convex_polyhedron16(m);
@@ -116,7 +116,7 @@ PYBIND11_PLUGIN(_hpmc)
     py::class_< ShapeUnion<ShapeSphere, 256>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 256>::param_type> >(m, "msph_params256");
     py::class_< ShapeUnion<ShapeSphere, 512>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere, 512>::param_type> >(m, "msph_params512");
 
-    py::class_< ShapeUnion<ShapeConvexPolyhedron<128>, 8>::param_type, std::shared_ptr< ShapeUnion<ShapeConvexPolyhedron<128>, 8>::param_type> >(m, "mpoly3d_verts128_params8");
+    py::class_< ShapeUnion<ShapeConvexPolyhedron<128>, 32>::param_type, std::shared_ptr< ShapeUnion<ShapeConvexPolyhedron<128>, 32>::param_type> >(m, "mpoly3d_verts128_params32");
 
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
@@ -137,7 +137,7 @@ PYBIND11_PLUGIN(_hpmc)
     m.def("make_sphere_union_params256", &make_union_params<ShapeSphere, 256>);
     m.def("make_sphere_union_params512", &make_union_params<ShapeSphere, 512>);
 
-    m.def("make_convex_polyhedron_union_params8", &make_union_params<ShapeConvexPolyhedron<128>, 8>);
+    m.def("make_convex_polyhedron_union_params32", &make_union_params<ShapeConvexPolyhedron<128>, 32>);
 
     m.def("make_overlapreal3", &make_overlapreal3);
     m.def("make_overlapreal4", &make_overlapreal4);
