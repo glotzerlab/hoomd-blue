@@ -120,7 +120,7 @@ class _param(object):
             if pname in params:
                 self.__setattr__(pname, params.pop(pname, None))
 
-        self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params));
+        self.mc.cpp_integrator.setParam(self.typid, self.make_param(**params), True);
 
 class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):

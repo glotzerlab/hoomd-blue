@@ -193,7 +193,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual Scalar getMaxDiameter();
 
         //! Set the pair parameters for a single type
-        virtual void setParam(unsigned int typ, const param_type& param);
+        virtual void setParam(unsigned int typ, const param_type& param, bool update=true);
 
         //! Set the pair parameters for a single type
         virtual void swapParams(GPUArray<param_type>& swp) { m_params.swap(swp); updateCellWidth(); }
@@ -910,7 +910,7 @@ Scalar IntegratorHPMCMono<Shape>::getMaxDiameter()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param)
+void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param, bool update)
     {
     // validate input
     if (typ >= this->m_pdata->getNTypes())
@@ -928,7 +928,10 @@ void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& pa
         h_params.data[typ] = param;
         }
 
-    updateCellWidth();
+    if(update)
+        {
+        updateCellWidth();
+        }
     }
 
 template <class Shape>
