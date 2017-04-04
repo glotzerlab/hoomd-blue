@@ -2,20 +2,16 @@
 
 [TOC]
 
-## v2.2.0
+## v2.1.6
 
 Not yet released
 
-*New features*
+*Bug fixes*
 
-* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
-* force.constand and force.active can now apply torques
-
-*Other changes*
-
-* Improved performance of rigid bodies in MPI simulations
-* Support triclinic boxes with rigid bodies
-* Raise an error when an updater is given a period of 0
+* Document hpmc.util.tune_npt
+* Fix dump.getar.writeJSON usage with MPI execution
+* Fix a bug where integrate.langevin and integrate.brownian correlated RNGs between ranks in multiple CPU execution
+* Bump CUB to version 1.6.4 for improved performance on Pascal architectures. CUB is now embedded using a git submodule. Users upgrading existing git repositories should reinitialize their git submodules with ``git submodule update --init``
 
 ## v2.1.5
 
