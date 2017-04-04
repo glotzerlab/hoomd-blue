@@ -25,7 +25,7 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
-#ifdef SINGLE_PRECISION
+#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
 //! Texture for reading electron density
 texture<Scalar, 1, cudaReadModeElementType> electronDensity_tex;
 //! Texture for reading EAM pair potential
@@ -69,7 +69,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
 		Scalar *atomDerivativeEmbeddingFunction) {
-#ifdef SINGLE_PRECISION
+#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -133,9 +133,9 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		Scalar rsq = dot(dx, dx);;
 		if (rsq < eam_data_ti.r_cutsq)
 		{
-			Scalar position_scalar = sqrtf(rsq) * eam_data_ti.rdr;
-			position_scalar = min(position_scalar, Scalar(nr - 1));
-			atomElectronDensity += tex1D(electronDensity_tex, position_scalar + nr * (typej * ntypes + typei) + Scalar(0.5) );
+			Scalar position_Scalar = sqrtf(rsq) * eam_data_ti.rdr;
+			position_Scalar = min(position_Scalar, Scalar(nr - 1));
+			atomElectronDensity += tex1D(electronDensity_tex, position_Scalar + nr * (typej * ntypes + typei) + Scalar(0.5) );
 		}
 	}
 
@@ -155,7 +155,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
 		Scalar *atomDerivativeEmbeddingFunction) {
-#ifdef SINGLE_PRECISION
+#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -285,7 +285,7 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 	}
 
 	// bind the texture
-#ifdef SINGLE_PRECISION
+#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
 	pdata_pos_tex.normalized = false;
 	pdata_pos_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);

@@ -59,6 +59,7 @@ class eam_tests(unittest.TestCase):
         F = numpy.array([x.force for x in eam.forces])
         U = numpy.array([x.energy for x in eam.forces])
 
+
         F_ref = numpy.array([[ 0.05910385,  0.23687568,  4.36871958],
                              [ 0.20217249, -2.36950612, -4.13176584],
                              [-2.573632,    2.39390755, -0.17785092],
@@ -67,6 +68,9 @@ class eam_tests(unittest.TestCase):
 
         numpy.testing.assert_allclose(F, F_ref, rtol=1e-3)
         numpy.testing.assert_allclose(U, U_ref, rtol=1e-3)
+
+        print(F)
+        print(U)
 
         os.system('rm -rf ' + tmpd)
 

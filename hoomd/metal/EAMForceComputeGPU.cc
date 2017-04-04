@@ -37,9 +37,9 @@ using namespace std;
 */
 EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr)
         : EAMForceCompute(sysdef, filename, type_of_file, ifinter, setnrho, setnr) {
-#ifndef SINGLE_PRECISION
-    m_exec_conf->msg->warning() << "pair.eam does not work on the GPU in double precision builds" << endl;
-#endif
+//#ifndef SINGLE_PRECISION
+//    m_exec_conf->msg->warning() << "pair.eam does not work on the GPU in double precision builds" << endl;
+//#endif
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled()) {
