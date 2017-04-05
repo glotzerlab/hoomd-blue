@@ -2485,16 +2485,22 @@ class square_density(pair):
 
     The following coefficients must be set per unique pair of particle types:
 
-    - :math:`B` - *B* (in units of volume^-1) - mean density (*default*: 0)
+    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
     - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
 
     Example::
 
         nl = nlist.cell()
         sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
+        sqd.pair_coeff.set('A', 'A', A=0.1)
         sqd.pair_coeff.set('A', 'A', B=1.0)
 
     For further details regarding this multibody potential, see
+
+    Warning:
+        Currently HOOMD does not support reverse force communication between MPI domains on the GPU. 
+        Since reverse force communication is required for the calculation of multi-body potentials, attempting to use the
+        square_density potential on the GPU with MPI will result in an error.
 
     [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
     Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.

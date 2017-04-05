@@ -547,7 +547,8 @@ class Communicator
         CommFlags m_last_flags;                       //!< Flags of last ghost exchange
 
         bool m_comm_pending;                     //!< If true, a communication is in process
-        std::vector<MPI_Request> m_reqs;         //!< List of pending MPI requests
+        std::vector<MPI_Request> m_reqs; //!< Container for all MPI communication requests
+        std::vector<MPI_Status> m_stats; //!< Container for all MPI communication statuses
 
         /* Bonds communication */
         bool m_bonds_changed;                          //!< True if bond information needs to be refreshed

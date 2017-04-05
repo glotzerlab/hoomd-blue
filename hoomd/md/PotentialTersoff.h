@@ -469,7 +469,7 @@ void PotentialTersoff< evaluator >::computeForces(unsigned int timestep)
                             // compute the bond angle (if needed)
                             Scalar cos_th = Scalar(0.0);
                             if (evaluator::needsAngle())
-                                cos_th = dot(dxij, dxik) / sqrt(rij_sq * rik_sq);
+                                cos_th = dot(dxij, dxik) / fast::sqrt(rij_sq * rik_sq);
 
                             // evaluate the partial chi term
                             eval.setRik(rik_sq);

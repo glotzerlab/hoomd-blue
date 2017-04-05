@@ -215,16 +215,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
         }
 
     // start by identifying which particle we are to handle
-    unsigned int idx;
-    if (gridDim.y > 1)
-        {
-        // if we have blocks in the y-direction, the fermi-workaround is in place
-        idx = (blockIdx.x + blockIdx.y * 65535) * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
-    else
-        {
-        idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
-        }
+    unsigned int idx = blockIdx.x * (blockDim.x/tpp) + threadIdx.x/tpp;
 
     if (idx >= N)
         return;
