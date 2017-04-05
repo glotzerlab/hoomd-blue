@@ -88,9 +88,9 @@ class sdf(_analyzer):
         elif isinstance(mc, integrate.simple_polygon):
             cls = _hpmc.AnalyzerSDFSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('AnalyzerSDFConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.AnalyzerSDFConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = integrate._get_sized_entry('AnalyzerSDFSpheropolyhedron', mc.max_verts);
+            cls = _hpmc.AnalyzerSDFSpheropolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.AnalyzerSDFEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):

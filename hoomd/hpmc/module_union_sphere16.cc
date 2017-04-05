@@ -6,18 +6,8 @@
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
 #include "ComputeFreeVolume.h"
-
-#include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
-#include "ShapePolyhedron.h"
-#include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
 #include "AnalyzerSDF.h"
+
 #include "ShapeUnion.h"
 
 #include "ExternalField.h"
@@ -51,7 +41,7 @@ void export_union_sphere16(py::module& m)
     export_IntegratorHPMCMono< ShapeUnion<ShapeSphere, 16> >(m, "IntegratorHPMCMonoSphereUnion16");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere, 16> >(m, "IntegratorHPMCMonoImplicitSphereUnion16");
     export_ComputeFreeVolume< ShapeUnion<ShapeSphere, 16> >(m, "ComputeFreeVolumeSphereUnion16");
-    // export_AnalyzerSDF< ShapeUnion<ShapeSphere, 16> >(m, "AnalyzerSDFSphereUnion16");
+    // export_AnalyzerSDF< ShapeUnion<ShapeSphere, 16, > >(m, "AnalyzerSDFSphereUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSphere, 16> >(m, "UpdaterMuVTSphereUnion16");
     export_UpdaterMuVTImplicit< ShapeUnion<ShapeSphere, 16> >(m, "UpdaterMuVTImplicitSphereUnion16");
 

@@ -34,7 +34,7 @@ class test_ghost_layer(unittest.TestCase):
         # setup the MC integration
         system = deprecated.init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
 
-        mc = hpmc.integrate.convex_polyhedron(seed=123,max_verts=8)
+        mc = hpmc.integrate.convex_polyhedron(seed=123)
         mc.set_params(d=0,a=0)
 
         cube_verts=[(-1, -1, -1), (-1, -1, 1), (-1, 1, -1), (-1, 1, 1), (1, -1, -1), (1, -1, 1), (1, 1, -1), (1, 1, 1)]

@@ -395,7 +395,7 @@ class wall(_updater):
         if isinstance(mc, integrate.sphere):
             cls = _hpmc.UpdaterExternalFieldWallSphere;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('UpdaterExternalFieldWallConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron;
         else:
             hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
@@ -514,9 +514,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.UpdaterMuVTImplicitSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTImplicitSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.UpdaterMuVTImplicitEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -524,9 +524,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.capacity);
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitConvexPolyhedronUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTImplicitConvexPolyhedronUnion', mc.capacity);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -540,9 +540,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.UpdaterMuVTSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.UpdaterMuVTEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -550,9 +550,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.capacity);
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTConvexPolyhedronUnion', mc.max_members);
+                cls = integrate._get_sized_entry('UpdaterMuVTConvexPolyhedronUnion', mc.capacity);
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -690,9 +690,9 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.RemoveDriftUpdaterSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.RemoveDriftUpdaterEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -704,9 +704,9 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.max_members);
+                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.capacity);
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterConvexPolyhedronUnion', mc.max_members);
+                cls = integrate._get_sized_entry('RemoveDriftUpdaterConvexPolyhedronUnion', mc.capacity);
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
