@@ -750,8 +750,8 @@ struct get_member_proxy{};
 template<typename Shape, unsigned int capacity, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeSphere, capacity>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
-template<typename Shape, unsigned int max_n_members, typename AccessType >
-struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron<128>, max_n_members>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
+template<typename Shape, unsigned int capacity, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron, capacity>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
 
 
 template< class ShapeUnionType >
@@ -1014,9 +1014,9 @@ void export_shape_params(pybind11::module& m)
     export_poly2d_proxy<ShapeSpheropolygon>(m, "convex_spheropolygon_param_proxy", true);
     export_poly2d_proxy<ShapeSimplePolygon>(m, "simple_polygon_param_proxy", false);
 
-    export_poly3d_proxy< ShapeConvexPolyhedron >(m, "convex_polyhedron_param_proxy", false);
+    export_poly3d_proxy< ShapeConvexPolyhedron, detail::access<ShapeConvexPolyhedron> >(m, "convex_polyhedron_param_proxy", false);
 
-    export_poly3d_proxy< ShapeSpheropolyhedron >(m, "convex_spheropolyhedron_param_proxy", true);
+    export_poly3d_proxy< ShapeSpheropolyhedron, detail::access<ShapeSpheropolyhedron> >(m, "convex_spheropolyhedron_param_proxy", true);
 
     export_polyhedron_proxy(m, "polyhedron_param_proxy");
     export_faceted_sphere_proxy(m, "faceted_sphere_param_proxy");
@@ -1028,7 +1028,8 @@ void export_shape_params(pybind11::module& m)
     export_shape_union_proxy<ShapeSphere, 16>(m, "sphere_union_param_proxy16", export_sphere_proxy<ShapeUnion<ShapeSphere, 16>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 16> > >);
     export_shape_union_proxy<ShapeSphere, 32>(m, "sphere_union_param_proxy32", export_sphere_proxy<ShapeUnion<ShapeSphere, 32>, detail::access_shape_union_members< ShapeUnion<ShapeSphere, 32> > >);
 
-    export_shape_union_proxy<ShapeConvexPolyhedron, 32>(m, "convex_polyhedron_union_param_proxy32", export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron, 32>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron, 32> > >);
+    auto export_fnct = std::bind(export_poly3d_proxy<ShapeUnion<ShapeConvexPolyhedron, 32>, detail::access_shape_union_members< ShapeUnion<ShapeConvexPolyhedron, 32> > >, std::placeholders::_1, std::placeholders::_2, false);
+    export_shape_union_proxy<ShapeConvexPolyhedron, 32>(m, "convex_polyhedron_union_param_proxy32", export_fnct);
 
     }
 
