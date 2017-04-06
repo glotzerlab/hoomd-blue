@@ -18,7 +18,7 @@ template cudaError_t gpu_hpmc_free_volume<ShapeSphinx>(const hpmc_free_volume_ar
                                                        const typename ShapeSphinx::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapeSphinx>(const hpmc_args_t& args,
                                                   const typename ShapeSphinx::param_type *d_params);
-template void gpu_hpmc_implicit_count_overlaps<ShapeSphinx>(const hpmc_implicit_args_t& args,
+template cudaError_t gpu_hpmc_insert_depletants_queue<ShapeSphinx>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeSphinx::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapeSphinx>(const hpmc_implicit_args_t& args,
                                                   const typename ShapeSphinx::param_type *d_params);

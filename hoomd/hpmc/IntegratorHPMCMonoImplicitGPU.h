@@ -60,17 +60,14 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
                 {
                 m_tuner_update->setPeriod(period*this->m_nselect*8);
                 m_tuner_implicit->setPeriod(period*this->m_nselect*8);
-                m_tuner_reinsert->setPeriod(period*this->m_nselect*8);
                 }
             else
                 {
                 m_tuner_update->setPeriod(period*this->m_nselect*4);
                 m_tuner_implicit->setPeriod(period*this->m_nselect*4);
-                m_tuner_reinsert->setPeriod(period*this->m_nselect*4);
                 }
 
             m_tuner_update->setEnabled(enable);
-            m_tuner_reinsert->setEnabled(enable);
             m_tuner_implicit->setEnabled(enable);
 
             m_tuner_excell_block_size->setPeriod(period);
@@ -96,29 +93,16 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
         std::unique_ptr<Autotuner> m_tuner_implicit;           //!< Autotuner for the depletant overlap check
-        std::unique_ptr<Autotuner> m_tuner_reinsert;      //!< Autotuner for the acceptance probability calculation
-        mgpu::ContextPtr m_mgpu_context;              //!< MGPU context
-
 
         GPUArray<curandState_t> m_curand_state_cell;               //!< Array of cuRAND states per active cell
         GPUArray<curandState_t> m_curand_state_cell_new;           //!< Array of cuRAND states per active cell after update
         GPUArray<unsigned int> m_overlap_cell;                   //!< Flag per cell to indicate overlap
-        GPUArray<float> m_log_boltzmann;                     //!< Log of successful reinsertion attempts (new position)
-        GPUArray<unsigned int> m_n_success_zero;             //!< Whether number of successful reinsertions is zero (new)
         GPUArray<curandDiscreteDistribution_t> m_poisson_dist; //!< Handles for the poisson distribution histogram
         std::vector<bool> m_poisson_dist_created;               //!< Flag to indicate if Poisson distribution has been initialized
 
         GPUArray<unsigned int> m_active_cell_ptl_idx;  //!< List of update particle indicies per active cell
         GPUArray<unsigned int> m_active_cell_accept;   //!< List of accept/reject flags per active cell
         GPUArray<unsigned int> m_active_cell_move_type_translate;   //!< Type of move proposed in active cell
-
-        GPUArray<unsigned int> m_overlap_cell_scan;                 //!< Scan of m_overlap_cell
-        GPUVector<unsigned int> m_depletant_active_cell;            //!< Lookup of active cell idx per overlapping depletant
-        GPUVector<unsigned int> m_n_success_forward;                //!< Successful forward-insertions
-        GPUVector<unsigned int> m_n_overlap_shape_forward;          //!< Forward-insertions
-        GPUVector<unsigned int> m_n_success_reverse;                //!< Successful reverse-insertions
-        GPUVector<unsigned int> m_n_overlap_shape_reverse;          //!< Forward-insertions
-        GPUVector<float> m_depletant_lnb;                           //!< Configurational bias weights
 
         cudaStream_t m_stream;                                  //! GPU kernel stream
 
@@ -177,24 +161,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     GPUVector<Scalar4> old_orientation(this->m_exec_conf);
     m_old_orientation.swap(old_orientation);
 
-    GPUVector<unsigned int> depletant_active_cell(this->m_exec_conf);
-    m_depletant_active_cell.swap(depletant_active_cell);
-
-    GPUVector<unsigned int> n_success_forward(this->m_exec_conf);
-    m_n_success_forward.swap(n_success_forward);
-
-    GPUVector<unsigned int> n_overlap_shape_forward(this->m_exec_conf);
-    m_n_overlap_shape_forward.swap(n_overlap_shape_forward);
-
-    GPUVector<unsigned int> n_success_reverse(this->m_exec_conf);
-    m_n_success_reverse.swap(n_success_reverse);
-
-    GPUVector<unsigned int> n_overlap_shape_reverse(this->m_exec_conf);
-    m_n_overlap_shape_reverse.swap(n_overlap_shape_reverse);
-
-    GPUVector<float> depletant_lnb(this->m_exec_conf);
-    m_depletant_lnb.swap(depletant_lnb);
-
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
     // encoded as block_size*1000000 + stride*100 + group_size.
@@ -202,17 +168,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     // parameters for count_overlaps kernel
     std::vector<unsigned int> valid_params;
 
-    // parameters for HPMC update kernel
-    std::vector<unsigned int> valid_params_update;
-
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
-
-    unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
-    if (this->m_exec_conf->getComputeCapability() < 300)
-        {
-        // no wide parallelism on Fermi
-        max_tpp = 1;
-        }
 
     if (Shape::isParallel())
         {
@@ -226,7 +182,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
                     {
                     // for parallel overlap checks, use 3d-layout where blockDim.z is limited
                     if (block_size % (s*stride) == 0 && block_size/(s*stride) <= (unsigned int) dev_prop.maxThreadsDim[2])
-                        valid_params_update.push_back(block_size*1000000 + stride*100 + s);
+                        valid_params.push_back(block_size*1000000 + stride*100 + s);
 
                     // increment stride in powers of two
                     stride *= 2;
@@ -246,51 +202,14 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
             for (unsigned int group_size=1; group_size <= (unsigned int)dev_prop.warpSize; group_size++)
                 {
                 if ((block_size % group_size) == 0)
-                    valid_params_update.push_back(block_size*1000000 + stride*100 + group_size);
-                }
-            }
-        }
-
-    if (Shape::isParallel())
-        {
-        for (unsigned int block_size = (unsigned int) dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += (unsigned int) dev_prop.warpSize)
-            {
-            unsigned int s=1;
-            while (s <= max_tpp)
-                {
-                unsigned int stride = 1;
-                while (stride <=max_tpp/s)
-                    {
-                    // for parallel overlap checks, use 3d-layout where blockDim.z is limited
-                    if (block_size/s/stride <= (unsigned int) dev_prop.maxThreadsDim[2])
-                        {
-                        valid_params.push_back(block_size*1000000 + stride*100 + s);
-                        }
-                    stride*=2;
-                    }
-                s = s * 2;
-                }
-            }
-        }
-    else
-        {
-        // for serial overlap checks, force stride=1. A group needs to be smaller than a warp and a power of two
-        unsigned int stride = 1;
-
-        for (unsigned int block_size = (unsigned int) dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += (unsigned int) dev_prop.warpSize)
-            {
-            for (unsigned int group_size=1; group_size <= (unsigned int)max_tpp; group_size*=2)
-                {
-                if ((block_size % group_size) == 0)
                     valid_params.push_back(block_size*1000000 + stride*100 + group_size);
                 }
             }
         }
 
-    m_tuner_update.reset(new Autotuner(valid_params_update, 5, 1000000, "hpmc_update", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_update", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
-    m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_count_overlaps", this->m_exec_conf));
-    m_tuner_reinsert.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_reinsert", this->m_exec_conf));
+    m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_insert_depletants", this->m_exec_conf));
 
     GPUArray<hpmc_implicit_counters_t> implicit_count(1,this->m_exec_conf);
     this->m_implicit_count.swap(implicit_count);
@@ -303,9 +222,6 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     // create a CUDA stream for kernel execution
     cudaStreamCreate(&m_stream);
     CHECK_CUDA_ERROR();
-
-    // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(m_stream);
     }
 
 //! Destructor
@@ -399,15 +315,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
         GPUArray<unsigned int> overlap_cell(this->m_cell_set_indexer.getW(), this->m_exec_conf);
         m_overlap_cell.swap(overlap_cell);
-
-        GPUArray<unsigned int> overlap_cell_scan(this->m_cell_set_indexer.getW(), this->m_exec_conf);
-        m_overlap_cell_scan.swap(overlap_cell_scan);
-
-        GPUArray<float> log_boltzmann(this->m_cell_set_indexer.getW(), this->m_exec_conf);
-        m_log_boltzmann.swap(log_boltzmann);
-
-        GPUArray<unsigned int> n_success_zero(this->m_cell_set_indexer.getW(), this->m_exec_conf);
-        m_n_success_zero.swap(n_success_zero);
 
         GPUArray<unsigned int> active_cell_ptl_idx(this->m_cell_set_indexer.getW(), this->m_exec_conf);
         m_active_cell_ptl_idx.swap(active_cell_ptl_idx);
@@ -506,8 +413,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
             }
         unsigned int groups_per_cell = ((unsigned int) lambda_max)+1;
 
-        unsigned int n_reinsert = 0;
-
         // on first iteration, synchronize GPU execution stream and update shape parameters
         bool first = true;
 
@@ -598,10 +503,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                     // overlap flags
                     ArrayHandle<unsigned int> d_overlap_cell(this->m_overlap_cell, access_location::device, access_mode::readwrite);
-                    ArrayHandle<unsigned int> d_overlap_cell_scan(this->m_overlap_cell_scan, access_location::device, access_mode::readwrite);
-
-                    ArrayHandle<float> d_log_boltzmann(m_log_boltzmann, access_location::device,access_mode::overwrite);
-                    ArrayHandle<unsigned int> d_n_success_zero(m_n_success_zero,access_location::device,access_mode::overwrite);
 
                     // min/max diameter of insertion sphere
                     ArrayHandle<Scalar> d_d_min(this->m_d_min, access_location::device, access_mode::read);
@@ -609,9 +510,6 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                     // Poisson distribution
                     ArrayHandle<curandDiscreteDistribution_t> d_poisson_dist(m_poisson_dist, access_location::device, access_mode::read);
-
-                    // total number of inserted depletants that overlap
-                    unsigned int n_overlaps = 0;
 
                         {
                         // counters
@@ -626,7 +524,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         m_tuner_implicit->begin();
 
                         // invoke kernel
-                        detail::gpu_hpmc_implicit_count_overlaps<Shape>(
+//                        detail::gpu_hpmc_implicit_count_overlaps<Shape>(
+                        detail::gpu_hpmc_insert_depletants_queue<Shape>(
                             detail::hpmc_implicit_args_t(d_postype.data,
                                 d_orientation.data,
                                 d_old_postype.data,
@@ -664,21 +563,13 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_implicit_count.data,
                                 d_poisson_dist.data,
                                 d_overlap_cell.data,
-                                d_overlap_cell_scan.data,
                                 groups_per_cell,
                                 d_active_cell_ptl_idx.data,
                                 d_active_cell_accept.data,
                                 d_active_cell_move_type_translate.data,
-                                d_log_boltzmann.data,
-                                d_n_success_zero.data,
-                                this->m_n_trial,
-                                0,
-                                n_overlaps,
-                                0, 0, 0, 0, 0,
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
-                                m_mgpu_context,
                                 m_stream),
                             params.data());
 
@@ -688,35 +579,9 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         m_tuner_implicit->end();
                         }
 
-                    if (this->m_n_trial)
-                        {
-                        // resize O(N_depletant) memory
-                        m_depletant_active_cell.resize(n_overlaps);
-                        m_n_success_forward.resize(n_overlaps);
-                        m_n_overlap_shape_forward.resize(n_overlaps);
-                        m_n_success_reverse.resize(n_overlaps);
-                        m_n_overlap_shape_reverse.resize(n_overlaps);
-                        m_depletant_lnb.resize(n_overlaps);
-                        }
-
                         {
                         // counters
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
-
-                        ArrayHandle<unsigned int> d_depletant_active_cell(m_depletant_active_cell, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_n_success_forward(m_n_success_forward, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_n_overlap_shape_forward(m_n_overlap_shape_forward, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_n_success_reverse(m_n_success_reverse, access_location::device, access_mode::overwrite);
-                        ArrayHandle<unsigned int> d_n_overlap_shape_reverse(m_n_overlap_shape_reverse, access_location::device, access_mode::overwrite);
-                        ArrayHandle<float> d_depletant_lnb(m_depletant_lnb, access_location::device, access_mode::overwrite);
-
-                        // Kernel driver arguments
-                        param = m_tuner_reinsert->getParam();
-                        block_size = param / 1000000;
-                        stride = (param % 1000000 ) / 100;
-                        group_size = param % 100;
-
-                        m_tuner_reinsert->begin();
 
                         // apply acceptance/rejection criterium
                         detail::gpu_hpmc_implicit_accept_reject<Shape>(
@@ -744,9 +609,9 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 this->m_sysdef->getNDimensions(),
                                 box,
                                 i+particles_per_cell*this->m_nselect*(3*j+2),
-                                block_size,
-                                stride,
-                                group_size,
+                                256, // block_size
+                                1, // stride
+                                1, //group_size
                                 this->m_hasOrientation,
                                 this->m_pdata->getMaxN(),
                                 this->m_exec_conf->dev_prop,
@@ -757,48 +622,25 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_implicit_count.data,
                                 d_poisson_dist.data,
                                 d_overlap_cell.data,
-                                d_overlap_cell_scan.data,
                                 groups_per_cell,
                                 d_active_cell_ptl_idx.data,
                                 d_active_cell_accept.data,
                                 d_active_cell_move_type_translate.data,
-                                d_log_boltzmann.data,
-                                d_n_success_zero.data,
-                                this->m_n_trial,
-                                d_depletant_active_cell.data,
-                                n_overlaps,
-                                d_n_success_forward.data,
-                                d_n_overlap_shape_forward.data,
-                                d_n_success_reverse.data,
-                                d_n_overlap_shape_reverse.data,
-                                d_depletant_lnb.data,
                                 d_d_min.data,
                                 d_d_max.data,
                                 first,
-                                m_mgpu_context,
                                 m_stream),
                             params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
-
-                        m_tuner_reinsert->end();
                         }
-
-                    // increment counter
-                    n_reinsert += n_overlaps * this->m_n_trial;
-
                     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
                     }
 
                 first = false;
                 } // end loop over cell sets
             } // end loop nselect*particles_per_cell
-
-            {
-            ArrayHandle<hpmc_implicit_counters_t> h_implicit_count(this->m_implicit_count, access_location::host, access_mode::readwrite);
-            h_implicit_count.data->reinsert_count += n_reinsert;
-            }
 
         // shift particles
         Scalar3 shift = make_scalar3(0,0,0);

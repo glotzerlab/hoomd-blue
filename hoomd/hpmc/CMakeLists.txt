@@ -15,13 +15,8 @@ set(_hpmc_sources   module.cc
                     module_ellipsoid.cc
                     module_faceted_sphere.cc
                     module_sphinx.cc
-                    module_union_sphere1.cc
-                    module_union_sphere2.cc
-                    module_union_sphere4.cc
-                    module_union_sphere8.cc
-                    module_union_sphere16.cc
-                    module_union_sphere32.cc
-                    module_union_convex_polyhedron32.cc
+                    module_union_convex_polyhedron.cc
+                    module_union_sphere.cc
                     module_convex_polyhedron.cc
                     module_convex_spheropolyhedron.cc
                     UpdaterBoxMC.cc
@@ -68,6 +63,7 @@ set(_hpmc_headers
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
+    triangle_triangle.h
     )
 
 # if (ENABLE_CUDA)
@@ -76,7 +72,6 @@ set(_hpmc_headers
 # endif()
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
-                     IntegratorHPMCMonoImplicitGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
                      all_kernels_simple_polygon.cu
@@ -85,13 +80,8 @@ set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
                      all_kernels_ellipsoid.cu
                      all_kernels_faceted_sphere.cu
                      all_kernels_sphinx.cu
-                     all_kernels_union_sphere1.cu
-                     all_kernels_union_sphere2.cu
-                     all_kernels_union_sphere4.cu
-                     all_kernels_union_sphere8.cu
-                     all_kernels_union_sphere16.cu
-                     all_kernels_union_sphere32.cu
-                     all_kernels_union_convex_polyhedron32.cu
+                     all_kernels_union_convex_polyhedron.cu
+		     all_kernels_union_sphere.cu
                      all_kernels_convex_polyhedron.cu
                      all_kernels_convex_spheropolyhedron.cu
                      )

@@ -129,46 +129,45 @@ class ManagedArray
 
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
+            \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
             {
-            // align to size of data type
-            char *ptr_align = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~((unsigned long int) sizeof(T) - 1));
+            // we use at most this many bytes due to aligment
+            unsigned int max_bytes = sizeof(T) -1 + sizeof(T)*N;
 
-            // can we fit the data into shared memory?
-            if (ptr_align + sizeof(T)*N >= ptr_max)
-                return;
+            if (max_bytes > available_bytes) return;
 
-            // use aligned address
-            ptr = ptr_align;
+            available_bytes -= max_bytes;
 
             #if defined (__CUDA_ARCH__)
-            if (load)
+            // only in GPU code
+
+            // align ptr to size of data type
+            ptr = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~((unsigned long int) sizeof(T) - 1));
+
+            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+
+            unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+            unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+            for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
                 {
-                unsigned int size_int = (sizeof(T)*N)/sizeof(int);
-
-                unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
-                unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
-
-                for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
+                if (cur_offset + tidx < size_int)
                     {
-                    if (cur_offset + tidx < size_int)
-                        {
-                        ((int *)ptr)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
-                        }
+                    ((int *)ptr)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
                     }
-
-                __syncthreads();
-
-                // redirect data ptr
-                data = (T *) ptr;
                 }
-            #endif
+
+            // make sure all threads have read from data
+            __syncthreads();
+
+            // redirect data ptr
+            data = (T *) ptr;
 
             // increment pointer
             ptr += N*sizeof(T);
+            #endif
             }
 
     protected:

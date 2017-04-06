@@ -15,21 +15,19 @@ seed_list = [123]
 phi_c_list=[0.1]
 #eta_p_r_list=[0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 eta_p_r_list=[0.4]
-#ntrial_list=[0,5,10,50]
-ntrial_list=[0,10]
 
 import itertools
 params = []
-params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list, ntrial_list))
+params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
 context.msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
 p = int(option.get_user()[0])
-(seed, phi_c, eta_p_r, ntrial) = params[p]
+(seed, phi_c, eta_p_r) = params[p]
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f} ntrial {}\n".format(p,seed, phi_c, eta_p_r, ntrial))
+context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
 # see M. Dijkstra et al. Phys. Rev. E 73, p. 41404, 2006, Fig. 2 and
 # J. Glaser et al., JCP 143 18, p. 184110, 2015.
@@ -132,7 +130,7 @@ class implicit_test (unittest.TestCase):
     def test_measure_etap(self):
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR, ntrial=ntrial)
+        self.mc.set_params(nR=nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)

@@ -27,6 +27,7 @@
 #include <iostream>
 #endif
 
+//#define SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
 
 namespace hpmc
 {
@@ -35,10 +36,10 @@ namespace detail
 {
 
 //! Data structure for shape composed of a union of multiple shapes
-template<class Shape, unsigned int capacity>
+template<class Shape>
 struct union_params : param_base
     {
-    typedef GPUTree<capacity> gpu_tree_type; //!< Handy typedef for GPUTree template
+    typedef GPUTree gpu_tree_type; //!< Handy typedef for GPUTree template
     typedef typename Shape::param_type mparam_type;
 
     //! Default constructor
@@ -48,16 +49,15 @@ struct union_params : param_base
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        tree.load_shared(ptr, load, ptr_max);
-        mpos.load_shared(ptr, load, ptr_max);
-        mparams.load_shared(ptr, load, ptr_max);
-        moverlap.load_shared(ptr, load, ptr_max);
-        morientation.load_shared(ptr, load, ptr_max);
+        tree.load_shared(ptr, available_bytes);
+        mpos.load_shared(ptr, available_bytes);
+        mparams.load_shared(ptr, available_bytes);
+        moverlap.load_shared(ptr, available_bytes);
+        morientation.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -108,11 +108,11 @@ struct union_params : param_base
 
     ShapeUnion stores an internal OBB tree for fast overlap checks.
 */
-template<class Shape, unsigned int capacity=4>
+template<class Shape>
 struct ShapeUnion
     {
     //! Define the parameter type
-    typedef typename detail::union_params<Shape, capacity> param_type;
+    typedef typename detail::union_params<Shape> param_type;
 
     //! Initialize a sphere_union
     DEVICE ShapeUnion(const quat<Scalar>& _orientation, const param_type& _params)
@@ -161,7 +161,13 @@ struct ShapeUnion
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return true; }
+    HOSTDEVICE static bool isParallel() {
+        #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
+        return true;
+        #else
+        return false;
+        #endif
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the particle
 
@@ -176,9 +182,9 @@ struct ShapeUnion
 
     \ingroup shape
 */
-template <class Shape, unsigned int capacity>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape, capacity>& a,
-    const ShapeUnion<Shape, capacity> &b)
+template <class Shape>
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeUnion<Shape>& a,
+    const ShapeUnion<Shape> &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -187,10 +193,10 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
     return (rsq*OverlapReal(4.0) <= DaDb * DaDb);
     }
 
-template<class Shape, unsigned int capacity>
+template<class Shape>
 DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
-                                             const ShapeUnion<Shape, capacity>& a,
-                                             const ShapeUnion<Shape, capacity>& b,
+                                             const ShapeUnion<Shape>& a,
+                                             const ShapeUnion<Shape>& b,
                                              unsigned int cur_node_a,
                                              unsigned int cur_node_b)
     {
@@ -241,12 +247,16 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<OverlapReal> dr,
     return false;
     }
 
-template <class Shape, unsigned int capacity >
+template <class Shape >
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                const ShapeUnion<Shape, capacity >& a,
-                                const ShapeUnion<Shape, capacity >& b,
+                                const ShapeUnion<Shape>& a,
+                                const ShapeUnion<Shape>& b,
                                 unsigned int& err)
     {
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
+
+    #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
@@ -255,9 +265,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int offset = 0;
     unsigned int stride = 1;
     #endif
-
-    const detail::GPUTree<capacity>& tree_a = a.members.tree;
-    const detail::GPUTree<capacity>& tree_b = b.members.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
@@ -296,6 +303,29 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 }
             }
         }
+    #else
+    // perform a tandem tree traversal
+    unsigned long int stack = 0;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+        {
+        unsigned int query_node_a = cur_node_a;
+        unsigned int query_node_b = cur_node_b;
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b)) return true;
+        }
+    #endif
 
     return false;
     }

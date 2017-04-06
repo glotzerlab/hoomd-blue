@@ -100,9 +100,9 @@ class lattice_field(_external):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldLatticeSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('ExternalFieldLatticeSphereUnion', mc.capacity);
+                cls = _hpmc.ExternalFieldLatticeSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('ExternalFieldLatticeConvexPolyhedronUnion', mc.capacity);
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
@@ -267,9 +267,9 @@ class external_field_composite(_external):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ExternalFieldCompositeSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate.get_sized_entry('ExternalFieldCompositeSphereUnion', mc.capacity);
+                cls = _hpmc.ExternalFieldCompositeSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate.get_sized_entry('ExternalFieldCompositeConvexPolyhedronUnion', mc.capacity);
+                cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");

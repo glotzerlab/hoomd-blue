@@ -524,9 +524,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitConvexPolyhedronUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -550,9 +550,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTConvexPolyhedronUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -704,9 +704,9 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.capacity);
+                cls = _hpmc.RemoveDriftUpdaterSphereUnion;
             elif isinstance(mc, integrate.convex_polyhedron_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterConvexPolyhedronUnion', mc.capacity);
+                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");

@@ -2,9 +2,6 @@
 
 [TOC]
 
-=======
-## v2.2
-
 Not yet released
 
 *New features*
@@ -13,9 +10,9 @@ Not yet released
 * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
 * force.constant and force.active can now apply torques
 
-Deprecated*
+*Deprecated*
 
-* HPMC: `hpmc.integrate.sphere_union()` no longer needs the max_members parameter
+* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
 
 *Bug fixes*
 
@@ -24,6 +21,7 @@ Deprecated*
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
+* Faster simulations with implicit depletants on CPU
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
