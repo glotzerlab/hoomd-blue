@@ -1789,7 +1789,7 @@ class convex_polyhedron_union(mode_hpmc):
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=32):
         hoomd.util.print_status_line();
 
         if max_members is not None:
