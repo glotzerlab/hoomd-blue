@@ -1766,16 +1766,16 @@ class convex_polyhedron_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedronUnion', capacity)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedronUnion', capacity)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUConvexPolyhedronUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);

@@ -763,8 +763,8 @@ struct get_member_proxy{};
 template<typename Shape, typename AccessType >
 struct get_member_proxy<Shape, ShapeUnion<ShapeSphere>, AccessType >{ typedef sphere_param_proxy<Shape, AccessType> proxy_type; };
 
-template<typename Shape, unsigned int capacity, typename AccessType >
-struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron, capacity>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
+template<typename Shape, typename AccessType >
+struct get_member_proxy<Shape, ShapeUnion<ShapeConvexPolyhedron>, AccessType >{ typedef poly3d_param_proxy<Shape, AccessType> proxy_type; };
 
 
 template< class ShapeUnionType >

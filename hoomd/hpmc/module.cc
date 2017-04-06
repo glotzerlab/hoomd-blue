@@ -89,7 +89,7 @@ PYBIND11_PLUGIN(_hpmc)
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params");
 
-    py::class_< ShapeUnion<ShapeConvexPolyhedron, 32>::param_type, std::shared_ptr< ShapeUnion<ShapeConvexPolyhedron, 32>::param_type> >(m, "mpoly3d_params32");
+    py::class_< ShapeUnion<ShapeConvexPolyhedron>::param_type, std::shared_ptr< ShapeUnion<ShapeConvexPolyhedron>::param_type> >(m, "mpoly3d_params");
 
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);

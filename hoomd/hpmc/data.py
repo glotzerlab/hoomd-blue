@@ -367,13 +367,13 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
                             capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
 
-class convex_polyhedron_union_params(_param):
+class convex_polyhedron_union_params(_hpmc.convex_polyhedron_union_param_proxy,_param):
     def __init__(self, mc, index):
-        self.cpp_class.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size template
+        _hpmc.convex_polyhedron_union_param_proxy.__init__(self, mc.cpp_integrator, index); # we will add this base class later because of the size templated
         _param.__init__(self, mc, index);
         self.__dict__.update(dict(colors=None));
         self._keys += ['centers', 'orientations', 'vertices', 'colors','overlap'];
-        self.make_fn = hoomd.hpmc.integrate._get_sized_entry("make_convex_polyhedron_union_params", self.mc.capacity);
+        self.make_fn = _hpmc.make_convex_polyhedron_union_params;
 
     def __str__(self):
         # should we put this in the c++ side?
@@ -396,12 +396,7 @@ class convex_polyhedron_union_params(_param):
             data[key] = val;
         return data;
 
-    @classmethod
-    def get_sized_class(cls, capacity):
-        sized_class = hoomd.hpmc.integrate._get_sized_entry("convex_polyhedron_union_param_proxy", capacity);
-        return type(cls.__name__ + str(capacity), (cls, sized_class), dict(cpp_class=sized_class)); # cpp_class is just for easier reference to call the constructor
-
-    def make_param(self, centers, orientations, vertices, overlap=None, ignore_statistics=False, colors=None):
+    def make_param(self, centers, orientations, vertices, overlap=None, ignore_statistics=False, colors=None, capacity=4):
         if overlap is None:
             overlap = [1 for c in centers]
 
@@ -419,4 +414,5 @@ class convex_polyhedron_union_params(_param):
                             self.ensure_list(orientations),
                             self.ensure_list(overlap),
                             ignore_statistics,
+                            capacity,
                             hoomd.context.current.system_definition.getParticleData().getExecConf());
