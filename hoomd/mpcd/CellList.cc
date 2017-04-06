@@ -513,7 +513,7 @@ void mpcd::CellList::buildCellList()
             }
         Scalar3 pos_i = make_scalar3(postype_i.x, postype_i.y, postype_i.z);
 
-        if (isnan(pos_i.x) || isnan(pos_i.y) || isnan(pos_i.z))
+        if (std::isnan(pos_i.x) || std::isnan(pos_i.y) || std::isnan(pos_i.z))
             {
             conditions.y = cur_p + 1;
             continue;
