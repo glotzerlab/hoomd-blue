@@ -12,6 +12,16 @@
 
 #include <iostream>
 
+// C++ may store internal data at the beginning of the buffer when using new[]
+const std::size_t MAX_OVERHEAD_BYTES=32;
+
+// http://stackoverflow.com/questions/8720425/array-placement-new-requires-unspecified-overhead-in-the-buffer
+inline void* operator new[](std::size_t n, void* p, std::size_t limit)
+    {
+    if (n > limit) throw std::bad_alloc();
+    return p;
+    }
+
 template<class T>
 class managed_allocator
     {
@@ -35,10 +45,12 @@ class managed_allocator
             {
             value_type *result = nullptr;
 
+            void *ptr;
+
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
-                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                cudaError_t error = cudaMallocManaged(&ptr, n*sizeof(T)+MAX_OVERHEAD_BYTES, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -48,12 +60,15 @@ class managed_allocator
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+
+                int retval = posix_memalign(&ptr, 32, n*sizeof(T)+MAX_OVERHEAD_BYTES);
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
                     }
                 }
+            // construct objects using placement new
+            result = ::new(ptr,n*sizeof(T)+MAX_OVERHEAD_BYTES) value_type[n];
             return result;
             }
 
@@ -61,11 +76,12 @@ class managed_allocator
         static value_type *allocate(std::size_t n, bool use_device)
             {
             value_type *result = nullptr;
+            void *ptr;
 
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                cudaError_t error = cudaMallocManaged(&ptr, n*sizeof(T)+MAX_OVERHEAD_BYTES, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -75,18 +91,25 @@ class managed_allocator
             else
             #endif
                 {
-                int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
+                int retval = posix_memalign(&ptr, 32, n*sizeof(T)+MAX_OVERHEAD_BYTES);
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
                     }
                 }
+
+            // construct objects using placement new
+            result = ::new(ptr,n*sizeof(T)+MAX_OVERHEAD_BYTES) value_type[n];
+
             return result;
             }
 
 
-        void deallocate(value_type *ptr, std::size_t)
+        void deallocate(value_type *ptr, std::size_t N)
             {
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < N; ++i) ptr[i].~value_type();
+
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
@@ -105,8 +128,16 @@ class managed_allocator
             }
 
         //! Static version
-        static void deallocate(value_type *ptr, std::size_t, bool use_device)
+        static void deallocate(value_type *ptr, std::size_t N, bool use_device)
             {
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < N; ++i)
+                {
+                printf("Calling destructor %d\n",(int) i);
+                ptr[i].~value_type();
+                }
+
+            printf("All destructors called.\n");
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
@@ -120,7 +151,9 @@ class managed_allocator
             else
             #endif
                 {
-                free(ptr);
+                printf("Trying to delete %p\n",ptr);
+                ::operator delete [](ptr);
+                printf("Deleted\n");
                 }
             }
 

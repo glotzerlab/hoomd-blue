@@ -207,6 +207,7 @@ class helper_functions(unittest.TestCase):
 
         Ap = numpy.array([[-hs, 0, 0], [hs, 0, 0]])
         Bp = numpy.array(Ap)
+
         self.assertTrue(dimer_overlap_manual(self.system, cube_verts, Ap, Aq, Bp, Bq))
         with tmp_sim:
             self.assertTrue(dimer_overlap_union(system, cube_verts, Ap, Aq, Bp, Bq))
