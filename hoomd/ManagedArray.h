@@ -174,14 +174,14 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate(N, managed);
+            data = managed_allocator<T>::allocate_construct(N, managed);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate(data, N, managed);
+                managed_allocator<T>::deallocate_destroy(data, N, managed);
                 }
             }
         #endif

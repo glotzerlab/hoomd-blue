@@ -48,24 +48,26 @@ class managed_allocator
             else
             #endif
                 {
+
                 int retval = posix_memalign((void **) &result, 32, n*sizeof(T));
                 if (retval != 0)
                     {
                     throw std::runtime_error("Error allocating aligned memory");
                     }
                 }
+
             return result;
             }
 
-        // Static version
-        static value_type *allocate(std::size_t n, bool use_device)
+        // Static version, also constructs objects
+        static value_type *allocate_construct(std::size_t n, bool use_device)
             {
             value_type *result = nullptr;
 
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                cudaError_t error = cudaMallocManaged(&result, (int) (n*sizeof(T)), cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -81,11 +83,15 @@ class managed_allocator
                     throw std::runtime_error("Error allocating aligned memory");
                     }
                 }
+
+            // construct objects explicitly using placement new
+            for (std::size_t i = 0; i < n; ++i) ::new ((void **) &result[i]) value_type;
+
             return result;
             }
 
 
-        void deallocate(value_type *ptr, std::size_t)
+        void deallocate(value_type *ptr, std::size_t N)
             {
             #ifdef ENABLE_CUDA
             if (m_use_device)
@@ -104,9 +110,15 @@ class managed_allocator
                 }
             }
 
-        //! Static version
-        static void deallocate(value_type *ptr, std::size_t, bool use_device)
+        //! Static version, also destroys objects
+        static void deallocate_destroy(value_type *ptr, std::size_t N, bool use_device)
             {
+            // we used placement new in the allocation, so call destructors explicitly
+            for (std::size_t i = 0; i < N; ++i)
+                {
+                ptr[i].~value_type();
+                }
+
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
