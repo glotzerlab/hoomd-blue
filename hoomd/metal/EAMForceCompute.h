@@ -36,7 +36,8 @@
 class EAMForceCompute : public ForceCompute {
 public:
     //! Constructs the compute
-    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr);
+    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter,
+                    int setnrho, int setnr);
 
     //! Destructor
     virtual ~EAMForceCompute();
@@ -92,10 +93,11 @@ protected:
     std::vector<Scalar> derivativePairPotential;      //!< interpolated array d(r*phi(r))/dr
 
     //! 3rd order interpolation parameters
-    std::vector< std::vector< Scalar > > iemb;  // param for F
-    std::vector< std::vector< Scalar > > irho;  // param for rho
-    std::vector< std::vector< Scalar > > irphi; // param for r*phi
-    virtual void interpolate(int num_all, int num_per, Scalar delta, std::vector< Scalar >* f, std::vector< std::vector< Scalar > >* spline);
+    std::vector<std::vector<Scalar> > iemb;  // param for F
+    std::vector<std::vector<Scalar> > irho;  // param for rho
+    std::vector<std::vector<Scalar> > irphi; // param for r*phi
+    virtual void interpolate(int num_all, int num_per, Scalar delta, std::vector<Scalar> *f,
+                             std::vector<std::vector<Scalar> > *spline);
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
@@ -105,6 +107,14 @@ protected:
         m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
         throw std::runtime_error("Unsupported feature");
     }
+
+    // 0405 begin
+    GPUArray<Scalar> m_F;
+    GPUArray<Scalar> m_rho;
+    GPUArray<Scalar> m_rphi;
+
+    virtual void inter(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar> *f);
+    // 0405 end
 };
 
 //! Exports the EAMForceCompute class to python
