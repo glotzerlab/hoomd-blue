@@ -43,12 +43,12 @@ struct EAMTexInterArrays {
 
 //! Collection of cuda Arrays for EAM force GPU kernels
 struct EAMtex {
-	cudaArray* electronDensity;              //!< array rho(r), electron density
-	cudaArray* pairPotential;                //!< array r*phi(r), pairwise energy
-	cudaArray* embeddingFunction;            //!< array F(rho), embedding energy
-	cudaArray* derivativeElectronDensity;    //!< array d(rho(r))/dr
-	cudaArray* derivativePairPotential;      //!< array d(r*phi(r))/dr
-	cudaArray* derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
+//	cudaArray* electronDensity;              //!< array rho(r), electron density
+//	cudaArray* pairPotential;                //!< array r*phi(r), pairwise energy
+//	cudaArray* embeddingFunction;            //!< array F(rho), embedding energy
+//	cudaArray* derivativeElectronDensity;    //!< array d(rho(r))/dr
+//	cudaArray* derivativePairPotential;      //!< array d(r*phi(r))/dr
+//	cudaArray* derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
 
 };
 
@@ -57,8 +57,11 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial,
 		const unsigned int virial_pitch, const unsigned int N,
 		const Scalar4 *d_pos, const BoxDim& box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		const unsigned int size_nlist, const EAMtex& eam_tex,
+		const unsigned int size_nlist,
 		const EAMTexInterArrays& eam_arrays, const EAMTexInterData& eam_data,
+		const Scalar *d_F,
+		const Scalar *d_rho,
+		const Scalar *d_rphi,
 		const unsigned int compute_capability,
 		const unsigned int max_tex1d_width);
 

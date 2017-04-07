@@ -65,29 +65,29 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     //Allocate memory on GPU for tables for EAM in cudaArray
     cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc<Scalar>();
 
-    cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
-    cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar),
-                      cudaMemcpyHostToDevice);
+//    cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
+//    cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar),
+//                      cudaMemcpyHostToDevice);
 
-    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
-    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0],
-                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
+//    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
+//    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0],
+//                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
 
-    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
-    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0],
-                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
+//    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
+//    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0],
+//                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
 
-    cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
-    cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0],
-                      m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
-
-    cudaMallocArray(&eam_tex_data.derivativePairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
-    cudaMemcpyToArray(eam_tex_data.derivativePairPotential, 0, 0, &derivativePairPotential[0],
-                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
-
-    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
-    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0],
-                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
+//    cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
+//    cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0],
+//                      m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
+//
+//    cudaMallocArray(&eam_tex_data.derivativePairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
+//    cudaMemcpyToArray(eam_tex_data.derivativePairPotential, 0, 0, &derivativePairPotential[0],
+//                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
+//
+//    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
+//    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0],
+//                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
 
     CHECK_CUDA_ERROR();
 }
@@ -96,12 +96,12 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 EAMForceComputeGPU::~EAMForceComputeGPU() {
     // free the coefficients on the GPU
     cudaFree(d_atomDerivativeEmbeddingFunction);
-    cudaFreeArray(eam_tex_data.embeddingFunction);
-    cudaFreeArray(eam_tex_data.electronDensity);
-    cudaFreeArray(eam_tex_data.pairPotential);
-    cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
-    cudaFreeArray(eam_tex_data.derivativeElectronDensity);
-    cudaFreeArray(eam_tex_data.derivativePairPotential);
+//    cudaFreeArray(eam_tex_data.embeddingFunction);
+//    cudaFreeArray(eam_tex_data.electronDensity);
+//    cudaFreeArray(eam_tex_data.pairPotential);
+//    cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
+//    cudaFreeArray(eam_tex_data.derivativeElectronDensity);
+//    cudaFreeArray(eam_tex_data.derivativePairPotential);
 }
 
 
@@ -132,6 +132,10 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
+    ArrayHandle<Scalar> d_F(m_F, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_rho(m_rho, access_location::device, access_mode::read);
+    ArrayHandle<Scalar> d_rphi(m_rphi, access_location::device, access_mode::read);
+
     EAMTexInterArrays eam_arrays;
     eam_arrays.atomDerivativeEmbeddingFunction = (Scalar *) d_atomDerivativeEmbeddingFunction;
     m_tuner->begin();
@@ -146,9 +150,11 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
                                      d_nlist.data,
                                      d_head_list.data,
                                      this->m_nlist->getNListArray().getPitch(),
-                                     eam_tex_data,
                                      eam_arrays,
                                      eam_data,
+                                     d_F.data,
+                                     d_rho.data,
+                                     d_rphi.data,
                                      m_exec_conf->getComputeCapability() / 10,
                                      m_exec_conf->dev_prop.maxTexture1DLinear);
 
