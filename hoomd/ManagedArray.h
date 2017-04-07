@@ -69,12 +69,10 @@ class ManagedArray
         //! Assignment operator
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
-            printf("Deallocating N==%d\n",N);
             #ifndef NVCC
             deallocate();
             #endif
 
-            printf("N==%d\n",other.N);
             N = other.N;
             managed = other.managed;
 
@@ -82,9 +80,7 @@ class ManagedArray
             if (N > 0)
                 {
                 allocate();
-                printf("before std::copy %p %p\n",other.data,data);
                 std::copy(other.data, other.data+N, data);
-                printf("after std::copy\n");
                 }
             #else
             data = other.data;
@@ -178,16 +174,14 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate(N, managed);
+            data = managed_allocator<T>::allocate_construct(N, managed);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                printf("Destroying %d\n",N);
-                managed_allocator<T>::deallocate(data, N, managed);
-                printf("Done.\n");   
+                managed_allocator<T>::deallocate_destroy(data, N, managed);
                 }
             }
         #endif
