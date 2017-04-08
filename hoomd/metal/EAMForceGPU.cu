@@ -24,42 +24,9 @@ Moscow Group
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
-texture<Scalar, 1, cudaReadModeElementType> tex_F;
-texture<Scalar, 1, cudaReadModeElementType> tex_rho;
-texture<Scalar, 1, cudaReadModeElementType> tex_rphi;
-
-#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
-//! Texture for reading electron density
-//texture<Scalar, 1, cudaReadModeElementType> electronDensity_tex;
-//! Texture for reading EAM pair potential
-//texture<Scalar, 1, cudaReadModeElementType> pairPotential_tex;
-//! Texture for reading derivative EAM pair potential
-//texture<Scalar, 1, cudaReadModeElementType> derivativePairPotential_tex;
-//! Texture for reading the embedding function
-//texture<Scalar, 1, cudaReadModeElementType> embeddingFunction_tex;
-//! Texture for reading the derivative of the electron density
-//texture<Scalar, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
-//! Texture for reading the derivative of the embedding function
-//texture<Scalar, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
-//! Texture for reading the derivative of the atom embedding function
-texture<Scalar, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
-
-#else
-//! Texture for reading electron density
-//texture<int2, 1, cudaReadModeElementType> electronDensity_tex;
-//! Texture for reading EAM pair potential
-//texture<int2, 1, cudaReadModeElementType> pairPotential_tex;
-//! Texture for reading derivative EAM pair potential
-//texture<int2, 1, cudaReadModeElementType> derivativePairPotential_tex;
-//! Texture for reading the embedding function
-//texture<int2, 1, cudaReadModeElementType> embeddingFunction_tex;
-//! Texture for reading the derivative of the electron density
-//texture<int2, 1, cudaReadModeElementType> derivativeElectronDensity_tex;
-//! Texture for reading the derivative of the embedding function
-//texture<int2, 1, cudaReadModeElementType> derivativeEmbeddingFunction_tex;
-//! Texture for reading the derivative of the atom embedding function
-texture<int2, 1, cudaReadModeElementType> atomDerivativeEmbeddingFunction_tex;
-#endif
+scalar_tex_t tex_F;
+scalar_tex_t tex_rho;
+scalar_tex_t tex_rphi;
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -71,7 +38,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
 		Scalar *atomDerivativeEmbeddingFunction, const Scalar *d_F, const Scalar *d_rho, const Scalar *d_rphi) {
-#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
+
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -166,7 +133,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 3) * posOff * posOff * posOff;
 
 	d_force[idx] = force;
-#endif
+
 }
 
 //! Second stage kernel for computing EAM forces on the GPU
@@ -176,7 +143,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
 		Scalar *atomDerivativeEmbeddingFunction, const Scalar *d_F, const Scalar *d_rho, const Scalar *d_rphi) {
-#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
+
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -304,7 +271,6 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 	for (int i = 0; i < 6; i++)
 	d_virial[i*virial_pitch+idx] = virial[i];
 
-#endif
 }
 
 cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
@@ -348,49 +314,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
     }
 
 	// bind the texture
-#if defined(SINGLE_PRECISION) || defined(BUILD_METAL)
+
 	pdata_pos_tex.normalized = false;
 	pdata_pos_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
 	if (error != cudaSuccess)
 	return error;
 
-//	electronDensity_tex.normalized = false;
-//	electronDensity_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(electronDensity_tex, eam_tex.electronDensity);
-//	if (error != cudaSuccess)
-//	return error;
-
-//	pairPotential_tex.normalized = false;
-//	pairPotential_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(pairPotential_tex, eam_tex.pairPotential);
-//	if (error != cudaSuccess)
-//	return error;
-
-//	derivativePairPotential_tex.normalized = false;
-//	derivativePairPotential_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(derivativePairPotential_tex, eam_tex.derivativePairPotential);
-//	if (error != cudaSuccess)
-//	return error;
-
-//	embeddingFunction_tex.normalized = false;
-//	embeddingFunction_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(embeddingFunction_tex, eam_tex.embeddingFunction);
-//	if (error != cudaSuccess)
-//	return error;
-
-//	derivativeElectronDensity_tex.normalized = false;
-//	derivativeElectronDensity_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(derivativeElectronDensity_tex, eam_tex.derivativeElectronDensity);
-//	if (error != cudaSuccess)
-//	return error;
-
-//	derivativeEmbeddingFunction_tex.normalized = false;
-//	derivativeEmbeddingFunction_tex.filterMode = cudaFilterModeLinear;
-//	error = cudaBindTextureToArray(derivativeEmbeddingFunction_tex, eam_tex.derivativeEmbeddingFunction);
-//	if (error != cudaSuccess)
-//	return error;
-#endif
 	// run the kernel
 	cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
 
