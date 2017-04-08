@@ -21,21 +21,12 @@ class eam(force._force):
         file (str): Filename with potential tables in Alloy or FS format
         type (str): Type of file potential ('Alloy', 'FS')
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
-        ifinter (bool): Interpolation of the array turn on (True) or off (False)
-        nrho (int):  (if ifinter=True) the number of values in the interpolated embedding function arrays
-        nr (int): (if ifinter=True) the number of values in the interpolated density function and the pair potential function arrays
 
     :py:class:`eam` specifies that a EAM (embedded atom method) pair potential should be applied between every
     non-excluded particle pair in the simulation.
 
     No coefficients need to be set for :py:class:`eam`. All specifications, including the cutoff radius, form of the
     potential, etc. are read in from the specified file.
-
-    Denser or sparser potential data points can be used by turning on the interpolation function, which adopts Stephen Foiles's
-    interpolation method in LAMMPS to interpolate the original potential data, and export a file "eambyhoomd.pot" in the current
-    directory. The number of values in the interpolated embedding function arrays is set by nrho, that in the interpolated density
-    function and the pair potential function is set by nr. It is not suggested to set nrho or nr above 10000, in practice, more than
-    10000 data points will not improve the accuracy very much **ADD REF**, but will saturate the memory easily.
 
     Particle type names must match those referenced in the EAM potential file.
 
@@ -52,11 +43,11 @@ class eam(force._force):
     Example::
 
         nl = nlist.cell()
-        eam = pair.eam(file='al1.mendelev.eam.fs', type='FS', nlist=nl)
-        eam = pair.eam(file='al1.mendelev.eam.alloy', type='Alloy', nlist=nl, ifinter=True, nrho=10000, nr=10000)
+        eam = pair.eam(file='name.eam.fs', type='FS', nlist=nl)
+        eam = pair.eam(file='name.eam.alloy', type='Alloy', nlist=nl)
 
     """
-    def __init__(self, file, type, nlist, ifinter=False, nrho=10000, nr=10000):
+    def __init__(self, file, type, nlist):
         c = hoomd.cite.article(cite_key = 'morozov2011',
                          author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
                          title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
@@ -83,16 +74,12 @@ class eam(force._force):
         if(type == 'Alloy'): type_of_file = 0;
         elif(type == 'FS'): type_of_file = 1;
         else: raise RuntimeError('Unknown EAM input file type');
-        # Translate interpolation command
-        if(ifinter == True): inter = 1;
-        elif(ifinter == False): inter = 0;
-        else: raise RuntimeError('Unknown EAM interpolation command');
 
         # create the c++ mirror class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_force = _metal.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file, inter, nrho, nr);
+            self.cpp_force = _metal.EAMForceCompute(hoomd.context.current.system_definition, file, type_of_file);
         else:
-            self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file, inter, nrho, nr);
+            self.cpp_force = _metal.EAMForceComputeGPU(hoomd.context.current.system_definition, file, type_of_file);
 
         #After load EAMForceCompute we know r_cut from EAM potential`s file. We need update neighbor list.
         self.r_cut_new = self.cpp_force.get_r_cut();

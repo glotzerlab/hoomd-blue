@@ -1,6 +1,9 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
+
 #include "EAMForceCompute.h"
 
 #include <vector>
@@ -18,23 +21,14 @@ namespace py = pybind11;
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
     \param type_of_file EAM/Alloy=0, EAM/FS=1
-    \param ifinter turn interpolation on=1, off=0
-    \param setnrho the number of rho data points if interpolation is turned on
-    \param setnr the number of r data points if interpolation is turned on
 */
-EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file,
-                                 int ifinter, int setnrho, int setnr)
+EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
         : ForceCompute(sysdef) {
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
 
-//#ifndef SINGLE_PRECISION
-//    m_exec_conf->msg->error() << "EAM is not supported in double precision" << endl;
-//    throw runtime_error("Error initializing");
-//#endif
-
     assert(m_pdata);
 
-    loadFile(filename, type_of_file, ifinter, setnrho, setnr);
+    loadFile(filename, type_of_file);
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
@@ -48,7 +42,7 @@ EAMForceCompute::~EAMForceCompute() {
     m_pdata->getNumTypesChangeSignal().disconnect<EAMForceCompute, &EAMForceCompute::slotNumTypesChange>(this);
 }
 
-void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, int setnrho, int setnr) {
+void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     unsigned int tmp_int, type, i, j, k;
     double tmp_mass, tmp;
     char tmp_str[5];
@@ -79,7 +73,6 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
     for (i = 0; i < m_ntypes; i++) {
         n = fscanf(fp, "%2s", tmp_str);
         if (n != 1) throw runtime_error("Error parsing eam file");
-
         names.push_back(tmp_str);
         unsigned int tid = m_pdata->getTypeByName(tmp_str);
         types.push_back(tid);
@@ -98,46 +91,40 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
     }
 
     //Load parameters.
-    n = fscanf(fp, "%d", &rawnrho);
+    n = fscanf(fp, "%d", &nrho);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    n = fscanf(fp, "%lg", &tmp);
+    n = fscanf(fp, "%lg", &drho);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+    rdrho = (Scalar) (1.0 / drho);
+
+    n = fscanf(fp, "%d", &nr);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    rawdrho = tmp;
-    rawrdrho = (Scalar) (1.0 / rawdrho);
-    n = fscanf(fp, "%d", &rawnr);
+    n = fscanf(fp, "%lg", &dr);
+    if (n != 1) throw runtime_error("Error parsing eam file");
+    rdr = (Scalar) (1.0 / dr);
+
+    n = fscanf(fp, "%lg", &m_r_cut);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    n = fscanf(fp, "%lg", &tmp);
-    if (n != 1) throw runtime_error("Error parsing eam file");
-
-    rawdr = tmp;
-    rawrdr = (Scalar) (1.0 / rawdr);
-    n = fscanf(fp, "%lg", &tmp);
-    if (n != 1) throw runtime_error("Error parsing eam file");
-
-    m_r_cut = tmp;
-    if (rawnrho < 1 || rawnr < 1 || rawnrho > MAX_POINT_NUMBER || rawnr > MAX_POINT_NUMBER) {
+    if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER) {
         m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Point number is greater than "
                                   << MAX_POINT_NUMBER << endl;
         throw runtime_error("Error loading file");
     }
-    //Resize arrays for tables
-    rawembeddingFunction.resize(rawnrho * m_ntypes);
-    rawelectronDensity.resize(rawnr * m_ntypes * m_ntypes);
-    rawpairPotential.resize((int) (0.5 * rawnr * (m_ntypes + 1) * m_ntypes));
-    // 0405 begin
-    GPUArray<Scalar> t_F(rawnrho * m_ntypes * 7, m_exec_conf);
+
+    //allocate potential data storage
+    GPUArray<Scalar> t_F(nrho * m_ntypes * 7, m_exec_conf);
     m_F.swap(t_F);
     ArrayHandle<Scalar> h_F(m_F, access_location::host, access_mode::readwrite);
-    GPUArray<Scalar> t_rho(rawnr * m_ntypes * m_ntypes * 7, m_exec_conf);
+    GPUArray<Scalar> t_rho(nr * m_ntypes * m_ntypes * 7, m_exec_conf);
     m_rho.swap(t_rho);
     ArrayHandle<Scalar> h_rho(m_rho, access_location::host, access_mode::readwrite);
-    GPUArray<Scalar> t_rphi((int) (0.5 * rawnr * (m_ntypes + 1) * m_ntypes) * 7, m_exec_conf);
+    GPUArray<Scalar> t_rphi((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * 7, m_exec_conf);
     m_rphi.swap(t_rphi);
     ArrayHandle<Scalar> h_rphi(m_rphi, access_location::host, access_mode::readwrite);
-    // 0405 end
+
     int res = 0;
     for (type = 0; type < m_ntypes; type++) {
         n = fscanf(fp, "%d %lg %lg %3s ", &tmp_int, &tmp_mass, &tmp, tmp_str);
@@ -149,32 +136,27 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
         atomcomment.push_back(tmp_str);
 
         //Read F's array
-        for (i = 0; i < rawnrho; i++) {
+        for (i = 0; i < nrho; i++) {
             res = fscanf(fp, "%lg", &tmp);
-            rawembeddingFunction[types[type] * rawnrho + i] = (Scalar) tmp;
-            h_F.data[(types[type] * rawnrho + i) * 7 + 6] = (Scalar) tmp;
+            h_F.data[7 * (types[type] * nrho + i) + 6] = (Scalar) tmp;
         }
+
         //Read rho's arrays
         //If FS we need read N arrays
         //If Alloy we need read 1 array, and then duplicate N-1 times.
         if (type_of_file == 1) {
             for (j = 0; j < m_ntypes; j++) {
-                for (i = 0; i < rawnr; i++) {
+                for (i = 0; i < nr; i++) {
                     res = fscanf(fp, "%lg", &tmp);
-                    rawelectronDensity[types[type] * m_ntypes * rawnr + types[j] * rawnr + i] = (Scalar) tmp;
-                    h_rho.data[(types[type] * m_ntypes * rawnr + types[j] * rawnr + i) * 7 + 6] = (Scalar) tmp;
+                    h_rho.data[7 * (types[type] * m_ntypes * nr + types[j] * nr + i) + 6] = (Scalar) tmp;
                 }
             }
         } else {
-            for (i = 0; i < rawnr; i++) {
+            for (i = 0; i < nr; i++) {
                 res = fscanf(fp, "%lg", &tmp);
-                rawelectronDensity[types[type] * m_ntypes * rawnr + i] = (Scalar) tmp;
-                h_rho.data[(types[type] * m_ntypes * rawnr + i) * 7 + 6] = (Scalar) tmp;
+                h_rho.data[7 * (types[type] * m_ntypes * nr + i) + 6] = (Scalar) tmp;
                 for (j = 1; j < m_ntypes; j++) {
-                    rawelectronDensity[types[type] * m_ntypes * rawnr + j * rawnr + i] = rawelectronDensity[
-                            types[type] * m_ntypes * rawnr + i];
-                    h_rho.data[(types[type] * m_ntypes * rawnr + j * rawnr + i) * 7 + 6] = h_rho.data[
-                            (types[type] * m_ntypes * rawnr + i) * 7 + 6];
+                    h_rho.data[7 * (types[type] * m_ntypes * nr + j * nr + i) + 6] = h_rho.data[7 * (types[type] * m_ntypes * nr + i) + 6];
                 }
             }
         }
@@ -184,252 +166,32 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file, int ifinter, in
         m_exec_conf->msg->error() << "pair.eam: EAM file is truncated " << endl;
         throw runtime_error("Error loading file");
     }
+
     //Read r*phi(r)'s arrays
     for (k = 0; k < m_ntypes; k++) {
         for (j = 0; j <= k; j++) {
-            for (i = 0; i < rawnr; i++) {
+            for (i = 0; i < nr; i++) {
                 res = fscanf(fp, "%lg", &tmp);
-                rawpairPotential[(int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + i] = (Scalar) tmp;
-                h_rphi.data[((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + i) * 7 +
-                            6] = (Scalar) tmp;
+                h_rphi.data[7 * ((int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i) + 6] = (Scalar) tmp;
             }
         }
     }
 
     fclose(fp);
 
-    // interpolate the raw table from the potential file
-
-    double ratiorho, ratior;
-
-    if (ifinter == 1) {
-        if (setnrho > 10000 || rawnrho > 10000) {
-            std::cout << "Number of tabulated electron density values was set too large," << std::endl;
-            std::cout << "Reset it to Nrho = 10000, which should be sufficient as reference states." << std::endl;
-            nrho = 10000;
-        } else {
-            nrho = setnrho;
-        }
-
-        if (setnr > 10000 || rawnr > 10000) {
-            std::cout << "Number of tabulated distance density values was set too large," << std::endl;
-            std::cout << "Reset it to Nr = 10000, which should be sufficient as reference states." << std::endl;
-            nr = 10000;
-        } else {
-            nr = setnr;
-        }
-    } else {
-        nrho = rawnrho;
-        nr = rawnr;
-    }
-
-    ratiorho = (double) rawnrho / (double) nrho;
-    drho = rawdrho * ratiorho;
-    rdrho = (Scalar) (1.0 / drho);
-
-    ratior = (double) rawnr / (double) nr;
-    dr = rawdr * ratior;
-    rdr = (Scalar) (1.0 / dr);
-
-    // Resize the tables used in the computing
-    embeddingFunction.resize(nrho * m_ntypes);
-    electronDensity.resize(nr * m_ntypes * m_ntypes);
-    pairPotential.resize((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes));
-    derivativeEmbeddingFunction.resize(nrho * m_ntypes);
-    derivativeElectronDensity.resize(nr * m_ntypes * m_ntypes);
-    derivativePairPotential.resize((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes));
-    iemb.resize(7, std::vector<Scalar>(rawnrho * m_ntypes));
-    irho.resize(7, std::vector<Scalar>(rawnr * m_ntypes * m_ntypes));
-    irphi.resize(7, std::vector<Scalar>((int) (0.5 * rawnr * (m_ntypes + 1) * m_ntypes)));
-
     // Compute interpolation coefficients
-    interpolate(rawnrho * m_ntypes, rawnrho, rawdrho, &rawembeddingFunction, &iemb);
-    interpolate(rawnr * m_ntypes * m_ntypes, rawnr, rawdr, &rawelectronDensity, &irho);
-    interpolate((int) (0.5 * rawnr * (m_ntypes + 1) * m_ntypes), rawnr, rawdr, &rawpairPotential, &irphi);
-    inter(rawnrho * m_ntypes, rawnrho, rawdrho, &h_F);
-    inter(rawnr * m_ntypes * m_ntypes, rawnr, rawdr, &h_rho);
-    inter((int) (0.5 * rawnr * (m_ntypes + 1) * m_ntypes), rawnr, rawdr, &h_rphi);
-
-    // Interpolation
-    double position;  // position
-    unsigned int idxold;  // index relative to old array
-    double crho;  // current rho
-    double cr; // current r
-    for (type = 0; type < m_ntypes; type++) {
-        // embeddingFunction: F
-        for (i = 0; i < nrho; i++) {
-            crho = drho * i;
-            position = crho * rawrdrho;
-            idxold = (unsigned int) position;
-            position -= (double) idxold;
-            embeddingFunction[type * nrho + i] =
-                    iemb.at(6).at(idxold + type * rawnrho) +
-                    iemb.at(5).at(idxold + type * rawnrho) * position +
-                    iemb.at(4).at(idxold + type * rawnrho) * position * position +
-                    iemb.at(3).at(idxold + type * rawnrho) * position * position * position;
-            derivativeEmbeddingFunction[type * nrho + i] =
-                    iemb.at(2).at(idxold + type * rawnrho) +
-                    iemb.at(1).at(idxold + type * rawnrho) * position +
-                    iemb.at(0).at(idxold + type * rawnrho) * position * position;
-        }
-        // electronDensity: rho
-        for (j = 0; j < m_ntypes; j++) {
-            for (i = 0; i < nr; i++) {
-                cr = dr * i;
-                position = cr * rawrdr;
-                idxold = (unsigned int) position;
-                position -= (Scalar) idxold;
-                electronDensity[i + type * m_ntypes * nr + j * nr] =
-                        irho.at(6).at(idxold + type * m_ntypes * rawnr + j * rawnr) +
-                        irho.at(5).at(idxold + type * m_ntypes * rawnr + j * rawnr) * position +
-                        irho.at(4).at(idxold + type * m_ntypes * rawnr + j * rawnr) * position * position +
-                        irho.at(3).at(idxold + type * m_ntypes * rawnr + j * rawnr) * position * position * position;
-                derivativeElectronDensity[i + type * m_ntypes * nr + j * nr] =
-                        irho.at(2).at(idxold + type * m_ntypes * rawnr + j * rawnr) +
-                        irho.at(1).at(idxold + type * m_ntypes * rawnr + j * rawnr) * position +
-                        irho.at(0).at(idxold + type * m_ntypes * rawnr + j * rawnr) * position * position;
-            }
-        }
-    }
-    // pairPotential: rphi
-    for (i = 0; i < nr; i++) {
-        cr = dr * i;
-        position = cr * rawrdr;
-        idxold = (unsigned int) position;
-        position -= (Scalar) idxold;
-        for (k = 0; k < m_ntypes; k++) {
-            for (j = 0; j <= k; j++) {
-                pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i] =
-                        irphi.at(6).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) +
-                        irphi.at(5).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) *
-                        position +
-                        irphi.at(4).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) *
-                        position * position +
-                        irphi.at(3).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) *
-                        position * position * position;
-                derivativePairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i] =
-                        irphi.at(2).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) +
-                        irphi.at(1).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) *
-                        position +
-                        irphi.at(0).at((int) (0.5 * rawnr * (types[k] + 1) * types[k]) + types[j] * rawnr + idxold) *
-                        position * position;
-            }
-        }
-    }
-
-    if (ifinter == 1) {
-        FILE *f = fopen("eambyhoomd.pot", "w");
-        if (fp == NULL) {
-            m_exec_conf->msg->error() << "pair.eam: Can not open new file for interpolated data" << endl;
-            throw runtime_error("Error opening file");
-        }
-        if (f == NULL) {
-            printf("Error opening file!\n");
-            exit(1);
-        }
-        /* print title text */
-        fprintf(f, "%s:\n", "Interpolated potential from");
-        fprintf(f, "\"%s\"\n", filename);
-        if (type_of_file == 0) {
-            fprintf(f, "%s\n", "EAM/Alloy");
-        } else {
-            fprintf(f, "%s\n", "EAM/FS");
-        }
-        /* print type */
-        fprintf(f, "%d %2s %2s\n", m_ntypes, names[0].c_str(), names[1].c_str());
-        /* print new EAM global parameter */
-        fprintf(f, "%d %lg %d %lg %lg\n", nrho, drho, nr, dr, m_r_cut);
-        /* print EAM */
-        for (type = 0; type < m_ntypes; type++) {
-            // subtitle
-            fprintf(f, "%d %lg %lg %3s\n", nproton[type], mass[type], lconst[type], atomcomment[type].c_str());
-            // embeddingFunction: F(rho)
-            for (i = 0; i < nrho; i++) {
-                fprintf(f, "%lg ", embeddingFunction[types[type] * nrho + i]);
-                if ((i + 1) % 5 == 0) {
-                    fprintf(f, "\n");
-                }
-            }
-            // electronDensity: rho(r)
-            if (type_of_file == 1) {
-                for (j = 0; j < m_ntypes; j++) {
-                    for (i = 0; i < nr; i++) {
-                        fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + types[j] * nr + i]);
-                        if ((i + 1) % 5 == 0) {
-                            fprintf(f, "\n");
-                        }
-                    }
-                }
-            } else {
-                for (i = 0; i < nr; i++) {
-                    fprintf(f, "%lg ", electronDensity[types[type] * m_ntypes * nr + i]);
-                    if ((i + 1) % 5 == 0) {
-                        fprintf(f, "\n");
-                    }
-                }
-            }
-        }
-        // pariPotential: r*phi(r)
-        for (k = 0; k < m_ntypes; k++) {
-            for (j = 0; j <= k; j++) {
-                for (i = 0; i < nr; i++) {
-                    fprintf(f, "%lg ", pairPotential[(int) (0.5 * nr * (types[k] + 1) * types[k]) + types[j] * nr + i]);
-                    if ((i + 1) % 5 == 0) {
-                        fprintf(f, "\n");
-                    }
-                }
-            }
-        }
-        fclose(f);
-    }
-
-    // free vectors
-    irho.clear();
-    irphi.clear();
-    iemb.clear();
+    inter(nrho * m_ntypes, nrho, drho, &h_F);
+    inter(nr * m_ntypes * m_ntypes, nr, dr, &h_rho);
+    inter((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), nr, dr, &h_rphi);
 
 }
 
-// interpolation function
-void EAMForceCompute::interpolate(int num_all, int num_per, Scalar delta,
-                                  std::vector<Scalar> *f, std::vector<std::vector<Scalar> > *spline) {
-    int m, n;
-    int num_block;
-    int start, end;
-    num_block = num_all / num_per;
-    for (m = 0; m < num_all; m++) {
-        spline->at(6).at(m) = f->at(m);
-    }
-    for (n = 0; n < num_block; n++) {
-        start = num_per * n;
-        end = num_per * (n + 1) - 1;
-        spline->at(5).at(start) = spline->at(6).at(start + 1) - spline->at(6).at(start);
-        spline->at(5).at(start + 1) = 0.5 * (spline->at(6).at(start + 2) - spline->at(6).at(start));
-        spline->at(5).at(end - 1) = 0.5 * (spline->at(6).at(end) - spline->at(6).at(end - 2));
-        spline->at(5).at(end) = spline->at(6).at(end) - spline->at(6).at(end - 1);
-        for (int m = 2; m < num_per - 2; m++) {
-            spline->at(5).at(start + m) = ((spline->at(6).at(start + m - 2) - spline->at(6).at(start + m + 2))
-                                           +
-                                           8.0 * (spline->at(6).at(start + m + 1) - spline->at(6).at(start + m - 1))) /
-                                          12.0;
-        }
-        for (int m = 0; m < num_per - 1; m++) {
-            spline->at(4).at(start + m) = 3.0 * (spline->at(6).at(start + m + 1) - spline->at(6).at(start + m)) -
-                                          2.0 * spline->at(5).at(start + m) - spline->at(5).at(start + m + 1);
-            spline->at(3).at(start + m) = spline->at(5).at(start + m) + spline->at(5).at(start + m + 1) -
-                                          2.0 * (spline->at(6).at(start + m + 1) - spline->at(6).at(start + m));
-        }
-        spline->at(4).at(end) = 0.0;
-        spline->at(3).at(end) = 0.0;
-    }
-    for (m = 0; m < num_all; m++) {
-        spline->at(2).at(m) = spline->at(5).at(m) / delta;
-        spline->at(1).at(m) = 2.0 * spline->at(4).at(m) / delta;
-        spline->at(0).at(m) = 3.0 * spline->at(3).at(m) / delta;
-    }
-}
-
-// interpolation function
+/*! compute 3rd order interpolation coefficients
+   \param num_all Total number of data points
+   \param num_per Number of data points per chunk
+   \param delta Interval distance between data points
+   \param f Data need to be interpolated
+ */
 void EAMForceCompute::inter(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar> *f) {
     int m, n;
     int num_block;
@@ -443,11 +205,9 @@ void EAMForceCompute::inter(int num_all, int num_per, Scalar delta, ArrayHandle<
         f->data[5 + 7 * (end - 1)] = 0.5 * f->data[6 + 7 * end] - f->data[6 + 7 * (end - 2)];
         f->data[5 + 7 * end] = f->data[6 + 7 * end] - f->data[6 + 7 * (end - 1)];
         for (int m = 2; m < num_per - 2; m++) {
-            f->data[5 + 7 * (start + m)] = (f->data[6 + 7 * (start + m - 2)] - f->data[6 + 7 * (start + m + 2)]
-                                            +
-                                            8.0 *
-                                            (f->data[6 + 7 * (start + m + 1)] - f->data[6 + 7 * (start + m - 1)])) /
-                                           12.0;
+            f->data[5 + 7 * (start + m)] = (f->data[6 + 7 * (start + m - 2)] -
+                    f->data[6 + 7 * (start + m + 2)] + 8.0 * (f->data[6 + 7 * (start + m + 1)] -
+                    f->data[6 + 7 * (start + m - 1)])) / 12.0;
         }
         for (int m = 0; m < num_per - 1; m++) {
             f->data[4 + 7 * (start + m)] = 3.0 * (f->data[6 + 7 * (start + m + 1)] - f->data[6 + 7 * (start + m)]) -
@@ -483,7 +243,6 @@ Scalar EAMForceCompute::getLogValue(const std::string &quantity, unsigned int ti
 
 /*! \post The EAM forces are computed for the given timestep. The neighborlist's
      compute method is called to ensure that it is up to date.
-
     \param timestep specifies the current time step of the simulation
 */
 void EAMForceCompute::computeForces(unsigned int timestep) {
@@ -509,8 +268,11 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     ArrayHandle<Scalar> h_virial(m_virial, access_location::host, access_mode::overwrite);
     unsigned int virial_pitch = m_virial.getPitch();
 
-    // 0405
-    int idx, idy, idz;
+    // access potential table
+    Scalar position;  // look up position, scalar
+    unsigned int int_position;  // look up index for position, integer
+    unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;  // look up remainder in array, integer
     ArrayHandle<Scalar> h_F(m_F, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rho(m_rho, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_rphi(m_rphi, access_location::host, access_mode::read);
@@ -533,7 +295,7 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     // sum up the number of forces calculated
     int64_t n_calc = 0;
 
-    // for each particle
+    // parameters for each particle
     vector<Scalar> atomElectronDensity;
     atomElectronDensity.resize(m_pdata->getN());
     vector<Scalar> atomDerivativeEmbeddingFunction;
@@ -579,29 +341,22 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             Scalar rsq = dot(dx, dx);;
             // only compute the force if the particles are closer than the cut-off (FLOPS: 1)
             if (rsq < r_cut_sq) {
-                Scalar position_Scalar = sqrt(rsq) * rdr;
-                Scalar position = position_Scalar;
-                unsigned int r_index = (unsigned int) position;
-                r_index = min(r_index, nr - 1);
-                position -= r_index;
-                idx = (r_index + nr * (typej * ntypes + typei)) * 7;
-                atomElectronDensity[i] += h_rho.data[idx + 6] +
-                                          h_rho.data[idx + 5] * position +
-                                          h_rho.data[idx + 4] * position * position +
-                                          h_rho.data[idx + 3] * position * position * position;
-//                atomElectronDensity[i] += electronDensity[r_index + nr * (typej * ntypes + typei)]
-//                                          + derivativeElectronDensity[r_index + nr * (typej * ntypes + typei)] *
-//                                            position * dr;
+                position = sqrt(rsq) * rdr;
+                int_position = (unsigned int) position;
+                int_position = min(int_position, nr-1);
+                remainder = position - int_position;
+                idxs = (int_position + nr * (typej * ntypes + typei)) * 7;
+                atomElectronDensity[i] += h_rho.data[idxs + 6] +
+                                          h_rho.data[idxs + 5] * remainder +
+                                          h_rho.data[idxs + 4] * remainder * remainder +
+                                          h_rho.data[idxs + 3] * remainder * remainder * remainder;
 
                 if (third_law) {
-                    idx = (r_index + nr * (typei * ntypes + typej)) * 7;
-                    atomElectronDensity[k] += h_rho.data[idx + 6] +
-                                              h_rho.data[idx + 5] * position +
-                                              h_rho.data[idx + 4] * position * position +
-                                              h_rho.data[idx + 3] * position * position * position;
-//                    atomElectronDensity[k] += electronDensity[r_index + nr * (typei * ntypes + typej)]
-//                                              + derivativeElectronDensity[r_index + nr * (typei * ntypes + typej)] *
-//                                                position * dr;
+                    idxs = (int_position + nr * (typei * ntypes + typej)) * 7;
+                    atomElectronDensity[k] += h_rho.data[idxs + 6] +
+                                              h_rho.data[idxs + 5] * remainder +
+                                              h_rho.data[idxs + 4] * remainder * remainder +
+                                              h_rho.data[idxs + 3] * remainder * remainder * remainder;
                 }
             }
         }
@@ -610,24 +365,19 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     for (unsigned int i = 0; i < m_pdata->getN(); i++) {
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
 
-        Scalar position = atomElectronDensity[i] * rdrho;
-        unsigned int r_index = (unsigned int) position;
-        r_index = min(r_index, nrho - 1);
-        position -= (Scalar) r_index;
-//        atomDerivativeEmbeddingFunction[i] = derivativeEmbeddingFunction[r_index + typei * nrho];
-        // 0405
-        idx = (r_index + typei * nrho) * 7;
-        atomDerivativeEmbeddingFunction[i] = h_F.data[idx + 2] +
-                                             h_F.data[idx + 1] * position +
-                                             h_F.data[idx + 0] * position * position;
+        position = atomElectronDensity[i] * rdrho;
+        int_position = (unsigned int) position;
+        int_position = min(int_position, nrho - 1);
+        remainder = position - int_position;
+        idxs = (int_position + typei * nrho) * 7;
+        atomDerivativeEmbeddingFunction[i] = h_F.data[idxs + 2] +
+                                             h_F.data[idxs + 1] * remainder +
+                                             h_F.data[idxs] * remainder * remainder;
 
-        idx = (r_index + typei * nrho) * 7;
-//        h_force.data[i].w += embeddingFunction[r_index + typei * nrho] +
-//                             derivativeEmbeddingFunction[r_index + typei * nrho] * position * drho;
-        h_force.data[i].w += h_F.data[idx + 6] +
-                             h_F.data[idx + 5] * position +
-                             h_F.data[idx + 4] * position * position +
-                             h_F.data[idx + 3] * position * position * position;
+        h_force.data[i].w += h_F.data[idxs + 6] +
+                             h_F.data[idxs + 5] * remainder +
+                             h_F.data[idxs + 4] * remainder * remainder +
+                             h_F.data[idxs + 3] * remainder * remainder * remainder;
     }
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++) {
@@ -677,31 +427,26 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             if (rsq >= r_cut_sq) continue;
             Scalar r = sqrt(rsq);
             Scalar inverseR = 1.0 / r;
-            Scalar position = r * rdr;
-            unsigned int r_index = (unsigned int) position;
-            r_index = min(r_index, nr - 1);
-            position = position - (Scalar) r_index;
+            position = r * rdr;
+            int_position = (unsigned int) position;
+            int_position = min(int_position, nr - 1);
+            remainder = position - int_position;
             int shift = (typei >= typej) ? (int) (0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr :
                         (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
-            idx = (r_index + shift) * 7;
-//            Scalar pair_eng = (pairPotential[r_index + shift] +
-//                               derivativePairPotential[r_index + shift] * position * dr) * inverseR;
-            Scalar pair_eng = (h_rphi.data[idx + 6] +
-                               h_rphi.data[idx + 5] * position +
-                               h_rphi.data[idx + 4] * position * position +
-                               h_rphi.data[idx + 3] * position * position * position) * inverseR;
-//            Scalar derivativePhi = (derivativePairPotential[r_index + shift] - pair_eng) * inverseR;
+            idxs = (int_position + shift) * 7;
+            Scalar pair_eng = (h_rphi.data[idxs + 6] +
+                               h_rphi.data[idxs + 5] * remainder +
+                               h_rphi.data[idxs + 4] * remainder * remainder +
+                               h_rphi.data[idxs + 3] * remainder * remainder * remainder) * inverseR;
             Scalar derivativePhi =
-                    (h_rphi.data[idx + 2] + h_rphi.data[idx + 1] * position + h_rphi.data[idx] * position * position -
+                    (h_rphi.data[idxs + 2] + h_rphi.data[idxs + 1] * remainder + h_rphi.data[idxs] * remainder * remainder -
                      pair_eng) * inverseR;
-            idx = (r_index + typei * ntypes * nr + typej * nr) * 7;
-            idy = (r_index + typej * ntypes * nr + typei * nr) * 7;
-//            Scalar derivativeRhoI = derivativeElectronDensity[r_index + typei * ntypes * nr + typej * nr];
+            idxs = (int_position + typei * ntypes * nr + typej * nr) * 7;
             Scalar derivativeRhoI =
-                    h_rho.data[idx + 2] + h_rho.data[idx + 1] * position + h_rho.data[idx + 0] * position * position;
-//            Scalar derivativeRhoJ = derivativeElectronDensity[r_index + typej * ntypes * nr + typei * nr];
+                    h_rho.data[idxs + 2] + h_rho.data[idxs + 1] * remainder + h_rho.data[idxs + 0] * remainder * remainder;
+            idxs = (int_position + typej * ntypes * nr + typei * nr) * 7;
             Scalar derivativeRhoJ =
-                    h_rho.data[idy + 2] + h_rho.data[idy + 1] * position + h_rho.data[idy + 0] * position * position;
+                    h_rho.data[idxs + 2] + h_rho.data[idxs + 1] * remainder + h_rho.data[idxs + 0] * remainder * remainder;
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
                                        atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
 
@@ -750,7 +495,7 @@ Scalar EAMForceCompute::get_r_cut() {
 
 void export_EAMForceCompute(py::module &m) {
     py::class_<EAMForceCompute, std::shared_ptr<EAMForceCompute> >(m, "EAMForceCompute", py::base<ForceCompute>())
-            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int, int, int, int>())
+            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>())
             .def("set_neighbor_list", &EAMForceCompute::set_neighbor_list)
             .def("get_r_cut", &EAMForceCompute::get_r_cut);
 }

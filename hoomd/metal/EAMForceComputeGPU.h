@@ -1,6 +1,9 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
+
 #include "EAMForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 #include "EAMForceGPU.cuh"
@@ -25,7 +28,7 @@
 class EAMForceComputeGPU : public EAMForceCompute {
 public:
     //! Constructs the compute
-    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr);
+    EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
     //! Destructor
     virtual ~EAMForceComputeGPU();

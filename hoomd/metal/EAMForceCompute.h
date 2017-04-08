@@ -1,6 +1,9 @@
 // Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 
@@ -19,25 +22,31 @@
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
 
-//! Computes EAM forces on each particle
-/*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
-    NeighborList's compute() to make sure that the neighbor list is up to date.
+//! Computes the potential and force on each particle based on values given in a EAM potential
+/*! \b Overview
+    The total potential and force is computed for each particle when compute() is called. Potentials and
+    forces are only computed between neighbouring particles with a separation distance less than
+    \c r_cut. A NeighborList must be provided to identify these neighbours.
 
-    Usage: Construct a EAMForceCompute, providing it an already constructed ParticleData and NeighborList.
-    Then set parameters for all possible pairs of types by calling setParams.
+    \b Interpolation
+    The 3rd order interpolation is used. For each data point, including the value of the point, there
+    are 7 coefficients.
 
-    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
-    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+    \b Potential memory layout
+    The potential data and the coefficients are stored in three GPUArray<Scalar> arrays: the embedded
+    potential function (m_F), the electron density function (m_rho) and the pair potential function
+    (m_rphi). The 7 coefficient for a data point is stored continuously, for example, h_F.data[100*7+6]
+    is the embedded potential function's value read from the 100st position of the potential file,
+    h_F.data[100*7+5], h_F.data[100*7+4], h_F.data[100*7+3], are for interpolating embedded function,
+    h_F.data[100*7+2], h_F.data[100*7+1], h_F.data[100*7+0], are for interpolating derivative embedded
+    function.
 
     \ingroup computes
 */
 class EAMForceCompute : public ForceCompute {
 public:
     //! Constructs the compute
-    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter,
-                    int setnrho, int setnr);
+    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
     //! Destructor
     virtual ~EAMForceCompute();
@@ -55,49 +64,28 @@ public:
     virtual Scalar getLogValue(const std::string &quantity, unsigned int timestep);
 
     //! Load EAM potential file
-    virtual void loadFile(char *filename, int type_of_file, int ifinter, int setnrho, int setnr);
+    virtual void loadFile(char *filename, int type_of_file);
 
 protected:
-    std::shared_ptr<NeighborList> m_nlist;       //!< the neighborlist to use for the computation
-    Scalar m_r_cut;                              //!< cut-off radius
-    unsigned int m_ntypes;                       //!< number of potential element types
-    unsigned int rawnrho;                        //!< number of tabulated values of F(rho) in file
-    Scalar rawdrho;                              //!< interval of rho in file
-    unsigned int rawnr;                          //!< number of tabulated values of rho(r), r*phi(r) in file
-    Scalar rawdr;                                //!< interval of r in file
-    unsigned int nrho;                           //!< number of tabulated values of interpolated F(rho)
-    Scalar drho;                                 //!< interval of rho in interpolated table
-    unsigned int nr;                             //!< number of tabulated values of interpolated rho(r), r*phi(r)
-    Scalar dr;                                   //!< interval of r in interpolated table
-    Scalar rawrdrho;                             //!< 1.0 / rawdrho
-    Scalar rawrdr;                               //!< 1.0 / rawdr
-    Scalar rdrho;                                //!< 1.0 / drho
-    Scalar rdr;                                  //!< 1.0 / dr
-    std::vector<Scalar> mass;                    //!< array mass(type)
-    std::vector<int> types;                      //!< array type(id)
-    std::vector<int> nproton;                    //!< atomic number
-    std::vector<Scalar> lconst;                  //!< lattice constant
-    std::vector<std::string> atomcomment;        //!< atom comment
-    std::vector<std::string> names;              //!< array names(type)
+    std::shared_ptr<NeighborList> m_nlist; //!< the neighborlist to use for the computation
+    Scalar m_r_cut;                        //!< cut-off radius
+    unsigned int m_ntypes;                 //!< number of potential element types
+    unsigned int nrho;                     //!< number of tabulated values of interpolated F(rho)
+    Scalar drho;                           //!< interval of rho in interpolated table
+    Scalar rdrho;                          //!< 1.0 / drho
+    unsigned int nr;                       //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    Scalar dr;                             //!< interval of r in interpolated table
+    Scalar rdr;                            //!< 1.0 / dr
+    std::vector<Scalar> mass;              //!< array mass(type)
+    std::vector<int> types;                //!< array type(id)
+    std::vector<int> nproton;              //!< atomic number
+    std::vector<Scalar> lconst;            //!< lattice constant
+    std::vector<std::string> atomcomment;  //!< atom comment
+    std::vector<std::string> names;        //!< array names(type)
 
-    std::vector<Scalar> rawembeddingFunction;    //!< array F(rho), embedding energy in file
-    std::vector<Scalar> rawelectronDensity;      //!< array rho(r), electron density in file
-    std::vector<Scalar> rawpairPotential;        //!< array r*phi(r), pairwise energy in file
-
-    // interpolation
-    std::vector<Scalar> embeddingFunction;       //!< array F(rho), interpolated embedding energy
-    std::vector<Scalar> electronDensity;         //!< array rho(r), interpolated electron density
-    std::vector<Scalar> pairPotential;           //!< array r*phi(r), interpolated pairwise energy
-    std::vector<Scalar> derivativeEmbeddingFunction;  //!< interpolated array d(F(rho))/drho
-    std::vector<Scalar> derivativeElectronDensity;    //!< interpolated array d(rho(r))/dr
-    std::vector<Scalar> derivativePairPotential;      //!< interpolated array d(r*phi(r))/dr
-
-    //! 3rd order interpolation parameters
-    std::vector<std::vector<Scalar> > iemb;  // param for F
-    std::vector<std::vector<Scalar> > irho;  // param for rho
-    std::vector<std::vector<Scalar> > irphi; // param for r*phi
-    virtual void interpolate(int num_all, int num_per, Scalar delta, std::vector<Scalar> *f,
-                             std::vector<std::vector<Scalar> > *spline);
+    GPUArray<Scalar> m_F;                  //!< embedded function and its coefficients
+    GPUArray<Scalar> m_rho;                //!< electron density and its coefficients
+    GPUArray<Scalar> m_rphi;               //!< pair wise function and its coefficients
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
@@ -108,13 +96,8 @@ protected:
         throw std::runtime_error("Unsupported feature");
     }
 
-    // 0405 begin
-    GPUArray<Scalar> m_F;
-    GPUArray<Scalar> m_rho;
-    GPUArray<Scalar> m_rphi;
-
+    //! 3rd order interpolation
     virtual void inter(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar> *f);
-    // 0405 end
 };
 
 //! Exports the EAMForceCompute class to python

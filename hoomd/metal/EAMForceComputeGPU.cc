@@ -33,8 +33,8 @@ using namespace std;
     \param setnrho the number of rho data points if interpolation is turned on
     \param setnr the number of r data points if interpolation is turned on
 */
-EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file, int ifinter, int setnrho, int setnr)
-        : EAMForceCompute(sysdef, filename, type_of_file, ifinter, setnrho, setnr) {
+EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
+        : EAMForceCompute(sysdef, filename, type_of_file) {
 //#ifndef SINGLE_PRECISION
 //    m_exec_conf->msg->warning() << "pair.eam does not work on the GPU in double precision builds" << endl;
 //#endif
@@ -48,7 +48,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_eam", this->m_exec_conf));
 
     // allocate the coefficients data on the GPU
-    loadFile(filename, type_of_file, ifinter, setnrho, setnr);
+    loadFile(filename, type_of_file);
     eam_data.nr = nr;
     eam_data.nrho = nrho;
     eam_data.dr = dr;
@@ -63,7 +63,7 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
 
     //Allocate memory on GPU for tables for EAM in cudaArray
-    cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc<Scalar>();
+//    cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc<Scalar>();
 
 //    cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
 //    cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar),
@@ -167,5 +167,5 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
 void export_EAMForceComputeGPU(py::module &m) {
     py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU> >(m, "EAMForceComputeGPU",
                                                                          py::base<EAMForceCompute>())
-            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int, int, int, int>());
+            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
 }
