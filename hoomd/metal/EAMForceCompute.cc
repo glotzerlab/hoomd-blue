@@ -49,7 +49,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
 
     const int MAX_TYPE_NUMBER = 10;
     const int MAX_POINT_NUMBER = 1000000;
-
+    
     // Open potential file
     FILE *fp;
     fp = fopen(filename, "r");
@@ -94,19 +94,22 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     n = fscanf(fp, "%d", &nrho);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    n = fscanf(fp, "%lg", &drho);
+    n = fscanf(fp, "%lg", &tmp);
     if (n != 1) throw runtime_error("Error parsing eam file");
+    drho = (Scalar) tmp;
     rdrho = (Scalar) (1.0 / drho);
 
     n = fscanf(fp, "%d", &nr);
     if (n != 1) throw runtime_error("Error parsing eam file");
 
-    n = fscanf(fp, "%lg", &dr);
+    n = fscanf(fp, "%lg", &tmp);
     if (n != 1) throw runtime_error("Error parsing eam file");
+    dr = (Scalar) tmp;
     rdr = (Scalar) (1.0 / dr);
 
-    n = fscanf(fp, "%lg", &m_r_cut);
+    n = fscanf(fp, "%lg", &tmp);
     if (n != 1) throw runtime_error("Error parsing eam file");
+    m_r_cut = (Scalar) tmp;
 
     if (nrho < 1 || nr < 1 || nrho > MAX_POINT_NUMBER || nr > MAX_POINT_NUMBER) {
         m_exec_conf->msg->error() << "pair.eam: Invalid EAM file format: Point number is greater than "
@@ -283,6 +286,9 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     assert(h_force.data);
     assert(h_virial.data);
     assert(h_pos.data);
+    assert(h_F.data);
+    assert(h_rho.data);
+    assert(h_rphi.data);
 
     // Zero data for force calculation.
     memset((void *) h_force.data, 0, sizeof(Scalar4) * m_force.getNumElements());

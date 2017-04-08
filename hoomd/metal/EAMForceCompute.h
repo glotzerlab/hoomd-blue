@@ -76,10 +76,10 @@ protected:
     unsigned int nr;                       //!< number of tabulated values of interpolated rho(r), r*phi(r)
     Scalar dr;                             //!< interval of r in interpolated table
     Scalar rdr;                            //!< 1.0 / dr
-    std::vector<Scalar> mass;              //!< array mass(type)
+    std::vector<double> mass;              //!< array mass(type)
     std::vector<int> types;                //!< array type(id)
     std::vector<int> nproton;              //!< atomic number
-    std::vector<Scalar> lconst;            //!< lattice constant
+    std::vector<double> lconst;            //!< lattice constant
     std::vector<std::string> atomcomment;  //!< atom comment
     std::vector<std::string> names;        //!< array names(type)
 
