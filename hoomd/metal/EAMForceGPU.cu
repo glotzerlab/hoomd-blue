@@ -4,26 +4,20 @@
 // Maintainer: Lin Yang, Alex Travesset
 // Previous Maintainer: Morozov
 
-/**
-Powered by:
-Iowa State University.
-Previous by:
-Moscow Group
-*/
-
 #include "EAMForceGPU.cuh"
 #include "hoomd/TextureTools.h"
 
 #include <assert.h>
 
 /*! \file EAMForceGPU.cu
- \brief Defines GPU kernel code for calculating the eam forces. Used by EAMForceComputeGPU.
+ \brief Defines GPU kernel code for calculating the EAM forces. Used by EAMForceComputeGPU.
  */
 
 //! Texture for reading particle positions
 scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
+//! Texture for reading potential
 scalar_tex_t tex_F;
 scalar_tex_t tex_rho;
 scalar_tex_t tex_rphi;
@@ -54,6 +48,12 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 	Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
 	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
+    // index and remainder
+    Scalar position;  // look up position, scalar
+    unsigned int int_position;  // look up index for position, integer
+    unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;  // look up remainder in array, integer
+
 	// initialize the force to 0
 	Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
@@ -69,11 +69,15 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx);
 	}
 	int typei = __scalar_as_int(postype.w);
+    
 	// loop over neighbors
-
 	Scalar atomElectronDensity = Scalar(0.0);
+    int ntypes = eam_data_ti.ntypes;
+    int nrho = eam_data_ti.nrho;
 	int nr = eam_data_ti.nr;
-	int ntypes = eam_data_ti.ntypes;
+    Scalar rdrho = eam_data_ti.rdrho;
+    Scalar rdr = eam_data_ti.rdr;
+    Scalar r_cutsq = eam_data_ti.r_cutsq;
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
@@ -100,37 +104,35 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 
 		// calculate r squared (FLOPS: 5)
 		Scalar rsq = dot(dx, dx);;
-		if (rsq < eam_data_ti.r_cutsq)
+		if (rsq < r_cutsq)
 		{
-			Scalar position_Scalar = sqrtf(rsq) * eam_data_ti.rdr;
-			position_Scalar = min(position_Scalar, Scalar(nr - 1));
-//			atomElectronDensity += tex1D(electronDensity_tex, position_Scalar + nr * (typej * ntypes + typei) + Scalar(0.5) );
-			unsigned int posInt = (unsigned int) position_Scalar;
-			Scalar posOff = position_Scalar - posInt;
-			atomElectronDensity += texFetchScalar(d_rho, tex_rho, (posInt + nr * (typej * ntypes + typei)) * 7 + 6) +
-			texFetchScalar(d_rho, tex_rho, (posInt + nr * (typej * ntypes + typei)) * 7 + 5) * posOff +
-			texFetchScalar(d_rho, tex_rho, (posInt + nr * (typej * ntypes + typei)) * 7 + 4) * posOff * posOff+
-			texFetchScalar(d_rho, tex_rho, (posInt + nr * (typej * ntypes + typei)) * 7 + 3) * posOff * posOff * posOff;
+            position = sqrtf(rsq) * rdr;
+            int_position = (unsigned int) position;
+            int_position = min(int_position, nr-1);
+            remainder = position - int_position;
+            idxs = (int_position + nr * (typej * ntypes + typei)) * 7;
+
+			atomElectronDensity += texFetchScalar(d_rho, tex_rho, idxs + 6) +
+			texFetchScalar(d_rho, tex_rho, idxs + 5) * remainder +
+			texFetchScalar(d_rho, tex_rho, idxs + 4) * remainder * remainder+
+			texFetchScalar(d_rho, tex_rho, idxs + 3) * remainder * remainder * remainder;
 		}
 	}
 
-	Scalar position = atomElectronDensity * eam_data_ti.rdrho;
-	position = min(position, Scalar(eam_data_ti.nrho - 1));
+	position = atomElectronDensity * rdrho;
+    int_position = (unsigned int) position;
+    int_position = min(int_position, nrho - 1);
+    remainder = position - int_position;
+    idxs = (int_position + typei * nrho) * 7;
 
-	unsigned int posInt = (unsigned int) position;
-	Scalar posOff = position - posInt;
+	atomDerivativeEmbeddingFunction[idx] = texFetchScalar(d_F, tex_F, idxs + 2) +
+	texFetchScalar(d_F, tex_F, idxs + 1) * remainder +
+	texFetchScalar(d_F, tex_F, idxs) * remainder * remainder;
 
-//	atomDerivativeEmbeddingFunction[idx] = tex1D(derivativeEmbeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5)); //derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho];
-	atomDerivativeEmbeddingFunction[idx] = texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 2) +
-	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 1) * posOff +
-	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 0) * posOff * posOff;
-
-//	force.w += tex1D(embeddingFunction_tex, position + typei * eam_data_ti.nrho + Scalar(0.5));//embeddingFunction[r_index + typei * eam_data_ti.nrho] + derivativeEmbeddingFunction[r_index + typei * eam_data_ti.nrho] * position * eam_data_ti.drho;
-
-	force.w += texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 6) +
-	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 5) * posOff +
-	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 4) * posOff * posOff +
-	texFetchScalar(d_F, tex_F, (posInt + typei * eam_data_ti.nrho) * 7 + 3) * posOff * posOff * posOff;
+	force.w += texFetchScalar(d_F, tex_F, idxs + 6) +
+	texFetchScalar(d_F, tex_F, idxs + 5) * remainder +
+	texFetchScalar(d_F, tex_F, idxs + 4) * remainder * remainder +
+	texFetchScalar(d_F, tex_F, idxs + 3) * remainder * remainder * remainder;
 
 	d_force[idx] = force;
 
@@ -159,8 +161,14 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 	Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
 	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	int typei = __scalar_as_int(postype.w);
-	// prefetch neighbor index
-	Scalar position;
+
+    // index and remainder
+    Scalar position;  // look up position, scalar
+    unsigned int int_position;  // look up index for position, integer
+    unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
+    Scalar remainder;  // look up remainder in array, integer
+
+    // prefetch neighbor index
 	int cur_neigh = 0;
 	int next_neigh(0);
 	if (use_gmem_nlist)
@@ -184,8 +192,10 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 	virial[i] = Scalar(0.0);
 
 	force.w = d_force[idx].w;
-	int nr = eam_data_ti.nr;
 	int ntypes = eam_data_ti.ntypes;
+    int nr = eam_data_ti.nr;
+    Scalar rdr = eam_data_ti.rdr;
+    Scalar r_cutsq = eam_data_ti.r_cutsq;
 	Scalar adef = atomDerivativeEmbeddingFunction[idx];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
@@ -212,38 +222,40 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		// calculate r squared (FLOPS: 5)
 		Scalar rsq = dot(dx, dx);
 
-		if (rsq > eam_data_ti.r_cutsq) continue;
+		if (rsq > r_cutsq) continue;
 
 		Scalar inverseR = rsqrtf(rsq);
 		Scalar r = Scalar(1.0) / inverseR;
-		position = r * eam_data_ti.rdr;
-		position = min(position, Scalar(nr - 1));
-		int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
-//		Scalar aspair_potential = tex1D(pairPotential_tex, position + shift + Scalar(0.5));
-		unsigned int posInt = (unsigned int) position;
-		Scalar posOff = position - posInt;
-		Scalar aspair_potential = texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 6) +
-			texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 5) * posOff +
-			texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 4) * posOff * posOff+
-			texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 3) * posOff * posOff * posOff;
+		position = r * rdr;
+        int_position = (unsigned int) position;
+        int_position = min(int_position, nr-1);
+        remainder = position - int_position;
 
-//		Scalar derivative_pair_potential = tex1D(derivativePairPotential_tex, position + shift + Scalar(0.5));
-		Scalar derivative_pair_potential = texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 2) +
-		texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 1) * posOff +
-		texFetchScalar(d_rphi, tex_rphi, (posInt + shift) * 7 + 0) * posOff * posOff;
+        int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
+
+        idxs = (int_position + shift) * 7;
+
+		Scalar aspair_potential = texFetchScalar(d_rphi, tex_rphi, idxs + 6) +
+			texFetchScalar(d_rphi, tex_rphi, idxs + 5) * remainder +
+			texFetchScalar(d_rphi, tex_rphi, idxs + 4) * remainder * remainder+
+			texFetchScalar(d_rphi, tex_rphi, idxs + 3) * remainder * remainder * remainder;
+
+		Scalar derivative_pair_potential = texFetchScalar(d_rphi, tex_rphi, idxs + 2) +
+		texFetchScalar(d_rphi, tex_rphi, idxs + 1) * remainder +
+		texFetchScalar(d_rphi, tex_rphi, idxs) * remainder * remainder;
 
 		Scalar pair_eng = aspair_potential * inverseR;
 		Scalar derivativePhi = (derivative_pair_potential - pair_eng) * inverseR;
 
-//		Scalar derivativeRhoI = tex1D(derivativeElectronDensity_tex, position + typei * ntypes * nr + typej * nr + Scalar(0.5));
-//		Scalar derivativeRhoJ = tex1D(derivativeElectronDensity_tex, position + typej * ntypes * nr + typei * nr + Scalar(0.5));
+        idxs = (int_position + typei * ntypes * nr + typej * nr) * 7;
+		Scalar derivativeRhoI = texFetchScalar(d_rho, tex_rho, idxs + 2) +
+		texFetchScalar(d_rho, tex_rho, idxs + 1) * remainder +
+		texFetchScalar(d_rho, tex_rho, idxs) * remainder * remainder;
 
-		Scalar derivativeRhoI = texFetchScalar(d_rho, tex_rho, (posInt + typei * ntypes * nr + typej * nr) * 7 + 2) +
-		texFetchScalar(d_rho, tex_rho, (posInt + typei * ntypes * nr + typej * nr) * 7 + 1) * posOff +
-		texFetchScalar(d_rho, tex_rho, (posInt + typei * ntypes * nr + typej * nr) * 7 + 0) * posOff * posOff;
-		Scalar derivativeRhoJ = texFetchScalar(d_rho, tex_rho, (posInt + typej * ntypes * nr + typei * nr) * 7 + 2) +
-		texFetchScalar(d_rho, tex_rho, (posInt + typej * ntypes * nr + typei * nr) * 7 + 1) * posOff +
-		texFetchScalar(d_rho, tex_rho, (posInt + typej * ntypes * nr + typei * nr) * 7 + 0) * posOff * posOff;
+        idxs = (int_position + typej * ntypes * nr + typei * nr) * 7;
+        Scalar derivativeRhoJ = texFetchScalar(d_rho, tex_rho, idxs + 2) +
+		texFetchScalar(d_rho, tex_rho, idxs + 1) * remainder +
+		texFetchScalar(d_rho, tex_rho, idxs) * remainder * remainder;
 
 		Scalar fullDerivativePhi = adef * derivativeRhoJ +
 		atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
@@ -283,6 +295,8 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 		const unsigned int compute_capability,
 		const unsigned int max_tex1d_width) {
 	cudaError_t error;
+
+    // bind the texture
 	if (compute_capability < 350 && size_nlist <= max_tex1d_width) {
 		nlist_tex.normalized = false;
 		nlist_tex.filterMode = cudaFilterModePoint;
@@ -313,8 +327,6 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
             return error;
     }
 
-	// bind the texture
-
 	pdata_pos_tex.normalized = false;
 	pdata_pos_tex.filterMode = cudaFilterModePoint;
 	error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
@@ -328,15 +340,12 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 		static unsigned int max_block_size = UINT_MAX;
 		if (max_block_size == UINT_MAX) {
 			cudaFuncAttributes attr;
-			cudaFuncGetAttributes(&attr,
-					gpu_compute_eam_tex_inter_forces_kernel<1>);
+			cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
 
 			cudaFuncAttributes attr2;
-			cudaFuncGetAttributes(&attr2,
-					gpu_compute_eam_tex_inter_forces_kernel_2<1>);
+			cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
 
-			max_block_size = min(attr.maxThreadsPerBlock,
-					attr2.maxThreadsPerBlock);
+			max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
 		}
 
 		unsigned int run_block_size = min(eam_data.block_size, max_block_size);
@@ -349,23 +358,19 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
 				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
 
-		gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(
-				d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh,
-				d_nlist, d_head_list,
-				eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+		gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(d_force,
+                d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
 	} else {
 		static unsigned int max_block_size = UINT_MAX;
 		if (max_block_size == UINT_MAX) {
 			cudaFuncAttributes attr;
-			cudaFuncGetAttributes(&attr,
-					gpu_compute_eam_tex_inter_forces_kernel<0>);
+			cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
 
 			cudaFuncAttributes attr2;
-			cudaFuncGetAttributes(&attr2,
-					gpu_compute_eam_tex_inter_forces_kernel_2<0>);
+			cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
 
-			max_block_size = min(attr.maxThreadsPerBlock,
-					attr2.maxThreadsPerBlock);
+			max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
 		}
 
 		unsigned int run_block_size = min(eam_data.block_size, max_block_size);
@@ -378,10 +383,9 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
 				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
 
-		gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(
-				d_force, d_virial, virial_pitch, N, d_pos, box, d_n_neigh,
-				d_nlist, d_head_list,
-				eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+		gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(d_force,
+                d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
 	}
 
 	return cudaSuccess;

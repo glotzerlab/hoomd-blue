@@ -4,13 +4,6 @@
 // Maintainer: Lin Yang, Alex Travesset
 // Previous Maintainer: Morozov
 
-/**
- powered by:
- Iowa State University.
- Previous by:
- Moscow Group
- */
-
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
 #include "hoomd/HOOMDMath.h"
@@ -39,17 +32,6 @@ struct EAMTexInterData {
 //! Collection of pointers for EAM force GPU kernels
 struct EAMTexInterArrays {
 	Scalar* atomDerivativeEmbeddingFunction; //!< array d(F(rho))/drho for each particle
-};
-
-//! Collection of cuda Arrays for EAM force GPU kernels
-struct EAMtex {
-//	cudaArray* electronDensity;              //!< array rho(r), electron density
-//	cudaArray* pairPotential;                //!< array r*phi(r), pairwise energy
-//	cudaArray* embeddingFunction;            //!< array F(rho), embedding energy
-//	cudaArray* derivativeElectronDensity;    //!< array d(rho(r))/dr
-//	cudaArray* derivativePairPotential;      //!< array d(r*phi(r))/dr
-//	cudaArray* derivativeEmbeddingFunction;  //!< array d(F(rho))/drho
-
 };
 
 //! Kernel driver that computes EAM forces on the GPU for EAMForceComputeGPU

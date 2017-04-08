@@ -269,13 +269,15 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     unsigned int virial_pitch = m_virial.getPitch();
 
     // access potential table
+    ArrayHandle<Scalar> h_F(m_F, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rho(m_rho, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_rphi(m_rphi, access_location::host, access_mode::read);
+
+    // index and remainder
     Scalar position;  // look up position, scalar
     unsigned int int_position;  // look up index for position, integer
     unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
     Scalar remainder;  // look up remainder in array, integer
-    ArrayHandle<Scalar> h_F(m_F, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rho(m_rho, access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_rphi(m_rphi, access_location::host, access_mode::read);
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);

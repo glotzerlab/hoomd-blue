@@ -4,13 +4,6 @@
 // Maintainer: Lin Yang, Alex Travesset
 // Previous Maintainer: Morozov
 
-/**
-Powered by:
-Iowa State University.
-Previous by:
-Moscow Group
-*/
-
 /*! \file EAMForceComputeGPU.cc
     \brief Defines the EAMForceComputeGPU class
 */
@@ -29,15 +22,9 @@ using namespace std;
 /*! \param sysdef System to compute forces on
     \param filename Name of EAM potential file to load
     \param type_of_file EAM/Alloy=0, EAM/FS=1
-    \param ifinter turn interpolation on=1, off=0
-    \param setnrho the number of rho data points if interpolation is turned on
-    \param setnr the number of r data points if interpolation is turned on
 */
 EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
         : EAMForceCompute(sysdef, filename, type_of_file) {
-//#ifndef SINGLE_PRECISION
-//    m_exec_conf->msg->warning() << "pair.eam does not work on the GPU in double precision builds" << endl;
-//#endif
 
     // can't run on the GPU if there aren't any GPUs in the execution configuration
     if (!m_exec_conf->isCUDAEnabled()) {
@@ -62,33 +49,6 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
     cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
 
-    //Allocate memory on GPU for tables for EAM in cudaArray
-//    cudaChannelFormatDesc eam_desc = cudaCreateChannelDesc<Scalar>();
-
-//    cudaMallocArray(&eam_tex_data.embeddingFunction, &eam_desc, m_ntypes * nrho, 1);
-//    cudaMemcpyToArray(eam_tex_data.embeddingFunction, 0, 0, &embeddingFunction[0], m_ntypes * nrho * sizeof(Scalar),
-//                      cudaMemcpyHostToDevice);
-
-//    cudaMallocArray(&eam_tex_data.electronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
-//    cudaMemcpyToArray(eam_tex_data.electronDensity, 0, 0, &electronDensity[0],
-//                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
-
-//    cudaMallocArray(&eam_tex_data.pairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
-//    cudaMemcpyToArray(eam_tex_data.pairPotential, 0, 0, &pairPotential[0],
-//                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
-
-//    cudaMallocArray(&eam_tex_data.derivativeEmbeddingFunction, &eam_desc, m_ntypes * nrho, 1);
-//    cudaMemcpyToArray(eam_tex_data.derivativeEmbeddingFunction, 0, 0, &derivativeEmbeddingFunction[0],
-//                      m_ntypes * nrho * sizeof(Scalar), cudaMemcpyHostToDevice);
-//
-//    cudaMallocArray(&eam_tex_data.derivativePairPotential, &eam_desc, (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), 1);
-//    cudaMemcpyToArray(eam_tex_data.derivativePairPotential, 0, 0, &derivativePairPotential[0],
-//                      (int) (0.5 * nr * (m_ntypes + 1) * m_ntypes) * sizeof(Scalar), cudaMemcpyHostToDevice);
-//
-//    cudaMallocArray(&eam_tex_data.derivativeElectronDensity, &eam_desc, nr * m_ntypes * m_ntypes, 1);
-//    cudaMemcpyToArray(eam_tex_data.derivativeElectronDensity, 0, 0, &derivativeElectronDensity[0],
-//                      nr * m_ntypes * m_ntypes * sizeof(Scalar), cudaMemcpyHostToDevice);
-
     CHECK_CUDA_ERROR();
 }
 
@@ -96,12 +56,6 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 EAMForceComputeGPU::~EAMForceComputeGPU() {
     // free the coefficients on the GPU
     cudaFree(d_atomDerivativeEmbeddingFunction);
-//    cudaFreeArray(eam_tex_data.embeddingFunction);
-//    cudaFreeArray(eam_tex_data.electronDensity);
-//    cudaFreeArray(eam_tex_data.pairPotential);
-//    cudaFreeArray(eam_tex_data.derivativeEmbeddingFunction);
-//    cudaFreeArray(eam_tex_data.derivativeElectronDensity);
-//    cudaFreeArray(eam_tex_data.derivativePairPotential);
 }
 
 
@@ -132,6 +86,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
+    // access the potential data
     ArrayHandle<Scalar> d_F(m_F, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rho(m_rho, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_rphi(m_rphi, access_location::device, access_mode::read);
@@ -166,6 +121,6 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
 
 void export_EAMForceComputeGPU(py::module &m) {
     py::class_<EAMForceComputeGPU, std::shared_ptr<EAMForceComputeGPU> >(m, "EAMForceComputeGPU",
-                                                                         py::base<EAMForceCompute>())
-            .def(py::init<std::shared_ptr<SystemDefinition>, char *, int>());
+                                                                         py::base<EAMForceCompute>()).def(
+            py::init<std::shared_ptr<SystemDefinition>, char *, int>());
 }

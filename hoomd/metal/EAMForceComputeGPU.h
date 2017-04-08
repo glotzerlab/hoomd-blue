@@ -23,7 +23,7 @@
 #define __EAMForceComputeGPU_H__
 
 //! Computes EAM forces on each particle using the GPU
-/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(cudaArray) with hardware interpolation.
+/*! Calculates the same forces as EAMForceCompute, but on the GPU by using texture memory(CUDAArray).
 */
 class EAMForceComputeGPU : public EAMForceCompute {
 public:
@@ -45,10 +45,8 @@ public:
 
 protected:
     EAMTexInterData eam_data;                   //!< EAM parameters to be communicated
-    EAMtex eam_tex_data;                        //!< EAM parameters on GPU
     Scalar *d_atomDerivativeEmbeddingFunction;  //!< array d(F(rho))/drho for each particle
     std::unique_ptr<Autotuner> m_tuner;         //!< autotuner for block size
-
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
 };
