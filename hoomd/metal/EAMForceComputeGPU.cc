@@ -87,9 +87,12 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
 
     // access the potential data
-    ArrayHandle<Scalar> d_F(m_F, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_rho(m_rho, access_location::device, access_mode::read);
-    ArrayHandle<Scalar> d_rphi(m_rphi, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_F(m_F, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_dF(m_dF, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_rho(m_rho, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_drho(m_drho, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_rphi(m_rphi, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_drphi(m_drphi, access_location::device, access_mode::read);
 
     EAMTexInterArrays eam_arrays;
     eam_arrays.atomDerivativeEmbeddingFunction = (Scalar *) d_atomDerivativeEmbeddingFunction;
@@ -110,6 +113,9 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
                                      d_F.data,
                                      d_rho.data,
                                      d_rphi.data,
+                                     d_dF.data,
+                                     d_drho.data,
+                                     d_drphi.data,
                                      m_exec_conf->getComputeCapability() / 10,
                                      m_exec_conf->dev_prop.maxTexture1DLinear);
 

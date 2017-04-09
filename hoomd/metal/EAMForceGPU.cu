@@ -18,9 +18,12 @@ scalar4_tex_t pdata_pos_tex;
 //! Texture for reading the neighbor list
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 //! Texture for reading potential
-scalar_tex_t tex_F;
-scalar_tex_t tex_rho;
-scalar_tex_t tex_rphi;
+scalar4_tex_t tex_F;
+scalar4_tex_t tex_rho;
+scalar4_tex_t tex_rphi;
+scalar4_tex_t tex_dF;
+scalar4_tex_t tex_drho;
+scalar4_tex_t tex_drphi;
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -31,7 +34,9 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		Scalar *atomDerivativeEmbeddingFunction, const Scalar *d_F, const Scalar *d_rho, const Scalar *d_rphi) {
+		Scalar *atomDerivativeEmbeddingFunction,
+        const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
+		const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -53,6 +58,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
     unsigned int int_position;  // look up index for position, integer
     unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
     Scalar remainder;  // look up remainder in array, integer
+	Scalar4 v, dv; // value, d(value)
 
 	// initialize the force to 0
 	Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
@@ -110,12 +116,11 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
             int_position = (unsigned int) position;
             int_position = min(int_position, nr-1);
             remainder = position - int_position;
-            idxs = (int_position + nr * (typej * ntypes + typei)) * 7;
 
-			atomElectronDensity += texFetchScalar(d_rho, tex_rho, idxs + 6) +
-			texFetchScalar(d_rho, tex_rho, idxs + 5) * remainder +
-			texFetchScalar(d_rho, tex_rho, idxs + 4) * remainder * remainder+
-			texFetchScalar(d_rho, tex_rho, idxs + 3) * remainder * remainder * remainder;
+			idxs = int_position + nr * (typej * ntypes + typei);
+			v = texFetchScalar4(d_rho, tex_rho, idxs);
+			atomElectronDensity += v.w + v.z * remainder + v.y * remainder * remainder+
+								   v.x * remainder * remainder * remainder;
 		}
 	}
 
@@ -123,16 +128,13 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
     int_position = (unsigned int) position;
     int_position = min(int_position, nrho - 1);
     remainder = position - int_position;
-    idxs = (int_position + typei * nrho) * 7;
 
-	atomDerivativeEmbeddingFunction[idx] = texFetchScalar(d_F, tex_F, idxs + 2) +
-	texFetchScalar(d_F, tex_F, idxs + 1) * remainder +
-	texFetchScalar(d_F, tex_F, idxs) * remainder * remainder;
-
-	force.w += texFetchScalar(d_F, tex_F, idxs + 6) +
-	texFetchScalar(d_F, tex_F, idxs + 5) * remainder +
-	texFetchScalar(d_F, tex_F, idxs + 4) * remainder * remainder +
-	texFetchScalar(d_F, tex_F, idxs + 3) * remainder * remainder * remainder;
+	idxs = int_position + typei * nrho;
+	dv = texFetchScalar4(d_dF, tex_dF, idxs);
+	v = texFetchScalar4(d_F, tex_F, idxs);
+	atomDerivativeEmbeddingFunction[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
+	force.w += v.w + v.z * remainder + v.y * remainder * remainder +
+			v.x * remainder * remainder * remainder;
 
 	d_force[idx] = force;
 
@@ -144,7 +146,9 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
 		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		Scalar *atomDerivativeEmbeddingFunction, const Scalar *d_F, const Scalar *d_rho, const Scalar *d_rphi) {
+		Scalar *atomDerivativeEmbeddingFunction,
+        const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
+		const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -167,6 +171,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
     unsigned int int_position;  // look up index for position, integer
     unsigned int idxs;  // look up index in F, rho, rphi array, considering shift, integer
     Scalar remainder;  // look up remainder in array, integer
+	Scalar4 v, dv; // value, d(value)
 
     // prefetch neighbor index
 	int cur_neigh = 0;
@@ -231,31 +236,26 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
         int_position = min(int_position, nr-1);
         remainder = position - int_position;
 
-        int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
+        int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:
+					(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
 
-        idxs = (int_position + shift) * 7;
-
-		Scalar aspair_potential = texFetchScalar(d_rphi, tex_rphi, idxs + 6) +
-			texFetchScalar(d_rphi, tex_rphi, idxs + 5) * remainder +
-			texFetchScalar(d_rphi, tex_rphi, idxs + 4) * remainder * remainder+
-			texFetchScalar(d_rphi, tex_rphi, idxs + 3) * remainder * remainder * remainder;
-
-		Scalar derivative_pair_potential = texFetchScalar(d_rphi, tex_rphi, idxs + 2) +
-		texFetchScalar(d_rphi, tex_rphi, idxs + 1) * remainder +
-		texFetchScalar(d_rphi, tex_rphi, idxs) * remainder * remainder;
+		idxs = int_position + shift;
+		v = texFetchScalar4(d_rphi, tex_rphi, idxs);
+		dv = texFetchScalar4(d_drphi, tex_drphi, idxs);
+		Scalar aspair_potential = v.w + v.z * remainder + v.y * remainder * remainder +
+				v.x * remainder * remainder * remainder;
+		Scalar derivative_pair_potential = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 
 		Scalar pair_eng = aspair_potential * inverseR;
 		Scalar derivativePhi = (derivative_pair_potential - pair_eng) * inverseR;
 
-        idxs = (int_position + typei * ntypes * nr + typej * nr) * 7;
-		Scalar derivativeRhoI = texFetchScalar(d_rho, tex_rho, idxs + 2) +
-		texFetchScalar(d_rho, tex_rho, idxs + 1) * remainder +
-		texFetchScalar(d_rho, tex_rho, idxs) * remainder * remainder;
+		idxs = int_position + typei * ntypes * nr + typej * nr;
+		dv = texFetchScalar4(d_drho, tex_drho, idxs);
+		Scalar derivativeRhoI = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 
-        idxs = (int_position + typej * ntypes * nr + typei * nr) * 7;
-        Scalar derivativeRhoJ = texFetchScalar(d_rho, tex_rho, idxs + 2) +
-		texFetchScalar(d_rho, tex_rho, idxs + 1) * remainder +
-		texFetchScalar(d_rho, tex_rho, idxs) * remainder * remainder;
+		idxs = int_position + typej * ntypes * nr + typei * nr;
+		dv = texFetchScalar4(d_drho, tex_drho, idxs);
+		Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 
 		Scalar fullDerivativePhi = adef * derivativeRhoJ +
 		atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
@@ -290,8 +290,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 		const Scalar4 *d_pos, const BoxDim &box, const unsigned int *d_n_neigh,
 		const unsigned int *d_nlist, const unsigned int *d_head_list,
 		const unsigned int size_nlist,
-		const EAMTexInterArrays &eam_arrays, const EAMTexInterData &eam_data, const Scalar *d_F,
-                                             const Scalar *d_rho, const Scalar *d_rphi,
+		const EAMTexInterArrays &eam_arrays, const EAMTexInterData &eam_data,
+											 const Scalar4 *d_F,
+											 const Scalar4 *d_rho,
+											 const Scalar4 *d_rphi,
+											 const Scalar4 *d_dF,
+											 const Scalar4 *d_drho,
+											 const Scalar4 *d_drphi,
 		const unsigned int compute_capability,
 		const unsigned int max_tex1d_width) {
 	cudaError_t error;
@@ -308,23 +313,41 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 
     if (compute_capability < 350)
     {
-        tex_F.normalized = false;
-        tex_F.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_F, d_F, 7 * sizeof(Scalar) * eam_data.nrho * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
+		tex_F.normalized = false;
+		tex_F.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_F, d_F, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes);
+		if (error != cudaSuccess)
+			return error;
 
-        tex_rho.normalized = false;
-        tex_rho.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_rho, d_rho, 7 * sizeof(Scalar) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
-        if (error != cudaSuccess)
-            return error;
+		tex_dF.normalized = false;
+		tex_dF.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_dF, d_dF, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes);
+		if (error != cudaSuccess)
+			return error;
 
-        tex_rphi.normalized = false;
-        tex_rphi.filterMode = cudaFilterModePoint;
-        error = cudaBindTexture(0, tex_rphi, d_rphi, 7 * sizeof(Scalar) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
-        if (error != cudaSuccess)
-            return error;
+		tex_rho.normalized = false;
+		tex_rho.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_rho, d_rho, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
+		if (error != cudaSuccess)
+			return error;
+
+		tex_drho.normalized = false;
+		tex_drho.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_drho, d_drho, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
+		if (error != cudaSuccess)
+			return error;
+
+		tex_rphi.normalized = false;
+		tex_rphi.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_rphi, d_rphi, sizeof(Scalar) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
+		if (error != cudaSuccess)
+			return error;
+
+		tex_drphi.normalized = false;
+		tex_drphi.filterMode = cudaFilterModePoint;
+		error = cudaBindTexture(0, tex_drphi, d_drphi, sizeof(Scalar) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
+		if (error != cudaSuccess)
+			return error;
     }
 
 	pdata_pos_tex.normalized = false;
@@ -356,11 +379,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 
 		gpu_compute_eam_tex_inter_forces_kernel<1> <<<grid, threads>>>(d_force,
 				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
+		        d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
 
 		gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
+				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
 	} else {
 		static unsigned int max_block_size = UINT_MAX;
 		if (max_block_size == UINT_MAX) {
@@ -381,11 +406,13 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
 
 		gpu_compute_eam_tex_inter_forces_kernel<0> <<<grid, threads>>>(d_force,
 				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
+				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
 
 		gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction, d_F, d_rho, d_rphi);
+                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
+				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
 	}
 
 	return cudaSuccess;

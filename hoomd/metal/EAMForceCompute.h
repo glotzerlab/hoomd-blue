@@ -83,9 +83,12 @@ protected:
     std::vector<std::string> atomcomment;  //!< atom comment
     std::vector<std::string> names;        //!< array names(type)
 
-    GPUArray<Scalar> m_F;                  //!< embedded function and its coefficients
-    GPUArray<Scalar> m_rho;                //!< electron density and its coefficients
-    GPUArray<Scalar> m_rphi;               //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_F;                //!< embedded function and its coefficients
+    GPUArray<Scalar4> m_rho;              //!< electron density and its coefficients
+    GPUArray<Scalar4> m_rphi;             //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_dF;                //!< derivative embedded function and its coefficients
+    GPUArray<Scalar4> m_drho;              //!< derivative electron density and its coefficients
+    GPUArray<Scalar4> m_drphi;             //!< derivative pair wise function and its coefficients
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);
@@ -97,7 +100,8 @@ protected:
     }
 
     //! 3rd order interpolation
-    virtual void inter(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar> *f);
+    virtual void interpolation(int num_all, int num_per, Scalar delta,
+                               ArrayHandle<Scalar4> *f, ArrayHandle<Scalar4> *df);
 };
 
 //! Exports the EAMForceCompute class to python
