@@ -49,7 +49,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
 
     const int MAX_TYPE_NUMBER = 10;
     const int MAX_POINT_NUMBER = 1000000;
-    
+
     // Open potential file
     FILE *fp;
     fp = fopen(filename, "r");
