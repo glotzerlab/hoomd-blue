@@ -128,6 +128,9 @@ class Communicator
         //! Set the communication flags for the particle data
         virtual void setCommFlags(const BoxDim& box);
 
+        //! Checks for overdecomposition
+        void checkDecomposition();
+
         //! Get the wrapping box for this rank
         BoxDim getWrapBox(const BoxDim& box);
 
@@ -160,6 +163,7 @@ class Communicator
 
         bool m_is_communicating;               //!< Whether we are currently communicating
         bool m_force_migrate;                  //!< True if particle migration is forced
+        bool m_check_decomposition; //!< Flag to check the simulation box decomposition
 
         const static unsigned int neigh_max;           //!< Maximum number of neighbor ranks
         GPUArray<unsigned int> m_neighbors;            //!< Neighbor ranks
@@ -175,6 +179,13 @@ class Communicator
         GPUVector<mpcd::detail::pdata_element> m_recvbuf;   //!< Buffer for particles that are received
         std::vector<MPI_Request> m_reqs;    //!< MPI requests
         std::vector<MPI_Status> m_stats;    //!< MPI statuses
+
+    private:
+        //! Notify communicator that box has changed and so decomposition needs to be checked
+        void slotBoxChanged()
+            {
+            m_check_decomposition = true;
+            }
     };
 
 

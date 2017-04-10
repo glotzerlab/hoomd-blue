@@ -36,6 +36,7 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
             m_decomposition(m_pdata->getDomainDecomposition()),
             m_is_communicating(false),
             m_force_migrate(false),
+            m_check_decomposition(true),
             m_nneigh(0),
             m_n_unique_neigh(0),
             m_sendbuf(m_exec_conf),
@@ -58,12 +59,16 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
+    // attach decomposition check to the box change signal
+    m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+
     initializeNeighborArrays();
     }
 
 mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
+    m_mpcd_sys->getCellList()->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -172,6 +177,13 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     m_is_communicating = true;
 
     if (m_prof) m_prof->push("MPCD comm");
+
+    // check box is large enough for decomposition
+    if (m_check_decomposition)
+        {
+        checkDecomposition();
+        m_check_decomposition = false;
+        }
 
     migrateParticles();
 
@@ -291,6 +303,71 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
         }
 
     if (m_prof) m_prof->pop();
+    }
+
+/*!
+ * Checks that the simulation box is not overdecomposed so that communication can
+ * be achieved using the assumed single step. This is a collective call that
+ * raises an error on all ranks if any rank reports an error.
+ */
+void mpcd::Communicator::checkDecomposition()
+    {
+    int error = 0;
+    for (unsigned int dim=0; dim < m_sysdef->getNDimensions(); ++dim)
+        {
+        if (!isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
+
+        // determine the bounds of this box
+        const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+        const Scalar3 lo = box.getLo();
+        const Scalar3 hi = box.getHi();
+
+        Scalar my_lo, my_hi;
+        if (dim == 0) // x
+            {
+            my_lo = lo.x;
+            my_hi = hi.x;
+            }
+        else if (dim == 1) // y
+            {
+            my_lo = lo.y;
+            my_hi = hi.y;
+            }
+        else if (dim == 2) // z
+            {
+            my_lo = lo.z;
+            my_hi = hi.z;
+            }
+
+        // get the neighbors this rank sends to
+        const unsigned int right_neigh = m_decomposition->getNeighborRank(2*dim);
+        const unsigned int left_neigh = m_decomposition->getNeighborRank(2*dim+1);
+
+        Scalar right_lo, left_hi;
+        // exchange right
+        MPI_Sendrecv(&my_hi, 1, MPI_HOOMD_SCALAR, right_neigh, 0,
+                     &right_lo, 1, MPI_HOOMD_SCALAR, right_neigh, 0,
+                     m_mpi_comm, MPI_STATUS_IGNORE);
+        // exchange left
+        MPI_Sendrecv(&my_lo, 1, MPI_HOOMD_SCALAR, left_neigh, 1,
+                     &left_hi, 1, MPI_HOOMD_SCALAR, left_neigh, 1,
+                     m_mpi_comm, MPI_STATUS_IGNORE);
+
+        // check for an error between neighbors and save it
+        // we can't quit early because this could cause a stall
+        if (right_lo < my_lo || left_hi >= my_hi)
+            {
+            error = 1;
+            }
+        }
+
+    // check for any error on all ranks with all-to-all communication
+    MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, m_mpi_comm);
+    if (error)
+        {
+        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD" << std::endl;
+        throw std::runtime_error("Overdecomposed simulation box");
+        }
     }
 
 /*!
