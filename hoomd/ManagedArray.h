@@ -42,6 +42,17 @@ class ManagedArray
                 allocate();
                 }
             }
+
+        //! Convenience constructor to fill array with values
+        ManagedArray(unsigned int _N, bool _managed, const T& value)
+            : N(_N), managed(_managed)
+            {
+            if (N > 0)
+                {
+                allocate();
+                std::fill(data,data+N,value);
+                }
+            }
         #endif
 
         DEVICE virtual ~ManagedArray()
