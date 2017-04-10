@@ -2,9 +2,11 @@
 
 ###################################
 ## Setup all of the test executables in a for loop
+if (BUILD_TESTING)
 set(TEST_LIST
     cell_list
     )
+endif()
 
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
@@ -13,8 +15,14 @@ if(ENABLE_MPI)
     ENDMACRO(ADD_TO_MPI_TESTS)
 
     # define every test together with the number of processors
-    ADD_TO_MPI_TESTS(cell_list_mpi 8)
+    # these are long running tests
+    if (BUILD_VALIDATION)
     ADD_TO_MPI_TESTS(communicator 8)
+    endif()
+    # these are tests that are shorter running
+    if (BUILD_TESTING)
+    ADD_TO_MPI_TESTS(cell_list_mpi 8)
+    endif()
 endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
@@ -25,7 +33,10 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
     add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_NAME}.cc)
 
+    # only add to test_all if BUILD_TESTING is enabled
+    if (BUILD_TESTING)
     add_dependencies(test_all ${TEST_NAME})
+    endif()
 
     target_link_libraries(${TEST_NAME} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${TEST_NAME})
