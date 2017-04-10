@@ -35,6 +35,9 @@
 // Check against zero with absolute tolerance
 #define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
 
+// Enable to convert OBBs into AABBs, makes overlap check faster but less accurate
+//#define CHECK_OBB_AS_AABB
+
 namespace hpmc
 {
 
@@ -164,10 +167,28 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     // rotate translation into A's frame
     t = rotate(conj(a.rotation),t);
 
+    const OverlapReal eps(1e-6); // can be large, because false positives won't affect correctness
+
+    #ifdef CHECK_OBB_AS_AABB
+    // construct an AABB from rotated OBB
+    vec3<OverlapReal> lb = vec3<OverlapReal>((fabs(r.row0.x)+eps)*b.lengths.x+(fabs(r.row0.y)+eps)*b.lengths.y+(fabs(r.row0.z)+eps)*b.lengths.z,
+                                             (fabs(r.row1.x)+eps)*b.lengths.x+(fabs(r.row1.y)+eps)*b.lengths.y+(fabs(r.row1.z)+eps)*b.lengths.z,
+                                             (fabs(r.row2.x)+eps)*b.lengths.x+(fabs(r.row2.y)+eps)*b.lengths.y+(fabs(r.row2.z)+eps)*b.lengths.z);
+
+    vec3<OverlapReal> upper = t + lb;
+    vec3<OverlapReal> lower = t - lb;
+
+    // returns true if AABB's intersect
+    return !(   upper.x < -a.lengths.x
+             || lower.x > a.lengths.x
+             || upper.y < -a.lengths.y
+             || lower.y > a.lengths.y
+             || upper.z < -a.lengths.z
+             || lower.z > a.lengths.z
+            );
+    #else
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-3); // can be large, because false positives don't harm
-
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
     rabs[0][1] = fabs(r.row0.y) + eps;
@@ -257,6 +278,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
 
     // no separating axis found, the OBBs must be intersecting
     return true;
+    #endif
     }
 
 template<class T>

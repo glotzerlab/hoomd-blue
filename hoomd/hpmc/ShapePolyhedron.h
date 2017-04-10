@@ -814,7 +814,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);
 
-    vec3<OverlapReal> dr = r_ab;
     /*
      * This overlap test checks if an edge of one polyhedron is overlapping with a face of the other
      */
@@ -902,7 +901,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     // no intersecting edge, check if one polyhedron is contained in the other
 
     // if shape(A) == shape(B), only consider intersections
-    if (&a.data == &b.data && dot(dr,dr) != OverlapReal(0.0) ) return false;
+    if (&a.data == &b.data) return false;
+
+    vec3<OverlapReal> dr = r_ab;
 
     for (unsigned int ord = 0; ord < 2; ++ord)
         {
@@ -996,6 +997,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             return true;
             }
         }
+
     return false;
     }
 
