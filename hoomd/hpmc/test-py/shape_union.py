@@ -271,7 +271,6 @@ class shape_union(unittest.TestCase):
         #
         self.N = 90        # number of dumbbells
         self.L = 40        # box edge length
-        self.num_iter = 50 # number of times to generate new configurations
         self.seed = 27      # PRNG seed
         self.ndim = 3
 
@@ -294,7 +293,8 @@ class shape_union(unittest.TestCase):
         self.mc = hpmc.integrate.sphere_union(seed=self.seed);
         self.mc.shape_param.set("A", diameters=[1.0, 1.0], centers=spheres);
 
-        for i in range(self.num_iter):
+        num_iter = 50 # number of times to generate new configurations
+        for i in range(num_iter):
             # randomly create "dumbbells" as pairs of spheres located anywhere in the box
             positions = (numpy.random.random((self.N,self.ndim)) - 0.5) * self.L  # positions of dumbbells in box
             # not uniformly sampling orientations, but that's okay
@@ -361,7 +361,9 @@ class shape_union(unittest.TestCase):
         # use fixed seed
         numpy.random.seed(self.seed)
 
-        for i in range(self.num_iter):
+        # only perform the test 5 times, rather than 50 in the case of test_dumbbells.
+        num_iter = 5
+        for i in range(num_iter):
             # randomly create "dumbbells" as pairs of cubes located anywhere in the box
             positions = (numpy.random.random((self.N, self.ndim)) - 0.5) * self.L  # positions of dimers in box
             # not uniformly sampling orientations, but that's okay
