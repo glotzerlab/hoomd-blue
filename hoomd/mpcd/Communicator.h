@@ -126,7 +126,7 @@ class Communicator
 
     protected:
         //! Set the communication flags for the particle data
-        virtual unsigned int setCommFlags(const BoxDim& box);
+        virtual void setCommFlags(const BoxDim& box);
 
         //! Get the wrapping box for this rank
         BoxDim getWrapBox(const BoxDim& box);

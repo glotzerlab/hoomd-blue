@@ -186,75 +186,71 @@ void mpcd::Communicator::migrateParticles()
 
     // determine local particles that are to be sent to neighboring processors
     const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
-    unsigned int req_comm_flags = setCommFlags(box);
-    while (req_comm_flags)
+    setCommFlags(box);
+
+    // fill the buffers and send in each direction
+    for (unsigned int dir=0; dir < 6; dir++)
         {
-        // fill the buffers and send in each direction
-        for (unsigned int dir=0; dir < 6; dir++)
+        unsigned int comm_mask = (1 << static_cast<unsigned char>(dir));
+
+        if (!isCommunicating(static_cast<mpcd::detail::face>(dir))) continue;
+
+        // fill send buffer
+        if (m_prof) m_prof->push("pack");
+        m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
+        if (m_prof) m_prof->pop();
+
+        // we receive from the direction opposite to the one we send to
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+        unsigned int recv_neighbor;
+        if (dir % 2 == 0)
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+        else
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
+        // communicate size of the message that will contain the particle data
+        unsigned int n_recv_ptls;
+        unsigned int n_send_ptls = m_sendbuf.size();
+        m_reqs.reserve(2); m_stats.reserve(2);
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
+        MPI_Waitall(2, m_reqs.data(), m_stats.data());
+
+        // Resize receive buffer
+        m_recvbuf.resize(n_recv_ptls);
+
+        // exchange particle data
             {
-            unsigned int comm_mask = (1 << static_cast<unsigned char>(dir));
-
-            if (!isCommunicating(static_cast<mpcd::detail::face>(dir)) || !(req_comm_flags & comm_mask)) continue;
-
-            // fill send buffer
-            if (m_prof) m_prof->push("pack");
-            m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
-            if (m_prof) m_prof->pop();
-
-            // we receive from the direction opposite to the one we send to
-            unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-            unsigned int recv_neighbor;
-            if (dir % 2 == 0)
-                recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-            else
-                recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
-            // communicate size of the message that will contain the particle data
-            unsigned int n_recv_ptls;
-            unsigned int n_send_ptls = m_sendbuf.size();
-            m_reqs.reserve(2); m_stats.reserve(2);
-            MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
-            MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
+            if (m_prof) m_prof->push("MPI send/recv");
+            MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
             MPI_Waitall(2, m_reqs.data(), m_stats.data());
+            if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
+            }
 
-            // Resize receive buffer
-            m_recvbuf.resize(n_recv_ptls);
-
-            // exchange particle data
+        // wrap received particles across a global boundary back into global box
+        if (m_prof) m_prof->push("wrap");
+            {
+            ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
+            const BoxDim wrap_box = getWrapBox(box);
+            for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
                 {
-                ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
-                ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
-                if (m_prof) m_prof->push("MPI send/recv");
-                MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
-                MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
-                MPI_Waitall(2, m_reqs.data(), m_stats.data());
-                if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
+                mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
+                Scalar4& postype = p.pos;
+                int3 image = make_int3(0,0,0);
+
+                wrap_box.wrap(postype,image);
                 }
+            }
+        if (m_prof) m_prof->pop();
 
-            // wrap received particles across a global boundary back into global box
-            if (m_prof) m_prof->push("wrap");
-                {
-                ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
-                const BoxDim wrap_box = getWrapBox(box);
-                for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
-                    {
-                    mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
-                    Scalar4& postype = p.pos;
-                    int3 image = make_int3(0,0,0);
-
-                    wrap_box.wrap(postype,image);
-                    }
-                }
-            if (m_prof) m_prof->pop();
-
-            // fill particle data with wrapped, received particles
-            if (m_prof) m_prof->push("unpack");
-            m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
-            if (m_prof) m_prof->pop();
-            } // end dir loop
-
-        req_comm_flags = setCommFlags(box);
-        }
+        // fill particle data with wrapped, received particles
+        if (m_prof) m_prof->push("unpack");
+        m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
+        if (m_prof) m_prof->pop();
+        } // end dir loop
 
     if (m_prof) m_prof->pop();
     }
@@ -265,39 +261,36 @@ void mpcd::Communicator::migrateParticles()
  * Particles lying outside of \a box have their communication flags set along
  * that face.
  */
-unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
+void mpcd::Communicator::setCommFlags(const BoxDim& box)
     {
-    if (m_prof) m_prof->push("mark");
+    if (m_prof) m_prof->push("comm flags");
     // mark all particles which have left the box for sending
     unsigned int N = m_mpcd_pdata->getN();
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::host, access_mode::overwrite);
 
-    unsigned int req_comm_flags = 0;
+    // since box is orthorhombic, just use branching to compute comm flags
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
     for (unsigned int idx = 0; idx < N; ++idx)
         {
         const Scalar4& postype = h_pos.data[idx];
-        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        Scalar3 f = box.makeFraction(pos);
+        const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         unsigned int flags = 0;
-        if (f.x >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-        else if (f.x < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
+        if (pos.x >= hi.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
+        else if (pos.x < lo.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
 
-        if (f.y >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-        else if (f.y < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
+        if (pos.y >= hi.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
+        else if (pos.y < lo.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
 
-        if (f.z >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-        else if (f.z < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
+        if (pos.z >= hi.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
+        else if (pos.z < lo.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
-        req_comm_flags |= flags;
         h_comm_flag.data[idx] = flags;
         }
 
-    MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
     if (m_prof) m_prof->pop();
-
-    return req_comm_flags;
     }
 
 /*!

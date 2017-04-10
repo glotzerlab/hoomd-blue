@@ -255,165 +255,160 @@ void mpcd::CommunicatorGPU::migrateParticles()
 
     // determine local particles that are to be sent to neighboring processors
     const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
-    unsigned int req_comm_flags = setCommFlags(box);
-    while (req_comm_flags)
+    setCommFlags(box);
+
+    for (unsigned int stage = 0; stage < m_num_stages; stage++)
         {
-        for (unsigned int stage = 0; stage < m_num_stages; stage++)
+        const unsigned int comm_mask = m_comm_mask[stage];
+
+        // fill send buffer
+        if (m_prof) m_prof->push(m_exec_conf,"pack");
+        m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask);
+        if (m_prof) m_prof->pop(m_exec_conf);
+
+        if (m_prof) m_prof->push("sort");
+        // pack the buffers for each neighbor rank in this stage
             {
-            const unsigned int comm_mask = m_comm_mask[stage];
-            if (!(req_comm_flags & comm_mask)) continue;
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
 
-            // fill send buffer
-            if (m_prof) m_prof->push(m_exec_conf,"pack");
-            m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask);
-            if (m_prof) m_prof->pop(m_exec_conf);
-
-            if (m_prof) m_prof->push("sort");
-            // pack the buffers for each neighbor rank in this stage
+            ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
+            std::multimap<unsigned int,mpcd::detail::pdata_element> keys;
+            // generate keys
+            const uint3 mypos = m_decomposition->getGridPos();
+            const Index3D& di = m_decomposition->getDomainIndexer();
+            mpcd::detail::get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
+            for (unsigned int i = 0; i < m_sendbuf.size(); ++i)
                 {
-                ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
-                ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
-                ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
-                ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-
-                ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
-                std::multimap<unsigned int,mpcd::detail::pdata_element> keys;
-                // generate keys
-                const uint3 mypos = m_decomposition->getGridPos();
-                const Index3D& di = m_decomposition->getDomainIndexer();
-                mpcd::detail::get_migrate_key t(mypos, di, m_comm_mask[stage],h_cart_ranks.data);
-                for (unsigned int i = 0; i < m_sendbuf.size(); ++i)
-                    {
-                    mpcd::detail::pdata_element elem = h_sendbuf.data[i];
-                    keys.insert(std::pair<unsigned int, mpcd::detail::pdata_element>(t(elem.comm_flag),elem));
-                    }
-
-                // Find start and end indices
-                for (unsigned int i = 0; i < m_n_unique_neigh; ++i)
-                    {
-                    auto lower = keys.lower_bound(h_unique_neighbors.data[i]);
-                    auto upper = keys.upper_bound(h_unique_neighbors.data[i]);
-                    h_begin.data[i] = std::distance(keys.begin(),lower);
-                    h_end.data[i] = std::distance(keys.begin(),upper);
-                    }
-
-                // sort send buffer
-                unsigned int i = 0;
-                for (auto it = keys.begin(); it != keys.end(); ++it)
-                    h_sendbuf.data[i++] = it->second;
-                }
-            if (m_prof) m_prof->pop();
-
-            // communicate total number of particles being sent and received from neighbor ranks
-            unsigned int n_recv_tot = 0;
-                {
-                ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-
-                // compute send counts
-                for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
-                    m_n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
-
-                // loop over neighbors
-                unsigned int nreq = 0;
-                m_reqs.reserve(2*m_n_unique_neigh);
-                for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
-                    {
-                    if (m_stages[ineigh] != (int)stage)
-                        {
-                        // skip neighbor if not participating in this communication stage
-                        m_n_send_ptls[ineigh] = 0;
-                        m_n_recv_ptls[ineigh] = 0;
-                        continue;
-                        }
-
-                    // rank of neighbor processor
-                    unsigned int neighbor = h_unique_neighbors.data[ineigh];
-
-                    MPI_Isend(&m_n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
-                    MPI_Irecv(&m_n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
-                    } // end neighbor loop
-
-                m_stats.reserve(nreq);
-                MPI_Waitall(nreq, m_reqs.data(), m_stats.data());
-
-                // sum up receive counts
-                for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
-                    {
-                    m_offsets[ineigh] = n_recv_tot;
-                    n_recv_tot += m_n_recv_ptls[ineigh];
-                    }
+                mpcd::detail::pdata_element elem = h_sendbuf.data[i];
+                keys.insert(std::pair<unsigned int, mpcd::detail::pdata_element>(t(elem.comm_flag),elem));
                 }
 
-            // Resize particles from neighbor ranks
-            m_recvbuf.resize(n_recv_tot);
+            // Find start and end indices
+            for (unsigned int i = 0; i < m_n_unique_neigh; ++i)
                 {
-                ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+                auto lower = keys.lower_bound(h_unique_neighbors.data[i]);
+                auto upper = keys.upper_bound(h_unique_neighbors.data[i]);
+                h_begin.data[i] = std::distance(keys.begin(),lower);
+                h_end.data[i] = std::distance(keys.begin(),upper);
+                }
 
-                ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
-                ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
+            // sort send buffer
+            unsigned int i = 0;
+            for (auto it = keys.begin(); it != keys.end(); ++it)
+                h_sendbuf.data[i++] = it->second;
+            }
+        if (m_prof) m_prof->pop();
 
-                // loop over neighbors
-                unsigned int nreq = 0;
-                m_reqs.reserve(2*m_n_unique_neigh);
-                for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
+        // communicate total number of particles being sent and received from neighbor ranks
+        unsigned int n_recv_tot = 0;
+            {
+            ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
+
+            // compute send counts
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
+                m_n_send_ptls[ineigh] = h_end.data[ineigh] - h_begin.data[ineigh];
+
+            // loop over neighbors
+            unsigned int nreq = 0;
+            m_reqs.reserve(2*m_n_unique_neigh);
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
+                {
+                if (m_stages[ineigh] != (int)stage)
                     {
-                    // rank of neighbor processor
-                    unsigned int neighbor = h_unique_neighbors.data[ineigh];
-
-                    // exchange particle data
-                    if (m_n_send_ptls[ineigh])
-                        {
-                        MPI_Isend(h_sendbuf.data+h_begin.data[ineigh],
-                            m_n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
-                            MPI_BYTE,
-                            neighbor,
-                            1,
-                            m_mpi_comm,
-                            &m_reqs[nreq++]);
-                        }
-
-                    if (m_n_recv_ptls[ineigh])
-                        {
-                        MPI_Irecv(h_recvbuf.data+m_offsets[ineigh],
-                            m_n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
-                            MPI_BYTE,
-                            neighbor,
-                            1,
-                            m_mpi_comm,
-                            &m_reqs[nreq++]);
-                        }
+                    // skip neighbor if not participating in this communication stage
+                    m_n_send_ptls[ineigh] = 0;
+                    m_n_recv_ptls[ineigh] = 0;
+                    continue;
                     }
 
-                m_stats.reserve(2*m_n_unique_neigh);
-                MPI_Waitall(nreq, &m_reqs.front(), &m_stats.front());
-                }
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
 
-            // wrap received particles through the global boundary
-            if (m_prof) m_prof->push(m_exec_conf, "wrap");
+                MPI_Isend(&m_n_send_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(&m_n_recv_ptls[ineigh], 1, MPI_UNSIGNED, neighbor, 0, m_mpi_comm, &m_reqs[nreq++]);
+                } // end neighbor loop
+
+            m_stats.reserve(nreq);
+            MPI_Waitall(nreq, m_reqs.data(), m_stats.data());
+
+            // sum up receive counts
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                 {
-                ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
-                const BoxDim wrap_box = getWrapBox(box);
-                mpcd::gpu::wrap_particles(n_recv_tot,
-                                          d_recvbuf.data,
-                                          wrap_box);
-                if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                    CHECK_CUDA_ERROR();
+                m_offsets[ineigh] = n_recv_tot;
+                n_recv_tot += m_n_recv_ptls[ineigh];
                 }
-            if (m_prof) m_prof->pop(m_exec_conf);
+            }
 
-            // fill particle data with received particles
-            if (m_prof) m_prof->push(m_exec_conf, "unpack");
-            m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask);
-            if (m_prof) m_prof->pop(m_exec_conf);
+        // Resize particles from neighbor ranks
+        m_recvbuf.resize(n_recv_tot);
+            {
+            ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
 
-            } // end communication stage
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
 
-        req_comm_flags = setCommFlags(box);
-        }
+            // loop over neighbors
+            unsigned int nreq = 0;
+            m_reqs.reserve(2*m_n_unique_neigh);
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                // exchange particle data
+                if (m_n_send_ptls[ineigh])
+                    {
+                    MPI_Isend(h_sendbuf.data+h_begin.data[ineigh],
+                        m_n_send_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_mpi_comm,
+                        &m_reqs[nreq++]);
+                    }
+
+                if (m_n_recv_ptls[ineigh])
+                    {
+                    MPI_Irecv(h_recvbuf.data+m_offsets[ineigh],
+                        m_n_recv_ptls[ineigh]*sizeof(mpcd::detail::pdata_element),
+                        MPI_BYTE,
+                        neighbor,
+                        1,
+                        m_mpi_comm,
+                        &m_reqs[nreq++]);
+                    }
+                }
+
+            m_stats.reserve(2*m_n_unique_neigh);
+            MPI_Waitall(nreq, &m_reqs.front(), &m_stats.front());
+            }
+
+        // wrap received particles through the global boundary
+        if (m_prof) m_prof->push(m_exec_conf, "wrap");
+            {
+            ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
+            const BoxDim wrap_box = getWrapBox(box);
+            mpcd::gpu::wrap_particles(n_recv_tot,
+                                      d_recvbuf.data,
+                                      wrap_box);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        if (m_prof) m_prof->pop(m_exec_conf);
+
+        // fill particle data with received particles
+        if (m_prof) m_prof->push(m_exec_conf, "unpack");
+        m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask);
+        if (m_prof) m_prof->pop(m_exec_conf);
+
+        } // end communication stage
 
     if (m_prof) m_prof->pop();
     }
@@ -424,12 +419,11 @@ void mpcd::CommunicatorGPU::migrateParticles()
  * Particles lying outside of \a box have their communication flags set along
  * that face.
  */
-unsigned int mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
+void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     {
-    if (m_prof) m_prof->push("comm flags");
+    if (m_prof) m_prof->push(m_exec_conf, "comm flags");
 
     // mark all particles which have left the box for sending
-    if (m_prof) m_prof->push(m_exec_conf, "mark");
         {
         ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::read);
@@ -444,42 +438,8 @@ unsigned int mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
             CHECK_CUDA_ERROR();
         m_flags_tuner->end();
         }
+
     if (m_prof) m_prof->pop(m_exec_conf);
-
-    // reduce the communication flags across particles
-    if (m_prof) m_prof->push(m_exec_conf, "reduce");
-        {
-        ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::read);
-
-        // first call sizes tmp storage
-        void *d_tmp = NULL;
-        size_t tmp_bytes = 0;
-        mpcd::gpu::reduce_comm_flags(m_req_comm_flags.getDeviceFlags(),
-                                     d_tmp,
-                                     tmp_bytes,
-                                     d_comm_flag.data,
-                                     m_mpcd_pdata->getN());
-
-        // get temporary buffer, minimum allocation is 1 byte
-        ScopedAllocation<unsigned char> d_tmp_alloc(m_exec_conf->getCachedAllocator(), (tmp_bytes > 0) ? tmp_bytes : 1);
-        d_tmp = (void*)d_tmp_alloc();
-
-        // second call does the reduction
-        mpcd::gpu::reduce_comm_flags(m_req_comm_flags.getDeviceFlags(),
-                                     d_tmp,
-                                     tmp_bytes,
-                                     d_comm_flag.data,
-                                     m_mpcd_pdata->getN());
-        }
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    // read the flags on the host and reduce across MPI ranks
-    unsigned int req_comm_flags = m_req_comm_flags.readFlags();
-    MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
-
-    if (m_prof) m_prof->pop();
-
-    return req_comm_flags;
     }
 
 /*!
