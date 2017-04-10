@@ -423,21 +423,18 @@ void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     {
     if (m_prof) m_prof->push(m_exec_conf, "comm flags");
 
-    // mark all particles which have left the box for sending
-        {
-        ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::overwrite);
+    ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::read);
 
-        m_flags_tuner->begin();
-        mpcd::gpu::stage_particles(d_comm_flag.data,
-                                   d_pos.data,
-                                   m_mpcd_pdata->getN(),
-                                   box,
-                                   m_flags_tuner->getParam());
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_flags_tuner->end();
-        }
+    m_flags_tuner->begin();
+    mpcd::gpu::stage_particles(d_comm_flag.data,
+                               d_pos.data,
+                               m_mpcd_pdata->getN(),
+                               box,
+                               m_flags_tuner->getParam());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_flags_tuner->end();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
