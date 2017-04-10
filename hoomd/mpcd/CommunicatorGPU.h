@@ -100,6 +100,9 @@ class CommunicatorGPU : public mpcd::Communicator
 
         //! Helper function to set up communication stages
         void initializeCommunicationStages();
+
+        /* Autotuners */
+        std::unique_ptr<Autotuner> m_flags_tuner;   //!< Tuner for marking communication flags
     };
 
 namespace detail

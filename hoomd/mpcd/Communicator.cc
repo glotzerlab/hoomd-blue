@@ -232,6 +232,7 @@ void mpcd::Communicator::migrateParticles()
                 }
 
             // wrap received particles across a global boundary back into global box
+            if (m_prof) m_prof->push("wrap");
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
                 const BoxDim wrap_box = getWrapBox(box);
@@ -244,6 +245,7 @@ void mpcd::Communicator::migrateParticles()
                     wrap_box.wrap(postype,image);
                     }
                 }
+            if (m_prof) m_prof->pop();
 
             // fill particle data with wrapped, received particles
             if (m_prof) m_prof->push("unpack");
@@ -265,6 +267,7 @@ void mpcd::Communicator::migrateParticles()
  */
 unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
     {
+    if (m_prof) m_prof->push("mark");
     // mark all particles which have left the box for sending
     unsigned int N = m_mpcd_pdata->getN();
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
@@ -292,6 +295,8 @@ unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
         }
 
     MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
+    if (m_prof) m_prof->pop();
+
     return req_comm_flags;
     }
 

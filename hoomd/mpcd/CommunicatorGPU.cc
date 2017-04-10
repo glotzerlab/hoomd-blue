@@ -38,6 +38,9 @@ mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_
 
     GPUArray<unsigned int> end(neigh_max,m_exec_conf);
     m_end.swap(end);
+
+    // autotuners
+    m_flags_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_comm_flags", m_exec_conf));
     }
 
 mpcd::CommunicatorGPU::~CommunicatorGPU()
@@ -243,7 +246,7 @@ struct get_migrate_key : public std::unary_function<const unsigned int, unsigned
 
 void mpcd::CommunicatorGPU::migrateParticles()
     {
-    if (m_prof) m_prof->push(m_exec_conf,"migrate");
+    if (m_prof) m_prof->push("migrate");
 
     // reserve per neighbor memory
     m_n_send_ptls.reserve(m_n_unique_neigh);
@@ -261,8 +264,11 @@ void mpcd::CommunicatorGPU::migrateParticles()
             if (!(req_comm_flags & comm_mask)) continue;
 
             // fill send buffer
+            if (m_prof) m_prof->push(m_exec_conf,"pack");
             m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask);
+            if (m_prof) m_prof->pop(m_exec_conf);
 
+            if (m_prof) m_prof->push("sort");
             // pack the buffers for each neighbor rank in this stage
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
@@ -296,6 +302,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 for (auto it = keys.begin(); it != keys.end(); ++it)
                     h_sendbuf.data[i++] = it->second;
                 }
+            if (m_prof) m_prof->pop();
 
             // communicate total number of particles being sent and received from neighbor ranks
             unsigned int n_recv_tot = 0;
@@ -386,6 +393,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 }
 
             // wrap received particles through the global boundary
+            if (m_prof) m_prof->push(m_exec_conf, "wrap");
                 {
                 ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
                 const BoxDim wrap_box = getWrapBox(box);
@@ -395,16 +403,19 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }
+            if (m_prof) m_prof->pop(m_exec_conf);
 
             // fill particle data with received particles
+            if (m_prof) m_prof->push(m_exec_conf, "unpack");
             m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask);
+            if (m_prof) m_prof->pop(m_exec_conf);
 
             } // end communication stage
 
         req_comm_flags = setCommFlags(box);
         }
 
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
     }
 
 /*!
@@ -415,20 +426,28 @@ void mpcd::CommunicatorGPU::migrateParticles()
  */
 unsigned int mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
     {
+    if (m_prof) m_prof->push("comm flags");
+
     // mark all particles which have left the box for sending
+    if (m_prof) m_prof->push(m_exec_conf, "mark");
         {
         ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_mpcd_pdata->getPositions(), access_location::device, access_mode::read);
 
+        m_flags_tuner->begin();
         mpcd::gpu::stage_particles(d_comm_flag.data,
                                    d_pos.data,
                                    m_mpcd_pdata->getN(),
-                                   box);
+                                   box,
+                                   m_flags_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+        m_flags_tuner->end();
         }
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // reduce the communication flags across particles
+    if (m_prof) m_prof->push(m_exec_conf, "reduce");
         {
         ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::device, access_mode::read);
 
@@ -452,10 +471,14 @@ unsigned int mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
                                      d_comm_flag.data,
                                      m_mpcd_pdata->getN());
         }
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // read the flags on the host and reduce across MPI ranks
     unsigned int req_comm_flags = m_req_comm_flags.readFlags();
     MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
+
+    if (m_prof) m_prof->pop();
+
     return req_comm_flags;
     }
 
