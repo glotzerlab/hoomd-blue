@@ -12,7 +12,7 @@
 
 #include "ParticleData.cuh"
 
-#include "hoomd/extern/kernels/scan.cuh"
+#include "hoomd/extern/cub/cub/device/device_scan.cuh"
 
 namespace mpcd
 {
@@ -22,7 +22,8 @@ namespace kernel
 {
 //! Kernel to partition particle data
 /*!
- * \param N Number of local particles
+ * \param d_out
+ * \param mask
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
@@ -33,6 +34,7 @@ namespace kernel
  * \param d_comm_flags Communication flags (nonzero if particle should be migrated)
  * \param d_comm_flags_out Packed communication flags
  * \param d_scan Result of exclusive prefix sum
+ * \param N Number of local particles
  *
  * Particles are removed by performing a selection using the result of an
  * exclusive prefix sum, stored in \a d_scan. The scan recovers the indexes
@@ -51,7 +53,6 @@ namespace kernel
  */
 __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
                                  const unsigned int mask,
-                                 const unsigned int N,
                                  const Scalar4 *d_pos,
                                  const Scalar4 *d_vel,
                                  const unsigned int *d_tag,
@@ -60,7 +61,8 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
                                  Scalar4 *d_vel_alt,
                                  unsigned int *d_tag_alt,
                                  unsigned int *d_comm_flags_alt,
-                                 const unsigned int *d_scan)
+                                 const unsigned int *d_scan,
+                                 const unsigned int N)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -92,16 +94,16 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
 /*!
  * \param d_tmp Temporary storage to hold transformation (output)
  * \param d_comm_flags Communication flags
- * \param N Number of local particles
  * \param mask Bitwise mask for \a d_comm_flags
+ * \param N Number of local particles
  *
  * Any communication flags that are bitwise AND with \a mask are transformed to
  * a 1 and stored in \a d_tmp.
  */
-__global__ void select_sent_particles(unsigned int *d_tmp,
-                                      const unsigned int *d_comm_flags,
-                                      const unsigned int N,
-                                      const unsigned int mask)
+__global__ void mark_removed_particles(unsigned int *d_tmp,
+                                       const unsigned int *d_comm_flags,
+                                       const unsigned int mask,
+                                       const unsigned int N)
     {
     unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -112,10 +114,45 @@ __global__ void select_sent_particles(unsigned int *d_tmp,
 } // end namespace gpu
 } // end namespace mpcd
 
+
+cudaError_t mpcd::gpu::mark_removed_particles(unsigned int *d_tmp_flag,
+                                              const unsigned int *d_comm_flags,
+                                              const unsigned int mask,
+                                              const unsigned int N,
+                                              const unsigned int block_size)
+    {
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::mark_removed_particles);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N / run_block_size + 1);
+    mpcd::gpu::kernel::mark_removed_particles<<<grid, run_block_size>>>(d_tmp_flag,
+                                                                        d_comm_flags,
+                                                                        mask,
+                                                                        N);
+    return cudaSuccess;
+    }
+
+cudaError_t mpcd::gpu::scan_removed_particles(void *d_tmp,
+                                              size_t& tmp_bytes,
+                                              unsigned int *d_tmp_flag,
+                                              const unsigned int N)
+    {
+    // in place scan is supported
+    // https://groups.google.com/d/msg/cub-users/pEsYSNc2Rn4/_4ulOuwWDcoJ
+    cub::DeviceScan::ExclusiveSum(d_tmp, tmp_bytes, d_tmp_flag, d_tmp_flag, N);
+
+    return cudaSuccess;
+    }
+
 /*!
  * \param d_out Output array for packed particle data
  * \param mask Bitwise mask for \a d_comm_flags
- * \param N Number of local particles
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
@@ -124,72 +161,41 @@ __global__ void select_sent_particles(unsigned int *d_tmp,
  * \param d_vel_alt Device array of particle velocities (output)
  * \param d_tag_alt Device array of particle tags (output)
  * \param d_comm_flags_alt Device array of communication flags (output)
- * \param max_n_out Maximum number of elements to write to output array
- * \param d_tmp Temporary storage space for device scan
- * \param mgpu_context Modern GPU context for exclusive scan
+ * \param d_scan Output from device scan of temporary flags
+ * \param N Current number of particles
  *
- * \returns Number of elements marked for removal
- *
- * Particles are removed in three stages:
- * 1. Particles have their communication flags transformed into 0 or 1.
- * 2. An exclusive prefix sum is performed to map the indexes for packing, and
- *    count the number of particles to remove.
- * 3. Particles are removed if sufficient storage has been allocated for packing.
+ * \returns cudaSuccess on completion.
  */
-unsigned int mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
-                                         const unsigned int mask,
-                                         unsigned int N,
-                                         const Scalar4 *d_pos,
-                                         const Scalar4 *d_vel,
-                                         const unsigned int *d_tag,
-                                         const unsigned int *d_comm_flags,
-                                         Scalar4 *d_pos_alt,
-                                         Scalar4 *d_vel_alt,
-                                         unsigned int *d_tag_alt,
-                                         unsigned int *d_comm_flags_alt,
-                                         unsigned int max_n_out,
-                                         unsigned int *d_tmp,
-                                         mgpu::ContextPtr mgpu_context)
+cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
+                                        const unsigned int mask,
+                                        const Scalar4 *d_pos,
+                                        const Scalar4 *d_vel,
+                                        const unsigned int *d_tag,
+                                        const unsigned int *d_comm_flags,
+                                        Scalar4 *d_pos_alt,
+                                        Scalar4 *d_vel_alt,
+                                        unsigned int *d_tag_alt,
+                                        unsigned int *d_comm_flags_alt,
+                                        unsigned int *d_scan,
+                                        const unsigned int N)
     {
-    unsigned int n_out;
-
     // partition particle data into local and removed particles
-    unsigned int block_size =512;
+    unsigned int block_size = 512;
     unsigned int n_blocks = N/block_size+1;
 
-    // TODO: separate these so that they don't get called multiple times by mistake
-    // select nonzero communication flags
-    mpcd::gpu::kernel::select_sent_particles<<<n_blocks, block_size>>>(d_tmp, d_comm_flags, N, mask);
-
-    // perform a scan over the array of ones and zeroes
-    // TODO: switch to CUB
-    mgpu::Scan<mgpu::MgpuScanTypeExc>(d_tmp,
-        N, (unsigned int) 0, mgpu::plus<unsigned int>(),
-        (unsigned int *)NULL, &n_out, d_tmp, *mgpu_context);
-
-    // Don't write past end of buffer
-    if (n_out <= max_n_out)
-        {
-        // partition particle data into local and removed particles
-        unsigned int block_size =512;
-        unsigned int n_blocks = N/block_size+1;
-
-        mpcd::gpu::kernel::remove_particles<<<n_blocks, block_size>>>(d_out,
-                                                                      mask,
-                                                                      N,
-                                                                      d_pos,
-                                                                      d_vel,
-                                                                      d_tag,
-                                                                      d_comm_flags,
-                                                                      d_pos_alt,
-                                                                      d_vel_alt,
-                                                                      d_tag_alt,
-                                                                      d_comm_flags_alt,
-                                                                      d_tmp);
-        }
-
-    // return elements written to output stream
-    return n_out;
+    mpcd::gpu::kernel::remove_particles<<<n_blocks, block_size>>>(d_out,
+                                                                  mask,
+                                                                  d_pos,
+                                                                  d_vel,
+                                                                  d_tag,
+                                                                  d_comm_flags,
+                                                                  d_pos_alt,
+                                                                  d_vel_alt,
+                                                                  d_tag_alt,
+                                                                  d_comm_flags_alt,
+                                                                  d_scan,
+                                                                  N);
+    return cudaSuccess;
     }
 
 

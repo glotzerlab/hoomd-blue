@@ -3,40 +3,50 @@
 
 // Maintainer: mphoward
 
-#ifndef MPCD_PARTICLE_DATA_CUH_
-#define MPCD_PARTICLE_DATA_CUH_
-
-#include <cuda_runtime.h>
-#include "hoomd/extern/util/mgpucontext.h"
-
-#ifdef ENABLE_MPI
-#include "hoomd/BoxDim.h"
-#include "ParticleDataUtilities.h"
-
 /*!
  * \file mpcd/ParticleData.cuh
  * \brief Declares GPU functions used by mpcd::ParticleData
  */
 
+#ifndef MPCD_PARTICLE_DATA_CUH_
+#define MPCD_PARTICLE_DATA_CUH_
+
+#include <cuda_runtime.h>
+
+#ifdef ENABLE_MPI
+#include "hoomd/BoxDim.h"
+#include "ParticleDataUtilities.h"
+
 namespace mpcd
 {
 namespace gpu
 {
+//! Marks the particles which are being removed
+cudaError_t mark_removed_particles(unsigned int *d_tmp_flag,
+                                   const unsigned int *d_comm_flags,
+                                   const unsigned int mask,
+                                   const unsigned int N,
+                                   const unsigned int block_size);
+
+//! Scan the number of particles being removed using CUB
+cudaError_t scan_removed_particles(void *d_tmp,
+                                   size_t& tmp_bytes,
+                                   unsigned int *d_tmp_flag,
+                                   const unsigned int N);
+
 //! Pack particle data into output buffer and remove marked particles
-unsigned int remove_particles(mpcd::detail::pdata_element *d_out,
-                              const unsigned int mask,
-                              unsigned int N,
-                              const Scalar4 *d_pos,
-                              const Scalar4 *d_vel,
-                              const unsigned int *d_tag,
-                              const unsigned int *d_comm_flags,
-                              Scalar4 *d_pos_alt,
-                              Scalar4 *d_vel_alt,
-                              unsigned int *d_tag_alt,
-                              unsigned int *d_comm_flags_alt,
-                              unsigned int max_n_out,
-                              unsigned int *d_tmp,
-                              mgpu::ContextPtr mgpu_context);
+cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,
+                             const unsigned int mask,
+                             const Scalar4 *d_pos,
+                             const Scalar4 *d_vel,
+                             const unsigned int *d_tag,
+                             const unsigned int *d_comm_flags,
+                             Scalar4 *d_pos_alt,
+                             Scalar4 *d_vel_alt,
+                             unsigned int *d_tag_alt,
+                             unsigned int *d_comm_flags_alt,
+                             unsigned int *d_scan,
+                             const unsigned int N);
 
 //! Update particle data with new particles
 void add_particles(unsigned int old_nparticles,

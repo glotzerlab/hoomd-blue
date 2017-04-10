@@ -304,9 +304,6 @@ class ParticleData
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< GPU execution configuration
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
         std::shared_ptr<Profiler> m_prof;                           //!< Profiler
-        #ifdef ENABLE_CUDA
-        mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
-        #endif
 
         GPUArray<Scalar4> m_pos;    //!< MPCD particle positions plus type
         GPUArray<Scalar4> m_vel;    //!< MPCD particle velocities plus cell list id
@@ -322,7 +319,7 @@ class ParticleData
         GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
-        GPUVector<unsigned char> m_tmp;             //!< Temporary array for removing particles
+        GPUArray<unsigned int> m_tmp_flags;         //!< Temporary flags for removing particles
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache
