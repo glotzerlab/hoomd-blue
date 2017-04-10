@@ -48,6 +48,10 @@ mpcd::ParticleData::ParticleData(unsigned int N,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+
+    // initialize the temporary vector
+    GPUVector<unsigned char> tmp(m_exec_conf);
+    m_tmp.swap(tmp);
     #endif // ENABLE_MPI
 
     // construct snapshot with default type mapping (A, B, C, ...)
@@ -95,6 +99,10 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+
+    // initialize the temporary vector
+    GPUVector<unsigned char> tmp(m_exec_conf);
+    m_tmp.swap(tmp);
     #endif
 
     if (m_exec_conf->getRank() == 0 && snapshot.type_mapping.size() == 0)
@@ -924,8 +932,8 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
             ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
 
             // get temporary buffer
-            // TODO: FIX THIS, CACHED ALLOCATOR LEAKS MEMORY!
-            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
+            m_tmp.resize(m_N * sizeof(unsigned int));
+            ArrayHandle<unsigned char> d_tmp(m_tmp, access_location::device, access_mode::overwrite);
 
             n_out = mpcd::gpu::remove_particles(d_out.data,
                                                 mask,
@@ -939,7 +947,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                                 d_tag_alt.data,
                                                 d_comm_flags_alt.data,
                                                 max_n_out,
-                                                d_tmp.data,
+                                                reinterpret_cast<unsigned int*>(d_tmp.data),
                                                 m_mgpu_context);
            }
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
