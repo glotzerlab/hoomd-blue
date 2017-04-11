@@ -21,6 +21,23 @@ mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
                                                                              snapshot->getExecutionConfiguration(),
                                                                              snapshot->getDomainDecomposition()));
 
+    // Generate one companion cell list for the system
+    /*
+     * There is limited overhead to automatically creating a cell list (it is not sized
+     * until first compute), so we always make one.
+     */
+    #ifdef ENABLE_CUDA
+    if (snapshot->getExecutionConfiguration()->isCUDAEnabled())
+        {
+        m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
+        }
+    else
+    #endif // ENABLE_CUDA
+        {
+        m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
+        }
+
+    // connect to box change signal to enforce constant box dim in MPCD
     m_sysdef->getParticleData()->getBoxChangeSignal().connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
 
     // check that the MPCD box matches the HOOMD box

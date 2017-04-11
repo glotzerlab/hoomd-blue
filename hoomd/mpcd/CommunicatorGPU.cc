@@ -245,14 +245,14 @@ void mpcd::CommunicatorGPU::migrateParticles()
     {
     if (m_prof) m_prof->push(m_exec_conf,"migrate");
 
-    // TODO: get this from the cell list
-    const BoxDim& box = m_pdata->getBox();
 
     // reserve per neighbor memory
     m_n_send_ptls.reserve(m_n_unique_neigh);
     m_n_recv_ptls.reserve(m_n_unique_neigh);
     m_offsets.reserve(m_n_unique_neigh);
 
+    // determine local particles that are to be sent to neighboring processors
+    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
     unsigned int req_comm_flags = setCommFlags(box);
     while (req_comm_flags)
         {
@@ -426,7 +426,7 @@ unsigned int mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
         mpcd::gpu::stage_particles(d_comm_flag.data,
                                    d_pos.data,
                                    m_mpcd_pdata->getN(),
-                                   m_pdata->getBox());
+                                   box);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }

@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    CellList.cc
     Communicator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
@@ -13,6 +14,7 @@ set(_mpcd_sources
     )
 
 set(_mpcd_headers
+    CellList.h
     Communicator.h
     CommunicatorUtilities.h
     ParticleData.h
@@ -24,9 +26,12 @@ set(_mpcd_headers
 
 if (ENABLE_CUDA)
 list(APPEND _mpcd_sources
+    CellListGPU.cc
     CommunicatorGPU.cc
     )
 list(APPEND _mpcd_headers
+    CellListGPU.cuh
+    CellListGPU.h
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
@@ -34,6 +39,7 @@ list(APPEND _mpcd_headers
 endif()
 
 set(_mpcd_cu_sources
+    CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
     )
@@ -133,5 +139,5 @@ endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
-    add_subdirectory(test)
 endif()
+add_subdirectory(test)
