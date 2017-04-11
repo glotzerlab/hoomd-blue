@@ -1259,19 +1259,21 @@ int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string nam
     std::string path;
     int retval = 0;
     // create schema helpers
-    gsd_shape_schema<typename Shape::param_type> schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    gsd_schema_hpmc schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
 
     // access parameters
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-
-    // m_hasOrientation
-    // gsd_schema_hpmc::write()
-
-    // access parameters
-    // ArrayHandle<param_type> h_params(m_params, access_location::host, access_mode::read);
+    path = name + "d";
+    schema.write(handle, path, m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
+    if(m_hasOrientation)
+        {
+        path = name + "a";
+        schema.write(handle, path, m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
+        }
     path = name + "param";
-    retval |= schema.write(handle, path, m_pdata->getNTypes(), m_params);
+    retval |= schema_shape.write(handle, path, m_pdata->getNTypes(), m_params);
 
     return retval;
     }
@@ -1284,9 +1286,20 @@ bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> read
     uint64_t frame = reader->getFrame();
     std::string path;
     // create schemas
-    gsd_shape_schema<typename Shape::param_type> schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    gsd_schema_hpmc schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
+    path = name + "d";
+    schema.read(reader, frame, path, m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
+    if(m_hasOrientation)
+        {
+        path = name + "a";
+        schema.read(reader, frame, path, m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
+        }
     path = name + "param";
-    schema.read(reader, frame, path, m_pdata->getNTypes(), m_params);
+    schema_shape.read(reader, frame, path, m_pdata->getNTypes(), m_params);
     return success;
     }
 
