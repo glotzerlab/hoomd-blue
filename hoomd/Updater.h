@@ -58,18 +58,7 @@ class Updater
     public:
         //! Constructs the compute and associates it with the ParticleData
         Updater(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Updater()
-            {
-            // Included right now just for testing. 
-            for(unsigned int i = 0; i < m_slots.size(); i++)
-                {
-                if(m_slots[i]->connected())
-                    {
-                    m_exec_conf->msg->notice(2) << "disconnecting signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
-                    m_slots[i]->disconnect();
-                    }
-                }
-            };
+        virtual ~Updater()  {};
 
         //! Abstract method that performs the update
         /*! Derived classes will implement this method to perform their specific update
