@@ -215,10 +215,10 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
 
         std::string path;
         int retval = 0;
-        std::vector<int32_t> N(Ntypes);
+        std::vector<uint32_t> N(Ntypes);
         path = name + "N";
-        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly3d_verts& s) -> int32_t{return s.N;});
-        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_INT32, Ntypes, 1, 0, (void *)&N[0]);
+        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly3d_verts& s) -> uint32_t{return s.N;});
+        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&N[0]);
         path = name + "vertices";
         size_t count = std::accumulate(N.begin(), N.end(), 0);
         std::vector<float> data(count*Ntypes*3), sr(Ntypes);
@@ -249,8 +249,8 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         {
         bool success = true;
         std::vector<float> vertices,sweep_radius;
-        std::vector<int32_t> N;
-        int32_t count = 0;
+        std::vector<uint32_t> N;
+        uint32_t count = 0;
         std::string path;
         assert(shape.size() == Ntypes);
         if(m_exec_conf->isRoot())
@@ -258,7 +258,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             N.resize(Ntypes);
             sweep_radius.resize(Ntypes);
             path = name + "N";
-            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_INT32), Ntypes) && success;
+            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes) && success;
             count = std::accumulate(N.begin(), N.end(), 0);
             vertices.resize(count*Ntypes*3);
             path = name + "vertices";
@@ -311,13 +311,13 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
 
         std::string path;
         int retval = 0;
-        std::vector<int32_t> N(Ntypes);
+        std::vector<uint32_t> N(Ntypes);
         path = name + "N";
-        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly2d_verts& s) -> int32_t{return s.N;});
-        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_INT32, Ntypes, 1, 0, (void *)&N[0]);
+        std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly2d_verts& s) -> uint32_t{return s.N;});
+        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_UINT32, Ntypes, 1, 0, (void *)&N[0]);
         path = name + "vertices";
         std::vector<float> data(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2), sr(Ntypes); // over allocate is ok because we just wont write those extra ones
-        int32_t count = 0;
+        uint32_t count = 0;
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             for (unsigned int v = 0; v < shape[i].N; v++)
@@ -343,8 +343,8 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
         {
         bool success = true;
         std::vector<float> vertices,sweep_radius;
-        std::vector<int32_t> N;
-        int32_t count = 0;
+        std::vector<uint32_t> N;
+        uint32_t count = 0;
         std::string path;
         if(m_exec_conf->isRoot())
             {
@@ -352,7 +352,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             vertices.resize(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2);
             sweep_radius.resize(Ntypes);
             path = name + "N";
-            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_INT32), Ntypes) && success;
+            success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_UINT32), Ntypes) && success;
             count = std::accumulate(N.begin(), N.end(), 0);
             path = name + "vertices";
             success = reader->readChunk((void *)&vertices[0], frame, path.c_str(), 2*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count) && success;

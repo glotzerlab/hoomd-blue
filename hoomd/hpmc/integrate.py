@@ -284,7 +284,7 @@ class mode_hpmc(_integrator):
 
     @classmethod
     def _gsd_state_name(cls):
-        return "state/hpmc/"+str(cls.__class__.__name__)+"/"
+        return "state/hpmc/"+str(cls.__name__)+"/"
 
     def _connect_gsd(self, gsd):
         # This is an internal method, and should not be called directly. See gsd.dump_state() instead
