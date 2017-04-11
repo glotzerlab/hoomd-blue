@@ -241,6 +241,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         std::vector<int32_t> N;
         int32_t count = 0;
         std::string path;
+        assert(shape.size() == Ntypes);
         if(m_exec_conf->isRoot())
             {
             N.resize(Ntypes);
@@ -269,17 +270,19 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         for (unsigned int i = 0; i < Ntypes; i++)
             {
             float dsq = 0.0;
+            hpmc::detail::poly3d_verts result(N[i], m_exec_conf->isCUDAEnabled()); // This
             for (unsigned int v = 0; v < N[i]; v++)
                 {
-                shape[i].x[v] = vertices[v*3+0+count];
-                shape[i].y[v] = vertices[v*3+1+count];
-                shape[i].z[v] = vertices[v*3+2+count];
-                dsq = fmax(shape[i].x[v]*shape[i].x[v] + shape[i].y[v]*shape[i].y[v] + shape[i].z[v]*shape[i].z[v], dsq);
+                result.x[v] = vertices[v*3+0+count];
+                result.y[v] = vertices[v*3+1+count];
+                result.z[v] = vertices[v*3+2+count];
+                dsq = fmax(result.x[v]*result.x[v] + result.y[v]*result.y[v] + result.z[v]*result.z[v], dsq);
                 }
-            shape[i].diameter = 2.0*(sqrt(dsq)+shape[i].sweep_radius);
-            shape[i].N = N[i];
-            shape[i].sweep_radius = sweep_radius[i];
+            result.diameter = 2.0*(sqrt(dsq)+result.sweep_radius);
+            result.N = N[i];
+            result.sweep_radius = sweep_radius[i];
             count += N[i];
+            shape[i] = result;
             }
         return success;
         }
