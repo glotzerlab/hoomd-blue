@@ -38,7 +38,8 @@ class hpmc_gsd_state(unittest.TestCase):
         rup = 0.3;
         v3d = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
         v3dup = v3d + 0.1*np.array([(-1,1,-1), (1,1,1), (1,-1,-1), (-1,1,-1),(-1,-1,-1), (1,1,1), (-1,1,-1), (-1,1,1)]);
-
+        self.a = 0.5;
+        self.d = 0.5;
         self.params = dict(
             sphere=dict(first=dict(diameter=1.5), second=dict(diameter=3.0)),
             ellipsoid=dict(first=dict(a=0.5, b=0.54, c=0.35), second=dict(a=0.98*0.5, b=1.05*0.54, c=1.1*0.35)),
@@ -68,12 +69,13 @@ class hpmc_gsd_state(unittest.TestCase):
             self.system = init.read_snapshot(self.snapshot3d)
         else:
             self.system = init.read_snapshot(self.snapshot2d)
-        self.mc = mc_cls(seed=2398, d=0.0)
+        self.mc = mc_cls(seed=2398)
         self.mc.shape_param.set('A', **self.params[name]['first'])
         self.gsd = hoomd.dump.gsd(filename, group=hoomd.group.all(), period=1, overwrite=True);
         self.gsd.dump_state(self.mc)
         hoomd.run(5);
         self.mc.shape_param.set('A', **self.params[name]['second']);
+        self.mc.set_params(a=self.a, d=self.d);
         hoomd.run(5);
         self.gsd.disable();
         self.gsd = None;
@@ -109,10 +111,14 @@ class hpmc_gsd_state(unittest.TestCase):
 
         self.run_test_2('sphere', 3);
         self.assertAlmostEqual(self.mc.shape_param['A'].diameter, self.params['sphere']['second']['diameter']);
+        self.assertAlmostEqual(self.mc.get_a(), 0.0);
+        self.assertAlmostEqual(self.mc.get_d(), self.d);
         self.tear_down()
 
         self.run_test_3('sphere', 3);
         self.assertAlmostEqual(self.mc.shape_param['A'].diameter, self.params['sphere']['first']['diameter']);
+        self.assertAlmostEqual(self.mc.get_a(), 0.0);
+        self.assertAlmostEqual(self.mc.get_d(), 0.1);
         self.tear_down()
 
         # ellipsoid
@@ -126,12 +132,18 @@ class hpmc_gsd_state(unittest.TestCase):
         self.assertAlmostEqual(self.mc.shape_param['A'].a, self.params['ellipsoid']['second']['a']);
         self.assertAlmostEqual(self.mc.shape_param['A'].b, self.params['ellipsoid']['second']['b']);
         self.assertAlmostEqual(self.mc.shape_param['A'].c, self.params['ellipsoid']['second']['c']);
+        self.assertAlmostEqual(self.mc.get_a(), self.a);
+        self.assertAlmostEqual(self.mc.get_d(), self.d);
+
         self.tear_down();
 
         self.run_test_3('ellipsoid', 3);
         self.assertAlmostEqual(self.mc.shape_param['A'].a, self.params['ellipsoid']['first']['a']);
         self.assertAlmostEqual(self.mc.shape_param['A'].b, self.params['ellipsoid']['first']['b']);
         self.assertAlmostEqual(self.mc.shape_param['A'].c, self.params['ellipsoid']['first']['c']);
+        self.assertAlmostEqual(self.mc.get_a(), 0.1);
+        self.assertAlmostEqual(self.mc.get_d(), 0.1);
+
         self.tear_down();
 
         # convex_polygon
