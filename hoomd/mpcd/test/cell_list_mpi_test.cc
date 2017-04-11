@@ -30,6 +30,9 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                              bool mpi_y,
                              bool mpi_z)
     {
+    // only run tests on first partition
+    if (exec_conf->getPartition() != 0) return;
+
     std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
     snap->global_box = BoxDim(5.0);
     snap->particle_data.type_mapping.push_back("A");

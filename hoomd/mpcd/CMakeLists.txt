@@ -148,5 +148,5 @@ endif()
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
-    add_subdirectory(test)
 endif()
+add_subdirectory(test)

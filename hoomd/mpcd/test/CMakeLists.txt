@@ -2,10 +2,12 @@
 
 ###################################
 ## Setup all of the test executables in a for loop
+if (BUILD_TESTING)
 set(TEST_LIST
     cell_list
     cell_thermo_compute
     )
+endif()
 
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
@@ -14,10 +16,16 @@ if(ENABLE_MPI)
     ENDMACRO(ADD_TO_MPI_TESTS)
 
     # define every test together with the number of processors
+    # these are long running tests
+    if (BUILD_VALIDATION)
+    ADD_TO_MPI_TESTS(communicator 8)
+    endif()
+    # these are tests that are shorter running
+    if (BUILD_TESTING)
     ADD_TO_MPI_TESTS(cell_communicator 8)
     ADD_TO_MPI_TESTS(cell_list 8)
     ADD_TO_MPI_TESTS(cell_thermo_compute 8)
-    ADD_TO_MPI_TESTS(communicator 8)
+    endif()
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
@@ -26,7 +34,10 @@ macro(compile_test TEST_EXE TEST_SRC)
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
 
+    # only add to test_all if BUILD_TESTING is enabled
+    if (BUILD_TESTING)
     add_dependencies(test_all ${TEST_EXE})
+    endif()
 
     target_link_libraries(${TEST_EXE} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${TEST_EXE})
