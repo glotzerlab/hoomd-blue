@@ -100,7 +100,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         if(!m_exec_conf->isRoot())
             return 0;
         int retval = 0;
-        std::string path = name + "/radius";
+        std::string path = name + "radius";
         std::vector<float> data(Ntypes);
         std::transform(shape.begin(), shape.end(), data.begin(), [](const hpmc::sph_params& s)->float{return s.radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
@@ -115,7 +115,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             )
         {
         bool success = true;
-        std::string path = name + "/radius";
+        std::string path = name + "radius";
         std::vector<float> data;
         if(m_exec_conf->isRoot()){
             data.resize(Ntypes, 0.0);
@@ -150,13 +150,13 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
 
         int retval = 0;
         std::vector<float> data(Ntypes);
-        std::string path = name + "/a";
+        std::string path = name + "a";
         std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.x;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        path = name + "/b";
+        path = name + "b";
         std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.y;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
-        path = name + "/c";
+        path = name + "c";
         std::transform(shape.cbegin(), shape.cend(), data.begin(), [](const hpmc::ell_params& s)->float{return s.z;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&data[0]);
         return retval;
@@ -174,11 +174,11 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
         if(m_exec_conf->isRoot())
             {
             a.resize(Ntypes),b.resize(Ntypes),c.resize(Ntypes);
-            std::string path = name + "/a";
+            std::string path = name + "a";
             success = reader->readChunk((void *)&a[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
-            path = name + "/b";
+            path = name + "b";
             success = reader->readChunk((void *)&b[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
-            path = name + "/c";
+            path = name + "c";
             success = reader->readChunk((void *)&c[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
             }
         #ifdef ENABLE_MPI
@@ -216,10 +216,10 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
         std::string path;
         int retval = 0;
         std::vector<int32_t> N(Ntypes);
-        path = name + "/N";
+        path = name + "N";
         std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly3d_verts& s) -> int32_t{return s.N;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_INT32, Ntypes, 1, 0, (void *)&N[0]);
-        path = name + "/vertices";
+        path = name + "vertices";
         size_t count = std::accumulate(N.begin(), N.end(), 0);
         std::vector<float> data(count*Ntypes*3), sr(Ntypes);
         count = 0;
@@ -234,7 +234,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             count += shape[i].N;
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 3, 0, (void *)&data[0]);
-        path = name + "/sweep_radius";
+        path = name + "sweep_radius";
         std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::poly3d_verts& s) -> float{return s.sweep_radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&sr[0]);
         return retval;
@@ -257,13 +257,13 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             {
             N.resize(Ntypes);
             sweep_radius.resize(Ntypes);
-            path = name + "/N";
+            path = name + "N";
             success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_INT32), Ntypes) && success;
             count = std::accumulate(N.begin(), N.end(), 0);
             vertices.resize(count*Ntypes*3);
-            path = name + "/vertices";
+            path = name + "vertices";
             success = reader->readChunk((void *)&vertices[0], frame, path.c_str(), 3*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count) && success;
-            path = name + "/sweep_radius";
+            path = name + "sweep_radius";
             success = reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
             }
     #ifdef ENABLE_MPI
@@ -312,10 +312,10 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
         std::string path;
         int retval = 0;
         std::vector<int32_t> N(Ntypes);
-        path = name + "/N";
+        path = name + "N";
         std::transform(shape.cbegin(), shape.cend(), N.begin(), [](const hpmc::detail::poly2d_verts& s) -> int32_t{return s.N;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_INT32, Ntypes, 1, 0, (void *)&N[0]);
-        path = name + "/vertices";
+        path = name + "vertices";
         std::vector<float> data(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2), sr(Ntypes); // over allocate is ok because we just wont write those extra ones
         int32_t count = 0;
         for(unsigned int i = 0; i < Ntypes; i++)
@@ -328,7 +328,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             count += shape[i].N;
             }
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, count, 2, 0, (void *)&data[0]);
-        path = name + "/sweep_radius";
+        path = name + "sweep_radius";
         std::transform(shape.cbegin(), shape.cend(), sr.begin(), [](const hpmc::detail::poly2d_verts& s) -> float{return s.sweep_radius;});
         retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, Ntypes, 1, 0, (void *)&sr[0]);
         return retval;
@@ -351,12 +351,12 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
             N.resize(Ntypes);
             vertices.resize(hpmc::detail::MAX_POLY2D_VERTS*Ntypes*2);
             sweep_radius.resize(Ntypes);
-            path = name + "/N";
+            path = name + "N";
             success = reader->readChunk((void *)&N[0], frame, path.c_str(),  Ntypes*gsd_sizeof_type(GSD_TYPE_INT32), Ntypes) && success;
             count = std::accumulate(N.begin(), N.end(), 0);
-            path = name + "/vertices";
+            path = name + "vertices";
             success = reader->readChunk((void *)&vertices[0], frame, path.c_str(), 2*count*gsd_sizeof_type(GSD_TYPE_FLOAT), count) && success;
-            path = name + "/sweep_radius";
+            path = name + "sweep_radius";
             success = reader->readChunk((void *)&sweep_radius[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
             }
         #ifdef ENABLE_MPI

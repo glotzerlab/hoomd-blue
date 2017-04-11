@@ -1265,14 +1265,14 @@ int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string nam
     // access parameters
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
-    path = name + "d";
+    path = "state/hpmc/integrate/d";
     schema.write(handle, path, m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
     if(m_hasOrientation)
         {
-        path = name + "a";
+        path = "state/hpmc/integrate/a";
         schema.write(handle, path, m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
         }
-    path = name + "param";
+    path = name + "shape";
     retval |= schema_shape.write(handle, path, m_pdata->getNTypes(), m_params);
 
     return retval;
@@ -1291,14 +1291,14 @@ bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> read
 
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
-    path = name + "d";
+    path = "state/hpmc/integrate/d";
     schema.read(reader, frame, path, m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
     if(m_hasOrientation)
         {
-        path = name + "a";
+        path = "state/hpmc/integrate/a";
         schema.read(reader, frame, path, m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
         }
-    path = name + "param";
+    path = name;
     schema_shape.read(reader, frame, path, m_pdata->getNTypes(), m_params);
     return success;
     }
