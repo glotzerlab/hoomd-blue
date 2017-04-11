@@ -75,7 +75,7 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(1,1));
+                            gsd_make_version(1,2));
         if (retval != 0)
             {
             m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
