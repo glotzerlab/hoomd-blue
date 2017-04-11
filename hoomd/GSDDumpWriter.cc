@@ -262,6 +262,9 @@ void GSDDumpWriter::analyze(unsigned int timestep)
             writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot, pdata_snapshot);
         }
 
+    // emit on all ranks, the slot needs to handle the mpi logic.
+    m_write_signal.emit(m_handle);
+
     if (root)
         {
         m_exec_conf->msg->notice(10) << "dump.gsd: ending frame" << endl;

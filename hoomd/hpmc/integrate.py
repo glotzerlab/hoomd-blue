@@ -282,6 +282,27 @@ class mode_hpmc(_integrator):
         if self.implicit:
             self.check_implicit_params()
 
+    @classmethod
+    def _gsd_state_name(cls):
+        return "state/hpmc/"+str(cls.__class__.__name__)+"/"
+
+    def _connect_gsd(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
+        self.cpp_integrator.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+
+    def restore_state(self):
+        """ Resore the state information from the file used to initialize the simulations
+        """
+        hoomd.util.print_status_line();
+        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader):
+            self.cpp_integrator.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
+        else:
+            if hoomd.context.current.state_reader is None:
+                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+            else:
+                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+            raise RuntimeError("Can not restore state information!");
+
     def setup_pos_writer(self, pos, colors={}):
         R""" Set pos_writer definitions for specified shape parameters.
 
@@ -671,7 +692,7 @@ class sphere(mode_hpmc):
         mc.shape_param.set('B', diameter=.1)
     """
 
-    def __init__(self, seed, d=0.1, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -702,6 +723,9 @@ class sphere(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -774,7 +798,7 @@ class convex_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -797,6 +821,9 @@ class convex_polygon(mode_hpmc):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -872,7 +899,7 @@ class convex_spheropolygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -894,6 +921,10 @@ class convex_spheropolygon(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -972,7 +1003,7 @@ class simple_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -994,6 +1025,10 @@ class simple_polygon(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1076,7 +1111,7 @@ class polyhedron(mode_hpmc):
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
             (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1107,6 +1142,10 @@ class polyhedron(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1174,7 +1213,7 @@ class convex_polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_verts is not None:
@@ -1209,6 +1248,9 @@ class convex_polyhedron(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1294,7 +1336,7 @@ class faceted_sphere(mode_hpmc):
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1325,6 +1367,10 @@ class faceted_sphere(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1380,7 +1426,7 @@ class sphinx(mode_hpmc):
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1413,6 +1459,10 @@ class sphinx(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1486,7 +1536,8 @@ class convex_spheropolyhedron(mode_hpmc):
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None):
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_verts is not None:
@@ -1521,6 +1572,9 @@ class convex_spheropolyhedron(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1597,7 +1651,7 @@ class ellipsoid(mode_hpmc):
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1629,6 +1683,10 @@ class ellipsoid(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1684,7 +1742,7 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4, restore_state=False):
         hoomd.util.print_status_line();
 
         if max_members is not None:
@@ -1722,6 +1780,10 @@ class sphere_union(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
