@@ -22,13 +22,16 @@ namespace py = pybind11;
     \param filename Name of EAM potential file to load
     \param type_of_file EAM/Alloy=0, EAM/FS=1
 */
-EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file)
-        : ForceCompute(sysdef) {
+EAMForceCompute::EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
+                                 char *filename,
+                                 int type_of_file) : ForceCompute(sysdef) {
+
     m_exec_conf->msg->notice(5) << "Constructing EAMForceCompute" << endl;
 
     assert(m_pdata);
 
     loadFile(filename, type_of_file);
+
     // initialize the number of types value
     m_ntypes = m_pdata->getNTypes();
     assert(m_ntypes > 0);
@@ -67,6 +70,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
                                   << MAX_TYPE_NUMBER << endl;
         throw runtime_error("Error loading file");
     }
+
     // temporary array to count used types
     std::vector<bool> types_set(m_pdata->getNTypes(), false);
     //Load names of types.
@@ -121,18 +125,23 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
     GPUArray<Scalar4> t_F(nrho * m_ntypes, m_exec_conf);
     m_F.swap(t_F);
     ArrayHandle<Scalar4> h_F(m_F, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> t_rho(nr * m_ntypes * m_ntypes, m_exec_conf);
     m_rho.swap(t_rho);
     ArrayHandle<Scalar4> h_rho(m_rho, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> t_rphi((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
     m_rphi.swap(t_rphi);
     ArrayHandle<Scalar4> h_rphi(m_rphi, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> t_dF(nrho * m_ntypes, m_exec_conf);
     m_dF.swap(t_dF);
     ArrayHandle<Scalar4> h_dF(m_dF, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> t_drho(nr * m_ntypes * m_ntypes, m_exec_conf);
     m_drho.swap(t_drho);
     ArrayHandle<Scalar4> h_drho(m_drho, access_location::host, access_mode::readwrite);
+
     GPUArray<Scalar4> t_drphi((int) (0.5 * nr * (m_ntypes + 1) * m_ntypes), m_exec_conf);
     m_drphi.swap(t_drphi);
     ArrayHandle<Scalar4> h_drphi(m_drphi, access_location::host, access_mode::readwrite);

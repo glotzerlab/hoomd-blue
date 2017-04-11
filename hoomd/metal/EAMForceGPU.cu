@@ -31,12 +31,21 @@ __constant__ EAMTexInterData eam_data_ti;
 //! Kernel for computing EAM forces on the GPU
 template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
-		Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
-		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
-		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		Scalar *atomDerivativeEmbeddingFunction,
-        const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-		const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi) {
+														Scalar *d_virial,
+														const unsigned int virial_pitch,
+														const unsigned int N,
+														const Scalar4 *d_pos,
+														BoxDim box,
+														const unsigned int *d_n_neigh,
+														const unsigned int *d_nlist,
+														const unsigned int *d_head_list,
+														Scalar *atomDerivativeEmbeddingFunction,
+														const Scalar4 *d_F,
+														const Scalar4 *d_rho,
+														const Scalar4 *d_rphi,
+														const Scalar4 *d_dF,
+														const Scalar4 *d_drho,
+														const Scalar4 *d_drphi) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -44,12 +53,11 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 	if (idx >= N)
 	return;
 
-	// load in the length of the list (MEM_TRANSFER: 4 bytes)
+	// load in the length of the list
 	int n_neigh = d_n_neigh[idx];
 	const unsigned int head_idx = d_head_list[idx];
 
-	// read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-	// (MEM TRANSFER: 16 bytes)
+	// read in the position of our particle.
 	Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
 	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -84,6 +92,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
     Scalar rdrho = eam_data_ti.rdrho;
     Scalar rdr = eam_data_ti.rdr;
     Scalar r_cutsq = eam_data_ti.r_cutsq;
+
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
 		// read the current neighbor index (MEM TRANSFER: 4 bytes)
@@ -98,17 +107,17 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 			next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
 		}
 
-		// get the neighbor's position (MEM TRANSFER: 16 bytes)
+		// get the neighbor's position
 		Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex, cur_neigh);
 		Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
-		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
+		// calculate dr (with periodic boundary conditions)
 		Scalar3 dx = pos - neigh_pos;
 		int typej = __scalar_as_int(neigh_postype.w);
-		// apply periodic boundary conditions: (FLOPS 12)
+		// apply periodic boundary conditions
 		dx = box.minImage(dx);
 
-		// calculate r squared (FLOPS: 5)
+		// calculate r squared
 		Scalar rsq = dot(dx, dx);;
 		if (rsq < r_cutsq)
 		{
@@ -143,12 +152,21 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 //! Second stage kernel for computing EAM forces on the GPU
 template<unsigned char use_gmem_nlist>
 __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
-		Scalar *d_virial, const unsigned int virial_pitch, const unsigned int N,
-		const Scalar4 *d_pos, BoxDim box, const unsigned int *d_n_neigh,
-		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		Scalar *atomDerivativeEmbeddingFunction,
-        const Scalar4 *d_F, const Scalar4 *d_rho, const Scalar4 *d_rphi,
-		const Scalar4 *d_dF, const Scalar4 *d_drho, const Scalar4 *d_drphi) {
+														  Scalar *d_virial,
+														  const unsigned int virial_pitch,
+														  const unsigned int N,
+														  const Scalar4 *d_pos,
+														  BoxDim box,
+														  const unsigned int *d_n_neigh,
+														  const unsigned int *d_nlist,
+														  const unsigned int *d_head_list,
+														  Scalar *atomDerivativeEmbeddingFunction,
+														  const Scalar4 *d_F,
+														  const Scalar4 *d_rho,
+														  const Scalar4 *d_rphi,
+														  const Scalar4 *d_dF,
+														  const Scalar4 *d_drho,
+														  const Scalar4 *d_drphi) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -285,28 +303,34 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 
 }
 
-cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force, Scalar *d_virial,
-		const unsigned int virial_pitch, const unsigned int N,
-		const Scalar4 *d_pos, const BoxDim &box, const unsigned int *d_n_neigh,
-		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		const unsigned int size_nlist,
-		const EAMTexInterArrays &eam_arrays, const EAMTexInterData &eam_data,
+cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
+											 Scalar *d_virial,
+											 const unsigned int virial_pitch,
+											 const unsigned int N,
+											 const Scalar4 *d_pos,
+											 const BoxDim &box,
+											 const unsigned int *d_n_neigh,
+											 const unsigned int *d_nlist,
+											 const unsigned int *d_head_list,
+											 const unsigned int size_nlist,
+											 const EAMTexInterArrays &eam_arrays,
+											 const EAMTexInterData &eam_data,
 											 const Scalar4 *d_F,
 											 const Scalar4 *d_rho,
 											 const Scalar4 *d_rphi,
 											 const Scalar4 *d_dF,
 											 const Scalar4 *d_drho,
 											 const Scalar4 *d_drphi,
-		const unsigned int compute_capability,
-		const unsigned int max_tex1d_width) {
+											 const unsigned int compute_capability,
+											 const unsigned int max_tex1d_width) {
+
 	cudaError_t error;
 
     // bind the texture
 	if (compute_capability < 350 && size_nlist <= max_tex1d_width) {
 		nlist_tex.normalized = false;
 		nlist_tex.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, nlist_tex, d_nlist,
-				sizeof(unsigned int) * size_nlist);
+		error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int) * size_nlist);
 		if (error != cudaSuccess)
 			return error;
 	}
