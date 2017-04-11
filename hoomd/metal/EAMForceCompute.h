@@ -30,15 +30,16 @@
 
     \b Interpolation
     The 3rd order interpolation is used. For each data point, including the value of the point, there
-    are 7 coefficients.
+    are 3 coefficients.
 
     \b Potential memory layout
-    The potential data and the coefficients are stored in three GPUArray<Scalar> arrays: the embedded
-    potential function (m_F), the electron density function (m_rho) and the pair potential function
-    (m_rphi). The 7 coefficient for a data point is stored continuously, for example, h_F.data[100*7+6]
-    is the embedded potential function's value read from the 100st position of the potential file,
-    h_F.data[100*7+5], h_F.data[100*7+4], h_F.data[100*7+3], are for interpolating embedded function,
-    h_F.data[100*7+2], h_F.data[100*7+1], h_F.data[100*7+0], are for interpolating derivative embedded
+    The potential data and the coefficients are stored in six GPUArray<Scalar> arrays: the embedded
+    potential function (m_F) and its derivative (m_dF), the electron density function (m_rho) and its
+    derivative (m_drho), the pair potential function (m_rphi) and its derivative (m_drphi). The 3
+    coefficients for a data point is stored continuously, for example, h_F.data[100].w is the embedded
+    potential function's value read from the 100st position of the potential file,
+    h_F.data[100].z, h_F.data[100].y, h_F.data[100*].x, are for interpolating embedded function,
+    h_dF.data[100].z, h_dF.data[100].y, h_dF.data[100].x, are for interpolating derivative embedded
     function.
 
     \ingroup computes
@@ -83,12 +84,13 @@ protected:
     std::vector<std::string> atomcomment;  //!< atom comment
     std::vector<std::string> names;        //!< array names(type)
 
-    GPUArray<Scalar4> m_F;                //!< embedded function and its coefficients
-    GPUArray<Scalar4> m_rho;              //!< electron density and its coefficients
-    GPUArray<Scalar4> m_rphi;             //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_F;                 //!< embedded function and its coefficients
+    GPUArray<Scalar4> m_rho;               //!< electron density and its coefficients
+    GPUArray<Scalar4> m_rphi;              //!< pair wise function and its coefficients
     GPUArray<Scalar4> m_dF;                //!< derivative embedded function and its coefficients
     GPUArray<Scalar4> m_drho;              //!< derivative electron density and its coefficients
     GPUArray<Scalar4> m_drphi;             //!< derivative pair wise function and its coefficients
+    GPUArray<Scalar> m_dFdP;               //!< derivative F / derivative P
 
     //! Actually compute the forces
     virtual void computeForces(unsigned int timestep);

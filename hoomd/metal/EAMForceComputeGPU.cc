@@ -46,17 +46,11 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
     eam_data.r_cutsq = m_r_cut * m_r_cut;
     eam_data.ntypes = m_ntypes;
 
-    cudaMalloc(&d_atomDerivativeEmbeddingFunction, m_pdata->getN() * sizeof(Scalar));
-    cudaMemset(d_atomDerivativeEmbeddingFunction, 0, m_pdata->getN() * sizeof(Scalar));
-
     CHECK_CUDA_ERROR();
 }
 
 
-EAMForceComputeGPU::~EAMForceComputeGPU() {
-    // free the coefficients on the GPU
-    cudaFree(d_atomDerivativeEmbeddingFunction);
-}
+EAMForceComputeGPU::~EAMForceComputeGPU() {}
 
 
 void EAMForceComputeGPU::computeForces(unsigned int timestep) {
@@ -94,8 +88,11 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
     ArrayHandle<Scalar4> d_rphi(m_rphi, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_drphi(m_drphi, access_location::device, access_mode::read);
 
-    EAMTexInterArrays eam_arrays;
-    eam_arrays.atomDerivativeEmbeddingFunction = (Scalar *) d_atomDerivativeEmbeddingFunction;
+    // Derivative Embedding Function for each atom
+    GPUArray<Scalar> t_dFdP(m_pdata->getN(), m_exec_conf);
+    m_dFdP.swap(t_dFdP);
+    ArrayHandle<Scalar> d_dFdP(m_dFdP, access_location::device, access_mode::overwrite);
+
     m_tuner->begin();
     eam_data.block_size = m_tuner->getParam();
     gpu_compute_eam_tex_inter_forces(d_force.data,
@@ -108,8 +105,8 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
                                      d_nlist.data,
                                      d_head_list.data,
                                      this->m_nlist->getNListArray().getPitch(),
-                                     eam_arrays,
                                      eam_data,
+                                     d_dFdP.data,
                                      d_F.data,
                                      d_rho.data,
                                      d_rphi.data,

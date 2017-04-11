@@ -29,25 +29,26 @@ struct EAMTexInterData {
 	Scalar r_cutsq;         //!< r_cut^2
 };
 
-//! Collection of pointers for EAM force GPU kernels
-struct EAMTexInterArrays {
-	Scalar* atomDerivativeEmbeddingFunction; //!< array d(F(rho))/drho for each particle
-};
-
 //! Kernel driver that computes EAM forces on the GPU for EAMForceComputeGPU
-cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force, Scalar* d_virial,
-		const unsigned int virial_pitch, const unsigned int N,
-		const Scalar4 *d_pos, const BoxDim& box, const unsigned int *d_n_neigh,
-		const unsigned int *d_nlist, const unsigned int *d_head_list,
-		const unsigned int size_nlist,
-		const EAMTexInterArrays& eam_arrays, const EAMTexInterData& eam_data,
-		const Scalar4 *d_F,
-		const Scalar4 *d_rho,
-		const Scalar4 *d_rphi,
-		const Scalar4 *d_dF,
-		const Scalar4 *d_drho,
-		const Scalar4 *d_drphi,
-		const unsigned int compute_capability,
-		const unsigned int max_tex1d_width);
+cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4* d_force,
+    Scalar* d_virial,
+    const unsigned int virial_pitch,
+    const unsigned int N,
+	const Scalar4 *d_pos,
+	const BoxDim& box,
+	const unsigned int *d_n_neigh,
+	const unsigned int *d_nlist,
+	const unsigned int *d_head_list,
+	const unsigned int size_nlist,
+	const EAMTexInterData& eam_data,
+	Scalar *d_dFdP,
+	const Scalar4 *d_F,
+	const Scalar4 *d_rho,
+	const Scalar4 *d_rphi,
+	const Scalar4 *d_dF,
+	const Scalar4 *d_drho,
+	const Scalar4 *d_drphi,
+	const unsigned int compute_capability,
+	const unsigned int max_tex1d_width);
 
 #endif

@@ -24,6 +24,8 @@ scalar4_tex_t tex_rphi;
 scalar4_tex_t tex_dF;
 scalar4_tex_t tex_drho;
 scalar4_tex_t tex_drphi;
+//! Texture for dF/dP
+scalar_tex_t tex_dFdP;
 
 //! Storage space for EAM parameters on the GPU
 __constant__ EAMTexInterData eam_data_ti;
@@ -39,13 +41,13 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 														const unsigned int *d_n_neigh,
 														const unsigned int *d_nlist,
 														const unsigned int *d_head_list,
-														Scalar *atomDerivativeEmbeddingFunction,
 														const Scalar4 *d_F,
 														const Scalar4 *d_rho,
 														const Scalar4 *d_rphi,
 														const Scalar4 *d_dF,
 														const Scalar4 *d_drho,
-														const Scalar4 *d_drphi) {
+														const Scalar4 *d_drphi,
+                                                        Scalar *d_dFdP) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -141,7 +143,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 	idxs = int_position + typei * nrho;
 	dv = texFetchScalar4(d_dF, tex_dF, idxs);
 	v = texFetchScalar4(d_F, tex_F, idxs);
-	atomDerivativeEmbeddingFunction[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
+    d_dFdP[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 	force.w += v.w + v.z * remainder + v.y * remainder * remainder +
 			v.x * remainder * remainder * remainder;
 
@@ -160,13 +162,13 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 														  const unsigned int *d_n_neigh,
 														  const unsigned int *d_nlist,
 														  const unsigned int *d_head_list,
-														  Scalar *atomDerivativeEmbeddingFunction,
 														  const Scalar4 *d_F,
 														  const Scalar4 *d_rho,
 														  const Scalar4 *d_rphi,
 														  const Scalar4 *d_dF,
 														  const Scalar4 *d_drho,
-														  const Scalar4 *d_drphi) {
+														  const Scalar4 *d_drphi,
+                                                          Scalar *d_dFdP) {
 
 	// start by identifying which particle we are to handle
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -219,7 +221,6 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
     int nr = eam_data_ti.nr;
     Scalar rdr = eam_data_ti.rdr;
     Scalar r_cutsq = eam_data_ti.r_cutsq;
-	Scalar adef = atomDerivativeEmbeddingFunction[idx];
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
 		cur_neigh = next_neigh;
@@ -275,8 +276,9 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		dv = texFetchScalar4(d_drho, tex_drho, idxs);
 		Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 
-		Scalar fullDerivativePhi = adef * derivativeRhoJ +
-		atomDerivativeEmbeddingFunction[cur_neigh] * derivativeRhoI + derivativePhi;
+        Scalar fullDerivativePhi = d_dFdP[idx] * derivativeRhoJ +
+                                   d_dFdP[cur_neigh] * derivativeRhoI + derivativePhi;
+
 		pairForce = - fullDerivativePhi * inverseR;
 		Scalar pairForceover2 = Scalar(0.5) *pairForce;
 		virial[0] += dx.x * dx.x *pairForceover2;
@@ -296,150 +298,141 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 	force.y = fyi;
 	force.z = fzi;
 	force.w += m_pe;
-	// now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+	// now that the force calculation is complete, write out the result
 	d_force[idx] = force;
 	for (int i = 0; i < 6; i++)
 	d_virial[i*virial_pitch+idx] = virial[i];
 
 }
 
+//! compute forces on GPU
 cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
-											 Scalar *d_virial,
-											 const unsigned int virial_pitch,
-											 const unsigned int N,
-											 const Scalar4 *d_pos,
-											 const BoxDim &box,
-											 const unsigned int *d_n_neigh,
-											 const unsigned int *d_nlist,
-											 const unsigned int *d_head_list,
-											 const unsigned int size_nlist,
-											 const EAMTexInterArrays &eam_arrays,
-											 const EAMTexInterData &eam_data,
-											 const Scalar4 *d_F,
-											 const Scalar4 *d_rho,
-											 const Scalar4 *d_rphi,
-											 const Scalar4 *d_dF,
-											 const Scalar4 *d_drho,
-											 const Scalar4 *d_drphi,
-											 const unsigned int compute_capability,
-											 const unsigned int max_tex1d_width) {
+                                             Scalar *d_virial,
+                                             const unsigned int virial_pitch,
+                                             const unsigned int N,
+                                             const Scalar4 *d_pos,
+                                             const BoxDim &box,
+                                             const unsigned int *d_n_neigh,
+                                             const unsigned int *d_nlist,
+                                             const unsigned int *d_head_list,
+                                             const unsigned int size_nlist,
+                                             const EAMTexInterData &eam_data,
+                                             Scalar *d_dFdP,
+                                             const Scalar4 *d_F,
+                                             const Scalar4 *d_rho,
+                                             const Scalar4 *d_rphi,
+                                             const Scalar4 *d_dF,
+                                             const Scalar4 *d_drho,
+                                             const Scalar4 *d_drphi,
+                                             const unsigned int compute_capability,
+                                             const unsigned int max_tex1d_width) {
 
-	cudaError_t error;
+    cudaError_t error;
 
     // bind the texture
-	if (compute_capability < 350 && size_nlist <= max_tex1d_width) {
-		nlist_tex.normalized = false;
-		nlist_tex.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int) * size_nlist);
-		if (error != cudaSuccess)
-			return error;
-	}
+    if (compute_capability < 350 && size_nlist <= max_tex1d_width) {
+        nlist_tex.normalized = false;
+        nlist_tex.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, nlist_tex, d_nlist, sizeof(unsigned int) * size_nlist);
+        if (error != cudaSuccess)
+            return error;
+    }
 
     if (compute_capability < 350)
     {
-		tex_F.normalized = false;
-		tex_F.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_F, d_F, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes);
-		if (error != cudaSuccess)
-			return error;
+        tex_F.normalized = false;
+        tex_F.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_F, d_F, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes);
+        if (error != cudaSuccess) return error;
 
-		tex_dF.normalized = false;
-		tex_dF.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_dF, d_dF, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes);
-		if (error != cudaSuccess)
-			return error;
+        tex_dF.normalized = false;
+        tex_dF.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_dF, d_dF, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes);
+        if (error != cudaSuccess) return error;
 
-		tex_rho.normalized = false;
-		tex_rho.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_rho, d_rho, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
-		if (error != cudaSuccess)
-			return error;
+        tex_rho.normalized = false;
+        tex_rho.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_rho, d_rho, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
+        if (error != cudaSuccess) return error;
 
-		tex_drho.normalized = false;
-		tex_drho.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_drho, d_drho, sizeof(Scalar) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
-		if (error != cudaSuccess)
-			return error;
+        tex_drho.normalized = false;
+        tex_drho.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_drho, d_drho, sizeof(Scalar4) * eam_data.nrho * eam_data.ntypes * eam_data.ntypes);
+        if (error != cudaSuccess) return error;
 
-		tex_rphi.normalized = false;
-		tex_rphi.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_rphi, d_rphi, sizeof(Scalar) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
-		if (error != cudaSuccess)
-			return error;
+        tex_rphi.normalized = false;
+        tex_rphi.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_rphi, d_rphi, sizeof(Scalar4) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
+        if (error != cudaSuccess) return error;
 
-		tex_drphi.normalized = false;
-		tex_drphi.filterMode = cudaFilterModePoint;
-		error = cudaBindTexture(0, tex_drphi, d_drphi, sizeof(Scalar) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
-		if (error != cudaSuccess)
-			return error;
+        tex_drphi.normalized = false;
+        tex_drphi.filterMode = cudaFilterModePoint;
+        error = cudaBindTexture(0, tex_drphi, d_drphi, sizeof(Scalar4) * (int) (0.5 * eam_data.nr * (eam_data.ntypes + 1) * eam_data.ntypes));
+        if (error != cudaSuccess) return error;
     }
 
-	pdata_pos_tex.normalized = false;
-	pdata_pos_tex.filterMode = cudaFilterModePoint;
-	error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
-	if (error != cudaSuccess)
-	return error;
+    pdata_pos_tex.normalized = false;
+    pdata_pos_tex.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, pdata_pos_tex, d_pos, sizeof(Scalar4)*N);
+    if (error != cudaSuccess) return error;
 
-	// run the kernel
-	cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
+    tex_dFdP.normalized = false;
+    tex_dFdP.filterMode = cudaFilterModePoint;
+    error = cudaBindTexture(0, tex_dFdP, d_dFdP, sizeof(Scalar)*N);
+    if (error != cudaSuccess) return error;
 
-	if (compute_capability < 350 && size_nlist > max_tex1d_width) {
-		static unsigned int max_block_size = UINT_MAX;
-		if (max_block_size == UINT_MAX) {
-			cudaFuncAttributes attr;
-			cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
+    // run the kernel
+    cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
 
-			cudaFuncAttributes attr2;
-			cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
+    if (compute_capability < 350 && size_nlist > max_tex1d_width) {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX) {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
 
-			max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
-		}
+            cudaFuncAttributes attr2;
+            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
 
-		unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+        }
 
-		// setup the grid to run the kernel
-		dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
-		dim3 threads(run_block_size, 1, 1);
+        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
 
-		gpu_compute_eam_tex_inter_forces_kernel<1> <<<grid, threads>>>(d_force,
-				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
-		        d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
+        // setup the grid to run the kernel
+        dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
 
-		gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(d_force,
+        gpu_compute_eam_tex_inter_forces_kernel<1> <<<grid, threads>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
-				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
-	} else {
-		static unsigned int max_block_size = UINT_MAX;
-		if (max_block_size == UINT_MAX) {
-			cudaFuncAttributes attr;
-			cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
-
-			cudaFuncAttributes attr2;
-			cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
-
-			max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
-		}
-
-		unsigned int run_block_size = min(eam_data.block_size, max_block_size);
-
-		// setup the grid to run the kernel
-		dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
-		dim3 threads(run_block_size, 1, 1);
-
-		gpu_compute_eam_tex_inter_forces_kernel<0> <<<grid, threads>>>(d_force,
-				d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-				d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
-				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
-
-		gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(d_force,
+                d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
+        gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
-                d_head_list, eam_arrays.atomDerivativeEmbeddingFunction,
-				d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi);
-	}
+                d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
+    } else {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX) {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
 
-	return cudaSuccess;
+            cudaFuncAttributes attr2;
+            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
+
+            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+        }
+
+        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+
+        // setup the grid to run the kernel
+        dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
+        dim3 threads(run_block_size, 1, 1);
+
+        gpu_compute_eam_tex_inter_forces_kernel<0> <<<grid, threads>>>(d_force,
+                d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+                d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
+        gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(d_force,
+                d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
+                d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
+    }
+
+    return cudaSuccess;
 }
-
-// vim:syntax=cpp
