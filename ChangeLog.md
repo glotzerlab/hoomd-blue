@@ -12,7 +12,7 @@ Not yet released
 * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
 * force.constant and force.active can now apply torques
 
-Deprecated*
+*Deprecated*
 
 * HPMC: `hpmc.integrate.sphere_union()` no longer needs the max_members parameter
 
@@ -29,15 +29,15 @@ Deprecated*
 
 ## v2.1.6
 
-Not yet released
+Released 2017/04/12
 
 *Bug fixes*
 
-* Document hpmc.util.tune_npt
+* Document `hpmc.util.tune_npt`
 * Fix dump.getar.writeJSON usage with MPI execution
 * Fix a bug where integrate.langevin and integrate.brownian correlated RNGs between ranks in multiple CPU execution
 * Bump CUB to version 1.6.4 for improved performance on Pascal architectures. CUB is now embedded using a git submodule. Users upgrading existing git repositories should reinitialize their git submodules with ``git submodule update --init``
->>>>>>> maint
+* CMake no longer complains when it finds a partial MKL installation.
 
 ## v2.1.5
 
