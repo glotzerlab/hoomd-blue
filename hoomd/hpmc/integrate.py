@@ -175,6 +175,34 @@ class mode_hpmc(_integrator):
     :py:class:`mode_hpmc` is the base class for all HPMC integrators. It provides common interface elements.
     Users should not instantiate this class directly. Methods documented here are available to all hpmc
     integrators.
+
+    .. rubric:: State data
+
+    HPMC integrators can save and restore the following state information to gsd files:
+
+        * Maximum trial move displacement *d*
+        * Maximum trial rotation move *a*
+        * Shape parameters for all types.
+
+    State data are *not* written by default. You must explicitly request that state data for an mc integrator
+    is written to a gsd file (see :py:meth:`hoomd.dump.gsd.dump_state`).
+
+    .. code::
+
+        mc = hoomd.hpmc.shape(...)
+        gsd = hoomd.dump.gsd(...)
+        gsd.dump_state(mc)
+
+    State data are *not* restored by default. You must explicitly request that state data be restored when initializing
+    the integrator.
+
+    .. code::
+
+        init.read_gsd(...)
+        mc = hoomd.hpmc.shape(..., restore_state=True)
+
+    See the *State data* section of the `HOOMD GSD schema <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for
+    details on GSD data chunk names and how the data are stored.
     """
 
     ## \internal
@@ -648,6 +676,8 @@ class sphere(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -750,6 +780,8 @@ class convex_polygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Note:
         For concave polygons, use :py:class:`simple_polygon`.
@@ -849,6 +881,8 @@ class convex_spheropolygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Spheropolygon parameters:
 
@@ -955,6 +989,8 @@ class simple_polygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Note:
         For simple polygons that are not concave, use :py:class:`convex_polygon`, it will execute much faster than
@@ -1054,6 +1090,8 @@ class polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Polyhedron parameters:
 
@@ -1162,8 +1200,9 @@ class convex_polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_verts (int): Set the maximum number of vertices in a polyhedron.
-            * .. deprecated:: 2.2
+        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Convex polyhedron parameters:
 
@@ -1278,6 +1317,8 @@ class faceted_sphere(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
 
@@ -1383,6 +1424,8 @@ class sphinx(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
 
@@ -1479,8 +1522,9 @@ class convex_spheropolyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_verts (int): Set the maximum number of vertices in a polyhedron.
-            * .. deprecated:: 2.2
+        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
@@ -1609,6 +1653,8 @@ class ellipsoid(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Ellipsoid parameters:
 
@@ -1691,10 +1737,10 @@ class sphere_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_members (int): Set the maximum number of members in the sphere union
-            * .. deprecated:: 2.2
-        capacity (int): Set to the number of constituent spheres per leaf node
-            * .. versionadded:: 2.2
+        max_members (int): Set the maximum number of members in the sphere union. (deprecated in version 2.2)
+        capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Sphere union parameters:
 
