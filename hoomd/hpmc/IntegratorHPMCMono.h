@@ -1258,8 +1258,13 @@ int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string nam
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
     int retval = 0;
     // create schema helpers
-    gsd_schema_hpmc schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
-    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+    gsd_schema_hpmc schema(m_exec_conf, mpi);
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
 
     // access parameters
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
@@ -1281,8 +1286,13 @@ bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> read
     m_exec_conf->msg->notice(10) << "IntegratorHPMCMono from GSD File to name: "<< name << std::endl;
     uint64_t frame = reader->getFrame();
     // create schemas
-    gsd_schema_hpmc schema(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
-    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, (bool)m_pdata->getDomainDecomposition());
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+    gsd_schema_hpmc schema(m_exec_conf, mpi);
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
 
     ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
