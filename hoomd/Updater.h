@@ -187,7 +187,7 @@ class Updater
                 {
                 if(!m_slots[i]->connected())
                     {
-                    m_exec_conf->msg->notice(2) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
+                    m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
                     m_slots.erase(m_slots.begin()+i);
                     }
                 else
