@@ -191,7 +191,13 @@ struct ExecutionConfiguration
         {
         MPI_Barrier(m_mpi_comm);
         }
+    #else
+    bool isRoot() const
+        {
+        return true;
+        }
     #endif
+
 
     #ifdef ENABLE_CUDA
     //! Returns the cached allocator for temporary allocations
