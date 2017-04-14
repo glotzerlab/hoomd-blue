@@ -116,7 +116,7 @@ __global__ void mark_removed_particles(unsigned char *d_tmp_flag,
     if (idx >= N) return;
 
     d_tmp_id[idx] = idx;
-    d_tmp_flag[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
+    d_tmp_flag[idx] = (d_comm_flags[idx] & mask) ? 0 : 1;
     }
 } // end namespace kernel
 } // end namespace gpu
