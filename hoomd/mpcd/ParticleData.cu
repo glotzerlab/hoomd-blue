@@ -13,6 +13,7 @@
 #include "ParticleData.cuh"
 
 #include "hoomd/extern/cub/cub/device/device_scan.cuh"
+#include "hoomd/extern/cub/cub/thread/thread_load.cuh"
 
 namespace mpcd
 {
@@ -64,29 +65,35 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
                                  const unsigned int *d_scan,
                                  const unsigned int N)
     {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
 
     if (idx >= N) return;
 
-    unsigned int scan_remove = d_scan[idx];
-    unsigned int scan_keep = idx - scan_remove;
+    const unsigned int scan_remove = d_scan[idx];
+    const unsigned int scan_keep = idx - scan_remove;
 
-    if (d_comm_flags[idx] & mask)
+    // read-only out of textures
+    const Scalar4 pos = cub::ThreadLoad<cub::LOAD_LDG>(d_pos + idx);
+    const Scalar4 vel = cub::ThreadLoad<cub::LOAD_LDG>(d_vel + idx);
+    const unsigned int tag = cub::ThreadLoad<cub::LOAD_LDG>(d_tag + idx);
+    const unsigned int flag = cub::ThreadLoad<cub::LOAD_LDG>(d_comm_flags + idx);
+
+    if (flag & mask)
         {
         mpcd::detail::pdata_element p;
-        p.pos = d_pos[idx];
-        p.vel = d_vel[idx];
-        p.tag = d_tag[idx];
-        p.comm_flag = d_comm_flags[idx];
+        p.pos = pos;
+        p.vel = vel;
+        p.tag = tag;
+        p.comm_flag = flag;
 
         d_out[scan_remove] = p;
         }
     else
         {
-        d_pos_alt[scan_keep] = d_pos[idx];
-        d_vel_alt[scan_keep] = d_vel[idx];
-        d_tag_alt[scan_keep] = d_tag[idx];
-        d_comm_flags_alt[scan_keep] = d_comm_flags[idx];
+        d_pos_alt[scan_keep] = pos;
+        d_vel_alt[scan_keep] = vel;
+        d_tag_alt[scan_keep] = tag;
+        d_comm_flags_alt[scan_keep] = flag;
         }
     }
 
