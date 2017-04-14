@@ -320,10 +320,11 @@ class ParticleData
         GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
-
+        #ifdef ENABLE_CUDA
         GPUArray<unsigned char> m_keep_flags;   //!< Temporary flag to mark keeping particle
         GPUArray<unsigned int> m_keep_ids;      //!< Partitioned indexes of particles to keep
         GPUFlags<unsigned int> m_num_keep;      //!< Number of particles to keep
+        #endif // ENABLE_CUDA
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache

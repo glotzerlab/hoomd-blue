@@ -38,7 +38,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
                                  const BoxDim& global_box,
                                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_num_keep(exec_conf), m_valid_cell_cache(false)
+    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -77,7 +77,7 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
                                  const BoxDim& global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_num_keep(exec_conf), m_valid_cell_cache(false)
+    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -543,12 +543,17 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         GPUArray<unsigned int> comm_flags_alt(N_max, m_exec_conf);
         m_comm_flags_alt.swap(comm_flags_alt);
 
+        #ifdef ENABLE_CUDA
+        GPUFlags<unsigned int> num_keep(m_exec_conf);
+        m_num_keep.swap(num_keep);
+
         // this array is used for particle migration
         GPUArray<unsigned char> keep_flags(N_max, m_exec_conf);
         m_keep_flags.swap(keep_flags);
 
         GPUArray<unsigned int> keep_ids(N_max, m_exec_conf);
         m_keep_ids.swap(keep_ids);
+        #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
     }
@@ -583,8 +588,10 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
     if (m_decomposition)
         {
         m_comm_flags_alt.resize(N_max);
+        #ifdef ENABLE_CUDA
         m_keep_flags.resize(N_max);
         m_keep_ids.resize(N_max);
+        #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
     }
