@@ -46,6 +46,14 @@ mpcd::ParticleData::ParticleData(unsigned int N,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
+        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
+        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
     #endif // ENABLE_MPI
 
     // construct snapshot with default type mapping (A, B, C, ...)
@@ -85,6 +93,14 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
+        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
+        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
     #endif
 
     if (m_exec_conf->getRank() == 0 && snapshot.type_mapping.size() == 0)
@@ -901,7 +917,9 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
         // first mark particles that have left and count them
-        mpcd::gpu::mark_removed_particles(d_keep_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, 512);
+        m_mark_tuner->begin();
+        mpcd::gpu::mark_removed_particles(d_keep_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
+        m_mark_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
@@ -959,6 +977,7 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 
         ArrayHandle<unsigned int> d_keep_ids(m_keep_ids, access_location::device, access_mode::read);
 
+        m_remove_tuner->begin();
         mpcd::gpu::remove_particles(d_out.data,
                                     d_pos.data,
                                     d_vel.data,
@@ -970,7 +989,9 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                     d_comm_flags_alt.data,
                                     d_keep_ids.data,
                                     n_keep,
-                                    m_N);
+                                    m_N,
+                                    m_remove_tuner->getParam());
+        m_remove_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
     resize(n_keep);
@@ -1009,6 +1030,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         ArrayHandle<mpcd::detail::pdata_element> d_in(in, access_location::device, access_mode::read);
 
         // add new particles on GPU
+        m_add_tuner->begin();
         mpcd::gpu::add_particles(old_nparticles,
                                  num_add_ptls,
                                  d_pos.data,
@@ -1016,10 +1038,10 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                  d_tag.data,
                                  d_comm_flags.data,
                                  d_in.data,
-                                 mask);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+                                 mask,
+                                 m_add_tuner->getParam());
+        m_add_tuner->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     // TODO: notify particle data has changed

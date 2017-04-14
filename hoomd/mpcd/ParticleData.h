@@ -20,6 +20,9 @@
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
+#ifdef ENABLE_MPI
+#include "hoomd/Autotuner.h"
+#endif // ENABLE_MPI
 #endif // ENABLE_CUDA
 
 #include "hoomd/BoxDim.h"
@@ -166,6 +169,29 @@ class ParticleData
         void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
+            }
+
+        //! Set autotuner parameters
+        /*!
+         * \param enable Enable / disable autotuning
+         * \param period period (approximate) in time steps when retuning occurs
+         */
+        void setAutotunerParams(bool enable, unsigned int period)
+            {
+            #if defined(ENABLE_MPI) && defined(ENABLE_CUDA)
+            if (m_mark_tuner)
+                {
+                m_mark_tuner->setEnabled(enable); m_mark_tuner->setPeriod(period);
+                }
+            if (m_remove_tuner)
+                {
+                m_remove_tuner->setEnabled(enable); m_remove_tuner->setPeriod(period);
+                }
+            if (m_add_tuner)
+                {
+                m_add_tuner->setEnabled(enable); m_add_tuner->setPeriod(period);
+                }
+            #endif // ENABLE_MPI && ENABLE_CUDA
             }
         //@}
 
@@ -324,6 +350,10 @@ class ParticleData
         GPUArray<unsigned char> m_keep_flags;   //!< Temporary flag to mark keeping particle
         GPUArray<unsigned int> m_keep_ids;      //!< Partitioned indexes of particles to keep
         GPUFlags<unsigned int> m_num_keep;      //!< Number of particles to keep
+
+        std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for marking particles
+        std::unique_ptr<Autotuner> m_remove_tuner;  //!< Tuner for removing particles
+        std::unique_ptr<Autotuner> m_add_tuner;     //!< Tuner for adding particles
         #endif // ENABLE_CUDA
         #endif // ENABLE_MPI
 

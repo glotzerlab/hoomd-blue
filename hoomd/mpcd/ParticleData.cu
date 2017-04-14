@@ -192,6 +192,7 @@ cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
  * \param d_keep_ids Partitioned indexes of particles to keep (bottom) or remove (top)
  * \param n_keep Number of particles to keep
  * \param N Current number of particles
+ * \param block_size Number of threads per block
  *
  * \returns cudaSuccess on completion.
  *
@@ -208,13 +209,20 @@ cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
                                         unsigned int *d_comm_flags_alt,
                                         unsigned int *d_keep_ids,
                                         const unsigned int n_keep,
-                                        const unsigned int N)
+                                        const unsigned int N,
+                                        const unsigned int block_size)
     {
-    // partition particle data into local and removed particles
-    unsigned int block_size = 512;
-    unsigned int n_blocks = N/block_size+1;
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::remove_particles);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    mpcd::gpu::kernel::remove_particles<<<n_blocks, block_size>>>(d_out,
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N / run_block_size + 1);
+    mpcd::gpu::kernel::remove_particles<<<grid, run_block_size>>>(d_out,
                                                                   d_pos,
                                                                   d_vel,
                                                                   d_tag,
@@ -284,6 +292,7 @@ __global__ void add_particles(unsigned int old_nparticles,
  * \param d_comm_flags Device array of communication flags
  * \param d_in Device array of packed input particle data
  * \param mask Bitwise mask for received particles to unmask
+ * \param block_size Number of threads per block
  *
  * Particle data is appended to the end of the particle data arrays from the
  * packed buffer. Communication flags of new particles are unmasked.
@@ -295,12 +304,20 @@ void mpcd::gpu::add_particles(unsigned int old_nparticles,
                               unsigned int *d_tag,
                               unsigned int *d_comm_flags,
                               const mpcd::detail::pdata_element *d_in,
-                              const unsigned int mask)
+                              const unsigned int mask,
+                              const unsigned int block_size)
     {
-    unsigned int block_size = 512;
-    unsigned int n_blocks = num_add_ptls/block_size + 1;
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::add_particles);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
 
-    mpcd::gpu::kernel::add_particles<<<n_blocks, block_size>>>(old_nparticles,
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(num_add_ptls / run_block_size + 1);
+    mpcd::gpu::kernel::add_particles<<<grid, run_block_size>>>(old_nparticles,
                                                                num_add_ptls,
                                                                d_pos,
                                                                d_vel,

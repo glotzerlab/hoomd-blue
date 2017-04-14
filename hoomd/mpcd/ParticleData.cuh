@@ -50,7 +50,8 @@ cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,
                              unsigned int *d_comm_flags_alt,
                              unsigned int *d_keep_ids,
                              const unsigned int n_keep,
-                             const unsigned int N);
+                             const unsigned int N,
+                             const unsigned int block_size);
 
 //! Update particle data with new particles
 void add_particles(unsigned int old_nparticles,
@@ -60,7 +61,8 @@ void add_particles(unsigned int old_nparticles,
                    unsigned int *d_tag,
                    unsigned int *d_comm_flags,
                    const mpcd::detail::pdata_element *d_in,
-                   const unsigned int mask);
+                   const unsigned int mask,
+                   const unsigned int block_size);
 } // end namespace gpu
 } // end namespace mpcd
 
