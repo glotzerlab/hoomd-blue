@@ -320,10 +320,10 @@ class ParticleData
         GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
-        GPUArray<unsigned char> m_tmp_flags;        //!< Temporary flags for removing particles
-        GPUArray<unsigned int> m_tmp_ids;           //!< Temporary indexes for removing particles
-        GPUArray<unsigned int> m_part_ids;          //!< Temporary indexes for removing particles
-        GPUFlags<unsigned int> m_num_part;          //!< Number of partitioned elements to remove
+
+        GPUArray<unsigned char> m_keep_flags;   //!< Temporary flag to mark keeping particle
+        GPUArray<unsigned int> m_keep_ids;      //!< Partitioned indexes of particles to keep
+        GPUFlags<unsigned int> m_num_keep;      //!< Number of particles to keep
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache

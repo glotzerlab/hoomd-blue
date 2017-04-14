@@ -22,24 +22,24 @@ namespace mpcd
 namespace gpu
 {
 //! Marks the particles which are being removed
-cudaError_t mark_removed_particles(unsigned char *d_tmp_flag,
-                                   unsigned int *d_tmp_id,
+cudaError_t mark_removed_particles(unsigned char *d_keep_flags,
+                                   unsigned int *d_tmp_ids,
                                    const unsigned int *d_comm_flags,
                                    const unsigned int mask,
                                    const unsigned int N,
                                    const unsigned int block_size);
 
+//! Partition the indexes of particles to keep or remove
 cudaError_t partition_particles(void *d_tmp,
                                 size_t& tmp_bytes,
-                                const unsigned int *d_ids,
-                                const unsigned char *d_flags,
-                                unsigned int *d_out,
-                                unsigned int *d_num_select,
+                                const unsigned int *d_tmp_ids,
+                                const unsigned char *d_keep_flags,
+                                unsigned int *d_keep_ids,
+                                unsigned int *d_num_keep,
                                 const unsigned int N);
 
 //! Pack particle data into output buffer and remove marked particles
 cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,
-                             const unsigned int mask,
                              const Scalar4 *d_pos,
                              const Scalar4 *d_vel,
                              const unsigned int *d_tag,
@@ -48,7 +48,8 @@ cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,
                              Scalar4 *d_vel_alt,
                              unsigned int *d_tag_alt,
                              unsigned int *d_comm_flags_alt,
-                             unsigned int *d_scan,
+                             unsigned int *d_keep_ids,
+                             const unsigned int n_keep,
                              const unsigned int N);
 
 //! Update particle data with new particles
