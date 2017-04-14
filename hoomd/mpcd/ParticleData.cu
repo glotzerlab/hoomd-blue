@@ -12,7 +12,7 @@
 
 #include "ParticleData.cuh"
 
-#include "hoomd/extern/cub/cub/device/device_scan.cuh"
+#include "hoomd/extern/cub/cub/device/device_partition.cuh"
 #include "hoomd/extern/cub/cub/thread/thread_load.cuh"
 
 namespace mpcd
@@ -53,7 +53,7 @@ namespace kernel
  * \endverbatim
  */
 __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
-                                 const unsigned int mask,
+                                 const unsigned int n_keep,
                                  const Scalar4 *d_pos,
                                  const Scalar4 *d_vel,
                                  const unsigned int *d_tag,
@@ -69,16 +69,14 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
 
     if (idx >= N) return;
 
-    const unsigned int scan_remove = d_scan[idx];
-    const unsigned int scan_keep = idx - scan_remove;
-
     // read-only out of textures
-    const Scalar4 pos = cub::ThreadLoad<cub::LOAD_LDG>(d_pos + idx);
-    const Scalar4 vel = cub::ThreadLoad<cub::LOAD_LDG>(d_vel + idx);
-    const unsigned int tag = cub::ThreadLoad<cub::LOAD_LDG>(d_tag + idx);
-    const unsigned int flag = cub::ThreadLoad<cub::LOAD_LDG>(d_comm_flags + idx);
+    const unsigned int pid = cub::ThreadLoad<cub::LOAD_LDG>(d_scan + idx);
+    const Scalar4 pos = cub::ThreadLoad<cub::LOAD_LDG>(d_pos + pid);
+    const Scalar4 vel = cub::ThreadLoad<cub::LOAD_LDG>(d_vel + pid);
+    const unsigned int tag = cub::ThreadLoad<cub::LOAD_LDG>(d_tag + pid);
+    const unsigned int flag = cub::ThreadLoad<cub::LOAD_LDG>(d_comm_flags + pid);
 
-    if (flag & mask)
+    if (idx >= n_keep)
         {
         mpcd::detail::pdata_element p;
         p.pos = pos;
@@ -86,14 +84,14 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
         p.tag = tag;
         p.comm_flag = flag;
 
-        d_out[scan_remove] = p;
+        d_out[idx - n_keep] = p;
         }
     else
         {
-        d_pos_alt[scan_keep] = pos;
-        d_vel_alt[scan_keep] = vel;
-        d_tag_alt[scan_keep] = tag;
-        d_comm_flags_alt[scan_keep] = flag;
+        d_pos_alt[idx] = pos;
+        d_vel_alt[idx] = vel;
+        d_tag_alt[idx] = tag;
+        d_comm_flags_alt[idx] = flag;
         }
     }
 
@@ -107,22 +105,26 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
  * Any communication flags that are bitwise AND with \a mask are transformed to
  * a 1 and stored in \a d_tmp.
  */
-__global__ void mark_removed_particles(unsigned int *d_tmp,
+__global__ void mark_removed_particles(unsigned char *d_tmp_flag,
+                                       unsigned int *d_tmp_id,
                                        const unsigned int *d_comm_flags,
                                        const unsigned int mask,
                                        const unsigned int N)
     {
-    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
-
+    const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    // one thread per particle
     if (idx >= N) return;
-    d_tmp[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
+
+    d_tmp_id[idx] = idx;
+    d_tmp_flag[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
     }
 } // end namespace kernel
 } // end namespace gpu
 } // end namespace mpcd
 
 
-cudaError_t mpcd::gpu::mark_removed_particles(unsigned int *d_tmp_flag,
+cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_tmp_flag,
+                                              unsigned int *d_tmp_id,
                                               const unsigned int *d_comm_flags,
                                               const unsigned int mask,
                                               const unsigned int N,
@@ -139,21 +141,22 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned int *d_tmp_flag,
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
     mpcd::gpu::kernel::mark_removed_particles<<<grid, run_block_size>>>(d_tmp_flag,
+                                                                        d_tmp_id,
                                                                         d_comm_flags,
                                                                         mask,
                                                                         N);
     return cudaSuccess;
     }
 
-cudaError_t mpcd::gpu::scan_removed_particles(void *d_tmp,
-                                              size_t& tmp_bytes,
-                                              unsigned int *d_tmp_flag,
-                                              const unsigned int N)
+cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
+                                           size_t& tmp_bytes,
+                                           const unsigned int *d_ids,
+                                           const unsigned char *d_flags,
+                                           unsigned int *d_out,
+                                           unsigned int *d_num_select,
+                                           const unsigned int N)
     {
-    // in place scan is supported
-    // https://groups.google.com/d/msg/cub-users/pEsYSNc2Rn4/_4ulOuwWDcoJ
-    cub::DeviceScan::ExclusiveSum(d_tmp, tmp_bytes, d_tmp_flag, d_tmp_flag, N);
-
+    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, d_ids, d_flags, d_out, d_num_select, N);
     return cudaSuccess;
     }
 

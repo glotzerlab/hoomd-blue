@@ -22,17 +22,20 @@ namespace mpcd
 namespace gpu
 {
 //! Marks the particles which are being removed
-cudaError_t mark_removed_particles(unsigned int *d_tmp_flag,
+cudaError_t mark_removed_particles(unsigned char *d_tmp_flag,
+                                   unsigned int *d_tmp_id,
                                    const unsigned int *d_comm_flags,
                                    const unsigned int mask,
                                    const unsigned int N,
                                    const unsigned int block_size);
 
-//! Scan the number of particles being removed using CUB
-cudaError_t scan_removed_particles(void *d_tmp,
-                                   size_t& tmp_bytes,
-                                   unsigned int *d_tmp_flag,
-                                   const unsigned int N);
+cudaError_t partition_particles(void *d_tmp,
+                                size_t& tmp_bytes,
+                                const unsigned int *d_ids,
+                                const unsigned char *d_flags,
+                                unsigned int *d_out,
+                                unsigned int *d_num_select,
+                                const unsigned int N);
 
 //! Pack particle data into output buffer and remove marked particles
 cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,

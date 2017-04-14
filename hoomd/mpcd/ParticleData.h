@@ -26,6 +26,7 @@
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/ExecutionConfiguration.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/GPUFlags.h"
 #include "hoomd/GPUVector.h"
 #include "hoomd/Profiler.h"
 
@@ -319,7 +320,10 @@ class ParticleData
         GPUArray<unsigned int> m_tag_alt;   //!< Alternate tag array
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
-        GPUArray<unsigned int> m_tmp_flags;         //!< Temporary flags for removing particles
+        GPUArray<unsigned char> m_tmp_flags;        //!< Temporary flags for removing particles
+        GPUArray<unsigned int> m_tmp_ids;           //!< Temporary indexes for removing particles
+        GPUArray<unsigned int> m_part_ids;          //!< Temporary indexes for removing particles
+        GPUFlags<unsigned int> m_num_part;          //!< Number of partitioned elements to remove
         #endif // ENABLE_MPI
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache
