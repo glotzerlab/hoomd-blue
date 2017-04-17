@@ -65,7 +65,6 @@ list(APPEND _mpcd_headers
 endif()
 
 set(_mpcd_cu_sources
-    CellCommunicator.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     CommunicatorGPU.cu
