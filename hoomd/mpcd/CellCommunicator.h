@@ -82,8 +82,8 @@ class CellCommunicator
          *
          * Properties are reduced across domain boundaries, as marked in the cell list.
          */
-        template<typename T, class ReductionOpT>
-        void reduce(const GPUArray<T>& props, ReductionOpT reduction_op);
+        template<typename T, class PackOpT>
+        void reduce(const GPUArray<T>& props, PackOpT pack_op);
 
         //! Set autotuner parameters
         /*!
@@ -140,24 +140,24 @@ class CellCommunicator
         GPUVector<unsigned char> m_recv_buf;    //!< MPI buffer for receiving
 
         //! Packs the property buffer
-        template<typename T>
-        void packBuffer(const GPUArray<T>& props, axis dim);
+        template<typename T, class PackOpT>
+        void packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         //! Unpacks the property buffer
-        template<typename T, class ReductionOpT>
-        void unpackBuffer(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim);
+        template<typename T, class PackOpT>
+        void unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<Autotuner> m_tuner_pack;    //!< Tuner for pack kernel
         std::unique_ptr<Autotuner> m_tuner_unpack;  //!< Tuner for unpack kernel
 
         //! Packs the property buffer on the GPU
-        template<typename T>
-        void packBufferGPU(const GPUArray<T>& props, axis dim);
+        template<typename T, class PackOpT>
+        void packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         //! Unpacks the property buffer on the GPU
-        template<typename T, class ReductionOpT>
-        void unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim);
+        template<typename T, class PackOpT>
+        void unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
         #endif // ENABLE_CUDA
 
         bool m_needs_init;                      //!< Flag if initialization is required
@@ -306,8 +306,8 @@ class CellCommunicator
  * \tparam T Type of data to reduce (inferred)
  * \tparam ReductionOpT Binary reduction operator (inferred)
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduction_op)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, PackOpT pack_op)
     {
     if (m_prof) m_prof->push("MPCD cell comm");
     if (props.getNumElements() < m_cl->getNCells())
@@ -318,7 +318,7 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
 
     if (m_prof) m_prof->push("init");
     if (m_needs_init) initialize();
-    sizeBuffers(sizeof(T));
+    sizeBuffers(sizeof(typename PackOpT::element));
     if (m_prof) m_prof->pop();
 
     // Communicate along each dimensions
@@ -330,12 +330,12 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
-            packBufferGPU(props, static_cast<axis>(dim));
+            packBufferGPU(props, pack_op, static_cast<axis>(dim));
             }
         else
         #endif // ENABLE_CUDA
             {
-            packBuffer(props, static_cast<axis>(dim));
+            packBuffer(props, pack_op, static_cast<axis>(dim));
             }
 
         // send along dir, and receive along the opposite direction from sending
@@ -371,8 +371,8 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
                 left_face = static_cast<unsigned int>(mpcd::detail::face::down);
                 }
 
-            const unsigned int num_right_bytes = m_idx[right_face].getNumElements()*sizeof(T);
-            const unsigned int num_left_bytes = m_idx[left_face].getNumElements()*sizeof(T);
+            const unsigned int num_right_bytes = m_idx[right_face].getNumElements()*sizeof(typename PackOpT::element);
+            const unsigned int num_left_bytes = m_idx[left_face].getNumElements()*sizeof(typename PackOpT::element);
             if (m_prof) m_prof->push("MPI send/recv");
             if (m_neigh[left_face] != m_neigh[right_face])
                 {
@@ -413,12 +413,12 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
-            unpackBufferGPU(props, reduction_op, static_cast<axis>(dim));
+            unpackBufferGPU(props, pack_op, static_cast<axis>(dim));
             }
         else
         #endif // ENABLE_CUDA
             {
-            unpackBuffer(props, reduction_op, static_cast<axis>(dim));
+            unpackBuffer(props, pack_op, static_cast<axis>(dim));
             }
         }
     if (m_prof) m_prof->pop();
@@ -440,16 +440,16 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
  * cache-friendly pathway by rearranging indexes, but the performance gains would
  * probably not be very much compared to the complexity and (lack of) code readability.
  */
-template<typename T>
-void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, axis dim)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
-    assert(m_send_buf.getNumElements() >= sizeof(T) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
+    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
 
     if (m_prof) m_prof->push("pack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
     ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
-    T* send_buf = reinterpret_cast<T*>(h_send_buf.data);
+    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
 
     // get the offsets based on the comm dimension
     uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
@@ -477,7 +477,7 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, axis dim)
             {
             for (unsigned int i=0; i < left_idx.getW(); ++i)
                 {
-                send_buf[left_idx(i,j,k)] = h_props.data[ci(i,j,k)];
+                send_buf[left_idx(i,j,k)] = pack_op.pack(h_props.data[ci(i,j,k)]);
                 }
             }
         }
@@ -490,7 +490,7 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, axis dim)
             {
             for (unsigned int i=0; i < right_idx.getW(); ++i)
                 {
-                send_buf[right_idx(i,j,k)] = h_props.data[ci(right_offset.x+i,right_offset.y+j,right_offset.z+k)];
+                send_buf[right_idx(i,j,k)] = pack_op.pack(h_props.data[ci(right_offset.x+i,right_offset.y+j,right_offset.z+k)]);
                 }
             }
         }
@@ -506,8 +506,8 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, axis dim)
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
     if (m_prof) m_prof->push("unpack");
     const Index3D& ci = m_cl->getCellIndexer();
@@ -534,7 +534,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
 
     // unpack the right buffer
     ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
-    T* recv_buf = reinterpret_cast<T*>(h_recv_buf.data);
+    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
     for (unsigned int k=0; k < right_idx.getD(); ++k)
         {
         for (unsigned int j=0; j < right_idx.getH(); ++j)
@@ -543,7 +543,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
                 {
                 const unsigned int target = ci(right_offset.x+i,right_offset.y+j,right_offset.z+k);
                 const T cur_val = h_props.data[target];
-                h_props.data[target] = reduction_op(recv_buf[right_idx(i,j,k)], cur_val);
+                h_props.data[target] = pack_op.unpack(recv_buf[right_idx(i,j,k)], cur_val);
                 }
             }
         }
@@ -558,7 +558,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
                 {
                 const unsigned int target = ci(i,j,k);
                 const T cur_val = h_props.data[target];
-                h_props.data[target] = reduction_op(recv_buf[left_idx(i,j,k)], cur_val);
+                h_props.data[target] = pack_op.unpack(recv_buf[left_idx(i,j,k)], cur_val);
                 }
             }
         }
@@ -575,15 +575,15 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
  *
  * \post Communicated cells in \a props are packed into \a m_send_buf
  */
-template<typename T>
-void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, axis dim)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
-    assert(m_send_buf.getNumElements() >= sizeof(T) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
+    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
     if (m_prof) m_prof->push(m_exec_conf,"pack");
 
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
     ArrayHandle<unsigned char> d_send_buf(m_send_buf, access_location::device, access_mode::overwrite);
-    T* send_buf = reinterpret_cast<T*>(d_send_buf.data);
+    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(d_send_buf.data);
 
     // get the offsets based on the comm dimension
     uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
@@ -611,6 +611,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, axis dim)
                                 right_idx,
                                 right_offset,
                                 d_props.data,
+                                pack_op,
                                 m_cl->getCellIndexer(),
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -627,12 +628,12 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, axis dim)
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op, axis dim)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
     if (m_prof) m_prof->push("copy");
     ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
-    T* recv_buf = reinterpret_cast<T*>(d_recv_buf.data);
+    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(d_recv_buf.data);
     if (m_prof) m_prof->pop();
 
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
@@ -659,7 +660,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, Reduction
 
     m_tuner_unpack->begin();
     mpcd::gpu::unpack_cell_buffer(d_props.data,
-                                  reduction_op,
+                                  pack_op,
                                   m_cl->getCellIndexer(),
                                   recv_buf + right_idx.getNumElements(),
                                   recv_buf,

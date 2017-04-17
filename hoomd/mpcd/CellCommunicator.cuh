@@ -22,23 +22,24 @@ namespace gpu
 {
 
 //! Kernel driver to pack cell communication buffers
-template<typename T>
-cudaError_t pack_cell_buffer(T *d_left_buf,
-                             T *d_right_buf,
+template<typename T, class PackOpT>
+cudaError_t pack_cell_buffer(typename PackOpT::element *d_left_buf,
+                             typename PackOpT::element *d_right_buf,
                              const Index3D& left_idx,
                              const Index3D& right_idx,
                              const uint3& right_offset,
                              const T *d_props,
+                             PackOpT pack_op,
                              const Index3D& ci,
                              unsigned int block_size);
 
 //! Kernel driver to unpack cell communication buffers
-template<typename T, class ReductionOpT>
+template<typename T, class PackOpT>
 cudaError_t unpack_cell_buffer(T *d_props,
-                               ReductionOpT reduction_op,
+                               PackOpT pack_op,
                                const Index3D& ci,
-                               const T *d_left_buf,
-                               const T *d_right_buf,
+                               const typename PackOpT::element *d_left_buf,
+                               const typename PackOpT::element *d_right_buf,
                                const Index3D& left_idx,
                                const Index3D& right_idx,
                                const uint3& right_offset,
@@ -65,13 +66,14 @@ namespace kernel
  * Using one thread per cell to pack, the 1d thread index is converted back to
  * a 3d cell index. This index is in turn used to read the data to pack.
  */
-template<typename T>
-__global__ void pack_cell_buffer(T *d_left_buf,
-                                 T *d_right_buf,
+template<typename T, class PackOpT>
+__global__ void pack_cell_buffer(typename PackOpT::element *d_left_buf,
+                                 typename PackOpT::element *d_right_buf,
                                  const Index3D left_idx,
                                  const Index3D right_idx,
                                  const uint3 right_offset,
                                  const T *d_props,
+                                 PackOpT pack_op,
                                  const Index3D ci,
                                  const unsigned int N_tot)
     {
@@ -84,13 +86,13 @@ __global__ void pack_cell_buffer(T *d_left_buf,
     if (idx < left_idx.getNumElements())
         {
         uint3 cell = left_idx.getTriple(idx);
-        d_left_buf[idx] = d_props[ci(cell.x, cell.y, cell.z)];
+        d_left_buf[idx] = pack_op.pack(d_props[ci(cell.x, cell.y, cell.z)]);
         }
     else // right buffer
         {
         idx -= left_idx.getNumElements();
         uint3 cell = right_idx.getTriple(idx);
-        d_right_buf[idx] = d_props[ci(right_offset.x+cell.x,right_offset.y+cell.y,right_offset.z+cell.z)];
+        d_right_buf[idx] = pack_op.pack(d_props[ci(right_offset.x+cell.x,right_offset.y+cell.y,right_offset.z+cell.z)]);
         }
     }
 
@@ -115,12 +117,12 @@ __global__ void pack_cell_buffer(T *d_left_buf,
  * is applied to the current value of the cell.
  *
  */
-template<typename T, class ReductionOpT>
+template<typename T, class PackOpT>
 __global__ void unpack_cell_buffer(T *d_props,
-                                   ReductionOpT reduction_op,
+                                   PackOpT pack_op,
                                    const Index3D ci,
-                                   const T *d_left_buf,
-                                   const T *d_right_buf,
+                                   const typename PackOpT::element *d_left_buf,
+                                   const typename PackOpT::element *d_right_buf,
                                    const Index3D left_idx,
                                    const Index3D right_idx,
                                    const uint3 right_offset,
@@ -133,7 +135,7 @@ __global__ void unpack_cell_buffer(T *d_props,
 
     // left buffer
     unsigned int target;
-    T add_val;
+    typename PackOpT::element add_val;
     if (idx < left_idx.getNumElements())
         {
         uint3 cell = left_idx.getTriple(idx);
@@ -150,7 +152,7 @@ __global__ void unpack_cell_buffer(T *d_props,
 
     // write out
     const T cur_val = d_props[target];
-    d_props[target] = reduction_op(cur_val, add_val);
+    d_props[target] = pack_op.unpack(add_val, cur_val);
     }
 
 } // end namespace kernel
@@ -171,13 +173,14 @@ __global__ void unpack_cell_buffer(T *d_props,
  *
  * \sa mpcd::gpu::kernel::pack_cell_buffer
  */
-template<typename T>
-cudaError_t pack_cell_buffer(T *d_left_buf,
-                             T *d_right_buf,
+template<typename T, class PackOpT>
+cudaError_t pack_cell_buffer(typename PackOpT::element *d_left_buf,
+                             typename PackOpT::element *d_right_buf,
                              const Index3D& left_idx,
                              const Index3D& right_idx,
                              const uint3& right_offset,
                              const T *d_props,
+                             PackOpT pack_op,
                              const Index3D& ci,
                              unsigned int block_size)
     {
@@ -185,7 +188,7 @@ cudaError_t pack_cell_buffer(T *d_left_buf,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T>);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T,PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -200,6 +203,7 @@ cudaError_t pack_cell_buffer(T *d_left_buf,
                                                                      right_idx,
                                                                      right_offset,
                                                                      d_props,
+                                                                     pack_op,
                                                                      ci,
                                                                      N_tot);
 
@@ -227,12 +231,12 @@ cudaError_t pack_cell_buffer(T *d_left_buf,
  *
  * \sa mpcd::gpu::kernel::unpack_cell_buffer
  */
-template<typename T, class ReductionOpT>
+template<typename T, class PackOpT>
 cudaError_t unpack_cell_buffer(T *d_props,
-                               ReductionOpT reduction_op,
+                               PackOpT pack_op,
                                const Index3D& ci,
-                               const T *d_left_buf,
-                               const T *d_right_buf,
+                               const typename PackOpT::element *d_left_buf,
+                               const typename PackOpT::element *d_right_buf,
                                const Index3D& left_idx,
                                const Index3D& right_idx,
                                const uint3& right_offset,
@@ -242,7 +246,7 @@ cudaError_t unpack_cell_buffer(T *d_props,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T,ReductionOpT>);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T,PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
@@ -252,7 +256,7 @@ cudaError_t unpack_cell_buffer(T *d_props,
     dim3 grid(N_tot / run_block_size + 1);
 
     mpcd::gpu::kernel::unpack_cell_buffer<<<grid, run_block_size>>>(d_props,
-                                                                    reduction_op,
+                                                                    pack_op,
                                                                     ci,
                                                                     d_left_buf,
                                                                     d_right_buf,

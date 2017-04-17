@@ -352,43 +352,45 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
     return cudaSuccess;
     }
 
-//! Explicit template instantiation of pack for Scalar3
-template cudaError_t pack_cell_buffer(Scalar3 *d_left_buf,
-                                      Scalar3 *d_right_buf,
-                                      const Index3D& left_idx,
-                                      const Index3D& right_idx,
-                                      const uint3& right_offset,
-                                      const Scalar3 *d_props,
-                                      const Index3D& ci,
-                                      unsigned int block_size);
-
-//! Explicit template instantiation of pack for Scalar4
-template cudaError_t pack_cell_buffer(Scalar4 *d_left_buf,
-                                      Scalar4 *d_right_buf,
+//! Explicit template instantiation of pack for cell velocity
+template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_left_buf,
+                                      typename mpcd::detail::CellVelocityPackOp::element *d_right_buf,
                                       const Index3D& left_idx,
                                       const Index3D& right_idx,
                                       const uint3& right_offset,
                                       const Scalar4 *d_props,
+                                      mpcd::detail::CellVelocityPackOp pack_op,
                                       const Index3D& ci,
                                       unsigned int block_size);
 
-//! Explicit template instantiation of unpack for Scalar4 / Sum
+//! Explicit template instantiation of pack for cell energy
+template cudaError_t pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element *d_left_buf,
+                                      typename mpcd::detail::CellEnergyPackOp::element *d_right_buf,
+                                      const Index3D& left_idx,
+                                      const Index3D& right_idx,
+                                      const uint3& right_offset,
+                                      const Scalar3 *d_props,
+                                      mpcd::detail::CellEnergyPackOp pack_op,
+                                      const Index3D& ci,
+                                      unsigned int block_size);
+
+//! Explicit template instantiation of unpack for cell velocity
 template cudaError_t unpack_cell_buffer(Scalar4 *d_props,
-                                        mpcd::ops::Sum reduction_op,
+                                        mpcd::detail::CellVelocityPackOp pack_op,
                                         const Index3D& ci,
-                                        const Scalar4 *d_left_buf,
-                                        const Scalar4 *d_right_buf,
+                                        const typename mpcd::detail::CellVelocityPackOp::element *d_left_buf,
+                                        const typename mpcd::detail::CellVelocityPackOp::element *d_right_buf,
                                         const Index3D& left_idx,
                                         const Index3D& right_idx,
                                         const uint3& right_offset,
                                         const unsigned int block_size);
 
-//! Explicit template instantiation of unpack for Scalar3 / SumScalar2Int
+//! Explicit template instantiation of unpack for cell energy
 template cudaError_t unpack_cell_buffer(Scalar3 *d_props,
-                                        mpcd::detail::SumScalar2Int reduction_op,
+                                        mpcd::detail::CellEnergyPackOp pack_op,
                                         const Index3D& ci,
-                                        const Scalar3 *d_left_buf,
-                                        const Scalar3 *d_right_buf,
+                                        const typename mpcd::detail::CellEnergyPackOp::element *d_left_buf,
+                                        const typename mpcd::detail::CellEnergyPackOp::element *d_right_buf,
                                         const Index3D& left_idx,
                                         const Index3D& right_idx,
                                         const uint3& right_offset,

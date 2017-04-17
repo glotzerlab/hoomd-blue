@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMath.h"
 
 #ifdef NVCC
-#define HOSTDEVICE __host__ __device__
+#define HOSTDEVICE __device__ __forceinline__
 #else
 #define HOSTDEVICE
 #endif
@@ -56,6 +56,56 @@ struct SumScalar2Int
         return make_scalar3(a.x+b.x,
                             a.y+b.y,
                             __int_as_scalar(__scalar_as_int(a.z)+__scalar_as_int(b.z)));
+        }
+    };
+
+struct CellVelocityPackOp
+    {
+    typedef struct
+        {
+        Scalar x;
+        Scalar y;
+        Scalar z;
+        float mass;
+        } element;
+
+    HOSTDEVICE element pack(const Scalar4& val) const
+        {
+        element e;
+        e.x = val.x;
+        e.y = val.y;
+        e.z = val.z;
+        e.mass = val.w;
+        return e;
+        }
+
+    HOSTDEVICE Scalar4 unpack(const element& e, const Scalar4& val) const
+        {
+        return make_scalar4(e.x + val.x, e.y + val.y, e.z + val.z, e.mass + val.w);
+        }
+    };
+
+struct CellEnergyPackOp
+    {
+    typedef struct
+        {
+        Scalar energy;
+        unsigned int np;
+        } element;
+
+    HOSTDEVICE element pack(const Scalar3& val) const
+        {
+        element e;
+        e.energy = val.x;
+        e.np = __scalar_as_int(val.z);
+        return e;
+        }
+
+    HOSTDEVICE Scalar3 unpack(const element& e, const Scalar3& val) const
+        {
+        return make_scalar3(e.energy + val.x,
+                            val.y,
+                            __int_as_scalar(__scalar_as_int(val.z) + e.np));
         }
     };
 
