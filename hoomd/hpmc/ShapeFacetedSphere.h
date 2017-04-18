@@ -40,23 +40,28 @@ namespace hpmc
 namespace detail
 {
 
-//! maximum number of plane normal vectors that can be stored
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_SPHERE_FACETS = 8;
-
-//! maximum number of intersection vertices between two planes and the sphere
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_SPHERE_VERTICES = MAX_SPHERE_FACETS*(MAX_SPHERE_FACETS-1);
-
-
 //! Data structure for intersection planes
 /*! \ingroup hpmc_data_structs */
 struct faceted_sphere_params : param_base
     {
+    //! Empty constructor
+    faceted_sphere_params()
+        : diameter(1.0), N(1), ignore(1)
+        { }
+
+    #ifndef NVCC
+    faceted_sphere_params(unsigned int n_facet, bool managed )
+        : diameter(1.0), N(n_facet), ignore(0)
+        {
+        n = ManagedArray<vec3<OverlapReal> >(n_facet, managed);
+        offset = ManagedArray<OverlapReal> (n_facet, managed);
+        }
+    #endif
+
     poly3d_verts verts;           //!< Vertices of the polyhedron
     poly3d_verts additional_verts;//!< Vertices of the polyhedron edge-sphere intersection
-    vec3<OverlapReal> n[MAX_SPHERE_FACETS];          //!< Normal vectors of planes
-    OverlapReal offset[MAX_SPHERE_FACETS];           //!< Offset of every plane
+    ManagedArray<vec3<OverlapReal> > n;              //!< Normal vectors of planes
+    ManagedArray<OverlapReal> offset;                //!< Offset of every plane
     OverlapReal diameter;                            //!< Sphere diameter
     OverlapReal insphere_radius;                     //!< Precomputed radius of in-sphere
     vec3<OverlapReal> origin;                        //!< Origin shift
@@ -70,6 +75,8 @@ struct faceted_sphere_params : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
+        n.load_shared(ptr,available_bytes);
+        offset.load_shared(ptr,available_bytes);
         verts.load_shared(ptr,available_bytes);
         additional_verts.load_shared(ptr, available_bytes);
         }
@@ -78,6 +85,8 @@ struct faceted_sphere_params : param_base
     //! Attach managed memory to CUDA stream
     void attach_to_stream(cudaStream_t stream) const
         {
+        n.attach_to_stream(stream);
+        offset.attach_to_stream(stream);
         verts.attach_to_stream(stream);
         additional_verts.attach_to_stream(stream);
         }
