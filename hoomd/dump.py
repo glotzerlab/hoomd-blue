@@ -570,9 +570,9 @@ class gsd(hoomd.analyze._analyzer):
 
     .. warning::
 
-        **Known issue**. If a non-default quantity is written out to frame 0 and that quantity later becomes default on
+        **Known issue**: If a non-default quantity is written out to frame 0 and that quantity later becomes default on
         frame *i*, it will not be written to frame *i*. This results in an invalid configuration because the gsd spec
-        states that quantities not written are to be ready from frame 0. A reasonable fix for this problem is
+        states that quantities not written should be read from frame 0. A reasonable fix for this problem is
         non-trivial and requires a new version of the gsd spec.
 
     """
