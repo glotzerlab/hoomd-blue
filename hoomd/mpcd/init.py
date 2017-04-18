@@ -5,8 +5,11 @@
 
 R""" MPCD system initialization
 
-Commands to initialize the MPCD system data. Currently, only snapshot
-initialization (see :py:mod:`hoomd.mpcd.data`) is supported.
+Commands to initialize the MPCD system data. Currently, random initialization
+and snapshot initialization (see :py:mod:`hoomd.mpcd.data`) are supported.
+Random initialization is useful for large systems where a snapshot is impractical.
+Snapshot initialization is useful when you require fine control over the particle
+properties and initial configuration.
 
 """
 
@@ -14,6 +17,59 @@ import hoomd
 
 from . import _mpcd
 from . import data
+
+def make_random(N, kT, seed):
+    R"""Initialize particles randomly
+
+    Args:
+        N (int): Total number of MPCD particles
+        kT (float): Temperature of MPCD particles (in energy units)
+        seed (int): Random seed for initialization
+
+    Returns:
+        Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system`)
+
+    MPCD particles are randomly initialized into the simulation box.
+    An MPCD system can be randomly initialized only **after** the HOOMD system
+    is first initialized (see :py:mod:`hoomd.init`). The system can only be
+    initialized one time. The total number of particles *N* is evenly divided
+    between all domains. Random positions are then drawn uniformly within the
+    (local) box. Particle velocities are drawn from a Maxwell-Boltzmann
+    distribution consistent with temperature *kT*. All MPCD particles are given
+    unit mass and type A.
+
+    Examples::
+
+        mpcd.init.make_random(N=1250000000, kT=1.0, seed=42)
+
+    Notes:
+        Random number generation is performed using C++11 ``mt19937`` seeded by
+        *seed* plus the rank number in MPI simulations. This random number
+        generator is separate from other generators used in MPCD, so *seed* can
+        be reasonably recycled elsewhere.
+
+    """
+    hoomd.util.print_status_line()
+
+    if not hoomd.init.is_initialized():
+        hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
+        raise RuntimeError("HOOMD system not initialized")
+
+    if hoomd.context.current.mpcd is not None:
+        hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
+        raise RuntimeError("mpcd system already initialized")
+
+    # make particle data first
+    sysdef = hoomd.context.current.system_definition
+    box = sysdef.getParticleData().getBox()
+    if hoomd.context.current.decomposition:
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, hoomd.context.exec_conf, hoomd.context.current.decomposition.cpp_dd)
+    else:
+        pdata = _mpcd.MPCDParticleData(N, box, kT, seed, hoomd.context.exec_conf)
+
+    # then make mpcd system
+    hoomd.context.current.mpcd = data.system(_mpcd.SystemData(sysdef,pdata))
+    return hoomd.context.current.mpcd
 
 def read_snapshot(snapshot):
     R"""Initialize from a snapshot
