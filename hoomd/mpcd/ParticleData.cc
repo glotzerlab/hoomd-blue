@@ -354,7 +354,7 @@ void mpcd::ParticleData::initializeRandom(unsigned int N, const BoxDim& local_bo
     std::uniform_real_distribution<Scalar> pos_x(lo.x, hi.x);
     std::uniform_real_distribution<Scalar> pos_y(lo.y, hi.y);
     std::uniform_real_distribution<Scalar> pos_z(lo.z, hi.z);
-    std::normal_distribution<Scalar> vel(0.0, kT / m_mass);
+    std::normal_distribution<Scalar> vel(0.0, fast::sqrt(kT / m_mass));
 
     // allocate and fill up with random values
     allocate(m_N);
