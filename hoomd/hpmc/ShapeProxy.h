@@ -290,15 +290,11 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
     pybind11::list vertices, Scalar diameter, pybind11::tuple origin, bool ignore_stats,
     std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    if (len(normals) > MAX_SPHERE_FACETS)
-        throw std::runtime_error("Too many face normals");
-
     if (len(offsets) != len(normals))
         throw std::runtime_error("Number of normals unequal number of offsets");
 
-    faceted_sphere_params result;
+    faceted_sphere_params result(len(normals), exec_conf->isCUDAEnabled());
     result.ignore = ignore_stats;
-    result.N = len(normals);
 
     // extract the normals from the python list
     for (unsigned int i = 0; i < len(normals); i++)
@@ -306,11 +302,6 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
         pybind11::list normals_i = pybind11::cast<pybind11::list>(normals[i]);
         result.n[i] = vec3<OverlapReal>(pybind11::cast<OverlapReal>(normals_i[0]), pybind11::cast<OverlapReal>(normals_i[1]), pybind11::cast<OverlapReal>(normals_i[2]));
         result.offset[i] = pybind11::cast<OverlapReal>(offsets[i]);
-        }
-    for (unsigned int i = len(normals); i < MAX_SPHERE_FACETS; i++)
-        {
-        result.n[i] = vec3<OverlapReal>(0,0,0);
-        result.offset[i] = 0.0;
         }
 
     // extract the vertices from the python list
@@ -329,7 +320,7 @@ faceted_sphere_params make_faceted_sphere(pybind11::list normals, pybind11::list
         {
         Scalar rsq = result.offset[i]*result.offset[i]/dot(result.n[i],result.n[i]);
         // is the origin inside the shape?
-        if (result.offset < 0)
+        if (result.offset[i] < 0)
             {
             if (rsq < result.insphere_radius*result.insphere_radius)
                 {
