@@ -112,11 +112,11 @@ class interaction_matrix:
 
         Examples::
 
-            interaction_matrix.set('A', 'A', False);
-            interaction_matrix.set('B', 'B', False);
-            interaction_matrix.set('A', 'B', True);
-            interaction_matrix.set(['A', 'B', 'C', 'D'], 'F', True);
-            interaction_matrix.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
+            mc.overlap_checks.set('A', 'A', False);
+            mc.overlap_checks.set('B', 'B', False);
+            mc.overlap_checks.set('A', 'B', True);
+            mc.overlap_checks.set(['A', 'B', 'C', 'D'], 'F', True);
+            mc.overlap_checks.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
 
 
         """
