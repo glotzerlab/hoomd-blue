@@ -27,6 +27,10 @@ namespace mpcd
 class SystemData
     {
     public:
+        //! Construct from MPCD ParticleData
+        SystemData(std::shared_ptr<::SystemDefinition> sysdef,
+                   std::shared_ptr<mpcd::ParticleData> mpcd_pdata);
+
         //! Construct from a snapshot
         SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
 
