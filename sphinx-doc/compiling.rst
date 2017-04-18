@@ -71,8 +71,8 @@ set the appropriate setting for ``PYTHON_EXECUTABLE``, etc...
 
 .. warning::
 
-    Installing gcc with conda is not sufficient to build HOOMD. Update XCode to the latest version using the Mac OS
-    app store.
+    On Mac OS, installing gcc with conda is not sufficient to build HOOMDS. Update XCode to the latest version using the
+    Mac OS app store.
 
 .. _compile-hoomd:
 
