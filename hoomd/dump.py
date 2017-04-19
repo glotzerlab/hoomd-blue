@@ -14,6 +14,7 @@ import hoomd;
 import json;
 import os;
 import sys;
+import types;
 
 class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
@@ -566,6 +567,15 @@ class gsd(hoomd.analyze._analyzer):
     save that information in a trajectory for later access. Particle momentum are always changing, but the default is
     to not include these quantities to save on file space.
 
+    .. rubric:: State data
+
+    :py:class:`gsd` can save internal state data for the following hoomd objects:
+
+        * :py:class:`HPMC integrators <hoomd.hpmc.integrate.mode_hpmc>`
+
+    Call :py:meth:`dump_state` with the object as an argument to enable saving its state. State saved in this way
+    can be restored after initializing the system with :py:meth:`hoomd.init.read_gsd`.
+
     Examples::
 
         dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
@@ -623,3 +633,16 @@ class gsd(hoomd.analyze._analyzer):
 
         time_step = hoomd.context.current.system.getCurrentTimeStep()
         self.cpp_analyzer.analyze(time_step);
+
+    def dump_state(self, obj):
+        """Write state information for a hoomd object.
+
+        Call :py:meth:`dump_state` if you want to write the state of a hoomd object
+        to the gsd file.
+
+        .. versionadded:: 2.2
+        """
+        if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
+            obj._connect_gsd(self);
+        else:
+            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));

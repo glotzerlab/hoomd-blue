@@ -14,6 +14,7 @@ set(TEST_LIST
     test_quat
     test_rotmat2
     test_rotmat3
+    test_shared_signal
     test_system
     test_utils
     test_vec2
