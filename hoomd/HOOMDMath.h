@@ -237,6 +237,14 @@ HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar &b)
                         a.y/b,
                         a.z/b);
     }
+//! Vector - scalar division in place
+HOSTDEVICE inline Scalar3& operator/= (Scalar3 &a, const Scalar &b)
+    {
+    a.x /= b;
+    a.y /= b;
+    a.z /= b;
+    return a;
+    }
 //! Vector - scalar division
 HOSTDEVICE inline Scalar3 operator/ (const Scalar &a, const Scalar3 &b)
     {
@@ -255,6 +263,30 @@ HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a)
 HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
     {
     return a.x*b.x + a.y*b.y + a.z*b.z;
+    }
+
+// ----------- Integer vector math functions ----------------------
+//! Integer vector addition
+HOSTDEVICE inline int3 operator+(const int3& a, const int3& b)
+    {
+    return make_int3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
+//! Integer vector unary addition
+HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
+    {
+    a.x += b.x; a.y += b.y; a.z += b.z;
+    return a;
+    }
+//! Integer vector substraction
+HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
+    {
+    return make_int3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+//! Integer vector unary subtraction
+HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
+    {
+    a.x -= b.x; a.y -= b.y; a.z -= b.z;
+    return a;
     }
 
 //! Export relevant hoomd math functions to python

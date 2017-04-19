@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    CellThermoCompute.cc
     CellList.cc
     Communicator.cc
     ParticleData.cc
@@ -14,6 +15,8 @@ set(_mpcd_sources
     )
 
 set(_mpcd_headers
+    CellCommunicator.h
+    CellThermoCompute.h
     CellList.h
     Communicator.h
     CommunicatorUtilities.h
@@ -26,10 +29,14 @@ set(_mpcd_headers
 
 if (ENABLE_CUDA)
 list(APPEND _mpcd_sources
+    CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
     )
 list(APPEND _mpcd_headers
+    CellCommunicator.cuh
+    CellThermoComputeGPU.cuh
+    CellThermoComputeGPU.h
     CellListGPU.cuh
     CellListGPU.h
     CommunicatorGPU.cuh
@@ -39,6 +46,8 @@ list(APPEND _mpcd_headers
 endif()
 
 set(_mpcd_cu_sources
+    CellCommunicator.cu
+    CellThermoComputeGPU.cu
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu

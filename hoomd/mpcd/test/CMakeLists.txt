@@ -5,6 +5,7 @@
 if (BUILD_TESTING)
 set(TEST_LIST
     cell_list
+    cell_thermo_compute
     )
 endif()
 
@@ -21,56 +22,62 @@ if(ENABLE_MPI)
     endif()
     # these are tests that are shorter running
     if (BUILD_TESTING)
-    ADD_TO_MPI_TESTS(cell_list_mpi 8)
+    ADD_TO_MPI_TESTS(cell_communicator 8)
+    ADD_TO_MPI_TESTS(cell_list 8)
+    ADD_TO_MPI_TESTS(cell_thermo_compute 8)
     endif()
 endif()
 
-foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
-    set(TEST_NAME ${CUR_TEST}_test)
-    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
-    set_source_files_properties(${TEST_NAME}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+macro(compile_test TEST_EXE TEST_SRC)
+    set_source_files_properties(${TEST_SRC} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
     # add and link the unit test executable
-    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_NAME}.cc)
+    add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
 
     # only add to test_all if BUILD_TESTING is enabled
     if (BUILD_TESTING)
-    add_dependencies(test_all ${TEST_NAME})
+    add_dependencies(test_all ${TEST_EXE})
     endif()
 
-    target_link_libraries(${TEST_NAME} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
-    fix_cudart_rpath(${TEST_NAME})
+    target_link_libraries(${TEST_EXE} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
+    fix_cudart_rpath(${TEST_EXE})
 
     if (ENABLE_MPI)
         # set appropriate compiler/linker flags
         if(MPI_COMPILE_FLAGS)
-            set_target_properties(${TEST_NAME} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+            set_target_properties(${TEST_EXE} PROPERTIES COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
         endif(MPI_COMPILE_FLAGS)
         if(MPI_LINK_FLAGS)
-            set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
+            set_target_properties(${TEST_EXE} PROPERTIES LINK_FLAGS "${MPI_LINK_FLAGS}")
         endif(MPI_LINK_FLAGS)
     endif (ENABLE_MPI)
-endforeach (CUR_TEST)
+endmacro(compile_test)
 
 # add non-MPI tests to test list first
 foreach (CUR_TEST ${TEST_LIST})
-    # set executable path
-    get_target_property(CUR_TEST_EXE ${CUR_TEST}_test LOCATION)
+    set(CUR_TEST_SRC ${CUR_TEST}_test.cc)
+    set(CUR_TEST_EXE ${CUR_TEST}_test)
+    set(CUR_TEST_NAME mpcd-core-${CUR_TEST})
 
+    compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
+    get_target_property(CUR_EXE_FULL ${CUR_TEST_EXE} LOCATION)
     if (ENABLE_MPI)
-        add_test(mpcd-core-${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
+        add_test(${CUR_TEST_NAME} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_EXE_FULL})
     else()
-        add_test(mpcd-core-${CUR_TEST} ${CUR_TEST_EXE})
+        add_test(${CUR_TEST_NAME} ${CUR_EXE_FULL})
     endif()
 endforeach(CUR_TEST)
 
 # add MPI tests
 foreach (CUR_TEST ${MPI_TEST_LIST})
-    # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST}_test LOCATION)
+    set(CUR_TEST_SRC ${CUR_TEST}_mpi_test.cc)
+    set(CUR_TEST_EXE ${CUR_TEST}_mpi_test)
+    set(CUR_TEST_NAME mpcd-core-${CUR_TEST}-mpi)
 
-    add_test(mpcd-core-${CUR_TEST}-mpi
+    compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
+    get_target_property(CUR_EXE_FULL ${CUR_TEST_EXE} LOCATION)
+    add_test(${CUR_TEST_NAME}
              ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
              ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-             ${CUR_TEST_EXE})
+             ${CUR_EXE_FULL})
 endforeach(CUR_TEST)

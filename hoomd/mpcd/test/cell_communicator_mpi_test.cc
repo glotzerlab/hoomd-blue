@@ -1,0 +1,274 @@
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
+
+// Maintainer: mphoward
+
+#include "hoomd/mpcd/CellList.h"
+#include "hoomd/mpcd/CellCommunicator.h"
+#include "hoomd/mpcd/CommunicatorUtilities.h"
+#include "hoomd/mpcd/ReductionOperators.h"
+#include "hoomd/mpcd/SystemData.h"
+
+#include "hoomd/SnapshotSystemData.h"
+#include "hoomd/test/upp11_config.h"
+
+HOOMD_UP_MAIN()
+
+//! Test for correct calculation of MPCD grid dimensions
+void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                   bool mpi_x,
+                                   bool mpi_y,
+                                   bool mpi_z)
+    {
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    snap->global_box = BoxDim(5.0);
+    snap->particle_data.type_mapping.push_back("A");
+    snap->particle_data.resize(0);
+
+    // setup test in mpi
+    std::vector<Scalar> fx, fy, fz;
+    unsigned int n_req_ranks = 1;
+    if (mpi_x)
+        {
+        n_req_ranks *= 2;
+        fx.push_back(0.5);
+        }
+    if (mpi_y)
+        {
+        n_req_ranks *= 2;
+        fy.push_back(0.45);
+        }
+    if (mpi_z)
+        {
+        n_req_ranks *= 2;
+        fz.push_back(0.55);
+        }
+    UP_ASSERT_EQUAL(exec_conf->getNRanks(), n_req_ranks);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(),fx,fy,fz));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+
+    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    cl->computeDimensions();
+
+    // Fill in a dummy cell property array, which is just the global index of each cell
+    // we use the 1-indexed cell (rather than standard 0) so that we can confirm sums are all done correctly
+    const Index3D& ci = cl->getCellIndexer();
+    GPUArray<int3> props(ci.getNumElements(), exec_conf);
+    GPUArray<int3> ref_props(ci.getNumElements(), exec_conf);
+        {
+        ArrayHandle<int3> h_props(props, access_location::host, access_mode::overwrite);
+        ArrayHandle<int3> h_ref_props(ref_props, access_location::host, access_mode::overwrite);
+        for (unsigned int k=0; k < ci.getD(); ++k)
+            {
+            for (unsigned int j=0; j < ci.getH(); ++j)
+                {
+                for (unsigned int i=0; i < ci.getW(); ++i)
+                    {
+                    int3 global_cell = cl->getGlobalCell(make_int3(i,j,k));
+                    global_cell.x += 1; global_cell.y += 1; global_cell.z += 1;
+
+                    h_props.data[ci(i,j,k)] = global_cell;
+                    h_ref_props.data[ci(i,j,k)] = global_cell;
+                    }
+                }
+            }
+        }
+
+    // on summing, all communicated cells should simply increase by a multiple of the ranks they overlap
+    mpcd::CellCommunicator comm(sysdef, cl);
+    mpcd::ops::Sum sum_op;
+    comm.reduce(props, sum_op);
+    auto num_comm_cells = cl->getNComm();
+        {
+        ArrayHandle<int3> h_props(props, access_location::host, access_mode::read);
+        ArrayHandle<int3> h_ref_props(ref_props, access_location::host, access_mode::read);
+        for (unsigned int k=0; k < ci.getD(); ++k)
+            {
+            for (unsigned int j=0; j < ci.getH(); ++j)
+                {
+                for (unsigned int i=0; i < ci.getW(); ++i)
+                    {
+                    // count the number of ranks this cell overlaps, which gives the multiplier
+                    // relative to the reference values
+                    unsigned int noverlap = 1;
+                    if (i < num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::west)] ||
+                        i >= ci.getW() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::east)])
+                        {
+                        noverlap *= 2;
+                        }
+                    if (j < num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::south)] ||
+                        j >= ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)])
+                        {
+                        noverlap *= 2;
+                        }
+                    if (k < num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::down)] ||
+                        k >= ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)])
+                        {
+                        noverlap *= 2;
+                        }
+
+                    int3 ref_val = cl->getGlobalCell(make_int3(i,j,k));
+                    ref_val.x += 1; ref_val.y += 1; ref_val.z += 1;
+                    UP_ASSERT_EQUAL(h_props.data[ci(i,j,k)].x, h_ref_props.data[ci(i,j,k)].x * noverlap);
+                    }
+                }
+            }
+        }
+    }
+
+//! Test for error handling in overdecomposed systems
+void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    UP_ASSERT_EQUAL(exec_conf->getNRanks(), 8);
+
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    snap->global_box = BoxDim(6.0);
+    snap->particle_data.type_mapping.push_back("A");
+    snap->particle_data.resize(0);
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf,snap->global_box.getL(),2,2,2));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+
+    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    std::shared_ptr<mpcd::CellList> cl = mpcd_sys->getCellList();
+    cl->computeDimensions();
+
+    // Don't really care what's in this array, just want to make sure errors get thrown appropriately
+    const Index3D& ci = cl->getCellIndexer();
+    GPUArray<int3> props(ci.getNumElements(), exec_conf);
+        {
+        ArrayHandle<int3> h_props(props, access_location::host, access_mode::overwrite);
+        memset(h_props.data, 0, ci.getNumElements() * sizeof(int3));
+        }
+
+    mpcd::CellCommunicator comm(sysdef, cl);
+    mpcd::ops::Sum sum_op;
+
+    // initially, reduction should succeed
+    comm.reduce(props, sum_op);
+
+    // add a communication cell
+    cl->setNExtraCells(1);
+    cl->compute(1);
+
+    // should throw an exception since the prop dims don't match the cell dims
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, sum_op); });
+
+    // should succeed on resizing of props
+    props.resize(cl->getNCells());
+    comm.reduce(props, sum_op);
+
+    // add another communication cell, which overdecomposes the system
+    cl->setNExtraCells(2);
+    cl->compute(2);
+    props.resize(cl->getNCells());
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, sum_op); });
+
+    // cut the cell size down, which should make it so that the system can be decomposed again
+    cl->setCellSize(0.5);
+    cl->compute(3);
+    props.resize(cl->getNCells());
+    comm.reduce(props, sum_op);
+
+    // shrink the box size to the minimum that can be decomposed
+    cl->setNExtraCells(0);
+    cl->setCellSize(2.0);
+    cl->compute(4);
+    props.resize(cl->getNCells());
+    comm.reduce(props, sum_op);
+
+    // now shrink further to ensure failure
+    cl->setCellSize(3.0);
+    cl->compute(5);
+    props.resize(cl->getNCells());
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, sum_op); });
+    }
+
+//! dimension test case for MPCD CellList class
+UP_TEST( mpcd_cell_communicator )
+    {
+    // mpi in 1d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     2));
+        cell_communicator_reduce_test(exec_conf, true, false, false);
+        cell_communicator_reduce_test(exec_conf, false, true, false);
+        cell_communicator_reduce_test(exec_conf, false, false, true);
+        }
+    // mpi in 2d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     4));
+        cell_communicator_reduce_test(exec_conf, true, true, false);
+        cell_communicator_reduce_test(exec_conf, true, false, true);
+        cell_communicator_reduce_test(exec_conf, false, true, true);
+        }
+    // mpi in 3d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     8));
+        cell_communicator_reduce_test(exec_conf, true, true, true);
+        }
+    }
+
+//! error handling test for overdecomposed boxes
+UP_TEST( mpcd_cell_communicator_overdecompose )
+    {
+    std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+    cell_communicator_overdecompose_test(exec_conf);
+    }
+
+#ifdef ENABLE_CUDA
+//! dimension test case for MPCD CellList class
+UP_TEST( mpcd_cell_communicator_gpu )
+    {
+    // mpi in 1d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     2));
+        cell_communicator_reduce_test(exec_conf, true, false, false);
+        cell_communicator_reduce_test(exec_conf, false, true, false);
+        cell_communicator_reduce_test(exec_conf, false, false, true);
+        }
+    // mpi in 2d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     4));
+        cell_communicator_reduce_test(exec_conf, true, true, false);
+        cell_communicator_reduce_test(exec_conf, true, false, true);
+        cell_communicator_reduce_test(exec_conf, false, true, true);
+        }
+    // mpi in 3d
+        {
+        std::shared_ptr<ExecutionConfiguration> exec_conf(new ExecutionConfiguration(ExecutionConfiguration::GPU,
+                                                                                     -1,
+                                                                                     false,
+                                                                                     false,
+                                                                                     std::shared_ptr<Messenger>(),
+                                                                                     8));
+        cell_communicator_reduce_test(exec_conf, true, true, true);
+        }
+    }
+#endif // ENABLE_CUDA
