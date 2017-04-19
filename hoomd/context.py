@@ -12,6 +12,7 @@ the MPI configuration for the job, etc...
 import os
 import hoomd
 from hoomd import _hoomd
+from hoomd import cite
 import socket
 import getpass
 import platform
@@ -153,6 +154,9 @@ class SimulationContext(object):
         ## MPCD system
         self.mpcd = None;
 
+        ## Stored reference to the reader that was used to initialize the system
+        self.state_reader = None;
+
     def set_current(self):
         R""" Force this to be the current context
         """
@@ -203,7 +207,6 @@ def initialize(args=None):
 
     """
     global exec_conf, msg, options, current, _prev_args
-    _prev_args = args;
 
     if exec_conf is not None:
         if args != _prev_args:
@@ -211,8 +214,16 @@ def initialize(args=None):
         current = SimulationContext();
         return current
 
+    _prev_args = args;
+
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
+
+    # output the version info on initialization
+    msg.notice(1, _hoomd.output_version_info())
+
+    # ensure creation of global bibliography to print HOOMD base citations
+    cite._ensure_global_bib()
 
     _create_exec_conf();
 

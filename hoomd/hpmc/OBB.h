@@ -122,7 +122,7 @@ struct OBB
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=false)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // rotate B in A's coordinate frame
     rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;

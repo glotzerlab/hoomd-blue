@@ -70,5 +70,6 @@ void gpu_update_composite(unsigned int N,
     const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
+    const BoxDim global_box,
     unsigned int block_size,
     uint2 *d_flag);
