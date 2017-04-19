@@ -19,8 +19,9 @@
  * \param deltaT Fundamental integration timestep
  */
 mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar deltaT)
-    : IntegratorTwoStep(sysdata->getSystemDefinition(), deltaT)
+    : IntegratorTwoStep(sysdata->getSystemDefinition(), deltaT), m_mpcd_sys(sysdata)
     {
+    assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
     }
 
@@ -36,6 +37,7 @@ mpcd::Integrator::~Integrator()
 void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
     {
     IntegratorTwoStep::setProfiler(prof);
+    m_mpcd_sys->setProfiler(prof);
     if (m_collide)
         m_collide->setProfiler(prof);
     if (m_stream)

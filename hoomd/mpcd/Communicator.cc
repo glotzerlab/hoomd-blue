@@ -197,7 +197,9 @@ void mpcd::Communicator::migrateParticles()
             if (!isCommunicating(static_cast<mpcd::detail::face>(dir)) || !(req_comm_flags & comm_mask)) continue;
 
             // fill send buffer
+            if (m_prof) m_prof->push("pack");
             m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
+            if (m_prof) m_prof->pop();
 
             // we receive from the direction opposite to the one we send to
             unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
@@ -222,28 +224,31 @@ void mpcd::Communicator::migrateParticles()
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
+                if (m_prof) m_prof->push("MPI send/recv");
                 MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
                 MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
                 MPI_Waitall(2, m_reqs.data(), m_stats.data());
+                if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
                 }
 
             // wrap received particles across a global boundary back into global box
                 {
                 ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
-                const BoxDim& global_box = m_pdata->getGlobalBox();
-
+                const BoxDim wrap_box = getWrapBox(box);
                 for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
                     {
                     mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
                     Scalar4& postype = p.pos;
                     int3 image = make_int3(0,0,0);
 
-                    global_box.wrap(postype, image);
+                    wrap_box.wrap(postype,image);
                     }
                 }
 
             // fill particle data with wrapped, received particles
+            if (m_prof) m_prof->push("unpack");
             m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
+            if (m_prof) m_prof->pop();
             } // end dir loop
 
         req_comm_flags = setCommFlags(box);
@@ -288,6 +293,64 @@ unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
 
     MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
     return req_comm_flags;
+    }
+
+/*!
+ * \param box Box used to determine communication for this rank
+ * \returns A box suitable for wrapping received particles through
+ *          the global boundary.
+ *
+ * If a domain lies on a boundary, shift the global box so that it covers the
+ * region lying outside the box.
+ * \b Assumptions
+ *  1. The boxes are orthorhombic.
+ *  2. The communication \a box can only exceed the global box in one dimension.
+ *     (This should be guaranteed by the minimum domain size of the cell list.)
+ */
+BoxDim mpcd::Communicator::getWrapBox(const BoxDim& box)
+    {
+    // bounds of the current box
+    const Scalar3 hi = box.getHi();
+    const Scalar3 lo = box.getLo();
+
+    // bounds of the global box
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    const Scalar3 global_hi = global_box.getHi();
+    const Scalar3 global_lo = global_box.getLo();
+
+    // shift box
+    uint3 grid_size = m_decomposition->getGridSize();
+    Scalar3 shift = make_scalar3(0.,0.,0.);
+    if (grid_size.x > 1)
+        {
+        // exclusive or, it doesn't make sense for both these conditions to be true
+        assert((hi.x > global_hi.x) != (lo.x < global_lo.x));
+
+        if (hi.x > global_hi.x) shift.x = hi.x - global_hi.x;
+        else if (lo.x < global_lo.x) shift.x = lo.x - global_lo.x;
+        }
+    if (grid_size.y > 1)
+        {
+        assert((hi.y > global_hi.y) != (lo.y < global_lo.y));
+
+        if (hi.y > global_hi.y) shift.y = hi.y - global_hi.y;
+        else if (lo.y < global_lo.y) shift.y = lo.y - global_lo.y;
+        }
+    if (grid_size.z > 1)
+        {
+        assert((hi.z > global_hi.z) != (lo.z < global_lo.z));
+
+        if (hi.z > global_hi.z) shift.z = hi.z - global_hi.z;
+        else if (lo.z < global_lo.z) shift.z = lo.z - global_lo.z;
+        }
+
+    // only wrap in the direction being communicated
+    uchar3 periodic = make_uchar3(0,0,0);
+    periodic.x = (isCommunicating(mpcd::detail::face::east)) ? 1 : 0;
+    periodic.y = (isCommunicating(mpcd::detail::face::north)) ? 1 : 0;
+    periodic.z = (isCommunicating(mpcd::detail::face::up)) ? 1 : 0;
+
+    return BoxDim(global_lo + shift,global_hi + shift, periodic);
     }
 
 /*!

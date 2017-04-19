@@ -128,6 +128,9 @@ class Communicator
         //! Set the communication flags for the particle data
         virtual unsigned int setCommFlags(const BoxDim& box);
 
+        //! Get the wrapping box for this rank
+        BoxDim getWrapBox(const BoxDim& box);
+
         //! Returns true if we are communicating particles along a given direction
         /*!
          * \param dir Direction to return dimensions for

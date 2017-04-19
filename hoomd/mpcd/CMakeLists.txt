@@ -12,6 +12,7 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    SRDCollisionMethod.cc
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
@@ -28,6 +29,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    SRDCollisionMethod.h
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
@@ -38,6 +40,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SRDCollisionMethodGPU.cc
     StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
@@ -49,6 +52,8 @@ list(APPEND _mpcd_headers
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
+    SRDCollisionMethodGPU.cuh
+    SRDCollisionMethodGPU.h
     StreamingMethodGPU.cuh
     StreamingMethodGPU.h
     )
@@ -60,6 +65,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    SRDCollisionMethodGPU.cu
     StreamingMethodGPU.cu
     )
 
@@ -117,6 +123,7 @@ ENDMACRO(copy_file)
 
 set(files
     __init__.py
+    collide.py
     data.py
     init.py
     integrate.py

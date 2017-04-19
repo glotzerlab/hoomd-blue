@@ -3,6 +3,11 @@
 
 // Maintainer: mphoward
 
+/*!
+ * \file mpcd/CollisionMethod.h
+ * \brief Definition of mpcd::CollisionMethod
+ */
+
 #include "CollisionMethod.h"
 #include "hoomd/extern/saruprng.h"
 
@@ -115,5 +120,6 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     namespace py = pybind11;
     py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod> >(m, "CollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, unsigned int>())
-        .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting);
+        .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
+        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup);
     }

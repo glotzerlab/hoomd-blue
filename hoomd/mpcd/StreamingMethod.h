@@ -44,7 +44,7 @@ class StreamingMethod
         virtual bool peekStream(unsigned int timestep) const;
 
         //! Sets the profiler for the integration method to use
-        void setProfiler(std::shared_ptr<Profiler> prof)
+        virtual void setProfiler(std::shared_ptr<Profiler> prof)
             {
             m_prof = prof;
             }

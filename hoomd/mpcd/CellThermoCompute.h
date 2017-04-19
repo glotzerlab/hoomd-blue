@@ -103,7 +103,23 @@ class CellThermoCompute : public Compute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             #ifdef ENABLE_MPI
-            m_cell_comm->setAutotunerParams(enable, period);
+            if (m_cell_comm)
+                m_cell_comm->setAutotunerParams(enable, period);
+            #endif // ENABLE_MPI
+            }
+
+        //! Set the profiler used by this compute
+        /*!
+         * \param prof Profiler to use (if null, do not profile)
+         */
+        virtual void setProfiler(std::shared_ptr<Profiler> prof)
+            {
+            Compute::setProfiler(prof);
+            #ifdef ENABLE_MPI
+            if (m_cell_comm)
+                {
+                m_cell_comm->setProfiler(prof);
+                }
             #endif // ENABLE_MPI
             }
 

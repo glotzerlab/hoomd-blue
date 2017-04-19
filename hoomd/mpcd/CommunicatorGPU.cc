@@ -245,7 +245,6 @@ void mpcd::CommunicatorGPU::migrateParticles()
     {
     if (m_prof) m_prof->push(m_exec_conf,"migrate");
 
-
     // reserve per neighbor memory
     m_n_send_ptls.reserve(m_n_unique_neigh);
     m_n_recv_ptls.reserve(m_n_unique_neigh);
@@ -270,11 +269,9 @@ void mpcd::CommunicatorGPU::migrateParticles()
                 ArrayHandle<unsigned int> h_begin(m_begin, access_location::host, access_mode::overwrite);
                 ArrayHandle<unsigned int> h_end(m_end, access_location::host, access_mode::overwrite);
                 ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
-                ArrayHandle<unsigned int> h_comm_flags(m_mpcd_pdata->getCommFlags(), access_location::host, access_mode::read);
 
                 ArrayHandle<unsigned int> h_cart_ranks(m_decomposition->getCartRanks(), access_location::host, access_mode::read);
                 std::multimap<unsigned int,mpcd::detail::pdata_element> keys;
-
                 // generate keys
                 const uint3 mypos = m_decomposition->getGridPos();
                 const Index3D& di = m_decomposition->getDomainIndexer();
@@ -391,10 +388,10 @@ void mpcd::CommunicatorGPU::migrateParticles()
             // wrap received particles through the global boundary
                 {
                 ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf, access_location::device, access_mode::readwrite);
-                const BoxDim& global_box = m_pdata->getGlobalBox();
+                const BoxDim wrap_box = getWrapBox(box);
                 mpcd::gpu::wrap_particles(n_recv_tot,
                                           d_recvbuf.data,
-                                          global_box);
+                                          wrap_box);
                 if (m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
                 }

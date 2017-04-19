@@ -53,11 +53,13 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
     // cell list needs to be up to date first
     m_cl->compute(timestep);
 
+    if (m_prof) m_prof->push("MPCD thermo");
     const unsigned int ncells = m_cl->getNCells();
     if (ncells != m_ncells_alloc)
         {
         reallocate(ncells);
         }
+    if (m_prof) m_prof->pop();
 
     computeCellProperties();
     m_needs_net_reduce = true;
@@ -100,6 +102,7 @@ Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigne
 
 void mpcd::CellThermoCompute::computeCellProperties()
     {
+    if (m_prof) m_prof->push("MPCD thermo");
     // Cell list
     const unsigned int ncells = m_cl->getNCells();
     const Index2D& cli = m_cl->getCellListIndexer();
@@ -168,8 +171,12 @@ void mpcd::CellThermoCompute::computeCellProperties()
     // Reduce cell properties across ranks
     if (m_cell_comm)
         {
+        if (m_prof) m_prof->pop();
+
         m_cell_comm->reduce(m_cell_vel, mpcd::ops::Sum());
         m_cell_comm->reduce(m_cell_energy, mpcd::detail::SumScalar2Int());
+
+        if (m_prof) m_prof->push("MPCD thermo");
         }
     #endif // ENABLE_MPI
 
@@ -203,10 +210,12 @@ void mpcd::CellThermoCompute::computeCellProperties()
             h_cell_energy.data[cur_cell] = make_scalar3(ke, temp, __int_as_scalar(np));
             }
         }
+    if (m_prof) m_prof->pop();
     }
 
 void mpcd::CellThermoCompute::computeNetProperties()
     {
+    if (m_prof) m_prof->push("MPCD thermo");
     // first reduce the properties on the rank
     unsigned int n_temp_cells = 0;
         {
@@ -287,6 +296,7 @@ void mpcd::CellThermoCompute::computeNetProperties()
         }
 
     m_needs_net_reduce = false;
+    if (m_prof) m_prof->pop();
     }
 
 /*!

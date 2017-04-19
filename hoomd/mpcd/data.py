@@ -185,6 +185,13 @@ class system(hoomd.meta._metadata):
         self.data = sysdata
         hoomd.context.current.system.addCompute(self.cell, "mpcd_cl")
 
+        # create a cell thermo for the system for collision method and logger
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self._thermo = _mpcd.CellThermoCompute(self.data)
+        else:
+            self._thermo = _mpcd.CellThermoComputeGPU(self.data)
+        hoomd.context.current.system.addCompute(self._thermo, "mpcd_thermo")
+
         # if MPI is enabled, automatically add a communicator to the system
         if hoomd.comm.get_num_ranks() > 1:
             if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -200,6 +207,9 @@ class system(hoomd.meta._metadata):
 
         # no sorter by default
         self.sorter = None
+
+        # no collision rule by default
+        self._collide = None
 
     @property
     def particles(self):

@@ -88,7 +88,7 @@ class Compute
         virtual void resetStats(){}
 
         //! Sets the profiler for the compute to use
-        void setProfiler(std::shared_ptr<Profiler> prof);
+        virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning

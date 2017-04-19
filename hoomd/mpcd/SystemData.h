@@ -16,9 +16,6 @@
 #endif
 
 #include "CellList.h"
-#ifdef ENABLE_CUDA
-#include "CellListGPU.h"
-#endif // ENABLE_CUDA
 #include "ParticleData.h"
 #include "SystemDataSnapshot.h"
 #include "hoomd/SystemDefinition.h"
@@ -65,6 +62,16 @@ class SystemData
 
         //! Re-initialize the system from a snapshot
         void initializeFromSnapshot(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot);
+
+        //! Sets the profiler for the particle data to use
+        /*
+         * \param prof System profiler to use, nullptr if profiling is disabled
+         */
+        void setProfiler(std::shared_ptr<Profiler> prof)
+            {
+            m_particles->setProfiler(prof);
+            m_cl->setProfiler(prof);
+            }
 
     private:
         std::shared_ptr<::SystemDefinition> m_sysdef;       //!< HOOMD system definition

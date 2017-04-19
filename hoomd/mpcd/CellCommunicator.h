@@ -102,12 +102,22 @@ class CellCommunicator
             #endif // ENABLE_CUDA
             }
 
+        //! Set the profiler used by this compute
+        /*!
+         * \param prof Profiler to use (if null, do not profile)
+         */
+        void setProfiler(std::shared_ptr<Profiler> prof)
+            {
+            m_prof = prof;
+            }
+
     private:
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         const MPI_Comm m_mpi_comm;                                  //!< MPI Communicator
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
+        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         std::shared_ptr<mpcd::CellList> m_cl;   //!< MPCD cell list
 
@@ -265,6 +275,7 @@ class CellCommunicator
 template<typename T, class ReductionOpT>
 void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduction_op)
     {
+    if (m_prof) m_prof->push(m_exec_conf, "MPCD cell comm");
     if (props.getNumElements() < m_cl->getNCells())
         {
         m_exec_conf->msg->error() << "mpcd: cell property to be reduced is smaller than cell list dimensions" << std::endl;
@@ -293,12 +304,14 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
         // send along dir, and receive along the opposite direction from sending
         // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
             {
+            if (m_prof) m_prof->push(m_exec_conf, "copy");
             ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::readwrite);
+            if (m_prof) m_prof->pop(m_exec_conf);
 
             const unsigned int num_right_bytes = m_right_idx.getNumElements()*sizeof(T);
             const unsigned int num_left_bytes = m_left_idx.getNumElements()*sizeof(T);
-
+            if (m_prof) m_prof->push("MPI send/recv");
             std::vector<MPI_Request> reqs(4);
             std::vector<MPI_Status> stats(reqs.size());
 
@@ -311,6 +324,7 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
             MPI_Irecv(h_right_buf.data+num_right_bytes, num_right_bytes, MPI_BYTE, m_right_neigh, 1, m_mpi_comm, &reqs[3]);
 
             MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+            if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
             }
 
         #ifdef ENABLE_CUDA
@@ -324,6 +338,7 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
             unpackBuffer(props, reduction_op);
             }
         }
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -348,6 +363,7 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
     assert(m_right_buf.getNumElements() >= 2 * sizeof(T) * m_right_idx.getNumElements());
     assert(m_left_buf.getNumElements() >= 2 * sizeof(T) * m_left_idx.getNumElements());
 
+    if (m_prof) m_prof->push("pack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
 
@@ -382,6 +398,7 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
                 }
             }
         }
+    if (m_prof) m_prof->pop();
     }
 
 /*!
@@ -396,6 +413,7 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
 template<typename T, class ReductionOpT>
 void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT reduction_op)
     {
+    if (m_prof) m_prof->push("unpack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
 
@@ -434,6 +452,7 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
                 }
             }
         }
+    if (m_prof) m_prof->pop();
     }
 
 #ifdef ENABLE_CUDA
@@ -452,12 +471,15 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props)
 
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
 
+    if (m_prof) m_prof->push(m_exec_conf, "copy");
     ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::overwrite);
     T* left_buf = reinterpret_cast<T*>(d_left_buf.data);
 
     ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::overwrite);
     T* right_buf = reinterpret_cast<T*>(d_right_buf.data);
+    if (m_prof) m_prof->pop(m_exec_conf);
 
+    if (m_prof) m_prof->push(m_exec_conf,"pack");
     m_tuner_pack->begin();
     mpcd::gpu::pack_cell_buffer(left_buf,
                                 right_buf,
@@ -469,6 +491,7 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props)
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_pack->end();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*!
@@ -485,12 +508,16 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, Reduction
     {
     ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
 
+    if (m_prof) m_prof->push(m_exec_conf, "copy");
     ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::read);
     T* left_buf = reinterpret_cast<T*>(d_left_buf.data) + m_left_idx.getNumElements();;
 
     ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::read);
     T* right_buf = reinterpret_cast<T*>(d_right_buf.data) + m_right_idx.getNumElements();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
+
+    if (m_prof) m_prof->push(m_exec_conf, "unpack");
     m_tuner_unpack->begin();
     mpcd::gpu::unpack_cell_buffer(d_props.data,
                                   reduction_op,
@@ -503,6 +530,7 @@ void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, Reduction
                                   m_tuner_unpack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_unpack->end();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 #endif // ENABLE_CUDA
 

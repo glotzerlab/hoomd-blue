@@ -271,7 +271,8 @@ void mpcd::CellList::computeDimensions()
         m_origin_idx = make_int3(0,0,0);
         }
 
-    // resize the cell indexer and per-cell counter
+    // resize the cell indexers and per-cell counter
+    m_global_cell_indexer = Index3D(m_global_cell_dim.x, m_global_cell_dim.y, m_global_cell_dim.z);
     m_cell_indexer = Index3D(m_cell_dim.x, m_cell_dim.y, m_cell_dim.z);
     m_cell_np.resize(m_cell_indexer.getNumElements());
 
@@ -778,25 +779,14 @@ const int3 mpcd::CellList::wrapGlobalCell(const int3& cell) const
     {
     int3 wrap = cell;
 
-    uchar3 periodic = m_pdata->getGlobalBox().getPeriodic();
+    if (wrap.x >= (int)m_global_cell_dim.x) wrap.x -= m_global_cell_dim.x;
+    else if (wrap.x < 0) wrap.x += m_global_cell_dim.x;
 
-    if (periodic.x)
-        {
-        if (wrap.x >= (int)m_global_cell_dim.x) wrap.x -= m_global_cell_dim.x;
-        else if (wrap.x < 0) wrap.x += m_global_cell_dim.x;
-        }
+    if (wrap.y >= (int)m_global_cell_dim.y) wrap.y -= m_global_cell_dim.y;
+    else if (wrap.y < 0) wrap.y += m_global_cell_dim.y;
 
-    if (periodic.y)
-        {
-        if (wrap.y >= (int)m_global_cell_dim.y) wrap.y -= m_global_cell_dim.y;
-        else if (wrap.y < 0) wrap.y += m_global_cell_dim.y;
-        }
-
-    if (periodic.z)
-        {
-        if (wrap.z >= (int)m_global_cell_dim.z) wrap.z -= m_global_cell_dim.z;
-        else if (wrap.z < 0) wrap.z += m_global_cell_dim.z;
-        }
+    if (wrap.z >= (int)m_global_cell_dim.z) wrap.z -= m_global_cell_dim.z;
+    else if (wrap.z < 0) wrap.z += m_global_cell_dim.z;
 
     return wrap;
     }
