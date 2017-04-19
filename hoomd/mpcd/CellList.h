@@ -29,6 +29,9 @@
 
 namespace mpcd
 {
+// forward declaration
+class Communicator;
+
 //! Computes the MPCD cell list on the CPU
 class CellList : public Compute
     {
@@ -206,6 +209,14 @@ class CellList : public Compute
             return m_embed_cell_ids;
             }
 
+        #ifdef ENABLE_MPI
+        //! Set the MPCD particle communicator
+        virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
+            {
+            m_mpcd_comm = comm;
+            }
+        #endif // ENABLE_MPI
+
     protected:
         std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;   //!< MPCD particle data
         std::shared_ptr<ParticleGroup> m_embed_group;     //!< Embedded particles
@@ -233,6 +244,10 @@ class CellList : public Compute
         unsigned int m_num_extra;               //!< Number of extra cells to communicate over
         std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
         BoxDim m_cover_box;                     //!< Box covered by the cell list
+        std::shared_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD particle communicator
+
+        //! Determine if embedded particles require migration
+        virtual bool needsEmbedMigrate(unsigned int timestep);
         #endif // ENABLE_MPI
 
         //! Check the condition flags
@@ -242,7 +257,7 @@ class CellList : public Compute
         void resetConditions();
 
         //! Builds the cell list and handles cell list memory
-        void buildCellList();
+        virtual void buildCellList();
 
     private:
         bool m_needs_compute_dim;   //!< True if the dimensions need to be (re-)computed

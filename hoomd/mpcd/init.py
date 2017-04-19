@@ -22,7 +22,7 @@ def read_snapshot(snapshot):
         snapshot (:py:class:`hoomd.mpcd.data.snapshot`): MPCD system data snapshot
 
     Returns:
-        Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system_data`)
+        Initialized MPCD system data (:py:class:`hoomd.mpcd.data.system`)
 
     An MPCD system can be initialized from a snapshot **after** the HOOMD system
     is first initialized (see :py:mod:`hoomd.init`). The system can only be
@@ -48,9 +48,9 @@ def read_snapshot(snapshot):
         hoomd.context.msg.error("mpcd: HOOMD system must be initialized before mpcd\n")
         raise RuntimeError("HOOMD system not initialized")
 
-    if hoomd.context.current.mpcd_system_data is not None:
+    if hoomd.context.current.mpcd is not None:
         hoomd.context.msg.error("mpcd: system is already initialized, cannot reinitialize\n")
         raise RuntimeError("mpcd system already initialized")
 
-    hoomd.context.current.mpcd_system_data = _mpcd.SystemData(snapshot.sys_snap)
-    return data.system_data(hoomd.context.current.mpcd_system_data)
+    hoomd.context.current.mpcd = data.system(_mpcd.SystemData(snapshot.sys_snap))
+    return hoomd.context.current.mpcd

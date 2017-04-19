@@ -9,7 +9,7 @@ mpcd.data
     :nosignatures:
 
     snapshot
-    system_data
+    system
     make_snapshot
 
 .. rubric:: Details

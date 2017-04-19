@@ -42,14 +42,27 @@ class CellListGPU : public mpcd::CellList
 
             m_tuner_cell->setPeriod(period);
             m_tuner_cell->setEnabled(enable);
+            #ifdef ENABLE_MPI
+            m_tuner_embed_migrate->setPeriod(period);
+            m_tuner_embed_migrate->setEnabled(enable);
+            #endif // ENABLE_MPI
             }
 
     protected:
         //! Compute the cell list of particles on the GPU
         virtual void buildCellList();
 
+        #ifdef ENABLE_MPI
+        //! Determine if embedded particles require migration on the gpu
+        virtual bool needsEmbedMigrate(unsigned int timestep);
+        GPUFlags<unsigned int> m_migrate_flag;  //!< Flag to signal migration is needed
+        #endif // ENABLE_MPI
+
     private:
         std::unique_ptr<Autotuner> m_tuner_cell;    //!< Autotuner for the cell list calculation
+        #ifdef ENABLE_MPI
+        std::unique_ptr<Autotuner> m_tuner_embed_migrate;   //!< Autotuner for checking embedded migration
+        #endif // ENABLE_MPI
     };
 
 namespace detail

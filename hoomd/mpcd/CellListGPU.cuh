@@ -43,6 +43,16 @@ cudaError_t compute_cell_list(unsigned int *d_cell_np,
                               const unsigned int N_mpcd,
                               const unsigned int N_tot,
                               const unsigned int block_size);
+
+//! Kernel driver to check if any embedded particles require migration
+cudaError_t cell_check_migrate_embed(unsigned int *d_migrate_flag,
+                                     const Scalar4 *d_pos,
+                                     const unsigned int *d_group,
+                                     const BoxDim& box,
+                                     const unsigned int num_dim,
+                                     const unsigned int N,
+                                     const unsigned int block_size);
+
 } // end namespace gpu
 } // end namespace mpcd
 

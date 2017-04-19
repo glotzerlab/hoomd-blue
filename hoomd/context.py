@@ -150,8 +150,8 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
-        ## MPCD system data
-        self.mpcd_system_data = None;
+        ## MPCD system
+        self.mpcd = None;
 
     def set_current(self):
         R""" Force this to be the current context

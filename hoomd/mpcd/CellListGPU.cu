@@ -153,6 +153,48 @@ __global__ void compute_cell_list(unsigned int *d_cell_np,
         d_embed_cell_ids[idx - N_mpcd] = bin_idx;
         }
     }
+
+/*!
+ * \param d_migrate_flag Flag signaling migration is required (output)
+ * \param d_pos Embedded particle positions
+ * \param d_group Indexes into \a d_pos for particles in embedded group
+ * \param box Box covered by this domain
+ * \param num_dim Dimensionality of system
+ * \param N Number of particles in group
+ *
+ * \b Implementation
+ * Using one thread per particle, each particle position is compared to the
+ * bounds of the simulation box. If a particle lies outside the box, \a d_migrate_flag
+ * has its bits set using an atomicMax transaction. The caller should then trigger
+ * a communication step to migrate particles to their appropriate ranks.
+ */
+__global__ void cell_check_migrate_embed(unsigned int *d_migrate_flag,
+                                         const Scalar4 *d_pos,
+                                         const unsigned int *d_group,
+                                         const BoxDim box,
+                                         const unsigned int num_dim,
+                                         const unsigned int N)
+    {
+    // one thread per particle in group
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid >= N)
+        return;
+
+    const unsigned int idx = d_group[tid];
+    const Scalar4 postype = d_pos[idx];
+    const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
+    const uchar3 periodic = box.getPeriodic();
+
+    if ( (!periodic.x && (pos.x >= hi.x || pos.x < lo.x)) ||
+         (!periodic.y && (pos.y >= hi.y || pos.y < lo.y)) ||
+         (!periodic.z && num_dim == 3 && (pos.z >= hi.z || pos.z < lo.z)))
+         {
+         atomicMax(d_migrate_flag, 0xffffffff);
+         }
+    }
 } // end namespace kernel
 } // end namespace gpu
 } // end namespace mpcd
@@ -236,6 +278,47 @@ cudaError_t mpcd::gpu::compute_cell_list(unsigned int *d_cell_np,
                                                                    cell_list_indexer,
                                                                    N_mpcd,
                                                                    N_tot);
+
+    return cudaSuccess;
+    }
+
+/*!
+ * \param d_migrate_flag Flag signaling migration is required (output)
+ * \param d_pos Embedded particle positions
+ * \param d_group Indexes into \a d_pos for particles in embedded group
+ * \param box Box covered by this domain
+ * \param N Number of particles in group
+ * \param block_size Number of threads per block
+ *
+ * \sa mpcd::gpu::kernel::cell_check_migrate_embed
+ */
+cudaError_t mpcd::gpu::cell_check_migrate_embed(unsigned int *d_migrate_flag,
+                                                const Scalar4 *d_pos,
+                                                const unsigned int *d_group,
+                                                const BoxDim& box,
+                                                const unsigned int num_dim,
+                                                const unsigned int N,
+                                                const unsigned int block_size)
+    {
+    // ensure that the flag is always zeroed even if the caller forgets
+    cudaMemset(d_migrate_flag, 0, sizeof(unsigned int));
+
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::cell_check_migrate_embed);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N / run_block_size + 1);
+    mpcd::gpu::kernel::cell_check_migrate_embed<<<grid, run_block_size>>>(d_migrate_flag,
+                                                                          d_pos,
+                                                                          d_group,
+                                                                          box,
+                                                                          num_dim,
+                                                                          N);
 
     return cudaSuccess;
     }

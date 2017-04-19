@@ -7,9 +7,12 @@ set(_mpcd_sources
     module.cc
     CellThermoCompute.cc
     CellList.cc
+    CollisionMethod.cc
     Communicator.cc
+    Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
     )
@@ -18,11 +21,14 @@ set(_mpcd_headers
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
+    CollisionMethod.h
     Communicator.h
     CommunicatorUtilities.h
+    Integrator.h
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
     )
@@ -32,6 +38,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     CellCommunicator.cuh
@@ -42,6 +49,8 @@ list(APPEND _mpcd_headers
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
+    StreamingMethodGPU.cuh
+    StreamingMethodGPU.h
     )
 endif()
 
@@ -51,6 +60,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    StreamingMethodGPU.cu
     )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
@@ -109,6 +119,7 @@ set(files
     __init__.py
     data.py
     init.py
+    integrate.py
     )
 
 install(FILES ${files}
