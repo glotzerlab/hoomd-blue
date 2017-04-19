@@ -73,10 +73,8 @@ UP_TEST( construction )
     {
     quat<Scalar> o(1.0, vec3<Scalar>(-3.0, 9.0, 6.0));
 
-    poly3d_data data;
+    poly3d_data data(4,1,4,false);
     data.verts.sweep_radius=0.0f;
-    data.verts.N = 4;
-    data.n_faces = 1;
     data.verts.x[0] = 0; data.verts.y[0] = 0; data.verts.z[0] = 0;
     data.verts.x[1] = 1; data.verts.y[1] = 0; data.verts.z[1] = 0;
     data.verts.x[2] = 0; data.verts.y[2] = 1.25; data.verts.z[2] = 0;
@@ -131,12 +129,8 @@ UP_TEST( overlap_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data;
+    poly3d_data data(6,8,24,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data.verts.N = 6;
-    UP_ASSERT(MAX_POLY3D_FACES >= 8);
-    data.n_faces = 8;
 
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
@@ -144,7 +138,6 @@ UP_TEST( overlap_octahedron_no_rot )
     data.verts.x[3] = -0.5; data.verts.y[3] = 0.5; data.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
     data.verts.x[4] = 0; data.verts.y[4] = 0; data.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
     data.verts.x[5] = 0; data.verts.y[5] = 0; data.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 3);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -248,10 +241,8 @@ UP_TEST( overlap_cube_no_rot )
     BoxDim box(100);
 
     // build a cube
-    poly3d_data data;
+    poly3d_data data(8,6,24,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -261,9 +252,6 @@ UP_TEST( overlap_cube_no_rot )
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
 
-    UP_ASSERT(MAX_POLY3D_FACES >= 6);
-    data.n_faces = 6;
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 4);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 1; data.face_verts[2] = 2; data.face_verts[3] = 3;
     data.face_offs[1] = 4;
@@ -379,10 +367,8 @@ UP_TEST( overlap_cube_rot1 )
     BoxDim box(100);
 
     // build a cube
-    poly3d_data data;
+    poly3d_data data(8,6,24,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -392,9 +378,6 @@ UP_TEST( overlap_cube_rot1 )
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
 
-    UP_ASSERT(MAX_POLY3D_FACES >= 6);
-    data.n_faces = 6;
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 4);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 1; data.face_verts[2] = 2; data.face_verts[3] = 3;
     data.face_offs[1] = 4;
@@ -487,10 +470,8 @@ UP_TEST( overlap_cube_rot2 )
     BoxDim box(100);
 
     // build a cube
-    poly3d_data data;
+    poly3d_data data(8,6,24,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -500,9 +481,6 @@ UP_TEST( overlap_cube_rot2 )
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
 
-    UP_ASSERT(MAX_POLY3D_FACES >= 6);
-    data.n_faces = 6;
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 4);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 1; data.face_verts[2] = 2; data.face_verts[3] = 3;
     data.face_offs[1] = 4;
@@ -598,10 +576,8 @@ UP_TEST( overlap_cube_rot3 )
     BoxDim box(100);
 
     // build a cube
-    poly3d_data data;
+    poly3d_data data(8,6,24,false);
     data.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data.verts.N = 8;
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data.verts.x[2] = 0.5; data.verts.y[2] = 0.5; data.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -611,9 +587,6 @@ UP_TEST( overlap_cube_rot3 )
     data.verts.x[6] = 0.5; data.verts.y[6] = 0.5; data.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data.verts.x[7] = -0.5; data.verts.y[7] = 0.5; data.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
 
-    UP_ASSERT(MAX_POLY3D_FACES >= 6);
-    data.n_faces = 6;
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 4);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 1; data.face_verts[2] = 2; data.face_verts[3] = 3;
     data.face_offs[1] = 4;
@@ -733,10 +706,8 @@ UP_TEST( cubes_contained )
     BoxDim box(100);
 
     // build a cube
-    poly3d_data data_a;
+    poly3d_data data_a(8,6,24,false);
     data_a.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 8);
-    data_a.verts.N = 8;
     data_a.verts.x[0] = -0.5; data_a.verts.y[0] = -0.5; data_a.verts.z[0] = -0.5;  // vec3<OverlapReal>(-0.5,-0.5,-0.5);
     data_a.verts.x[1] = 0.5; data_a.verts.y[1] = -0.5; data_a.verts.z[1] = -0.5;  //vec3<OverlapReal>(0.5,-0.5,-0.5);
     data_a.verts.x[2] = 0.5; data_a.verts.y[2] = 0.5; data_a.verts.z[2] = -0.5;  //vec3<OverlapReal>(0.5,0.5,-0.5);
@@ -746,10 +717,6 @@ UP_TEST( cubes_contained )
     data_a.verts.x[6] = 0.5; data_a.verts.y[6] = 0.5; data_a.verts.z[6] = 0.5;  //vec3<OverlapReal>(0.5,0.5,0.5);
     data_a.verts.x[7] = -0.5; data_a.verts.y[7] = 0.5; data_a.verts.z[7] = 0.5;  //vec3<OverlapReal>(-0.5,0.5,0.5);
 
-    UP_ASSERT(MAX_POLY3D_FACES >= 6);
-    data_a.n_faces = 6;
-
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 4);
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0; data_a.face_verts[1] = 1; data_a.face_verts[2] = 2; data_a.face_verts[3] = 3;
     data_a.face_offs[1] = 4;
@@ -893,12 +860,8 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data;
+    poly3d_data data(6,8,24,false);
     data.verts.sweep_radius = 0.1f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data.verts.N = 6;
-    UP_ASSERT(MAX_POLY3D_FACES >= 8);
-    data.n_faces = 8;
 
     data.verts.x[0] = -0.5; data.verts.y[0] = -0.5; data.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
     data.verts.x[1] = 0.5; data.verts.y[1] = -0.5; data.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
@@ -906,7 +869,6 @@ UP_TEST( overlap_sphero_octahedron_no_rot )
     data.verts.x[3] = -0.5; data.verts.y[3] = 0.5; data.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
     data.verts.x[4] = 0; data.verts.y[4] = 0; data.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
     data.verts.x[5] = 0; data.verts.y[5] = 0; data.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 3);
     data.face_offs[0] = 0;
     data.face_verts[0] = 0; data.face_verts[1] = 4; data.face_verts[2] = 1;
     data.face_offs[1] = 3;
@@ -1016,12 +978,8 @@ UP_TEST( overlap_octahedron_sphere )
     BoxDim box(100);
 
     // build an octahedron
-    poly3d_data data_a;
+    poly3d_data data_a(6,8,24,false);
     data_a.verts.sweep_radius = 0.0f;
-    UP_ASSERT(MAX_POLY3D_VERTS >= 6);
-    data_a.verts.N = 6;
-    UP_ASSERT(MAX_POLY3D_FACES >= 8);
-    data_a.n_faces = 8;
 
     data_a.verts.x[0] = -0.5; data_a.verts.y[0] = -0.5; data_a.verts.z[0] = 0; // vec3<OverlapReal>(-0.5,-0.5,0);
     data_a.verts.x[1] = 0.5; data_a.verts.y[1] = -0.5; data_a.verts.z[1] = 0; //vec3<OverlapReal>(0.5,-0.5,0);
@@ -1029,7 +987,6 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.verts.x[3] = -0.5; data_a.verts.y[3] = 0.5; data_a.verts.z[3] = 0; // vec3<OverlapReal>(-0.5,0.5,0);
     data_a.verts.x[4] = 0; data_a.verts.y[4] = 0; data_a.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
     data_a.verts.x[5] = 0; data_a.verts.y[5] = 0; data_a.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
-    UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 3);
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0; data_a.face_verts[1] = 4; data_a.face_verts[2] = 1;
     data_a.face_offs[1] = 3;
@@ -1050,11 +1007,9 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.ignore = 0;
     set_radius(data_a);
 
-    poly3d_data data_b;
+    poly3d_data data_b(1,1,1,false);
     data_b.verts.sweep_radius = 0.5;
-    data_b.verts.N = 1;
     data_b.verts.x[0] = data_b.verts.y[0] = data_b.verts.z[0] = 0;
-    data_b.n_faces = 1;
     data_b.face_offs[0] = 0;
     data_b.face_verts[0] = 0;
     data_b.face_offs[1] = 1;
