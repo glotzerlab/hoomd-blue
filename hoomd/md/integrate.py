@@ -1293,6 +1293,9 @@ class berendsen(_integration_method):
 
     .. attention::
         :py:class:`berendsen` does not function with MPI parallel simulations.
+
+    .. attention::
+        :py:class:`berendsen` does not integrate rotational degrees of freedom.
     """
     def __init__(self, group, kT, tau):
         hoomd.util.print_status_line();
