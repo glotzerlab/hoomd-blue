@@ -154,6 +154,9 @@ class SimulationContext(object):
         ## MPCD system
         self.mpcd = None;
 
+        ## Stored reference to the reader that was used to initialize the system
+        self.state_reader = None;
+
     def set_current(self):
         R""" Force this to be the current context
         """

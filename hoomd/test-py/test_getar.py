@@ -5,6 +5,7 @@ import random;
 import sys;
 import unittest;
 import tempfile;
+import zipfile;
 
 import numpy as np;
 import hoomd;
@@ -291,6 +292,13 @@ class test_basic_io(unittest.TestCase):
             hoomd.comm.barrier_all();
 
             hoomd.init.restore_getar(tmp_file);
+
+            if hoomd.comm.get_rank() == 0:
+                if suffix == 'zip':
+                    traj = zipfile.ZipFile(tmp_file, 'r')
+                    json_result = traj.read('frames/1/test.json').decode()
+                    # only rank 0 should have written
+                    self.assertEqual(json.loads(json_result)['testQuantity'], 0)
 
     def setUp(self):
         hoomd.context.initialize();

@@ -160,9 +160,9 @@ class nvt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -216,13 +216,13 @@ class nvt(_integration_method):
         R""" Changes parameters of an existing integrator.
 
         Args:
-            T (float): New temperature (if set) (in energy units)
+            kT (float): New temperature (if set) (in energy units)
             tau (float): New coupling constant (if set) (in time units)
 
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(tau=0.7, T=2.0)
+            integrator.set_params(tau=0.7, kT=2.0)
 
         """
         hoomd.util.print_status_line();
@@ -333,7 +333,7 @@ class npt(_integration_method):
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     * Glaser et. al (2013), to be published
 
-    Both *T* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
+    Both *kT* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -341,7 +341,7 @@ class npt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -515,7 +515,7 @@ class npt(_integration_method):
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(dt=3e-3, T=2.0, P=1.0)
+            integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
 
         """
         hoomd.util.print_status_line();
@@ -597,7 +597,7 @@ class nph(npt):
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`npt` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`npt`, except that *T* cannot be specified.
+    The available options are identical to those of :py:class:`npt`, except that *kT* cannot be specified.
     For further information, refer to the documentation of :py:class:`npt`.
 
     Note:
@@ -759,6 +759,8 @@ class langevin(_integration_method):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
@@ -775,7 +777,7 @@ class langevin(_integration_method):
 
     :py:class:`langevin` must be used with :py:class:`mode_standard`.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -976,6 +978,8 @@ class brownian(_integration_method):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
     with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number distribution.
@@ -996,7 +1000,7 @@ class brownian(_integration_method):
 
     :py:class:`brownian` must be used with integrate.mode_standard.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -1060,7 +1064,7 @@ class brownian(_integration_method):
 
         Examples::
 
-            integrator.set_params(T=2.0)
+            integrator.set_params(kT=2.0)
 
         """
         hoomd.util.print_status_line();
