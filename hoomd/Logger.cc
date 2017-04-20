@@ -17,7 +17,6 @@
 
 namespace py = pybind11;
 
-
 #include <stdexcept>
 #include <iomanip>
 using namespace std;
@@ -225,6 +224,7 @@ void export_Logger(py::module& m)
     .def("registerCallback", &Logger::registerCallback)
     .def("removeAll", &Logger::removeAll)
     .def("setLoggedQuantities", &Logger::setLoggedQuantities)
+    .def("getLoggedQuantities", &Logger::getLoggedQuantities)
     .def("getQuantity", &Logger::getQuantity)
     ;
     }

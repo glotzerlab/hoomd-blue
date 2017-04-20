@@ -7,6 +7,7 @@ Software Prerequisites
 HOOMD-blue requires a number of prerequisite software packages and libraries.
 
  * Required:
+     * Git >= 1.7.0
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
@@ -16,183 +17,44 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
  * Useful developer tools
-     * Git >= 1.7.0
      * Doxygen  >= 1.8.5
 
 Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Most cluster administrators provide versions of python, numpy, mpi, and cuda as modules.
-Here are the module commands necessary to load prerequisites at national
-supercomputers. Each code block also specifies a recommended install location ``${SOFTWARE_ROOT}`` where hoomd can
-be loaded on the compute nodes with minimal file system impact. On many clusters, administrators will block your account
-without warning if you launch hoomd from ``$HOME``.
+Most cluster administrators provide versions of Git, Python, NumPy, MPI, and CUDA as modules.
+`glotzports <https://bitbucket.org/glotzer/glotzports>`_ will load these modules and build HOOMD (and other glotzer
+group developed tools) with a single command::
 
-**NCSA Blue waters**::
+    ./create-env /path/to/prefix "hoomd"
 
-    module switch PrgEnv-cray PrgEnv-gnu
-    module load cudatoolkit
-    module load bwpy
-    export SOFTWARE_ROOT=${HOME}/software
-    export CPATH="${BWPY_DIR}/usr/include"
-    export LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64"
-    export LD_LIBRARY_PATH="${BWPY_DIR}/lib64:${BWPY_DIR}/usr/lib64:${LD_LIBRARY_PATH}"
+glotzports supports a number of national supercomputing systems, such as OLCF Titan and XSEDE Comet. If you would
+like to build your own module environment, you can use the
+`glotzports environments <https://bitbucket.org/glotzer/glotzports/src/master/system-config/>`_ as a starting point.
+For systems not supported by glotzports, you will need to consult the documentation or ask the system administrators
+for suggestions to load the appropriate modules.
 
-Put these commands in your ``~/.modules`` file to have a working environment available every time you log in.
-
-You can select python2 or python3::
-
-    cmake /path/to/hoomd -DPYTHON_EXECUTABLE=`which python3` -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
-
-To run hoomd on blue waters, set ``PYTHONPATH``, and execute aprun::
-
-    PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
-    aprun <aprun parameters> python3 script.py
-
-**OLCF Titan**::
-
-    module unload PrgEnv-pgi
-    module load PrgEnv-gnu
-    module load cmake
-    module load git
-    module load cudatoolkit
-    module load python/3.5.1
-    module load python_numpy/1.9.2
-    # need gcc first on the search path
-    module unload gcc/4.9.0
-    module load gcc/4.9.0
-    export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/titan
-
-For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/titan-user-guide/
-
-**OLCF Eos**::
-
-    module unload PrgEnv-intel
-    module load PrgEnv-gnu
-    module load cmake
-    module load git
-    module load python/3.4.3
-    module load python_numpy/1.9.2
-    export SOFTWARE_ROOT=${PROJWORK}/${your_project}/software/eos
-    # need gcc first on the search path
-    module unload gcc/4.9.0
-    module load gcc/4.9.0
-
-    export CC="cc -dynamic"
-    export CXX="CC -dynamic"
-
-For more information, see: https://www.olcf.ornl.gov/support/system-user-guides/eos-user-guide/
-
-**XSEDE SDSC Comet**::
-
-    module purge
-    module load python
-    module load gnu
-    module load mvapich2_ib
-    module load gnutools
-    module load scipy
-    module load cmake
-    module load cuda/7.0
-
-    export CC=`which gcc`
-    export CXX=`which g++`
-    export SOFTWARE_ROOT=/oasis/projects/nsf/${your_project}/${USER}/software
-
-.. note::
-    CUDA libraries are only available on GPU nodes on Comet. To run on the CPU-only nodes, you must build hoomd
-    with ENABLE_CUDA=off.
-
-.. warning::
-    Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
-
-For more information, see: http://www.sdsc.edu/support/user_guides/comet.html
-
-XSEDE TACC Stampede::
-
-    module unload mvapich
-    module load intel/15.0.2
-    module load impi
-    module load cuda/7.0
-    module load cmake
-    module load git
-    module load python/2.7.9
-
-    export CC=`which icc`
-    export CXX=`which icpc`
-    export SOFTWARE_ROOT=${WORK}/software
-
-.. note::
-    CUDA libraries are only available on GPU nodes on Stampede. To run on the CPU-only nodes, you must build hoomd
-    with ENABLE_CUDA=off.
-
-.. note::
-    Make sure to set CC and CXX. Without these, cmake will use /usr/bin/gcc and compilation will fail.
-
-.. warning:
-    HOOMD-blue is no longer tested with the intel compiler. Numerous compiler bugs in Intel 2015 prevent it from
-    building hoomd. HOOMD developers do not currently have access to stampede to generate new build instructions
-    using gcc.
-
-For more information, see: https://portal.tacc.utexas.edu/user-guides/stampede
-
-**STFC DiRAC Cambridge Darwin and Wilkes**:
-
-If you are running on Darwin and will not be using GPUs::
-
-    . /etc/profile.d/modules.sh
-    module purge
-    module load default-impi
-    module load cmake
-    module load python/2.7.10
-
-    export CC=`which gcc`
-    export CXX=`which c++`
-    export SOFTWARE_ROOT=/scratch/$USER/software
-
-To build, include the following additional `cmake` options::
-
-    -DPYTHON_EXECUTABLE=`which python` \
-    -DENABLE_MPI=ON \
-    -DMPIEXEC=`which mpirun`
-
-If you are running on Wilkes, you will need to include CUDA support::
-
-    . /etc/profile.d/modules.sh
-    module purge
-    module load default-impi
-    module load cmake
-    module load gcc/4.9.2
-    module load python/2.7.5
-    module load cuda
-
-    export CC=`which gcc`
-    export CXX=`which c++`
-    export SOFTWARE_ROOT=/scratch/$USER/software
-
-To build, include the following additional `cmake` options::
-
-    -DPYTHON_EXECUTABLE=`which python` \
-    -DHOOMD_PYTHON_LIBRARY=/usr/local/Cluster-Apps/python/2.7.5/lib64/libpython2.7.so \
-    -DENABLE_MPI=ON \
-    -DMPIEXEC=`which mpirun`
-
-Note that the Darwin and Wilkes clusters have the same software environment
-and shared filesystems, so you can build for Wilkes and use on Darwin.
-However, as of March 2016, module incompatibilities necessitate older modules
-and a quirk in the python installation requires explicitly setting the `libpython` location.
-
-Installing prerequisites on a workstation
+Prerequisites on workstations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-On your workstation, use your systems package manager to install all of the prerequisite libraries. Some linux
+On a workstation, use the system's package manager to install all of the prerequisites. Some Linux
 distributions separate ``-dev`` and normal packages, you need the development packages to build hoomd.
+
+Mac OS systems do not come with a package manager or the necessary prerequisites. Use
+[macports](https://www.macports.org/) or [homebrew](https://brew.sh/) to install them. You will need to install
+XCode (free) through the Mac app store to supply the C++ compiler.
 
 Installing prerequisites with conda
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conda is very useful as a delivery platform for `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_,
-and we do recommend only using it for that purpose. However, many users wish to use conda to provide development
-perquisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
+.. caution::
+
+    *Not recommended.* Conda is very useful as a delivery platform for
+    `stable binaries <http://glotzerlab.engin.umich.edu/hoomd-blue/download.html>`_, but there are many pitfalls when using
+    it to provide development prerequisites.
+
+Despite this warning: many users wish to use conda to those provide development
+prerequisites. There are a few additional steps required to build hoomd against a conda software stack, as you must
 ensure that all libraries (mpi, python, etc...) are linked from the conda environment. First, install miniconda.
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
@@ -203,10 +65,23 @@ Check the CMake configuration to ensure that it finds python, numpy, and MPI fro
 If any of these library or include files reference directories other than your conda environment, you will need to
 set the appropriate setting for ``PYTHON_EXECUTABLE``, etc...
 
+.. hint::
+
+    The ``mpich2`` package is not available on Mac. Without it, HOOMD will build without MPI support.
+
+.. warning::
+
+    On Mac OS, installing gcc with conda is not sufficient to build HOOMDS. Update XCode to the latest version using the
+    Mac OS app store.
+
 .. _compile-hoomd:
 
 Compile HOOMD-blue
 ------------------
+
+Set the environment variable SOFTWARE_ROOT to the location you wish to install HOOMD::
+
+    $ export SOFTWARE_ROOT=/path/to/prefix
 
 Clone the git repository to get the source::
 
@@ -220,48 +95,24 @@ Compile::
     $ mkdir build
     $ cd build
     $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
-    $ make -j20
+    $ make -j4
 
 Run::
 
     $ make test
 
-to test your build.
+to test your build. If you built with CUDA support, you need a GPU for all tests to pass.
 
 .. attention::
-    On a cluster, ``make test`` may need to be run within a job on a compute node.
+    On a cluster, run ``make test`` within a job on a GPU compute node.
 
 To install a stable version for general use, run::
 
     make install
+
+Then set your PYTHONPATH so that python can find hoomd::
+
     export PYTHONPATH=$PYTHONPATH:${SOFTWARE_ROOT}/lib/python
-
-To run out of your build directory::
-
-    export PYTHONPATH=$PYTHONPATH:/path/to/hoomd/build
-
-Compiling with MPI enabled
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-System provided MPI:
-
-If your cluster administrator provides an installation of MPI, you need to figure out if is in your
-`$PATH`. If the command::
-
-    $ which mpicc
-    /usr/bin/mpicc
-
-succeeds, you're all set. HOOMD-blue should detect your MPI compiler automatically.
-
-If this is not the case, set the `MPI_HOME` environment variable to the location of the MPI installation::
-
-    $ echo ${MPI_HOME}
-    /home/software/rhel5/openmpi-1.4.2/gcc
-
-Build hoomd:
-
-Configure and build HOOMD-blue as normal (see :ref:`compile-hoomd`). During the cmake step, MPI should
-be detected and enabled. For cuda-aware MPI, additionally supply the **ENABLE_MPI_CUDA=ON** option to cmake.
 
 Build options
 -------------
@@ -272,14 +123,19 @@ directory and run::
     $ ccmake .
 
 After changing an option, press *c* to configure then press *g* to generate. The makefile/IDE project is now updated with
-the newly selected options. Alternately, you can set these parameters on the initial cmake invocation::
+the newly selected options. Alternately, you can set these parameters on the command line with cmake::
 
     cmake $HOME/devel/hoomd -DENABLE_CUDA=off
 
 Options that specify library versions only take effect on a clean invocation of cmake. To set these options, first
 remove `CMakeCache.txt` and then run cmake and specify these options on the command line:
 
-* **PYTHON_EXECUTABLE** - Specify python to build against. Example: /usr/bin/python2
+* **PYTHON_EXECUTABLE** - Specify which python to build against. Example: /usr/bin/python2.
+    * Default: ``python3`` or ``python`` detected on ``$PATH``
+* **CUDA_TOOLKIT_ROOT_DIR** - Specify the root direction of the CUDA installation.
+    * Default: location of ``nvcc`` detected on ``$PATH``
+* **MPI_HOME (env var)** - Specify the location where MPI is installed.
+    * Default: location of ``mpicc`` detected on the ``$PATH``
 
 Other option changes take effect at any time. These can be set from within `ccmake` or on the command line:
 

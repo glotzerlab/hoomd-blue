@@ -28,6 +28,8 @@
 #include "GSDDumpWriter.h"
 #include "Logger.h"
 #include "LogPlainTXT.h"
+#include "LogMatrix.h"
+#include "LogHDF5.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -373,6 +375,8 @@ PYBIND11_PLUGIN(_hoomd)
     export_GSDDumpWriter(m);
     export_Logger(m);
     export_LogPlainTXT(m);
+    export_LogMatrix(m);
+    export_LogHDF5(m);
     export_CallbackAnalyzer(m);
     export_ParticleGroup(m);
 

@@ -112,11 +112,11 @@ class interaction_matrix:
 
         Examples::
 
-            interaction_matrix.set('A', 'A', False);
-            interaction_matrix.set('B', 'B', False);
-            interaction_matrix.set('A', 'B', True);
-            interaction_matrix.set(['A', 'B', 'C', 'D'], 'F', True);
-            interaction_matrix.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
+            mc.overlap_checks.set('A', 'A', False);
+            mc.overlap_checks.set('B', 'B', False);
+            mc.overlap_checks.set('A', 'B', True);
+            mc.overlap_checks.set(['A', 'B', 'C', 'D'], 'F', True);
+            mc.overlap_checks.set(['A', 'B', 'C', 'D'], ['A', 'B', 'C', 'D'], False);
 
 
         """
@@ -175,6 +175,34 @@ class mode_hpmc(_integrator):
     :py:class:`mode_hpmc` is the base class for all HPMC integrators. It provides common interface elements.
     Users should not instantiate this class directly. Methods documented here are available to all hpmc
     integrators.
+
+    .. rubric:: State data
+
+    HPMC integrators can save and restore the following state information to gsd files:
+
+        * Maximum trial move displacement *d*
+        * Maximum trial rotation move *a*
+        * Shape parameters for all types.
+
+    State data are *not* written by default. You must explicitly request that state data for an mc integrator
+    is written to a gsd file (see :py:meth:`hoomd.dump.gsd.dump_state`).
+
+    .. code::
+
+        mc = hoomd.hpmc.shape(...)
+        gsd = hoomd.dump.gsd(...)
+        gsd.dump_state(mc)
+
+    State data are *not* restored by default. You must explicitly request that state data be restored when initializing
+    the integrator.
+
+    .. code::
+
+        init.read_gsd(...)
+        mc = hoomd.hpmc.shape(..., restore_state=True)
+
+    See the *State data* section of the `HOOMD GSD schema <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for
+    details on GSD data chunk names and how the data are stored.
     """
 
     ## \internal
@@ -282,6 +310,11 @@ class mode_hpmc(_integrator):
         if self.implicit:
             self.check_implicit_params()
 
+    # Declare the GSD state schema.
+    @classmethod
+    def _gsd_state_name(cls):
+        return "state/hpmc/"+str(cls.__name__)+"/"
+
     def setup_pos_writer(self, pos, colors={}):
         R""" Set pos_writer definitions for specified shape parameters.
 
@@ -337,12 +370,8 @@ class mode_hpmc(_integrator):
     def initialize_shape_params(self):
         shape_param_type = None;
         # have to have a few extra checks becuase the sized class don't actually exist yet.
-        if isinstance(self, convex_polyhedron):
-            shape_param_type = data.convex_polyhedron_params.get_sized_class(self.max_verts);
-        elif isinstance(self, convex_spheropolyhedron):
-            shape_param_type = data.convex_spheropolyhedron_params.get_sized_class(self.max_verts);
-        elif isinstance(self, sphere_union):
-            shape_param_type = data.sphere_union_params.get_sized_class(self.max_members);
+        if isinstance(self, sphere_union):
+            shape_param_type = data.sphere_union_params.get_sized_class(self.capacity);
         else:
             shape_param_type = data.__dict__[self.__class__.__name__ + "_params"]; # using the naming convention for convenience.
 
@@ -647,6 +676,8 @@ class sphere(mode_hpmc):
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Hard particle Monte Carlo integration method for spheres.
 
@@ -675,7 +706,7 @@ class sphere(mode_hpmc):
         mc.shape_param.set('B', diameter=.1)
     """
 
-    def __init__(self, seed, d=0.1, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -706,6 +737,9 @@ class sphere(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -746,6 +780,8 @@ class convex_polygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Note:
         For concave polygons, use :py:class:`simple_polygon`.
@@ -778,7 +814,7 @@ class convex_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -801,6 +837,9 @@ class convex_polygon(mode_hpmc):
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
         self.initialize_shape_params();
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -842,6 +881,8 @@ class convex_spheropolygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Spheropolygon parameters:
 
@@ -876,7 +917,7 @@ class convex_spheropolygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -898,6 +939,10 @@ class convex_spheropolygon(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -929,11 +974,11 @@ class convex_spheropolygon(mode_hpmc):
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            result.append(dict(type='ConvexPolyhedron',
+            result.append(dict(type='Polygon',
                                    rounding_radius=shape.sweep_radius,
                                    vertices=shape.vertices))
-        return result
 
+        return result
 
 class simple_polygon(mode_hpmc):
     R""" HPMC integration for simple polygons (2D).
@@ -944,6 +989,8 @@ class simple_polygon(mode_hpmc):
         a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Note:
         For simple polygons that are not concave, use :py:class:`convex_polygon`, it will execute much faster than
@@ -976,7 +1023,7 @@ class simple_polygon(mode_hpmc):
         print('vertices = ', mc.shape_param['A'].vertices)
 
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -998,6 +1045,10 @@ class simple_polygon(mode_hpmc):
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
         self.initialize_shape_params();
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1039,6 +1090,8 @@ class polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Polyhedron parameters:
 
@@ -1080,7 +1133,7 @@ class polyhedron(mode_hpmc):
         mc.shape_param.set('B', vertices=[(-0.05, -0.05, -0.05), (-0.05, -0.05, 0.05), (-0.05, 0.05, -0.05), (-0.05, 0.05, 0.05), \
             (0.05, -0.05, -0.05), (0.05, -0.05, 0.05), (0.05, 0.05, -0.05), (0.05, 0.05, 0.05)], faces = faces);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1111,6 +1164,10 @@ class polyhedron(mode_hpmc):
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1143,7 +1200,9 @@ class convex_polyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_verts (int): Set the maximum number of vertices in a polyhedron.
+        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Convex polyhedron parameters:
 
@@ -1177,8 +1236,11 @@ class convex_polyhedron(mode_hpmc):
         mc.shape_param.set('A', vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param.set('B', vertices=[(0.05, 0.05, 0.05), (0.05, -0.05, -0.05), (-0.05, 0.05, -0.05), (-0.05, -0.05, 0.05)]);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
+
+        if max_verts is not None:
+            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1186,16 +1248,16 @@ class convex_polyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedron(hoomd.context.current.system_definition, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUConvexPolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1205,14 +1267,13 @@ class convex_polyhedron(mode_hpmc):
             self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_verts = max_verts;
         self.initialize_shape_params();
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
-        # meta data
-        self.metadata_fields = ['max_verts']
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1256,6 +1317,8 @@ class faceted_sphere(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     A faceted sphere is a sphere interesected with halfspaces. The equation defining each halfspace is given by:
 
@@ -1298,7 +1361,7 @@ class faceted_sphere(mode_hpmc):
         mc.shape_param.set('A', normals=[(-1,0,0),(1,0,0),(0,-1,0),(0,1,0),(0,0,-1),(0,0,1)],diameter=1.0);
         mc.shape_param.set('B', normals=[],diameter=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1330,6 +1393,10 @@ class faceted_sphere(mode_hpmc):
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
+        if restore_state:
+            self.restore_state()
+
+
     # \internal
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
@@ -1357,6 +1424,8 @@ class sphinx(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Sphinx particles are dimpled spheres (spheres with 'positive' and 'negative' volumes).
 
@@ -1384,7 +1453,7 @@ class sphinx(mode_hpmc):
         mc.shape_param.set('A', centers=[(0,0,0),(1,0,0)], diameters=[1,-.25])
         mc.shape_param.set('B', centers=[(0,0,0)], diameters=[.15])
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1418,6 +1487,10 @@ class sphinx(mode_hpmc):
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
+        if restore_state:
+            self.restore_state()
+
+
     # \internal
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
@@ -1449,7 +1522,9 @@ class convex_spheropolyhedron(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_verts (int): Set the maximum number of vertices in a polyhedron.
+        max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     A sperholpolyhedron can also represent spheres (0 or 1 vertices), and spherocylinders (2 vertices).
 
@@ -1489,8 +1564,12 @@ class convex_spheropolyhedron(mode_hpmc):
         mc.shape_param['tetrahedron'].set(vertices=[(0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (-0.5, 0.5, -0.5), (-0.5, -0.5, 0.5)]);
         mc.shape_param['SphericalDepletant'].set(vertices=[], sweep_radius=0.1);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=8):
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_verts=None, restore_state=False):
         hoomd.util.print_status_line();
+
+        if max_verts is not None:
+            hoomd.context.msg.warning("max_verts is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1498,16 +1577,16 @@ class convex_spheropolyhedron(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitSpheropolyhedron(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSpheropolyhedron', max_verts)(hoomd.context.current.system_definition, cl_c, seed);
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1517,14 +1596,13 @@ class convex_spheropolyhedron(mode_hpmc):
             self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_verts = max_verts
         self.initialize_shape_params();
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
-        # meta data
-        self.metadata_fields = ['max_verts']
+        if restore_state:
+            self.restore_state()
 
     # \internal
     # \brief Format shape parameters for pos file output
@@ -1545,6 +1623,26 @@ class convex_spheropolyhedron(mode_hpmc):
 
         return shape_def
 
+    def get_type_shapes(self):
+        """ Get all the types of shapes in the current simulation
+        Returns:
+            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
+        """
+        result = []
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+
+        for i in range(ntypes):
+            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
+            shape = self.shape_param.get(typename)
+            dim = hoomd.context.current.system_definition.getNDimensions()
+            # Currently can't trivially pull the radius for nonspherical shapes
+            result.append(dict(type='ConvexPolyhedron',
+                                   rounding_radius=shape.sweep_radius,
+                                   vertices=shape.vertices))
+
+        return result
+
 class ellipsoid(mode_hpmc):
     R""" HPMC integration for ellipsoids (2D/3D).
 
@@ -1555,6 +1653,8 @@ class ellipsoid(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Ellipsoid parameters:
 
@@ -1581,7 +1681,7 @@ class ellipsoid(mode_hpmc):
         mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
         mc.shape_param.set('B', a=0.05, b=0.05, c=0.05);
     """
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -1614,6 +1714,10 @@ class ellipsoid(mode_hpmc):
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
 
+        if restore_state:
+            self.restore_state()
+
+
     # \internal
     # \brief Format shape parameters for pos file output
     def format_param_pos(self, param):
@@ -1622,6 +1726,10 @@ class ellipsoid(mode_hpmc):
 class sphere_union(mode_hpmc):
     R""" HPMC integration for unions of spheres (3D).
 
+    This shape uses an internal OBB tree for fast collision queries.
+    Depending on the number of constituent spheres in the tree, different values of the number of spheres per leaf
+    node may yield different optimal performance. The capacity of leaf nodes is configurable.
+
     Args:
         seed (int): Random number seed.
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
@@ -1629,8 +1737,10 @@ class sphere_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
-        max_members (int): Set the maximum number of members in the sphere union
-            * .. versionadded:: 2.1
+        max_members (int): Set the maximum number of members in the sphere union. (deprecated in version 2.2)
+        capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)
+        restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
+                             for a description of what state data restored. (added in version 2.2)
 
     Sphere union parameters:
 
@@ -1662,8 +1772,11 @@ class sphere_union(mode_hpmc):
         mc.shape_param.set('B', diameters=[0.05], centers=[(0.0, 0.0, 0.0)]);
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=8):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=4, restore_state=False):
         hoomd.util.print_status_line();
+
+        if max_members is not None:
+            hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
 
         # initialize base class
         mode_hpmc.__init__(self,implicit);
@@ -1671,16 +1784,16 @@ class sphere_union(mode_hpmc):
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitSphereUnion', capacity)(hoomd.context.current.system_definition, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', max_members)(hoomd.context.current.system_definition, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoSphereUnion', capacity)(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
             hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
             if not implicit:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoGPUSphereUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', max_members)(hoomd.context.current.system_definition, cl_c, seed)
+                self.cpp_integrator = _get_sized_entry('IntegratorHPMCMonoImplicitGPUSphereUnion', capacity)(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -1689,14 +1802,18 @@ class sphere_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.max_members = max_members;
+        self.capacity = capacity
         self.initialize_shape_params();
 
         # meta data
-        self.metadata_fields = ['max_members']
+        self.metadata_fields = ['capacity']
 
         if implicit:
             self.implicit_required_params=['nR', 'depletant_type']
+
+        if restore_state:
+            self.restore_state()
+
 
     # \internal
     # \brief Format shape parameters for pos file output

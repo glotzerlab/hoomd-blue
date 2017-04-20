@@ -129,6 +129,7 @@ Michael P. Howard, Princeton University
  * Wall potentials extrapolated mode
  * XML dump by particle group
  * Fix references when disabling/enabling objects
+ * Misc. bug fixes
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -169,10 +170,6 @@ Isass Bruss, Chengyu Dai, University of Michigan
  * force.active
  * update.constraint_ellipsoid
 
-Bryan Vansaders, University of Michigan
- * Constant stress mode to integrate.npt.
- * map_overlaps() in hpmc.
-
 Vyas Ramasubramani, University of Michigan
  * init.read_gsd bug fixes
 
@@ -181,9 +178,13 @@ Nathan Horst
 
 Bryan VanSaders, University of Michigan
  * constrain.oneD
+ * Constant stress mode to integrate.npt.
+ * map_overlaps() in hpmc.
+ * Torque options to force.constant and force.active
 
 Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+  * Matrix logging and hdf5 logging: hoomd.hdf5.log
 
 
 HPMC developers

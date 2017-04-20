@@ -33,7 +33,7 @@ class muvt_updater_test(unittest.TestCase):
         run(100)
 
     def test_convex_polyhedron(self):
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10);
         self.mc.shape_param.set("A", vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
