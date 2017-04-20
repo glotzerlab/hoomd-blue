@@ -308,6 +308,8 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
+    hoomd.context.current.state_reader = reader;
+    hoomd.context.current.state_reader.clearSnapshot();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 def restore_getar(filename, modes={'any': 'any'}):

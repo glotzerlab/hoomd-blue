@@ -19,6 +19,7 @@
 
 #include "Profiler.h"
 #include "SystemDefinition.h"
+#include "SharedSignal.h"
 
 #include <memory>
 
@@ -114,7 +115,26 @@ class Analyzer
             m_comm = comm;
             }
 #endif
+        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+            {
+            m_slots.push_back(slot);
+            }
 
+        void removeDisconnectedSlots()
+            {
+            for(unsigned int i = 0; i < m_slots.size();)
+                {
+                if(!m_slots[i]->connected())
+                    {
+                    m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
+                    m_slots.erase(m_slots.begin()+i);
+                    }
+                else
+                    {
+                    i++;
+                    }
+                }
+            }
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this analyzer is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this analyzer is associated with
@@ -125,6 +145,7 @@ class Analyzer
 #endif
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Analyzer class to python

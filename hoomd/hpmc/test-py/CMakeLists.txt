@@ -61,6 +61,7 @@ set(TEST_LIST_CPU
     shape_proxy.py
     external_lattice.py
     map_overlap.py
+    hpmc_gsd_state.py
     )
 
 set(TEST_LIST_GPU

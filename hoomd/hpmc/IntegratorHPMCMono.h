@@ -18,7 +18,7 @@
 #include "IntegratorHPMC.h"
 #include "Moves.h"
 #include "hoomd/AABBTree.h"
-
+#include "GSDHPMCSchema.h"
 #include "hoomd/Index1D.h"
 
 #include "hoomd/managed_allocator.h"
@@ -266,6 +266,15 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void slotNumTypesChange();
 
         void invalidateAABBTree(){ m_aabb_tree_invalid = true; }
+
+        //! Method that is called whenever the GSD file is written if connected to a GSD file.
+        int slotWriteGSD(gsd_handle&, std::string name) const;
+
+        //! Method that is called to connect to the gsd write state signal
+        void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+        //! Method that is called to connect to the gsd write state signal
+        bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
     protected:
         std::vector<param_type, managed_allocator<param_type> > m_params;   //!< Parameters for each particle type on GPU
@@ -1232,6 +1241,70 @@ pybind11::list IntegratorHPMCMono<Shape>::PyMapOverlaps()
     return overlap_map;
     }
 
+template <class Shape>
+void IntegratorHPMCMono<Shape>::connectGSDSignal(
+                                                    std::shared_ptr<GSDDumpWriter> writer,
+                                                    std::string name)
+    {
+    typedef ::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
+    std::shared_ptr<::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    addSlot(pslot);
+    }
+
+template <class Shape>
+int IntegratorHPMCMono<Shape>::slotWriteGSD( gsd_handle& handle, std::string name ) const
+    {
+    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono writing to GSD File to name: "<< name << std::endl;
+    int retval = 0;
+    // create schema helpers
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+    gsd_schema_hpmc schema(m_exec_conf, mpi);
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
+
+    // access parameters
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::read);
+    schema.write(handle, "state/hpmc/integrate/d", m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
+    if(m_hasOrientation)
+        {
+        schema.write(handle, "state/hpmc/integrate/a", m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
+        }
+    retval |= schema_shape.write(handle, name, m_pdata->getNTypes(), m_params);
+
+    return retval;
+    }
+
+template <class Shape>
+bool IntegratorHPMCMono<Shape>::restoreStateGSD( std::shared_ptr<GSDReader> reader, std::string name)
+    {
+    bool success = true;
+    m_exec_conf->msg->notice(10) << "IntegratorHPMCMono from GSD File to name: "<< name << std::endl;
+    uint64_t frame = reader->getFrame();
+    // create schemas
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+    gsd_schema_hpmc schema(m_exec_conf, mpi);
+    gsd_shape_schema<typename Shape::param_type> schema_shape(m_exec_conf, mpi);
+
+    ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar> h_a(m_a, access_location::host, access_mode::readwrite);
+    schema.read(reader, frame, "state/hpmc/integrate/d", m_pdata->getNTypes(), h_d.data, GSD_TYPE_DOUBLE);
+    if(m_hasOrientation)
+        {
+        schema.read(reader, frame, "state/hpmc/integrate/a", m_pdata->getNTypes(), h_a.data, GSD_TYPE_DOUBLE);
+        }
+    schema_shape.read(reader, frame, name, m_pdata->getNTypes(), m_params);
+    return success;
+    }
+
 //! Export the IntegratorHPMCMono class to python
 /*! \param name Name of the class in the exported python module
     \tparam Shape An instantiation of IntegratorHPMCMono<Shape> will be exported
@@ -1244,6 +1317,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
+          .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
+          .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           ;
     }
 
