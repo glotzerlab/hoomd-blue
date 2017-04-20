@@ -1181,10 +1181,6 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     GPUArray<unsigned int> end(NEIGH_MAX,m_exec_conf);
     m_end.swap(end);
 
-    unsigned int max_size = 10; 
-    m_reqs.reserve(max_size);
-    m_stats.reserve(max_size);
-
     initializeNeighborArrays();
     }
 
@@ -1461,8 +1457,8 @@ void Communicator::migrateParticles()
         unsigned int n_recv_ptls;
 
         // communicate size of the message that will contain the particle data
-        m_reqs.clear();
-        m_stats.clear();
+        m_reqs.resize(2);
+        m_stats.resize(2);
 
         unsigned int n_send_ptls = m_sendbuf.size();
 
@@ -1474,6 +1470,8 @@ void Communicator::migrateParticles()
         m_recvbuf.resize(n_recv_ptls);
 
         // exchange particle data
+        m_reqs.resize(2);
+        m_stats.resize(2);
         MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & m_reqs[0]);
         MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & m_reqs[1]);
         MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
@@ -1783,6 +1781,7 @@ void Communicator::exchangeGhosts()
             &req);
         m_reqs.push_back(req);
 
+        m_stats.resize(2);
         MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
 
         if (m_prof)
@@ -2001,7 +2000,7 @@ void Communicator::exchangeGhosts()
                 m_reqs.push_back(req);
                 }
 
-            //m_stats.resize(m_reqs.size());
+            m_stats.resize(m_reqs.size());
             MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
             }
 
@@ -2208,6 +2207,7 @@ void Communicator::exchangeGhosts()
                     &req);
             m_reqs.push_back(req);
 
+            m_stats.resize(m_reqs.size());
             MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
 
             if (m_prof)
@@ -2274,6 +2274,7 @@ void Communicator::exchangeGhosts()
                         &req);
                 m_reqs.push_back(req);
 
+                m_stats.resize(m_reqs.size());
                 MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
             }
 
@@ -2389,8 +2390,8 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
         // charge, body, image and diameter are not updated between neighbor list builds
         if (flags[comm_flag::position])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
@@ -2405,8 +2406,8 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         if (flags[comm_flag::velocity])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel_copybuf(m_velocity_copybuf, access_location::host, access_mode::read);
@@ -2421,8 +2422,8 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 
         if (flags[comm_flag::orientation])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::read);
@@ -2684,8 +2685,8 @@ void Communicator::updateNetForce(unsigned int timestep)
             {
             m_netforce_reverse_recvbuf.resize(num_tot_recv_ghosts_reverse);
                 {
-                m_reqs.clear();
-                m_stats.clear();
+                m_reqs.resize(2);
+                m_stats.resize(2);
 
                 // use separate recv buffer
                 ArrayHandle<Scalar4> h_netforce_reverse_copybuf(m_netforce_reverse_copybuf, access_location::host, access_mode::read);
@@ -2725,8 +2726,8 @@ void Communicator::updateNetForce(unsigned int timestep)
 
         if (flags[comm_flag::net_torque])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::read);
@@ -2741,8 +2742,8 @@ void Communicator::updateNetForce(unsigned int timestep)
         if (flags[comm_flag::net_virial])
             {
             m_netvirial_recvbuf.resize(6*m_num_recv_ghosts[dir]);
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar> h_netvirial_recvbuf(m_netvirial_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::read);
