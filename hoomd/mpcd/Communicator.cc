@@ -176,9 +176,11 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
-    if (m_prof) m_prof->push("MPCD comm");
+    // force the cell list to adopt the correct dimensions before proceeding,
+    // which will trigger any size change signals
+    m_mpcd_sys->getCellList()->computeDimensions();
 
-    // check box is large enough for decomposition
+    if (m_prof) m_prof->push("MPCD comm");
     if (m_check_decomposition)
         {
         checkDecomposition();
@@ -403,7 +405,8 @@ void mpcd::Communicator::checkDecomposition()
     MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, m_mpi_comm);
     if (error)
         {
-        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD" << std::endl;
+        m_is_communicating = false;
+        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD communicator" << std::endl;
         throw std::runtime_error("Overdecomposed simulation box");
         }
     }

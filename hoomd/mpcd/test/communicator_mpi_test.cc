@@ -521,6 +521,53 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
     }
 
+//! Test particle migration of Communicator
+void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exec_conf,
+                                     unsigned int nx,
+                                     unsigned int ny,
+                                     unsigned int nz,
+                                     bool should_fail)
+    {
+    // only run tests on first partition
+    if (exec_conf->getPartition() != 0) return;
+    UP_ASSERT_EQUAL(exec_conf->getNRanks(), nx*ny*nz);
+
+    // default initialize an empty snapshot in the reference box
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    snap->global_box = BoxDim(4.0);
+    snap->particle_data.type_mapping.push_back("A");
+
+    auto decomposition = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box.getL(), nx, ny, nz);
+    auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
+
+    // empty MPCD system
+    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+
+    // initialize the communicator
+    auto comm = std::make_shared<mpcd::Communicator>(mpcd_sys);
+    if (should_fail)
+        {
+        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm->communicate(0); });
+        }
+    else
+        {
+        comm->communicate(0);
+        }
+
+    // make sure test gets run again
+    mpcd_sys->getCellList()->setNExtraCells(1);
+    if (should_fail)
+        {
+        UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm->communicate(1); });
+        }
+    else
+        {
+        comm->communicate(1);
+        }
+    }
+
+
 //! Communicator creator for unit tests
 /*!
  * \a nstages is ignored because it is meaningless for the CPU base class
@@ -533,13 +580,52 @@ std::shared_ptr<mpcd::Communicator> base_class_communicator_creator(std::shared_
 
 UP_TEST( mpcd_communicator_migrate_test )
     {
-    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));;
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     // cubic box
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(2.0),3);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,2.0,3.0),3);
+    }
+UP_TEST( mpcd_communicator_overdecompose_test )
+    {
+    // two ranks in any direction
+        {
+        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
+                                                                  -1,
+                                                                  false,
+                                                                  false,
+                                                                  std::shared_ptr<Messenger>(),
+                                                                  2);
+        test_communicator_overdecompose(exec_conf, 2, 1, 1, false);
+        test_communicator_overdecompose(exec_conf, 1, 2, 1, false);
+        test_communicator_overdecompose(exec_conf, 1, 1, 2, false);
+        }
+    // four ranks in any direction
+        {
+        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
+                                                                  -1,
+                                                                  false,
+                                                                  false,
+                                                                  std::shared_ptr<Messenger>(),
+                                                                  4);
+        test_communicator_overdecompose(exec_conf, 4, 1, 1, false);
+        test_communicator_overdecompose(exec_conf, 1, 4, 1, false);
+        test_communicator_overdecompose(exec_conf, 1, 1, 4, false);
+        }
+    // eight ranks in any direction
+        {
+        auto exec_conf = std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU,
+                                                                  -1,
+                                                                  false,
+                                                                  false,
+                                                                  std::shared_ptr<Messenger>(),
+                                                                  8);
+        test_communicator_overdecompose(exec_conf, 8, 1, 1, true);
+        test_communicator_overdecompose(exec_conf, 1, 8, 1, true);
+        test_communicator_overdecompose(exec_conf, 1, 1, 8, true);
+        }
     }
 #ifdef ENABLE_CUDA
 std::shared_ptr<mpcd::Communicator> gpu_communicator_creator(std::shared_ptr<mpcd::SystemData> mpcd_sys,
