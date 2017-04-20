@@ -176,9 +176,11 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
-    if (m_prof) m_prof->push("MPCD comm");
+    // force the cell list to adopt the correct dimensions before proceeding,
+    // which will trigger any size change signals
+    m_mpcd_sys->getCellList()->computeDimensions();
 
-    // check box is large enough for decomposition
+    if (m_prof) m_prof->push("MPCD comm");
     if (m_check_decomposition)
         {
         checkDecomposition();
@@ -312,15 +314,22 @@ void mpcd::Communicator::setCommFlags(const BoxDim& box)
  */
 void mpcd::Communicator::checkDecomposition()
     {
+    // determine the bounds of this box
+    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
+
+    // bounds of global box for wrapping
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    const Scalar3 global_L = global_box.getL();
+
+    // 4 requests will be needed per call
+    m_reqs.reserve(4);
+
     int error = 0;
     for (unsigned int dim=0; dim < m_sysdef->getNDimensions(); ++dim)
         {
         if (!isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
-
-        // determine the bounds of this box
-        const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
-        const Scalar3 lo = box.getLo();
-        const Scalar3 hi = box.getHi();
 
         Scalar my_lo, my_hi;
         if (dim == 0) // x
@@ -333,7 +342,7 @@ void mpcd::Communicator::checkDecomposition()
             my_lo = lo.y;
             my_hi = hi.y;
             }
-        else if (dim == 2) // z
+        else // z
             {
             my_lo = lo.z;
             my_hi = hi.z;
@@ -343,15 +352,46 @@ void mpcd::Communicator::checkDecomposition()
         const unsigned int right_neigh = m_decomposition->getNeighborRank(2*dim);
         const unsigned int left_neigh = m_decomposition->getNeighborRank(2*dim+1);
 
+        // send boundaries left and right
         Scalar right_lo, left_hi;
-        // exchange right
-        MPI_Sendrecv(&my_hi, 1, MPI_HOOMD_SCALAR, right_neigh, 0,
-                     &right_lo, 1, MPI_HOOMD_SCALAR, right_neigh, 0,
-                     m_mpi_comm, MPI_STATUS_IGNORE);
-        // exchange left
-        MPI_Sendrecv(&my_lo, 1, MPI_HOOMD_SCALAR, left_neigh, 1,
-                     &left_hi, 1, MPI_HOOMD_SCALAR, left_neigh, 1,
-                     m_mpi_comm, MPI_STATUS_IGNORE);
+        MPI_Isend(&my_hi, 1, MPI_HOOMD_SCALAR, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
+        MPI_Isend(&my_lo, 1, MPI_HOOMD_SCALAR, left_neigh, 1, m_mpi_comm, &m_reqs[1]);
+        MPI_Irecv(&right_lo, 1, MPI_HOOMD_SCALAR, right_neigh, 1, m_mpi_comm, &m_reqs[2]);
+        MPI_Irecv(&left_hi, 1, MPI_HOOMD_SCALAR, left_neigh, 0, m_mpi_comm, &m_reqs[3]);
+        MPI_Waitall(4, m_reqs.data(), MPI_STATUSES_IGNORE);
+
+        // if at right edge of simulation box, then wrap the lo back in
+        if (m_decomposition->isAtBoundary(2*dim)) // right edge
+            {
+            if (dim == 0) // x
+                {
+                right_lo += global_L.x;
+                }
+            else if (dim == 1) // y
+                {
+                right_lo += global_L.y;
+                }
+            else // z
+                {
+                right_lo += global_L.z;
+                }
+            }
+        // otherwise if at left of simulation, wrap the hi back in
+        else if (m_decomposition->isAtBoundary(2*dim+1)) // left edge
+            {
+            if (dim == 0) // x
+                {
+                left_hi -= global_L.x;
+                }
+            else if (dim == 1) // y
+                {
+                left_hi -= global_L.y;
+                }
+            else // z
+                {
+                left_hi -= global_L.z;
+                }
+            }
 
         // check for an error between neighbors and save it
         // we can't quit early because this could cause a stall
@@ -365,7 +405,8 @@ void mpcd::Communicator::checkDecomposition()
     MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, m_mpi_comm);
     if (error)
         {
-        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD" << std::endl;
+        m_is_communicating = false;
+        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD communicator" << std::endl;
         throw std::runtime_error("Overdecomposed simulation box");
         }
     }

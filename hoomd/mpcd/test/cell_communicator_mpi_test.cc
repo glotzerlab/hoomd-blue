@@ -21,6 +21,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
                                    bool mpi_y,
                                    bool mpi_z)
     {
+    if (exec_conf->getPartition() != 0) return;
+
     std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
     snap->global_box = BoxDim(5.0);
     snap->particle_data.type_mapping.push_back("A");

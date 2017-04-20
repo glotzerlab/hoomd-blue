@@ -7,6 +7,7 @@
 
 #include "Analyzer.h"
 #include "ParticleGroup.h"
+#include "SharedSignal.h"
 
 #include <string>
 #include <memory>
@@ -72,6 +73,8 @@ class GSDDumpWriter : public Analyzer
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
 
+        detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
+
     private:
         std::string m_fname;                //!< The file name we are writing to
         bool m_overwrite;                   //!< True if file should be overwritten
@@ -84,6 +87,8 @@ class GSDDumpWriter : public Analyzer
         gsd_handle m_handle;                //!< Handle to the file
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
+
+        detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
         //! Write a type mapping out to the file
         void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);
