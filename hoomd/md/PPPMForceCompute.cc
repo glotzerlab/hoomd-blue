@@ -1004,6 +1004,9 @@ void PPPMForceCompute::interpolateForces()
     // access force array
     ArrayHandle<Scalar4> h_force(m_force, access_location::host, access_mode::overwrite);
 
+    // reset force for ALL particles
+    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
+
     ArrayHandle<Scalar> h_rho_coeff(m_rho_coeff, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
@@ -1455,16 +1458,14 @@ void PPPMForceCompute::fixExclusions()
 
     ArrayHandle<Scalar4> h_force(m_force,access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_virial(m_virial,access_location::host, access_mode::readwrite);
+
+    // reset virial (but not forces, we reset them above)
+    memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
+
     unsigned int virial_pitch = m_virial.getPitch();
 
     // there are enough other checks on the input data: but it doesn't hurt to be safe
     assert(h_force.data);
-
-    // reset virial
-    memset(h_virial.data, 0, sizeof(Scalar)*m_virial.getNumElements());
-
-    // reset force for ALL particles
-    memset(h_force.data, 0, sizeof(Scalar4)*m_pdata->getN());
 
     ArrayHandle< unsigned int > d_group_members(m_group->getIndexArray(), access_location::host, access_mode::read);
     const BoxDim& box = m_pdata->getBox();
