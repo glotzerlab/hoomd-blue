@@ -15,12 +15,28 @@
 #include "CellCommunicator.cuh"
 #include "ReductionOperators.h"
 
-#include "hoomd/extern/cub/cub/device/device_reduce.cuh"
+#include "hoomd/extern/cub/cub/cub.cuh"
 
 namespace mpcd
 {
 namespace gpu
 {
+
+//! CTA reduce, returns result in first thread
+template<int LOGICAL_WARP_SIZE, typename T>
+__device__ static T warp_reduce(T x)
+    {
+    static_assert(LOGICAL_WARP_SIZE && !(LOGICAL_WARP_SIZE & (LOGICAL_WARP_SIZE-1)), "Logical warp size must be a power of 2");
+
+    T tmp = x;
+    #pragma unroll
+    for (int dest_count = LOGICAL_WARP_SIZE/2; dest_count >= 1; dest_count /= 2)
+        {
+        tmp += cub::ShuffleDown(x, dest_count, LOGICAL_WARP_SIZE);
+        }
+    return tmp;
+    }
+
 namespace kernel
 {
 //! Begins the cell thermo compute by summing cell quantities
@@ -43,6 +59,7 @@ namespace kernel
  * \todo The cell accumulation could have wider parallelism by using multiple
  *       threads in a strided access pattern to compute the cell properties.
  */
+template<unsigned int tpp>
 __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
                                   Scalar3 *d_cell_energy,
                                   const unsigned int *d_cell_np,
@@ -56,18 +73,19 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
     {
     // one thread per cell
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= cli.getH())
+    if (idx >= tpp * cli.getH())
         return;
 
-    const unsigned int np = d_cell_np[idx];
+    const unsigned int cell_id = idx / tpp;
+    const unsigned int np = d_cell_np[cell_id];
     double4 momentum = make_double4(0.0, 0.0, 0.0, 0.0);
     double ke(0.0);
 
     // this could be unrolled with multiple threads per cell
-    for (unsigned int offset = 0; offset < np; ++offset)
+    for (unsigned int offset = 0; offset < np; offset += tpp)
         {
         // Load particle data
-        const unsigned int cur_p = d_cell_list[cli(offset, idx)];
+        const unsigned int cur_p = d_cell_list[cli(offset, cell_id)];
         double3 vel_i;
         double mass_i;
         if (cur_p < N_mpcd)
@@ -93,8 +111,20 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
         ke += (double)(0.5) * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
         }
 
-    d_cell_vel[idx] = momentum;
-    d_cell_energy[idx] = make_scalar3(ke, 0.0, __int_as_scalar(np));
+    if (tpp > 1)
+        {
+        momentum.x = warp_reduce<tpp>(momentum.x);
+        momentum.y = warp_reduce<tpp>(momentum.y);
+        momentum.z = warp_reduce<tpp>(momentum.z);
+        momentum.w = warp_reduce<tpp>(momentum.w);
+        ke = warp_reduce<tpp>(ke);
+        }
+
+    if (tpp == 1 || (idx % tpp == 0))
+        {
+        d_cell_vel[cell_id] = momentum;
+        d_cell_energy[cell_id] = make_scalar3(ke, 0.0, __int_as_scalar(np));
+        }
     }
 
 //! Finalizes the cell thermo compute by properly averaging cell quantities
@@ -235,13 +265,13 @@ cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
     if (max_block_size == UINT_MAX)
         {
         cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo);
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo<2>);
         max_block_size = attr.maxThreadsPerBlock;
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(cli.getH() / run_block_size + 1);
-    mpcd::gpu::kernel::begin_cell_thermo<<<grid, run_block_size>>>(d_cell_vel,
+    mpcd::gpu::kernel::begin_cell_thermo<2><<<grid, run_block_size>>>(d_cell_vel,
                                                                    d_cell_energy,
                                                                    d_cell_np,
                                                                    d_cell_list,
