@@ -49,6 +49,19 @@ include (CMake_preprocessor_flags.cmake)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
+# Check for submodules
+if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/cereal.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h
+    )
+  message(FATAL_ERROR "Submodules not found. If this is a git clone, execute `git submodule update --init`."
+                      "in the source directory to provide them. If this is not a git clone, you must manually"
+                      "download all the required submodules and extract them in the proper location in"
+                      "`hoomd/extern`")
+endif()
+
 find_package(libgetar)
 
 if (libgetar_DIR)
