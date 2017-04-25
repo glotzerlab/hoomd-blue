@@ -47,16 +47,6 @@ include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
 
-set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
-
-if (UPDATE_SUBMODULES)
-  message(STATUS "Updating git submodules")
-  execute_process(COMMAND git submodule update --init
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-else (UPDATE_SUBMODULES)
-  message(STATUS "Not updating git submodules")
-endif (UPDATE_SUBMODULES)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 
 find_package(libgetar)
