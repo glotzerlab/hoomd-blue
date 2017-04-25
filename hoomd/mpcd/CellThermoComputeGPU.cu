@@ -22,7 +22,20 @@ namespace mpcd
 namespace gpu
 {
 
-//! CTA reduce, returns result in first thread
+//! Shuffle-based warp reduction
+/*!
+ * \param val Value to be reduced
+ *
+ * \tparam LOGICAL_WARP_SIZE Number of threads in a "logical" warp to reduce, must be a power-of-two
+ *                           and less than the hardware warp size.
+ * \tparam T Type of value to be reduced (inferred).
+ *
+ * \returns Reduced value.
+ *
+ * The value \a val is reduced into the 0-th lane of the "logical" warp using
+ * shuffle-based intrinsics. This allows for the summation of quantities when
+ * using multiple threads per object within a kernel.
+ */
 template<int LOGICAL_WARP_SIZE, typename T>
 __device__ static T warp_reduce(T val)
     {
