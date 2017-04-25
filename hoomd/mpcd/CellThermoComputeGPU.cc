@@ -19,7 +19,19 @@ mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemDat
                                                  const std::string& suffix)
     : mpcd::CellThermoCompute(sysdata, suffix), m_tmp_thermo(m_exec_conf), m_reduced(m_exec_conf)
     {
-    m_begin_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_thermo_begin", m_exec_conf));
+    // construct a range of valid tuner parameters using the block size and number of threads per particle
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        {
+        int s = 1;
+        while (s <= m_exec_conf->dev_prop.warpSize)
+            {
+            valid_params.push_back(block_size * 10000 + s);
+            s *= 2;
+            }
+        }
+
+    m_begin_tuner.reset(new Autotuner(valid_params, 5, 100000, "mpcd_cell_thermo_begin", m_exec_conf));
     m_end_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_thermo_end", m_exec_conf));
     m_stage_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_thermo_stage", m_exec_conf));
     }
@@ -47,6 +59,9 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
             ArrayHandle<unsigned int> d_embed_cell(m_cl->getEmbeddedGroup()->getIndexArray(), access_location::device, access_mode::read);
 
             m_begin_tuner->begin();
+            const unsigned int param = m_begin_tuner->getParam();
+            const unsigned int block_size = param / 10000;
+            const unsigned int tpp = param % 10000;
             gpu::begin_cell_thermo(d_cell_vel.data,
                                    d_cell_energy.data,
                                    d_cell_np.data,
@@ -57,13 +72,17 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
                                    m_mpcd_pdata->getMass(),
                                    d_embed_vel.data,
                                    d_embed_cell.data,
-                                   m_begin_tuner->getParam());
+                                   block_size,
+                                   tpp);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             m_begin_tuner->end();
             }
         else
             {
             m_begin_tuner->begin();
+            const unsigned int param = m_begin_tuner->getParam();
+            const unsigned int block_size = param / 10000;
+            const unsigned int tpp = param % 10000;
             gpu::begin_cell_thermo(d_cell_vel.data,
                                    d_cell_energy.data,
                                    d_cell_np.data,
@@ -74,7 +93,8 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
                                    m_mpcd_pdata->getMass(),
                                    NULL,
                                    NULL,
-                                   m_begin_tuner->getParam());
+                                   block_size,
+                                   tpp);
             if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
             m_begin_tuner->end();
             }

@@ -24,17 +24,17 @@ namespace gpu
 
 //! CTA reduce, returns result in first thread
 template<int LOGICAL_WARP_SIZE, typename T>
-__device__ static T warp_reduce(T x)
+__device__ static T warp_reduce(T val)
     {
+    static_assert(LOGICAL_WARP_SIZE <= CUB_PTX_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
     static_assert(LOGICAL_WARP_SIZE && !(LOGICAL_WARP_SIZE & (LOGICAL_WARP_SIZE-1)), "Logical warp size must be a power of 2");
 
-    T tmp = x;
     #pragma unroll
     for (int dest_count = LOGICAL_WARP_SIZE/2; dest_count >= 1; dest_count /= 2)
         {
-        tmp += cub::ShuffleDown(x, dest_count, LOGICAL_WARP_SIZE);
+        val += cub::ShuffleDown(val, dest_count);
         }
-    return tmp;
+    return val;
     }
 
 namespace kernel
@@ -82,7 +82,7 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
     double ke(0.0);
 
     // this could be unrolled with multiple threads per cell
-    for (unsigned int offset = 0; offset < np; offset += tpp)
+    for (unsigned int offset = (idx % tpp); offset < np; offset += tpp)
         {
         // Load particle data
         const unsigned int cur_p = d_cell_list[cli(offset, cell_id)];
@@ -111,6 +111,7 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
         ke += (double)(0.5) * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
         }
 
+    // reduce quantities down into the 0-th lane per logical warp
     if (tpp > 1)
         {
         momentum.x = warp_reduce<tpp>(momentum.x);
@@ -120,7 +121,8 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
         ke = warp_reduce<tpp>(ke);
         }
 
-    if (tpp == 1 || (idx % tpp == 0))
+    // 0-th lane in each warp writes the result
+    if (idx % tpp == 0)
         {
         d_cell_vel[cell_id] = momentum;
         d_cell_energy[cell_id] = make_scalar3(ke, 0.0, __int_as_scalar(np));
@@ -232,6 +234,99 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
 
 } // end namespace kernel
 
+//! Templated launcher for multiple threads-per-particle kernel
+/*
+ * \param d_cell_vel Velocity and mass per cell (output)
+ * \param d_cell_energy Energy, temperature, number of particles per cell (output)
+ * \param d_cell_np Number of particles per cell
+ * \param d_cell_list MPCD cell list
+ * \param cli Indexer into the cell list
+ * \param d_vel MPCD particle velocities
+ * \param N_mpcd Number of MPCD particles
+ * \param mpcd_mass Mass of MPCD particle
+ * \param d_embed_vel Embedded particle velocity
+ * \param d_embed_cell Embedded particle cells
+ * \param block_size Number of threads per block
+ * \param tpp Number of threads to use per-particle
+ *
+ * \tparam cur_tpp Number of threads-per-particle for this template instantiation
+ *
+ * Launchers are recursively instantiated at compile-time in order to match the
+ * correct number of threads at runtime. If the templated number of threads matches
+ * the runtime number of threads, then the kernel is launched. Otherwise, the
+ * next template (with threads reduced by a factor of 2) is launched. This
+ * recursion is broken by a specialized template for 0 threads, which does no
+ * work.
+ */
+template<unsigned int cur_tpp>
+inline void launch_begin_cell_thermo(Scalar4 *d_cell_vel,
+                                     Scalar3 *d_cell_energy,
+                                     const unsigned int *d_cell_np,
+                                     const unsigned int *d_cell_list,
+                                     const Index2D& cli,
+                                     const Scalar4 *d_vel,
+                                     const unsigned int N_mpcd,
+                                     const Scalar mpcd_mass,
+                                     const Scalar4 *d_embed_vel,
+                                     const unsigned int *d_embed_cell,
+                                     const unsigned int block_size,
+                                     const unsigned int tpp)
+    {
+    if (cur_tpp == tpp)
+        {
+        static unsigned int max_block_size = UINT_MAX;
+        if (max_block_size == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo<cur_tpp>);
+            max_block_size = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+        dim3 grid(cur_tpp*cli.getH() / run_block_size + 1);
+        mpcd::gpu::kernel::begin_cell_thermo<cur_tpp><<<grid, run_block_size>>>(d_cell_vel,
+                                                                                d_cell_energy,
+                                                                                d_cell_np,
+                                                                                d_cell_list,
+                                                                                cli,
+                                                                                d_vel,
+                                                                                N_mpcd,
+                                                                                mpcd_mass,
+                                                                                d_embed_vel,
+                                                                                d_embed_cell);
+        }
+    else
+        {
+        launch_begin_cell_thermo<cur_tpp/2>(d_cell_vel,
+                                            d_cell_energy,
+                                            d_cell_np,
+                                            d_cell_list,
+                                            cli,
+                                            d_vel,
+                                            N_mpcd,
+                                            mpcd_mass,
+                                            d_embed_vel,
+                                            d_embed_cell,
+                                            block_size,
+                                            tpp);
+        }
+    }
+//! Template specialization to break recursion
+template<>
+inline void launch_begin_cell_thermo<0>(Scalar4 *d_cell_vel,
+                                        Scalar3 *d_cell_energy,
+                                        const unsigned int *d_cell_np,
+                                        const unsigned int *d_cell_list,
+                                        const Index2D& cli,
+                                        const Scalar4 *d_vel,
+                                        const unsigned int N_mpcd,
+                                        const Scalar mpcd_mass,
+                                        const Scalar4 *d_embed_vel,
+                                        const unsigned int *d_embed_cell,
+                                        const unsigned int block_size,
+                                        const unsigned int tpp)
+    { }
+
 /*
  * \param d_cell_vel Velocity and mass per cell (output)
  * \param d_cell_energy Energy, temperature, number of particles per cell (output)
@@ -247,6 +342,7 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
  *
  * \returns cudaSuccess on completion
  *
+ * \sa mpcd::gpu::launch_begin_cell_thermo
  * \sa mpcd::gpu::kernel::begin_cell_thermo
  */
 cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
@@ -259,29 +355,21 @@ cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
                               const Scalar mpcd_mass,
                               const Scalar4 *d_embed_vel,
                               const unsigned int *d_embed_cell,
-                              const unsigned int block_size)
+                              const unsigned int block_size,
+                              const unsigned int tpp)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::begin_cell_thermo<2>);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(cli.getH() / run_block_size + 1);
-    mpcd::gpu::kernel::begin_cell_thermo<2><<<grid, run_block_size>>>(d_cell_vel,
-                                                                   d_cell_energy,
-                                                                   d_cell_np,
-                                                                   d_cell_list,
-                                                                   cli,
-                                                                   d_vel,
-                                                                   N_mpcd,
-                                                                   mpcd_mass,
-                                                                   d_embed_vel,
-                                                                   d_embed_cell);
-
+    launch_begin_cell_thermo<32>(d_cell_vel,
+                                 d_cell_energy,
+                                 d_cell_np,
+                                 d_cell_list,
+                                 cli,
+                                 d_vel,
+                                 N_mpcd,
+                                 mpcd_mass,
+                                 d_embed_vel,
+                                 d_embed_cell,
+                                 block_size,
+                                 tpp);
     return cudaSuccess;
     }
 
