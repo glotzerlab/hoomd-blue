@@ -11,6 +11,7 @@
 #ifdef ENABLE_MPI
 #include "ParticleDataUtilities.h"
 #include "hoomd/BoxDim.h"
+#include "hoomd/Index1D.h"
 
 namespace mpcd
 {
@@ -22,6 +23,17 @@ cudaError_t stage_particles(unsigned int *d_comm_flag,
                             const unsigned int n,
                             const BoxDim& box,
                             const unsigned int block_size);
+
+//! Sort the particle send buffer on the GPU
+size_t sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
+                             unsigned int *d_neigh_send,
+                             unsigned int *d_num_send,
+                             unsigned int *d_tmp_keys,
+                             const uint3 grid_pos,
+                             const Index3D& di,
+                             const unsigned int mask,
+                             const unsigned int *d_cart_ranks,
+                             const unsigned int Nsend);
 
 //! Reduce communication flags with bitwise OR using the CUB library
 void reduce_comm_flags(unsigned int *d_req_flags,

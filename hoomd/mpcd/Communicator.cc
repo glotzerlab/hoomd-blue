@@ -153,10 +153,12 @@ void mpcd::Communicator::initializeNeighborArrays()
 
     m_n_unique_neigh = neigh_map.size();
 
+    m_unique_neigh_map.clear();
     n = 0;
     for (auto it = neigh_map.begin(); it != neigh_map.end(); ++it)
         {
         h_unique_neighbors.data[n] = it->first;
+        m_unique_neigh_map.insert(std::make_pair(it->first, n));
         h_adj_mask.data[n] = it->second;
         n++;
         }

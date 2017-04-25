@@ -171,6 +171,7 @@ class Communicator
         GPUArray<unsigned int> m_adj_mask;             //!< Adjacency mask for every neighbor
         unsigned int m_nneigh;                         //!< Number of neighbors
         unsigned int m_n_unique_neigh;                 //!< Number of unique neighbors
+        std::map<unsigned int, unsigned int> m_unique_neigh_map; //!< Reverse mapping of the unique neighbors
 
         //! Helper function to initialize adjacency arrays
         void initializeNeighborArrays();

@@ -15,6 +15,8 @@
 #include "ReductionOperators.h"
 
 #include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
+#include <thrust/sort.h>
 #include <thrust/transform.h>
 
 #include "hoomd/extern/cub/cub/device/device_reduce.cuh"
@@ -58,6 +60,84 @@ __global__ void stage_particles(unsigned int *d_comm_flag,
     d_comm_flag[idx] = flags;
     }
 } // end namespace kernel
+
+//! Functor to select a particle for migration
+struct get_migrate_key : public thrust::unary_function<const unsigned int, unsigned int>
+    {
+    const uint3 my_pos;      //!< My domain decomposition position
+    const Index3D di;        //!< Domain indexer
+    const unsigned int mask; //!< Mask of allowed directions
+    const unsigned int *cart_ranks; //!< Rank lookup table
+
+    //! Constructor
+    /*!
+     * \param _my_pos Domain decomposition position
+     * \param _di Domain indexer
+     * \param _mask Mask of allowed directions
+     * \param _cart_ranks Rank lookup table
+     */
+    get_migrate_key(const uint3 _my_pos, const Index3D _di, const unsigned int _mask,
+        const unsigned int *_cart_ranks)
+        : my_pos(_my_pos), di(_di), mask(_mask), cart_ranks(_cart_ranks)
+        { }
+
+    //! Generate key for a sent particle
+    /*!
+     * \param element Particle data being sent
+     */
+    __device__ __forceinline__ unsigned int operator()(const mpcd::detail::pdata_element& element)
+        {
+        const unsigned int flags = element.comm_flag;
+        int ix, iy, iz;
+        ix = iy = iz = 0;
+
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::east)) &&
+            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::east)))
+            ix = 1;
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::west)) &&
+                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::west)))
+            ix = -1;
+
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::north)) &&
+            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::north)))
+            iy = 1;
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::south)) &&
+                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::south)))
+            iy = -1;
+
+        if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::up)) &&
+            (mask & static_cast<unsigned int>(mpcd::detail::send_mask::up)))
+            iz = 1;
+        else if ((flags & static_cast<unsigned int>(mpcd::detail::send_mask::down)) &&
+                 (mask & static_cast<unsigned int>(mpcd::detail::send_mask::down)))
+            iz = -1;
+
+        int i = my_pos.x;
+        int j = my_pos.y;
+        int k = my_pos.z;
+
+        i += ix;
+        if (i == (int)di.getW())
+            i = 0;
+        else if (i < 0)
+            i += di.getW();
+
+        j += iy;
+        if (j == (int)di.getH())
+            j = 0;
+        else if (j < 0)
+            j += di.getH();
+
+        k += iz;
+        if (k == (int)di.getD())
+            k = 0;
+        else if (k < 0)
+            k += di.getD();
+
+        return cart_ranks[di(i,j,k)];
+        }
+     };
+
 } // end namespace gpu
 } // end namespace mpcd
 
@@ -90,6 +170,54 @@ cudaError_t mpcd::gpu::stage_particles(unsigned int *d_comm_flag,
                                                                  box);
 
     return cudaSuccess;
+    }
+
+/*!
+ * \param d_sendbuf Particle data buffer to sort
+ * \param d_neigh_send Neighbor ranks that particles are being sent to (output)
+ * \param d_num_send Number of particles being sent to each neighbor
+ * \param d_tmp_keys Temporary array (size \a Nsend) used for sorting
+ * \param grid_pos Grid position of the rank
+ * \param di Domain decomposition indexer
+ * \param mask Sending mask for the current stage
+ * \param d_cart_ranks Cartesian array of domains
+ * \param Nsend Number of particles in send buffer
+ *
+ * \returns The number of unique neighbor ranks to send to
+ *
+ * The communication flags in \a d_sendbuf are first transformed into a destination
+ * rank (see mpcd::gpu::get_migrate_key). The send buffer is then sorted using
+ * the destination rank as the key. Run-length encoding is then performed to
+ * determine the number of particles going to each destination rank, and how
+ * many ranks will be sent to.
+ */
+size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element *d_sendbuf,
+                                        unsigned int *d_neigh_send,
+                                        unsigned int *d_num_send,
+                                        unsigned int *d_tmp_keys,
+                                        const uint3 grid_pos,
+                                        const Index3D& di,
+                                        const unsigned int mask,
+                                        const unsigned int *d_cart_ranks,
+                                        const unsigned int Nsend)
+    {
+    // transform extracted communication flags into destination rank
+    thrust::device_ptr<mpcd::detail::pdata_element> sendbuf(d_sendbuf);
+    thrust::device_ptr<unsigned int> keys(d_tmp_keys);
+    thrust::transform(sendbuf, sendbuf + Nsend, keys, mpcd::gpu::get_migrate_key(grid_pos, di, mask, d_cart_ranks));
+
+    // sort the destination ranks
+    thrust::sort_by_key(keys, keys + Nsend, sendbuf);
+
+    // run length encode to get the number going to each rank
+    thrust::device_ptr<unsigned int> neigh_send(d_neigh_send);
+    thrust::device_ptr<unsigned int> num_send(d_num_send);
+    size_t num_neigh = thrust::reduce_by_key(keys, keys + Nsend,
+                                             thrust::constant_iterator<int>(1),
+                                             neigh_send,
+                                             num_send).first - neigh_send;
+
+    return num_neigh;
     }
 
 /*!
