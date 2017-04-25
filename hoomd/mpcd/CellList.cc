@@ -119,6 +119,8 @@ void mpcd::CellList::compute(unsigned int timestep)
 
 void mpcd::CellList::reallocate()
     {
+    m_exec_conf->msg->notice(6) << "Allocating MPCD cell list, " << m_cell_np_max
+                                << " particles in " << m_cell_indexer.getNumElements() << " cells." << std::endl;
     m_cell_list_indexer = Index2D(m_cell_np_max, m_cell_indexer.getNumElements());
     m_cell_list.resize(m_cell_list_indexer.getNumElements());
     }
