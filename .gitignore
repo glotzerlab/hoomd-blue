@@ -9,3 +9,4 @@ share/hoomd/examples/dump_dcd.xml
 share/hoomd/examples/create_random_polymers.xml
 __pycache__
 *.pyc
+*.swp

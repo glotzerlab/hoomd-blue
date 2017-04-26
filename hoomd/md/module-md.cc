@@ -19,6 +19,7 @@
 #include "OneDConstraint.h"
 #include "Enforce2DUpdater.h"
 #include "EvaluatorTersoff.h"
+#include "EvaluatorSquareDensity.h"
 #include "FIREEnergyMinimizer.h"
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
@@ -214,6 +215,7 @@ PYBIND11_PLUGIN(_md)
     export_PotentialPair<PotentialPairMoliere>(m, "PotentialPairMoliere");
     export_PotentialPair<PotentialPairZBL>(m, "PotentialPairZBL");
     export_PotentialTersoff<PotentialTripletTersoff>(m, "PotentialTersoff");
+    export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
     export_tersoff_params(m);
@@ -266,6 +268,7 @@ PYBIND11_PLUGIN(_md)
     export_PotentialPairGPU<PotentialPairMoliereGPU, PotentialPairMoliere>(m, "PotentialPairMoliereGPU");
     export_PotentialPairGPU<PotentialPairZBLGPU, PotentialPairZBL>(m, "PotentialPairZBLGPU");
     export_PotentialTersoffGPU<PotentialTripletTersoffGPU, PotentialTripletTersoff>(m, "PotentialTersoffGPU");
+    export_PotentialTersoffGPU<PotentialTripletSquareDensityGPU, PotentialTripletSquareDensity> (m, "PotentialSquareDensityGPU");
     export_PotentialPairGPU<PotentialPairForceShiftedLJGPU, PotentialPairForceShiftedLJ>(m, "PotentialPairForceShiftedLJGPU");
     export_PotentialPairGPU<PotentialPairMieGPU, PotentialPairMie>(m, "PotentialPairMieGPU");
     export_PotentialPairDPDThermoGPU<PotentialPairDPDThermoDPDGPU, PotentialPairDPDThermoDPD >(m, "PotentialPairDPDThermoDPDGPU");
