@@ -2532,3 +2532,78 @@ class square_density(pair):
 
     def process_coeff(self, coeff):
         return _hoomd.make_scalar2(coeff['A'],coeff['B'])
+
+
+class buckingham(pair):
+    R""" Buckingham pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`buckingham` specifies that a Buckingham pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Buckingham}}(r)  = & A \exp\left(-\frac{r}{\rho}\right) -
+                          \frac{C}{r} & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in energy units)
+    - :math:`\rho` - *rho* (in distance units)
+    - :math:`\C` - *C* (in energy/distance units )
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.1.6
+
+    Example::
+
+        nl = nlist.cell()
+        buck = pair.buckingham(r_cut=3.0, nlist=nl)
+        buck.pair_coeff.set('A', 'A', A=1.0, rho=1.0, C=1.0)
+        buck.pair_coeff.set('A', 'B', A=2.0, rho=1.0, C=1.0, r_cut=3.0, r_on=2.0);
+        buck.pair_coeff.set('B', 'B', A=1.0, rho=1.0, C=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+        buck.pair_coeff.set(['A', 'B'], ['C', 'D'], A=1.5, rho=2.0, C=1.0)
+
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairBuckingham(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairBuckingham;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairBuckinghamGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairBuckinghamGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['A', 'rho', 'C'];
+
+    def process_coeff(self, coeff):
+        A = coeff['A'];
+        rho = coeff['rho'];
+        C = coeff['C'];
+
+        return _hoomd.make_scalar4(A, rho, C, 0.0);
