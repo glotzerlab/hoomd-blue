@@ -89,7 +89,7 @@ struct union_params : param_base
     ManagedArray<vec3<OverlapReal> > mpos;         //!< Position vectors of member shapes
     ManagedArray<quat<OverlapReal> > morientation; //!< Orientation of member shapes
     ManagedArray<mparam_type> mparams;        //!< Parameters of member shapes
-    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j] 
+    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j]
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int N;                           //!< Number of member shapes
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
