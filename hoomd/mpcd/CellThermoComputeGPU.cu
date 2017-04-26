@@ -65,12 +65,13 @@ namespace kernel
  * \param d_embed_vel Embedded particle velocity
  * \param d_embed_cell Embedded particle cells
  *
- * \b Implementation details:
- * Using one thread per cell, the cell properties are accumulated into \a d_cell_vel
- * and \a d_cell_energy.
+ * \tparam tpp Number of threads to use per cell
  *
- * \todo The cell accumulation could have wider parallelism by using multiple
- *       threads in a strided access pattern to compute the cell properties.
+ * \b Implementation details:
+ * Using \a tpp threads per cell, the cell properties are accumulated into \a d_cell_vel
+ * and \a d_cell_energy. Shuffle-based intrinsics are used to reduce the accumulated
+ * properties per-cell, and the first thread for each cell writes the result into
+ * global memory.
  */
 template<unsigned int tpp>
 __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
@@ -94,7 +95,6 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
     double4 momentum = make_double4(0.0, 0.0, 0.0, 0.0);
     double ke(0.0);
 
-    // this could be unrolled with multiple threads per cell
     for (unsigned int offset = (idx % tpp); offset < np; offset += tpp)
         {
         // Load particle data
