@@ -135,6 +135,21 @@ class CellList : public Compute
             return m_cell_size;
             }
 
+        //! Get the box that is covered by the cell list
+        /*!
+         * In MPI simulations, this results in a calculation of the cell list
+         * dimension. In non-MPI simulations, the box is returned.
+         */
+        const BoxDim& getCoverageBox()
+            {
+            #ifdef ENABLE_MPI
+            computeDimensions();
+            return m_cover_box;
+            #else
+            return m_pdata->getBox();
+            #endif // ENABLE_MPI
+            }
+
         #ifdef ENABLE_MPI
         //! Set the number of extra communication cells
         void setNExtraCells(unsigned int num_extra)
@@ -153,13 +168,6 @@ class CellList : public Compute
         const std::array<unsigned int, 6>& getNComm() const
             {
             return m_num_comm;
-            }
-
-        //! Get the box that is covered by the cell list
-        const BoxDim& getCoverageBox()
-            {
-            computeDimensions();
-            return m_cover_box;
             }
 
         //! Check if communication is occurring along a direction
