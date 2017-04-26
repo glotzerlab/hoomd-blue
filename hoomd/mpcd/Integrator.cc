@@ -163,6 +163,7 @@ void mpcd::Integrator::prepRun(unsigned int timestep)
 void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
     {
     IntegratorTwoStep::setAutotunerParams(enable, period);
+    m_mpcd_sys->setAutotunerParams(enable, period);
     if (m_collide)
         m_collide->setAutotunerParams(enable,period);
     if (m_stream)

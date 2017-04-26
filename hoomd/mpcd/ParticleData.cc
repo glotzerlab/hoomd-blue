@@ -10,9 +10,7 @@
 
 #include "ParticleData.h"
 
-#ifdef ENABLE_CUDA
 #include "hoomd/CachedAllocator.h"
-#endif
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"
@@ -48,6 +46,14 @@ mpcd::ParticleData::ParticleData(unsigned int N,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
+        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
+        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
     #endif // ENABLE_MPI
 
     // construct snapshot with default type mapping (A, B, C, ...)
@@ -67,14 +73,6 @@ mpcd::ParticleData::ParticleData(unsigned int N,
         }
 
     initializeFromSnapshot(snapshot, global_box);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 /*!
@@ -95,6 +93,14 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
     #ifdef ENABLE_MPI
     if (decomposition)
         m_decomposition = decomposition;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
+        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
+        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
     #endif
 
     if (m_exec_conf->getRank() == 0 && snapshot.type_mapping.size() == 0)
@@ -104,14 +110,6 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
         }
 
     initializeFromSnapshot(snapshot, global_box);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        // create a ModernGPU context
-        m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
-        }
-    #endif
     }
 
 mpcd::ParticleData::~ParticleData()
@@ -560,6 +558,18 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         {
         GPUArray<unsigned int> comm_flags_alt(N_max, m_exec_conf);
         m_comm_flags_alt.swap(comm_flags_alt);
+
+        #ifdef ENABLE_CUDA
+        GPUFlags<unsigned int> num_keep(m_exec_conf);
+        m_num_keep.swap(num_keep);
+
+        // this array is used for particle migration
+        GPUArray<unsigned char> keep_flags(N_max, m_exec_conf);
+        m_keep_flags.swap(keep_flags);
+
+        GPUArray<unsigned int> keep_ids(N_max, m_exec_conf);
+        m_keep_ids.swap(keep_ids);
+        #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
     }
@@ -594,6 +604,10 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
     if (m_decomposition)
         {
         m_comm_flags_alt.resize(N_max);
+        #ifdef ENABLE_CUDA
+        m_keep_flags.resize(N_max);
+        m_keep_ids.resize(N_max);
+        #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
     }
@@ -888,25 +902,67 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
 void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
                                             unsigned int mask)
     {
-    // this is the maximum number of elements we can possibly write to out
-    // (use getNumElements rather than size, since this gives the capacity of the vector)
-    unsigned int max_n_out = out.getNumElements();
-
-    // allocate array if necessary
-    if (!max_n_out)
+    // quit early if there are no particles to remove
+    if (m_N == 0)
         {
-        max_n_out = 1;
-        out.resize(max_n_out);
+        out.resize(0);
+        return;
         }
 
-    // number of particles that are to be written out
-    unsigned int n_out = 0;
-
-    bool done = false;
-
-    // copy without writing past the end of the output array, resizing it as needed
-    while (!done)
+    // flag particles that have left and count the total number to remove
         {
+        ArrayHandle<unsigned char> d_keep_flags(m_keep_flags, access_location::device, access_mode::overwrite);
+        // hijack the alt comm flags (which will be swapped out anyway) to hold the temporary particle ids
+        ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
+
+        // first mark particles that have left and count them
+        m_mark_tuner->begin();
+        mpcd::gpu::mark_removed_particles(d_keep_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
+        m_mark_tuner->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        }
+
+    // use cub to partition the particle indexes
+        {
+        ArrayHandle<unsigned char> d_keep_flags(m_keep_flags, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_keep_ids(m_keep_ids, access_location::device, access_mode::overwrite);
+
+        // size temporary storage
+        void *d_tmp = NULL;
+        size_t tmp_bytes = 0;
+        mpcd::gpu::partition_particles(d_tmp,
+                                       tmp_bytes,
+                                       d_tmp_ids.data,
+                                       d_keep_flags.data,
+                                       d_keep_ids.data,
+                                       m_num_keep.getDeviceFlags(),
+                                       m_N);
+
+        // partition particles to keep
+        ScopedAllocation<unsigned char> d_tmp_alloc(m_exec_conf->getCachedAllocator(), (tmp_bytes > 0) ? tmp_bytes : 1);
+        d_tmp = (void*)d_tmp_alloc();
+        mpcd::gpu::partition_particles(d_tmp,
+                                       tmp_bytes,
+                                       d_tmp_ids.data,
+                                       d_keep_flags.data,
+                                       d_keep_ids.data,
+                                       m_num_keep.getDeviceFlags(),
+                                       m_N);
+
+        // check for errors after the partitioning is completed
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        }
+
+    // resize the output buffer large enough to hold the returned result
+    const unsigned int n_keep = m_num_keep.readFlags();
+    const unsigned int n_out = m_N - n_keep;
+    out.resize(n_out);
+        {
+        // access output array
+        ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+
         // access particle data arrays to read from
         ArrayHandle<Scalar4> d_pos(m_pos, access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_vel(m_vel, access_location::device, access_mode::read);
@@ -919,44 +975,26 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_comm_flags_alt(m_comm_flags_alt, access_location::device, access_mode::overwrite);
 
-            {
-            // Access output array
-            ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_keep_ids(m_keep_ids, access_location::device, access_mode::read);
 
-            // get temporary buffer
-            // TODO: FIX THIS, CACHED ALLOCATOR LEAKS MEMORY!
-            ScopedAllocation<unsigned int> d_tmp(m_exec_conf->getCachedAllocator(), getN());
-
-            n_out = mpcd::gpu::remove_particles(d_out.data,
-                                                mask,
-                                                m_N,
-                                                d_pos.data,
-                                                d_vel.data,
-                                                d_tag.data,
-                                                d_comm_flags.data,
-                                                d_pos_alt.data,
-                                                d_vel_alt.data,
-                                                d_tag_alt.data,
-                                                d_comm_flags_alt.data,
-                                                max_n_out,
-                                                d_tmp.data,
-                                                m_mgpu_context);
-           }
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-
-        // resize output vector
-        out.resize(n_out);
-
-        // was the array large enough?
-        if (n_out <= max_n_out) done = true;
-
-        max_n_out = out.getNumElements();
+        m_remove_tuner->begin();
+        mpcd::gpu::remove_particles(d_out.data,
+                                    d_pos.data,
+                                    d_vel.data,
+                                    d_tag.data,
+                                    d_comm_flags.data,
+                                    d_pos_alt.data,
+                                    d_vel_alt.data,
+                                    d_tag_alt.data,
+                                    d_comm_flags_alt.data,
+                                    d_keep_ids.data,
+                                    n_keep,
+                                    m_N,
+                                    m_remove_tuner->getParam());
+        m_remove_tuner->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
-
-    // update particle number
-    unsigned int new_nparticles = m_N - n_out;
-    resize(new_nparticles);
+    resize(n_keep);
 
     // swap particle data arrays
     swapPositions();
@@ -992,6 +1030,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         ArrayHandle<mpcd::detail::pdata_element> d_in(in, access_location::device, access_mode::read);
 
         // add new particles on GPU
+        m_add_tuner->begin();
         mpcd::gpu::add_particles(old_nparticles,
                                  num_add_ptls,
                                  d_pos.data,
@@ -999,10 +1038,10 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                  d_tag.data,
                                  d_comm_flags.data,
                                  d_in.data,
-                                 mask);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
+                                 mask,
+                                 m_add_tuner->getParam());
+        m_add_tuner->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     // TODO: notify particle data has changed

@@ -39,20 +39,21 @@ __global__ void stage_particles(unsigned int *d_comm_flag,
                                 unsigned int N,
                                 const BoxDim box)
     {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= N) return;
 
-    Scalar4 postype = d_pos[idx];
-    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-    Scalar3 f = box.makeFraction(pos);
+    const Scalar4 postype = d_pos[idx];
+    const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
 
     unsigned int flags = 0;
-    if (f.x >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-    else if (f.x < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
-    if (f.y >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-    else if (f.y < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
-    if (f.z >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-    else if (f.z < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
+    if (pos.x >= hi.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
+    else if (pos.x < lo.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
+    if (pos.y >= hi.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
+    else if (pos.y < lo.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
+    if (pos.z >= hi.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
+    else if (pos.z < lo.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
     d_comm_flag[idx] = flags;
     }
@@ -71,12 +72,19 @@ __global__ void stage_particles(unsigned int *d_comm_flag,
 cudaError_t mpcd::gpu::stage_particles(unsigned int *d_comm_flag,
                                         const Scalar4 *d_pos,
                                         const unsigned int N,
-                                        const BoxDim& box)
+                                        const BoxDim& box,
+                                        const unsigned int block_size)
     {
-    unsigned int block_size = 512;
-    unsigned int n_blocks = N/block_size + 1;
-
-    mpcd::gpu::kernel::stage_particles<<<n_blocks, block_size>>>(d_comm_flag,
+    static unsigned int max_block_size = UINT_MAX;
+    if (max_block_size == UINT_MAX)
+        {
+        cudaFuncAttributes attr;
+        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::stage_particles);
+        max_block_size = attr.maxThreadsPerBlock;
+        }
+    unsigned int run_block_size = min(block_size, max_block_size);
+    dim3 grid(N / run_block_size + 1);
+    mpcd::gpu::kernel::stage_particles<<<grid, run_block_size>>>(d_comm_flag,
                                                                  d_pos,
                                                                  N,
                                                                  box);

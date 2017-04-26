@@ -11,11 +11,11 @@
 #ifndef MPCD_CELL_THERMO_COMPUTE_GPU_CUH_
 #define MPCD_CELL_THERMO_COMPUTE_GPU_CUH_
 
-#include <cuda_runtime.h>
-
-#include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/BoxDim.h"
 #include "hoomd/Index1D.h"
+
+#include <cuda_runtime.h>
 
 namespace mpcd
 {

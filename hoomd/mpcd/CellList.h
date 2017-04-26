@@ -22,7 +22,7 @@
 #include "hoomd/GPUFlags.h"
 #include "hoomd/ParticleGroup.h"
 
-// pybind11
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 #include <array>
@@ -229,6 +229,16 @@ class CellList : public Compute
             }
         #endif // ENABLE_MPI
 
+        //! Get the signal for dimensions changing
+        /*!
+         * \returns A signal that subscribers can attach to be notified that the
+         *          cell list dimensions have been updated.
+         */
+        Nano::Signal<void ()>& getSizeChangeSignal()
+            {
+            return m_dim_signal;
+            }
+
     protected:
         std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;   //!< MPCD particle data
         std::shared_ptr<ParticleGroup> m_embed_group;     //!< Embedded particles
@@ -283,6 +293,13 @@ class CellList : public Compute
         void slotBoxChanged()
             {
             m_needs_compute_dim = true;
+            }
+
+        Nano::Signal<void ()> m_dim_signal; //!< Signal for dimensions changing
+        //! Notify subscribers that dimensions have changed
+        void notifySizeChange()
+            {
+            m_dim_signal.emit();
             }
 
         bool m_particles_sorted;    //!< True if any particles (MPCD or embedded) have been sorted

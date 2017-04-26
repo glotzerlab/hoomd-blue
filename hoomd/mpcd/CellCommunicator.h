@@ -52,8 +52,9 @@ class CellCommunicator
               m_mpi_comm(m_exec_conf->getMPICommunicator()),
               m_decomposition(m_pdata->getDomainDecomposition()),
               m_cl(cl),
-              m_left_buf(m_exec_conf),
-              m_right_buf(m_exec_conf)
+              m_send_buf(m_exec_conf),
+              m_recv_buf(m_exec_conf),
+              m_needs_init(true)
             {
             m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
             #ifdef ENABLE_CUDA
@@ -63,12 +64,15 @@ class CellCommunicator
                 m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack", m_exec_conf));
                 }
             #endif // ENABLE_CUDA
+
+            m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
             }
 
         //! Destructor
         ~CellCommunicator()
             {
             m_exec_conf->msg->notice(5) << "Destroying MPCD CellCommunicator" << std::endl;
+            m_cl->getSizeChangeSignal().disconnect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
             }
 
         //! Reduce cell list properties
@@ -78,8 +82,8 @@ class CellCommunicator
          *
          * Properties are reduced across domain boundaries, as marked in the cell list.
          */
-        template<typename T, class ReductionOpT>
-        void reduce(const GPUArray<T>& props, ReductionOpT reduction_op);
+        template<typename T, class PackOpT>
+        void reduce(const GPUArray<T>& props, PackOpT pack_op);
 
         //! Set autotuner parameters
         /*!
@@ -128,124 +132,154 @@ class CellCommunicator
             y,
             z
             };
-        axis m_comm_dim;                   //!< Current dimension for communication
-        unsigned int m_left_neigh;              //!< Neighbor rank to the left
-        unsigned int m_right_neigh;             //!< Neighbor rank to the right
-        Index3D m_left_idx;                     //!< Communication indexer for receive buffers
-        Index3D m_right_idx;                    //!< Communication indexer for send buffers
-        GPUVector<unsigned char> m_left_buf;    //!< MPI buffer for left face
-        GPUVector<unsigned char> m_right_buf;   //!< MPI buffer for right face
-        uint3 m_right_offset;                   //!< Offset for reading out of properties on the face
+        unsigned int m_neigh[6];                //!< Neighbor ranks
+        Index3D m_idx[6];                       //!< Communication indexers for buffers
+        uint3 m_right_offset[3];                //!< Offsets for reading out of right faces
+        unsigned int m_max_cells;               //!< Maximum number of cells in any face
+        GPUVector<unsigned char> m_send_buf;    //!< MPI buffer for sending
+        GPUVector<unsigned char> m_recv_buf;    //!< MPI buffer for receiving
 
         //! Packs the property buffer
-        template<typename T>
-        void packBuffer(const GPUArray<T>& props);
+        template<typename T, class PackOpT>
+        void packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         //! Unpacks the property buffer
-        template<typename T, class ReductionOpT>
-        void unpackBuffer(const GPUArray<T>& props, ReductionOpT reduction_op);
+        template<typename T, class PackOpT>
+        void unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<Autotuner> m_tuner_pack;    //!< Tuner for pack kernel
         std::unique_ptr<Autotuner> m_tuner_unpack;  //!< Tuner for unpack kernel
 
         //! Packs the property buffer on the GPU
-        template<typename T>
-        void packBufferGPU(const GPUArray<T>& props);
+        template<typename T, class PackOpT>
+        void packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
 
         //! Unpacks the property buffer on the GPU
-        template<typename T, class ReductionOpT>
-        void unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op);
+        template<typename T, class PackOpT>
+        void unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
         #endif // ENABLE_CUDA
+
+        bool m_needs_init;                      //!< Flag if initialization is required
+        //! Initialize the communication internals
+        void initialize()
+            {
+            if (!m_needs_init) return;
+
+            // setup the comm dimensions and determine maximum number of cells to communicate
+            m_max_cells = 0;
+            if (m_cl->isCommunicating(mpcd::detail::face::east))
+                {
+                setupCommDim(axis::x);
+                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)].getNumElements();
+                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::west)].getNumElements();
+                if (num_cells > m_max_cells) m_max_cells = num_cells;
+                }
+            if (m_cl->isCommunicating(mpcd::detail::face::north))
+                {
+                setupCommDim(axis::y);
+                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)].getNumElements();
+                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::south)].getNumElements();
+                if (num_cells > m_max_cells) m_max_cells = num_cells;
+                }
+            if (m_cl->isCommunicating(mpcd::detail::face::up))
+                {
+                setupCommDim(axis::z);
+                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)].getNumElements();
+                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::down)].getNumElements();
+                if (num_cells > m_max_cells) m_max_cells = num_cells;
+                }
+
+            // initialization succeeded, flip flag
+            m_needs_init = false;
+            }
+
+        //! Slot that communicator needs to be reinitialized
+        void slotInit()
+            {
+            m_needs_init = true;
+            }
+
+        //! Size buffers large enough to hold all send elements
+        void sizeBuffers(size_t elem_bytes)
+            {
+            m_send_buf.resize(elem_bytes * m_max_cells);
+            m_recv_buf.resize(elem_bytes * m_max_cells);
+            }
 
         //! Setup buffers for communication
         /*!
          * \param dim Dimension (x,y,z) along which communication is occurring
-         * \param elem_bytes Size of data element being sent, per-cell
          */
-        void setupBuffers(axis dim, size_t elem_bytes)
+        void setupCommDim(axis dim)
             {
-            m_comm_dim = dim;
-
             // determine the "right" and "left" faces from the dimension
-            unsigned int left_face, right_face;
-            if (m_comm_dim == axis::x)
+            unsigned int right_face,left_face;
+            if (dim == axis::x)
                 {
-                left_face = static_cast<unsigned int>(mpcd::detail::face::west);
                 right_face = static_cast<unsigned int>(mpcd::detail::face::east);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::west);
                 }
-            else if (m_comm_dim == axis::y)
+            else if (dim == axis::y)
                 {
-                left_face = static_cast<unsigned int>(mpcd::detail::face::south);
                 right_face = static_cast<unsigned int>(mpcd::detail::face::north);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::south);
                 }
             else // m_comm_dim == axis::z
                 {
-                left_face = static_cast<unsigned int>(mpcd::detail::face::down);
                 right_face = static_cast<unsigned int>(mpcd::detail::face::up);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::down);
                 }
 
             // get the communication neighbors
-            m_left_neigh = m_decomposition->getNeighborRank(left_face);
-            m_right_neigh = m_decomposition->getNeighborRank(right_face);
+            m_neigh[right_face] = m_decomposition->getNeighborRank(right_face);
+            m_neigh[left_face] = m_decomposition->getNeighborRank(left_face);
 
             // get the number of cells being sent / received
             auto num_comm_cells = m_cl->getNComm();
-            const unsigned int num_left = num_comm_cells[left_face];
             const unsigned int num_right = num_comm_cells[right_face];
+            const unsigned int num_left = num_comm_cells[left_face];
 
             // setup the buffer indexers and the offset into the cell list
             const Index3D& ci = m_cl->getCellIndexer();
-            m_right_offset = make_uint3(0,0,0);
-            if (m_comm_dim == axis::x)
+            Index3D left_idx, right_idx;
+            uint3 right_offset = make_uint3(0,0,0);
+            if (dim == axis::x)
                 {
-                m_left_idx = Index3D(num_left, ci.getH(), ci.getD());
-                m_right_idx = Index3D(num_right, ci.getH(), ci.getD());
-                m_right_offset.x = ci.getW() - m_right_idx.getW();
+                left_idx = Index3D(num_left, ci.getH(), ci.getD());
+                right_idx = Index3D(num_right, ci.getH(), ci.getD());
+                right_offset.x = ci.getW() - right_idx.getW();
                 }
-            else if (m_comm_dim == axis::y)
+            else if (dim == axis::y)
                 {
-                m_left_idx = Index3D(ci.getW(), num_left, ci.getD());
-                m_right_idx = Index3D(ci.getW(), num_right, ci.getD());
-                m_right_offset.y = ci.getH() - m_right_idx.getH();
+                left_idx = Index3D(ci.getW(), num_left, ci.getD());
+                right_idx = Index3D(ci.getW(), num_right, ci.getD());
+                right_offset.y = ci.getH() - right_idx.getH();
                 }
             else // m_comm_dim == axis::z
                 {
-                m_left_idx = Index3D(ci.getW(), ci.getH(), num_left);
-                m_right_idx = Index3D(ci.getW(), ci.getH(), num_right);
-                m_right_offset.z = ci.getD() - m_right_idx.getD();
+                left_idx = Index3D(ci.getW(), ci.getH(), num_left);
+                right_idx = Index3D(ci.getW(), ci.getH(), num_right);
+                right_offset.z = ci.getD() - right_idx.getD();
                 }
+            m_idx[right_face] = right_idx;
+            m_idx[left_face] = left_idx;
+            m_right_offset[static_cast<unsigned int>(dim)] = right_offset;
 
-            // resize buffer memory
-            m_left_buf.resize(2 * elem_bytes * m_left_idx.getNumElements());
-            m_right_buf.resize(2 * elem_bytes * m_right_idx.getNumElements());
-
-            // validate that the box size is OK (not overdecomposed)
-            checkBoxSize();
-            }
-
-        //! Validate the local domain size is large enough for sending
-        /*!
-         * The communication cells are only permitted to be sent one domain
-         * in either direction. This sets a minimum size on the neighboring
-         * domains of num_comm_cells * cell_size. This requirement could be
-         * relaxed by sending in multiple halos.
-         */
-        void checkBoxSize() const
-            {
+            // validate the box size
             unsigned int err = 0;
             const unsigned int nextra = m_cl->getNExtraCells();
-            if (m_comm_dim == axis::x && (m_left_idx.getW() + nextra) > m_right_offset.x)
+            if (dim == axis::x && (left_idx.getW() + nextra) > right_offset.x)
                 {
-                err = std::max(err, m_left_idx.getW() + nextra - m_right_offset.x);
+                err = std::max(err, left_idx.getW() + nextra - right_offset.x);
                 }
-            if (m_comm_dim == axis::y && (m_left_idx.getH() + nextra) > m_right_offset.y)
+            if (dim == axis::y && (left_idx.getH() + nextra) > right_offset.y)
                 {
-                err = std::max(err, m_left_idx.getH() + nextra - m_right_offset.y);
+                err = std::max(err, left_idx.getH() + nextra - right_offset.y);
                 }
-            if (m_comm_dim == axis::z && (m_left_idx.getD() + nextra) > m_right_offset.z)
+            if (dim == axis::z && (left_idx.getD() + nextra) > right_offset.z)
                 {
-                err = std::max(err, m_left_idx.getD() + nextra - m_right_offset.z);
+                err = std::max(err, left_idx.getD() + nextra - right_offset.z);
                 }
 
             MPI_Allreduce(MPI_IN_PLACE, &err, 1, MPI_UNSIGNED, MPI_MAX, m_mpi_comm);
@@ -272,73 +306,122 @@ class CellCommunicator
  * \tparam T Type of data to reduce (inferred)
  * \tparam ReductionOpT Binary reduction operator (inferred)
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduction_op)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, PackOpT pack_op)
     {
-    if (m_prof) m_prof->push(m_exec_conf, "MPCD cell comm");
+    if (m_prof) m_prof->push("MPCD cell comm");
     if (props.getNumElements() < m_cl->getNCells())
         {
         m_exec_conf->msg->error() << "mpcd: cell property to be reduced is smaller than cell list dimensions" << std::endl;
         throw std::runtime_error("MPCD cell property has insufficient dimensions");
         }
 
+    if (m_prof) m_prof->push("init");
+    if (m_needs_init) initialize();
+    sizeBuffers(sizeof(typename PackOpT::element));
+    if (m_prof) m_prof->pop();
+
     // Communicate along each dimensions
     for (unsigned int dim = 0; dim < m_sysdef->getNDimensions(); ++dim)
         {
         if (!m_cl->isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
 
-        setupBuffers(static_cast<axis>(dim), sizeof(T));
-
         // TODO: decide which pathway to take to pack / unpack the buffers
         #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
-            packBufferGPU(props);
+            packBufferGPU(props, pack_op, static_cast<axis>(dim));
             }
         else
         #endif // ENABLE_CUDA
             {
-            packBuffer(props);
+            packBuffer(props, pack_op, static_cast<axis>(dim));
             }
 
         // send along dir, and receive along the opposite direction from sending
         // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
             {
-            if (m_prof) m_prof->push(m_exec_conf, "copy");
-            ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::readwrite);
-            ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::readwrite);
-            if (m_prof) m_prof->pop(m_exec_conf);
+            #ifdef ENABLE_MPI_CUDA
+            access_location::Enum mpi_loc = (m_exec_conf->isCUDAEnabled()) ? access_location::device : access_location::host;
+            ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
+            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
+            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+            #else
+            if (m_prof) m_prof->push("copy");
+            ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
+            if (m_prof) m_prof->pop();
+            #endif // ENABLE_MPI_CUDA
 
-            const unsigned int num_right_bytes = m_right_idx.getNumElements()*sizeof(T);
-            const unsigned int num_left_bytes = m_left_idx.getNumElements()*sizeof(T);
+            // determine face for operations
+            unsigned int right_face,left_face;
+            if (static_cast<axis>(dim) == axis::x)
+                {
+                right_face = static_cast<unsigned int>(mpcd::detail::face::east);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::west);
+                }
+            else if (static_cast<axis>(dim) == axis::y)
+                {
+                right_face = static_cast<unsigned int>(mpcd::detail::face::north);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::south);
+                }
+            else // m_comm_dim == axis::z
+                {
+                right_face = static_cast<unsigned int>(mpcd::detail::face::up);
+                left_face = static_cast<unsigned int>(mpcd::detail::face::down);
+                }
+
+            const unsigned int num_right_bytes = m_idx[right_face].getNumElements()*sizeof(typename PackOpT::element);
+            const unsigned int num_left_bytes = m_idx[left_face].getNumElements()*sizeof(typename PackOpT::element);
             if (m_prof) m_prof->push("MPI send/recv");
-            std::vector<MPI_Request> reqs(4);
-            std::vector<MPI_Status> stats(reqs.size());
+            if (m_neigh[left_face] != m_neigh[right_face])
+                {
+                std::vector<MPI_Request> reqs(4);
+                std::vector<MPI_Status> stats(reqs.size());
+                // send left, receive right
+                /*
+                 * the send buffer is packed left face-right face, but the
+                 * receive buffer is packed right face-left face so that if
+                 * the left/right neighbors are the same, the send buffer
+                 * can be sent in one call rather than two
+                 */
+                MPI_Isend(h_send_buf.data, num_left_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
+                MPI_Irecv(h_recv_buf.data, num_right_bytes, MPI_BYTE, m_neigh[right_face], 0, m_mpi_comm, &reqs[1]);
 
-            // send through right face and receive through left face
-            MPI_Isend(h_right_buf.data, num_right_bytes, MPI_BYTE, m_right_neigh, 0, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_left_buf.data+num_left_bytes, num_left_bytes, MPI_BYTE, m_left_neigh, 0, m_mpi_comm, &reqs[1]);
+                // send right, receive left
+                MPI_Isend(h_send_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_neigh[right_face], 1, m_mpi_comm, &reqs[2]);
+                MPI_Irecv(h_recv_buf.data + num_right_bytes, num_left_bytes, MPI_BYTE, m_neigh[left_face], 1, m_mpi_comm, &reqs[3]);
 
-            // send through left face and receive through right face
-            MPI_Isend(h_left_buf.data, num_left_bytes, MPI_BYTE, m_left_neigh, 1, m_mpi_comm, &reqs[2]);
-            MPI_Irecv(h_right_buf.data+num_right_bytes, num_right_bytes, MPI_BYTE, m_right_neigh, 1, m_mpi_comm, &reqs[3]);
+                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                }
+            else
+                {
+                std::vector<MPI_Request> reqs(2);
+                std::vector<MPI_Status> stats(reqs.size());
+                MPI_Isend(h_send_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
+                MPI_Irecv(h_recv_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[1]);
 
-            MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
+                }
+            #ifdef ENABLE_MPI_CUDA
+            // MPI calls can execute in multiple streams, so force a synchronization before we move on
+            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+            #endif // ENABLE_MPI_CUDA
             if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
             }
 
         #ifdef ENABLE_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
-            unpackBufferGPU(props, reduction_op);
+            unpackBufferGPU(props, pack_op, static_cast<axis>(dim));
             }
         else
         #endif // ENABLE_CUDA
             {
-            unpackBuffer(props, reduction_op);
+            unpackBuffer(props, pack_op, static_cast<axis>(dim));
             }
         }
-    if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
     }
 
 /*!
@@ -357,44 +440,57 @@ void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, ReductionOpT reduc
  * cache-friendly pathway by rearranging indexes, but the performance gains would
  * probably not be very much compared to the complexity and (lack of) code readability.
  */
-template<typename T>
-void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
-    assert(m_right_buf.getNumElements() >= 2 * sizeof(T) * m_right_idx.getNumElements());
-    assert(m_left_buf.getNumElements() >= 2 * sizeof(T) * m_left_idx.getNumElements());
+    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
 
     if (m_prof) m_prof->push("pack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
+    ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
+    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
 
-    // pack the left buffer
+    // get the offsets based on the comm dimension
+    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
+    Index3D left_idx, right_idx;
+    if (dim == axis::x)
         {
-        ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::overwrite);
-        T* left_buf = reinterpret_cast<T*>(h_left_buf.data);
-        for (unsigned int k=0; k < m_left_idx.getD(); ++k)
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
+        }
+    else if (dim == axis::y)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
+        }
+    else
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
+        }
+
+    // pack for sending through left face
+    for (unsigned int k=0; k < left_idx.getD(); ++k)
+        {
+        for (unsigned int j=0; j < left_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_left_idx.getH(); ++j)
+            for (unsigned int i=0; i < left_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_left_idx.getW(); ++i)
-                    {
-                    left_buf[m_left_idx(i,j,k)] = h_props.data[ci(i,j,k)];
-                    }
+                send_buf[left_idx(i,j,k)] = pack_op.pack(h_props.data[ci(i,j,k)]);
                 }
             }
         }
 
-    // pack the right buffer
+    // pack for sending through right face
+    send_buf += left_idx.getNumElements();
+    for (unsigned int k=0; k < right_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::overwrite);
-        T* right_buf = reinterpret_cast<T*>(h_right_buf.data);
-        for (unsigned int k=0; k < m_right_idx.getD(); ++k)
+        for (unsigned int j=0; j < right_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_right_idx.getH(); ++j)
+            for (unsigned int i=0; i < right_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_right_idx.getW(); ++i)
-                    {
-                    right_buf[m_right_idx(i,j,k)] = h_props.data[ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k)];
-                    }
+                send_buf[right_idx(i,j,k)] = pack_op.pack(h_props.data[ci(right_offset.x+i,right_offset.y+j,right_offset.z+k)]);
                 }
             }
         }
@@ -410,48 +506,64 @@ void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props)
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT reduction_op)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
     if (m_prof) m_prof->push("unpack");
     const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
 
-    // unpack the left buffer
+    // get the offsets based on the comm dimension
+    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
+    Index3D left_idx, right_idx;
+    if (dim == axis::x)
         {
-        ArrayHandle<unsigned char> h_left_buf(m_left_buf, access_location::host, access_mode::read);
-        T* left_recv_buf = reinterpret_cast<T*>(h_left_buf.data) + m_left_idx.getNumElements();
-        for (unsigned int k=0; k < m_left_idx.getD(); ++k)
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
+        }
+    else if (dim == axis::y)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
+        }
+    else
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
+        }
+
+    // unpack the right buffer
+    ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
+    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
+    for (unsigned int k=0; k < right_idx.getD(); ++k)
+        {
+        for (unsigned int j=0; j < right_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_left_idx.getH(); ++j)
+            for (unsigned int i=0; i < right_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_left_idx.getW(); ++i)
-                    {
-                    const unsigned int target = ci(i,j,k);
-                    const T cur_val = h_props.data[target];
-                    h_props.data[target] = reduction_op(left_recv_buf[m_left_idx(i,j,k)], cur_val);
-                    }
+                const unsigned int target = ci(right_offset.x+i,right_offset.y+j,right_offset.z+k);
+                const T cur_val = h_props.data[target];
+                h_props.data[target] = pack_op.unpack(recv_buf[right_idx(i,j,k)], cur_val);
                 }
             }
         }
 
-    // unpack the right buffer
+    // unpack the left buffer
+    recv_buf += right_idx.getNumElements();
+    for (unsigned int k=0; k < left_idx.getD(); ++k)
         {
-        ArrayHandle<unsigned char> h_right_buf(m_right_buf, access_location::host, access_mode::read);
-        T* right_recv_buf = reinterpret_cast<T*>(h_right_buf.data) + m_right_idx.getNumElements();
-        for (unsigned int k=0; k < m_right_idx.getD(); ++k)
+        for (unsigned int j=0; j < left_idx.getH(); ++j)
             {
-            for (unsigned int j=0; j < m_right_idx.getH(); ++j)
+            for (unsigned int i=0; i < left_idx.getW(); ++i)
                 {
-                for (unsigned int i=0; i < m_right_idx.getW(); ++i)
-                    {
-                    const unsigned int target = ci(m_right_offset.x+i,m_right_offset.y+j,m_right_offset.z+k);
-                    const T cur_val = h_props.data[target];
-                    h_props.data[target] = reduction_op(right_recv_buf[m_right_idx(i,j,k)], cur_val);
-                    }
+                const unsigned int target = ci(i,j,k);
+                const T cur_val = h_props.data[target];
+                h_props.data[target] = pack_op.unpack(recv_buf[left_idx(i,j,k)], cur_val);
                 }
             }
         }
+
+
     if (m_prof) m_prof->pop();
     }
 
@@ -463,30 +575,43 @@ void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, ReductionOpT
  *
  * \post Communicated cells in \a props are packed into \a m_send_buf
  */
-template<typename T>
-void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
-    assert(m_right_buf.getNumElements() >= 2 * sizeof(T) * m_right_idx.getNumElements());
-    assert(m_left_buf.getNumElements() >= 2 * sizeof(T) * m_left_idx.getNumElements());
+    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
+    if (m_prof) m_prof->push(m_exec_conf,"pack");
 
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
+    ArrayHandle<unsigned char> d_send_buf(m_send_buf, access_location::device, access_mode::overwrite);
+    typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(d_send_buf.data);
 
-    if (m_prof) m_prof->push(m_exec_conf, "copy");
-    ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::overwrite);
-    T* left_buf = reinterpret_cast<T*>(d_left_buf.data);
+    // get the offsets based on the comm dimension
+    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
+    Index3D left_idx, right_idx;
+    if (dim == axis::x)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
+        }
+    else if (dim == axis::y)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
+        }
+    else
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
+        }
 
-    ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::overwrite);
-    T* right_buf = reinterpret_cast<T*>(d_right_buf.data);
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    if (m_prof) m_prof->push(m_exec_conf,"pack");
     m_tuner_pack->begin();
-    mpcd::gpu::pack_cell_buffer(left_buf,
-                                right_buf,
-                                m_left_idx,
-                                m_right_idx,
-                                m_right_offset,
+    mpcd::gpu::pack_cell_buffer(send_buf,
+                                send_buf + left_idx.getNumElements(),
+                                left_idx,
+                                right_idx,
+                                right_offset,
                                 d_props.data,
+                                pack_op,
                                 m_cl->getCellIndexer(),
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
@@ -503,30 +628,45 @@ void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props)
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
-template<typename T, class ReductionOpT>
-void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, ReductionOpT reduction_op)
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
     {
-    ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
-
-    if (m_prof) m_prof->push(m_exec_conf, "copy");
-    ArrayHandle<unsigned char> d_left_buf(m_left_buf, access_location::device, access_mode::read);
-    T* left_buf = reinterpret_cast<T*>(d_left_buf.data) + m_left_idx.getNumElements();;
-
-    ArrayHandle<unsigned char> d_right_buf(m_right_buf, access_location::device, access_mode::read);
-    T* right_buf = reinterpret_cast<T*>(d_right_buf.data) + m_right_idx.getNumElements();
-    if (m_prof) m_prof->pop(m_exec_conf);
-
+    if (m_prof) m_prof->push("copy");
+    ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
+    typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(d_recv_buf.data);
+    if (m_prof) m_prof->pop();
 
     if (m_prof) m_prof->push(m_exec_conf, "unpack");
+    ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
+
+    // get the offsets based on the comm dimension
+    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
+    Index3D left_idx, right_idx;
+    if (dim == axis::x)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
+        }
+    else if (dim == axis::y)
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
+        }
+    else
+        {
+        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
+        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
+        }
+
     m_tuner_unpack->begin();
     mpcd::gpu::unpack_cell_buffer(d_props.data,
-                                  reduction_op,
+                                  pack_op,
                                   m_cl->getCellIndexer(),
-                                  left_buf,
-                                  right_buf,
-                                  m_left_idx,
-                                  m_right_idx,
-                                  m_right_offset,
+                                  recv_buf + right_idx.getNumElements(),
+                                  recv_buf,
+                                  left_idx,
+                                  right_idx,
+                                  right_offset,
                                   m_tuner_unpack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_unpack->end();

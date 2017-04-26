@@ -81,7 +81,7 @@ class CommunicatorGPU : public mpcd::Communicator
 
     protected:
         //! Set the communication flags for the particle data on the GPU
-        virtual unsigned int setCommFlags(const BoxDim& box);
+        virtual void setCommFlags(const BoxDim& box);
 
     private:
         /* General communication */
@@ -100,6 +100,9 @@ class CommunicatorGPU : public mpcd::Communicator
 
         //! Helper function to set up communication stages
         void initializeCommunicationStages();
+
+        /* Autotuners */
+        std::unique_ptr<Autotuner> m_flags_tuner;   //!< Tuner for marking communication flags
     };
 
 namespace detail

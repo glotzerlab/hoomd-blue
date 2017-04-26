@@ -20,7 +20,8 @@ namespace gpu
 cudaError_t stage_particles(unsigned int *d_comm_flag,
                             const Scalar4 *d_pos,
                             const unsigned int n,
-                            const BoxDim& box);
+                            const BoxDim& box,
+                            const unsigned int block_size);
 
 //! Reduce communication flags with bitwise OR using the CUB library
 void reduce_comm_flags(unsigned int *d_req_flags,

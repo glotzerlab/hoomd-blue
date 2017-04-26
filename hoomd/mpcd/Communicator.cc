@@ -36,6 +36,7 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
             m_decomposition(m_pdata->getDomainDecomposition()),
             m_is_communicating(false),
             m_force_migrate(false),
+            m_check_decomposition(true),
             m_nneigh(0),
             m_n_unique_neigh(0),
             m_sendbuf(m_exec_conf),
@@ -58,12 +59,16 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
     GPUArray<unsigned int> adj_mask(neigh_max, m_exec_conf);
     m_adj_mask.swap(adj_mask);
 
+    // attach decomposition check to the box change signal
+    m_mpcd_sys->getCellList()->getSizeChangeSignal().connect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
+
     initializeNeighborArrays();
     }
 
 mpcd::Communicator::~Communicator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Communicator" << std::endl;
+    m_mpcd_sys->getCellList()->getSizeChangeSignal().disconnect<mpcd::Communicator, &mpcd::Communicator::slotBoxChanged>(this);
     }
 
 void mpcd::Communicator::initializeNeighborArrays()
@@ -171,7 +176,16 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     // Guard to prevent recursive triggering of migration
     m_is_communicating = true;
 
+    // force the cell list to adopt the correct dimensions before proceeding,
+    // which will trigger any size change signals
+    m_mpcd_sys->getCellList()->computeDimensions();
+
     if (m_prof) m_prof->push("MPCD comm");
+    if (m_check_decomposition)
+        {
+        checkDecomposition();
+        m_check_decomposition = false;
+        }
 
     migrateParticles();
 
@@ -186,73 +200,71 @@ void mpcd::Communicator::migrateParticles()
 
     // determine local particles that are to be sent to neighboring processors
     const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
-    unsigned int req_comm_flags = setCommFlags(box);
-    while (req_comm_flags)
+    setCommFlags(box);
+
+    // fill the buffers and send in each direction
+    for (unsigned int dir=0; dir < 6; dir++)
         {
-        // fill the buffers and send in each direction
-        for (unsigned int dir=0; dir < 6; dir++)
+        unsigned int comm_mask = (1 << static_cast<unsigned char>(dir));
+
+        if (!isCommunicating(static_cast<mpcd::detail::face>(dir))) continue;
+
+        // fill send buffer
+        if (m_prof) m_prof->push("pack");
+        m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
+        if (m_prof) m_prof->pop();
+
+        // we receive from the direction opposite to the one we send to
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+        unsigned int recv_neighbor;
+        if (dir % 2 == 0)
+            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+        else
+            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
+        // communicate size of the message that will contain the particle data
+        unsigned int n_recv_ptls;
+        unsigned int n_send_ptls = m_sendbuf.size();
+        m_reqs.reserve(2); m_stats.reserve(2);
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
+        MPI_Waitall(2, m_reqs.data(), m_stats.data());
+
+        // Resize receive buffer
+        m_recvbuf.resize(n_recv_ptls);
+
+        // exchange particle data
             {
-            unsigned int comm_mask = (1 << static_cast<unsigned char>(dir));
-
-            if (!isCommunicating(static_cast<mpcd::detail::face>(dir)) || !(req_comm_flags & comm_mask)) continue;
-
-            // fill send buffer
-            if (m_prof) m_prof->push("pack");
-            m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
-            if (m_prof) m_prof->pop();
-
-            // we receive from the direction opposite to the one we send to
-            unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-            unsigned int recv_neighbor;
-            if (dir % 2 == 0)
-                recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-            else
-                recv_neighbor = m_decomposition->getNeighborRank(dir-1);
-
-            // communicate size of the message that will contain the particle data
-            unsigned int n_recv_ptls;
-            unsigned int n_send_ptls = m_sendbuf.size();
-            m_reqs.reserve(2); m_stats.reserve(2);
-            MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
-            MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
+            ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
+            if (m_prof) m_prof->push("MPI send/recv");
+            MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
             MPI_Waitall(2, m_reqs.data(), m_stats.data());
+            if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
+            }
 
-            // Resize receive buffer
-            m_recvbuf.resize(n_recv_ptls);
-
-            // exchange particle data
+        // wrap received particles across a global boundary back into global box
+        if (m_prof) m_prof->push("wrap");
+            {
+            ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
+            const BoxDim wrap_box = getWrapBox(box);
+            for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
                 {
-                ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
-                ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
-                if (m_prof) m_prof->push("MPI send/recv");
-                MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
-                MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
-                MPI_Waitall(2, m_reqs.data(), m_stats.data());
-                if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
+                mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
+                Scalar4& postype = p.pos;
+                int3 image = make_int3(0,0,0);
+
+                wrap_box.wrap(postype,image);
                 }
+            }
+        if (m_prof) m_prof->pop();
 
-            // wrap received particles across a global boundary back into global box
-                {
-                ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
-                const BoxDim wrap_box = getWrapBox(box);
-                for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
-                    {
-                    mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
-                    Scalar4& postype = p.pos;
-                    int3 image = make_int3(0,0,0);
-
-                    wrap_box.wrap(postype,image);
-                    }
-                }
-
-            // fill particle data with wrapped, received particles
-            if (m_prof) m_prof->push("unpack");
-            m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
-            if (m_prof) m_prof->pop();
-            } // end dir loop
-
-        req_comm_flags = setCommFlags(box);
-        }
+        // fill particle data with wrapped, received particles
+        if (m_prof) m_prof->push("unpack");
+        m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
+        if (m_prof) m_prof->pop();
+        } // end dir loop
 
     if (m_prof) m_prof->pop();
     }
@@ -263,36 +275,140 @@ void mpcd::Communicator::migrateParticles()
  * Particles lying outside of \a box have their communication flags set along
  * that face.
  */
-unsigned int mpcd::Communicator::setCommFlags(const BoxDim& box)
+void mpcd::Communicator::setCommFlags(const BoxDim& box)
     {
+    if (m_prof) m_prof->push("comm flags");
     // mark all particles which have left the box for sending
     unsigned int N = m_mpcd_pdata->getN();
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_comm_flag(m_mpcd_pdata->getCommFlags(), access_location::host, access_mode::overwrite);
 
-    unsigned int req_comm_flags = 0;
+    // since box is orthorhombic, just use branching to compute comm flags
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
     for (unsigned int idx = 0; idx < N; ++idx)
         {
         const Scalar4& postype = h_pos.data[idx];
-        Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        Scalar3 f = box.makeFraction(pos);
+        const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
         unsigned int flags = 0;
-        if (f.x >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
-        else if (f.x < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
+        if (pos.x >= hi.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::east);
+        else if (pos.x < lo.x) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::west);
 
-        if (f.y >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
-        else if (f.y < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
+        if (pos.y >= hi.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::north);
+        else if (pos.y < lo.y) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::south);
 
-        if (f.z >= Scalar(1.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
-        else if (f.z < Scalar(0.0)) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
+        if (pos.z >= hi.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::up);
+        else if (pos.z < lo.z) flags |= static_cast<unsigned int>(mpcd::detail::send_mask::down);
 
-        req_comm_flags |= flags;
         h_comm_flag.data[idx] = flags;
         }
 
-    MPI_Allreduce(MPI_IN_PLACE, &req_comm_flags, 1, MPI_UNSIGNED, MPI_BOR, m_mpi_comm);
-    return req_comm_flags;
+    if (m_prof) m_prof->pop();
+    }
+
+/*!
+ * Checks that the simulation box is not overdecomposed so that communication can
+ * be achieved using the assumed single step. This is a collective call that
+ * raises an error on all ranks if any rank reports an error.
+ */
+void mpcd::Communicator::checkDecomposition()
+    {
+    // determine the bounds of this box
+    const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
+    const Scalar3 lo = box.getLo();
+    const Scalar3 hi = box.getHi();
+
+    // bounds of global box for wrapping
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+    const Scalar3 global_L = global_box.getL();
+
+    // 4 requests will be needed per call
+    m_reqs.reserve(4);
+
+    int error = 0;
+    for (unsigned int dim=0; dim < m_sysdef->getNDimensions(); ++dim)
+        {
+        if (!isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
+
+        Scalar my_lo, my_hi;
+        if (dim == 0) // x
+            {
+            my_lo = lo.x;
+            my_hi = hi.x;
+            }
+        else if (dim == 1) // y
+            {
+            my_lo = lo.y;
+            my_hi = hi.y;
+            }
+        else // z
+            {
+            my_lo = lo.z;
+            my_hi = hi.z;
+            }
+
+        // get the neighbors this rank sends to
+        const unsigned int right_neigh = m_decomposition->getNeighborRank(2*dim);
+        const unsigned int left_neigh = m_decomposition->getNeighborRank(2*dim+1);
+
+        // send boundaries left and right
+        Scalar right_lo, left_hi;
+        MPI_Isend(&my_hi, 1, MPI_HOOMD_SCALAR, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
+        MPI_Isend(&my_lo, 1, MPI_HOOMD_SCALAR, left_neigh, 1, m_mpi_comm, &m_reqs[1]);
+        MPI_Irecv(&right_lo, 1, MPI_HOOMD_SCALAR, right_neigh, 1, m_mpi_comm, &m_reqs[2]);
+        MPI_Irecv(&left_hi, 1, MPI_HOOMD_SCALAR, left_neigh, 0, m_mpi_comm, &m_reqs[3]);
+        MPI_Waitall(4, m_reqs.data(), MPI_STATUSES_IGNORE);
+
+        // if at right edge of simulation box, then wrap the lo back in
+        if (m_decomposition->isAtBoundary(2*dim)) // right edge
+            {
+            if (dim == 0) // x
+                {
+                right_lo += global_L.x;
+                }
+            else if (dim == 1) // y
+                {
+                right_lo += global_L.y;
+                }
+            else // z
+                {
+                right_lo += global_L.z;
+                }
+            }
+        // otherwise if at left of simulation, wrap the hi back in
+        else if (m_decomposition->isAtBoundary(2*dim+1)) // left edge
+            {
+            if (dim == 0) // x
+                {
+                left_hi -= global_L.x;
+                }
+            else if (dim == 1) // y
+                {
+                left_hi -= global_L.y;
+                }
+            else // z
+                {
+                left_hi -= global_L.z;
+                }
+            }
+
+        // check for an error between neighbors and save it
+        // we can't quit early because this could cause a stall
+        if (right_lo < my_lo || left_hi >= my_hi)
+            {
+            error = 1;
+            }
+        }
+
+    // check for any error on all ranks with all-to-all communication
+    MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_INT, MPI_SUM, m_mpi_comm);
+    if (error)
+        {
+        m_is_communicating = false;
+        m_exec_conf->msg->error() << "Simulation box is overdecomposed for MPCD communicator" << std::endl;
+        throw std::runtime_error("Overdecomposed simulation box");
+        }
     }
 
 /*!
