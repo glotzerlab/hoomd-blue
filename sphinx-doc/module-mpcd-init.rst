@@ -8,6 +8,7 @@ mpcd.init
 .. autosummary::
     :nosignatures:
 
+    make_random
     read_snapshot
 
 .. rubric:: Details

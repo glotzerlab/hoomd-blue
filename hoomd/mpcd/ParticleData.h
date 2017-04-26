@@ -73,8 +73,9 @@ class ParticleData
     public:
         //! Number constructor
         ParticleData(unsigned int N,
-                     unsigned int n_types,
-                     const BoxDim& global_box,
+                     const BoxDim& local_box,
+                     Scalar kT,
+                     unsigned int seed,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
                      std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
 
@@ -90,6 +91,9 @@ class ParticleData
         //! Initialize the MPCD particle data from a snapshot
         void initializeFromSnapshot(const mpcd::ParticleDataSnapshot& snapshot,
                                     const BoxDim& global_box);
+
+        //! Default initialize the MPCD particle data per rank
+        void initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed);
 
         //! Take a snapshot of the MPCD particle data
         void takeSnapshot(mpcd::ParticleDataSnapshot& snapshot, const BoxDim& global_box) const;
@@ -378,6 +382,11 @@ class ParticleData
         const static float resize_factor; //!< Amortized growth factor the data arrays
         //! Resize the data
         void resize(unsigned int N);
+
+        #ifdef ENABLE_MPI
+        //! Setup MPI
+        void setupMPI(std::shared_ptr<DomainDecomposition> decomposition);
+        #endif // ENABLE_MPI
     };
 
 namespace detail

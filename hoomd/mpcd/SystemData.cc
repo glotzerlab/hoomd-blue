@@ -14,6 +14,39 @@
 #endif // ENABLE_CUDA
 
 /*!
+ * \param sysdef System definition
+ * \param particles MPCD ParticleData
+ */
+mpcd::SystemData::SystemData(std::shared_ptr<::SystemDefinition> sysdef,
+                             std::shared_ptr<mpcd::ParticleData> particles)
+    : m_sysdef(sysdef),
+      m_particles(particles),
+      m_global_box(m_sysdef->getParticleData()->getGlobalBox())
+    {
+    // Generate one companion cell list for the system
+    /*
+     * There is limited overhead to automatically creating a cell list (it is not sized
+     * until first compute), so we always make one.
+     */
+    #ifdef ENABLE_CUDA
+    if (m_sysdef->getParticleData()->getExecConf()->isCUDAEnabled())
+        {
+        m_cl = std::make_shared<mpcd::CellListGPU>(m_sysdef, m_particles);
+        }
+    else
+    #endif // ENABLE_CUDA
+        {
+        m_cl = std::make_shared<mpcd::CellList>(m_sysdef, m_particles);
+        }
+
+    // connect to box change signal to enforce constant box dim in MPCD
+    m_sysdef->getParticleData()->getBoxChangeSignal().connect<mpcd::SystemData, &mpcd::SystemData::checkBox>(this);
+
+    // check that the MPCD box matches the HOOMD box
+    checkBox();
+    }
+
+/*!
  * \param snapshot MPCD system snapshot to initialize from
  */
 mpcd::SystemData::SystemData(std::shared_ptr<mpcd::SystemDataSnapshot> snapshot)
@@ -81,6 +114,7 @@ void mpcd::detail::export_SystemData(pybind11::module& m)
     namespace py = pybind11;
 
     py::class_<mpcd::SystemData, std::shared_ptr<mpcd::SystemData> >(m,"SystemData")
+    .def(py::init<std::shared_ptr<::SystemDefinition>,std::shared_ptr<mpcd::ParticleData> >())
     .def(py::init<std::shared_ptr<mpcd::SystemDataSnapshot> >())
     .def("getParticleData", &mpcd::SystemData::getParticleData)
     .def("getCellList", &mpcd::SystemData::getCellList)

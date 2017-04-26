@@ -3,6 +3,7 @@
 set(TEST_LIST
     collide_srd
     data_snapshot
+    init_make_random
     integrate_integrator
     update_sort
     )

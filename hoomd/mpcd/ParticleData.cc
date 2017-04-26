@@ -16,6 +16,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif // ENABLE_MPI
 
+#include <random>
 #include <iomanip>
 using namespace std;
 
@@ -24,18 +25,19 @@ const float mpcd::ParticleData::resize_factor = 9./8.;
 
 /*!
  * \param N Number of MPCD particles
- * \param n_types Number of MPCD particle types
- * \param global_box Global simulation box
+ * \param local_box Local simulation box
+ * \param kT Temperature
+ * \param seed Seed to pseudo-random number generator
  * \param exec_conf Execution configuration
  * \param decomposition Domain decomposition
  *
- * If \a n_types is zero, it is automatically incremented to 1. Default type
- * names A, B, C, ... are created. The simulation is initialized from a default
- * snapshot.
+ * MPCD particles are randomly initialized in the box with velocities
+ * equipartitioned at kT.
  */
 mpcd::ParticleData::ParticleData(unsigned int N,
-                                 unsigned int n_types,
-                                 const BoxDim& global_box,
+                                 const BoxDim& local_box,
+                                 Scalar kT,
+                                 unsigned int seed,
                                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
     : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
@@ -43,36 +45,17 @@ mpcd::ParticleData::ParticleData(unsigned int N,
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
     // set domain decomposition
+    unsigned int my_seed = seed;
     #ifdef ENABLE_MPI
-    if (decomposition)
-        m_decomposition = decomposition;
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
+    setupMPI(decomposition);
+    if (m_exec_conf->getNRanks() > 1)
         {
-        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
-        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
-        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        bcast(my_seed, 0, m_exec_conf->getMPICommunicator());
+        my_seed += m_exec_conf->getRank(); // each rank must get a different seed value for C++11 PRNG
         }
-    #endif // ENABLE_CUDA
     #endif // ENABLE_MPI
 
-    // construct snapshot with default type mapping (A, B, C, ...)
-    mpcd::ParticleDataSnapshot snapshot(N);
-    unsigned int eff_n_types = n_types;
-    if (m_exec_conf->getRank() == 0 && eff_n_types == 0)
-        {
-        m_exec_conf->msg->warning() << "Number of MPCD types is 0, incrementing to 1" << std::endl;
-        ++eff_n_types;
-        }
-    for (unsigned int i=0; i < eff_n_types; ++i)
-        {
-        char name[2];
-        name[0] = 'A' + i;
-        name[1] = '\0';
-        snapshot.type_mapping.push_back(string(name));
-        }
-
-    initializeFromSnapshot(snapshot, global_box);
+    initializeRandom(N, local_box, kT, my_seed);
     }
 
 /*!
@@ -91,16 +74,7 @@ mpcd::ParticleData::ParticleData(mpcd::ParticleDataSnapshot& snapshot,
 
     // set domain decomposition
     #ifdef ENABLE_MPI
-    if (decomposition)
-        m_decomposition = decomposition;
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        {
-        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
-        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
-        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
-        }
-    #endif // ENABLE_CUDA
+    setupMPI(decomposition);
     #endif
 
     if (m_exec_conf->getRank() == 0 && snapshot.type_mapping.size() == 0)
@@ -325,6 +299,74 @@ void mpcd::ParticleData::initializeFromSnapshot(const mpcd::ParticleDataSnapshot
     setNGlobal(nglobal);
 
     // TODO: any particle data signaling to subscribers
+    }
+
+/*!
+ * \param N Global number of particles (global in MPI)
+ * \param local_box Local simulation box
+ */
+void mpcd::ParticleData::initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed)
+    {
+    // only one particle type is supported for this construction method
+    m_type_mapping.push_back("A");
+    // default particle mass is 1.0
+    m_mass = Scalar(1.0);
+
+    // figure out how many local particles I should own
+    setNGlobal(N);
+    unsigned int tag_start;
+    #ifdef ENABLE_MPI
+    const unsigned int nrank = m_exec_conf->getNRanks();
+    if (nrank > 1)
+        {
+        const unsigned int rank = m_exec_conf->getRank();
+        m_N = N / nrank;
+        tag_start = rank * m_N;
+
+        // distribute remainder of particles to low ranks
+        // this number is usually small, so it doesn't really matter
+        const unsigned int Nleft = N - m_N * nrank;
+        if (rank < Nleft)
+            {
+            ++m_N;
+            // need to offset 1 for every rank above 0 that I am
+            tag_start += rank;
+            }
+        else
+            {
+            // offset but total number of extra particles below me
+            tag_start += Nleft;
+            }
+        }
+    else
+    #endif // ENABLE_MPI
+        {
+        m_N = N;
+        tag_start = 0;
+        }
+
+    // center of box
+    const Scalar3 lo = local_box.getLo();
+    const Scalar3 hi = local_box.getHi();
+
+    // random number generator
+    std::mt19937 mt(seed);
+    std::uniform_real_distribution<Scalar> pos_x(lo.x, hi.x);
+    std::uniform_real_distribution<Scalar> pos_y(lo.y, hi.y);
+    std::uniform_real_distribution<Scalar> pos_z(lo.z, hi.z);
+    std::normal_distribution<Scalar> vel(0.0, fast::sqrt(kT / m_mass));
+
+    // allocate and fill up with random values
+    allocate(m_N);
+    ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::overwrite);
+    ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::overwrite);
+    ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::overwrite);
+    for (unsigned int i=0; i < m_N; ++i)
+        {
+        h_pos.data[i] = make_scalar4(pos_x(mt), pos_y(mt), pos_z(mt), __int_as_scalar(0));
+        h_vel.data[i] = make_scalar4(vel(mt), vel(mt), vel(mt), __int_as_scalar(mpcd::detail::NO_CELL));
+        h_tag.data[i] = tag_start + i;
+        }
     }
 
 /*!
@@ -1048,6 +1090,22 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
     invalidateCellCache();
     }
 #endif // ENABLE_CUDA
+
+void mpcd::ParticleData::setupMPI(std::shared_ptr<DomainDecomposition> decomposition)
+    {
+    // set domain decomposition
+    if (decomposition)
+        m_decomposition = decomposition;
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_mark_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_mark", m_exec_conf));
+        m_remove_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_remove", m_exec_conf));
+        m_add_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_pdata_add", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
+    }
 #endif // ENABLE_MPI
 
 /*!
@@ -1056,8 +1114,8 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
 void mpcd::detail::export_ParticleData(pybind11::module& m)
     {
     pybind11::class_< mpcd::ParticleData, std::shared_ptr<mpcd::ParticleData> >(m, "MPCDParticleData")
-    .def(pybind11::init< unsigned int, unsigned int, const BoxDim&, std::shared_ptr<ExecutionConfiguration> >())
-    .def(pybind11::init< unsigned int, unsigned int, const BoxDim&, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
+    .def(pybind11::init< unsigned int, const BoxDim&, Scalar, unsigned int, std::shared_ptr<ExecutionConfiguration> >())
+    .def(pybind11::init< unsigned int, const BoxDim&, Scalar, unsigned int, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
     .def(pybind11::init< mpcd::ParticleDataSnapshot&, const BoxDim&, std::shared_ptr<ExecutionConfiguration> >())
     .def(pybind11::init< mpcd::ParticleDataSnapshot&, const BoxDim&, std::shared_ptr<ExecutionConfiguration>, std::shared_ptr<DomainDecomposition> >())
     .def_property_readonly("N", &mpcd::ParticleData::getN)
