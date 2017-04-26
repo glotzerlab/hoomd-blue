@@ -107,6 +107,7 @@ following particle properties are recorded:
 import hoomd
 from hoomd import _hoomd
 from . import _mpcd
+from . import update
 
 class snapshot(hoomd.meta._metadata):
     R""" MPCD system snapshot
@@ -205,8 +206,10 @@ class system(hoomd.meta._metadata):
         else:
             self.comm = None
 
-        # no sorter by default
         self.sorter = None
+        hoomd.util.quiet_status()
+        self.sorter = update.sort(self)
+        hoomd.util.unquiet_status()
 
         # no collision rule by default
         self._collide = None

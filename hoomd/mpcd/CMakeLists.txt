@@ -12,6 +12,7 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    Sorter.cc
     SRDCollisionMethod.cc
     StreamingMethod.cc
     SystemData.cc
@@ -29,6 +30,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    Sorter.h
     SRDCollisionMethod.h
     StreamingMethod.h
     SystemData.h
@@ -40,6 +42,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SorterGPU.cc
     SRDCollisionMethodGPU.cc
     StreamingMethodGPU.cc
     )
@@ -52,6 +55,8 @@ list(APPEND _mpcd_headers
     CommunicatorGPU.cuh
     CommunicatorGPU.h
     ParticleData.cuh
+    SorterGPU.cuh
+    SorterGPU.h
     SRDCollisionMethodGPU.cuh
     SRDCollisionMethodGPU.h
     StreamingMethodGPU.cuh
@@ -65,6 +70,7 @@ set(_mpcd_cu_sources
     CellListGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    SorterGPU.cu
     SRDCollisionMethodGPU.cu
     StreamingMethodGPU.cu
     )
@@ -127,6 +133,7 @@ set(files
     data.py
     init.py
     integrate.py
+    update.py
     )
 
 install(FILES ${files}

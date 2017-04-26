@@ -6,6 +6,10 @@
 // particle data
 #include "ParticleData.h"
 #include "ParticleDataSnapshot.h"
+#include "Sorter.h"
+#ifdef ENABLE_CUDA
+#include "SorterGPU.h"
+#endif // ENABLE_CUDA
 #include "SystemData.h"
 #include "SystemDataSnapshot.h"
 
@@ -86,6 +90,10 @@ PYBIND11_PLUGIN(_mpcd)
 
     mpcd::detail::export_ParticleData(m);
     mpcd::detail::export_ParticleDataSnapshot(m);
+    mpcd::detail::export_Sorter(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_SorterGPU(m);
+    #endif // ENABLE_CUDA
     mpcd::detail::export_SystemData(m);
     mpcd::detail::export_SystemDataSnapshot(m);
 

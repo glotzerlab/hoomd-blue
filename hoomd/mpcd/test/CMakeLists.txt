@@ -6,6 +6,7 @@ if (BUILD_TESTING)
 set(TEST_LIST
     cell_list
     cell_thermo_compute
+    sorter
     srd_collision_method
     streaming_method
     )

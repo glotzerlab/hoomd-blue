@@ -23,6 +23,7 @@ from hoomd.mpcd import collide
 from hoomd.mpcd import data
 from hoomd.mpcd import init
 from hoomd.mpcd import integrate
+from hoomd.mpcd import update
 
 # pull the integrator into the main module namespace for convenience
 # (we want to type mpcd.integrator not mpcd.integrate.integrator)

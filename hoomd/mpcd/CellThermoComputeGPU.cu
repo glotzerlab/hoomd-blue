@@ -15,7 +15,7 @@
 #include "CellCommunicator.cuh"
 #include "ReductionOperators.h"
 
-#include "hoomd/extern/cub/device/device_reduce.cuh"
+#include "hoomd/extern/cub/cub/device/device_reduce.cuh"
 
 namespace mpcd
 {

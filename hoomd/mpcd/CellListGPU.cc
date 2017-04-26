@@ -16,6 +16,7 @@ mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
         : mpcd::CellList(sysdef, mpcd_pdata), m_migrate_flag(m_exec_conf)
     {
     m_tuner_cell.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell", m_exec_conf));
+    m_tuner_sort.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_sort", m_exec_conf));
     m_tuner_embed_migrate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
     }
 
@@ -99,6 +100,34 @@ void mpcd::CellListGPU::buildCellList()
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         m_tuner_cell->end();
         }
+    }
+
+/*!
+ * \param timestep Timestep that the sorting occurred
+ * \param order Mapping of sorted particle indexes onto old particle indexes
+ * \param rorder Mapping of old particle indexes onto sorted particle indexes
+ */
+void mpcd::CellListGPU::sort(unsigned int timestep,
+                             const GPUArray<unsigned int>& order,
+                             const GPUArray<unsigned int>& rorder)
+    {
+    // no need to do any sorting if we can still be called at the current timestep
+    if (peekCompute(timestep)) return;
+
+    // iterate through particles in cell list, and update their indexes using reverse mapping
+    ArrayHandle<unsigned int> d_cell_list(m_cell_list, access_location::device, access_mode::readwrite);
+    ArrayHandle<unsigned int> d_rorder(rorder, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cell_np(m_cell_np, access_location::device, access_mode::read);
+
+    m_tuner_sort->begin();
+    mpcd::gpu::cell_apply_sort(d_cell_list.data,
+                               d_rorder.data,
+                               d_cell_np.data,
+                               m_cell_list_indexer,
+                               m_mpcd_pdata->getN(),
+                               m_tuner_sort->getParam());
+    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+    m_tuner_sort->end();
     }
 
 #ifdef ENABLE_MPI
