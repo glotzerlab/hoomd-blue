@@ -179,7 +179,6 @@ class Communicator
         GPUVector<mpcd::detail::pdata_element> m_sendbuf;   //!< Buffer for particles that are sent
         GPUVector<mpcd::detail::pdata_element> m_recvbuf;   //!< Buffer for particles that are received
         std::vector<MPI_Request> m_reqs;    //!< MPI requests
-        std::vector<MPI_Status> m_stats;    //!< MPI statuses
 
     private:
         //! Notify communicator that box has changed and so decomposition needs to be checked
