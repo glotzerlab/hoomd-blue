@@ -57,9 +57,9 @@ if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/ce
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h
     )
   message(FATAL_ERROR "Submodules not found. If this is a git clone, execute `git submodule update --init`."
-                      "in the source directory to provide them. If this is not a git clone, you must manually"
-                      "download all the required submodules and extract them in the proper location in"
-                      "`hoomd/extern`")
+                      " in the source directory to provide them. If this is not a git clone, you must manually"
+                      " download all the required submodules and extract them in the proper location in"
+                      " `hoomd/extern`")
 endif()
 
 find_package(libgetar)
