@@ -75,12 +75,6 @@ if (ENABLE_EMBED_CUDA)
     install(PROGRAMS ${_cuda_libs} DESTINATION ${PYTHON_MODULE_BASE_DIR})
 endif ()
 
-    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        # clang does not seem to work with host flag passing
-        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
-    endif()
-
 endif (ENABLE_CUDA)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version

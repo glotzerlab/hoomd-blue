@@ -12,7 +12,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.1.0)
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     # findcuda needs to be told explicitly to use c++11 as CMAKE_CXX_STANDARD does not modify CMAKE_CXX_FLAGS
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
 else()
     # manually enable flags
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -30,9 +30,4 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wno-deprecated-declarations")
     set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
-
-    # quiet some annoying warnings on apple clang
-    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" AND APPLE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c++14-extensions")
-    endif()
 endif()
