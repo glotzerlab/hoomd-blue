@@ -27,4 +27,4 @@ from hoomd.mpcd import update
 
 # pull the integrator into the main module namespace for convenience
 # (we want to type mpcd.integrator not mpcd.integrate.integrator)
-from integrate import integrator
+from hoomd.mpcd.integrate import integrator
