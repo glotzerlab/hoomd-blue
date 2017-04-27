@@ -281,7 +281,6 @@ void mpcd::Communicator::migrateParticles()
                 }
             }
 
-
         // communicate size of the message that will contain the particle data
         unsigned int n_recv_left, n_recv_right;
         if (left_neigh != right_neigh)
@@ -321,7 +320,7 @@ void mpcd::Communicator::migrateParticles()
                 }
             if (n_recv_right != 0)
                 {
-                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
                 }
             if (n_recv_left != 0)
                 {
