@@ -78,7 +78,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         # reap all of the particle data into checkable list sorted by tag
         dat = []
-        for i in xrange(0,pdata.N):
+        for i in range(0,pdata.N):
             pos_i = pdata.getPosition(i)
             vel_i = pdata.getVelocity(i)
             type_i = pdata.getType(i)
@@ -167,7 +167,7 @@ class mpcd_snapshot(unittest.TestCase):
 
         # reap all of the particle data into checkable list sorted by tag
         dat = []
-        for i in xrange(0,pdata.N):
+        for i in range(0,pdata.N):
             pos_i = pdata.getPosition(i)
             vel_i = pdata.getVelocity(i)
             type_i = pdata.getType(i)
@@ -270,9 +270,9 @@ class mpcd_snapshot(unittest.TestCase):
         pos1 = []
         vel1 = []
         typeid1 = []
-        for i in xrange(0,nx):
-            for j in xrange(0,ny):
-                for k in xrange(0,nz):
+        for i in range(0,nx):
+            for j in range(0,ny):
+                for k in range(0,nz):
                     for r,v,tid in zip(pos0, vel0, typeid0):
                         dr = np.array([i*L, j*L, k*L])
                         pos1 += [list(r + dr - 0.5*L)]
