@@ -744,9 +744,11 @@ bool mpcd::CellList::checkConditions()
         m_exec_conf->msg->error() << "x: "<<pos.x<<" y: "<<pos.y<<" z: "<<pos.z<<std::endl;
         m_exec_conf->msg->error() << "Grid shift: " << std::endl;
         m_exec_conf->msg->error() << "x: "<<m_grid_shift.x<<" y: "<<m_grid_shift.y<<" z: "<<m_grid_shift.z<<std::endl;
-        Scalar3 lo = m_cover_box.getLo();
-        Scalar3 hi = m_cover_box.getHi();
-        uchar3 periodic = m_cover_box.getPeriodic();
+
+        const BoxDim& cover_box = getCoverageBox();
+        Scalar3 lo = cover_box.getLo();
+        Scalar3 hi = cover_box.getHi();
+        uchar3 periodic = cover_box.getPeriodic();
         m_exec_conf->msg->error() << "Covered box lo: (" << lo.x << ", " << lo.y << ", " << lo.z << ")" << std::endl;
         m_exec_conf->msg->error() << "            hi: (" << hi.x << ", " << hi.y << ", " << hi.z << ")" << std::endl;
         m_exec_conf->msg->error() << "      periodic: (" << ((periodic.x) ? "1" : "0") << " " << ((periodic.y) ? "1" : "0") << " " << ((periodic.z) ? "1" : "0") << ")" << std::endl;

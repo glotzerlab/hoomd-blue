@@ -13,11 +13,17 @@
 
 mpcd::CellListGPU::CellListGPU(std::shared_ptr<SystemDefinition> sysdef,
                                std::shared_ptr<mpcd::ParticleData> mpcd_pdata)
-        : mpcd::CellList(sysdef, mpcd_pdata), m_migrate_flag(m_exec_conf)
+        : mpcd::CellList(sysdef, mpcd_pdata)
     {
     m_tuner_cell.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell", m_exec_conf));
     m_tuner_sort.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_sort", m_exec_conf));
+
+    #ifdef ENABLE_MPI
     m_tuner_embed_migrate.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_embed_migrate", m_exec_conf));
+
+    GPUFlags<unsigned int> migrate_flag(m_exec_conf);
+    m_migrate_flag.swap(migrate_flag);
+    #endif // ENABLE_MPI
     }
 
 mpcd::CellListGPU::~CellListGPU()
