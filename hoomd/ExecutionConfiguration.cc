@@ -48,7 +48,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
                                                unsigned int n_ranks)
-    : m_cuda_error_checking(false), msg(_msg)
+    : m_cuda_error_checking(false), msg(_msg), m_gpu_id(-1)
     {
     if (!msg)
         msg = std::shared_ptr<Messenger>(new Messenger());
@@ -346,6 +346,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
+
+    cudaGetDevice(&m_gpu_id);
 
     cudaError_t err_sync = cudaGetLastError();
     handleCUDAError(err_sync, __FILE__, __LINE__);
