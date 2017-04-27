@@ -252,6 +252,9 @@ class IntegratorHPMC : public Integrator
 
         ExternalField* getExternalField() { return m_external_base; }
 
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic) {};
+
     protected:
         unsigned int m_seed;                        //!< Random number seed
         unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)

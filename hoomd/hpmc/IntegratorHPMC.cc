@@ -320,6 +320,7 @@ void export_IntegratorHPMC(py::module& m)
     .def("getCounters", &IntegratorHPMC::getCounters)
     .def("communicate", &IntegratorHPMC::communicate)
     .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
+    .def("setDeterministic", &IntegratorHPMC::setDeterministic)
     ;
 
    py::class_< hpmc_counters_t >(m, "hpmc_counters_t")
