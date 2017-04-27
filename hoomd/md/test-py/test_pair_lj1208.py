@@ -90,6 +90,38 @@ class pair_lj1208_tests (unittest.TestCase):
         lj1208.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0)
         lj1208.update_coeffs();
 
+    # test value of the pair potential (adapted from test_special_pair_lj.py)
+    def test_pair_lj1208_value(self):
+        snap = data.make_snapshot(N=3,
+                                  box=data.boxdim(L=100),
+                                  particle_types = ['A'],
+                                  pair_types = [],
+                                  angle_types = [],
+                                  dihedral_types = [],
+                                  improper_types = [])
+
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0, 0, 0)
+            snap.particles.position[1] = (1.5, 0, 0)
+            snap.particles.position[2] = (-0.75, 0, 0)
+
+        self.s.restore_snapshot(snap)
+
+        lj1208 = md.pair.lj1208();
+        lj1208.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=3.0)
+        all = group.all();
+        md.integrate.mode_standard(dt=0);
+        md.integrate.nve(all);
+        run(1)
+
+        # U =4 * epsilon [(sigma / r)^12 - (sigma / r)^8]
+        # sum(U(i=0)) = U(i=0, j=1) + U(i=0, j=2)
+        # sum(U(i=1)) = U(i=1, j=0) + U(i=1, j=2)
+        # sum(U(i=2)) = U(i=2, j=0) + U(i=2, j=1)
+        self.assertAlmostEqual(lj1208.forces[0].energy, -0.125244 + 86.322282, 3)
+        self.assertAlmostEqual(lj1208.forces[1].energy, -0.125244 - 0.005852, 3)
+        self.assertAlmostEqual(lj1208.forces[2].energy, 86.322282 - 0.005852, 3)
+
     def tearDown(self):
         del self.s, self.nl
         context.initialize();
