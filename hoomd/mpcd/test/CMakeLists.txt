@@ -36,8 +36,6 @@ macro(compile_test TEST_EXE TEST_SRC)
 
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
-
-    # only add to test_all if BUILD_TESTING is enabled
     add_dependencies(test_all ${TEST_EXE})
     target_link_libraries(${TEST_EXE} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${TEST_EXE})
