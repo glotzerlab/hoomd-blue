@@ -38,10 +38,7 @@ macro(compile_test TEST_EXE TEST_SRC)
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
 
     # only add to test_all if BUILD_TESTING is enabled
-    if (BUILD_TESTING)
     add_dependencies(test_all ${TEST_EXE})
-    endif()
-
     target_link_libraries(${TEST_EXE} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${TEST_EXE})
 
