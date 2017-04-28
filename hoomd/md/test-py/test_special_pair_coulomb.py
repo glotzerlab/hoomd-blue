@@ -91,9 +91,11 @@ class special_pair_coulomb_tests (unittest.TestCase):
         md.integrate.nve(all);
         run(1)
 
-        self.assertAlmostEqual(coulomb.forces[0].energy, -0.5*.320337,3)
-        self.assertAlmostEqual(coulomb.forces[1].energy, -0.5*.320337-0.5*1.9756,3)
-        self.assertAlmostEqual(coulomb.forces[2].energy, -0.5*1.9756,3)
+        # Should be zero due to distance > r_cut
+        self.assertAlmostEqual(coulomb.forces[0].energy, 0.0, 3)
+        # Should be non-zero
+        self.assertAlmostEqual(coulomb.forces[1].energy, -0.5*.320337-0.5*1.9756, 3)
+        self.assertAlmostEqual(coulomb.forces[2].energy, -0.5*1.9756, 3)
 
     def tearDown(self):
         del self.s
