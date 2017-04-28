@@ -10,7 +10,7 @@ import os
 # tests md.special_pair.coulomb
 class special_pair_coulomb_tests (unittest.TestCase):
     def setUp(self):
-        snap = data.make_snapshot(N=3,
+        snap = data.make_snapshot(N=4,
                                   box=data.boxdim(L=100),
                                   particle_types = ['A'],
                                   pair_types = ['pairtype_1','pairtype_2','pairtype_3'],
