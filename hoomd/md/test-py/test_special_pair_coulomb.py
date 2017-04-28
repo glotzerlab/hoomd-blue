@@ -44,7 +44,7 @@ class special_pair_coulomb_tests (unittest.TestCase):
     # test setting coefficients
     def test_set_coeff(self):
         coulomb = md.special_pair.coulomb();
-        coulomb.pair_coeff.set('pairtype_1', alpha=0.5, epsilon=1.0, r_cut=3.0)
+        coulomb.pair_coeff.set('pairtype_1', alpha=0.5, r_cut=3.0)
         coulomb.pair_coeff.set('pairtype_2', alpha=0.5, r_cut=5.0)
         coulomb.pair_coeff.set('pairtype_3', alpha=0.5, r_cut=5.0)
         all = group.all();
