@@ -221,6 +221,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
     int nr = eam_data_ti.nr;
     Scalar rdr = eam_data_ti.rdr;
     Scalar r_cutsq = eam_data_ti.r_cutsq;
+    Scalar d_dFdPidx = texFetchScalar(d_dFdP, tex_dFdP, idx);
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
 		cur_neigh = next_neigh;
@@ -276,8 +277,9 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		dv = texFetchScalar4(d_drho, tex_drho, idxs);
 		Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
 
-        Scalar fullDerivativePhi = d_dFdP[idx] * derivativeRhoJ +
-                                   d_dFdP[cur_neigh] * derivativeRhoI + derivativePhi;
+        Scalar d_dFdPcur = texFetchScalar(d_dFdP, tex_dFdP, cur_neigh);
+        Scalar fullDerivativePhi = d_dFdPidx * derivativeRhoJ +
+                                   d_dFdPcur * derivativeRhoI + derivativePhi;
 
 		pairForce = - fullDerivativePhi * inverseR;
 		Scalar pairForceover2 = Scalar(0.5) *pairForce;
