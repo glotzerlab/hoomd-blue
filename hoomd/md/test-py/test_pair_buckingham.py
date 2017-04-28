@@ -19,25 +19,25 @@ class pair_buckingham_tests (unittest.TestCase):
     # basic test of creation
     def test(self):
         buckingham = md.pair.buckingham(r_cut=3.0, nlist = self.nl);
-        buckingham.pair_coeff.set('A', 'A', A=1.0, rho=1.0, C=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
+        buckingham.pair_coeff.set('A', 'A', A=1.0, rho=1.0, C=1.0, r_cut=2.5, r_on=2.0);
         buckingham.update_coeffs();
 
     # test missing coefficients
     def test_set_missing_A(self):
         buckingham = md.pair.buckingham(r_cut=3.0, nlist = self.nl);
-        buckingham.pair_coeff.set('A', 'A', rho=1.0, C=1.0, alpha=1.0);
+        buckingham.pair_coeff.set('A', 'A', rho=1.0, C=1.0);
         self.assertRaises(RuntimeError, buckingham.update_coeffs);
 
     # test missing coefficients
     def test_set_missing_rho(self):
         buckingham = md.pair.buckingham(r_cut=3.0, nlist = self.nl);
-        buckingham.pair_coeff.set('A', 'A', A=1.0, C=1.0, alpha=1.0);
+        buckingham.pair_coeff.set('A', 'A', A=1.0, C=1.0);
         self.assertRaises(RuntimeError, buckingham.update_coeffs);
 
     # test missing coefficients
     def test_set_missing_C(self):
         buckingham = md.pair.buckingham(r_cut=3.0, nlist = self.nl);
-        buckingham.pair_coeff.set('A', 'A', A=1.0, rho=1.0, alpha=1.0);
+        buckingham.pair_coeff.set('A', 'A', A=1.0, rho=1.0);
         self.assertRaises(RuntimeError, buckingham.update_coeffs);
 
     # test missing coefficients
@@ -83,7 +83,7 @@ class pair_buckingham_tests (unittest.TestCase):
     # test coeff list
     def test_coeff_list(self):
         buckingham = md.pair.buckingham(r_cut=3.0, nlist = self.nl);
-        buckingham.pair_coeff.set(['A', 'B'], ['A', 'C'], A=1.0, rho=1.0, C=1.0, alpha=1.0, r_cut=2.5, r_on=2.0);
+        buckingham.pair_coeff.set(['A', 'B'], ['A', 'C'], A=1.0, rho=1.0, C=1.0, r_cut=2.5, r_on=2.0);
         buckingham.update_coeffs();
 
     # test adding types
