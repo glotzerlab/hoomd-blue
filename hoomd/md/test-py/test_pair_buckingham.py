@@ -120,13 +120,9 @@ class pair_buckingham_tests (unittest.TestCase):
         md.integrate.nve(all);
         run(1)
 
-        # U =4 * epsilon [(sigma / r)^12 - (sigma / r)^8]
-        # sum(U(i=0)) = U(i=0, j=1) + U(i=0, j=2)
-        # sum(U(i=1)) = U(i=1, j=0) + U(i=1, j=2)
-        # sum(U(i=2)) = U(i=2, j=0) + U(i=2, j=1)
-        self.assertAlmostEqual(buckingham.forces[0].energy, 0.5 * (1.541833 + 15.317146), 3)
-        self.assertAlmostEqual(buckingham.forces[1].energy, 0.5 * (1.541833 - 2.092670), 3)
-        self.assertAlmostEqual(buckingham.forces[2].energy, 0.5 * (15.317146 - 2.092670), 3)
+        self.assertAlmostEqual(buckingham.forces[0].energy, 0.5 * (7.330585 - 27.536077), 3)
+        self.assertAlmostEqual(buckingham.forces[1].energy, 0.5 * (7.330585 + 2.274701), 3)
+        self.assertAlmostEqual(buckingham.forces[2].energy, 0.5 * (2.274701 - 27.536077), 3)
 
     def tearDown(self):
         del self.s, self.nl
