@@ -48,7 +48,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
                                                unsigned int n_ranks)
-    : m_cuda_error_checking(false), msg(_msg), m_gpu_id(-1)
+    : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
         msg = std::shared_ptr<Messenger>(new Messenger());
@@ -59,6 +59,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     m_rank = 0;
 
 #ifdef ENABLE_CUDA
+    m_gpu_id = -1;
+
     // scan the available GPUs
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
