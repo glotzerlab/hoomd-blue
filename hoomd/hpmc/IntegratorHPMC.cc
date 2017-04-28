@@ -26,6 +26,12 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
+
     GPUArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
 

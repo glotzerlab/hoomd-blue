@@ -40,6 +40,12 @@ class UpdaterExternalFieldWall : public Updater
                       Scalar move_ratio,
                       unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
                       {
+                      // broadcast the seed from rank 0 to all other ranks.
+                      #ifdef ENABLE_MPI
+                          if(this->m_pdata->getDomainDecomposition())
+                              bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+                      #endif
+
                       // set m_count_total, m_count_accepted equal to zero
                       m_count_total_rel = 0;
                       m_count_total_tot = 0;

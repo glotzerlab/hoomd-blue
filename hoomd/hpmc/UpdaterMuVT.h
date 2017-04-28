@@ -256,6 +256,12 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_move_ratio(0.5), m_transfer_ratio(1.0), m_gibbs_other(0)
     {
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
+
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
