@@ -107,7 +107,7 @@ class pair_lj1208_tests (unittest.TestCase):
 
         self.s.restore_snapshot(snap)
 
-        lj1208 = md.pair.lj1208();
+        lj1208 = md.pair.lj1208(r_cut=3.0, nlist = self.nl);
         lj1208.pair_coeff.set('A', 'A', sigma=1.0, epsilon=1.0, r_cut=3.0)
         all = group.all();
         md.integrate.mode_standard(dt=0);
@@ -118,9 +118,9 @@ class pair_lj1208_tests (unittest.TestCase):
         # sum(U(i=0)) = U(i=0, j=1) + U(i=0, j=2)
         # sum(U(i=1)) = U(i=1, j=0) + U(i=1, j=2)
         # sum(U(i=2)) = U(i=2, j=0) + U(i=2, j=1)
-        self.assertAlmostEqual(lj1208.forces[0].energy, -0.125244 + 86.322282, 3)
-        self.assertAlmostEqual(lj1208.forces[1].energy, -0.125244 - 0.005852, 3)
-        self.assertAlmostEqual(lj1208.forces[2].energy, 86.322282 - 0.005852, 3)
+        self.assertAlmostEqual(lj1208.forces[0].energy, 0.5 * (-0.125244 + 86.322282), 3)
+        self.assertAlmostEqual(lj1208.forces[1].energy, 0.5 * (-0.125244 - 0.005852), 3)
+        self.assertAlmostEqual(lj1208.forces[2].energy, 0.5 * (86.322282 - 0.005852), 3)
 
     def tearDown(self):
         del self.s, self.nl
