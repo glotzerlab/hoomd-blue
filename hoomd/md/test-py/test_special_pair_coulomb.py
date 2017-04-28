@@ -24,10 +24,10 @@ class special_pair_coulomb_tests (unittest.TestCase):
             snap.particles.position[1] = (0, 0, 3.5)
             snap.particles.position[2] = (-0.5 , 0, 0)
             snap.particles.position[3] = (0 , 2.5, 0)
-            snap.charge[0] = 1.0
-            snap.charge[1] = -3.0
-            snap.charge[2] = 2.5
-            snap.charge[3] = -7.0
+            snap.particles.charge[0] = 1.0
+            snap.particles.charge[1] = -3.0
+            snap.particles.charge[2] = 2.5
+            snap.particles.charge[3] = -7.0
             snap.pairs.group[0] = [0, 1]
             snap.pairs.group[1] = [2, 3]
             snap.pairs.group[2] = [1, 2]
