@@ -63,7 +63,8 @@ cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
                               const Scalar mpcd_mass,
                               const Scalar4 *d_embed_vel,
                               const unsigned int *d_embed_cell,
-                              const unsigned int block_size);
+                              const unsigned int block_size,
+                              const unsigned int tpp);
 
 //! Kernel driver to finalize cell thermo compute
 cudaError_t end_cell_thermo(Scalar4 *d_cell_vel,
