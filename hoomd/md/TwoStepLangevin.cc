@@ -249,6 +249,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma_r(m_gamma_r, access_location::host, access_mode::read);
@@ -261,8 +262,6 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     // grab some initial variables
     const Scalar currentTemp = m_T->getValue(timestep);
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
-    // initialize the RNG
-    Saru saru(m_seed, timestep);
 
     // energy transferred over this time step
     Scalar bd_energy_transfer = 0;
@@ -272,6 +271,10 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
+        unsigned int ptag = h_tag.data[j];
+
+        // Initialize the RNG
+        Saru saru(ptag, timestep + m_seed);
 
         // first, calculate the BD forces
         // Generate three random numbers

@@ -1331,6 +1331,8 @@ class dpd(pair):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 

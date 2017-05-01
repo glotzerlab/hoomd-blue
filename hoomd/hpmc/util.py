@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" HPMC utilities
@@ -605,34 +605,27 @@ class snapshot:
 class tune(object):
     R""" Tune mc parameters.
 
+    ``hoomd.hpmc.util.tune`` provides a general tool to observe Monte Carlo move
+    acceptance rates and adjust the move sizes when called by a user script. By
+    default, it understands how to read and adjust the trial move domain for
+    translation moves and rotation moves for an ``hpmc.integrate`` instance.
+    Other move types for integrators or updaters can be handled with a customized
+    tunable map passed when creating the tuner or in a subclass definition. E.g.
+    see use an implementation of :py:class:`.tune_npt`
+
     Args:
-        obj: HPMC integrator/updater instance
-        tunables (list): list of parameters to tune
+        obj: HPMC Integrator or Updater instance
+        tunables (list): list of strings naming parameters to tune. By default,
+            allowed element values are 'd' and 'a'.
+        max_val (list): maximum allowed values for corresponding tunables
         target (float): desired acceptance rate
-        max_val (float): maximum allowed values for corresponding tunables
         max_scale (float): maximum amount to scale a parameter in a single update
         gamma (float): damping factor (>= 0.0) to keep from scaling parameter values too fast
-        type (str): Type name to tune move sizes for
+        type (str): Name of a single hoomd particle type for which to tune move sizes.
+            If None (default), all types are tuned with the same statistics.
         tunable_map (dict): For each tunable, provide a dictionary of values and methods to be used by the tuner (see below)
         args: Additional positional arguments
         kwargs: Additional keyword arguments
-
-    You should run enough steps to get good statistics for the acceptance ratios. 10,000 trial moves
-    seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
-    For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
-    of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
-
-    Default tunable_maps are provided but can be modified or extended by setting
-    the following dictionary key/value pairs in the entry for tunable.
-
-    * maximum (float): maximum value of tunable
-    * get (lambda): function to call to retrieve curent tunable value
-    * acceptance (lambda): function to call to get relevant accemptance rate
-    * set (lambda x): function to call to set new value (optional). If not provided,
-      obj.set_params(tunable=x) will be called to set the new value.
-
-    Note:
-        There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
 
     Example::
 
@@ -643,9 +636,54 @@ class tune(object):
             run(1e4)
             tuner.update()
 
+    Note:
+        You should run enough steps to get good statistics for the acceptance ratios. 10,000 trial moves
+        seems like a good number. E.g. for 10,000 or more particles, tuning after a single timestep should be fine.
+        For npt moves made once per timestep, tuning as frequently as 1,000 timesteps could get a rough convergence
+        of acceptance ratios, which is probably good enough since we don't really know the optimal acceptance ratio, anyway.
+
+    Warning:
+        There are some sanity checks that are not performed. For example, you shouldn't try to scale 'd' in a single particle simulation.
+
+    Details:
+
+    If ``gamma == 0``, each call to :py:meth:`.update` rescales the current
+    value of the tunable\(s\) by the ratio of the observed acceptance rate to the
+    target value. For ``gamma > 0``, the scale factor is the reciprocal of
+    a weighted mean of the above ratio with 1, according to
+
+        scale = (1.0 + gamma) / (target/acceptance + gamma)
+
+    The names in ``tunables`` must match one of the keys in ``tunable_map``,
+    which in turn correspond to the keyword parameters of the MC object being
+    updated.
+
+    ``tunable_map`` is a :py:class:`dict` of :py:class:`dict`. The keys of the
+    outer :py:class:`dict` are strings that can be specified in the ``tunables``
+    parameter. The value of this outer :py:class:`dict` is another :py:class:`dict`
+    with the following four keys: 'get', 'acceptance', 'set', and 'maximum'.
+
+    A default ``tunable_map`` is provided but can be modified or extended by setting
+    the following dictionary key/value pairs in the entry for tunable.
+
+    * get (:py:obj:`callable`): function called by tuner (no arguments) to retrieve curent tunable value
+    * acceptance (:py:obj:`callable`): function called by tuner (no arguments) to get relevant acceptance rate
+    * set (:py:obj:`callable`): function to call to set new value (optional). Must take one argument (the new value).
+      If not provided, ``obj.set_params(tunable=x)`` will be called to set the new value.
+    * maximum (:py:class:`float`): maximum value the tuner may set for the tunable parameter
+
+    The default ``tunable_map`` defines the :py:obj:`callable` for 'set' to call
+    :py:meth:`hoomd.hpmc.integrate.mode_hpmc.set_params` with ``tunable={type: newval}``
+    instead of ``tunable=newval`` if the ``type`` argument is given when creating
+    the ``tune`` object.
+
     """
     def __init__(self, obj=None, tunables=[], max_val=[], target=0.2, max_scale=2.0, gamma=2.0, type=None, tunable_map=None, *args, **kwargs):
         hoomd.util.quiet_status()
+
+        # The *args and **kwargs parameters allow derived tuners to be sloppy
+        # with forwarding initialization, but that is not a good excuse and
+        # makes it harder to catch usage errors. They should probably be depracated...
 
         # Ensure that max_val conforms to the tunable list provided
         max_val_length = len(max_val)
@@ -745,16 +783,35 @@ class tune(object):
         hoomd.util.unquiet_status();
 
 class tune_npt(tune):
-    R""" Tune the HPMC NPT Updater.
+    R""" Tune the HPMC :py:class:`hoomd.hpmc.update.boxmc` using :py:class:`.tune`.
+
+    This is a thin wrapper to ``tune`` that simply defines an alternative
+    ``tunable_map`` dictionary. In this case, the ``obj`` argument must be an instance of 
+    :py:class:`hoomd.hpmc.update.boxmc`. Several tunables are defined. 
+
+    'dLx', 'dLy', and 'dLz' use the acceptance rate of volume moves to set
+    ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to :py:meth:`hoomd.hpmc.update.boxmc.length`.
+
+    'dV' uses the volume acceptance to call :py:meth:`hoomd.hpmc.update.boxmc.volume`.
+
+    'dxy', 'dxz', and 'dyz' tunables use the shear acceptance to set
+    ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to 
+    :py:meth:`hoomd.hpmc.update.boxmc.shear`.
+
+    Refer to the documentation for :py:class:`hoomd.hpmc.update.boxmc` for
+    information on how these parameters are used, since they are not all
+    applicable for a given use of ``boxmc``.
 
     Note:
-        A bigger gamma is necessary because there are multiple parameters affecting each acceptance rate.
+        A bigger damping factor gamma may be appropriate for tuning box volume
+        changes because there may be multiple parameters affecting each acceptance rate.
 
     Example::
 
         mc = hpmc.integrate.convex_polyhedron()
         mc.set_params(d=0.01, a=0.01, move_ratio=0.5)
-        updater = hpmc.update.npt(mc, betaP=10, length_delta=0.1)
+        updater = hpmc.update.boxmc(mc, betaP=10)
+        updater.length(0.1, weight=1)
         tuner = hpmc.util.tune_npt(updater, tunables=['dLx', 'dLy', 'dLz'], target=0.3, gamma=1.0)
         for i in range(10):
             run(1e4)
