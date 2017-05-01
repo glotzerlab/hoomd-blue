@@ -33,9 +33,19 @@ UP_TEST( construction )
     data.diameter[0] = 2.0;
     data.diameter[1] = -2.2;
     data.diameter[2] = -2.2;
+    data.diameter[3] = 0;
+    data.diameter[4] = 0;
+    data.diameter[5] = 0;
+    data.diameter[6] = 0;
+    data.diameter[7] = 0;
     data.center[0] = vec3<Scalar>(0.0,0.0,0.0);
     data.center[1] = vec3<Scalar>(0.0,0.0,1.15);
     data.center[2] = vec3<Scalar>(0,0,-1.15);
+    data.center[3] = vec3<Scalar>(0.0,0.0,0.0);
+    data.center[4] = vec3<Scalar>(0.0,0.0,0.0);
+    data.center[5] = vec3<Scalar>(0.0,0.0,0.0);
+    data.center[6] = vec3<Scalar>(0.0,0.0,0.0);
+    data.center[7] = vec3<Scalar>(0.0,0.0,0.0);
 
     data.circumsphereDiameter = 2.0;
     data.ignore = 0;
