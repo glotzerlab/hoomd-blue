@@ -601,10 +601,10 @@ class nph(npt):
     For further information, refer to the documentation of :py:class:`npt`.
 
     Note:
-         A time scale *tau_p* for the relaxation of the barostat is required. This is defined as the
+         A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
          relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
          is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tau_p^2`, where :math:`d` is the dimensionality and :math:`N` the number
+         :math:`W=d N T_0 \tauP^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
     :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.
@@ -612,9 +612,9 @@ class nph(npt):
     Examples::
 
         # Triclinic unit cell
-        nph=integrate.nph(group=all, P=2.0, tau_p=1.0, couple="none", all=True)
+        nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
         # Cubic unit cell
-        nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
+        nph = integrate.nph(group=all, P=2.0, tauP=1.0)
     """
     def __init__(self, **params):
         hoomd.util.print_status_line();
