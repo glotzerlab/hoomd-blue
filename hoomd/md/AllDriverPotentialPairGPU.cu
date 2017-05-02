@@ -23,6 +23,7 @@
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairLJ1208.h"
 #include "EvaluatorPairBuckingham.h"
 
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
@@ -132,6 +133,13 @@ cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
     {
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,
                                                      d_params);
+    }
+
+cudaError_t gpu_compute_lj1208_forces(const pair_args_t& pair_args,
+                                      const Scalar2 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairLJ1208>(pair_args,
+                                                    d_params);
     }
 
 cudaError_t gpu_compute_buckingham_forces(const pair_args_t & args,

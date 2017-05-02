@@ -23,6 +23,7 @@
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairReactionField.h"
 #include "EvaluatorPairBuckingham.h"
+#include "EvaluatorPairLJ1208.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -71,6 +72,8 @@ typedef PotentialPair<EvaluatorPairMie> PotentialPairMie;
 typedef PotentialPair<EvaluatorPairReactionField> PotentialPairReactionField;
 //! Pair potential force compute for Buckingham forces
 typedef PotentialPair<EvaluatorPairBuckingham> PotentialPairBuckingham;
+//! Pair potential force compute for lj1208 forces
+typedef PotentialPair<EvaluatorPairLJ1208> PotentialPairLJ1208;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
@@ -105,6 +108,8 @@ typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPair
 typedef PotentialPairGPU< EvaluatorPairReactionField, gpu_compute_reaction_field_forces > PotentialPairReactionFieldGPU;
 //! Pair potential force compute for Buckingham forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairBuckingham, gpu_compute_buckingham_forces > PotentialPairBuckinghamGPU;
+//! Pair potential force compute for lj1208 forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairLJ1208, gpu_compute_lj1208_forces > PotentialPairLJ1208GPU;
 
 #endif
 
