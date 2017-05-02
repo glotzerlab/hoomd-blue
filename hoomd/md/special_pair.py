@@ -399,5 +399,6 @@ class coulomb(_special_pair):
         r_cut = coeff['r_cut'];
         alpha = coeff['alpha'];
 
-        return _hoomd.make_scalar2(alpha, r_cut*r_cut);
+        r_cut_squared = r_cut * r_cut;
+        return _hoomd.make_scalar2(alpha, r_cut_squared);
 
