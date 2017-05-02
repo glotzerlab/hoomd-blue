@@ -94,8 +94,9 @@ class special_pair_coulomb_tests (unittest.TestCase):
         # Should be zero due to distance > r_cut
         self.assertAlmostEqual(coulomb.forces[0].energy, 0.0, 3)
         # Should be non-zero
-        self.assertAlmostEqual(coulomb.forces[1].energy, 0.5 * -6.864067, 3)
-        self.assertAlmostEqual(coulomb.forces[2].energy, 0.5 * -1.060660, 3)
+        self.assertAlmostEqual(coulomb.forces[1].energy, 0.5 * -1.060660, 3)
+        self.assertAlmostEqual(coulomb.forces[2].energy, 0.5 * (-1.060660 + -6.864067), 3)
+        self.assertAlmostEqual(coulomb.forces[3].energy, 0.5 * -6.864067, 3)
 
     def tearDown(self):
         del self.s
