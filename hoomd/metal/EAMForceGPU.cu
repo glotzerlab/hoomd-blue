@@ -388,6 +388,10 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
 
     if (compute_capability < 350 && size_nlist > max_tex1d_width) {
         static unsigned int max_block_size = UINT_MAX;
+
+        static unsigned int max_block_size_1 = UINT_MAX;
+        static unsigned int max_block_size_2 = UINT_MAX;
+        
         if (max_block_size == UINT_MAX) {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
@@ -396,22 +400,37 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
             cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
 
             max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+
+            max_block_size_1 = attr.maxThreadsPerBlock;
+            max_block_size_2 = attr2.maxThreadsPerBlock;
         }
 
         unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+        unsigned int run_block_size_1 = min(eam_data.block_size, max_block_size_1);
+        unsigned int run_block_size_2 = min(eam_data.block_size, max_block_size_2);
 
         // setup the grid to run the kernel
         dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        gpu_compute_eam_tex_inter_forces_kernel<1> <<<grid, threads>>>(d_force,
+        dim3 grid_1((int) ceil((double) N / (double) run_block_size_1), 1, 1);
+        dim3 threads_1(run_block_size_1, 1, 1);
+
+        dim3 grid_2((int) ceil((double) N / (double) run_block_size_2), 1, 1);
+        dim3 threads_2(run_block_size_2, 1, 1);
+
+        gpu_compute_eam_tex_inter_forces_kernel<1> <<<grid_1, threads_1>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
                 d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
-        gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid, threads>>>(d_force,
+        gpu_compute_eam_tex_inter_forces_kernel_2<1> <<<grid_2, threads_2>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
                 d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
     } else {
         static unsigned int max_block_size = UINT_MAX;
+
+        static unsigned int max_block_size_1 = UINT_MAX;
+        static unsigned int max_block_size_2 = UINT_MAX;
+
         if (max_block_size == UINT_MAX) {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
@@ -420,18 +439,29 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
             cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
 
             max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+
+            max_block_size_1 = attr.maxThreadsPerBlock;
+            max_block_size_2 = attr2.maxThreadsPerBlock;
         }
 
         unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+        unsigned int run_block_size_1 = min(eam_data.block_size, max_block_size_1);
+        unsigned int run_block_size_2 = min(eam_data.block_size, max_block_size_2);
 
         // setup the grid to run the kernel
         dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
         dim3 threads(run_block_size, 1, 1);
 
-        gpu_compute_eam_tex_inter_forces_kernel<0> <<<grid, threads>>>(d_force,
+        dim3 grid_1((int) ceil((double) N / (double) run_block_size_1), 1, 1);
+        dim3 threads_1(run_block_size_1, 1, 1);
+
+        dim3 grid_2((int) ceil((double) N / (double) run_block_size_2), 1, 1);
+        dim3 threads_2(run_block_size_2, 1, 1);
+
+        gpu_compute_eam_tex_inter_forces_kernel<0> <<<grid_1, threads_1>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
                 d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
-        gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid, threads>>>(d_force,
+        gpu_compute_eam_tex_inter_forces_kernel_2<0> <<<grid_2, threads_2>>>(d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
                 d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
     }
