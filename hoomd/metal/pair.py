@@ -18,7 +18,7 @@ class eam(force._force):
     R""" EAM pair potential.
 
     Args:
-        file (str): Filename with potential tables in Alloy or FS format
+        file (str): File name with potential tables in Alloy or FS format
         type (str): Type of file potential ('Alloy', 'FS')
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list (default of None automatically creates a global cell-list based neighbor list)
 
@@ -29,6 +29,9 @@ class eam(force._force):
     potential, etc. are read in from the specified file.
 
     Particle type names must match those referenced in the EAM potential file.
+    
+    Particle mass (in atomic mass) **must** be set in the input script, users are allowed to set different mass values 
+    other than those in the potential file.
 
     Two file formats are supported: *Alloy* and *FS*. They are described in LAMMPS documentation
     (commands eam/alloy and eam/fs) here: http://lammps.sandia.gov/doc/pair_eam.html
@@ -38,7 +41,7 @@ class eam(force._force):
         EAM is **NOT** supported in MPI parallel simulations.
 
     .. danger::
-        HOOMD-blue's EAM implementation is known to be broken.
+        HOOMD-blue's EAM implementation was known to be broken, the current implementation is fixed on 05/01/2017.
 
     Example::
 
@@ -48,15 +51,15 @@ class eam(force._force):
 
     """
     def __init__(self, file, type, nlist):
-        c = hoomd.cite.article(cite_key = 'morozov2011',
-                         author=['I V Morozov','A M Kazennova','R G Bystryia','G E Normana','V V Pisareva','V V Stegailova'],
-                         title = 'Molecular dynamics simulations of the relaxation processes in the condensed matter on GPUs',
+        c = hoomd.cite.article(cite_key = 'lin2017',
+                         author=['L Yang','A Trevesset'],
+                         title = 'Implementation of EAM and FS potentials in HOOMD-blue',
                          journal = 'Computer Physics Communications',
-                         volume = 182,
-                         number = 9,
-                         pages = '1974--1978',
-                         year = '2011',
-                         doi = '10.1016/j.cpc.2010.12.026',
+                         volume = 0,
+                         number = 0,
+                         pages = '0--0',
+                         year = '2017',
+                         doi = '0',
                          feature = 'EAM')
         hoomd.cite._ensure_global_bib().add(c)
 

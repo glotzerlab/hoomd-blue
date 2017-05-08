@@ -97,7 +97,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 
 	for (int neigh_idx = 0; neigh_idx < n_neigh; neigh_idx++)
 	{
-		// read the current neighbor index (MEM TRANSFER: 4 bytes)
+		// read the current neighbor index
 		// prefetch the next value and set the current one
 		cur_neigh = next_neigh;
 		if (use_gmem_nlist)
@@ -123,11 +123,12 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		Scalar rsq = dot(dx, dx);;
 		if (rsq < r_cutsq)
 		{
+			// calculate position r for rho(r)
             position = sqrtf(rsq) * rdr;
             int_position = (unsigned int) position;
             int_position = min(int_position, nr-1);
             remainder = position - int_position;
-
+			// calculate P = sum{rho}
 			idxs = int_position + nr * (typej * ntypes + typei);
 			v = texFetchScalar4(d_rho, tex_rho, idxs);
 			atomElectronDensity += v.w + v.z * remainder + v.y * remainder * remainder+
@@ -135,6 +136,7 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 		}
 	}
 
+	// calculate position rho for F(rho)
 	position = atomElectronDensity * rdrho;
     int_position = (unsigned int) position;
     int_position = min(int_position, nrho - 1);
@@ -143,10 +145,12 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel(Scalar4 *d_force,
 	idxs = int_position + typei * nrho;
 	dv = texFetchScalar4(d_dF, tex_dF, idxs);
 	v = texFetchScalar4(d_F, tex_F, idxs);
+	// compute dF / dP
     d_dFdP[idx] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
+	// compute embedded energy F(P), sum up each particle
 	force.w += v.w + v.z * remainder + v.y * remainder * remainder +
 			v.x * remainder * remainder * remainder;
-
+	// update the d_force
 	d_force[idx] = force;
 
 }
@@ -176,12 +180,11 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 	if (idx >= N)
 	return;
 
-	// loadj in the length of the list (MEM_TRANSFER: 4 bytes)
+	// load in the length of the list
 	int n_neigh = d_n_neigh[idx];
 	const unsigned int head_idx = d_head_list[idx];
 
-	// read in the position of our particle. Texture reads of Scalar4's are faster than global reads on compute 1.0 hardware
-	// (MEM TRANSFER: 16 bytes)
+	// read in the position of our particle. Texture reads of Scalar4's are faster than global reads
 	Scalar4 postype = texFetchScalar4(d_pos, pdata_pos_tex, idx);
 	Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 	int typei = __scalar_as_int(postype.w);
@@ -234,54 +237,59 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 			next_neigh = texFetchUint(d_nlist, nlist_tex, head_idx + neigh_idx+1);
 		}
 
-		// get the neighbor's position (MEM TRANSFER: 16 bytes)
+		// get the neighbor's position
 		Scalar4 neigh_postype = texFetchScalar4(d_pos, pdata_pos_tex,cur_neigh);
 		Scalar3 neigh_pos = make_scalar3(neigh_postype.x, neigh_postype.y, neigh_postype.z);
 
-		// calculate dr (with periodic boundary conditions) (FLOPS: 3)
+		// calculate dr (with periodic boundary conditions)
 		Scalar3 dx = pos - neigh_pos;
 		int typej = __scalar_as_int(neigh_postype.w);
-		// apply periodic boundary conditions: (FLOPS 12)
+		// apply periodic boundary conditions
 		dx = box.minImage(dx);
 
-		// calculate r squared (FLOPS: 5)
+		// calculate r squared
 		Scalar rsq = dot(dx, dx);
 
 		if (rsq > r_cutsq) continue;
 
+		// calculate position r for phi(r)
 		Scalar inverseR = rsqrtf(rsq);
 		Scalar r = Scalar(1.0) / inverseR;
 		position = r * rdr;
         int_position = (unsigned int) position;
         int_position = min(int_position, nr-1);
         remainder = position - int_position;
-
+		// calculate the shift position for type ij
         int shift = (typei>=typej)?(int)(0.5 * (2 * ntypes - typej -1)*typej + typei) * nr:
 					(int)(0.5 * (2 * ntypes - typei -1)*typei + typej) * nr;
 
 		idxs = int_position + shift;
 		v = texFetchScalar4(d_rphi, tex_rphi, idxs);
 		dv = texFetchScalar4(d_drphi, tex_drphi, idxs);
+		// aspair_potential = r * phi
 		Scalar aspair_potential = v.w + v.z * remainder + v.y * remainder * remainder +
 				v.x * remainder * remainder * remainder;
+		// derivative_pair_potential = phi + r * dphi / dr
 		Scalar derivative_pair_potential = dv.z + dv.y * remainder + dv.x * remainder * remainder;
-
+		// pair_eng = phi
 		Scalar pair_eng = aspair_potential * inverseR;
+		// derivativePhi = (phi + r * dphi/dr - phi) * 1/r = dphi / dr
 		Scalar derivativePhi = (derivative_pair_potential - pair_eng) * inverseR;
-
+		// derivativeRhoI = drho / dr of i
 		idxs = int_position + typei * ntypes * nr + typej * nr;
 		dv = texFetchScalar4(d_drho, tex_drho, idxs);
 		Scalar derivativeRhoI = dv.z + dv.y * remainder + dv.x * remainder * remainder;
-
+		// derivativeRhoJ = drho / dr of j
 		idxs = int_position + typej * ntypes * nr + typei * nr;
 		dv = texFetchScalar4(d_drho, tex_drho, idxs);
 		Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
-
+		// fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
         Scalar d_dFdPcur = texFetchScalar(d_dFdP, tex_dFdP, cur_neigh);
         Scalar fullDerivativePhi = d_dFdPidx * derivativeRhoJ +
                                    d_dFdPcur * derivativeRhoI + derivativePhi;
-
+		// compute forces
 		pairForce = - fullDerivativePhi * inverseR;
+		// avoid double counting
 		Scalar pairForceover2 = Scalar(0.5) *pairForce;
 		virial[0] += dx.x * dx.x *pairForceover2;
 		virial[1] += dx.x * dx.y *pairForceover2;
@@ -296,11 +304,12 @@ __global__ void gpu_compute_eam_tex_inter_forces_kernel_2(Scalar4 *d_force,
 		m_pe += pair_eng * Scalar(0.5);
 	}
 
+	// now that the force calculation is complete, write out the result
 	force.x = fxi;
 	force.y = fyi;
 	force.z = fzi;
 	force.w += m_pe;
-	// now that the force calculation is complete, write out the result
+
 	d_force[idx] = force;
 	for (int i = 0; i < 6; i++)
 	d_virial[i*virial_pitch+idx] = virial[i];
@@ -387,31 +396,24 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
     cudaMemcpyToSymbol(eam_data_ti, &eam_data, sizeof(EAMTexInterData));
 
     if (compute_capability < 350 && size_nlist > max_tex1d_width) {
-        static unsigned int max_block_size = UINT_MAX;
 
         static unsigned int max_block_size_1 = UINT_MAX;
         static unsigned int max_block_size_2 = UINT_MAX;
-        
-        if (max_block_size == UINT_MAX) {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<1>);
 
-            cudaFuncAttributes attr2;
-            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
+		cudaFuncAttributes attr1;
+		cudaFuncGetAttributes(&attr1, gpu_compute_eam_tex_inter_forces_kernel<1>);
 
-            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+		cudaFuncAttributes attr2;
+		cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<1>);
 
-            max_block_size_1 = attr.maxThreadsPerBlock;
-            max_block_size_2 = attr2.maxThreadsPerBlock;
-        }
 
-        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
+		max_block_size_1 = attr1.maxThreadsPerBlock;
+		max_block_size_2 = attr2.maxThreadsPerBlock;
+
         unsigned int run_block_size_1 = min(eam_data.block_size, max_block_size_1);
         unsigned int run_block_size_2 = min(eam_data.block_size, max_block_size_2);
 
         // setup the grid to run the kernel
-        dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
-        dim3 threads(run_block_size, 1, 1);
 
         dim3 grid_1((int) ceil((double) N / (double) run_block_size_1), 1, 1);
         dim3 threads_1(run_block_size_1, 1, 1);
@@ -426,31 +428,23 @@ cudaError_t gpu_compute_eam_tex_inter_forces(Scalar4 *d_force,
                 d_virial, virial_pitch, N, d_pos, box, d_n_neigh, d_nlist,
                 d_head_list, d_F, d_rho, d_rphi, d_dF, d_drho, d_drphi, d_dFdP);
     } else {
-        static unsigned int max_block_size = UINT_MAX;
 
         static unsigned int max_block_size_1 = UINT_MAX;
         static unsigned int max_block_size_2 = UINT_MAX;
 
-        if (max_block_size == UINT_MAX) {
-            cudaFuncAttributes attr;
-            cudaFuncGetAttributes(&attr, gpu_compute_eam_tex_inter_forces_kernel<0>);
+		cudaFuncAttributes attr1;
+		cudaFuncGetAttributes(&attr1, gpu_compute_eam_tex_inter_forces_kernel<0>);
 
-            cudaFuncAttributes attr2;
-            cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
+		cudaFuncAttributes attr2;
+		cudaFuncGetAttributes(&attr2, gpu_compute_eam_tex_inter_forces_kernel_2<0>);
 
-            max_block_size = min(attr.maxThreadsPerBlock, attr2.maxThreadsPerBlock);
+		max_block_size_1 = attr1.maxThreadsPerBlock;
+		max_block_size_2 = attr2.maxThreadsPerBlock;
 
-            max_block_size_1 = attr.maxThreadsPerBlock;
-            max_block_size_2 = attr2.maxThreadsPerBlock;
-        }
-
-        unsigned int run_block_size = min(eam_data.block_size, max_block_size);
         unsigned int run_block_size_1 = min(eam_data.block_size, max_block_size_1);
         unsigned int run_block_size_2 = min(eam_data.block_size, max_block_size_2);
 
         // setup the grid to run the kernel
-        dim3 grid((int) ceil((double) N / (double) run_block_size), 1, 1);
-        dim3 threads(run_block_size, 1, 1);
 
         dim3 grid_1((int) ceil((double) N / (double) run_block_size_1), 1, 1);
         dim3 threads_1(run_block_size_1, 1, 1);

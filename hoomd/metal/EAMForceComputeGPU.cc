@@ -36,15 +36,15 @@ EAMForceComputeGPU::EAMForceComputeGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     // allocate the coefficients data on the GPU
     loadFile(filename, type_of_file);
-    eam_data.nr = nr;
-    eam_data.nrho = nrho;
-    eam_data.dr = dr;
-    eam_data.rdr = 1.0 / dr;
-    eam_data.drho = drho;
-    eam_data.rdrho = 1.0 / drho;
-    eam_data.r_cut = m_r_cut;
-    eam_data.r_cutsq = m_r_cut * m_r_cut;
-    eam_data.ntypes = m_ntypes;
+    eam_data.nr = nr;                     //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    eam_data.nrho = nrho;                 //!< number of tabulated values of interpolated F(rho)
+    eam_data.dr = dr;                     //!< interval of r in interpolated table
+    eam_data.rdr = 1.0 / dr;              //!< 1.0 / dr
+    eam_data.drho = drho;                 //!< interval of rho in interpolated table
+    eam_data.rdrho = 1.0 / drho;          //!< 1.0 / drho
+    eam_data.r_cut = m_r_cut;             //!< cut-off radius
+    eam_data.r_cutsq = m_r_cut * m_r_cut; //!< r_cut^2
+    eam_data.ntypes = m_ntypes;           //!< number of potential element types
 
     CHECK_CUDA_ERROR();
 }
@@ -93,6 +93,7 @@ void EAMForceComputeGPU::computeForces(unsigned int timestep) {
     m_dFdP.swap(t_dFdP);
     ArrayHandle<Scalar> d_dFdP(m_dFdP, access_location::device, access_mode::overwrite);
 
+    // Compute energy and forces in GPU
     m_tuner->begin();
     eam_data.block_size = m_tuner->getParam();
     gpu_compute_eam_tex_inter_forces(d_force.data,

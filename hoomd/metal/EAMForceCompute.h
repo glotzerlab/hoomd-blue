@@ -29,8 +29,8 @@
     \c r_cut. A NeighborList must be provided to identify these neighbours.
 
     \b Interpolation
-    The 3rd order interpolation is used. For each data point, including the value of the point, there
-    are 3 coefficients.
+    The cubic interpolation is used. For each data point, including the value of the point, there are 3
+    coefficients.
 
     \b Potential memory layout
     The potential data and the coefficients are stored in six GPUArray<Scalar> arrays: the embedded
@@ -101,7 +101,7 @@ protected:
         throw std::runtime_error("Unsupported feature");
     }
 
-    //! 3rd order interpolation
+    //! cubic interpolation
     virtual void interpolation(int num_all, int num_per, Scalar delta,
                                ArrayHandle<Scalar4> *f, ArrayHandle<Scalar4> *df);
 };

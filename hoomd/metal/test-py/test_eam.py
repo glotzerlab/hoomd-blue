@@ -29,6 +29,7 @@ class eam_tests(unittest.TestCase):
             p.type = typelst[p.tag]
             p.mass = masslst[p.tag]
         cwd = os.getcwd()
+        # the unit test uses a potential, which is sparsed from G.Purja Pun & Y. Mishin, 2009
         tmpd = cwd + '/eamtemp/'
         os.system('rm -rf ' + tmpd)
         os.system('mkdir -p ' + tmpd)
@@ -59,15 +60,14 @@ class eam_tests(unittest.TestCase):
         F = numpy.array([x.force for x in eam.forces])
         U = numpy.array([x.energy for x in eam.forces])
 
+        F_ref = numpy.array([[0.49554526, 1.10342697, -2.7692858],
+                             [0.70281927, -1.43558566, 3.87260803],
+                             [-2.00473055, 1.53052375, -0.60778632],
+                             [0.80636601, -1.19836506, -0.49553591]])
+        U_ref = numpy.array([-0.93424631, -1.23440579, -1.71025268, -1.4023109])
 
-        F_ref = numpy.array([[ 0.495544,  1.103424, -2.769264],
-                             [ 0.702819, -1.435578,  3.872586],
-                             [-2.004733,  1.530519, -0.607786],
-                             [ 0.80637 , -1.198365, -0.495536]])
-        U_ref = numpy.array([-0.934245, -1.234406, -1.710253, -1.402311])
-
-        numpy.testing.assert_allclose(F, F_ref, rtol=1e-3)
-        numpy.testing.assert_allclose(U, U_ref, rtol=1e-3)
+        numpy.testing.assert_allclose(F, F_ref, rtol=1e-5)
+        numpy.testing.assert_allclose(U, U_ref, rtol=1e-6)
 
         os.system('rm -rf ' + tmpd)
 

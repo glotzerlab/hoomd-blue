@@ -207,7 +207,7 @@ void EAMForceCompute::loadFile(char *filename, int type_of_file) {
 
 }
 
-/*! compute 3rd order interpolation coefficients
+/*! compute cubic interpolation coefficients
    \param num_all Total number of data points
    \param num_per Number of data points per chunk
    \param delta Interval distance between data points
@@ -340,7 +340,7 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
     unsigned int ntypes = m_pdata->getNTypes();
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++) {
-        // access the particle's position and type (MEM TRANSFER: 4 Scalars)
+        // access the particle's position and type
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         const unsigned int head_i = h_head_list.data[i];
@@ -355,16 +355,16 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             // increment our calculation counter
             n_calc++;
 
-            // access the index of this neighbor (MEM TRANSFER: 1 Scalar)
+            // access the index of this neighbor
             unsigned int k = h_nlist.data[head_i + j];
             // sanity check
             assert(k < m_pdata->getN());
 
-            // calculate dr (MEM TRANSFER: 3 Scalars / FLOPS: 3)
+            // calculate dr
             Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
             Scalar3 dx = pi - pk;
 
-            // access the type of the neighbor particle (MEM TRANSFER: 1 Scalar
+            // access the type of the neighbor particle
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
@@ -373,20 +373,21 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             dx = box.minImage(dx);
 
             // start computing the force
-            // calculate r squared (FLOPS: 5)
+            // calculate r squared
             Scalar rsq = dot(dx, dx);;
-            // only compute the force if the particles are closer than the cut-off (FLOPS: 1)
+            // only compute the force if the particles are closer than the cut-off
             if (rsq < r_cut_sq) {
+                // calculate position r for rho(r)
                 position = sqrt(rsq) * rdr;
                 int_position = (unsigned int) position;
                 int_position = min(int_position, nr-1);
                 remainder = position - int_position;
-
+                // calculate P = sum{rho}
                 idxs = int_position + nr * (typej * ntypes + typei);
                 v = h_rho.data[idxs];
                 atomElectronDensity[i] += v.w + v.z * remainder + v.y * remainder * remainder +
                                           v.x * remainder * remainder * remainder;
-
+                // if third_law, pair it
                 if (third_law) {
                     idxs = int_position + nr * (typei * ntypes + typej);
                     v = h_rho.data[idxs];
@@ -399,7 +400,7 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++) {
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
-
+        // calculate position rho for F(rho)
         position = atomElectronDensity[i] * rdrho;
         int_position = (unsigned int) position;
         int_position = min(int_position, nrho - 1);
@@ -408,14 +409,16 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
         idxs = int_position + typei * nrho;
         v = h_F.data[idxs];
         dv = h_dF.data[idxs];
+        // compute dF / dP
         atomDerivativeEmbeddingFunction[i] = dv.z + dv.y * remainder + dv.x * remainder * remainder;
+        // compute embedded energy F(P), sum up each particle
         h_force.data[i].w += v.w + v.z * remainder + v.y * remainder * remainder +
                              v.x * remainder * remainder * remainder;
 
     }
 
     for (unsigned int i = 0; i < m_pdata->getN(); i++) {
-        // access the particle's position and type (MEM TRANSFER: 4 Scalars)
+        // access the particle's position and type
         Scalar3 pi = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
         unsigned int typei = __scalar_as_int(h_pos.data[i].w);
         const unsigned int head_i = h_head_list.data[i];
@@ -437,16 +440,16 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             // increment our calculation counter
             n_calc++;
 
-            // access the index of this neighbor (MEM TRANSFER: 1 Scalar)
+            // access the index of this neighbor
             unsigned int k = h_nlist.data[head_i + j];
             // sanity check
             assert(k < m_pdata->getN());
 
-            // calculate \Delta r (MEM TRANSFER: 3 Scalars / FLOPS: 3)
+            // calculate \Delta r
             Scalar3 pk = make_scalar3(h_pos.data[k].x, h_pos.data[k].y, h_pos.data[k].z);
             Scalar3 dx = pi - pk;
 
-            // access the type of the neighbor particle (MEM TRANSFER: 1 Scalar)
+            // access the type of the neighbor particle
             unsigned int typej = __scalar_as_int(h_pos.data[k].w);
             // sanity check
             assert(typej < m_pdata->getNTypes());
@@ -455,9 +458,10 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             dx = box.minImage(dx);
 
             // start computing the force
-            // calculate r squared (FLOPS: 5)
+            // calculate r squared
             Scalar rsq = dot(dx, dx);
 
+            // calculate position r for phi(r)
             if (rsq >= r_cut_sq) continue;
             Scalar r = sqrt(rsq);
             Scalar inverseR = 1.0 / r;
@@ -465,27 +469,30 @@ void EAMForceCompute::computeForces(unsigned int timestep) {
             int_position = (unsigned int) position;
             int_position = min(int_position, nr - 1);
             remainder = position - int_position;
+            // calculate the shift position for type ij
             int shift = (typei >= typej) ? (int) (0.5 * (2 * ntypes - typej - 1) * typej + typei) * nr :
                         (int) (0.5 * (2 * ntypes - typei - 1) * typei + typej) * nr;
 
             idxs = int_position + shift;
             v = h_rphi.data[idxs];
             dv = h_drphi.data[idxs];
+            // pair_eng = phi
             Scalar pair_eng = (v.w + v.z * remainder + v.y * remainder * remainder +
                     v.x * remainder * remainder * remainder) * inverseR;
+            // derivativePhi = (phi + r * dphi/dr - phi) * 1/r = dphi / dr
             Scalar derivativePhi = (dv.z + dv.y * remainder + dv.x * remainder * remainder - pair_eng) * inverseR;
-
+            // derivativeRhoI = drho / dr of i
             idxs = int_position + typei * ntypes * nr + typej * nr;
             dv = h_drho.data[idxs];
             Scalar derivativeRhoI = dv.z + dv.y * remainder + dv.x * remainder * remainder;
-
+            // derivativeRhoJ = drho / dr of j
             idxs = int_position + typej * ntypes * nr + typei * nr;
             dv = h_drho.data[idxs];
             Scalar derivativeRhoJ = dv.z + dv.y * remainder + dv.x * remainder * remainder;
-
+            // fullDerivativePhi = dF/dP * drho / dr for j + dF/dP * drho / dr for j + phi
             Scalar fullDerivativePhi = atomDerivativeEmbeddingFunction[i] * derivativeRhoJ +
                                        atomDerivativeEmbeddingFunction[k] * derivativeRhoI + derivativePhi;
-
+            // compute forces
             Scalar pairForce = -fullDerivativePhi * inverseR;
             viriali[0] += dx.x * dx.x * pairForce;
             viriali[1] += dx.x * dx.y * pairForce;
