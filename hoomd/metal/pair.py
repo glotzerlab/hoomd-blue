@@ -52,7 +52,7 @@ class eam(force._force):
     """
     def __init__(self, file, type, nlist):
         c = hoomd.cite.article(cite_key = 'lin2017',
-                         author=['L Yang','A Trevesset'],
+                         author=['L Yang', 'F Zhang', 'K M Ho', 'C Z Wang','A Travesset'],
                          title = 'Implementation of EAM and FS potentials in HOOMD-blue',
                          journal = 'Computer Physics Communications',
                          volume = 0,
