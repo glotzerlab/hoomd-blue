@@ -562,13 +562,13 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     if (Ndim == 3)
         {
         newL[0] = pow((A1 * A2 * (V + dV)),(1./3.));
-        newL[1] = A1 * newL[0];
-        newL[2] = A2 * newL[0];
+        newL[1] = newL[0]/A1;
+        newL[2] = newL[0]/A2;
         }
     else // Ndim ==2
         {
         newL[0] = pow((A1*(V+dV)),(1./2.));
-        newL[1] = A1 * newL[0];
+        newL[1] = newL[0]/A1;
         // newL[2] is already assigned to curL[2]
         }
 
