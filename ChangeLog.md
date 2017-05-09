@@ -29,7 +29,6 @@ Not yet released
 
 * `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
-* Fix PPM exclusion handling on the CPU
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
@@ -39,6 +38,20 @@ Not yet released
 * Revised compilation instructions
 * Misc documentation improvements
 * Fully document `contrain.rigid`
+
+## v2.1.7
+
+Not yet released
+
+*Bug fixes*
+
+* Fix PPM exclusion handling on the CPU
+* Handle r_cut for special pairs correctly
+* Fix tauP reference in NPH documentation
+* Fixed ``constrain.rigid`` on compute 5.x.
+* Fixed random seg faults when using sqlite getar archives with LZ4 compression
+* Fixed XZ coupling with ``hoomd.md.integrate.npt`` integration
+* Fixed aspect ratio with non-cubic boxes in ``hoomd.hpmc.update.boxmc``
 
 ## v2.1.6
 
