@@ -153,10 +153,12 @@ void mpcd::Communicator::initializeNeighborArrays()
 
     m_n_unique_neigh = neigh_map.size();
 
+    m_unique_neigh_map.clear();
     n = 0;
     for (auto it = neigh_map.begin(); it != neigh_map.end(); ++it)
         {
         h_unique_neighbors.data[n] = it->first;
+        m_unique_neigh_map.insert(std::make_pair(it->first, n));
         h_adj_mask.data[n] = it->second;
         n++;
         }
@@ -194,6 +196,38 @@ void mpcd::Communicator::communicate(unsigned int timestep)
     m_is_communicating = false;
     }
 
+namespace mpcd
+{
+namespace detail
+{
+//! Partition operation for migrating particles
+/*!
+ * This functor is used in combination with std::partition to sort migrated
+ * particles in the send / receive buffers. The communication flags in an
+ * mpcd::detail::pdata_element are checked with bitwise AND against a mask.
+ * The result is cast to bool and negated. This behavior results in std::partition
+ * moving all particles for which the flags are bitwise AND true with the mask
+ * to the end of the buffer. This effectively compacts the buffers in place for
+ * sending.
+ */
+class MigratePartitionOp
+    {
+    public:
+        MigratePartitionOp(const unsigned int mask_)
+            : mask(mask_)
+            { }
+
+        inline bool operator()(const mpcd::detail::pdata_element& e) const
+            {
+            return !static_cast<bool>(e.comm_flag & mask);
+            }
+
+    private:
+        const unsigned int mask;    //!< Mask for the current communication stage
+    };
+}
+}
+
 void mpcd::Communicator::migrateParticles()
     {
     if (m_prof) m_prof->push("migrate");
@@ -202,69 +236,140 @@ void mpcd::Communicator::migrateParticles()
     const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
     setCommFlags(box);
 
+    // fill send buffer once
+    if (m_prof) m_prof->push("pack");
+    m_mpcd_pdata->removeParticles(m_sendbuf, 0xffffffff);
+    if (m_prof) m_prof->pop();
+
     // fill the buffers and send in each direction
-    for (unsigned int dir=0; dir < 6; dir++)
+    unsigned int n_recv = 0;
+    for (unsigned int dim=0; dim < m_sysdef->getNDimensions(); ++dim)
         {
-        unsigned int comm_mask = (1 << static_cast<unsigned char>(dir));
+        if (!isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
 
-        if (!isCommunicating(static_cast<mpcd::detail::face>(dir))) continue;
+        const unsigned int right_mask = 1 << (2*dim);
+        const unsigned int left_mask =  1 << (2*dim+1);
+        const unsigned int stage_mask = right_mask | left_mask;
 
-        // fill send buffer
-        if (m_prof) m_prof->push("pack");
-        m_mpcd_pdata->removeParticles(m_sendbuf, comm_mask);
-        if (m_prof) m_prof->pop();
+        // neighbor ranks
+        const unsigned int right_neigh = m_decomposition->getNeighborRank(2*dim);
+        const unsigned int left_neigh = m_decomposition->getNeighborRank(2*dim+1);
 
-        // we receive from the direction opposite to the one we send to
-        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
-        unsigned int recv_neighbor;
-        if (dir % 2 == 0)
-            recv_neighbor = m_decomposition->getNeighborRank(dir+1);
-        else
-            recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+        // partition the send buffer by destination, leaving unsent particles at the front
+        unsigned int n_keep, n_send_left, n_send_right;
+            {
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
+
+            // first, partition off particles that may be sent in either direction
+            mpcd::detail::MigratePartitionOp part_op(stage_mask);
+            auto bound = std::partition(h_sendbuf.data, h_sendbuf.data + m_sendbuf.size(), part_op);
+            n_keep = &(*bound)-h_sendbuf.data;
+
+            // then, partition the sent particles into the left and right ranks so that particles getting sent right come first
+            if (left_neigh != right_neigh)
+                {
+                // partition the remaining particles left and right
+                mpcd::detail::MigratePartitionOp sort_op(left_mask);
+                bound = std::partition(h_sendbuf.data + n_keep, h_sendbuf.data + m_sendbuf.size(), sort_op);
+                n_send_right = &(*bound) - (h_sendbuf.data + n_keep);
+                n_send_left = m_sendbuf.size() - n_keep - n_send_right;
+                }
+            else
+                {
+                n_send_right = m_sendbuf.size() - n_keep;
+                n_send_left = 0;
+                }
+            }
 
         // communicate size of the message that will contain the particle data
-        unsigned int n_recv_ptls;
-        unsigned int n_send_ptls = m_sendbuf.size();
-        m_reqs.reserve(2); m_stats.reserve(2);
-        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
-        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
-        MPI_Waitall(2, m_reqs.data(), m_stats.data());
-
-        // Resize receive buffer
-        m_recvbuf.resize(n_recv_ptls);
+        unsigned int n_recv_left, n_recv_right;
+        if (left_neigh != right_neigh)
+            {
+            m_reqs.reserve(4);
+            MPI_Isend(&n_send_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(&n_recv_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[1]);
+            MPI_Isend(&n_send_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, &m_reqs[2]);
+            MPI_Irecv(&n_recv_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, &m_reqs[3]);
+            MPI_Waitall(4, m_reqs.data(), MPI_STATUSES_IGNORE);
+            }
+        else
+            {
+            // send right, receive left (same thing, really) only if neighbors match
+            n_recv_right = 0;
+            m_reqs.reserve(2);
+            MPI_Isend(&n_send_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(&n_recv_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, m_reqs.data(), MPI_STATUSES_IGNORE);
+            }
 
         // exchange particle data
+        m_recvbuf.resize(n_recv + n_recv_left + n_recv_right);
             {
             ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
             if (m_prof) m_prof->push("MPI send/recv");
-            MPI_Isend(h_sendbuf.data, n_send_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
-            MPI_Irecv(h_recvbuf.data, n_recv_ptls*sizeof(mpcd::detail::pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
-            MPI_Waitall(2, m_reqs.data(), m_stats.data());
-            if (m_prof) m_prof->pop(0, (n_send_ptls+n_recv_ptls)*sizeof(mpcd::detail::pdata_element));
+            m_reqs.reserve(4);
+            int nreq = 0;
+            if (n_send_right != 0)
+                {
+                MPI_Isend(h_sendbuf.data + n_keep, n_send_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                }
+            if (n_send_left != 0)
+                {
+                MPI_Isend(h_sendbuf.data + n_keep + n_send_right, n_send_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                }
+            if (n_recv_right != 0)
+                {
+                MPI_Irecv(h_recvbuf.data + n_recv, n_recv_right*sizeof(mpcd::detail::pdata_element), MPI_BYTE, right_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                }
+            if (n_recv_left != 0)
+                {
+                MPI_Irecv(h_recvbuf.data + n_recv + n_recv_right, n_recv_left*sizeof(mpcd::detail::pdata_element), MPI_BYTE, left_neigh, 1, m_mpi_comm, &m_reqs[nreq++]);
+                }
+            MPI_Waitall(nreq, m_reqs.data(), MPI_STATUSES_IGNORE);
+            if (m_prof) m_prof->pop(0, (n_send_left+n_send_right+n_recv_left+n_recv_right)*sizeof(mpcd::detail::pdata_element));
             }
 
-        // wrap received particles across a global boundary back into global box
-        if (m_prof) m_prof->push("wrap");
+        // now we pass through and unpack the particles, either by holding onto them in the receive buffer
+        // or by passing them back into the send buffer for the next stage
             {
+            // partition the receive buffer so that particles that need to be sent are at the end
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
-            const BoxDim wrap_box = getWrapBox(box);
-            for (unsigned int idx = 0; idx < n_recv_ptls; ++idx)
-                {
-                mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
-                Scalar4& postype = p.pos;
-                int3 image = make_int3(0,0,0);
+            mpcd::detail::MigratePartitionOp part_op(~stage_mask);
+            auto bound = std::partition(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), part_op);
+            n_recv = &(*bound) - h_recvbuf.data;
 
-                wrap_box.wrap(postype,image);
+            // move particles to resend over to the send buffer and unset the bits from this stage
+            const unsigned int n_resend = m_recvbuf.size() - n_recv;
+            m_sendbuf.resize(n_keep + n_resend);
+            ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::readwrite);
+            std::copy(h_recvbuf.data + n_recv, h_recvbuf.data + m_recvbuf.size(), h_sendbuf.data + n_keep);
+            for (unsigned int idx=n_keep; idx < m_sendbuf.size(); ++idx)
+                {
+                h_sendbuf.data[idx].comm_flag &= ~stage_mask;
                 }
             }
-        if (m_prof) m_prof->pop();
-
-        // fill particle data with wrapped, received particles
-        if (m_prof) m_prof->push("unpack");
-        m_mpcd_pdata->addParticles(m_recvbuf, comm_mask);
-        if (m_prof) m_prof->pop();
+        m_recvbuf.resize(n_recv); // free up memory from the end of the receive buffer
         } // end dir loop
+
+    // fill particle data with wrapped, received particles
+    if (m_prof) m_prof->push("unpack");
+        {
+        ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::readwrite);
+        const BoxDim wrap_box = getWrapBox(box);
+        for (unsigned int idx = 0; idx < n_recv; ++idx)
+            {
+            mpcd::detail::pdata_element& p = h_recvbuf.data[idx];
+            Scalar4& postype = p.pos;
+            int3 image = make_int3(0,0,0);
+
+            wrap_box.wrap(postype,image);
+            }
+        }
+
+    // this mask will totally unset any bits that could still be set (there should be none)
+    m_mpcd_pdata->addParticles(m_recvbuf, 0xffffffff);
+    if (m_prof) m_prof->pop();
 
     if (m_prof) m_prof->pop();
     }

@@ -521,6 +521,178 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
     }
 
+//! Test particle migration of Communicator in orthorhombic box where decomposition is not cubic
+void test_communicator_migrate_ortho(communicator_creator comm_creator, std::shared_ptr<ExecutionConfiguration> exec_conf, unsigned int nstages)
+    {
+    // this test needs to be run on eight processors
+    int size;
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    UP_ASSERT_EQUAL(size,8);
+
+    // default initialize an empty snapshot in the reference box
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap( new SnapshotSystemData<Scalar>() );
+    snap->global_box = BoxDim(4.0, 2.0, 1.0);
+    snap->particle_data.type_mapping.push_back("A");
+    // initialize a 2x2x2 domain decomposition on processor with rank 0
+    std::shared_ptr<DomainDecomposition> decomposition(new DomainDecomposition(exec_conf, snap->global_box.getL(),4,2,1));
+    std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf, decomposition));
+
+    // place eight mpcd particles
+    auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
+        {
+        mpcd::ParticleDataSnapshot& mpcd_snap = mpcd_sys_snap->particles;
+
+        mpcd_snap.resize(8);
+        mpcd_snap.position[0] = vec3<Scalar>(-1.5,-0.5,0.0);
+        mpcd_snap.position[1] = vec3<Scalar>(-0.5,-0.5,0.0);
+        mpcd_snap.position[2] = vec3<Scalar>( 0.5,-0.5,0.0);
+        mpcd_snap.position[3] = vec3<Scalar>( 1.5,-0.5,0.0);
+        mpcd_snap.position[4] = vec3<Scalar>(-1.5, 0.5,0.0);
+        mpcd_snap.position[5] = vec3<Scalar>(-0.5, 0.5,0.0);
+        mpcd_snap.position[6] = vec3<Scalar>( 0.5, 0.5,0.0);
+        mpcd_snap.position[7] = vec3<Scalar>( 1.5, 0.5,0.0);
+        }
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
+    // set a small cell size so that nothing will lie in the diffusion layer
+    mpcd_sys->getCellList()->setCellSize(0.05);
+
+    // initialize the communicator
+    std::shared_ptr<mpcd::Communicator> comm = comm_creator(mpcd_sys, nstages);
+
+    // check that all particles were initialized onto their proper ranks
+    std::shared_ptr<mpcd::ParticleData> pdata = mpcd_sys->getParticleData();
+    UP_ASSERT_EQUAL(pdata->getNGlobal(), 8);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    UP_ASSERT_EQUAL(pdata->getTag(0), exec_conf->getRank());
+
+    // move particles to new ranks
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        Scalar3 new_pos;
+        switch(exec_conf->getRank())
+            {
+            case 0:
+                // move particle 0 into domain 1
+                new_pos = make_scalar3(-0.5,-0.5, 0.0);
+                break;
+            case 1:
+                // move particle 1 into domain 2
+                new_pos = make_scalar3( 0.5,-0.5, 0.0);
+                break;
+            case 2:
+                // move particle 2 into domain 3
+                new_pos = make_scalar3( 1.5,-0.5, 0.0);
+                break;
+            case 3:
+                // move particle 3 into domain 4
+                new_pos = make_scalar3(2.1, 0.5, 0.0);
+                break;
+            case 4:
+                // move particle 4 into domain 5
+                new_pos = make_scalar3(-0.5, 0.5,0.0);
+                break;
+            case 5:
+                // move particle 5 into domain 6
+                new_pos = make_scalar3( 0.5, 0.5,0.0);
+                break;
+            case 6:
+                // move particle 6 into domain 7
+                new_pos = make_scalar3( 1.5, 0.5,0.0);
+                break;
+            case 7:
+                // move particle 7 into domain 0
+                new_pos = make_scalar3(2.1,-0.5,0.0);
+                break;
+            };
+        h_pos.data[0].x = new_pos.x;
+        h_pos.data[0].y = new_pos.y;
+        h_pos.data[0].z = new_pos.z;
+        }
+
+    comm->communicate(0);
+    UP_ASSERT_EQUAL(pdata->getN(), 1);
+    int ref_tag = ((int)exec_conf->getRank() - 1) % 8;
+    if (ref_tag < 0) ref_tag += 8;
+    UP_ASSERT_EQUAL(pdata->getTag(0), ref_tag);
+
+    // move all particles onto domains 5 and 6
+    const unsigned int rank = exec_conf->getRank();
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+
+        // just get them all in the same place
+        // this first set will put tags 7, 0, 3, and 4 on rank 5
+        Scalar3 new_pos;
+        if (rank == 0 || rank == 1 || rank == 4 || rank == 5)
+            {
+            new_pos = make_scalar3(-0.5,0.5,0.0);
+            }
+        else
+            {
+            new_pos = make_scalar3( 0.5,0.5,0.0);
+            }
+        h_pos.data[0].x = new_pos.x; h_pos.data[0].y = new_pos.y; h_pos.data[0].z = new_pos.z;
+        }
+    comm->communicate(1);
+    if (rank == 5 || rank == 6)
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 4);
+        }
+    else
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 0);
+        }
+
+    // now send multiple particles out from each rank in different directions
+        {
+        ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::readwrite);
+        if (rank == 5)
+            {
+            // send one particle to rank 6, rank 4, and rank 0
+            h_pos.data[0].x = Scalar(0.5); h_pos.data[0].y = Scalar(0.5); h_pos.data[0].z = Scalar(0.0);
+            h_pos.data[1].x = Scalar(-1.5); h_pos.data[1].y = Scalar(0.5); h_pos.data[1].z = Scalar(0.0);
+            h_pos.data[3].x = Scalar(-1.5); h_pos.data[3].y = Scalar(-0.5); h_pos.data[3].z = Scalar(0.0);
+            }
+        else if (rank == 6)
+            {
+            // send two particles to rank 5, one to rank 7, and to rank 3
+            h_pos.data[0].x = Scalar(1.5); h_pos.data[0].y = Scalar(0.5); h_pos.data[0].z = Scalar(0.0);
+            h_pos.data[1].x = Scalar(-0.5); h_pos.data[1].y = Scalar(0.5); h_pos.data[1].z = Scalar(0.0);
+            h_pos.data[2].x = Scalar(1.5); h_pos.data[2].y = Scalar(-0.5); h_pos.data[2].z = Scalar(0.0);
+            h_pos.data[3].x = Scalar(-0.5); h_pos.data[3].y = Scalar(0.5); h_pos.data[3].z = Scalar(0.0);
+            }
+        }
+    comm->communicate(2);
+    if (rank == 5)
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 3);
+        }
+    else if (rank == 0 || rank == 3 || rank == 4 || rank == 6 || rank == 7)
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 1);
+        }
+    else
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 0);
+        }
+
+    // finally, call again and just make sure nobody moved
+    comm->communicate(3);
+    if (rank == 5)
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 3);
+        }
+    else if (rank == 0 || rank == 3 || rank == 4 || rank == 6 || rank == 7)
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 1);
+        }
+    else
+        {
+        UP_ASSERT_EQUAL(pdata->getN(), 0);
+        }
+    }
+
 //! Test particle migration of Communicator
 void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                      unsigned int nx,
@@ -588,6 +760,15 @@ UP_TEST( mpcd_communicator_migrate_test )
     // orthorhombic box
     test_communicator_migrate(communicator_creator_base, exec_conf, BoxDim(1.0,2.0,3.0),3);
     }
+
+UP_TEST( mpcd_communicator_migrate_ortho_test )
+    {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU));
+
+    communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
+    test_communicator_migrate_ortho(communicator_creator_base, exec_conf, 3);
+    }
+
 UP_TEST( mpcd_communicator_overdecompose_test )
     {
     // two ranks in any direction
@@ -667,6 +848,22 @@ UP_TEST( mpcd_communicator_migrate_test_GPU_three_stage )
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(2.0),3);
     // orthorhombic box
     test_communicator_migrate(communicator_creator_gpu, exec_conf,BoxDim(1.0,2.0,3.0),3);
+    }
+
+UP_TEST( mpcd_communicator_migrate_ortho_test_GPU_one_stage )
+    {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 1);
+    }
+
+UP_TEST( mpcd_communicator_migrate_ortho_test_GPU_two_stage )
+    {
+    auto exec_conf = std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU));
+
+    communicator_creator communicator_creator_gpu = bind(gpu_communicator_creator, _1, _2);
+    test_communicator_migrate_ortho(communicator_creator_gpu, exec_conf, 2);
     }
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
