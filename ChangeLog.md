@@ -2,6 +2,20 @@
 
 [TOC]
 
+## v2.1.7
+
+Not yet released
+
+*Bug fixes*
+
+* Fix PPM exclusion handling on the CPU
+* Handle r_cut for special pairs correctly
+* Fix tauP reference in NPH documentation
+* Fixed ``constrain.rigid`` on compute 5.x.
+* Fixed random seg faults when using sqlite getar archives with LZ4 compression
+* Fixed XZ coupling with ``hoomd.md.integrate.npt`` integration
+* Fixed aspect ratio with non-cubic boxes in ``hoomd.hpmc.update.boxmc``
+
 ## v2.1.6
 
 Released 2017/04/12
