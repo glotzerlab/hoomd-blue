@@ -4,12 +4,12 @@
 
 ## v2.1.7
 
-Not yet released
+Released 2017/05/11
 
 *Bug fixes*
 
 * Fix PPM exclusion handling on the CPU
-* Handle r_cut for special pairs correctly
+* Handle `r_cut` for special pairs correctly
 * Fix tauP reference in NPH documentation
 * Fixed ``constrain.rigid`` on compute 5.x.
 * Fixed random seg faults when using sqlite getar archives with LZ4 compression
