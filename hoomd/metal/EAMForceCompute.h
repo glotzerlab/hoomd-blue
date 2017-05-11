@@ -10,8 +10,8 @@
 #include <memory>
 
 /*! \file EAMForceCompute.h
-    \brief Declares the EAMForceCompute class
-*/
+ \brief Declares the EAMForceCompute class
+ */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -24,27 +24,28 @@
 
 //! Computes the potential and force on each particle based on values given in a EAM potential
 /*! \b Overview
-    The total potential and force is computed for each particle when compute() is called. Potentials and
-    forces are only computed between neighbouring particles with a separation distance less than
-    \c r_cut. A NeighborList must be provided to identify these neighbours.
+ The total potential and force is computed for each particle when compute() is called. Potentials and
+ forces are only computed between neighbouring particles with a separation distance less than
+ \c r_cut. A NeighborList must be provided to identify these neighbours.
 
-    \b Interpolation
-    The cubic interpolation is used. For each data point, including the value of the point, there are 3
-    coefficients.
+ \b Interpolation
+ The cubic interpolation is used. For each data point, including the value of the point, there are 3
+ coefficients.
 
-    \b Potential memory layout
-    The potential data and the coefficients are stored in six GPUArray<Scalar> arrays: the embedded
-    potential function (m_F) and its derivative (m_dF), the electron density function (m_rho) and its
-    derivative (m_drho), the pair potential function (m_rphi) and its derivative (m_drphi). The 3
-    coefficients for a data point is stored continuously, for example, h_F.data[100].w is the embedded
-    potential function's value read from the 100st position of the potential file,
-    h_F.data[100].z, h_F.data[100].y, h_F.data[100*].x, are for interpolating embedded function,
-    h_dF.data[100].z, h_dF.data[100].y, h_dF.data[100].x, are for interpolating derivative embedded
-    function.
+ \b Potential memory layout
+ The potential data and the coefficients are stored in six GPUArray<Scalar> arrays: the embedded
+ potential function (m_F) and its derivative (m_dF), the electron density function (m_rho) and its
+ derivative (m_drho), the pair potential function (m_rphi) and its derivative (m_drphi). The 3
+ coefficients for a data point is stored continuously, for example, h_F.data[100].w is the embedded
+ potential function's value read from the 100st position of the potential file,
+ h_F.data[100].z, h_F.data[100].y, h_F.data[100*].x, are for interpolating embedded function,
+ h_dF.data[100].z, h_dF.data[100].y, h_dF.data[100].x, are for interpolating derivative embedded
+ function.
 
-    \ingroup computes
-*/
-class EAMForceCompute : public ForceCompute {
+ \ingroup computes
+ */
+class EAMForceCompute: public ForceCompute
+    {
 public:
     //! Constructs the compute
     EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
@@ -96,15 +97,16 @@ protected:
     virtual void computeForces(unsigned int timestep);
 
     //! Method to be called when number of types changes
-    virtual void slotNumTypesChange() {
-        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
-        throw std::runtime_error("Unsupported feature");
-    }
+    virtual void slotNumTypesChange()
+	{
+	m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
+	throw std::runtime_error("Unsupported feature");
+	}
 
     //! cubic interpolation
-    virtual void interpolation(int num_all, int num_per, Scalar delta,
-                               ArrayHandle<Scalar4> *f, ArrayHandle<Scalar4> *df);
-};
+    virtual void interpolation(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar4> *f,
+	    ArrayHandle<Scalar4> *df);
+    };
 
 //! Exports the EAMForceCompute class to python
 void export_EAMForceCompute(pybind11::module &m);
