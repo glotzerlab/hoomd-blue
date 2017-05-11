@@ -39,11 +39,11 @@ public:
      \param period period (approximate) in time steps when returning occurs
      */
     virtual void setAutotunerParams(bool enable, unsigned int period)
-	{
-	EAMForceCompute::setAutotunerParams(enable, period);
-	m_tuner->setPeriod(period);
-	m_tuner->setEnabled(enable);
-	}
+        {
+        EAMForceCompute::setAutotunerParams(enable, period);
+        m_tuner->setPeriod(period);
+        m_tuner->setEnabled(enable);
+        }
 
 protected:
     EAMTexInterData eam_data;             //!< EAM parameters to be communicated

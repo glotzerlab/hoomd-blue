@@ -98,14 +98,14 @@ protected:
 
     //! Method to be called when number of types changes
     virtual void slotNumTypesChange()
-	{
-	m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
-	throw std::runtime_error("Unsupported feature");
-	}
+        {
+        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
+        throw std::runtime_error("Unsupported feature");
+        }
 
     //! cubic interpolation
     virtual void interpolation(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar4> *f,
-	    ArrayHandle<Scalar4> *df);
+            ArrayHandle<Scalar4> *df);
     };
 
 //! Exports the EAMForceCompute class to python
