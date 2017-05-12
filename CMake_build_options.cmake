@@ -18,12 +18,7 @@ endif()
 
 #####################3
 ## CUDA related options
-find_package(CUDA QUIET)
-if (CUDA_FOUND)
-option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" on)
-else (CUDA_FOUND)
 option(ENABLE_CUDA "Enable the compilation of the CUDA GPU code" off)
-endif (CUDA_FOUND)
 
 if (ENABLE_CUDA)
     option(ENABLE_NVTOOLS "Enable NVTools profiler integration" off)
@@ -31,12 +26,7 @@ endif (ENABLE_CUDA)
 
 ############################
 ## MPI related options
-find_package(MPI)
-if (MPI_FOUND OR MPI_C_FOUND OR MPI_CXX_FOUND)
-option(ENABLE_MPI "Enable the compilation of the MPI communication code" on)
-else ()
 option (ENABLE_MPI "Enable the compilation of the MPI communication code" off)
-endif ()
 
 #################################
 ## Optionally enable documentation build

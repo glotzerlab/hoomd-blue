@@ -59,6 +59,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     m_rank = 0;
 
 #ifdef ENABLE_CUDA
+    m_gpu_id = -1;
+
     // scan the available GPUs
     scanGPUs(ignore_display);
     int dev_count = getNumCapableGPUs();
@@ -346,6 +348,8 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
         // initialize the default CUDA context
         cudaFree(0);
         }
+
+    cudaGetDevice(&m_gpu_id);
 
     cudaError_t err_sync = cudaGetLastError();
     handleCUDAError(err_sync, __FILE__, __LINE__);

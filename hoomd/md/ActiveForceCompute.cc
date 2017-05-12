@@ -127,6 +127,12 @@ ActiveForceCompute::ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
 
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = seed*0x12345677 + 0x12345; seed^=(seed>>16); seed*= 0x45679;
+
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
     }
 
 ActiveForceCompute::~ActiveForceCompute()

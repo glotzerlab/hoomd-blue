@@ -142,4 +142,3 @@ bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs
     {
     return lhs.usesDevice() != rhs.usesDevice();
     }
-

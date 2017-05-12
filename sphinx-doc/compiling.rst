@@ -11,7 +11,7 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
+     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang >= 3.5)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH)
@@ -29,7 +29,7 @@ group developed tools) with a single command::
     ./create-env /path/to/prefix "hoomd"
 
 glotzports supports a number of national supercomputing systems, such as OLCF Titan and XSEDE Comet. If you would
-like to build your own module environment, you can use the
+like to configure your own module environment, you can reference
 `glotzports environments <https://bitbucket.org/glotzer/glotzports/src/master/system-config/>`_ as a starting point.
 For systems not supported by glotzports, you will need to consult the documentation or ask the system administrators
 for suggestions to load the appropriate modules.
@@ -58,20 +58,22 @@ prerequisites. There are a few additional steps required to build hoomd against 
 ensure that all libraries (mpi, python, etc...) are linked from the conda environment. First, install miniconda.
 Then, uninstall the hoomd binaries if you have them installed and install the prerequisite libraries and tools::
 
-    conda uninstall hoomd
+    # if using linux
     conda install sphinx git mpich2 numpy cmake pkg-config sqlite
+    # if using mac
+    conda install sphinx git numpy cmake pkg-config sqlite
 
 Check the CMake configuration to ensure that it finds python, numpy, and MPI from within the conda installation.
 If any of these library or include files reference directories other than your conda environment, you will need to
 set the appropriate setting for ``PYTHON_EXECUTABLE``, etc...
 
-.. hint::
+.. note::
 
     The ``mpich2`` package is not available on Mac. Without it, HOOMD will build without MPI support.
 
 .. warning::
 
-    On Mac OS, installing gcc with conda is not sufficient to build HOOMDS. Update XCode to the latest version using the
+    On Mac OS, installing gcc with conda is not sufficient to build HOOMD. Update XCode to the latest version using the
     Mac OS app store.
 
 .. _compile-hoomd:
@@ -85,16 +87,29 @@ Set the environment variable SOFTWARE_ROOT to the location you wish to install H
 
 Clone the git repository to get the source::
 
-    $ git clone https://bitbucket.org/glotzer/hoomd-blue
+    $ git clone --recursive https://bitbucket.org/glotzer/hoomd-blue
 
 By default, the *maint* branch will be checked out. This branch includes all bug fixes since the last stable release.
+HOOMD-blue uses submodules, you the ``--recursive`` option to clone instructs git to fetch all of the submodules.
+When you later update this git repository with ``git pull``, run ``git submodule update`` update all of the submodules.
 
-Compile::
+Configure::
 
     $ cd hoomd-blue
     $ mkdir build
     $ cd build
     $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python
+
+By default, HOOMD configures a *Release* optimized build type for a generic CPU architecture and with no optional
+libraries. Specify ``-DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native`` (or whatever is the appropriate
+option for your compiler) to enable optimizations specific to your CPU. Specify ``-DENABLE_CUDA=ON`` to compile code
+for the GPU (requires CUDA) and ``-DENABLE_MPI=ON`` to enable parallel simulations with MPI. See the build options
+section below for a full list of options::
+
+    $ cmake ../ -DCMAKE_INSTALL_PREFIX=${SOFTWARE_ROOT}/lib/python -DCMAKE_CXX_FLAGS=-march=native -DCMAKE_C_FLAGS=-march=native -DENABLE_CUDA=ON -DENABLE_MPI=ON
+
+Compile::
+
     $ make -j4
 
 Run::
@@ -125,7 +140,7 @@ directory and run::
 After changing an option, press *c* to configure then press *g* to generate. The makefile/IDE project is now updated with
 the newly selected options. Alternately, you can set these parameters on the command line with cmake::
 
-    cmake $HOME/devel/hoomd -DENABLE_CUDA=off
+    cmake $HOME/devel/hoomd -DENABLE_CUDA=on
 
 Options that specify library versions only take effect on a clean invocation of cmake. To set these options, first
 remove `CMakeCache.txt` and then run cmake and specify these options on the command line:
@@ -153,7 +168,7 @@ Other option changes take effect at any time. These can be set from within `ccma
       slow when compiled in Debug mode, but problems are easier to
       identify.
     * **RelWithDebInfo** - Compiles with optimizations and debug symbols. Useful for profiling benchmarks.
-    * **Release** - All compiler optimizations are enabled and asserts are removed.
+    * **Release** - (default) All compiler optimizations are enabled and asserts are removed.
       Recommended for production builds: required for any benchmarking.
 * **ENABLE_CUDA** - Enable compiling of the GPU accelerated computations using CUDA. Defaults *on* if the CUDA toolkit
   is found. Defaults *off* if the CUDA toolkit is not found.
