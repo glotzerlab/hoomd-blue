@@ -285,7 +285,7 @@ class cosinesq(force._force):
         V(\theta) = \frac{1}{2} k \left( \cos\theta - \cos\theta_0 \right)^2
 
     where :math:`\theta` is the angle between the triplet of particles.
-    This angle style is known as g96 angles since they were used in the
+    This angle style is also known as g96, since they were used in the
     gromos96 force field. These are also the types of angles used with the
     coarse-grained MARTINI force field.
 
@@ -297,7 +297,7 @@ class cosinesq(force._force):
     Coefficients :math:`k` and :math:`\theta_0` must be set for each type of 
     angle in the simulation using the method :py:meth:`angle_coeff.set() <coeff.set()>`.
     Note that the value of :math:`k` for this angle potential is not comparable to
-    the value of :math:`k`, as they have different units.  
+    the value of :math:`k` for harmonic angles, as they have different units.  
 
     Examples::
 
