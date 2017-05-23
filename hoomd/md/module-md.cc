@@ -23,6 +23,7 @@
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
 #include "HarmonicAngleForceCompute.h"
+#include "CosineSqAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "IntegrationMethodTwoStep.h"
@@ -68,6 +69,7 @@
 #include "ForceCompositeGPU.h"
 #include "ForceDistanceConstraintGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
+#include "CosineSqAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "NeighborListGPUBinned.h"
@@ -197,6 +199,7 @@ PYBIND11_PLUGIN(_md)
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
     export_HarmonicAngleForceCompute(m);
+    export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
     export_HarmonicDihedralForceCompute(m);
     export_OPLSDihedralForceCompute(m);
@@ -279,6 +282,7 @@ PYBIND11_PLUGIN(_md)
     export_BondTablePotentialGPU(m);
     export_TablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
+    export_CosineSqAngleForceComputeGPU(m);
     export_TableAngleForceComputeGPU(m);
     export_HarmonicDihedralForceComputeGPU(m);
     export_OPLSDihedralForceComputeGPU(m);
