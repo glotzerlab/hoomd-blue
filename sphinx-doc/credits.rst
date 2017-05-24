@@ -186,6 +186,9 @@ Bryan VanSaders, University of Michigan
 Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
 
+Tim Moore, Vanderbilt University
+  * angle.cosinesq
+
 
 HPMC developers
 ---------------
@@ -262,8 +265,8 @@ The following people contributed to the :py:mod:`hoomd.hpmc` package.
     * Wall overlap checks
     * Lattice external potential
 
-Vyas Ramasubramani, University of Michigan
- * hpmc.util.tune fixes for tuning by type
+* Vyas Ramasubramani, University of Michigan
+    * hpmc.util.tune fixes for tuning by type
 
 DEM developers
 --------------
