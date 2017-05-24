@@ -2,7 +2,6 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: dnlebard
 
 #include "CosineSqAngleForceGPU.cuh"
 #include "hoomd/TextureTools.h"
