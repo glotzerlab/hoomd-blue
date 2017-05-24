@@ -190,9 +190,7 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
         dac = box.minImage(dac);
 
         // this is where cosinesq differs from harmonic
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
         // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
 
         // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x*dab.x+dab.y*dab.y+dab.z*dab.z;  // squared magnitude of r_ab
@@ -206,20 +204,15 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
         if (c_abbc > 1.0) c_abbc = 1.0;  // how does this ever happen? 
         if (c_abbc < -1.0) c_abbc = -1.0;
 
-        // this calculates sin(t)... I don't think that's actually needed here
-        //Scalar s_abbc = sqrt(1.0 - c_abbc*c_abbc);  // = sqrt(1-cos^2(t)) = sin(t)
-        //if (s_abbc < SMALL) s_abbc = SMALL;
-        //s_abbc = 1.0/s_abbc;  // = 1/sin(t)
-
         // actually calculate the force
         unsigned int angle_type = m_angle_data->getTypeByIndex(i);
         Scalar dcosth = c_abbc - cos(m_t_0[angle_type]);  // = cos(t) - cos(t0)
-        Scalar tk = m_K[angle_type]*dcosth;  // = k(t - t0)
+        Scalar tk = m_K[angle_type]*dcosth;  // = k(cos(t) - cos(t0))
 
-        Scalar a = 1.0 * tk;  // = -k(t - t0) / sin(t)
-        Scalar a11 = a * c_abbc / rsqab;  // = -k(t-t0)*cos(t) / (sin(t) * r_ab^2
-        Scalar a12 = -a / (rab*rcb);  // = k(t-t0)/sin(t)
-        Scalar a22 = a * c_abbc / rsqcb;
+        Scalar a = 1.0 * tk;  // = k(cos(t) - cos(t0))
+        Scalar a11 = a * c_abbc / rsqab;  // = k(cos(t) - cos(t0)) * cos(t) / r_ij^2
+        Scalar a12 = -a / (rab * rcb);  // = -k(cos(t) - cos(t0)) / (rij * rkj)
+        Scalar a22 = a * c_abbc / rsqcb;  // = k(cos(t) - cos(t0)) * cos(t) / r_kj^2
 
         Scalar fab[3], fcb[3];
 

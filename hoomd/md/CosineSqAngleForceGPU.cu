@@ -131,13 +131,8 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
         if (c_abbc > Scalar(1.0)) c_abbc = Scalar(1.0);
         if (c_abbc < -Scalar(1.0)) c_abbc = -Scalar(1.0);
 
-        // s_abbc = sin(t), I'm not sure it's actually needed
-        //Scalar s_abbc = sqrtf(Scalar(1.0) - c_abbc*c_abbc);
-        //if (s_abbc < SMALL) s_abbc = SMALL;
-        //s_abbc = Scalar(1.0)/s_abbc;
-
         // actually calculate the force
-        Scalar dcosth = c_abbc - fast::cos(t_0);
+        Scalar dcosth = c_abbc - fast::cos(t_0);  // where is fast:: defined?
         Scalar tk = K*dcosth;
 
         Scalar a = Scalar(1.0) * tk;
