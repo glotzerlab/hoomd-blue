@@ -120,9 +120,9 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
         Scalar t_0 = params.y;
 
         Scalar rsqab = dot(dab, dab);
-        Scalar rab = sqrtf(rsqab);
+        Scalar rab = fast::sqrt(rsqab);
         Scalar rsqcb = dot(dcb, dcb);
-        Scalar rcb = sqrtf(rsqcb);
+        Scalar rcb = fast::sqrt(rsqcb);
 
         Scalar c_abbc = dot(dab, dcb);
         c_abbc /= rab*rcb;  // cos(t)
@@ -131,7 +131,8 @@ extern "C" __global__ void gpu_compute_cosinesq_angle_forces_kernel(Scalar4* d_f
         if (c_abbc < -Scalar(1.0)) c_abbc = -Scalar(1.0);
 
         // actually calculate the force
-        Scalar dcosth = c_abbc - fast::cos(t_0);  // where is fast:: defined?
+        // should the user pass cos(t_0) so that it's not calculated each time for each angle?
+        Scalar dcosth = c_abbc - fast::cos(t_0);
         Scalar tk = K*dcosth;
 
         Scalar a = Scalar(1.0) * tk;
