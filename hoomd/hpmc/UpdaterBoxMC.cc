@@ -553,21 +553,22 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     Scalar A2 = m_Volume_A2;
 
     // Volume change
-    Scalar dV_max(m_Volume_delta);
+    Scalar dlnV_max(m_Volume_delta);
 
     // Choose a volume change
-    Scalar dV = rng.s(-dV_max, dV_max);
+    Scalar dlnV = rng.s(-dlnV_max, dlnV_max);
+    Scalar new_V = V*exp(dlnV);
 
     // perform isotropic volume change
     if (Ndim == 3)
         {
-        newL[0] = pow((A1 * A2 * (V + dV)),(1./3.));
+        newL[0] = pow(A1 * A2 * new_V,(1./3.));
         newL[1] = newL[0]/A1;
         newL[2] = newL[0]/A2;
         }
     else // Ndim ==2
         {
-        newL[0] = pow((A1*(V+dV)),(1./2.));
+        newL[0] = pow(A1*new_V,(1./2.));
         newL[1] = newL[0]/A1;
         // newL[2] is already assigned to curL[2]
         }
@@ -578,14 +579,8 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
         }
     else
         {
-        // Calculate new volume
-        double Vnew = newL[0] * newL[1];
-        if (Ndim == 3)
-            {
-            Vnew *= newL[2];
-            }
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/V);
+        double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
         double Boltzmann = exp(dBetaH);
 
         // attempt box change
