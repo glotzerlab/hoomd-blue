@@ -112,7 +112,7 @@ class boxmc(_updater):
         R""" Enable/disable isobaric volume move and set parameters.
 
         Args:
-            delta (float): maximum change of the box area (2D) or volume (3D).
+            delta (float): maximum relative change of the box area (2D) or volume (3D).
             weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
 
         Sample the isobaric distribution of box volumes by rescaling the box.
