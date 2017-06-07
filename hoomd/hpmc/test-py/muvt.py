@@ -63,7 +63,7 @@ class muvt_updater_test(unittest.TestCase):
     def test_polyhedron(self):
         self.mc = hpmc.integrate.polyhedron(seed=10);
         self.mc.set_params(deterministic=True)
-         import math
+        import math
         v = [(-0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (0,0, 1.0/math.sqrt(2)),(0,0,-1.0/math.sqrt(2))];
         f = [(0,4,1),(1,4,2),(2,4,3),(3,4,0),(0,5,1),(1,5,2),(2,5,3),(3,5,0)]
         self.mc.shape_param.set('A', vertices=v, faces=f)
