@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: jglaser
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -28,8 +30,27 @@
 #include <iostream>
 #endif
 
+/*!  This overlap check has been optimized to the best of my ability. However, further optimizations may still be possible,
+  in particular regarding the tree traversal and the type of bounding volume hiarchy. Generally, I have found
+  OBB's to perform superior to AABB's and spheres, because they are tightly fitting. The tandem overlap check is also
+  faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
+  to the possibility of parallellizing over the leave nodes, but that also leads to longer autotuning times. Even though
+  tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
+  Then the stack frame could be increased using cudaDeviceSetLimit().
+
+  Since GPU performance is mostly deplorable for concave polyhedra, I have not put much effort into optimizing for that code path.
+  The parallel overlap check code path has been left in here for future experimentation, and can be enabled by
+  uncommenting the below line.
+  */
+
 // uncomment for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
+
+/*
+  Also prefixing the overlap check with a convex hull overlap check does not yield better performance, since the tree
+  traversal is now sufficiently efficient and another overlap check only adds overhead/registers on the GPU.
+  This can still be verified by uncommenting the below line
+  */
 
 // uncomment to do an early-rejection check of convex hulls - on the GPU, this adds additional divergence
 //#define POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
@@ -187,7 +208,6 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     vec3<OverlapReal> ac = c - a;
     vec3<OverlapReal> ap = p - a;
 
-    #if 1
     OverlapReal d1 = dot(ab, ap);
     OverlapReal d2 = dot(ac, ap);
     if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
@@ -232,62 +252,6 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     OverlapReal v = vb * denom;
     OverlapReal w = vc * denom;
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
-    #endif
-
-    #if 0
-    vec3<OverlapReal> bc = c - b;
-    // Compute parameteric position s for projection P' of P on AB<
-    // P' = A + s*AB, s = snom/(snom+denom)
-    OverlapReal snom = dot(p-a, ab);
-    OverlapReal sdenom = dot(p-b,a-b);
-
-    // Compute parametric position for projection P' of P on AC,
-    // P' = A + t*AC, s= tnom/(tnom+tdenom)
-    OverlapReal tnom = dot(p-a, ac);
-    OverlapReal tdenom = dot(p-c, a-c);
-
-
-    if (snom <= OverlapReal(0.0) && tnom <= 0.0) return a; // Vertex region early out
-
-    // Compute parametric position u for projection P' of P on BC,
-    // P' = B + u*BC, u = unom/(unom+udenom)
-    OverlapReal unom = dot(p-b, bc);
-    OverlapReal udenom = dot(p-c,b-c);
-
-    if (sdenom <= OverlapReal(0.0) && unom <= OverlapReal(0.0)) return b; // Vertex region early out
-    if (tdenom <= OverlapReal(0.0) && udenom <= OverlapReal(0.0)) return c; // Vertex region early out
-
-    // P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
-    vec3<OverlapReal> n = cross(b-a, c-a);
-    OverlapReal vc = dot(n, cross(a-p,b-p));
-
-    // If P outside AB and within feature region of AB,
-    // return projection of P onto AB
-    if (vc <= OverlapReal(0.0) && snom >= OverlapReal(0.0) && sdenom >= OverlapReal(0.0))
-        return a + snom / (snom + sdenom) * ab;
-
-    // P is outside (or on) BC if the triple scalar product [N PB PC] <= 0
-    OverlapReal va = dot(n, cross(b-p, c-p));
-
-    // If P outside BC and within feature region of BC,
-    // return projection of P onto BC
-    if (va <= OverlapReal(0.0) && unom >= OverlapReal(0.0) && udenom >= OverlapReal(0.0))
-        return b + unom / (unom + udenom) * bc;
-
-    // P is outside (or on) C if the triple sclar product [N PC PA] <= 0
-    OverlapReal vb = dot(n, cross(c-p, a-p));
-
-    // If P outside CA and within feature region of CA,
-    // return projection of P onto CA
-    if (vb <= OverlapReal(0.0) && tnom >= OverlapReal(0.0) && tdenom >= OverlapReal(0.0))
-        return a + tnom / (tnom + tdenom) * ac;
-
-    // P must project inside the face region. Compute Q using barycentric coordinates
-    OverlapReal u = va / (va + vb + vc);
-    OverlapReal v = vb / (va + vb + vc);
-    OverlapReal w = OverlapReal(1.0) - u - v; // = vc / (va + vb + vc)
-    return u*a+v*b+w*c;
-    #endif
     }
 
 
