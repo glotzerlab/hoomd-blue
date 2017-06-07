@@ -84,7 +84,7 @@ class shape_proxy_sanity_checks (unittest.TestCase):
 
         # polyhedron
         v = [(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)];
-        f = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
+        f = [(7, 3, 1), (7, 5, 4), (7, 6, 2), (3, 2, 0), (0, 2, 6), (1, 0, 4)];
         r = 0.0;
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.polyhedron(seed=10);
