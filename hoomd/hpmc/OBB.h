@@ -236,15 +236,6 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     return true;
     }
 
-template<class T>
-DEVICE inline void swap(T& a, T&b)
-    {
-    T c;
-    c = a;
-    a = b;
-    b = c;
-    }
-
 // Intersect ray R(t) = p + t*d against OBB a. When intersecting,
 // return intersection distance tmin and point q of intersection
 // Ericson, Christer, Real-Time Collision Detection (Page 180)
@@ -272,7 +263,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
         OverlapReal t2 = (a.lengths.x - p_local.x) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
-        if (t1 > t2) swap(t1, t2);
+        if (t1 > t2) detail::swap(t1, t2);
 
         // Compute the intersection of slab intersection intervals
         tmin = detail::max(tmin, t1);
@@ -295,7 +286,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
         OverlapReal t2 = (a.lengths.y - p_local.y) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
-        if (t1 > t2) swap(t1, t2);
+        if (t1 > t2) detail::swap(t1, t2);
 
         // Compute the intersection of slab intersection intervals
         tmin = detail::max(tmin, t1);
@@ -318,7 +309,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
         OverlapReal t2 = (a.lengths.z - p_local.z) * ood;
 
         // Make t1 be intersection with near plane, t2 with far plane
-        if (t1 > t2) swap(t1, t2);
+        if (t1 > t2) detail::swap(t1, t2);
 
         // Compute the intersection of slab intersection intervals
         tmin = detail::max(tmin, t1);
