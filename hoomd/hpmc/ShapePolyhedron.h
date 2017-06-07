@@ -525,7 +525,7 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
-#include "triangle_triangle.h"
+#include <hoomd/extern/triangle_triangle.h>
 
 DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                                               const ShapePolyhedron& a,
