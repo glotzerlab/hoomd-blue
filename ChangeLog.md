@@ -33,7 +33,6 @@ Not yet released
 
 *Other changes*
 * Optimized performance of HPMC sphere union overlap check
-* Faster simulations with implicit depletants on CPU
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
