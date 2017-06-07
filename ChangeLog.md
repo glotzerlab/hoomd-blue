@@ -2,19 +2,28 @@
 
 [TOC]
 
-## v2.2
+## v2.2.0
 
 Not yet released
 
 *New features*
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
-* `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
-* force.constant and force.active can now apply torques
+* HPMC: `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+* HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
+* `force.constant` and `force.active` can now apply torques
+* `dump.gsd` can now save internal state to gsd files. Call `dump_state(object)` to save the state for a particular object. The following objects are supported:
+    * HPMC integrators save shape and trial move size state
+* HPMC integrators restore state from a gsd file read by `init.read_gsd` when the option `restore_state` is `True`.
+* Add *dynamic* argument to `hoomd.dump.gsd` to specify which quantity categories should be written every frame.
+* Added support for a 3 body potential that is harmonic in the local density.
+* Add generic capability for bidirectional ghost communication, enabling multi body potentials in MPI simulation.
 
 *Deprecated*
 
-* HPMC: hpmc.integrate.sphere_union() no longer needs the max_members parameter
+* HPMC: `hpmc.integrate.sphere_union()` no longer needs the `max_members` parameter.
+* HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` no longer needs the `max_verts` parameter.
+* The *static* argument to `hoomd.dump.gsd` should no longer be used. Use *dynamic* instead.
 
 *Bug fixes*
 
@@ -28,6 +37,23 @@ Not yet released
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
 * Raise an error when an updater is given a period of 0
+* Revised compilation instructions
+* Misc documentation improvements
+* Fully document `contrain.rigid`
+
+## v2.1.7
+
+Released 2017/05/11
+
+*Bug fixes*
+
+* Fix PPM exclusion handling on the CPU
+* Handle `r_cut` for special pairs correctly
+* Fix tauP reference in NPH documentation
+* Fixed ``constrain.rigid`` on compute 5.x.
+* Fixed random seg faults when using sqlite getar archives with LZ4 compression
+* Fixed XZ coupling with ``hoomd.md.integrate.npt`` integration
+* Fixed aspect ratio with non-cubic boxes in ``hoomd.hpmc.update.boxmc``
 
 ## v2.1.6
 

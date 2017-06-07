@@ -34,6 +34,7 @@ class pair_smallbox3d_test1 (unittest.TestCase):
         self.system = create_empty(N=1, box=data.boxdim(L=1.9, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]);
 
         context.current.sorter.set_params(grid=8)
@@ -60,6 +61,7 @@ class pair_smallbox3d_test2 (unittest.TestCase):
         self.system = create_empty(N=1, box=data.boxdim(L=1.2, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.convex_polyhedron(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]);
 
         context.current.sorter.set_params(grid=8)

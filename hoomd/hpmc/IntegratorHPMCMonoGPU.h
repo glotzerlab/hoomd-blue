@@ -55,6 +55,13 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_excell_block_size->setEnabled(enable);
             }
 
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic)
+            {
+            this->m_exec_conf->msg->notice(2) << "hpmc: Sorting cell list to enable deterministic simulations." << std::endl;
+            m_cl->setSortCellList(deterministic);
+            }
+
     protected:
         std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep

@@ -63,7 +63,7 @@ class UpdateOrder
         /*! \param N new size
             \post The order is 0, 1, 2, ... N-1
         */
-        void resize(unsigned int N)
+    void resize(unsigned int N)
             {
             // initialize the update order
             m_update_order.resize(N);
