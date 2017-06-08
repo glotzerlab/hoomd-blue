@@ -181,6 +181,30 @@ class _analyzer(hoomd.meta._metadata):
         data['enabled'] = self.enabled
         return data
 
+    @classmethod
+    def _gsd_state_name(cls):
+        raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def _connect_gsd(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_analyzer, "connectGSDSignal"):
+            self.cpp_analyzer.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def restore_state(self):
+        """ Resore the state information from the file used to initialize the simulations
+        """
+        hoomd.util.print_status_line();
+        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_analyzer, "restoreStateGSD"):
+            self.cpp_analyzer.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
+        else:
+            if hoomd.context.current.state_reader is None:
+                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+            else:
+                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+            raise RuntimeError("Can not restore state information!");
+
 # set default counter
 _analyzer.cur_id = 0;
 

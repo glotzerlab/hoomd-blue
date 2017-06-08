@@ -84,6 +84,10 @@ lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
 The following #defines help get around this
 */
 
+#if (PYBIND11_VERSION_MAJOR) != 1 || (PYBIND11_VERSION_MINOR) != 8
+#error HOOMD-blue requires pybind11 1.8.x
+#endif
+
 #if PY_VERSION_HEX >= 0x03000000
 #define MY_PY_VER_3x
 #else

@@ -151,6 +151,9 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
+        ## Stored reference to the reader that was used to initialize the system
+        self.state_reader = None;
+
     def set_current(self):
         R""" Force this to be the current context
         """

@@ -86,6 +86,7 @@ Jens Glaser, University of Michigan
  * pair.reaction_field
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
+ * pair.van_der_waals
  * hpmc interaction_matrix
  * special_pair framework
 

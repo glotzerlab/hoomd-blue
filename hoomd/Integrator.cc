@@ -329,7 +329,8 @@ void Integrator::computeNetForce(unsigned int timestep)
         external_energy = Scalar(0.0);
 
         // now, add up the net forces
-        unsigned int nparticles = m_pdata->getN();
+        // also sum up forces for ghosts, in case they are needed by the communicator
+        unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
         unsigned int net_virial_pitch = net_virial.getPitch();
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
@@ -384,10 +385,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
-        return;
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -395,6 +392,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->updateNetForce(timestep);
         }
     #endif
+
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
@@ -508,7 +509,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
-        unsigned int nparticles = m_pdata->getN();
+        // also sum up forces for ghosts, in case they are needed by the communicator
+        unsigned int nparticles = m_pdata->getN() + m_pdata->getNGhosts();
         assert(nparticles <= net_force.getNumElements());
         assert(nparticles*6 <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());

@@ -307,7 +307,7 @@ class nlist:
 
         return self.cpp_nlist.getSmallestRebuild()-1;
 
-    def tune(self, warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False):
+    def tune(self, warmup=200000, r_min=0.05, r_max=1.0, jumps=20, steps=5000, set_max_check_period=False, quiet=False):
         R""" Make a series of short runs to determine the fastest performing r_buff setting.
 
         Args:
@@ -317,6 +317,7 @@ class nlist:
             jumps (int): Number of different r_buff values to test
             steps (int): Number of time steps to run() at each point
             set_max_check_period (bool): Set to True to enable automatic setting of the maximum nlist check_period
+            quiet (bool): Quiet the individual run() calls.
 
         :py:meth:`tune()` executes *warmup* time steps. Then it sets the nlist *r_buff* value to *r_min* and runs for
         *steps* time steps. The TPS value is recorded, and the benchmark moves on to the next *r_buff* value
@@ -351,7 +352,7 @@ class nlist:
         self.set_params(check_period=1)
 
         # make the warmup run
-        hoomd.run(warmup);
+        hoomd.run(warmup, quiet=quiet);
 
         # initialize scan variables
         dr = (r_max - r_min) / (jumps - 1);
@@ -366,11 +367,11 @@ class nlist:
 
             # run the benchmark 3 times
             tps = [];
-            hoomd.run(steps);
+            hoomd.run(steps, quiet=quiet);
             tps.append(hoomd.context.current.system.getLastTPS())
-            hoomd.run(steps);
+            hoomd.run(steps, quiet=quiet);
             tps.append(hoomd.context.current.system.getLastTPS())
-            hoomd.run(steps);
+            hoomd.run(steps, quiet=quiet);
             tps.append(hoomd.context.current.system.getLastTPS())
 
             # record the median tps of the 3
@@ -384,7 +385,7 @@ class nlist:
 
         # set the fastest and rerun the warmup steps to identify the max check period
         self.set_params(r_buff=fastest_r_buff);
-        hoomd.run(warmup);
+        hoomd.run(warmup, quiet=quiet);
 
         # all done with the parameter sets and run calls (mostly)
         hoomd.util.unquiet_status();

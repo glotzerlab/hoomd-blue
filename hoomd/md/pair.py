@@ -2343,7 +2343,7 @@ class dipole(ai_pair):
 
         return params
 
-    def set_params(self, coeff):
+    def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
 
         raise RuntimeError('Not implemented for dipole');
@@ -2439,3 +2439,96 @@ class reaction_field(pair):
         use_charge = coeff['use_charge']
 
         return _hoomd.make_scalar3(epsilon, eps_rf, _hoomd.int_as_scalar(int(use_charge)));
+
+class square_density(pair):
+    R""" Soft potential for simulating a van-der-Waals liquid
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`square_density` specifies that the three-body potential should be applied to every
+    non-bonded particle pair in the simulation, that is harmonic in the local density.
+
+    The self energy per particle takes the form
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        \Psi^{ex} = B (\rho - A)^2
+        \end{equation}
+
+    which gives a pair-wise additive, three-body force
+
+    .. math::
+        \begin{equation}
+        \vec f_{ij} = \left\{B (n_i - A) + B (n_j - A)\right\} w'_{ij} \vec e_{ij}
+        \end{equation}
+
+    Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
+        \end{equation}
+
+    The local density at the location of particle $i$ is defined as
+
+    .. math::
+        \begin{equation}
+        n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
+        \end{equation}
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
+    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
+
+    Example::
+
+        nl = nlist.cell()
+        sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
+        sqd.pair_coeff.set('A', 'A', A=0.1)
+        sqd.pair_coeff.set('A', 'A', B=1.0)
+
+    For further details regarding this multibody potential, see
+
+    Warning:
+        Currently HOOMD does not support reverse force communication between MPI domains on the GPU. 
+        Since reverse force communication is required for the calculation of multi-body potentials, attempting to use the
+        square_density potential on the GPU with MPI will result in an error.
+
+    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
+    Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # this potential cannot handle a half neighbor list
+        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensity;
+        else:
+            self.cpp_force = _md.PotentialSquareDensityGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensityGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['A','B']
+        self.pair_coeff.set_default_coeff('A', 0.0)
+
+    def process_coeff(self, coeff):
+        return _hoomd.make_scalar2(coeff['A'],coeff['B'])
