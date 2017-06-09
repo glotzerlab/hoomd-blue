@@ -16,3 +16,9 @@
 [submodule "hoomd/extern/cub"]
 	path = hoomd/extern/cub
 	url = https://github.com/NVlabs/cub.git
+[submodule "hoomd/extern/quickhull"]
+	path = hoomd/extern/quickhull
+	url = https://github.com/akuukka/quickhull.git
+[submodule "quickhull"]
+	path = quickhull
+	url = https://github.com/akuukka/quickhull.git
