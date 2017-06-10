@@ -514,7 +514,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
         axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z); // shortest axis
 
-        std::vector<vec2<OverlapReal> > proj_2d(n);
+        std::vector<vec2<OverlapReal> > proj_2d(hull_pts.size());
         for (unsigned int i = 0; i < hull_pts.size(); ++i)
             {
             proj_2d[i].x = dot(axis[0], hull_pts[i]);
