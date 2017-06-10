@@ -342,6 +342,8 @@ inline OverlapReal MinAreaRect(vec2<OverlapReal> pt[], int numPts, vec2<OverlapR
         // Get current edge e0 (e0x,e0y), normalized
         vec2<OverlapReal> e0 = pt[i] - pt[j];
 
+        const OverlapReal eps(1e-12); // if edge is too short, do not consider
+        if (dot(e0,e0) < eps) continue;
         e0 = e0/sqrtf(dot(e0,e0));
 
         // Get an axis e1 orthogonal to edge e0
@@ -472,7 +474,6 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     Eigen::EigenSolver<Eigen::MatrixXd> es;
     es.compute(m);
     Eigen::MatrixXcd eigen_vec = es.eigenvectors();
-    Eigen::VectorXcd eigen_val = es.eigenvalues();
 
     rotmat3<OverlapReal> r;
 
@@ -480,73 +481,109 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
     r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
 
-    // sort by descending eigenvalue, so split can occur along axis with largest covariance
-    if (eigen_val(0).real() < eigen_val(1).real())
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(eigen_val(1),eigen_val(0));
-        }
-
-    if (eigen_val(1).real() < eigen_val(2).real())
-        {
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(eigen_val(1),eigen_val(2));
-        }
-
-    if (eigen_val(0).real() < eigen_val(1).real())
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(eigen_val(1),eigen_val(0));
-        }
-
-    vec3<OverlapReal> axis[3];
     if (pts.size() >= 3)
         {
-        // find minimum bounding rectangle normal to shortest axis
+        bool done = false;
+        vec3<OverlapReal> cur_axis[3];
+        cur_axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
+        cur_axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
+        cur_axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
 
-        axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
-        axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z); // shortest axis
+        OverlapReal min_V = FLT_MAX;
+        unsigned int min_axis = 0;
+        vec2<OverlapReal> min_axes_2d[2];
 
-        std::vector<vec2<OverlapReal> > proj_2d(hull_pts.size());
-        for (unsigned int i = 0; i < hull_pts.size(); ++i)
+        // iteratively improve OBB
+        while (! done)
             {
-            proj_2d[i].x = dot(axis[0], hull_pts[i]);
-            proj_2d[i].y = dot(axis[1], hull_pts[i]);
+            bool updated_axes = false;
+
+            // test if a projection normal to any axis reduces the volume of the bounding box
+            for (unsigned int test_axis = 0; test_axis < 3; ++test_axis)
+                {
+                // project normal to test_axis
+                std::vector<vec2<OverlapReal> > proj_2d(hull_pts.size());
+                for (unsigned int i = 0; i < hull_pts.size(); ++i)
+                    {
+                    unsigned k = 0;
+                    for (unsigned int j = 0 ; j < 3; j++)
+                        {
+                        if (j != test_axis)
+                            {
+                            if (k++ == 0)
+                                proj_2d[i].x = dot(cur_axis[j], hull_pts[i]);
+                            else
+                                proj_2d[i].y = dot(cur_axis[j], hull_pts[i]);
+                            }
+                        }
+                    }
+
+                vec2<OverlapReal> new_axes_2d[2];
+                vec2<OverlapReal> c;
+                OverlapReal area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
+
+                // find extent along test_axis
+                OverlapReal proj_min = FLT_MAX;
+                OverlapReal proj_max = -FLT_MAX;
+                for (unsigned int i = 0; i < hull_pts.size(); ++i)
+                    {
+                    OverlapReal proj = dot(hull_pts[i], cur_axis[test_axis]);
+
+                    if (proj > proj_max) proj_max = proj;
+                    if (proj < proj_min) proj_min = proj;
+                    }
+                OverlapReal extent = proj_max - proj_min;
+
+                // bounding box volume
+                OverlapReal V = extent*area;
+                if (V < min_V)
+                    {
+                    min_V = V;
+                    min_axes_2d[0] = new_axes_2d[0];
+                    min_axes_2d[1] = new_axes_2d[1];
+                    min_axis = test_axis;
+                    updated_axes = true;
+                    }
+                } // end loop over test axis
+
+            if (updated_axes)
+                {
+                vec3<OverlapReal> new_axis[3];
+
+                // test axis stays the same
+                new_axis[min_axis] = cur_axis[min_axis];
+
+                // rotate axes
+                for (unsigned int j = 0 ; j < 3; j++)
+                    {
+                    if (j != min_axis)
+                        {
+                        for (unsigned int l = j+1; l < 3; l++)
+                            if (l != min_axis)
+                                {
+                                new_axis[l] = min_axes_2d[0].x*cur_axis[j]+min_axes_2d[0].y*cur_axis[l];
+                                new_axis[j] = min_axes_2d[1].x*cur_axis[j]+min_axes_2d[1].y*cur_axis[l];
+                                }
+                        }
+                    }
+
+                // update axes
+                for (unsigned int j = 0; j < 3; j++) cur_axis[j] = new_axis[j];
+                }
+            else
+                {
+                // local minimum reached
+                done = true;
+                }
             }
 
-        vec2<OverlapReal> new_axes_2d[2];
-        vec2<OverlapReal> c;
-        MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
-
-        // update axes
-        rotmat3<OverlapReal> new_r = r;
-        new_r.row0.x = r.row0.x*new_axes_2d[0].x+r.row0.y*new_axes_2d[0].y;
-        new_r.row1.x = r.row1.x*new_axes_2d[0].x+r.row1.y*new_axes_2d[0].y;
-        new_r.row2.x = r.row2.x*new_axes_2d[0].x+r.row2.y*new_axes_2d[0].y;
-
-        new_r.row0.y = r.row0.x*new_axes_2d[1].x+r.row0.y*new_axes_2d[1].y;
-        new_r.row1.y = r.row1.x*new_axes_2d[1].x+r.row1.y*new_axes_2d[1].y;
-        new_r.row2.y = r.row2.x*new_axes_2d[1].x+r.row2.y*new_axes_2d[1].y;
-        r = new_r;
-        }
-
-    if (r.det() < OverlapReal(0.0))
-        {
-        // swap column two and three
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(eigen_val(1),eigen_val(2));
+        // update rotation matrix
+        r.row0 = cur_axis[0]; r.row1 = cur_axis[1]; r.row2 = cur_axis[2];
+        r = transpose(r);
         }
 
     // final axes
+    vec3<OverlapReal> axis[3];
     axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
     axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
     axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
@@ -577,6 +614,41 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
     res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
+
+    // sort by descending length, so split can occur along longest axis
+    if (res.lengths.x < res.lengths.y)
+        {
+        std::swap(r.row0.x,r.row0.y);
+        std::swap(r.row1.x,r.row1.y);
+        std::swap(r.row2.x,r.row2.y);
+        std::swap(res.lengths.x,res.lengths.y);
+        }
+
+    if (res.lengths.y < res.lengths.z)
+        {
+        std::swap(r.row0.y,r.row0.z);
+        std::swap(r.row1.y,r.row1.z);
+        std::swap(r.row2.y,r.row2.z);
+        std::swap(res.lengths.y, res.lengths.z);
+        }
+
+    if (res.lengths.x < res.lengths.y)
+        {
+        std::swap(r.row0.x,r.row0.y);
+        std::swap(r.row1.x,r.row1.y);
+        std::swap(r.row2.x,r.row2.y);
+        std::swap(res.lengths.x, res.lengths.y);
+        }
+
+    // make sure coordinate system is proper
+    if (r.det() < OverlapReal(0.0))
+        {
+        // swap column two and three
+        std::swap(r.row0.y,r.row0.z);
+        std::swap(r.row1.y,r.row1.z);
+        std::swap(r.row2.y,r.row2.z);
+        std::swap(res.lengths.y,res.lengths.z);
+        }
 
     res.lengths.x += vertex_radius;
     res.lengths.y += vertex_radius;
