@@ -524,7 +524,7 @@ DEVICE inline OverlapReal shortest_distance_triangles(
 
 #include <hoomd/extern/triangle_triangle.h>
 
-DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
+DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
                                               unsigned int cur_node_a,
@@ -546,7 +546,6 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
         float U[3][3];
 
-        vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
         quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
 
         if (nverts_a > 2)
@@ -716,6 +715,47 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     return true;
     }
 
+#ifndef NVCC
+//! Traverse the bounding volume test tree recursively
+inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
+     unsigned int cur_node_a, unsigned int cur_node_b,
+     const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, unsigned int &err, OverlapReal abs_tol)
+    {
+    detail::OBB obb_a = a.tree.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr);
+    detail::OBB obb_b = b.tree.getOBB(cur_node_b);
+
+    if (!overlap(obb_a, obb_b)) return false;
+
+    if (a.tree.isLeaf(cur_node_a) && b.tree.isLeaf(cur_node_b))
+        {
+        return test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b, err, abs_tol);
+        }
+    else
+        {
+        // descend into subtree with larger volume first (unless there are no children)
+        bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.tree.isLeaf(cur_node_a) : b.tree.isLeaf(cur_node_b);
+
+        if (descend_A)
+            {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
+
+            return BVHCollision(a, b, left_a, cur_node_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, cur_node_b, q, dr, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, cur_node_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, cur_node_a, right_b, q, dr, err, abs_tol);
+            }
+        }
+    }
+#endif
+
 //! Polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -807,18 +847,22 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             }
         }
     #else
-    // perform a tandem tree traversal
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    #ifndef NVCC
+    if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
+    #else
+    // stackless traversal on GPU
     unsigned long int stack = 0;
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
-
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
-    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
 
     detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
 
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
@@ -826,8 +870,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         unsigned int query_node_b = cur_node_b;
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q,dr_rot)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
+            && test_narrow_phase_overlap(dr, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
         }
+    #endif
     #endif
 
     // no intersecting edge, check if one polyhedron is contained in the other

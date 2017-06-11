@@ -375,14 +375,17 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  * This function supposed to be called from a while-loop:
  *
  * unsigned long int stack = 0;
+ * // load OBBs for the two nodes
+ * obb_a = ...
+ * // transform OBB a into B's frame
+ * ...
+ * obb_b = ...
+ *
  * while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
  *     {
  *     query_node_a = cur_node_a;
  *     query_node_b = cur_node_b;
- *     // load OBBs for the two nodes
- *     obb_a = ...
- *     obb_b = ...
- *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b))
+ *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b, ..))
  *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
  *     }
  */
