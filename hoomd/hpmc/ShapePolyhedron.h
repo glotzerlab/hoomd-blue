@@ -727,16 +727,24 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
 
     if (!overlap(obb_a, obb_b)) return false;
 
-    if (a.tree.isLeaf(cur_node_a) && b.tree.isLeaf(cur_node_b))
+    if (a.tree.isLeaf(cur_node_a))
         {
-        return test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b, err, abs_tol);
+        if (b.tree.isLeaf(cur_node_b))
+            {
+            return test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, cur_node_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, cur_node_a, right_b, q, dr, err, abs_tol);
+            }
         }
     else
         {
-        // descend into subtree with larger volume first (unless there are no children)
-        bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.tree.isLeaf(cur_node_a) : b.tree.isLeaf(cur_node_b);
-
-        if (descend_A)
+        if (b.tree.isLeaf(cur_node_b))
             {
             unsigned int left_a = a.tree.getLeftChild(cur_node_a);
             unsigned int right_a = a.tree.getEscapeIndex(left_a);
@@ -746,11 +754,15 @@ inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
             }
         else
             {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
             unsigned int left_b = b.tree.getLeftChild(cur_node_b);
             unsigned int right_b = b.tree.getEscapeIndex(left_b);
 
-            return BVHCollision(a, b, cur_node_a, left_b, q, dr, err, abs_tol)
-                || BVHCollision(a, b, cur_node_a, right_b, q, dr, err, abs_tol);
+            return BVHCollision(a, b, left_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, left_a, right_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, right_b, q, dr, err, abs_tol);
             }
         }
     }
@@ -795,9 +807,10 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
-
+    #ifdef NVCC
     const detail::GPUTree& tree_a = a.tree;
     const detail::GPUTree& tree_b = b.tree;
+    #endif
 
     #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
