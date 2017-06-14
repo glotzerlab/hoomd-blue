@@ -21,6 +21,7 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.snapshot = data.make_snapshot(N=N, box=data.boxdim(L=L, dimensions=2), particle_types=['A'])
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polygon(seed=1, d=0.1, a=0.1)
+        self.mc.set_params(deterministic=True)
         self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
         self.boxMC.volume(delta=0.1, weight=1)
         self.mc.shape_param.set('A', vertices=[(-1,-1), (1,-1), (1,1), (-1,1)])
@@ -55,6 +56,7 @@ class boxMC_sanity_checks (unittest.TestCase):
         self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
         self.system = init.read_snapshot(self.snapshot)
         self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
+        self.mc.set_params(deterministic=True)
         self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
         self.boxMC.volume(delta=0.1, weight=1)
         self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
@@ -77,6 +79,32 @@ class boxMC_sanity_checks (unittest.TestCase):
         del self.snapshot
         context.initialize()
 
+    # This test runs an orthorhombic simple cubic lattice in the NPT ensemble to ensure
+    # that the aspect ratios are preserved by volume moves.
+    def test_VolumeMove_box_aspect_ratio(self):
+        for i in range(1):
+            self.system = init.create_lattice(lattice.sc(a = 1), n = [1, 2, 3])
+            self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
+            self.boxMC.volume(delta=1.0, weight=1)
+            self.mc.shape_param.set('A', diameter=0.0)
+
+            a1 = self.system.box.Lx/self.system.box.Ly
+            a2 = self.system.box.Lx/self.system.box.Lz
+            assert np.allclose([a1, a2], [1/2, 1/3]) # Sanity check
+
+            for j in range(10):
+                run(10, quiet = True)
+                a1_after = self.system.box.Lx/self.system.box.Ly
+                a2_after = self.system.box.Lx/self.system.box.Lz
+                self.assertAlmostEqual(a1_after, a1)
+                self.assertAlmostEqual(a2_after, a2)
+
+            del self.boxMC
+            del self.mc
+            del self.system
+            context.initialize()
+
     # This test runs a single-particle NPT system to test whether NPT allows the box to invert.
     def test_VolumeMove_box_inversion(self):
         for i in range(5):
@@ -84,6 +112,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.snapshot.particles.position[:] = (0,0,0)
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.mc.set_params(deterministic=True)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
             self.boxMC.volume(delta=1.0, weight=1)
             self.mc.shape_param.set('A', diameter=0.0)
@@ -106,6 +135,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.snapshot.particles.position[:] = (0,0,0)
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.mc.set_params(deterministic=True)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
             self.boxMC.length(delta=[1.0, 1.0, 1.0], weight=1)
             self.mc.shape_param.set('A', diameter=0.0)
@@ -128,6 +158,7 @@ class boxMC_sanity_checks (unittest.TestCase):
             self.snapshot.particles.position[:] = (0,0,0)
             self.system = init.read_snapshot(self.snapshot)
             self.mc = hpmc.integrate.sphere(seed=i, d=0.0)
+            self.mc.set_params(deterministic=True)
             self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
             self.boxMC.aspect(delta=0.5, weight=1)
             self.mc.shape_param.set('A', diameter=0.05)
@@ -151,6 +182,7 @@ class boxMC_test_methods (unittest.TestCase):
         snapshot.particles.position[0] = (0, 0, 0)
         self.system = init.read_snapshot(snapshot)
         self.mc = hpmc.integrate.sphere(seed=1)
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', diameter = 1.0)
         self.boxMC = hpmc.update.boxmc(self.mc, betaP=100, seed=1)
 

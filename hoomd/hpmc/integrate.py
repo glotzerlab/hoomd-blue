@@ -401,7 +401,8 @@ class mode_hpmc(_integrator):
                    nselect=None,
                    nR=None,
                    depletant_type=None,
-                   ntrial=None):
+                   ntrial=None,
+                   deterministic=None):
         R""" Changes parameters of an existing integration mode.
 
         Args:
@@ -412,6 +413,10 @@ class mode_hpmc(_integrator):
             nR (int): (if set) **Implicit depletants only**: Number density of implicit depletants in free volume.
             depletant_type (str): (if set) **Implicit depletants only**: Particle type to use as implicit depletant.
             ntrial (int): (if set) **Implicit depletants only**: Number of re-insertion attempts per overlapping depletant.
+            deterministic (bool): (if set) Make HPMC integration deterministic on the GPU by sorting the cell list.
+
+        .. note:: Simulations are only deterministic with respect to the same execution configuration (CPU or GPU) and
+                  number of MPI ranks. Simulation output will not be identical if either of these is changed.
         """
 
         hoomd.util.print_status_line();
@@ -456,6 +461,9 @@ class mode_hpmc(_integrator):
                 self.cpp_integrator.setNTrial(ntrial)
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
+
+        if deterministic is not None:
+            self.cpp_integrator.setDeterministic(deterministic);
 
     def map_overlaps(self):
         R""" Build an overlap map of the system

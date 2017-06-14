@@ -219,19 +219,19 @@ class constant(_force):
         else:
             self.tvec = (0,0,0)
 
-        if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0)): 
+        if (self.fvec == (0,0,0)) and (self.tvec == (0,0,0)):
             hoomd.context.msg.warning("The constant force specified has no non-zero components\n");
-        
+
         # initialize the base class
         _force.__init__(self);
 
         # create the c++ mirror class
         if (group is not None):
-            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, self.fvec[0], 
-                                                                                                                self.fvec[1], 
-                                                                                                                self.fvec[2], 
-                                                                                                                self.tvec[0], 
-                                                                                                                self.tvec[1], 
+            self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, group.cpp_group, self.fvec[0],
+                                                                                                                self.fvec[1],
+                                                                                                                self.fvec[2],
+                                                                                                                self.tvec[0],
+                                                                                                                self.tvec[1],
                                                                                                                 self.tvec[2]);
         else:
             self.cpp_force = _hoomd.ConstForceCompute(hoomd.context.current.system_definition, hoomd.context.current.group_all.cpp_group, self.fvec[0],
@@ -306,10 +306,10 @@ class active(_force):
         f_list (list): An array of (x,y,z) tuples for the active force vector for each individual particle.
         t_list (list): An array of (x,y,z) tuples that indicate active torque vectors for each particle
         group (:py:mod:`hoomd.group`): Group for which the force will be set
-        orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box 
+        orientation_link (bool): if True then forces and torques are applied in the particle's reference frame. If false, then the box
          reference frame is used. Only relevant for non-point-like anisotropic particles.
         orientation_reverse_link (bool): When True, the particle's orientation is set to match the active force vector. Useful for
-         for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation 
+         for using a particle's orientation to log the active force vector. Not recommended for anisotropic particles. Quaternion rotation
          assumes base vector of (0,0,1).
         rotation_diff (float): rotational diffusion constant, :math:`D_r`, for all particles in the group.
         constraint (:py:class:`hoomd.md.update.constraint_ellipsoid`) specifies a constraint surface, to which particles are confined,

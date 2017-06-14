@@ -496,7 +496,7 @@ class gsd(hoomd.analyze._analyzer):
         filename (str): File name to write
         period (int): Number of time steps between file dumps, or None to write a single file immediately.
         group (:py:mod:`hoomd.group`): Particle group to output to the gsd file.
-        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing DCD
+        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing GSD
                           file *filename* will be overwritten.
         truncate (bool): When False (the default), frames are appended to the GSD file. When True, truncate the file and
                          write a new frame 0 every time.

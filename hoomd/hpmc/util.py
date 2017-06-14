@@ -786,8 +786,8 @@ class tune_npt(tune):
     R""" Tune the HPMC :py:class:`hoomd.hpmc.update.boxmc` using :py:class:`.tune`.
 
     This is a thin wrapper to ``tune`` that simply defines an alternative
-    ``tunable_map`` dictionary. In this case, the ``obj`` argument must be an instance of 
-    :py:class:`hoomd.hpmc.update.boxmc`. Several tunables are defined. 
+    ``tunable_map`` dictionary. In this case, the ``obj`` argument must be an instance of
+    :py:class:`hoomd.hpmc.update.boxmc`. Several tunables are defined.
 
     'dLx', 'dLy', and 'dLz' use the acceptance rate of volume moves to set
     ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to :py:meth:`hoomd.hpmc.update.boxmc.length`.
@@ -795,7 +795,7 @@ class tune_npt(tune):
     'dV' uses the volume acceptance to call :py:meth:`hoomd.hpmc.update.boxmc.volume`.
 
     'dxy', 'dxz', and 'dyz' tunables use the shear acceptance to set
-    ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to 
+    ``delta[0]``, ``delta[1]``, and ``delta[2]``, respectively in a call to
     :py:meth:`hoomd.hpmc.update.boxmc.shear`.
 
     Refer to the documentation for :py:class:`hoomd.hpmc.update.boxmc` for
