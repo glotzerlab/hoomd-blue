@@ -786,11 +786,9 @@ void mpcd::CellList::getCellStatistics() const
  */
 const int3 mpcd::CellList::getLocalCell(const int3& global) const
     {
-    int3 wrap = wrapGlobalCell(global);
-
-    int3 local = make_int3(wrap.x - m_origin_idx.x,
-                           wrap.y - m_origin_idx.y,
-                           wrap.z - m_origin_idx.z);
+    int3 local = make_int3(global.x - m_origin_idx.x,
+                           global.y - m_origin_idx.y,
+                           global.z - m_origin_idx.z);
 
     return local;
     }

@@ -105,8 +105,8 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
     if (m_cell_comm)
         {
         if (m_prof) m_prof->pop(m_exec_conf);
-        m_cell_comm->reduce(m_cell_vel, mpcd::detail::CellVelocityPackOp());
-        m_cell_comm->reduce(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        m_cell_comm->communicate(m_cell_vel, mpcd::detail::CellVelocityPackOp());
+        m_cell_comm->communicate(m_cell_energy, mpcd::detail::CellEnergyPackOp());
         if (m_prof) m_prof->push(m_exec_conf,"MPCD thermo");
         }
     #endif // ENABLE_MPI

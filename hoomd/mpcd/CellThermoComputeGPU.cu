@@ -12,7 +12,7 @@
 #include "CellThermoComputeGPU.cuh"
 #include "CellThermoTypes.h"
 
-#include "CellCommunicator.cuh"
+// #include "CellCommunicator.cuh"
 #include "ReductionOperators.h"
 
 #include "hoomd/extern/cub/cub/cub.cuh"
@@ -483,6 +483,7 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element *d_reduced,
     return cudaSuccess;
     }
 
+/*
 //! Explicit template instantiation of pack for cell velocity
 template cudaError_t pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element *d_left_buf,
                                       typename mpcd::detail::CellVelocityPackOp::element *d_right_buf,
@@ -525,7 +526,7 @@ template cudaError_t unpack_cell_buffer(Scalar3 *d_props,
                                         const Index3D& left_idx,
                                         const Index3D& right_idx,
                                         const uint3& right_offset,
-                                        const unsigned int block_size);
+                                        const unsigned int block_size);*/
 
 } // end namespace gpu
 } // end namespace mpcd

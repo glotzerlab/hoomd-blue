@@ -173,8 +173,8 @@ void mpcd::CellThermoCompute::computeCellProperties()
         {
         if (m_prof) m_prof->pop();
 
-        m_cell_comm->reduce(m_cell_vel, mpcd::detail::CellVelocityPackOp());
-        m_cell_comm->reduce(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        m_cell_comm->communicate(m_cell_vel, mpcd::detail::CellVelocityPackOp());
+        m_cell_comm->communicate(m_cell_energy, mpcd::detail::CellEnergyPackOp());
 
         if (m_prof) m_prof->push("MPCD thermo");
         }
