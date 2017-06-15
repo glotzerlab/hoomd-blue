@@ -277,30 +277,42 @@ void mpcd::CellCommunicator::initialize()
             }
 
         /*
-         * Write out the resorted cells from the map, and determine the range of data belonging to each received cell
+         * Generate the compacted list of unique cells
          */
-        ArrayHandle<unsigned int> h_recv(m_recv, access_location::host, access_mode::overwrite);
-        unsigned int idx = 0;
-        for (auto it = cell_map.begin(); it != cell_map.end(); ++it)
-            {
-            h_recv.data[idx++] = it->second;
-            }
-
         ArrayHandle<unsigned int> h_cells(m_cells, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::overwrite);
         idx = 0;
         for (auto it = unique_cells.begin(); it != unique_cells.end(); ++it)
             {
-            auto lower = cell_map.lower_bound(*it);
-            auto upper = cell_map.upper_bound(*it);
+            h_cells.data[idx++] = *it;
+            }
 
-            h_cells.data[idx] = *it;
-            h_recv_begin.data[idx] = std::distance(cell_map.begin(), lower);
-            h_recv_end.data[idx] = std::distance(cell_map.begin(), upper);
+        /*
+         * Loop over the cell map to do run-length encoding on the keys. This
+         * determines the range of data belonging to each received cell.
+         */
+        ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::overwrite);
+        unsigned int last_cell = UINT_MAX;
+        unsigned int cell_idx = 0;
+        idx = 0;
+        h_recv_begin.data[cell_idx] = idx;
+        for (auto it = cell_map.begin(); it != cell_map.end(); ++it)
+            {
+            // record the sorted receive index
+            h_recv.data[idx] = it->second;
+
+            // if not very first pass and the current cell does not match the
+            // last cell, then we are on a new cell, and need to demark an end / begin
+            if (last_cell != UINT_MAX && it->first != last_cell)
+                {
+                h_recv_end.data[cell_idx] = idx;
+                h_recv_begin.data[++cell_idx] = idx;
+                }
+            last_cell = it->first;
 
             ++idx;
             }
+        h_recv_end.data[cell_idx] = idx;
         }
     }
 
