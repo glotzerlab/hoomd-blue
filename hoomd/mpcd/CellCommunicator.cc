@@ -280,7 +280,7 @@ void mpcd::CellCommunicator::initialize()
          * Generate the compacted list of unique cells
          */
         ArrayHandle<unsigned int> h_cells(m_cells, access_location::host, access_mode::overwrite);
-        idx = 0;
+        unsigned int idx = 0;
         for (auto it = unique_cells.begin(); it != unique_cells.end(); ++it)
             {
             h_cells.data[idx++] = *it;
@@ -290,6 +290,7 @@ void mpcd::CellCommunicator::initialize()
          * Loop over the cell map to do run-length encoding on the keys. This
          * determines the range of data belonging to each received cell.
          */
+        ArrayHandle<unsigned int> h_recv(m_recv, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::overwrite);
         unsigned int last_cell = UINT_MAX;
