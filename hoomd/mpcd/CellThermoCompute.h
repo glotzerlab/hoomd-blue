@@ -103,8 +103,10 @@ class CellThermoCompute : public Compute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             #ifdef ENABLE_MPI
-            if (m_cell_comm)
-                m_cell_comm->setAutotunerParams(enable, period);
+            if (m_vel_comm)
+                m_vel_comm->setAutotunerParams(enable, period);
+            if (m_energy_comm)
+                m_energy_comm->setAutotunerParams(enable, period);
             #endif // ENABLE_MPI
             }
 
@@ -116,10 +118,10 @@ class CellThermoCompute : public Compute
             {
             Compute::setProfiler(prof);
             #ifdef ENABLE_MPI
-            if (m_cell_comm)
-                {
-                m_cell_comm->setProfiler(prof);
-                }
+            if (m_vel_comm)
+                m_vel_comm->setProfiler(prof);
+            if (m_energy_comm)
+                m_energy_comm->setProfiler(prof);
             #endif // ENABLE_MPI
             }
 
@@ -127,13 +129,24 @@ class CellThermoCompute : public Compute
         //! Compute the cell properties
         virtual void computeCellProperties();
 
+        //! Begin the calculation of outer cell properties
+        virtual void beginOuterCellProperties();
+
+        //! Finish the calculation of outer cell properties
+        virtual void finishOuterCellProperties();
+
+        //! Calculate the inner cell properties
+        virtual void calcInnerCellProperties();
+
         //! Compute the net properties from the cell properties
         virtual void computeNetProperties();
 
         std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;       //!< MPCD particle data
         std::shared_ptr<mpcd::CellList> m_cl;                   //!< MPCD cell list
         #ifdef ENABLE_MPI
-        std::shared_ptr<CellCommunicator> m_cell_comm;          //!< Cell communicator
+        bool m_use_mpi;                                         //!< Flag if communication is required
+        std::shared_ptr<CellCommunicator> m_vel_comm;           //!< Cell velocity communicator
+        std::shared_ptr<CellCommunicator> m_energy_comm;        //!< Cell energy communicator
         #endif // ENABLE_MPI
 
         bool m_needs_net_reduce;            //!< Flag if a net reduction is necessary

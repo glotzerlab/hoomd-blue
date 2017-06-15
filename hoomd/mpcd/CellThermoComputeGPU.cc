@@ -102,11 +102,11 @@ void mpcd::CellThermoComputeGPU::computeCellProperties()
 
     #ifdef ENABLE_MPI
     // Reduce cell properties across ranks
-    if (m_cell_comm)
+    if (m_use_mpi)
         {
         if (m_prof) m_prof->pop(m_exec_conf);
-        m_cell_comm->communicate(m_cell_vel, mpcd::detail::CellVelocityPackOp());
-        m_cell_comm->communicate(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        m_vel_comm->communicate(m_cell_vel, mpcd::detail::CellVelocityPackOp());
+        m_energy_comm->communicate(m_cell_energy, mpcd::detail::CellEnergyPackOp());
         if (m_prof) m_prof->push(m_exec_conf,"MPCD thermo");
         }
     #endif // ENABLE_MPI
@@ -135,7 +135,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         uint3 upper = make_uint3(ci.getW(), ci.getH(), ci.getD());
         #ifdef ENABLE_MPI
         // in MPI, remove duplicate cells along direction of communication
-        if (m_cell_comm)
+        if (m_use_mpi)
             {
             auto num_comm = m_cl->getNComm();
             upper.x -= num_comm[static_cast<unsigned int>(mpcd::detail::face::east)];
@@ -201,7 +201,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         }
 
     #ifdef ENABLE_MPI
-    if (m_cell_comm)
+    if (m_use_mpi)
         {
         ArrayHandle<double> h_net_properties(m_net_properties, access_location::host, access_mode::readwrite);
         MPI_Allreduce(MPI_IN_PLACE,

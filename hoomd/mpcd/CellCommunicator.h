@@ -70,6 +70,28 @@ class CellCommunicator
         template<typename T, class PackOpT>
         void finalize(const GPUArray<T>& props, const PackOpT op);
 
+        //! Get the number of unique cells with communication
+        unsigned int getNCells()
+            {
+            if (m_needs_init)
+                {
+                initialize();
+                m_needs_init = false;
+                }
+            return m_num_cells;
+            }
+
+        //! Get the list of unique cells with communication
+        const GPUArray<unsigned int>& getCells()
+            {
+            if (m_needs_init)
+                {
+                initialize();
+                m_needs_init = false;
+                }
+            return m_cells;
+            }
+
         //! Set autotuner parameters
         /*!
          * \param enable Enable / disable autotuning
