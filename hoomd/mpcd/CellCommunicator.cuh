@@ -21,169 +21,137 @@ namespace mpcd
 namespace gpu
 {
 
-//! Kernel driver to pack cell communication buffers
+//! Kernel driver to pack cell communication buffer
 template<typename T, class PackOpT>
-cudaError_t pack_cell_buffer(typename PackOpT::element *d_left_buf,
-                             typename PackOpT::element *d_right_buf,
-                             const Index3D& left_idx,
-                             const Index3D& right_idx,
-                             const uint3& right_offset,
+cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
                              const T *d_props,
-                             PackOpT pack_op,
-                             const Index3D& ci,
+                             const unsigned int *d_send_idx,
+                             const PackOpT op,
+                             const unsigned int num_send,
                              unsigned int block_size);
 
-//! Kernel driver to unpack cell communication buffers
+//! Kernel driver to unpack cell communication buffer
 template<typename T, class PackOpT>
 cudaError_t unpack_cell_buffer(T *d_props,
-                               PackOpT pack_op,
-                               const Index3D& ci,
-                               const typename PackOpT::element *d_left_buf,
-                               const typename PackOpT::element *d_right_buf,
-                               const Index3D& left_idx,
-                               const Index3D& right_idx,
-                               const uint3& right_offset,
+                               const unsigned int *d_cells,
+                               const unsigned int *d_recv,
+                               const unsigned int *d_recv_begin,
+                               const unsigned int *d_recv_end,
+                               const typename PackOpT::element *d_recv_buf,
+                               const PackOpT op,
+                               const unsigned int num_cells,
                                const unsigned int block_size);
 
 #ifdef NVCC
 
 namespace kernel
 {
-//! Kernel to pack cell communication buffers
+//! Kernel to pack cell communication buffer
 /*!
- * \param d_left_buf Buffer to pack for sending the left direction (output)
- * \param d_right_buf Buffer to pack for sending the right direction (output)
- * \param left_idx Indexer into left buffer
- * \param right_idx Indexer into right buffer
- * \param right_offset Offset of where the begin reading the right buffer out of the cell data
+ * \param d_send_buf Send buffer to pack (output)
  * \param d_props Cell property to pack
- * \param ci Cell list indexer
- * \param N_tot Total number of cells to pack
+ * \param d_send_idx Cell indexes to pack into the buffer
+ * \param op Pack operator
+ * \param num_send Number of cells to pack
+ * \param block_size Number of threads per block
  *
  * \tparam T Type of data to pack (inferred)
+ * \tparam PackOpT Pack operation type (inferred)
  *
  * \b Implementation details:
- * Using one thread per cell to pack, the 1d thread index is converted back to
- * a 3d cell index. This index is in turn used to read the data to pack.
+ * Using one thread per cell to pack, each cell to send has its properties read
+ * and packed into the send buffer.
  */
 template<typename T, class PackOpT>
-__global__ void pack_cell_buffer(typename PackOpT::element *d_left_buf,
-                                 typename PackOpT::element *d_right_buf,
-                                 const Index3D left_idx,
-                                 const Index3D right_idx,
-                                 const uint3 right_offset,
+__global__ void pack_cell_buffer(typename PackOpT::element *d_send_buf,
                                  const T *d_props,
-                                 PackOpT pack_op,
-                                 const Index3D ci,
-                                 const unsigned int N_tot)
+                                 const unsigned int *d_send_idx,
+                                 const PackOpT op,
+                                 const unsigned int num_send)
     {
     // one thread per buffer cell
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= N_tot)
+    if (idx >= num_send)
         return;
 
-    // left buffer
-    if (idx < left_idx.getNumElements())
-        {
-        uint3 cell = left_idx.getTriple(idx);
-        d_left_buf[idx] = pack_op.pack(d_props[ci(cell.x, cell.y, cell.z)]);
-        }
-    else // right buffer
-        {
-        idx -= left_idx.getNumElements();
-        uint3 cell = right_idx.getTriple(idx);
-        d_right_buf[idx] = pack_op.pack(d_props[ci(right_offset.x+cell.x,right_offset.y+cell.y,right_offset.z+cell.z)]);
-        }
+    const unsigned int send_idx = d_send_idx[idx];
+    d_send_buf[idx] = op.pack(d_props[send_idx]);
     }
 
-//! Kernel to unpack cell communication buffers
+//! Kernel to unpack cell communication buffer
 /*!
  * \param d_props Cell property array to unpack into
- * \param reduction_op Commutative reduction operator to use when applying unpack
- * \param ci Cell list indexer
- * \param d_left_buf Buffer from left face to unpack
- * \param d_right_buf Buffer from right face to unpack
- * \param left_idx Indexer into left face buffer
- * \param right_idx Indexer into right face buffer
- * \param right_offset Offset for mapping right buffer into cell list
- * \param N_tot Total number of cells to unpack
+ * \param d_cells List of unique cells to unpack
+ * \param d_recv Map of unique cells onto the receive buffer
+ * \param d_recv_begin Beginning index into \a d_recv for cells to unpack
+ * \param d_recv_end End index (exclusive) into \a d_recv for cells to unpack
+ * \param d_recv_buf Received buffer from neighbor ranks
+ * \param op Packing operator
+ * \param num_cells Number of cells to unpack
  *
  * \tparam T Data type to unpack (inferred)
- * \tparam ReductionOpT Commutative reduction operator type (inferred)
+ * \tparam PackOpT Pack operation type (inferred)
  *
  * \b Implementation details:
- * Using one thread per cell to unpack, the 1d thread index is converted to a
- * buffer cell. This cell is mapped into the 3d cell list, and the \a reduction_op
- * is applied to the current value of the cell.
- *
+ * Using one thread per cell to unpack, each cell iterates over the cells it
+ * has received, and applies the unpacking operator to each in turn.
  */
 template<typename T, class PackOpT>
 __global__ void unpack_cell_buffer(T *d_props,
-                                   PackOpT pack_op,
-                                   const Index3D ci,
-                                   const typename PackOpT::element *d_left_buf,
-                                   const typename PackOpT::element *d_right_buf,
-                                   const Index3D left_idx,
-                                   const Index3D right_idx,
-                                   const uint3 right_offset,
-                                   const unsigned int N_tot)
+                                   const unsigned int *d_cells,
+                                   const unsigned int *d_recv,
+                                   const unsigned int *d_recv_begin,
+                                   const unsigned int *d_recv_end,
+                                   const typename PackOpT::element *d_recv_buf,
+                                   const PackOpT op,
+                                   const unsigned int num_cells)
     {
     // one thread per particle
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= N_tot)
+    if (idx >= num_cells)
         return;
 
-    // left buffer
-    unsigned int target;
-    typename PackOpT::element add_val;
-    if (idx < left_idx.getNumElements())
+    const unsigned int cell_idx = d_cells[idx];
+    const unsigned int begin = d_recv_begin[idx];
+    const unsigned int end = d_recv_end[idx];
+
+    // loop through all received data for this cell, and unpack it iteratively
+    T val = d_props[cell_idx];
+    for (unsigned int i = begin; i < end; ++i)
         {
-        uint3 cell = left_idx.getTriple(idx);
-        target = ci(cell.x,cell.y,cell.z);
-        add_val = d_left_buf[idx];
-        }
-    else // right buffer
-        {
-        idx -= left_idx.getNumElements();
-        uint3 cell = right_idx.getTriple(idx);
-        target = ci(right_offset.x+cell.x,right_offset.y+cell.y,right_offset.z+cell.z);
-        add_val = d_right_buf[idx];
+        val = op.unpack(d_recv_buf[d_recv[i]], val);
         }
 
-    // write out
-    const T cur_val = d_props[target];
-    d_props[target] = pack_op.unpack(add_val, cur_val);
+    // save the accumulated unpacked value
+    d_props[cell_idx] = val;
     }
 
 } // end namespace kernel
 
 /*!
- * \param d_left_buf Buffer to pack for sending the left direction (output)
- * \param d_right_buf Buffer to pack for sending the right direction (output)
- * \param left_idx Indexer into left buffer
- * \param right_idx Indexer into right buffer
- * \param right_offset Offset of where the begin reading the right buffer out of the cell data
+ * \param d_send_buf Send buffer to pack (output)
  * \param d_props Cell property to pack
- * \param ci Cell list indexer
+ * \param d_send_idx Cell indexes to pack into the buffer
+ * \param op Pack operator
+ * \param num_send Number of cells to pack
  * \param block_size Number of threads per block
  *
  * \tparam T Type of data to pack (inferred)
+ * \tparam PackOpT Pack operator type
  *
  * \returns cudaSuccess on completion
  *
  * \sa mpcd::gpu::kernel::pack_cell_buffer
  */
 template<typename T, class PackOpT>
-cudaError_t pack_cell_buffer(typename PackOpT::element *d_left_buf,
-                             typename PackOpT::element *d_right_buf,
-                             const Index3D& left_idx,
-                             const Index3D& right_idx,
-                             const uint3& right_offset,
+cudaError_t pack_cell_buffer(typename PackOpT::element *d_send_buf,
                              const T *d_props,
-                             PackOpT pack_op,
-                             const Index3D& ci,
+                             const unsigned int *d_send_idx,
+                             const PackOpT op,
+                             const unsigned int num_send,
                              unsigned int block_size)
     {
+    // determine runtime block size
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
@@ -191,57 +159,47 @@ cudaError_t pack_cell_buffer(typename PackOpT::element *d_left_buf,
         cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::pack_cell_buffer<T,PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
+    const unsigned int run_block_size = min(block_size, max_block_size);
 
-    // compute number of threads and blocks required
-    const unsigned int N_tot = left_idx.getNumElements() + right_idx.getNumElements();
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(N_tot / run_block_size + 1);
-
-    mpcd::gpu::kernel::pack_cell_buffer<<<grid, run_block_size>>>(d_left_buf,
-                                                                     d_right_buf,
-                                                                     left_idx,
-                                                                     right_idx,
-                                                                     right_offset,
-                                                                     d_props,
-                                                                     pack_op,
-                                                                     ci,
-                                                                     N_tot);
+    dim3 grid(num_send / run_block_size + 1);
+    mpcd::gpu::kernel::pack_cell_buffer<<<grid, run_block_size>>>(d_send_buf,
+                                                                  d_props,
+                                                                  d_send_idx,
+                                                                  op,
+                                                                  num_send);
 
     return cudaSuccess;
     }
 
 /*!
  * \param d_props Cell property array to unpack into
- * \param reduction_op Commutative reduction operator to use when applying unpack
- * \param ci Cell list indexer
- * \param d_left_buf Buffer from left face to unpack
- * \param d_right_buf Buffer from right face to unpack
- * \param left_idx Indexer into left face buffer
- * \param right_idx Indexer into right face buffer
- * \param right_offset Offset for mapping right buffer into cell list
- * \param block_size Number of threads per block
+ * \param d_cells List of unique cells to unpack
+ * \param d_recv Map of unique cells onto the receive buffer
+ * \param d_recv_begin Beginning index into \a d_recv for cells to unpack
+ * \param d_recv_end End index (exclusive) into \a d_recv for cells to unpack
+ * \param d_recv_buf Received buffer from neighbor ranks
+ * \param op Packing operator
+ * \param num_cells Number of cells to unpack
  *
  * \tparam T Data type to unpack (inferred)
- * \tparam ReductionOpT Commutative reduction operator type (inferred)
+ * \tparam PackOpT Pack operation type (inferred)
  *
  * \returns cudaSuccess on completion
- *
- * The \a reduction_op should be a commutative, binary functor. Refer to
- * ReductionOperators.h for examples.
  *
  * \sa mpcd::gpu::kernel::unpack_cell_buffer
  */
 template<typename T, class PackOpT>
 cudaError_t unpack_cell_buffer(T *d_props,
-                               PackOpT pack_op,
-                               const Index3D& ci,
-                               const typename PackOpT::element *d_left_buf,
-                               const typename PackOpT::element *d_right_buf,
-                               const Index3D& left_idx,
-                               const Index3D& right_idx,
-                               const uint3& right_offset,
+                               const unsigned int *d_cells,
+                               const unsigned int *d_recv,
+                               const unsigned int *d_recv_begin,
+                               const unsigned int *d_recv_end,
+                               const typename PackOpT::element *d_recv_buf,
+                               const PackOpT op,
+                               const unsigned int num_cells,
                                const unsigned int block_size)
     {
+    // determine runtime block size
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
@@ -249,21 +207,17 @@ cudaError_t unpack_cell_buffer(T *d_props,
         cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::unpack_cell_buffer<T,PackOpT>);
         max_block_size = attr.maxThreadsPerBlock;
         }
+    const unsigned int run_block_size = min(block_size, max_block_size);
 
-    // compute number of threads and blocks required
-    const unsigned int N_tot = left_idx.getNumElements() + right_idx.getNumElements();
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(N_tot / run_block_size + 1);
-
+    dim3 grid(num_cells / run_block_size + 1);
     mpcd::gpu::kernel::unpack_cell_buffer<<<grid, run_block_size>>>(d_props,
-                                                                    pack_op,
-                                                                    ci,
-                                                                    d_left_buf,
-                                                                    d_right_buf,
-                                                                    left_idx,
-                                                                    right_idx,
-                                                                    right_offset,
-                                                                    N_tot);
+                                                                    d_cells,
+                                                                    d_recv,
+                                                                    d_recv_begin,
+                                                                    d_recv_end,
+                                                                    d_recv_buf,
+                                                                    op,
+                                                                    num_cells);
 
     return cudaSuccess;
     }

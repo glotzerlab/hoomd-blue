@@ -20,6 +20,14 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
       m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack", m_exec_conf));
+        m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack", m_exec_conf));
+        }
+    #endif // ENABLE_CUDA
+
     m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
     }
 
@@ -87,6 +95,20 @@ void mpcd::CellCommunicator::initialize()
     const uint3 min_hi = make_uint3(ci.getW() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::east)],
                                     ci.getH() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::north)],
                                     ci.getD() - num_comm_cells[static_cast<unsigned int>(mpcd::detail::face::up)]);
+
+    // check to make sure box is not overdecomposed
+        {
+        const unsigned int nextra = m_cl->getNExtraCells();
+        unsigned int err = ((max_lo.x + nextra) > min_hi.x ||
+                            (max_lo.y + nextra) > min_hi.y ||
+                            (max_lo.z + nextra) > min_hi.z);
+        MPI_Allreduce(MPI_IN_PLACE, &err, 1, MPI_UNSIGNED, MPI_MAX, m_mpi_comm);
+        if (err)
+            {
+            m_exec_conf->msg->error() << "mpcd: Simulation box is overdecomposed, decrease the number of ranks." << std::endl;
+            throw std::runtime_error("Simulation box is overdecomposed for MPCD");
+            }
+        }
 
     // loop over all cells in the grid and determine where to send them
     std::multimap<unsigned int, unsigned int> send_map;
@@ -235,45 +257,47 @@ void mpcd::CellCommunicator::initialize()
             unique_cells.insert(cell);
             cell_map.insert(std::make_pair(cell, idx));
             }
-        m_num_unique_cells = unique_cells.size();
+        m_num_cells = unique_cells.size();
 
         /*
          * Allocate auxiliary memory for receiving cell reordering
          */
-        GPUArray<unsigned int> recv_cells(recv_idx.size(), m_exec_conf);
-        m_recv_cells.swap(recv_cells);
+            {
+            GPUArray<unsigned int> recv(recv_idx.size(), m_exec_conf);
+            m_recv.swap(recv);
 
-        GPUArray<unsigned int> tmp_cells(m_num_unique_cells, m_exec_conf);
-        m_unique_cells.swap(tmp_cells);
+            GPUArray<unsigned int> cells(m_num_cells, m_exec_conf);
+            m_cells.swap(cells);
 
-        GPUArray<unsigned int> recv_cells_begin(m_num_unique_cells, m_exec_conf);
-        m_recv_cells_begin.swap(recv_cells_begin);
+            GPUArray<unsigned int> recv_begin(m_num_cells, m_exec_conf);
+            m_recv_begin.swap(recv_begin);
 
-        GPUArray<unsigned int> recv_cells_end(m_num_unique_cells, m_exec_conf);
-        m_recv_cells_end.swap(recv_cells_end);
+            GPUArray<unsigned int> recv_end(m_num_cells, m_exec_conf);
+            m_recv_end.swap(recv_end);
+            }
 
         /*
          * Write out the resorted cells from the map, and determine the range of data belonging to each received cell
          */
-        ArrayHandle<unsigned int> h_recv_cells(m_recv_cells, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_unique_cells(m_unique_cells, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_cells_begin(m_recv_cells_begin, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_recv_cells_end(m_recv_cells_end, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv(m_recv, access_location::host, access_mode::overwrite);
         unsigned int idx = 0;
         for (auto it = cell_map.begin(); it != cell_map.end(); ++it)
             {
-            h_recv_cells.data[idx++] = it->second;
+            h_recv.data[idx++] = it->second;
             }
 
+        ArrayHandle<unsigned int> h_cells(m_cells, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::overwrite);
         idx = 0;
         for (auto it = unique_cells.begin(); it != unique_cells.end(); ++it)
             {
             auto lower = cell_map.lower_bound(*it);
             auto upper = cell_map.upper_bound(*it);
 
-            h_unique_cells.data[idx] = *it;
-            h_recv_cells_begin.data[idx] = std::distance(cell_map.begin(), lower);
-            h_recv_cells_end.data[idx] = std::distance(cell_map.begin(), upper);
+            h_cells.data[idx] = *it;
+            h_recv_begin.data[idx] = std::distance(cell_map.begin(), lower);
+            h_recv_end.data[idx] = std::distance(cell_map.begin(), upper);
 
             ++idx;
             }

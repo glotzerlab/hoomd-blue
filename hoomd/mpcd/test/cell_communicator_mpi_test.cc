@@ -81,7 +81,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
 
     // on summing, all communicated cells should simply increase by a multiple of the ranks they overlap
     mpcd::CellCommunicator comm(sysdef, cl);
-    comm.reduce(props, mpcd::detail::CellEnergyPackOp());
+    comm.communicate(props, mpcd::detail::CellEnergyPackOp());
     auto num_comm_cells = cl->getNComm();
         {
         ArrayHandle<Scalar3> h_props(props, access_location::host, access_mode::read);
@@ -149,43 +149,43 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     mpcd::detail::CellVelocityPackOp pack_op;
 
     // initially, reduction should succeed
-    comm.reduce(props,pack_op);
+    comm.communicate(props,pack_op);
 
     // add a communication cell
     cl->setNExtraCells(1);
     cl->compute(1);
 
     // should throw an exception since the prop dims don't match the cell dims
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, pack_op); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.communicate(props, pack_op); });
 
     // should succeed on resizing of props
     props.resize(cl->getNCells());
-    comm.reduce(props, pack_op);
+    comm.communicate(props, pack_op);
 
     // add another communication cell, which overdecomposes the system
     cl->setNExtraCells(2);
     cl->compute(2);
     props.resize(cl->getNCells());
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, pack_op); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.communicate(props, pack_op); });
 
     // cut the cell size down, which should make it so that the system can be decomposed again
     cl->setCellSize(0.5);
     cl->compute(3);
     props.resize(cl->getNCells());
-    comm.reduce(props, pack_op);
+    comm.communicate(props, pack_op);
 
     // shrink the box size to the minimum that can be decomposed
     cl->setNExtraCells(0);
     cl->setCellSize(2.0);
     cl->compute(4);
     props.resize(cl->getNCells());
-    comm.reduce(props, pack_op);
+    comm.communicate(props, pack_op);
 
     // now shrink further to ensure failure
     cl->setCellSize(3.0);
     cl->compute(5);
     props.resize(cl->getNCells());
-    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.reduce(props, pack_op); });
+    UP_ASSERT_EXCEPTION(std::runtime_error, [&]{ comm.communicate(props, pack_op); });
     }
 
 //! dimension test case for MPCD CellList class
