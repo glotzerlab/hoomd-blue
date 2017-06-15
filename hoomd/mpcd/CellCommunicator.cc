@@ -15,6 +15,8 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
       m_decomposition(m_pdata->getDomainDecomposition()),
       m_cl(cl),
       m_communicating(false),
+      m_send_buf(m_exec_conf),
+      m_recv_buf(m_exec_conf),
       m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
@@ -171,9 +173,6 @@ void mpcd::CellCommunicator::initialize()
         {
         GPUArray<unsigned int> send_idx(send_map.size(), m_exec_conf);
         m_send_idx.swap(send_idx);
-
-        GPUArray<unsigned int> recv_idx(send_map.size(), m_exec_conf);
-        m_recv_idx.swap(recv_idx);
         }
 
     // fill the send indexes with the global values
@@ -203,16 +202,16 @@ void mpcd::CellCommunicator::initialize()
         }
 
     // send / receive the global cell indexes to be communicated with neighbors
+    std::vector<unsigned int> recv_idx(m_send_idx.getNumElements());
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_recv_idx(m_recv_idx, access_location::host, access_mode::overwrite);
 
         m_reqs.resize(2*m_neighbors.size());
         for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
             {
             const unsigned int offset = m_begin[idx];
             MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(h_recv_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
@@ -220,22 +219,19 @@ void mpcd::CellCommunicator::initialize()
     // transform all of the global cell indexes back into local cell indexes
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::readwrite);
-        ArrayHandle<unsigned int> h_recv_idx(m_recv_idx, access_location::host, access_mode::readwrite);
 
         mpcd::detail::LocalCellWrapOp wrapper(m_cl);
         std::transform(h_send_idx.data, h_send_idx.data + m_send_idx.getNumElements(), h_send_idx.data, wrapper);
-        std::transform(h_recv_idx.data, h_recv_idx.data + m_recv_idx.getNumElements(), h_recv_idx.data, wrapper);
+        std::transform(recv_idx.begin(), recv_idx.end(), recv_idx.begin(), wrapper);
         }
 
     // map the received cells from a rank-basis to a cell-basis
         {
-        ArrayHandle<unsigned int> h_recv_idx(m_recv_idx, access_location::host, access_mode::read);
-
         std::multimap<unsigned int, unsigned int> cell_map;
         std::set<unsigned int> unique_cells;
-        for (unsigned int idx=0; idx < m_recv_idx.getNumElements(); ++idx)
+        for (unsigned int idx=0; idx < recv_idx.size(); ++idx)
             {
-            const unsigned int cell = h_recv_idx.data[idx];
+            const unsigned int cell = recv_idx[idx];
             unique_cells.insert(cell);
             cell_map.insert(std::make_pair(cell, idx));
             }
@@ -244,8 +240,11 @@ void mpcd::CellCommunicator::initialize()
         /*
          * Allocate auxiliary memory for receiving cell reordering
          */
-        GPUArray<unsigned int> recv_cells(m_recv_idx.getNumElements(), m_exec_conf);
+        GPUArray<unsigned int> recv_cells(recv_idx.size(), m_exec_conf);
         m_recv_cells.swap(recv_cells);
+
+        GPUArray<unsigned int> tmp_cells(m_num_unique_cells, m_exec_conf);
+        m_unique_cells.swap(tmp_cells);
 
         GPUArray<unsigned int> recv_cells_begin(m_num_unique_cells, m_exec_conf);
         m_recv_cells_begin.swap(recv_cells_begin);
@@ -257,6 +256,7 @@ void mpcd::CellCommunicator::initialize()
          * Write out the resorted cells from the map, and determine the range of data belonging to each received cell
          */
         ArrayHandle<unsigned int> h_recv_cells(m_recv_cells, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_unique_cells(m_unique_cells, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_cells_begin(m_recv_cells_begin, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_cells_end(m_recv_cells_end, access_location::host, access_mode::overwrite);
         unsigned int idx = 0;
@@ -271,8 +271,10 @@ void mpcd::CellCommunicator::initialize()
             auto lower = cell_map.lower_bound(*it);
             auto upper = cell_map.upper_bound(*it);
 
+            h_unique_cells.data[idx] = *it;
             h_recv_cells_begin.data[idx] = std::distance(cell_map.begin(), lower);
             h_recv_cells_end.data[idx] = std::distance(cell_map.begin(), upper);
+
             ++idx;
             }
         }
