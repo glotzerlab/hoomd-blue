@@ -177,27 +177,29 @@ void mpcd::CellCommunicator::initialize()
         }
 
     // fill the send indexes with the global values
+    // flood the array of unique neighbors and count the number to send
         {
         ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::overwrite);
+        unsigned int idx = 0;
         for (auto it = send_map.begin(); it != send_map.end(); ++it)
             {
-            h_send_idx.data[std::distance(send_map.begin(), it)] = it->second;
+            h_send_idx.data[idx++] = it->second;
             }
-        }
 
-    // flood the array of unique neighbors and count the number to send
-    m_neighbors.resize(neighbors.size());
-    m_begin.resize(m_neighbors.size());
-    m_num_send.resize(m_neighbors.size());
-    for (auto it = neighbors.begin(); it != neighbors.end(); ++it)
-        {
-        auto lower = send_map.lower_bound(*it);
-        auto upper = send_map.upper_bound(*it);
+        m_neighbors.resize(neighbors.size());
+        m_begin.resize(m_neighbors.size());
+        m_num_send.resize(m_neighbors.size());
+        idx = 0;
+        for (auto it = neighbors.begin(); it != neighbors.end(); ++it)
+            {
+            auto lower = send_map.lower_bound(*it);
+            auto upper = send_map.upper_bound(*it);
 
-        const unsigned int idx = std::distance(neighbors.begin(), it);
-        m_neighbors[idx] = *it;
-        m_begin[idx] = std::distance(send_map.begin(), lower);
-        m_num_send[idx] = std::distance(lower, upper);
+            m_neighbors[idx] = *it;
+            m_begin[idx] = std::distance(send_map.begin(), lower);
+            m_num_send[idx] = std::distance(lower, upper);
+            ++idx;
+            }
         }
 
     // send / receive the global cell indexes to be communicated with neighbors
@@ -257,12 +259,13 @@ void mpcd::CellCommunicator::initialize()
         ArrayHandle<unsigned int> h_recv_cells(m_recv_cells, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_cells_begin(m_recv_cells_begin, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_recv_cells_end(m_recv_cells_end, access_location::host, access_mode::overwrite);
+        unsigned int idx = 0;
         for (auto it = cell_map.begin(); it != cell_map.end(); ++it)
             {
-            h_recv_cells.data[std::distance(cell_map.begin(), it)] = it->second;
+            h_recv_cells.data[idx++] = it->second;
             }
 
-        unsigned int idx=0;
+        idx = 0;
         for (auto it = unique_cells.begin(); it != unique_cells.end(); ++it)
             {
             auto lower = cell_map.lower_bound(*it);
@@ -270,7 +273,6 @@ void mpcd::CellCommunicator::initialize()
 
             h_recv_cells_begin.data[idx] = std::distance(cell_map.begin(), lower);
             h_recv_cells_end.data[idx] = std::distance(cell_map.begin(), upper);
-
             ++idx;
             }
         }
