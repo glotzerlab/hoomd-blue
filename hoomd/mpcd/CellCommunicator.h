@@ -231,11 +231,26 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
 
     // make the MPI calls
         {
-        ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
-        typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
+        // determine whether to use CPU or GPU CUDA buffers
+        access_location::Enum mpi_loc;
+        #ifdef ENABLE_MPI_CUDA
+        if (m_exec_conf->isCUDAEnabled())
+            {
+            mpi_loc = access_location::device;
+            }
+        else
+        #endif // ENABLE_MPI_CUDA
+            {
+            mpi_loc = access_location::host;
+            }
 
-        ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
+        ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
+        typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
         typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
+        #ifdef ENABLE_MPI_CUDA
+        if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+        #endif // ENABLE_MPI_CUDA
 
         m_reqs.resize(2*m_neighbors.size());
         for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
@@ -268,6 +283,10 @@ void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op
 
     // finish all MPI requests
     MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+    #ifdef ENABLE_MPI_CUDA
+    // MPI calls can execute in multiple streams, so force a synchronization before we move on
+    if (m_exec_conf->isCUDAEnabled()) cudaDeviceSynchronize();
+    #endif // ENABLE_MPI_CUDA
 
     // unpack the buffer
     #ifdef ENABLE_CUDA
