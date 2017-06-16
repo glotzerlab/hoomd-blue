@@ -45,7 +45,6 @@ mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_
 
 mpcd::CommunicatorGPU::~CommunicatorGPU()
     {
-    m_exec_conf->msg->notice(5) << "Destroying MPCD CommunicatorGPU";
     }
 
 void mpcd::CommunicatorGPU::initializeCommunicationStages()
