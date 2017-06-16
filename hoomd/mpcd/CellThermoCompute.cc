@@ -11,6 +11,10 @@
 #include "CellThermoCompute.h"
 #include "ReductionOperators.h"
 
+/*!
+ * \param sysdata MPCD system data
+ * \param suffix Suffix for logged quantities
+ */
 mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sysdata,
                                            const std::string& suffix)
         : Compute(sysdata->getSystemDefinition()),
@@ -65,10 +69,10 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
         {
         reallocate(ncells);
         }
-    if (m_prof) m_prof->pop();
 
     computeCellProperties();
     m_needs_net_reduce = true;
+    if (m_prof) m_prof->pop();
     }
 
 std::vector<std::string> mpcd::CellThermoCompute::getProvidedLogQuantities()
@@ -108,7 +112,6 @@ Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigne
 
 void mpcd::CellThermoCompute::computeCellProperties()
     {
-    if (m_prof) m_prof->push("MPCD thermo");
     /*
      * In MPI simulations, begin by calculating the velocities and energies of
      * cells that lie along the boundaries. These values will then be communicated
@@ -143,8 +146,6 @@ void mpcd::CellThermoCompute::computeCellProperties()
         finishOuterCellProperties();
         }
     #endif // ENABLE_MPI
-
-    if (m_prof) m_prof->pop();
     }
 
 namespace mpcd
@@ -153,10 +154,9 @@ namespace detail
 {
 //! Sums properties of an MPCD cell on the CPU
 /*!
- *
  * This lightweight class is used in both beginOuterCellProperties() and
  * calcInnerCellProperties(). The code has been consolidated into one place
- * here to avoid some code duplication.
+ * here to avoid some duplication.
  */
 struct CellPropertySum
     {
@@ -168,7 +168,7 @@ struct CellPropertySum
      * \param vel_ MPCD particle velocities
      * \param mass_ MPCD mass
      * \param embed_vel_ Embedded particle velocities
-     * \param embed_member_idx_ Embedded particle indexes
+     * \param embed_idx_ Embedded particle indexes
      * \param N_mpcd_ Number of MPCD particles
      */
     CellPropertySum(const unsigned int *cell_list_,
@@ -177,10 +177,10 @@ struct CellPropertySum
                     const Scalar4 *vel_,
                     const Scalar mass_,
                     const Scalar4 *embed_vel_,
-                    const unsigned int *embed_member_idx_,
+                    const unsigned int *embed_idx_,
                     const unsigned int N_mpcd_)
         : cell_list(cell_list_), cell_np(cell_np_), cli(cli_), vel(vel_), mass(mass_),
-          embed_vel(embed_vel_), embed_member_idx(embed_member_idx_), N_mpcd(N_mpcd_)
+          embed_vel(embed_vel_), embed_idx(embed_idx_), N_mpcd(N_mpcd_)
         {}
 
     //! Computes the total momentum, kinetic energy, and number of particles in a cell
@@ -210,7 +210,7 @@ struct CellPropertySum
                 }
             else
                 {
-                Scalar4 vel_m = embed_vel[embed_member_idx[cur_p - N_mpcd]];
+                Scalar4 vel_m = embed_vel[embed_idx[cur_p - N_mpcd]];
                 vel_i = make_double3(vel_m.x, vel_m.y, vel_m.z);
                 mass_i = vel_m.w;
                 }
@@ -233,7 +233,7 @@ struct CellPropertySum
     const Scalar4 *vel;             //!< MPCD particle velocities
     const Scalar mass;              //!< MPCD particle mass
     const Scalar4 *embed_vel;       //!< Embedded particle velocities
-    const unsigned int *embed_member_idx;   //!< Embed particle indexes
+    const unsigned int *embed_idx;  //!< Embedded particle indexes
     const unsigned int N_mpcd;      //!< Number of MPCD particles
     };
 } // end namespace detail
@@ -274,6 +274,7 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
                                          (m_cl->getEmbeddedGroup()) ? h_embed_member_idx->data : NULL,
                                          N_mpcd);
 
+    // Loop over all outer cells and compute total momentum, mass, energy
     for (unsigned int idx=0; idx < m_vel_comm->getNCells(); ++idx)
         {
         const unsigned int cur_cell = h_cells.data[idx];
@@ -291,9 +292,9 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
     {
     ArrayHandle<Scalar4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
-
-    // use the velocity comm to get the cell list, it will be identical for the energy
     ArrayHandle<unsigned int> h_cells(m_vel_comm->getCells(), access_location::host, access_mode::read);
+
+    // Loop over all outer cells and normalize the summed quantities
     for (unsigned int idx=0; idx < m_vel_comm->getNCells(); ++idx)
         {
         const unsigned int cur_cell = h_cells.data[idx];
@@ -379,7 +380,7 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
         hi = m_cl->getDim();
         }
 
-    // iterate over all of the inner cells
+    // iterate over all of the inner cells and compute average velocity, energy, temperature
     for (unsigned int k=lo.z; k < hi.z; ++k)
         {
         for (unsigned int j=lo.y; j < hi.y; ++j)
