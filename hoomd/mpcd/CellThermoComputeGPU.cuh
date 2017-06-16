@@ -52,9 +52,10 @@ struct cell_thermo_element
 
 namespace gpu
 {
-//! Kernel driver to begin cell thermo compute
+//! Kernel driver to begin cell thermo compute of outer cells
 cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
                               Scalar3 *d_cell_energy,
+                              const unsigned int *d_cells,
                               const unsigned int *d_cell_np,
                               const unsigned int *d_cell_list,
                               const Index2D& cli,
@@ -63,15 +64,35 @@ cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
                               const Scalar mpcd_mass,
                               const Scalar4 *d_embed_vel,
                               const unsigned int *d_embed_cell,
+                              const unsigned int num_cells,
                               const unsigned int block_size,
                               const unsigned int tpp);
 
-//! Kernel driver to finalize cell thermo compute
+//! Kernel driver to finalize cell thermo compute of outer cells
 cudaError_t end_cell_thermo(Scalar4 *d_cell_vel,
                             Scalar3 *d_cell_energy,
+                            const unsigned int *d_cells,
                             const unsigned int Ncell,
                             const unsigned int n_dimensions,
                             const unsigned int block_size);
+
+//! Kernel driver to perform cell thermo compute for inner cells
+cudaError_t inner_cell_thermo(Scalar4 *d_cell_vel,
+                              Scalar3 *d_cell_energy,
+                              const Index3D& ci,
+                              const Index3D& inner_ci,
+                              const uint3& offset,
+                              const unsigned int *d_cell_np,
+                              const unsigned int *d_cell_list,
+                              const Index2D& cli,
+                              const Scalar4 *d_vel,
+                              const unsigned int N_mpcd,
+                              const Scalar mpcd_mass,
+                              const Scalar4 *d_embed_vel,
+                              const unsigned int *d_embed_cell,
+                              const unsigned int n_dimensions,
+                              const unsigned int block_size,
+                              const unsigned int tpp);
 
 //! Kernel driver to stage cell properties for net thermo reduction
 cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_thermo,

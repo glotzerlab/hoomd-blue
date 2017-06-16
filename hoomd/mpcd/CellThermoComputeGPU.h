@@ -51,13 +51,24 @@ class CellThermoComputeGPU : public mpcd::CellThermoCompute
             m_end_tuner->setEnabled(enable);
             m_end_tuner->setPeriod(period);
 
+            m_inner_tuner->setEnabled(enable);
+            m_inner_tuner->setPeriod(period);
+
             m_stage_tuner->setEnabled(enable);
             m_stage_tuner->setPeriod(period);
             }
 
     protected:
-        //! Compute the cell properties
-        virtual void computeCellProperties();
+        #ifdef ENABLE_MPI
+        //! Begin the calculation of outer cell properties on the GPU
+        virtual void beginOuterCellProperties();
+
+        //! Finish the calculation of outer cell properties on the GPU
+        virtual void finishOuterCellProperties();
+        #endif // ENABLE_MPI
+
+        //! Calculate the inner cell properties on the GPU
+        virtual void calcInnerCellProperties();
 
         //! Compute the net properties from the cell properties
         virtual void computeNetProperties();
@@ -65,6 +76,7 @@ class CellThermoComputeGPU : public mpcd::CellThermoCompute
     private:
         std::unique_ptr<Autotuner> m_begin_tuner;   //!< Tuner for cell begin kernel
         std::unique_ptr<Autotuner> m_end_tuner;     //!< Tuner for cell end kernel
+        std::unique_ptr<Autotuner> m_inner_tuner;   //!< Tuner for inner cell compute kernel
         std::unique_ptr<Autotuner> m_stage_tuner;   //!< Tuner for staging net property compute
 
         GPUVector<mpcd::detail::cell_thermo_element> m_tmp_thermo;  //!< Temporary array for holding cell data

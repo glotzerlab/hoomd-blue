@@ -239,6 +239,7 @@ struct CellPropertySum
 } // end namespace detail
 } // end namespace mpcd
 
+#ifdef ENABLE_MPI
 void mpcd::CellThermoCompute::beginOuterCellProperties()
     {
     // Cell list
@@ -322,6 +323,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
         h_cell_energy.data[cur_cell] = make_scalar3(ke, temp, __int_as_scalar(np));
         }
     }
+#endif // ENABLE_MPI
 
 void mpcd::CellThermoCompute::calcInnerCellProperties()
     {

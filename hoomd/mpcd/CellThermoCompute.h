@@ -127,13 +127,15 @@ class CellThermoCompute : public Compute
 
     protected:
         //! Compute the cell properties
-        virtual void computeCellProperties();
+        void computeCellProperties();
 
+        #ifdef ENABLE_MPI
         //! Begin the calculation of outer cell properties
         virtual void beginOuterCellProperties();
 
         //! Finish the calculation of outer cell properties
         virtual void finishOuterCellProperties();
+        #endif // ENABLE_MPI
 
         //! Calculate the inner cell properties
         virtual void calcInnerCellProperties();
