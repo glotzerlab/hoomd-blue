@@ -11,10 +11,10 @@
 #ifndef MPCD_CELL_COMMUNICATOR_CUH_
 #define MPCD_CELL_COMMUNICATOR_CUH_
 
-#include <cuda_runtime.h>
-
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
+
+#include <cuda_runtime.h>
 
 namespace mpcd
 {
