@@ -60,7 +60,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
 
     const Index3D& ci = m_cl->getCellIndexer();
     const Index3D& global_ci = m_cl->getGlobalCellIndexer();
-    ArrayHandle<Scalar3> h_rotvec(m_rotvec, access_location::host, access_mode::overwrite);
+    ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::overwrite);
 
     for (unsigned int k=0; k < ci.getD(); ++k)
         {

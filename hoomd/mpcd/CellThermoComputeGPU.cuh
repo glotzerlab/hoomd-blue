@@ -39,7 +39,9 @@ struct cell_thermo_element
     HOSTDEVICE cell_thermo_element operator+(const cell_thermo_element& other) const
         {
         cell_thermo_element sum;
-        sum.momentum = momentum + other.momentum;
+        sum.momentum.x = momentum.x + other.momentum.x;
+        sum.momentum.y = momentum.y + other.momentum.y;
+        sum.momentum.z = momentum.z + other.momentum.z;
         sum.energy = energy + other.energy;
         sum.temperature = temperature + other.temperature;
         sum.flag = flag + other.flag;

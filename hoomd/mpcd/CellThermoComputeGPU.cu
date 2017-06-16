@@ -141,7 +141,7 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
     // 0-th lane in each warp writes the result
     if (idx % tpp == 0)
         {
-        d_cell_vel[cell_id] = momentum;
+        d_cell_vel[cell_id] = make_scalar4(momentum.x, momentum.y, momentum.z, momentum.w);
         d_cell_energy[cell_id] = make_scalar3(ke, 0.0, __int_as_scalar(np));
         }
     }

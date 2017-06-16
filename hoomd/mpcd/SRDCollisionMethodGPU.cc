@@ -27,7 +27,7 @@ void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
     {
     // resize the rotation vectors
     m_rotvec.resize(m_cl->getNCells());
-    ArrayHandle<Scalar3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
+    ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
 
     m_tuner_rotvec->begin();
     mpcd::gpu::srd_draw_vectors(d_rotvec.data,

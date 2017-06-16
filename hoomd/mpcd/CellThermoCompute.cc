@@ -282,7 +282,7 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         double4 momentum; double ke; unsigned int np;
         summer.compute(momentum, ke, np, cur_cell);
 
-        h_cell_vel.data[cur_cell] = momentum;
+        h_cell_vel.data[cur_cell] = make_scalar4(momentum.x, momentum.y, momentum.z, momentum.w);
         h_cell_energy.data[cur_cell] = make_scalar3(ke, 0.0, __int_as_scalar(np));
         }
     }

@@ -112,8 +112,8 @@ void srd_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exe
 
             // all rotation vectors should be unit norm
             const unsigned int cell = __scalar_as_int(h_vel.data[i].w);
-            const double3 rot_vec = h_rotvec.data[cell];
-            CHECK_CLOSE(rot_vec.x * rot_vec.x + rot_vec.y * rot_vec.y + rot_vec.z * rot_vec.z, 1.0, tol_small);
+            const Scalar3 rot_vec = make_scalar3(h_rotvec.data[cell].x, h_rotvec.data[cell].y, h_rotvec.data[cell].z);
+            CHECK_CLOSE(dot(rot_vec,rot_vec), 1.0, tol_small);
 
             // norm of velocity relative to average is unchanged by rotation
             const Scalar3 vel = make_scalar3(h_vel.data[i].x, h_vel.data[i].y, h_vel.data[i].z);
