@@ -52,7 +52,7 @@ __device__ static T warp_reduce(T val)
 
 namespace kernel
 {
-//! Begins the cell thermo compute by summing cell quantities
+//! Begins the cell thermo compute by summing cell quantities on outer cells
 /*!
  * \param d_cell_vel Velocity and mass per cell (output)
  * \param d_cell_energy Energy, temperature, number of particles per cell (output)
@@ -64,7 +64,7 @@ namespace kernel
  * \param N_mpcd Number of MPCD particles
  * \param mpcd_mass Mass of MPCD particle
  * \param d_embed_vel Embedded particle velocity
- * \param d_embed_cell Embedded particle cells
+ * \param d_embed_idx Embedded particle indexes
  * \param num_cells Number of cells to compute for
  *
  * \tparam tpp Number of threads to use per cell
@@ -86,7 +86,7 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
                                   const unsigned int N_mpcd,
                                   const Scalar mpcd_mass,
                                   const Scalar4 *d_embed_vel,
-                                  const unsigned int *d_embed_cell,
+                                  const unsigned int *d_embed_idx,
                                   const unsigned int num_cells)
     {
     // tpp threads per cell
@@ -113,7 +113,7 @@ __global__ void begin_cell_thermo(Scalar4 *d_cell_vel,
             }
         else
             {
-            Scalar4 vel_m = d_embed_vel[d_embed_cell[cur_p - N_mpcd]];
+            Scalar4 vel_m = d_embed_vel[d_embed_idx[cur_p - N_mpcd]];
             vel_i = make_double3(vel_m.x, vel_m.y, vel_m.z);
             mass_i = vel_m.w;
             }
@@ -198,6 +198,34 @@ __global__ void end_cell_thermo(Scalar4 *d_cell_vel,
     d_cell_energy[cell_id] = make_scalar3(ke, temp, __int_as_scalar(np));
     }
 
+//! Computes the cell thermo for inner cells
+/*!
+ * \param d_cell_vel Velocity and mass per cell (output)
+ * \param d_cell_energy Energy, temperature, number of particles per cell (output)
+ * \param ci Cell indexer
+ * \param inner_ci Cell indexer for the inner cells
+ * \param offset Offset of \a inner_ci from \a ci
+ * \param d_cell_np Number of particles per cell
+ * \param d_cell_list MPCD cell list
+ * \param cli Indexer into the cell list
+ * \param d_vel MPCD particle velocities
+ * \param N_mpcd Number of MPCD particles
+ * \param mpcd_mass Mass of MPCD particle
+ * \param d_embed_vel Embedded particle velocity
+ * \param d_embed_idx Embedded particle indexes
+ * \param n_dimensions System dimensionality
+ *
+ * \tparam tpp Number of threads to use per cell
+ *
+ * \b Implementation details:
+ * Using \a tpp threads per cell, the cell properties are accumulated into \a d_cell_vel
+ * and \a d_cell_energy. Shuffle-based intrinsics are used to reduce the accumulated
+ * properties per-cell, and the first thread for each cell writes the result into
+ * global memory. The properties are properly normalized
+ *
+ * See mpcd::gpu::kernel::begin_cell_thermo for an almost identical implementation
+ * without the normalization at the end, which is used for the outer cells.
+ */
 template<unsigned int tpp>
 __global__ void inner_cell_thermo(Scalar4 *d_cell_vel,
                                   Scalar3 *d_cell_energy,
@@ -211,7 +239,7 @@ __global__ void inner_cell_thermo(Scalar4 *d_cell_vel,
                                   const unsigned int N_mpcd,
                                   const Scalar mpcd_mass,
                                   const Scalar4 *d_embed_vel,
-                                  const unsigned int *d_embed_cell,
+                                  const unsigned int *d_embed_idx,
                                   const unsigned int n_dimensions)
     {
     // tpp threads per cell
@@ -244,7 +272,7 @@ __global__ void inner_cell_thermo(Scalar4 *d_cell_vel,
             }
         else
             {
-            Scalar4 vel_m = d_embed_vel[d_embed_cell[cur_p - N_mpcd]];
+            Scalar4 vel_m = d_embed_vel[d_embed_idx[cur_p - N_mpcd]];
             vel_i = make_double3(vel_m.x, vel_m.y, vel_m.z);
             mass_i = vel_m.w;
             }
@@ -347,21 +375,12 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
 
 } // end namespace kernel
 
-//! Templated launcher for multiple threads-per-cell kernel
+//! Templated launcher for multiple threads-per-cell kernel for outer cells
 /*
- * \param d_cell_vel Velocity and mass per cell (output)
- * \param d_cell_energy Energy, temperature, number of particles per cell (output)
+ * \param args Common arguments to thermo kernels
  * \param d_cells Cell indexes to compute
- * \param d_cell_np Number of particles per cell
- * \param d_cell_list MPCD cell list
- * \param cli Indexer into the cell list
- * \param d_vel MPCD particle velocities
- * \param N_mpcd Number of MPCD particles
- * \param mpcd_mass Mass of MPCD particle
- * \param d_embed_vel Embedded particle velocity
- * \param d_embed_cell Embedded particle cells
- * \param block_size Number of threads per block
  * \param num_cells Number of cells to compute for
+ * \param block_size Number of threads per block
  * \param tpp Number of threads to use per-cell
  *
  * \tparam cur_tpp Number of threads-per-cell for this template instantiation
@@ -374,17 +393,8 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
  * work.
  */
 template<unsigned int cur_tpp>
-inline void launch_begin_cell_thermo(Scalar4 *d_cell_vel,
-                                     Scalar3 *d_cell_energy,
+inline void launch_begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
                                      const unsigned int *d_cells,
-                                     const unsigned int *d_cell_np,
-                                     const unsigned int *d_cell_list,
-                                     const Index2D& cli,
-                                     const Scalar4 *d_vel,
-                                     const unsigned int N_mpcd,
-                                     const Scalar mpcd_mass,
-                                     const Scalar4 *d_embed_vel,
-                                     const unsigned int *d_embed_cell,
                                      const unsigned int num_cells,
                                      const unsigned int block_size,
                                      const unsigned int tpp)
@@ -401,32 +411,23 @@ inline void launch_begin_cell_thermo(Scalar4 *d_cell_vel,
 
         unsigned int run_block_size = min(block_size, max_block_size);
         dim3 grid(cur_tpp*num_cells / run_block_size + 1);
-        mpcd::gpu::kernel::begin_cell_thermo<cur_tpp><<<grid, run_block_size>>>(d_cell_vel,
-                                                                                d_cell_energy,
+        mpcd::gpu::kernel::begin_cell_thermo<cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
+                                                                                args.cell_energy,
                                                                                 d_cells,
-                                                                                d_cell_np,
-                                                                                d_cell_list,
-                                                                                cli,
-                                                                                d_vel,
-                                                                                N_mpcd,
-                                                                                mpcd_mass,
-                                                                                d_embed_vel,
-                                                                                d_embed_cell,
+                                                                                args.cell_np,
+                                                                                args.cell_list,
+                                                                                args.cli,
+                                                                                args.vel,
+                                                                                args.N_mpcd,
+                                                                                args.mass,
+                                                                                args.embed_vel,
+                                                                                args.embed_idx,
                                                                                 num_cells);
         }
     else
         {
-        launch_begin_cell_thermo<cur_tpp/2>(d_cell_vel,
-                                            d_cell_energy,
+        launch_begin_cell_thermo<cur_tpp/2>(args,
                                             d_cells,
-                                            d_cell_np,
-                                            d_cell_list,
-                                            cli,
-                                            d_vel,
-                                            N_mpcd,
-                                            mpcd_mass,
-                                            d_embed_vel,
-                                            d_embed_cell,
                                             num_cells,
                                             block_size,
                                             tpp);
@@ -434,34 +435,16 @@ inline void launch_begin_cell_thermo(Scalar4 *d_cell_vel,
     }
 //! Template specialization to break recursion
 template<>
-inline void launch_begin_cell_thermo<0>(Scalar4 *d_cell_vel,
-                                        Scalar3 *d_cell_energy,
+inline void launch_begin_cell_thermo<0>(const mpcd::detail::thermo_args_t& args,
                                         const unsigned int *d_cells,
-                                        const unsigned int *d_cell_np,
-                                        const unsigned int *d_cell_list,
-                                        const Index2D& cli,
-                                        const Scalar4 *d_vel,
-                                        const unsigned int N_mpcd,
-                                        const Scalar mpcd_mass,
-                                        const Scalar4 *d_embed_vel,
-                                        const unsigned int *d_embed_cell,
                                         const unsigned int num_cells,
                                         const unsigned int block_size,
                                         const unsigned int tpp)
     { }
 
 /*
- * \param d_cell_vel Velocity and mass per cell (output)
- * \param d_cell_energy Energy, temperature, number of particles per cell (output)
+ * \param args Common arguments to thermo kernels
  * \param d_cells Cell indexes to compute
- * \param d_cell_np Number of particles per cell
- * \param d_cell_list MPCD cell list
- * \param cli Indexer into the cell list
- * \param d_vel MPCD particle velocities
- * \param N_mpcd Number of MPCD particles
- * \param mpcd_mass Mass of MPCD particle
- * \param d_embed_vel Embedded particle velocity
- * \param d_embed_cell Embedded particle cells
  * \param num_cells Number of cells to compute for
  * \param block_size Number of threads per block
  * \param tpp Number of threads per cell
@@ -471,34 +454,16 @@ inline void launch_begin_cell_thermo<0>(Scalar4 *d_cell_vel,
  * \sa mpcd::gpu::launch_begin_cell_thermo
  * \sa mpcd::gpu::kernel::begin_cell_thermo
  */
-cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
-                              Scalar3 *d_cell_energy,
+cudaError_t begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
                               const unsigned int *d_cells,
-                              const unsigned int *d_cell_np,
-                              const unsigned int *d_cell_list,
-                              const Index2D& cli,
-                              const Scalar4 *d_vel,
-                              const unsigned int N_mpcd,
-                              const Scalar mpcd_mass,
-                              const Scalar4 *d_embed_vel,
-                              const unsigned int *d_embed_cell,
                               const unsigned int num_cells,
                               const unsigned int block_size,
                               const unsigned int tpp)
     {
     if (num_cells == 0) return cudaSuccess;
 
-    launch_begin_cell_thermo<32>(d_cell_vel,
-                                 d_cell_energy,
+    launch_begin_cell_thermo<32>(args,
                                  d_cells,
-                                 d_cell_np,
-                                 d_cell_list,
-                                 cli,
-                                 d_vel,
-                                 N_mpcd,
-                                 mpcd_mass,
-                                 d_embed_vel,
-                                 d_embed_cell,
                                  num_cells,
                                  block_size,
                                  tpp);
@@ -543,20 +508,30 @@ cudaError_t end_cell_thermo(Scalar4 *d_cell_vel,
     return cudaSuccess;
     }
 
+//! Templated launcher for multiple threads-per-cell kernel for inner cells
+/*
+ * \param args Common arguments to thermo kernels
+ * \param ci Cell indexer
+ * \param inner_ci Cell indexer for the inner cells
+ * \param offset Offset of \a inner_ci from \a ci
+ * \param n_dimensions System dimensionality
+ * \param block_size Number of threads per block
+ * \param tpp Number of threads per cell
+ *
+ * \tparam cur_tpp Number of threads-per-cell for this template instantiation
+ *
+ * Launchers are recursively instantiated at compile-time in order to match the
+ * correct number of threads at runtime. If the templated number of threads matches
+ * the runtime number of threads, then the kernel is launched. Otherwise, the
+ * next template (with threads reduced by a factor of 2) is launched. This
+ * recursion is broken by a specialized template for 0 threads, which does no
+ * work.
+ */
 template<unsigned int cur_tpp>
-inline void launch_inner_cell_thermo(Scalar4 *d_cell_vel,
-                                     Scalar3 *d_cell_energy,
+inline void launch_inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
                                      const Index3D& ci,
                                      const Index3D& inner_ci,
                                      const uint3& offset,
-                                     const unsigned int *d_cell_np,
-                                     const unsigned int *d_cell_list,
-                                     const Index2D& cli,
-                                     const Scalar4 *d_vel,
-                                     const unsigned int N_mpcd,
-                                     const Scalar mpcd_mass,
-                                     const Scalar4 *d_embed_vel,
-                                     const unsigned int *d_embed_cell,
                                      const unsigned int n_dimensions,
                                      const unsigned int block_size,
                                      const unsigned int tpp)
@@ -573,36 +548,27 @@ inline void launch_inner_cell_thermo(Scalar4 *d_cell_vel,
 
         unsigned int run_block_size = min(block_size, max_block_size);
         dim3 grid(cur_tpp*ci.getNumElements() / run_block_size + 1);
-        mpcd::gpu::kernel::inner_cell_thermo<cur_tpp><<<grid, run_block_size>>>(d_cell_vel,
-                                                                                d_cell_energy,
+        mpcd::gpu::kernel::inner_cell_thermo<cur_tpp><<<grid, run_block_size>>>(args.cell_vel,
+                                                                                args.cell_energy,
                                                                                 ci,
                                                                                 inner_ci,
                                                                                 offset,
-                                                                                d_cell_np,
-                                                                                d_cell_list,
-                                                                                cli,
-                                                                                d_vel,
-                                                                                N_mpcd,
-                                                                                mpcd_mass,
-                                                                                d_embed_vel,
-                                                                                d_embed_cell,
+                                                                                args.cell_np,
+                                                                                args.cell_list,
+                                                                                args.cli,
+                                                                                args.vel,
+                                                                                args.N_mpcd,
+                                                                                args.mass,
+                                                                                args.embed_vel,
+                                                                                args.embed_idx,
                                                                                 n_dimensions);
         }
     else
         {
-        launch_inner_cell_thermo<cur_tpp/2>(d_cell_vel,
-                                            d_cell_energy,
+        launch_inner_cell_thermo<cur_tpp/2>(args,
                                             ci,
                                             inner_ci,
                                             offset,
-                                            d_cell_np,
-                                            d_cell_list,
-                                            cli,
-                                            d_vel,
-                                            N_mpcd,
-                                            mpcd_mass,
-                                            d_embed_vel,
-                                            d_embed_cell,
                                             n_dimensions,
                                             block_size,
                                             tpp);
@@ -610,56 +576,43 @@ inline void launch_inner_cell_thermo(Scalar4 *d_cell_vel,
     }
 //! Template specialization to break recursion
 template<>
-inline void launch_inner_cell_thermo<0>(Scalar4 *d_cell_vel,
-                                        Scalar3 *d_cell_energy,
+inline void launch_inner_cell_thermo<0>(const mpcd::detail::thermo_args_t& args,
                                         const Index3D& ci,
                                         const Index3D& inner_ci,
                                         const uint3& offset,
-                                        const unsigned int *d_cell_np,
-                                        const unsigned int *d_cell_list,
-                                        const Index2D& cli,
-                                        const Scalar4 *d_vel,
-                                        const unsigned int N_mpcd,
-                                        const Scalar mpcd_mass,
-                                        const Scalar4 *d_embed_vel,
-                                        const unsigned int *d_embed_cell,
                                         const unsigned int n_dimensions,
                                         const unsigned int block_size,
                                         const unsigned int tpp)
     { }
 
-cudaError_t inner_cell_thermo(Scalar4 *d_cell_vel,
-                              Scalar3 *d_cell_energy,
+/*!
+ * \param args Common arguments for cell thermo compute
+ * \param ci Cell indexer
+ * \param inner_ci Cell indexer for the inner cells
+ * \param offset Offset of \a inner_ci from \a ci
+ * \param n_dimensions System dimensionality
+ * \param block_size Number of threads per block
+ * \param tpp Number of threads per cell
+ *
+ * \returns cudaSuccess on completion
+ *
+ * \sa mpcd::gpu::launch_inner_cell_thermo
+ * \sa mpcd::gpu::kernel::inner_cell_thermo
+ */
+cudaError_t inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
                               const Index3D& ci,
                               const Index3D& inner_ci,
                               const uint3& offset,
-                              const unsigned int *d_cell_np,
-                              const unsigned int *d_cell_list,
-                              const Index2D& cli,
-                              const Scalar4 *d_vel,
-                              const unsigned int N_mpcd,
-                              const Scalar mpcd_mass,
-                              const Scalar4 *d_embed_vel,
-                              const unsigned int *d_embed_cell,
                               const unsigned int n_dimensions,
                               const unsigned int block_size,
                               const unsigned int tpp)
     {
     if (inner_ci.getNumElements() == 0) return cudaSuccess;
 
-    launch_inner_cell_thermo<32>(d_cell_vel,
-                                 d_cell_energy,
+    launch_inner_cell_thermo<32>(args,
                                  ci,
                                  inner_ci,
                                  offset,
-                                 d_cell_np,
-                                 d_cell_list,
-                                 cli,
-                                 d_vel,
-                                 N_mpcd,
-                                 mpcd_mass,
-                                 d_embed_vel,
-                                 d_embed_cell,
                                  n_dimensions,
                                  block_size,
                                  tpp);

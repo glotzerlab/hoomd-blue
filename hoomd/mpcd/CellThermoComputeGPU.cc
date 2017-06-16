@@ -59,21 +59,23 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
         ArrayHandle<Scalar4> d_embed_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_embed_cell(m_cl->getEmbeddedGroup()->getIndexArray(), access_location::device, access_mode::read);
 
+        mpcd::detail::thermo_args_t args(d_cell_vel.data,
+                                         d_cell_energy.data,
+                                         d_cell_np.data,
+                                         d_cell_list.data,
+                                         m_cl->getCellListIndexer(),
+                                         d_vel.data,
+                                         m_mpcd_pdata->getN(),
+                                         m_mpcd_pdata->getMass(),
+                                         d_embed_vel.data,
+                                         d_embed_cell.data);
+
         m_begin_tuner->begin();
         const unsigned int param = m_begin_tuner->getParam();
         const unsigned int block_size = param / 10000;
         const unsigned int tpp = param % 10000;
-        gpu::begin_cell_thermo(d_cell_vel.data,
-                               d_cell_energy.data,
+        gpu::begin_cell_thermo(args,
                                d_cells.data,
-                               d_cell_np.data,
-                               d_cell_list.data,
-                               m_cl->getCellListIndexer(),
-                               d_vel.data,
-                               m_mpcd_pdata->getN(),
-                               m_mpcd_pdata->getMass(),
-                               d_embed_vel.data,
-                               d_embed_cell.data,
                                m_vel_comm->getNCells(),
                                block_size,
                                tpp);
@@ -82,21 +84,23 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
         }
     else
         {
+        mpcd::detail::thermo_args_t args(d_cell_vel.data,
+                                         d_cell_energy.data,
+                                         d_cell_np.data,
+                                         d_cell_list.data,
+                                         m_cl->getCellListIndexer(),
+                                         d_vel.data,
+                                         m_mpcd_pdata->getN(),
+                                         m_mpcd_pdata->getMass(),
+                                         NULL,
+                                         NULL);
+
         m_begin_tuner->begin();
         const unsigned int param = m_begin_tuner->getParam();
         const unsigned int block_size = param / 10000;
         const unsigned int tpp = param % 10000;
-        gpu::begin_cell_thermo(d_cell_vel.data,
-                               d_cell_energy.data,
+        gpu::begin_cell_thermo(args,
                                d_cells.data,
-                               d_cell_np.data,
-                               d_cell_list.data,
-                               m_cl->getCellListIndexer(),
-                               d_vel.data,
-                               m_mpcd_pdata->getN(),
-                               m_mpcd_pdata->getMass(),
-                               NULL,
-                               NULL,
                                m_vel_comm->getNCells(),
                                block_size,
                                tpp);
@@ -164,23 +168,25 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
         ArrayHandle<Scalar4> d_embed_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_embed_cell(m_cl->getEmbeddedGroup()->getIndexArray(), access_location::device, access_mode::read);
 
+        mpcd::detail::thermo_args_t args(d_cell_vel.data,
+                                         d_cell_energy.data,
+                                         d_cell_np.data,
+                                         d_cell_list.data,
+                                         m_cl->getCellListIndexer(),
+                                         d_vel.data,
+                                         m_mpcd_pdata->getN(),
+                                         m_mpcd_pdata->getMass(),
+                                         d_embed_vel.data,
+                                         d_embed_cell.data);
+
         m_inner_tuner->begin();
         const unsigned int param = m_inner_tuner->getParam();
         const unsigned int block_size = param / 10000;
         const unsigned int tpp = param % 10000;
-        gpu::inner_cell_thermo(d_cell_vel.data,
-                               d_cell_energy.data,
+        gpu::inner_cell_thermo(args,
                                ci,
                                inner_ci,
                                lo,
-                               d_cell_np.data,
-                               d_cell_list.data,
-                               m_cl->getCellListIndexer(),
-                               d_vel.data,
-                               m_mpcd_pdata->getN(),
-                               m_mpcd_pdata->getMass(),
-                               d_embed_vel.data,
-                               d_embed_cell.data,
                                m_sysdef->getNDimensions(),
                                block_size,
                                tpp);
@@ -189,23 +195,25 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
         }
     else
         {
+        mpcd::detail::thermo_args_t args(d_cell_vel.data,
+                                         d_cell_energy.data,
+                                         d_cell_np.data,
+                                         d_cell_list.data,
+                                         m_cl->getCellListIndexer(),
+                                         d_vel.data,
+                                         m_mpcd_pdata->getN(),
+                                         m_mpcd_pdata->getMass(),
+                                         NULL,
+                                         NULL);
+
         m_inner_tuner->begin();
         const unsigned int param = m_inner_tuner->getParam();
         const unsigned int block_size = param / 10000;
         const unsigned int tpp = param % 10000;
-        gpu::inner_cell_thermo(d_cell_vel.data,
-                               d_cell_energy.data,
+        gpu::inner_cell_thermo(args,
                                ci,
                                inner_ci,
                                lo,
-                               d_cell_np.data,
-                               d_cell_list.data,
-                               m_cl->getCellListIndexer(),
-                               d_vel.data,
-                               m_mpcd_pdata->getN(),
-                               m_mpcd_pdata->getMass(),
-                               NULL,
-                               NULL,
                                m_sysdef->getNDimensions(),
                                block_size,
                                tpp);

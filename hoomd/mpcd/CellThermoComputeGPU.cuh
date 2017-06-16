@@ -49,23 +49,44 @@ struct cell_thermo_element
         return sum;
         }
     };
+
+//! Convenience struct for common parameters passed to MPCD kernels
+struct thermo_args_t
+    {
+    thermo_args_t(Scalar4 *cell_vel_,
+                  Scalar3 *cell_energy_,
+                  const unsigned int *cell_np_,
+                  const unsigned int *cell_list_,
+                  const Index2D& cli_,
+                  const Scalar4 *vel_,
+                  const unsigned int N_mpcd_,
+                  const Scalar mass_,
+                  const Scalar4 *embed_vel_,
+                  const unsigned int *embed_idx_)
+        : cell_vel(cell_vel_), cell_energy(cell_energy_), cell_np(cell_np_), cell_list(cell_list_),
+          cli(cli_), vel(vel_), N_mpcd(N_mpcd_), mass(mass_), embed_vel(embed_vel_), embed_idx(embed_idx_)
+        { }
+
+    Scalar4 *cell_vel;              //!< Cell velocities (output)
+    Scalar3 *cell_energy;           //!< Cell energies (output)
+
+    const unsigned int *cell_np;    //!< Number of particles per cell
+    const unsigned int *cell_list;  //!< MPCD cell list
+    const Index2D cli;              //!< MPCD cell list indexer
+    const Scalar4 *vel;             //!< MPCD particle velocities
+    const unsigned int N_mpcd;      //!< Number of MPCD particles
+    const Scalar mass;              //!< MPCD particle mass
+    const Scalar4 *embed_vel;       //!< Embedded particle velocities
+    const unsigned int *embed_idx;  //!< Embedded particle indexes
+    };
 #undef HOSTDEVICE
 }
 
 namespace gpu
 {
 //! Kernel driver to begin cell thermo compute of outer cells
-cudaError_t begin_cell_thermo(Scalar4 *d_cell_vel,
-                              Scalar3 *d_cell_energy,
+cudaError_t begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
                               const unsigned int *d_cells,
-                              const unsigned int *d_cell_np,
-                              const unsigned int *d_cell_list,
-                              const Index2D& cli,
-                              const Scalar4 *d_vel,
-                              const unsigned int N_mpcd,
-                              const Scalar mpcd_mass,
-                              const Scalar4 *d_embed_vel,
-                              const unsigned int *d_embed_cell,
                               const unsigned int num_cells,
                               const unsigned int block_size,
                               const unsigned int tpp);
@@ -79,19 +100,10 @@ cudaError_t end_cell_thermo(Scalar4 *d_cell_vel,
                             const unsigned int block_size);
 
 //! Kernel driver to perform cell thermo compute for inner cells
-cudaError_t inner_cell_thermo(Scalar4 *d_cell_vel,
-                              Scalar3 *d_cell_energy,
+cudaError_t inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
                               const Index3D& ci,
                               const Index3D& inner_ci,
                               const uint3& offset,
-                              const unsigned int *d_cell_np,
-                              const unsigned int *d_cell_list,
-                              const Index2D& cli,
-                              const Scalar4 *d_vel,
-                              const unsigned int N_mpcd,
-                              const Scalar mpcd_mass,
-                              const Scalar4 *d_embed_vel,
-                              const unsigned int *d_embed_cell,
                               const unsigned int n_dimensions,
                               const unsigned int block_size,
                               const unsigned int tpp);
