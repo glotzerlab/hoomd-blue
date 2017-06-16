@@ -72,8 +72,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
                     int3 global_cell = cl->getGlobalCell(make_int3(i,j,k));
                     global_cell.x += 1; global_cell.y += 1; global_cell.z += 1;
 
-                    h_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, global_cell.z);
-                    h_ref_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, global_cell.z);
+                    h_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
+                    h_ref_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
                     }
                 }
             }
