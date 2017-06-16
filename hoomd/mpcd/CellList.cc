@@ -77,9 +77,9 @@ void mpcd::CellList::compute(unsigned int timestep)
         if (m_prof) m_prof->pop(m_exec_conf);
 
         // perform mpcd communication before building the cell list so particles are safely on rank now
-        if (m_mpcd_comm)
+        if (auto mpcd_comm = m_mpcd_comm.lock())
             {
-            m_mpcd_comm->communicate(timestep);
+            mpcd_comm->communicate(timestep);
             }
 
         // exchange embedded particles if necessary

@@ -275,7 +275,7 @@ class CellList : public Compute
         unsigned int m_num_extra;               //!< Number of extra cells to communicate over
         std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
         BoxDim m_cover_box;                     //!< Box covered by the cell list
-        std::shared_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD particle communicator
+        std::weak_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD particle communicator
 
         //! Determine if embedded particles require migration
         virtual bool needsEmbedMigrate(unsigned int timestep);
