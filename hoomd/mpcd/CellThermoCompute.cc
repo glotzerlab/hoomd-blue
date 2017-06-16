@@ -38,10 +38,11 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
         m_energy_comm = std::make_shared<mpcd::CellCommunicator>(m_sysdef, m_cl);
         }
     else
-    #endif // ENABLE_MPI
         {
         m_use_mpi = false;
         }
+    #endif // ENABLE_MPI
+
 
     // quantities supplied to the logger
     m_logname_list.push_back(std::string("mpcd_momentum_x") + suffix);
