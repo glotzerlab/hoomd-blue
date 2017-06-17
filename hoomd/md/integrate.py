@@ -370,6 +370,10 @@ class npt(_integration_method):
                 kT=1.0
                 tau=1.0
 
+        if (tauP is None):
+                hoomd.context.msg.error("integrate.npt: Need barostat time scale tauP.\n");
+                raise RuntimeError("Error setting up NPT integration.");
+
         # initialize base class
         _integration_method.__init__(self);
 
@@ -381,7 +385,7 @@ class npt(_integration_method):
             self.S = [P,P,P,0,0,0]
         else:
             # S is a stress, should be [xx, yy, zz, yz, xz, xy]
-            if (len(S)==6):
+            if S is not None and len(S)==6:
                 self.S = S
             else:
                 raise RuntimeError("Unrecognized stress tensor form");
@@ -1214,7 +1218,6 @@ class mode_minimize_fire(_integrator):
         while not(fire.has_converged()):
            run(100)
 
-       
     Note:
         The algorithm requires a base integrator to update the particle position and velocities.
         Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box)
