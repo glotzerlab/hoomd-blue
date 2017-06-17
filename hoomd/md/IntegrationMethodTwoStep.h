@@ -213,6 +213,9 @@ class IntegrationMethodTwoStep
             m_aniso = aniso;
             }
 
+        //! Return if we are integrating anisotropically
+        bool getAnisotropic() const { return m_aniso; }
+
         //! Compute rotational degrees of freedom
         /*! \param query_group The group of particles to compute rotational DOF for
          */

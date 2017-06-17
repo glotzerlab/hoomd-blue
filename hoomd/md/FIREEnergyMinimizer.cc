@@ -28,6 +28,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysde
         m_alpha_start(Scalar(0.1)),
         m_falpha(Scalar(0.99)),
         m_ftol(Scalar(1e-1)),
+        m_wtol(Scalar(1e-1)),
         m_etol(Scalar(1e-3)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
@@ -134,9 +135,12 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
     IntegratorTwoStep::update(timesteps);
 
-    Scalar P(0.0);
+    Scalar Pt(0.0); //translational power
+    Scalar Pr(0.0); //rotational power
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
+    Scalar tnorm(0.0);
+    Scalar wnorm(0.0);
 
     // Calculate the per-particle potential energy over particles in the group
     Scalar energy(0.0);
@@ -183,22 +187,58 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = current_group->getMemberIndex(group_idx);
-            P += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
+            Pt += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
             fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
             vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
+            }
+
+        if ((*method)->getAnisotropic())
+            {
+            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+
+                vec3<Scalar> t(h_net_torque.data[j]);
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> q(h_orientation.data[j]);
+
+                // s is the pure imaginary quaternion with im. part equal to true angular velocity
+                vec3<Scalar> s;
+                s = (Scalar(1./2.) * conj(q) * p).v;
+
+                // rotational power = torque * angvel
+                Pr += dot(t,s);
+                tnorm += dot(t,t);
+                wnorm += dot(s,s);
+                }
             }
         }
 
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
 
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*total_group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    tnorm = sqrt(tnorm);
+    wnorm = sqrt(wnorm);
+
+    unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         return;
         }
 
     Scalar invfnorm = 1.0/fnorm;
+
+    Scalar factor_r = 0.0;
+
+    if (fabs(tnorm) > EPSILON)
+        factor_r = m_alpha * wnorm / tnorm;
+    else
+        factor_r = 1.0;
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -211,7 +251,30 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
             h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
             }
+
+        if ((*method)->getAnisotropic())
+            {
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+                vec3<Scalar> t(h_net_torque.data[j]);
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> q(h_orientation.data[j]);
+
+                // update angular momentum
+                p = p*Scalar(1.0-m_alpha) + Scalar(2.0)*q*t*factor_r;
+                h_angmom.data[j] = quat_to_scalar4(p);
+                }
+            }
         }
+
+    // A simply naive measure is to sum up the power coming from translational and rotational motions,
+    // more sophisticated measure can be devised later
+    Scalar P = Pt + Pr;
 
     if (P > Scalar(0.0))
         {
@@ -239,6 +302,17 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
                 h_vel.data[j].y = Scalar(0.0);
                 h_vel.data[j].z = Scalar(0.0);
                 }
+
+            if ((*method)->getAnisotropic())
+                {
+                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+                for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                    {
+                    unsigned int j = current_group->getMemberIndex(group_idx);
+                    h_angmom.data[j] = make_scalar4(0,0,0,0);
+                    }
+                }
+
             }
         }
     m_n_since_start++;

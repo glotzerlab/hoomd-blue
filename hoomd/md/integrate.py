@@ -1174,6 +1174,8 @@ class mode_minimize_fire(_integrator):
         ftol (float): force convergence criteria (in force units)
         Etol (float): energy convergence criteria (in energy units)
         min_steps (int): A minimum number of attempts before convergence criteria are considered
+        aniso (bool): Whether to integrate rotational degrees of freedom (bool), default None (autodetect).
+        * ..versionadded:: 2.2
 
     :py:class:`mode_minimize_fire` uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
     for a group of particles while keeping all other particles fixed.  This method is published in
@@ -1237,7 +1239,7 @@ class mode_minimize_fire(_integrator):
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
 
     """
-    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10, group=None):
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
         hoomd.util.print_status_line();
 
         # Error out in MPI simulations
@@ -1263,9 +1265,16 @@ class mode_minimize_fire(_integrator):
             hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
             nve = integrate.nve(group=group)
 
+        self.aniso = aniso
+
+        hoomd.util.quiet_status();
+        if aniso is not None:
+            self.set_params(aniso=aniso)
+        hoomd.util.unquiet_status();
+
         # change the set parameters if not None
         self.dt = dt
-        self.metadata_fields = ['dt']
+        self.metadata_fields = ['dt','aniso']
 
         self.cpp_integrator.setNmin(Nmin);
         self.Nmin = Nmin
@@ -1298,6 +1307,36 @@ class mode_minimize_fire(_integrator):
         self.cpp_integrator.setMinSteps(min_steps);
         self.min_steps = min_steps
         self.metadata_fields.append(min_steps)
+
+    ## \internal
+    #  \brief Cached set of anisotropic mode enums for ease of access
+    _aniso_modes = {
+        None: _md.IntegratorAnisotropicMode.Automatic,
+        True: _md.IntegratorAnisotropicMode.Anisotropic,
+        False: _md.IntegratorAnisotropicMode.Isotropic}
+
+    def set_params(self, aniso=None):
+        R""" Changes parameters of an existing integration mode.
+
+        Args:
+            aniso (bool): Anisotropic integration mode (bool), default None (autodetect).
+
+        Examples::
+
+            integrator_mode.set_params(aniso=False)
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if aniso is not None:
+            if aniso in self._aniso_modes:
+                anisoMode = self._aniso_modes[aniso]
+            else:
+                hoomd.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                raise RuntimeError("Error setting anisotropic integration mode.");
+            self.aniso = aniso
+            self.cpp_integrator.setAnisotropicMode(anisoMode)
 
     def has_converged(self):
         R""" Test if the energy minimizer has converged.

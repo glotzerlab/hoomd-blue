@@ -31,6 +31,14 @@ class minimize_fire_tests (unittest.TestCase):
         md.integrate.nph(group=all, gamma=1,P=0.0,tauP=1.0)
         run(100);
 
+    # tests anisotropic option
+    def test_aniso(self):
+        all = group.all();
+        fire = md.integrate.mode_minimize_fire(dt=0.005,aniso=True)
+        md.integrate.nve(all)
+        run(100);
+        fire.set_params(aniso=False)
+        run(100);
 
     # test w/ empty group
     def test_empty(self):

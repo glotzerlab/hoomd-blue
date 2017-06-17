@@ -64,6 +64,11 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         */
         void setFtol(Scalar ftol) {m_ftol = ftol;}
 
+        //! Set the stopping criterion based on the total torque on all particles in the system
+        /*! \param wtol is the new torque tolerance to set
+        */
+        void setWtol(Scalar wtol) {m_wtol = wtol;}
+
         //! Set the stopping criterion based on the change in energy between successive iterations
         /*! \param etol is the new energy tolerance to set
         */
@@ -95,6 +100,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         Scalar m_alpha_start;               //!< starting value of alpha
         Scalar m_falpha;                    //!< fraction to rescale alpha on successful search direction
         Scalar m_ftol;                      //!< stopping tolerance based on total force
+        Scalar m_wtol;                      //!< stopping tolerance based on total torque
         Scalar m_etol;                      //!< stopping tolerance based on the chance in energy
         Scalar m_old_energy;                //!< energy from the previous iteration
         bool m_converged;                   //!< whether the minimization has converged
