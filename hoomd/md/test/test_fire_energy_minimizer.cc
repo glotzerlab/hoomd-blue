@@ -13,11 +13,13 @@
 
 #ifdef ENABLE_CUDA
 #include "hoomd/md/FIREEnergyMinimizerGPU.h"
+#include "hoomd/md/TwoStepNVEGPU.h"
 #endif
 
 #include "hoomd/md/AllPairPotentials.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/ComputeThermo.h"
+#include "hoomd/md/TwoStepNVE.h"
 
 #include <math.h>
 
@@ -28,19 +30,32 @@ using namespace std;
 HOOMD_UP_MAIN();
 
 //! Typedef'd FIREEnergyMinimizer class factory
-typedef std::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dT)> fire_creator;
+typedef std::function<std::shared_ptr<FIREEnergyMinimizer> (std::shared_ptr<SystemDefinition> sysdef, Scalar dT)> fire_creator;
+typedef std::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)> nve_creator;
 
 //! FIREEnergyMinimizer creator
-std::shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)
+std::shared_ptr<FIREEnergyMinimizer> base_class_fire_creator(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     {
-    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, group, dt));
+    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizer(sysdef, dt));
+    }
+
+//! TwoStepNVE factory for the unit tests
+std::shared_ptr<TwoStepNVE> base_class_nve_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
+    {
+    return std::shared_ptr<TwoStepNVE>(new TwoStepNVE(sysdef, group));
     }
 
 #ifdef ENABLE_CUDA
-//! FIREEnergyMinimizerGPU creator
-std::shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar dt)
+//! TwoStepNVEGPU factory for the unit tests
+std::shared_ptr<TwoStepNVE> gpu_nve_creator(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
     {
-    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, group, dt));
+    return std::shared_ptr<TwoStepNVE>(new TwoStepNVEGPU(sysdef, group));
+    }
+
+//! FIREEnergyMinimizerGPU creator
+std::shared_ptr<FIREEnergyMinimizer> gpu_fire_creator(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
+    {
+    return std::shared_ptr<FIREEnergyMinimizer>(new FIREEnergyMinimizerGPU(sysdef, dt));
     }
 #endif
 
@@ -355,7 +370,7 @@ double x_two_lj [] = {
 1.1227};
 
 //! Compares the output from one NVEUpdater to another
-void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void fire_smallsystem_test(fire_creator fire_creator1, nve_creator nve_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 260;
     Scalar rho(Scalar(1.2));
@@ -411,7 +426,9 @@ void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<Execution
     fc->setRcut(1,1,2.5);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_all, Scalar(0.05));
+    std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef,group_all);
+    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
+    fire->addIntegrationMethod(nve);
     fire->setFtol(5.0);
     fire->addForceCompute(fc);
     fire->setMinSteps(10);
@@ -445,7 +462,7 @@ void fire_smallsystem_test(fire_creator fire_creator1, std::shared_ptr<Execution
 
     }
 
-void fire_twoparticle_test(fire_creator fire_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
+void fire_twoparticle_test(fire_creator fire_creator1, nve_creator nve_creator1, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     const unsigned int N = 2;
     //Scalar rho(1.2);
@@ -483,7 +500,10 @@ void fire_twoparticle_test(fire_creator fire_creator1, std::shared_ptr<Execution
     fc->setRcut(0,0,3.0);
     fc->setShiftMode(PotentialPairLJ::shift);
 
-    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, group_one, Scalar(0.05));
+    std::shared_ptr<TwoStepNVE> nve = nve_creator1(sysdef,group_one);
+    std::shared_ptr<FIREEnergyMinimizer> fire = fire_creator1(sysdef, Scalar(0.05));
+    fire->addIntegrationMethod(nve);
+
     fire->addForceCompute(fc);
     fire->setFtol(Scalar(5.0));
     fire->setEtol(Scalar(1e-7));
@@ -510,25 +530,25 @@ void fire_twoparticle_test(fire_creator fire_creator1, std::shared_ptr<Execution
 //! Sees if a single particle's trajectory is being calculated correctly
 UP_TEST( FIREEnergyMinimizer_twoparticle_test )
     {
-    fire_twoparticle_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    fire_twoparticle_test(base_class_fire_creator, base_class_nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizer to the conjugate gradient method from LAMMPS
 UP_TEST( FIREEnergyMinimizer_smallsystem_test )
     {
-    fire_smallsystem_test(base_class_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
+    fire_smallsystem_test(base_class_fire_creator, base_class_nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
 #ifdef ENABLE_CUDA
 //! Sees if a single particle's trajectory is being calculated correctly
 UP_TEST( FIREEnergyMinimizerGPU_twoparticle_test )
     {
-    fire_twoparticle_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    fire_twoparticle_test(gpu_fire_creator, gpu_nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 
 //! Compares the output of FIREEnergyMinimizerGPU to the conjugate gradient method from LAMMPS
 UP_TEST( FIREEnergyMinimizerGPU_smallsystem_test )
     {
-    fire_smallsystem_test(gpu_fire_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
+    fire_smallsystem_test(gpu_fire_creator, gpu_nve_creator, std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
 #endif

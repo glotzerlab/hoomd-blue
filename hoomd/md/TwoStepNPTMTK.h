@@ -136,6 +136,12 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             m_rescale_all = rescale_all;
             }
 
+        //! Set an optional damping factor for the box degrees of freedom
+        void setGamma(Scalar gamma)
+            {
+            m_gamma = gamma;
+            }
+
         //! Performs the first step of the integration
         virtual void integrateStepOne(unsigned int timestep);
 
@@ -184,6 +190,8 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         Scalar m_mat_exp_r_int[6];      //!< Integrated matrix exp. for velocity update (upper triangular)
 
         bool m_rescale_all;             //!< If true, rescale all particles in the system irrespective of group
+
+        Scalar m_gamma;                 //!< Optional damping factor for box degrees of freedom
 
         std::vector<std::string> m_log_names; //!< Name of the barostat and thermostat quantities that we log
 

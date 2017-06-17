@@ -259,6 +259,7 @@ class npt(_integration_method):
         all (bool): if True, rescale all lengths and tilt factors and components of particle coordinates and velocities
         nph (bool): if True, integrate without a thermostat, i.e. in the NPH ensemble
         rescale_all (bool): if True, rescale all particles, not only those in the group
+        gamma: (:py:obj:`float`, dimensions of energy): Damping factor for the box degrees of freedom
 
     :py:class:`npt` performs constant pressure, constant temperature simulations, allowing for a fully deformable
     simulation box.
@@ -356,7 +357,7 @@ class npt(_integration_method):
         # triclinic symmetry
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None):
+    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
         hoomd.util.print_status_line();
 
         # check the input
@@ -483,6 +484,9 @@ class npt(_integration_method):
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
 
+        if gamma is not None:
+            self.cpp_method.setGamma(gamma)
+
         self.cpp_method.validateGroup()
 
         # store metadata
@@ -501,7 +505,7 @@ class npt(_integration_method):
         self.yz = yz
         self.nph = nph
 
-    def set_params(self, kT=None, tau=None, S=None, P=None, tauP=None, rescale_all=None):
+    def set_params(self, kT=None, tau=None, S=None, P=None, tauP=None, rescale_all=None, gamma=None):
         R""" Changes parameters of an existing integrator.
 
         Args:
@@ -553,6 +557,8 @@ class npt(_integration_method):
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
             self.rescale_all = rescale_all
+        if gamma is not None:
+            self.cpp_method.setGamma(gamma)
 
     ## \internal
     # \brief Return information about this integration method
@@ -592,6 +598,7 @@ class nph(npt):
 
     Args:
         params: keyword arguments passed to :py:class:`npt`.
+        gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
 
     :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
@@ -615,6 +622,8 @@ class nph(npt):
         nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
         # Cubic unit cell
         nph = integrate.nph(group=all, P=2.0, tauP=1.0)
+        # Relax the box
+        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=1.0)
     """
     def __init__(self, **params):
         hoomd.util.print_status_line();
@@ -1148,6 +1157,10 @@ class mode_minimize_fire(_integrator):
 
     Args:
         group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
+        * .. deprecated:: 2.2
+            py:class:`integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`integrate.nve()`
+            and py:class:`integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
+            automatically :py:class:`integrate.nve()` will be used for integration
         dt (float): This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
         Nmin (int): Number of steps energy change is negative before allowing :math:`\alpha` and :math:`\delta t` to adapt.
         finc (float): Factor to increase :math:`\delta t` by
@@ -1188,12 +1201,25 @@ class mode_minimize_fire(_integrator):
     If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept
     frozen but will still interact with the particles being moved.
 
-    Example::
+    Example:
 
-        fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-2, Etol=1e-7)
+        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
+        nve=integrate.nve(group=group.all())
         while not(fire.has_converged()):
            run(100)
 
+    Example with box relaxation:
+        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
+        nph=integrate.nph(group=group.all(),P=0.0,gamma=.5)
+        while not(fire.has_converged()):
+           run(100)
+
+       
+    Note:
+        The algorithm requires a base integrator to update the particle position and velocities.
+        Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box)
+
+    .. versionadded:: v2.1
 
     Note:
         As a default setting, the algorithm will start with a :math:`\delta t = \frac{1}{10} \delta t_{max}` and
@@ -1208,7 +1234,7 @@ class mode_minimize_fire(_integrator):
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
 
     """
-    def __init__(self, group, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10):
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10, group=None):
         hoomd.util.print_status_line();
 
         # Error out in MPI simulations
@@ -1222,13 +1248,17 @@ class mode_minimize_fire(_integrator):
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, group.cpp_group, dt);
+            self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, dt);
         else:
-            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, group.cpp_group, dt);
+            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, dt);
 
-        self.supports_methods = False;
+        self.supports_methods = True;
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+
+        if group is not None:
+            hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
+            nve = integrate.nve(group=group)
 
         # change the set parameters if not None
         self.dt = dt

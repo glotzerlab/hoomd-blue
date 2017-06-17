@@ -7,8 +7,6 @@
 
 
 #include "FIREEnergyMinimizer.h"
-#include "TwoStepNVE.h"
-
 
 using namespace std;
 namespace py = pybind11;
@@ -18,18 +16,12 @@ namespace py = pybind11;
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
     \param dt maximum step size
-    \param reset_and_create_integrator Set to true to completely initialize this class
 
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef,
-                                         std::shared_ptr<ParticleGroup> group,
-                                         Scalar dt,
-                                         bool reset_and_create_integrator)
+FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     :   IntegratorTwoStep(sysdef, dt),
-        m_group(group),
         m_nmin(5),
         m_finc(Scalar(1.1)),
         m_fdec(Scalar(0.5)),
@@ -46,39 +38,13 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysde
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
-    if (reset_and_create_integrator)
-        {
-        reset();
-        //createIntegrator();
-        std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
-        addIntegrationMethod(integrator);
-        setDeltaT(m_deltaT_set);
-        }
+    reset();
     }
 
 FIREEnergyMinimizer::~FIREEnergyMinimizer()
     {
     m_exec_conf->msg->notice(5) << "Destroying FIREEnergyMinimizer" << endl;
     }
-
-//void FIREEnergyMinimizer::createIntegrator()
-//    {
-//    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
-//    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
-//    std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(m_sysdef, group_all));
-//    addIntegrationMethod(integrator);
-//    setDeltaT(m_deltaT);
-//    }
-
-/*! \param dt is the new timestep to set
-
-The timestep is used by the underlying NVE integrator to advance the particles.
-*/
-void FIREEnergyMinimizer::setDeltaT(Scalar dt)
-    {
-    IntegratorTwoStep::setDeltaT(dt);
-    }
-
 
 /*! \param finc is the new fractional increase to set
 */
@@ -166,10 +132,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if (m_converged)
         return;
 
-    unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
-
     IntegratorTwoStep::update(timesteps);
 
     Scalar P(0.0);
@@ -179,18 +141,29 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     // Calculate the per-particle potential energy over particles in the group
     Scalar energy(0.0);
 
+    unsigned int total_group_size = 0;
+
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
 
     // total potential energy
     double pe_total = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        pe_total += (double)h_net_force.data[j].w;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        total_group_size += group_size;
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            pe_total += (double)h_net_force.data[j].w;
+            }
         }
-    energy = pe_total/Scalar(group_size);
+
+    energy = pe_total/Scalar(total_group_size);
     }
 
 
@@ -203,30 +176,41 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        P += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
-        fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
-        vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            P += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
+            fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
+            vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
+            }
         }
 
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
 
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*total_group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         return;
         }
 
     Scalar invfnorm = 1.0/fnorm;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + m_alpha*h_accel.data[j].x*invfnorm*vnorm;
-        h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
-        h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + m_alpha*h_accel.data[j].x*invfnorm*vnorm;
+            h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
+            h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
+            }
         }
 
     if (P > Scalar(0.0))
@@ -243,12 +227,18 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+        for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            h_vel.data[j].x = Scalar(0.0);
-            h_vel.data[j].y = Scalar(0.0);
-            h_vel.data[j].z = Scalar(0.0);
+            std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+            unsigned int group_size = current_group->getIndexArray().getNumElements();
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+                h_vel.data[j].x = Scalar(0.0);
+                h_vel.data[j].y = Scalar(0.0);
+                h_vel.data[j].z = Scalar(0.0);
+                }
             }
         }
     m_n_since_start++;
@@ -256,11 +246,10 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
     }
 
-
 void export_FIREEnergyMinimizer(py::module& m)
     {
     py::class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer> >(m, "FIREEnergyMinimizer", py::base<IntegratorTwoStep>())
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
