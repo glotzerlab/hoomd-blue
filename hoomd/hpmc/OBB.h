@@ -145,7 +145,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-3); // can be large, because false positives don't harm
+    const OverlapReal eps(1e-6); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
