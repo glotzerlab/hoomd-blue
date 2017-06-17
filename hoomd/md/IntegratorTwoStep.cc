@@ -336,6 +336,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             if(getAnisotropic())
                 m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
                     " with anisotropic forces defined" << endl;
+            break;
         case Automatic:
         default:
             aniso = getAnisotropic();
