@@ -35,9 +35,6 @@ class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
         //! Destroys the minimizer
         virtual ~FIREEnergyMinimizerGPU() {}
 
-        //! Resets the minimizer
-        virtual void reset();
-
         //! Iterates forward one step
         virtual void update(unsigned int);
 

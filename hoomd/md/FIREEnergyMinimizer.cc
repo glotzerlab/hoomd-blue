@@ -114,6 +114,7 @@ void FIREEnergyMinimizer::reset()
     m_was_reset = true;
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     unsigned int n = m_pdata->getN();
     for (unsigned int i=0; i<n; i++)
@@ -121,7 +122,10 @@ void FIREEnergyMinimizer::reset()
         h_vel.data[i].x = Scalar(0.0);
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
+
+        h_angmom.data[i] = make_scalar4(0,0,0,0);
         }
+
     setDeltaT(m_deltaT_set);
     m_pdata->notifyParticleSort();
     }

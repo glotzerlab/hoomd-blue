@@ -60,35 +60,6 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
     reset();
     }
 
-void FIREEnergyMinimizerGPU::reset()
-    {
-    m_converged = false;
-    m_n_since_negative =  m_nmin+1;
-    m_n_since_start = 0;
-    m_alpha = m_alpha_start;
-    m_was_reset = true;
-
-    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
-        {
-        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
-
-        unsigned int group_size = current_group->getIndexArray().getNumElements();
-        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
-
-        ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
-        gpu_fire_zero_v( d_vel.data,
-                    d_index_array.data,
-                    group_size);
-
-        if(m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        }
-
-    setDeltaT(m_deltaT_set);
-    m_pdata->notifyParticleSort();
-    }
-
 /*! \param timesteps is the iteration number
 */
 void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
@@ -99,10 +70,13 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
     IntegratorTwoStep::update(timesteps);
 
-    Scalar P(0.0);
+    Scalar Pt(0.0);  //translational power
+    Scalar Pr(0.0); //rotational power
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
     Scalar energy(0.0);
+    Scalar tnorm(0.0);
+    Scalar wnorm(0.0);
 
     // compute the total energy on the GPU
     // CPU version is Scalar energy = computePotentialEnergy(timesteps)/Scalar(group_size);
@@ -194,16 +168,52 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             }
 
         ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
-        P += h_sum.data[0];
+        Pt += h_sum.data[0];
         vnorm += sqrt(h_sum.data[1]);
         fnorm += sqrt(h_sum.data[2]);
+
+        if ((*method)->getAnisotropic())
+            {
+                {
+                ArrayHandle<Scalar> d_partial_sum_Pr(m_partial_sum1, access_location::device, access_mode::overwrite);
+                ArrayHandle<Scalar> d_partial_sum_wnorm(m_partial_sum2, access_location::device, access_mode::overwrite);
+                ArrayHandle<Scalar> d_partial_sum_tsq(m_partial_sum3, access_location::device, access_mode::overwrite);
+                ArrayHandle<Scalar> d_sum(m_sum3, access_location::device, access_mode::overwrite);
+                ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+                ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::read);
+                ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+
+                unsigned int num_blocks = group_size/m_block_size + 1;
+
+                gpu_fire_compute_sum_all_angular(m_pdata->getN(),
+                                         d_orientation.data,
+                                         d_angmom.data,
+                                         d_net_torque.data,
+                                         d_index_array.data,
+                                         group_size,
+                                         d_sum.data,
+                                         d_partial_sum_Pr.data,
+                                         d_partial_sum_wnorm.data,
+                                         d_partial_sum_tsq.data,
+                                         m_block_size,
+                                         num_blocks);
+
+                if(m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+                }
+            ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
+            Pr += h_sum.data[0];
+            wnorm += sqrt(h_sum.data[1]);
+            tnorm += sqrt(h_sum.data[2]);
+            }
+
         }
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
 
-
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*total_group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
         return;
@@ -215,6 +225,12 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->push(m_exec_conf, "FIRE update velocities");
 
     Scalar invfnorm = 1.0/fnorm;
+    Scalar factor_r = 0.0;
+
+    if (fabs(tnorm) > EPSILON)
+        factor_r = m_alpha * wnorm / tnorm;
+    else
+        factor_r = 1.0;
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -236,11 +252,30 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        if ((*method)->getAnisotropic())
+            {
+            ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+
+            gpu_fire_update_angmom(d_net_torque.data,
+                          d_orientation.data,
+                          d_angmom.data,
+                          d_index_array.data,
+                          group_size,
+                          m_alpha,
+                          factor_r);
+
+            if(m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
         }
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
 
+    Scalar P = Pt + Pr;
 
     if (P > Scalar(0.0))
         {
@@ -273,6 +308,17 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                             group_size);
             if(m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
+
+            if ((*method)->getAnisotropic())
+                {
+                ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+                gpu_fire_zero_v(d_angmom.data,
+                                d_index_array.data,
+                                group_size);
+                if(m_exec_conf->isCUDAErrorCheckingEnabled())
+                    CHECK_CUDA_ERROR();
+
+                }
             }
 
         if (m_prof)
