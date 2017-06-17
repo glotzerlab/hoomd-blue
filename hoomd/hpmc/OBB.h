@@ -145,7 +145,7 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-2); // can be large, because false positives don't harm
+    const OverlapReal eps(1e-3); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
@@ -332,45 +332,49 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
 
 // Compute the center point, ’c’, and axis orientation, u[0] and u[1], of
 // the minimum area rectangle in the xy plane containing the points pt[].
-inline OverlapReal MinAreaRect(vec2<OverlapReal> pt[], int numPts, vec2<OverlapReal> &c, vec2<OverlapReal> u[2])
+inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double> &c, vec2<double> u[2])
     {
-    OverlapReal minArea = FLT_MAX;
+    double minArea = DBL_MAX;
+
+    // initialize to some default unit vectors
+    u[0] = vec2<double>(1,0);
+    u[1] = vec2<double>(0,1);
 
     // Loop through all edges; j trails i by 1, modulo numPts
     for (int i = 0, j = numPts - 1; i < numPts; j = i, i++)
         {
         // Get current edge e0 (e0x,e0y), normalized
-        vec2<OverlapReal> e0 = pt[i] - pt[j];
+        vec2<double> e0 = pt[i] - pt[j];
 
-        const OverlapReal eps(1e-12); // if edge is too short, do not consider
-        if (dot(e0,e0) < eps) continue;
-        e0 = e0/sqrtf(dot(e0,e0));
+        const double eps_abs(1e-12); // if edge is too short, do not consider
+        if (dot(e0,e0) < eps_abs) continue;
+        e0 = e0/sqrt(dot(e0,e0));
 
         // Get an axis e1 orthogonal to edge e0
-        vec2<OverlapReal> e1 = vec2<OverlapReal>(-e0.y, e0.x); // = Perp2D(e0)
+        vec2<double> e1 = vec2<double>(-e0.y, e0.x); // = Perp2D(e0)
 
         // Loop through all points to get maximum extents
-        OverlapReal min0 = 0.0f, min1 = 0.0f, max0 = 0.0f, max1 = 0.0f;
+        double min0 = 0.0, min1 = 0.0, max0 = 0.0, max1 = 0.0;
 
         for (int k = 0; k < numPts; k++)
             {
             // Project points onto axes e0 and e1 and keep track
             // of minimum and maximum values along both axes
-            vec2<OverlapReal> d = pt[k] - pt[j];
-            OverlapReal dotp = dot(d, e0);
+            vec2<double> d = pt[k] - pt[j];
+            double dotp = dot(d, e0);
             if (dotp < min0) min0 = dotp;
             if (dotp > max0) max0 = dotp;
             dotp = dot(d, e1);
             if (dotp < min1) min1 = dotp;
             if (dotp > max1) max1 = dotp;
             }
-        OverlapReal area = (max0 - min0) * (max1 - min1);
+        double area = (max0 - min0) * (max1 - min1);
 
         // If best so far, remember area, center, and axes
         if (area < minArea)
             {
             minArea = area;
-            c = pt[j] + 0.5f * ((min0 + max0) * e0 + (min1 + max1) * e1);
+            c = pt[j] + 0.5 * ((min0 + max0) * e0 + (min1 + max1) * e1);
             u[0] = e0; u[1] = e1;
             }
         }
@@ -393,7 +397,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     Eigen::MatrixXd m(3,3);
     m(0,0) = m(0,1) = m(0,2) = m(1,0) = m(1,1) = m(1,2) = m(2,0) = m(2,1) = m(2,2) = 0.0;
 
-    std::vector<vec3<OverlapReal> > hull_pts;
+    std::vector<vec3<double> > hull_pts;
 
     if (pts.size() >= 3)
         {
@@ -412,7 +416,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         vec hull_centroid(0.0,0.0,0.0);
 
         for (unsigned int i = 0; i < vertexBuffer.size(); ++i)
-            hull_pts.push_back(vec3<OverlapReal>(vertexBuffer[i].x,vertexBuffer[i].y,vertexBuffer[i].z));
+            hull_pts.push_back(vec3<double>(vertexBuffer[i].x,vertexBuffer[i].y,vertexBuffer[i].z));
 
         for (unsigned int i = 0; i < indexBuffer.size(); i+=3)
             {
@@ -427,15 +431,16 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
             hull_area += area;
             hull_centroid += area*centroid;
 
-            m(0,0) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.x*centroid.x + p.x*p.x + q.x*q.x + r.x*r.x);
-            m(0,1) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.x*centroid.y + p.x*p.y + q.x*q.y + r.x*r.y);
-            m(0,2) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.x*centroid.z + p.x*p.z + q.x*q.z + r.x*r.z);
-            m(1,0) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.y*centroid.x + p.y*p.x + q.y*q.x + r.y*r.x);
-            m(1,1) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.y*centroid.y + p.y*p.y + q.y*q.y + r.y*r.y);
-            m(1,2) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.y*centroid.z + p.y*p.z + q.y*q.z + r.y*r.z);
-            m(2,0) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.z*centroid.x + p.z*p.x + q.z*q.x + r.z*r.x);
-            m(2,1) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.z*centroid.y + p.z*p.y + q.z*q.y + r.z*r.y);
-            m(2,2) += area*OverlapReal(1./12.)*(OverlapReal(9)*centroid.z*centroid.z + p.z*p.z + q.z*q.z + r.z*r.z);
+            OverlapReal fac = area/12.0;
+            m(0,0) += fac*(9.0*centroid.x*centroid.x + p.x*p.x + q.x*q.x + r.x*r.x);
+            m(0,1) += fac*(9.0*centroid.x*centroid.y + p.x*p.y + q.x*q.y + r.x*r.y);
+            m(0,2) += fac*(9.0*centroid.x*centroid.z + p.x*p.z + q.x*q.z + r.x*r.z);
+            m(1,0) += fac*(9.0*centroid.y*centroid.x + p.y*p.x + q.y*q.x + r.y*r.x);
+            m(1,1) += fac*(9.0*centroid.y*centroid.y + p.y*p.y + q.y*q.y + r.y*r.y);
+            m(1,2) += fac*(9.0*centroid.y*centroid.z + p.y*p.z + q.y*q.z + r.y*r.z);
+            m(2,0) += fac*(9.0*centroid.z*centroid.x + p.z*p.x + q.z*q.x + r.z*r.x);
+            m(2,1) += fac*(9.0*centroid.z*centroid.y + p.z*p.y + q.z*q.y + r.z*r.y);
+            m(2,2) += fac*(9.0*centroid.z*centroid.z + p.z*p.z + q.z*q.z + r.z*r.z);
             }
 
         hull_centroid /= hull_area;
@@ -456,17 +461,17 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
             {
             vec3<OverlapReal> dr = pts[i] - mean;
 
-            m(0,0) += dr.x * dr.x/OverlapReal(n);
-            m(1,0) += dr.y * dr.x/OverlapReal(n);
-            m(2,0) += dr.z * dr.x/OverlapReal(n);
+            m(0,0) += dr.x * dr.x/(double)n;
+            m(1,0) += dr.y * dr.x/(double)n;
+            m(2,0) += dr.z * dr.x/(double)n;
 
-            m(0,1) += dr.x * dr.y/OverlapReal(n);
-            m(1,1) += dr.y * dr.y/OverlapReal(n);
-            m(2,1) += dr.z * dr.y/OverlapReal(n);
+            m(0,1) += dr.x * dr.y/(double)n;
+            m(1,1) += dr.y * dr.y/(double)n;
+            m(2,1) += dr.z * dr.y/(double)n;
 
-            m(0,2) += dr.x * dr.z/OverlapReal(n);
-            m(1,2) += dr.y * dr.z/OverlapReal(n);
-            m(2,2) += dr.z * dr.z/OverlapReal(n);
+            m(0,2) += dr.x * dr.z/(double)n;
+            m(1,2) += dr.y * dr.z/(double)n;
+            m(2,2) += dr.z * dr.z/(double)n;
             }
         }
 
@@ -484,14 +489,14 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     if (pts.size() >= 3)
         {
         bool done = false;
-        vec3<OverlapReal> cur_axis[3];
-        cur_axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
-        cur_axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
-        cur_axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
+        vec3<double> cur_axis[3];
+        cur_axis[0] = vec3<double>(r.row0.x, r.row1.x, r.row2.x);
+        cur_axis[1] = vec3<double>(r.row0.y, r.row1.y, r.row2.y);
+        cur_axis[2] = vec3<double>(r.row0.z, r.row1.z, r.row2.z);
 
-        OverlapReal min_V = FLT_MAX;
+        double min_V = DBL_MAX;
         unsigned int min_axis = 0;
-        vec2<OverlapReal> min_axes_2d[2];
+        vec2<double> min_axes_2d[2];
 
         // iteratively improve OBB
         while (! done)
@@ -502,7 +507,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
             for (unsigned int test_axis = 0; test_axis < 3; ++test_axis)
                 {
                 // project normal to test_axis
-                std::vector<vec2<OverlapReal> > proj_2d(hull_pts.size());
+                std::vector<vec2<double> > proj_2d(hull_pts.size());
                 for (unsigned int i = 0; i < hull_pts.size(); ++i)
                     {
                     unsigned k = 0;
@@ -518,25 +523,26 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
                         }
                     }
 
-                vec2<OverlapReal> new_axes_2d[2];
-                vec2<OverlapReal> c;
-                OverlapReal area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
+                vec2<double> new_axes_2d[2];
+                vec2<double> c;
+                double area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
 
                 // find extent along test_axis
-                OverlapReal proj_min = FLT_MAX;
-                OverlapReal proj_max = -FLT_MAX;
+                double proj_min = DBL_MAX;
+                double proj_max = -DBL_MAX;
                 for (unsigned int i = 0; i < hull_pts.size(); ++i)
                     {
-                    OverlapReal proj = dot(hull_pts[i], cur_axis[test_axis]);
+                    double proj = dot(hull_pts[i], cur_axis[test_axis]);
 
                     if (proj > proj_max) proj_max = proj;
                     if (proj < proj_min) proj_min = proj;
                     }
-                OverlapReal extent = proj_max - proj_min;
+                double extent = proj_max - proj_min;
 
                 // bounding box volume
-                OverlapReal V = extent*area;
-                if (V < min_V)
+                double V = extent*area;
+                double eps_rel(1e-6); // convergence criterion
+                if (V < min_V && (min_V-V) > eps_rel*min_V)
                     {
                     min_V = V;
                     min_axes_2d[0] = new_axes_2d[0];
@@ -548,7 +554,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
             if (updated_axes)
                 {
-                vec3<OverlapReal> new_axis[3];
+                vec3<double> new_axis[3];
 
                 // test axis stays the same
                 new_axis[min_axis] = cur_axis[min_axis];
