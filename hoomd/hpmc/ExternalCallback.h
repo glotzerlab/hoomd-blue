@@ -30,10 +30,12 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                          pybind11::object energy_function)
             : ExternalFieldMono<Shape>(sysdef), callback(energy_function)
             {
+            #ifdef ENABLE_MPI
             if (this->m_pdata->getDomainDecomposition())
                 {
                 throw std::runtime_error("ExternalCallback doesn't support MPI.");
                 }
+            #endif
             }
 
         ~ExternalCallback() { }
