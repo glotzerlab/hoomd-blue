@@ -259,7 +259,7 @@ class npt(_integration_method):
         all (bool): if True, rescale all lengths and tilt factors and components of particle coordinates and velocities
         nph (bool): if True, integrate without a thermostat, i.e. in the NPH ensemble
         rescale_all (bool): if True, rescale all particles, not only those in the group
-        gamma: (:py:obj:`float`, dimensions of energy): Damping factor for the box degrees of freedom
+        gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
 
     :py:class:`npt` performs constant pressure, constant temperature simulations, allowing for a fully deformable
     simulation box.
@@ -627,7 +627,7 @@ class nph(npt):
         # Cubic unit cell
         nph = integrate.nph(group=all, P=2.0, tauP=1.0)
         # Relax the box
-        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=1.0)
+        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
     def __init__(self, **params):
         hoomd.util.print_status_line();

@@ -127,7 +127,6 @@ void FIREEnergyMinimizer::reset()
         }
 
     setDeltaT(m_deltaT_set);
-    m_pdata->notifyParticleSort();
     }
 
 /*! \param timesteps is the current timestep

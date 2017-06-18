@@ -875,38 +875,38 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
 
     if (m_flags & baro_x)
         {
+        nuxx -= m_gamma*nuxx;
         nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_S[0]->getValue(timestep)) + mtk_term;
-        nuxx -= m_gamma*m_deltaT/W*nuxx;
         }
 
     if (m_flags & baro_xy)
         {
+        nuxy -= m_gamma*nuxy;
         nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xy - m_S[5]->getValue(timestep));
-        nuxy -= m_gamma*m_deltaT/W*nuxy;
         }
 
     if (m_flags & baro_xz)
         {
+        nuxz -= m_gamma*nuxz;
         nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xz- m_S[4]->getValue(timestep));
-        nuxz -= m_gamma*m_deltaT/W*nuxz;
         }
 
     if (m_flags & baro_y)
         {
+        nuyy -= m_gamma*nuyy;
         nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_S[1]->getValue(timestep)) + mtk_term;
-        nuyy -= m_gamma*m_deltaT/W*nuyy;
         }
 
     if (m_flags & baro_yz)
         {
+        nuyz -= m_gamma*nuyz;
         nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yz- m_S[3]->getValue(timestep));
-        nuyz -= m_gamma*m_deltaT/W*nuyz;
         }
 
     if (m_flags & baro_z)
         {
+        nuzz -= m_gamma*nuzz;
         nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
-        nuzz -= m_gamma*m_deltaT/W*nuzz;
         }
 
 
