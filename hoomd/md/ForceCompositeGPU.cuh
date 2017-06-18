@@ -30,7 +30,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop);
+                 const cudaDeviceProp& dev_prop,
+                 bool zero_force);
 
 cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,

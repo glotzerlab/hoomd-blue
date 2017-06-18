@@ -128,7 +128,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                     m_pdata->getN(),
                     n_bodies_per_block,
                     block_size,
-                    m_exec_conf->dev_prop);
+                    m_exec_conf->dev_prop,
+                    !compute_virial);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
