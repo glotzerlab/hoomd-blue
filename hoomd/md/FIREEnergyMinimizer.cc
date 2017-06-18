@@ -114,6 +114,7 @@ void FIREEnergyMinimizer::reset()
     m_was_reset = true;
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     unsigned int n = m_pdata->getN();
@@ -122,7 +123,7 @@ void FIREEnergyMinimizer::reset()
         h_vel.data[i].x = Scalar(0.0);
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
-
+        h_accel.data[i] = make_scalar3(0,0,0);
         h_angmom.data[i] = make_scalar4(0,0,0,0);
         }
 
