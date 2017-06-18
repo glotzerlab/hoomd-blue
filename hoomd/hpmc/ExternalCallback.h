@@ -29,7 +29,12 @@ class ExternalCallback : public ExternalFieldMono<Shape>
         ExternalCallback(std::shared_ptr<SystemDefinition> sysdef,
                          pybind11::object energy_function)
             : ExternalFieldMono<Shape>(sysdef), callback(energy_function)
-            { }
+            {
+            if (this->m_pdata->getDomainDecomposition())
+                {
+                throw std::runtime_error("ExternalCallback doesn't support MPI.");
+                }
+            }
 
         ~ExternalCallback() { }
 
@@ -55,6 +60,8 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             Scalar energy_new = getEnergy(snap);
 
             // update snapshot with old configuration
+
+            // FIXME: this will not work in MPI, we will have to broadcast to root and modify snapshot there
             snap->global_box = *box_old_arg;
             unsigned int N = this->m_pdata->getN();
             ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
