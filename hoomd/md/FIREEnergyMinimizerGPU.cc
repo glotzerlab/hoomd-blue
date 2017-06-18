@@ -169,8 +169,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
         ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
         Pt += h_sum.data[0];
-        vnorm += sqrt(h_sum.data[1]);
-        fnorm += sqrt(h_sum.data[2]);
+        vnorm += h_sum.data[1];
+        fnorm += h_sum.data[2];
 
         if ((*method)->getAnisotropic())
             {
@@ -203,11 +203,15 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                 }
             ArrayHandle<Scalar> h_sum(m_sum3, access_location::host, access_mode::read);
             Pr += h_sum.data[0];
-            wnorm += sqrt(h_sum.data[1]);
-            tnorm += sqrt(h_sum.data[2]);
+            wnorm += h_sum.data[1];
+            tnorm += h_sum.data[2];
             }
 
         }
+    vnorm = sqrt(vnorm);
+    fnorm = sqrt(fnorm);
+    wnorm = sqrt(wnorm);
+    tnorm = sqrt(tnorm);
 
     if (m_prof)
         m_prof->pop(m_exec_conf);
