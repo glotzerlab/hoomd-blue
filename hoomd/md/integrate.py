@@ -1222,7 +1222,8 @@ class mode_minimize_fire(_integrator):
 
     Note:
         The algorithm requires a base integrator to update the particle position and velocities.
-        Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box)
+        Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box).
+        The quantity minimized is in any case the energy (not the enthalpy or any other quantity).
 
     .. versionadded:: v2.1
 
