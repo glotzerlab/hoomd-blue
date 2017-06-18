@@ -181,6 +181,7 @@ class NeighborListGPUTree : public NeighborListGPU
         GPUArray<Scalar2> m_leaf_db;            //!< Diameter and body of each particle in a leaf
 
         GPUArray<Scalar3> m_image_list; //!< List of translation vectors
+        GPUArray<int3> m_image_idx;     //!< List of translation indices
         unsigned int m_n_images;        //!< Number of translation vectors
 
         //! Computes the image vectors to query for

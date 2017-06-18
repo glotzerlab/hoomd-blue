@@ -1010,7 +1010,9 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
                                                const Scalar4 *d_leaf_xyzf,
                                                const Scalar2 *d_leaf_db,
                                                const Scalar4 *d_pos,
+                                               const int3 *d_image,
                                                const Scalar3 *d_image_list,
+                                               const int3 *d_image_idx,
                                                const unsigned int nimages,
                                                const Scalar *d_r_cut,
                                                const Scalar r_buff,
@@ -1143,8 +1145,13 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
 
                             bool excluded = (my_pidx == j);
 
-                            if (filter_body && body_i != 0xffffffff)
-                                excluded = excluded | (body_i == body_j);
+                            if (! excluded && filter_body && body_i != 0xffffffff)
+                                {
+                                // two particles of the same body are excluded except when the same body
+                                // is interacting with itself via periodic boundary conditions (i.e. via a nontrivial translation)
+                                bool self = d_image[my_pidx] - d_image_idx[cur_image] != d_image[j];
+                                excluded = body_i == body_j && !self;
+                                }
 
                             if (!excluded)
                                 {
@@ -1218,6 +1225,7 @@ __global__ void gpu_nlist_traverse_tree_kernel(unsigned int *d_nlist,
  * \param d_leaf_db Leaf diameter-body array
  * \param d_pos Particle positions
  * \param d_image_list Translation vectors to check for traversal
+ * \param d_image_idx Image indices for traversal
  * \param nimages Number of translation vectors to check
  * \param d_r_cut Cutoff radius by type r_cut(i,j)
  * \param r_buff Buffer around cutoff radius
@@ -1254,7 +1262,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const Scalar4 *d_leaf_xyzf,
                                     const Scalar2 *d_leaf_db,
                                     const Scalar4 *d_pos,
+                                    const int3 *d_image,
                                     const Scalar3 *d_image_list,
+                                    const int3 *d_image_idx,
                                     const unsigned int nimages,
                                     const Scalar *d_r_cut,
                                     const Scalar r_buff,
@@ -1331,7 +1341,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_leaf_xyzf,
                                                                                     d_leaf_db,
                                                                                     d_pos,
+                                                                                    d_image,
                                                                                     d_image_list,
+                                                                                    d_image_idx,
                                                                                     nimages,
                                                                                     d_r_cut,
                                                                                     r_buff,
@@ -1366,7 +1378,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_leaf_xyzf,
                                                                                     d_leaf_db,
                                                                                     d_pos,
+                                                                                    d_image,
                                                                                     d_image_list,
+                                                                                    d_image_idx,
                                                                                     nimages,
                                                                                     d_r_cut,
                                                                                     r_buff,
@@ -1401,7 +1415,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_leaf_xyzf,
                                                                                     d_leaf_db,
                                                                                     d_pos,
+                                                                                    d_image,
                                                                                     d_image_list,
+                                                                                    d_image_idx,
                                                                                     nimages,
                                                                                     d_r_cut,
                                                                                     r_buff,
@@ -1436,7 +1452,9 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                                                                     d_leaf_xyzf,
                                                                                     d_leaf_db,
                                                                                     d_pos,
+                                                                                    d_image,
                                                                                     d_image_list,
+                                                                                    d_image_idx,
                                                                                     nimages,
                                                                                     d_r_cut,
                                                                                     r_buff,
