@@ -787,14 +787,6 @@ void ForceComposite::computeForces(unsigned int timestep)
                     Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
                     Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
 
-                    // zero net virial
-                    h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
-
                     // subtract intra-body virial prt
                     h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
                     h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
