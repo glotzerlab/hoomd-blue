@@ -1348,6 +1348,12 @@ class mode_minimize_fire(_integrator):
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
 
+    def reset(self):
+        R""" Reset the minimizer to its initial state.
+        """
+        self.check_initialization();
+        return self.cpp_integrator.reset()
+
 class berendsen(_integration_method):
     R""" Applies the Berendsen thermostat.
 
