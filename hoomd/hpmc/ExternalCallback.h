@@ -72,7 +72,8 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                 assert (snap_it != snap->map.end());
                 unsigned int snap_idx = snap_it->second;
                 snap->particle_data.pos[snap_idx] = vec3<Scalar>(position_old_arg[i]);
-                snap->particle_data.orientation[snap_idx] = quat<Scalar>(orientation_old_arg[i]);
+                if (orientation_old_arg != NULL)
+                    snap->particle_data.orientation[snap_idx] = quat<Scalar>(orientation_old_arg[i]);
                 }
 
             Scalar energy_old = getEnergy(snap);
