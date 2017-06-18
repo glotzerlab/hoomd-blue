@@ -710,15 +710,19 @@ void NeighborListGPUTree::updateImageVectors()
         {
         GPUArray<Scalar3> image_list(m_n_images, m_exec_conf);
         m_image_list.swap(image_list);
+        GPUArray<int3> image_idx(m_n_images, m_exec_conf);
+        m_image_idx.swap(image_idx);
         }
 
     ArrayHandle<Scalar3> h_image_list(m_image_list, access_location::host, access_mode::overwrite);
+    ArrayHandle<int3> h_image_idx(m_image_idx, access_location::host, access_mode::overwrite);
     Scalar3 latt_a = box.getLatticeVector(0);
     Scalar3 latt_b = box.getLatticeVector(1);
     Scalar3 latt_c = box.getLatticeVector(2);
 
     // there is always at least 1 image, which we put as our first thing to look at
     h_image_list.data[0] = make_scalar3(0.0, 0.0, 0.0);
+    h_image_idx.data[0] = make_int3(0,0,0);
 
     // iterate over all other combinations of images, skipping those that are
     unsigned int n_images = 1;
@@ -736,6 +740,7 @@ void NeighborListGPUTree::updateImageVectors()
                     if (!sys3d || (k != 0 && !periodic.z)) continue;
 
                     h_image_list.data[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
+                    h_image_idx.data[n_images] = make_int3(i,j,k);
                     ++n_images;
                     }
                 }
@@ -774,9 +779,11 @@ void NeighborListGPUTree::traverseTree()
 
     // particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image(m_pdata->getImages(), access_location::device, access_mode::read);
 
     // images
     ArrayHandle<Scalar3> d_image_list(m_image_list, access_location::device, access_mode::read);
+    ArrayHandle<int3> d_image_idx(m_image_idx, access_location::device, access_mode::read);
 
     // pairwise cutoffs
     ArrayHandle<Scalar> d_r_cut(m_r_cut, access_location::device, access_mode::read);
@@ -800,7 +807,9 @@ void NeighborListGPUTree::traverseTree()
                             d_leaf_xyzf.data,
                             d_leaf_db.data,
                             d_pos.data,
+                            d_image.data,
                             d_image_list.data,
+                            d_image_idx.data,
                             m_image_list.getPitch(),
                             d_r_cut.data,
                             m_r_buff,
