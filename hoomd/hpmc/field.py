@@ -914,3 +914,69 @@ class frenkel_ladd_energy(_compute):
             self.trans_spring_const = math.exp(ln_gamma);
         self.rotat_spring_const = self.q_factor*self.trans_spring_const;
         self.lattice.set_params(self.trans_spring_const, self.rotat_spring_const);
+
+class callback(_external):
+    R""" Use a python-defined energy function in MC integration
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        callback (:py:function:) A python funtion to evaluate the energy of a configuration
+        composite (:py:bool:): True if this evaluator is part of a composite external field
+
+    Example::
+        def energy(snapshot):
+            # evaluate the energy in a linear potential gradient along the x-axis
+            gradient = (5,0,0)
+            e += 0
+            for p in snap.particles.position:
+                e -= numpy.dot(gradient,p)
+            return e
+
+        mc = hpmc.integrate.sphere(seed=415236);
+        mc.shape_param.set('A',diameter=1.0)
+        hpmc.field.callback(mc=mc, energy_function=energy);
+        run(100)
+
+        # get current energy of a specific configuration
+            init_box = hoomd.data.boxdim(L=10, dimensions=3);
+            snap = hoomd.data.make_snapshot(N=1, box=init_box, particle_types=['A']);
+    """
+    def __init__(self, mc, energy_function, composite=False):
+        hoomd.util.print_status_line();
+        _external.__init__(self);
+        cls = None;
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if isinstance(mc, integrate.sphere):
+                cls = _hpmc.ExternalCallbackSphere;
+#            elif isinstance(mc, integrate.convex_polygon):
+#                cls = _hpmc.ExternalFieldLatticeConvexPolygon;
+#            elif isinstance(mc, integrate.simple_polygon):
+#                cls = _hpmc.ExternalFieldLatticeSimplePolygon;
+#            elif isinstance(mc, integrate.convex_polyhedron):
+#                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron;
+#            elif isinstance(mc, integrate.convex_spheropolyhedron):
+#                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron;
+#            elif isinstance(mc, integrate.ellipsoid):
+#                cls = _hpmc.ExternalFieldLatticeEllipsoid;
+#            elif isinstance(mc, integrate.convex_spheropolygon):
+#                cls =_hpmc.ExternalFieldLatticeSpheropolygon;
+#            elif isinstance(mc, integrate.faceted_sphere):
+#                cls =_hpmc.ExternalFieldLatticeFacetedSphere;
+#            elif isinstance(mc, integrate.polyhedron):
+#                cls =_hpmc.ExternalFieldLatticePolyhedron;
+#            elif isinstance(mc, integrate.sphinx):
+#                cls =_hpmc.ExternalFieldLatticeSphinx;
+#            elif isinstance(mc, integrate.sphere_union):
+#                cls = _hpmc.ExternalFieldLatticeSphereUnion;
+            else:
+                hoomd.context.msg.error("hpmc.field.callback: Unsupported integrator.\n");
+                raise RuntimeError("Error initializing python callback");
+        else:
+            hoomd.context.msg.error("GPU not supported")
+            raise RuntimeError("Error initializing hpmc.field.callback");
+
+        self.compute_name = "callback"
+        self.cpp_compute = cls(hoomd.context.current.system_definition, energy_function)
+        hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name)
+        if not composite:
+            mc.set_external(self);
