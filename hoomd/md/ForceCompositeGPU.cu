@@ -58,8 +58,7 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  unsigned int N,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
-                                                 unsigned int n_bodies_per_block,
-                                                 bool zero_force)
+                                                 unsigned int n_bodies_per_block)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
@@ -137,17 +136,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
 
                     //will likely need to rotate these components too
                     vec3<Scalar> ti(d_net_torque[pidx]);
-
-                    // zero net torque on constituent particles
-                    d_net_torque[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
-
-                    // zero force only if we don't need it later
-                    if (zero_force)
-                        {
-                        // zero net energy on constituent ptls to avoid double counting
-                        // also zero net force for consistency
-                        d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
-                        }
 
                     if (central_idx[m] < N)
                         {
@@ -335,16 +323,6 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
                     Scalar virialyz = d_net_virial[4*net_virial_pitch+pidx];
                     Scalar virialzz = d_net_virial[5*net_virial_pitch+pidx];
 
-                    // zero force and virial on constituent particles
-                    d_net_force[pidx] = make_scalar4(0.0,0.0,0.0,0.0);
-
-                    d_net_virial[0*net_virial_pitch+pidx] = Scalar(0.0);
-                    d_net_virial[1*net_virial_pitch+pidx] = Scalar(0.0);
-                    d_net_virial[2*net_virial_pitch+pidx] = Scalar(0.0);
-                    d_net_virial[3*net_virial_pitch+pidx] = Scalar(0.0);
-                    d_net_virial[4*net_virial_pitch+pidx] = Scalar(0.0);
-                    d_net_virial[5*net_virial_pitch+pidx] = Scalar(0.0);
-
                     // if this particle is not the central particle (incomplete molcules can't have local members)
                     if (central_idx[m] < N)
                         {
@@ -431,8 +409,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int N,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
-                 const cudaDeviceProp& dev_prop,
-                 bool zero_force)
+                 const cudaDeviceProp& dev_prop)
     {
     // reset force and torque
     cudaMemset(d_force, 0, sizeof(Scalar4)*N);
@@ -492,8 +469,7 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
         N,
         window_size,
         thread_mask,
-        n_bodies_per_block,
-        zero_force);
+        n_bodies_per_block);
 
     return cudaSuccess;
     }

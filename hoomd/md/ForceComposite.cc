@@ -742,11 +742,6 @@ void ForceComposite::computeForces(unsigned int timestep)
             Scalar4 net_torque = h_net_torque.data[idxj];
             vec3<Scalar> f(net_force);
 
-            // zero net energy on constituent ptls to avoid double counting
-            // also zero net force and torque for consistency
-            h_net_force.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
-            h_net_torque.data[idxj] = make_scalar4(0.0,0.0,0.0,0.0);
-
             // only add forces for local central particles
             if (central_idx < m_pdata->getN())
                 {
@@ -762,9 +757,6 @@ void ForceComposite::computeForces(unsigned int timestep)
                 h_force.data[central_idx].x += f.x;
                 h_force.data[central_idx].y += f.y;
                 h_force.data[central_idx].z += f.z;
-
-                // sum up energy
-                h_force.data[central_idx].w += net_force.w;
 
                 // fetch relative position from rigid body definition
                 vec3<Scalar> dr(h_body_pos.data[m_body_idx(type, jptl - 1)]);
