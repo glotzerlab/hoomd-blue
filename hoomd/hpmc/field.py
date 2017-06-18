@@ -948,26 +948,26 @@ class callback(_external):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if isinstance(mc, integrate.sphere):
                 cls = _hpmc.ExternalCallbackSphere;
-#            elif isinstance(mc, integrate.convex_polygon):
-#                cls = _hpmc.ExternalFieldLatticeConvexPolygon;
-#            elif isinstance(mc, integrate.simple_polygon):
-#                cls = _hpmc.ExternalFieldLatticeSimplePolygon;
-#            elif isinstance(mc, integrate.convex_polyhedron):
-#                cls = _hpmc.ExternalFieldLatticeConvexPolyhedron;
-#            elif isinstance(mc, integrate.convex_spheropolyhedron):
-#                cls = _hpmc.ExternalFieldLatticeSpheropolyhedron;
-#            elif isinstance(mc, integrate.ellipsoid):
-#                cls = _hpmc.ExternalFieldLatticeEllipsoid;
-#            elif isinstance(mc, integrate.convex_spheropolygon):
-#                cls =_hpmc.ExternalFieldLatticeSpheropolygon;
-#            elif isinstance(mc, integrate.faceted_sphere):
-#                cls =_hpmc.ExternalFieldLatticeFacetedSphere;
-#            elif isinstance(mc, integrate.polyhedron):
-#                cls =_hpmc.ExternalFieldLatticePolyhedron;
-#            elif isinstance(mc, integrate.sphinx):
-#                cls =_hpmc.ExternalFieldLatticeSphinx;
-#            elif isinstance(mc, integrate.sphere_union):
-#                cls = _hpmc.ExternalFieldLatticeSphereUnion;
+            elif isinstance(mc, integrate.convex_polygon):
+                cls = _hpmc.ExternalCallbackConvexPolygon;
+            elif isinstance(mc, integrate.simple_polygon):
+                cls = _hpmc.ExternalCallbackSimplePolygon;
+            elif isinstance(mc, integrate.convex_polyhedron):
+                cls = _hpmc.ExternalCallbackConvexPolyhedron;
+            elif isinstance(mc, integrate.convex_spheropolyhedron):
+                cls = _hpmc.ExternalCallbackSpheropolyhedron;
+            elif isinstance(mc, integrate.ellipsoid):
+                cls = _hpmc.ExternalCallbackEllipsoid;
+            elif isinstance(mc, integrate.convex_spheropolygon):
+                cls =_hpmc.ExternalCallbackSpheropolygon;
+            elif isinstance(mc, integrate.faceted_sphere):
+                cls =_hpmc.ExternalCallbackFacetedSphere;
+            elif isinstance(mc, integrate.polyhedron):
+                cls =_hpmc.ExternalCallbackPolyhedron;
+            elif isinstance(mc, integrate.sphinx):
+                cls =_hpmc.ExternalCallbackSphinx;
+            elif isinstance(mc, integrate.sphere_union):
+                cls = _hpmc.ExternalCallbackSphereUnion;
             else:
                 hoomd.context.msg.error("hpmc.field.callback: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing python callback");
