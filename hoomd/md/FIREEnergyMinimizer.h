@@ -84,7 +84,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
-            PDataFlags flags;
+            PDataFlags flags = IntegratorTwoStep::getRequestedPDataFlags();
             flags[pdata_flag::potential_energy] = 1;
             return flags;
             }
