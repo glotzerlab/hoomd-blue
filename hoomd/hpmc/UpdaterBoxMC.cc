@@ -322,7 +322,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     newBox.setTiltFactors(xy, xz, yz);
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
-    if (m_mc->getExternalField())
+    if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
         Scalar ext_boltzmann = m_mc->getExternalField()->calculateBoltzmannFactor(h_pos_backup.data, NULL, &curBox);
