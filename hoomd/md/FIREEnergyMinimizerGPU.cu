@@ -56,6 +56,25 @@ void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
         }
     }
 
+//! The kernel function to zeros velocities, called by gpu_fire_zero_v()
+/*! \param d_vel device array of particle velocities
+    \param d_group_members Device array listing the indicies of the mebers of the group to zero
+    \param group_size Number of members in the group
+*/
+__global__ void gpu_fire_zero_accel_kernel(Scalar3 *d_accel,
+                            unsigned int *d_group_members,
+                            unsigned int group_size)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+        d_accel[idx] = make_scalar3(0,0,0);
+        }
+    }
+
 
 /*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
@@ -80,6 +99,31 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
 
     return cudaSuccess;
     }
+
+/*! \param d_accel device array of particle velocities
+    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param group_size Number of members in the group
+
+This function is just the driver for gpu_fire_zero_v_kernel(), see that function
+for details.
+*/
+cudaError_t gpu_fire_zero_accel(Scalar3 *d_accel,
+                            unsigned int *d_group_members,
+                            unsigned int group_size)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_fire_zero_accel_kernel<<< grid, threads >>>(d_accel,
+                                                d_group_members,
+                                                group_size);
+
+    return cudaSuccess;
+    }
+
 
 //! Kernel function for reducing the potential energy to a partial sum
 /*! \param d_group_members Device array listing the indicies of the mebers of the group to sum
