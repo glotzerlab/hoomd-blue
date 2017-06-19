@@ -42,6 +42,9 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         //! Return whether or not the minimization has converged
         bool hasConverged() const {return m_converged;}
 
+        //! Return the potential energy after the last iteration
+        Scalar getEnergy() const { return m_old_energy; }
+
         //! Set the minimum number of steps for which the search direction must be bad before finding a new direction
         /*! \param nmin is the new nmin to set
         */

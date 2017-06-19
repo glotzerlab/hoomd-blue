@@ -2,7 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: askeys
+// Maintainer: jglaser
 
 
 
@@ -30,6 +30,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysde
         m_ftol(Scalar(1e-1)),
         m_wtol(Scalar(1e-1)),
         m_etol(Scalar(1e-3)),
+        m_old_energy(Scalar(0.0)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
         m_run_minsteps(10)
@@ -243,6 +244,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
+        m_old_energy = energy;
         return;
         }
 
@@ -356,6 +358,7 @@ void export_FIREEnergyMinimizer(py::module& m)
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
+        .def("getEnergy", &FIREEnergyMinimizer::getEnergy)
         .def("setNmin", &FIREEnergyMinimizer::setNmin)
         .def("setFinc", &FIREEnergyMinimizer::setFinc)
         .def("setFdec", &FIREEnergyMinimizer::setFdec)
