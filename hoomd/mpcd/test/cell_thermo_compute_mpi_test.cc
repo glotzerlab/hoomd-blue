@@ -64,8 +64,8 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         {
         // check per-cell stats
         const Index3D& ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_cell_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_cell_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
         switch(exec_conf->getRank())
             {
             case 0:
@@ -175,8 +175,8 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         const Index3D& ci = cl->getCellIndexer();
         const unsigned int local_idx = ci(local_cell.x, local_cell.y, local_cell.z);
 
-        ArrayHandle<Scalar4> h_cell_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_cell_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
         CHECK_CLOSE(h_cell_vel.data[local_idx].x, 1.0/9.0, tol);
         CHECK_CLOSE(h_cell_vel.data[local_idx].y, 1.0/9.0, tol);
         CHECK_CLOSE(h_cell_vel.data[local_idx].z, 1.0/9.0, tol);

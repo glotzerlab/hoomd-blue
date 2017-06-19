@@ -50,7 +50,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
     unsigned int N_tot = N_mpcd;
 
     // acquire cell velocities and rotation vectors
-    ArrayHandle<Scalar4> d_cell_vel(m_thermo->getCellVelocities(), access_location::device, access_mode::read);
+    ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(), access_location::device, access_mode::read);
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::read);
 
     if (m_embed_group)

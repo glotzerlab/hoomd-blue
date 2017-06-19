@@ -48,13 +48,13 @@ class CellThermoCompute : public Compute
             }
 
         //! Get the cell velocities from the last call to compute
-        const GPUArray<Scalar4>& getCellVelocities() const
+        const GPUArray<double4>& getCellVelocities() const
             {
             return m_cell_vel;
             }
 
         //! Get the cell energies from the last call to compute
-        const GPUArray<Scalar3>& getCellEnergies() const
+        const GPUArray<double3>& getCellEnergies() const
             {
             return m_cell_energy;
             }
@@ -154,8 +154,8 @@ class CellThermoCompute : public Compute
         bool m_needs_net_reduce;            //!< Flag if a net reduction is necessary
         GPUArray<double> m_net_properties;  //!< Scalar properties of the system
 
-        GPUVector<Scalar4> m_cell_vel;      //!< Average velocity of a cell + cell mass
-        GPUVector<Scalar3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
+        GPUVector<double4> m_cell_vel;      //!< Average velocity of a cell + cell mass
+        GPUVector<double3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
         unsigned int m_ncells_alloc;        //!< Number of cells allocated for
 
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names

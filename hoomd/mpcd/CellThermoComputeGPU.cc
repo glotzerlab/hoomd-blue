@@ -44,8 +44,8 @@ mpcd::CellThermoComputeGPU::~CellThermoComputeGPU()
 #ifdef ENABLE_MPI
 void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
     {
-    ArrayHandle<Scalar4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar3> d_cell_energy(m_cell_energy, access_location::device, access_mode::overwrite);
+    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
+    ArrayHandle<double3> d_cell_energy(m_cell_energy, access_location::device, access_mode::overwrite);
 
     ArrayHandle<unsigned int> d_cells(m_vel_comm->getCells(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_np(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
@@ -111,8 +111,8 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
 
 void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
     {
-    ArrayHandle<Scalar4> d_cell_vel(m_cell_vel, access_location::device, access_mode::readwrite);
-    ArrayHandle<Scalar3> d_cell_energy(m_cell_energy, access_location::device, access_mode::readwrite);
+    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::readwrite);
+    ArrayHandle<double3> d_cell_energy(m_cell_energy, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_cells(m_vel_comm->getCells(), access_location::device, access_mode::read);
     m_end_tuner->begin();
     gpu::end_cell_thermo(d_cell_vel.data,
@@ -128,8 +128,8 @@ void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
 
 void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
     {
-    ArrayHandle<Scalar4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar3> d_cell_energy(m_cell_energy, access_location::device, access_mode::overwrite);
+    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
+    ArrayHandle<double3> d_cell_energy(m_cell_energy, access_location::device, access_mode::overwrite);
 
     ArrayHandle<unsigned int> d_cell_np(m_cl->getCellSizeArray(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_cell_list(m_cl->getCellList(), access_location::device, access_mode::read);
@@ -245,8 +245,8 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         m_tmp_thermo.resize(tmp_ci.getNumElements());
 
         ArrayHandle<mpcd::detail::cell_thermo_element> d_tmp_thermo(m_tmp_thermo, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_cell_vel(m_cell_vel, access_location::device, access_mode::read);
-        ArrayHandle<Scalar3> d_cell_energy(m_cell_energy, access_location::device, access_mode::read);
+        ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::read);
+        ArrayHandle<double3> d_cell_energy(m_cell_energy, access_location::device, access_mode::read);
 
         m_stage_tuner->begin();
         mpcd::gpu::stage_net_cell_thermo(d_tmp_thermo.data,

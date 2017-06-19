@@ -223,7 +223,7 @@ struct CellPropertySum
             momentum.w += mass_i;
 
             // also compute ke of the particle
-            ke += (double)(0.5) * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
+            ke += 0.5 * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
             }
     }
 
@@ -263,8 +263,8 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         }
 
     // Cell properties
-    ArrayHandle<Scalar4> h_cell_vel(m_cell_vel, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar3> h_cell_energy(m_cell_energy, access_location::host, access_mode::overwrite);
+    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::overwrite);
+    ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::overwrite);
     ArrayHandle<unsigned int> h_cells(m_vel_comm->getCells(), access_location::host, access_mode::read);
     mpcd::detail::CellPropertySum summer(h_cell_list.data,
                                          h_cell_np.data,
@@ -284,15 +284,15 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         double4 momentum; double ke; unsigned int np;
         summer.compute(momentum, ke, np, cur_cell);
 
-        h_cell_vel.data[cur_cell] = make_scalar4(momentum.x, momentum.y, momentum.z, momentum.w);
-        h_cell_energy.data[cur_cell] = make_scalar3(ke, 0.0, __int_as_scalar(np));
+        h_cell_vel.data[cur_cell] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
+        h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_scalar(np));
         }
     }
 
 void mpcd::CellThermoCompute::finishOuterCellProperties()
     {
-    ArrayHandle<Scalar4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
+    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_cells(m_vel_comm->getCells(), access_location::host, access_mode::read);
 
     // Loop over all outer cells and normalize the summed quantities
@@ -301,28 +301,28 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
         const unsigned int cur_cell = h_cells.data[idx];
 
         // average cell properties if the cell has mass
-        const Scalar4 cell_vel = h_cell_vel.data[cur_cell];
-        Scalar3 vel_cm = make_scalar3(cell_vel.x, cell_vel.y, cell_vel.z);
-        const Scalar mass = cell_vel.w;
+        const double4 cell_vel = h_cell_vel.data[cur_cell];
+        double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
+        const double mass = cell_vel.w;
 
-        const Scalar3 cell_energy = h_cell_energy.data[cur_cell];
-        const Scalar ke = cell_energy.x;
-        Scalar temp(0.0);
+        const double3 cell_energy = h_cell_energy.data[cur_cell];
+        const double ke = cell_energy.x;
+        double temp(0.0);
         const unsigned int np = __scalar_as_int(cell_energy.z);
         if (mass > 0.)
             {
             // average velocity is only defined when there is some mass in the cell
-            vel_cm /= mass;
+            vel_cm.x /= mass; vel_cm.y /= mass; vel_cm.z /= mass;
 
             // temperature is only defined for 2 or more particles
             if (np > 1)
                 {
-                const Scalar ke_cm = Scalar(0.5) * mass * dot(vel_cm, vel_cm);
-                temp = Scalar(2.) * (ke - ke_cm) / Scalar(m_sysdef->getNDimensions() * (np-1));
+                const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
+                temp = 2. * (ke - ke_cm) / (m_sysdef->getNDimensions() * (np-1));
                 }
             }
-        h_cell_vel.data[cur_cell] = make_scalar4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-        h_cell_energy.data[cur_cell] = make_scalar3(ke, temp, __int_as_scalar(np));
+        h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+        h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_scalar(np));
         }
     }
 #endif // ENABLE_MPI
@@ -349,8 +349,8 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
         }
 
     // Cell properties
-    ArrayHandle<Scalar4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
+    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::readwrite);
     mpcd::detail::CellPropertySum summer(h_cell_list.data,
                                          h_cell_np.data,
                                          cli,
@@ -395,20 +395,22 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                 summer.compute(momentum, ke, np, cur_cell);
 
                 const double mass = momentum.w;
-                Scalar temp(0.0);
-                Scalar3 vel_cm = make_scalar3(0.0,0.0,0.0);
+                double temp(0.0);
+                double3 vel_cm = make_double3(0.0,0.0,0.0);
                 if (mass > 0.)
                     {
-                    vel_cm = make_scalar3(momentum.x, momentum.y, momentum.z) / mass;
+                    vel_cm.x = momentum.x / mass;
+                    vel_cm.y = momentum.y / mass;
+                    vel_cm.z = momentum.z / mass;
                     if (np > 1)
                         {
-                        const Scalar ke_cm = Scalar(0.5) * mass * dot(vel_cm, vel_cm);
-                        temp = Scalar(2.) * (ke - ke_cm) / Scalar(m_sysdef->getNDimensions() * (np-1));
+                        const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
+                        temp = 2. * (ke - ke_cm) / (m_sysdef->getNDimensions() * (np-1));
                         }
                     }
 
-                h_cell_vel.data[cur_cell] = make_scalar4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-                h_cell_energy.data[cur_cell] = make_scalar3(ke, temp, __int_as_scalar(np));
+                h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+                h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_scalar(np));
                 } // i
             } //j
         } // k
@@ -433,8 +435,8 @@ void mpcd::CellThermoCompute::computeNetProperties()
             }
         #endif // ENABLE_MPI
 
-        ArrayHandle<Scalar4> h_cell_vel(m_cell_vel, access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
+        ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
 
         double3 net_momentum = make_double3(0,0,0);
         double energy(0.0), temp(0.0);
@@ -446,7 +448,7 @@ void mpcd::CellThermoCompute::computeNetProperties()
                     {
                     const unsigned int idx = ci(i,j,k);
 
-                    const Scalar4 cell_vel_mass = h_cell_vel.data[idx];
+                    const double4 cell_vel_mass = h_cell_vel.data[idx];
                     const double3 cell_vel = make_double3(cell_vel_mass.x, cell_vel_mass.y, cell_vel_mass.z);
                     const double cell_mass = cell_vel_mass.w;
 
@@ -454,7 +456,7 @@ void mpcd::CellThermoCompute::computeNetProperties()
                     net_momentum.y += cell_mass * cell_vel.y;
                     net_momentum.z += cell_mass * cell_vel.z;
 
-                    const Scalar3 cell_energy = h_cell_energy.data[idx];
+                    const double3 cell_energy = h_cell_energy.data[idx];
                     energy += cell_energy.x;
 
                     if (__scalar_as_int(cell_energy.z) > 1)

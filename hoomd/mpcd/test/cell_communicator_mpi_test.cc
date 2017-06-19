@@ -58,11 +58,11 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
     // Fill in a dummy cell property array, which is just the global index of each cell
     // we use the 1-indexed cell (rather than standard 0) so that we can confirm sums are all done correctly
     const Index3D& ci = cl->getCellIndexer();
-    GPUArray<Scalar3> props(ci.getNumElements(), exec_conf);
-    GPUArray<Scalar3> ref_props(ci.getNumElements(), exec_conf);
+    GPUArray<double3> props(ci.getNumElements(), exec_conf);
+    GPUArray<double3> ref_props(ci.getNumElements(), exec_conf);
         {
-        ArrayHandle<Scalar3> h_props(props, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar3> h_ref_props(ref_props, access_location::host, access_mode::overwrite);
+        ArrayHandle<double3> h_props(props, access_location::host, access_mode::overwrite);
+        ArrayHandle<double3> h_ref_props(ref_props, access_location::host, access_mode::overwrite);
         for (unsigned int k=0; k < ci.getD(); ++k)
             {
             for (unsigned int j=0; j < ci.getH(); ++j)
@@ -72,8 +72,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
                     int3 global_cell = cl->getGlobalCell(make_int3(i,j,k));
                     global_cell.x += 1; global_cell.y += 1; global_cell.z += 1;
 
-                    h_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
-                    h_ref_props.data[ci(i,j,k)] = make_scalar3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
+                    h_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
+                    h_ref_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
                     }
                 }
             }
@@ -84,8 +84,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
     comm.communicate(props, mpcd::detail::CellEnergyPackOp());
     auto num_comm_cells = cl->getNComm();
         {
-        ArrayHandle<Scalar3> h_props(props, access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_ref_props(ref_props, access_location::host, access_mode::read);
+        ArrayHandle<double3> h_props(props, access_location::host, access_mode::read);
+        ArrayHandle<double3> h_ref_props(ref_props, access_location::host, access_mode::read);
         for (unsigned int k=0; k < ci.getD(); ++k)
             {
             for (unsigned int j=0; j < ci.getH(); ++j)
@@ -139,10 +139,10 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
 
     // Don't really care what's in this array, just want to make sure errors get thrown appropriately
     const Index3D& ci = cl->getCellIndexer();
-    GPUArray<Scalar4> props(ci.getNumElements(), exec_conf);
+    GPUArray<double4> props(ci.getNumElements(), exec_conf);
         {
-        ArrayHandle<Scalar4> h_props(props, access_location::host, access_mode::overwrite);
-        memset(h_props.data, 0, ci.getNumElements() * sizeof(Scalar4));
+        ArrayHandle<double4> h_props(props, access_location::host, access_mode::overwrite);
+        memset(h_props.data, 0, ci.getNumElements() * sizeof(double4));
         }
 
     mpcd::CellCommunicator comm(sysdef, cl);

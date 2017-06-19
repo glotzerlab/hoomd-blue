@@ -43,16 +43,16 @@ struct thermo_index
 
 struct CellVelocityPackOp
     {
-    typedef Scalar4 element;
+    typedef double4 element;
 
-    DEVICE element pack(const Scalar4& val) const
+    DEVICE element pack(const double4& val) const
         {
         return val;
         }
 
-    DEVICE Scalar4 unpack(const element& e, const Scalar4& val) const
+    DEVICE double4 unpack(const element& e, const double4& val) const
         {
-        return make_scalar4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
+        return make_double4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
         }
     };
 
@@ -60,11 +60,11 @@ struct CellEnergyPackOp
     {
     typedef struct
         {
-        Scalar energy;
+        double energy;
         unsigned int np;
         } element;
 
-    DEVICE element pack(const Scalar3& val) const
+    DEVICE element pack(const double3& val) const
         {
         element e;
         e.energy = val.x;
@@ -72,9 +72,9 @@ struct CellEnergyPackOp
         return e;
         }
 
-    DEVICE Scalar3 unpack(const element& e, const Scalar3& val) const
+    DEVICE double3 unpack(const element& e, const double3& val) const
         {
-        return make_scalar3(e.energy + val.x,
+        return make_double3(e.energy + val.x,
                             val.y,
                             __int_as_scalar(__scalar_as_int(val.z) + e.np));
         }

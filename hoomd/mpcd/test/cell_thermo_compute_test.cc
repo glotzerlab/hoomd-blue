@@ -49,8 +49,8 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     thermo->compute(0);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
 
         // Two particle cell (0,0,0)
         // Average velocity, mass
@@ -98,8 +98,8 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     thermo->compute(1);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
 
         // Two particle cell (0,0,0)
         // Average velocity, mass
@@ -151,8 +151,8 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     thermo->compute(2);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
 
         // Three particle cell (0,0,0)
         // Average velocity, mass
@@ -252,8 +252,8 @@ void cell_thermo_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     thermo->compute(0);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<Scalar4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
+        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(), access_location::host, access_mode::read);
+        ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(), access_location::host, access_mode::read);
 
         // Cell (0,0,0)
         // Average velocity, mass
