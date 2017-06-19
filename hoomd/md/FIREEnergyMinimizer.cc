@@ -114,7 +114,6 @@ void FIREEnergyMinimizer::reset()
     m_was_reset = true;
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     unsigned int n = m_pdata->getN();
@@ -123,7 +122,6 @@ void FIREEnergyMinimizer::reset()
         h_vel.data[i].x = Scalar(0.0);
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
-        h_accel.data[i] = make_scalar3(0,0,0);
         h_angmom.data[i] = make_scalar4(0,0,0,0);
         }
 
@@ -201,6 +199,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
             for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
                 {
@@ -209,10 +208,22 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
                 vec3<Scalar> t(h_net_torque.data[j]);
                 quat<Scalar> p(h_angmom.data[j]);
                 quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+
+                // rotate torque into principal frame
+                t = rotate(conj(q),t);
+
+                // check for zero moment of inertia
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+                // ignore torque component along an axis for which the moment of inertia zero
+                if (x_zero) t.x = 0;
+                if (y_zero) t.y = 0;
+                if (z_zero) t.z = 0;
 
                 // s is the pure imaginary quaternion with im. part equal to true angular velocity
-                vec3<Scalar> s;
-                s = (Scalar(1./2.) * conj(q) * p).v;
+                vec3<Scalar> s = (Scalar(1./2.) * conj(q) * p).v;
 
                 // rotational power = torque * angvel
                 Pr += dot(t,s);
@@ -261,6 +272,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
 
             for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
                 {
@@ -268,6 +280,19 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
                 vec3<Scalar> t(h_net_torque.data[j]);
                 quat<Scalar> p(h_angmom.data[j]);
                 quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+
+                // rotate torque into principal frame
+                t = rotate(conj(q),t);
+
+                // check for zero moment of inertia
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+                // ignore torque component along an axis for which the moment of inertia zero
+                if (x_zero) t.x = 0;
+                if (y_zero) t.y = 0;
+                if (z_zero) t.z = 0;
 
                 // update angular momentum
                 p = p*Scalar(1.0-m_alpha) + Scalar(2.0)*q*t*factor_r;
@@ -291,7 +316,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         }
     else if (P <= Scalar(0.0))
         {
-        IntegratorTwoStep::setDeltaT(std::max(m_deltaT*m_fdec,m_deltaT_set));
+        IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
 
@@ -305,7 +330,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
                 h_vel.data[j].x = Scalar(0.0);
                 h_vel.data[j].y = Scalar(0.0);
                 h_vel.data[j].z = Scalar(0.0);
-                h_accel.data[j] = make_scalar3(0,0,0);
                 }
 
             if ((*method)->getAnisotropic())

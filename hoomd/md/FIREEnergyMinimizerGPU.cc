@@ -182,11 +182,13 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                 ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+                ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
                 unsigned int num_blocks = group_size/m_block_size + 1;
 
                 gpu_fire_compute_sum_all_angular(m_pdata->getN(),
                                          d_orientation.data,
+                                         d_inertia.data,
                                          d_angmom.data,
                                          d_net_torque.data,
                                          d_index_array.data,
@@ -262,9 +264,11 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
             gpu_fire_update_angmom(d_net_torque.data,
                           d_orientation.data,
+                          d_inertia.data,
                           d_angmom.data,
                           d_index_array.data,
                           group_size,
@@ -292,7 +296,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         }
     else if (P <= Scalar(0.0))
         {
-        IntegratorTwoStep::setDeltaT(std::max(m_deltaT*m_fdec,m_deltaT_set));
+        IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
         if (m_prof)
@@ -305,15 +309,11 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
 
             gpu_fire_zero_v(d_vel.data,
                             d_index_array.data,
                             group_size);
-            gpu_fire_zero_accel(d_accel.data,
-                            d_index_array.data,
-                            group_size);
-
             if(m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 

@@ -19,10 +19,6 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size);
 
-cudaError_t gpu_fire_zero_accel(Scalar3 *d_accel,
-                            unsigned int *d_group_members,
-                            unsigned int group_size);
-
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
@@ -47,6 +43,7 @@ cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
 
 cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                     const Scalar4 *d_orientation,
+                                    const Scalar3 *d_inertia,
                                     const Scalar4 *d_angmom,
                                     const Scalar4 *d_net_torque,
                                     unsigned int *d_group_members,
@@ -69,6 +66,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
 
 cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
                               const Scalar4 *d_orientation,
+                              const Scalar3 *d_inertia,
                               Scalar4 *d_angmom,
                               unsigned int *d_group_members,
                               unsigned int group_size,
