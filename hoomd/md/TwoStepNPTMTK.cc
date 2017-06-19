@@ -84,20 +84,15 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
 
     // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "npt_mtk", 10))
+    if (!restartInfoTestValid(getIntegratorVariables(), "npt_mtk", 10))
         {
-        v.type = "npt_mtk";
-        v.variable.resize(10,Scalar(0.0));
+        initializeIntegratorVariables();
         setValidRestart(false);
         }
     else
         {
         setValidRestart(true);
         }
-
-    setIntegratorVariables(v);
 
     m_log_names.resize(2);
     m_log_names[0] = "npt_thermostat_energy";

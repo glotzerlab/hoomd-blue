@@ -20,7 +20,7 @@ namespace py = pybind11;
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
+    : Integrator(sysdef, deltaT), m_prepared(false), m_particles_reinitialized(true), m_gave_warning(false),
     m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
@@ -255,6 +255,18 @@ bool IntegratorTwoStep::isValidRestart()
     return res;
     }
 
+/*! \returns true If all added integration methods have valid restart information
+*/
+void IntegratorTwoStep::initializeIntegrationMethods()
+    {
+    // loop through all methods
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // initialize each of them
+        (*method)->initializeIntegratorVariables();
+        }
+    }
+
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
     Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
@@ -376,7 +388,12 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     // but the accelerations only need to be calculated if the restart is not valid
     // or particle positions have changed since last run()
     if (!isValidRestart() || m_particles_reinitialized)
+        {
         computeAccelerations(timestep);
+
+        // (re-)initialize integration methods
+        initializeIntegrationMethods();
+        }
 
     m_particles_reinitialized = false;
     }

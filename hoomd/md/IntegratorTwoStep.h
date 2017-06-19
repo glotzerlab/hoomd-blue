@@ -116,6 +116,9 @@ class IntegratorTwoStep : public Integrator
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
 
+        //! Help function to initialize the integration method
+        void initializeIntegrationMethods();
+
         //! Helper function to be called when particle number changes
         void slotGlobalParticleNumberChange()
             {
