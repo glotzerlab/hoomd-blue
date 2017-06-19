@@ -24,6 +24,9 @@ IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, S
     m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
+
+    // connect to particle number change signal
+    m_pdata->getGlobalParticleNumberChangeSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
@@ -36,6 +39,8 @@ IntegratorTwoStep::~IntegratorTwoStep()
         m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
     #endif
+
+    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 /*! \param prof The profiler to set
@@ -369,8 +374,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeNetForce(timestep+1);
 
     // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart())
+    // or particle positions have changed since last run()
+    if (!isValidRestart() || m_particles_reinitialized)
         computeAccelerations(timestep);
+
+    m_particles_reinitialized = false;
     }
 
 /*! Return the combined flags of all integration methods.
