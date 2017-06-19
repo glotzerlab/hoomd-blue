@@ -182,11 +182,13 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                 ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::read);
                 ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
+                ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
                 unsigned int num_blocks = group_size/m_block_size + 1;
 
                 gpu_fire_compute_sum_all_angular(m_pdata->getN(),
                                          d_orientation.data,
+                                         d_inertia.data,
                                          d_angmom.data,
                                          d_net_torque.data,
                                          d_index_array.data,
@@ -262,9 +264,11 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_net_torque(m_pdata->getNetTorqueArray(), access_location::device, access_mode::read);
             ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
+            ArrayHandle<Scalar3> d_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::device, access_mode::read);
 
             gpu_fire_update_angmom(d_net_torque.data,
                           d_orientation.data,
+                          d_inertia.data,
                           d_angmom.data,
                           d_index_array.data,
                           group_size,

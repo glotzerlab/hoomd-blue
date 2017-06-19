@@ -260,6 +260,7 @@ extern "C" __global__
 // Angular terms
 __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
                                           const Scalar4 *d_orientation,
+                                          const Scalar3 *d_inertia,
                                           const Scalar4 *d_net_torque,
                                           unsigned int *d_group_members,
                                           unsigned int group_size,
@@ -277,8 +278,24 @@ __global__ void gpu_fire_reduce_Pr_partial_kernel(const Scalar4 *d_angmom,
         vec3<Scalar> t(d_net_torque[idx]);
         quat<Scalar> p(d_angmom[idx]);
         quat<Scalar> q(d_orientation[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = 0;
+        if (y_zero) t.y = 0;
+        if (z_zero) t.z = 0;
+
+        // s is the pure imaginary quaternion with im. part equal to true angular velocity
         vec3<Scalar> s = (Scalar(1./2.) * conj(q) * p).v;
 
+        // rotational power = torque * angvel
         Pr = dot(t,s);
         }
 
@@ -432,6 +449,8 @@ extern "C" __global__
     }
 
 __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
+                                            const Scalar4 *d_orientation,
+                                            const Scalar3 *d_inertia,
                                             unsigned int *d_group_members,
                                             unsigned int group_size,
                                             Scalar* d_partial_sum_tsq)
@@ -446,6 +465,21 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4 *d_net_torque,
         unsigned int idx = d_group_members[group_idx];
 
         vec3<Scalar> t(d_net_torque[idx]);
+        quat<Scalar> q(d_orientation[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = 0;
+        if (y_zero) t.y = 0;
+        if (z_zero) t.z = 0;
+
         tsq = dot(t,t);
         }
 
@@ -540,6 +574,7 @@ cudaError_t gpu_fire_compute_sum_all(
 
 cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                     const Scalar4 *d_orientation,
+                                    const Scalar3 *d_inertia,
                                     const Scalar4 *d_angmom,
                                     const Scalar4 *d_net_torque,
                                     unsigned int *d_group_members,
@@ -560,6 +595,7 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
     // run the kernels
     gpu_fire_reduce_Pr_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(  d_angmom,
                                                                                         d_orientation,
+                                                                                        d_inertia,
                                                                                         d_net_torque,
                                                                                       d_group_members,
                                                                                       group_size,
@@ -570,7 +606,7 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                                                                       num_blocks);
 
     gpu_fire_reduce_wnorm_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_angmom,
-                                                                                        d_orientation,
+                                                                                       d_orientation,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_wnorm);
@@ -580,6 +616,8 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
                                                                                       num_blocks);
 
     gpu_fire_reduce_tsq_partial_kernel<<< grid, threads, block_size*sizeof(Scalar) >>>(d_net_torque,
+                                                                                      d_orientation,
+                                                                                      d_inertia,
                                                                                       d_group_members,
                                                                                       group_size,
                                                                                       d_partial_sum_tsq);
@@ -668,6 +706,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
 
  __global__ void gpu_fire_update_angmom_kernel(const Scalar4 *d_net_torque,
                                   const Scalar4 *d_orientation,
+                                  const Scalar3 *d_inertia,
                                   Scalar4 *d_angmom,
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
@@ -683,6 +722,19 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
         quat<Scalar> q(d_orientation[idx]);
         vec3<Scalar> t(d_net_torque[idx]);
         quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+
+        // rotate torque into principal frame
+        t = rotate(conj(q),t);
+
+        // check for zero moment of inertia
+        bool x_zero, y_zero, z_zero;
+        x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+        // ignore torque component along an axis for which the moment of inertia zero
+        if (x_zero) t.x = 0;
+        if (y_zero) t.y = 0;
+        if (z_zero) t.z = 0;
 
         p = p*Scalar(1.0-alpha) + Scalar(2.0)*q*t*factor_r;
 
@@ -692,6 +744,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
 
 cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
                               const Scalar4 *d_orientation,
+                              const Scalar3 *d_inertia,
                               Scalar4 *d_angmom,
                               unsigned int *d_group_members,
                               unsigned int group_size,
@@ -706,6 +759,7 @@ cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
     // run the kernel
     gpu_fire_update_angmom_kernel<<< grid, threads >>>(d_net_torque,
                                                   d_orientation,
+                                                  d_inertia,
                                                   d_angmom,
                                                   d_group_members,
                                                   group_size,
