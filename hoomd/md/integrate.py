@@ -1316,6 +1316,13 @@ class mode_minimize_fire(_integrator):
         True: _md.IntegratorAnisotropicMode.Anisotropic,
         False: _md.IntegratorAnisotropicMode.Isotropic}
 
+    def get_energy(self):
+        R""" Returns the energy after the last iteration of the minimizer
+        """
+        hoomd.util.print_status_line()
+        self.check_initialization();
+        return self.cpp_integrator.getEnergy()
+
     def set_params(self, aniso=None):
         R""" Changes parameters of an existing integration mode.
 
