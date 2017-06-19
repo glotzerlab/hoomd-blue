@@ -291,7 +291,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         }
     else if (P <= Scalar(0.0))
         {
-        IntegratorTwoStep::setDeltaT(std::max(m_deltaT*m_fdec,m_deltaT_set));
+        IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
 
@@ -305,7 +305,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
                 h_vel.data[j].x = Scalar(0.0);
                 h_vel.data[j].y = Scalar(0.0);
                 h_vel.data[j].z = Scalar(0.0);
-                h_accel.data[j] = make_scalar3(0,0,0);
                 }
 
             if ((*method)->getAnisotropic())
