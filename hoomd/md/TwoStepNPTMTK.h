@@ -171,6 +171,15 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
         //! Returns logged values
         Scalar getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag);
 
+        //! Initialize integrator variables
+        virtual void initializeIntegratorVariables()
+            {
+            IntegratorVariables v = getIntegratorVariables();
+            v.type = "npt_mtk";
+            v.variable.resize(10,Scalar(0.0));
+            setIntegratorVariables(v);
+            }
+
     protected:
         std::shared_ptr<ComputeThermo> m_thermo_group;   //!< ComputeThermo operating on the integrated group at t+dt/2
         std::shared_ptr<ComputeThermo> m_thermo_group_t; //!< ComputeThermo operating on the integrated group at t
