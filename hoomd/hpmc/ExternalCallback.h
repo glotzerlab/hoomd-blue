@@ -142,9 +142,13 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             if (callback != pybind11::none())
                 {
                 pybind11::object rv = callback(snap);
-                if (rv != pybind11::none())
+                try
                     {
                     e = pybind11::cast<Scalar>(rv);
+                    }
+                catch (const std::exception& e)
+                    {
+                    throw std::runtime_error("Expected a scalar (energy/kT) as return value.");
                     }
                 }
             return e;
