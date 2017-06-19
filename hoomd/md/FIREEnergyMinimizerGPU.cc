@@ -292,7 +292,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         }
     else if (P <= Scalar(0.0))
         {
-        IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
+        IntegratorTwoStep::setDeltaT(std::max(m_deltaT*m_fdec,m_deltaT_set));
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
         if (m_prof)
@@ -305,11 +305,15 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
+            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::readwrite);
 
             gpu_fire_zero_v(d_vel.data,
                             d_index_array.data,
                             group_size);
+            gpu_fire_zero_accel(d_accel.data,
+                            d_index_array.data,
+                            group_size);
+
             if(m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 

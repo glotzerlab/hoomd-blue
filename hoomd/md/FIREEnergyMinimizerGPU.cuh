@@ -19,6 +19,10 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size);
 
+cudaError_t gpu_fire_zero_accel(Scalar3 *d_accel,
+                            unsigned int *d_group_members,
+                            unsigned int group_size);
+
 //! Kernel driver for summing the potential energy called by FIREEnergyMinimizerGPU
 cudaError_t gpu_fire_compute_sum_pe(unsigned int *d_group_members,
                             unsigned int group_size,
