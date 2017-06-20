@@ -248,7 +248,11 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         return;
         }
 
-    Scalar invfnorm = 1.0/fnorm;
+    Scalar factor_t;
+    if (fabs(fnorm) > EPSILON)
+        factor_t = m_alpha*vnorm/fnorm;
+    else
+        factor_t = 1.0;
 
     Scalar factor_r = 0.0;
 
@@ -264,9 +268,9 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
             unsigned int j = current_group->getMemberIndex(group_idx);
-            h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + m_alpha*h_accel.data[j].x*invfnorm*vnorm;
-            h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
-            h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
+            h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + h_accel.data[j].x*factor_t;
+            h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + h_accel.data[j].y*factor_t;
+            h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + h_accel.data[j].z*factor_t;
             }
 
         if ((*method)->getAnisotropic())

@@ -637,8 +637,7 @@ cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
     \param d_group_members Device array listing the indicies of the mebers of the group to update
     \param group_size Number of members in the grou
     \param alpha Alpha coupling parameter used by the FIRE algorithm
-    \param vnorm Magnitude of the (3*N) dimensional velocity vector
-    \param invfnorm 1 over the magnitude of the (3*N) dimensional force vector
+    \param factor_t Combined factor vnorm/fnorm*alpha, or 1 if fnorm==0
 */
 extern "C" __global__
     void gpu_fire_update_v_kernel(Scalar4 *d_vel,
@@ -646,8 +645,7 @@ extern "C" __global__
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
                                   Scalar alpha,
-                                  Scalar vnorm,
-                                  Scalar invfnorm)
+                                  Scalar factor_t);
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -659,9 +657,9 @@ extern "C" __global__
         Scalar4 v = d_vel[idx];
         Scalar3 a = d_accel[idx];
 
-        v.x = v.x*(Scalar(1.0)-alpha) + alpha*a.x*invfnorm*vnorm;
-        v.y = v.y*(Scalar(1.0)-alpha) + alpha*a.y*invfnorm*vnorm;
-        v.z = v.z*(Scalar(1.0)-alpha) + alpha*a.z*invfnorm*vnorm;
+        v.x = v.x*(Scalar(1.0)-alpha) + a.x*factor_t;
+        v.y = v.y*(Scalar(1.0)-alpha) + a.y*factor_t;
+        v.z = v.z*(Scalar(1.0)-alpha) + a.z*factor_t;
 
         // write out the results (MEM_TRANSFER: 32 bytes)
         d_vel[idx] = v;
@@ -684,8 +682,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                               unsigned int *d_group_members,
                               unsigned int group_size,
                               Scalar alpha,
-                              Scalar vnorm,
-                              Scalar invfnorm)
+                              Scalar factor_t)
     {
     // setup the grid to run the kernel
     int block_size = 256;
@@ -698,8 +695,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                                                   d_group_members,
                                                   group_size,
                                                   alpha,
-                                                  vnorm,
-                                                  invfnorm);
+                                                  factor_t);
 
     return cudaSuccess;
     }

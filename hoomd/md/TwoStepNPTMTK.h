@@ -176,6 +176,7 @@ class TwoStepNPTMTK : public IntegrationMethodTwoStep
             {
             IntegratorVariables v = getIntegratorVariables();
             v.type = "npt_mtk";
+            v.variable.clear();
             v.variable.resize(10,Scalar(0.0));
             setIntegratorVariables(v);
             }

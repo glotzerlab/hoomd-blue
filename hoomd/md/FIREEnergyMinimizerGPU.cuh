@@ -61,8 +61,7 @@ cudaError_t gpu_fire_update_v(Scalar4 *d_vel,
                             unsigned int *d_group_members,
                             unsigned int group_size,
                             Scalar alpha,
-                            Scalar vnorm,
-                            Scalar invfnorm);
+                            Scalar factor_t);
 
 cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
                               const Scalar4 *d_orientation,

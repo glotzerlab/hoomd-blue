@@ -100,6 +100,7 @@ class TwoStepNVTMTK : public IntegrationMethodTwoStep
             {
             IntegratorVariables v = getIntegratorVariables();
             v.type = "nvt_mtk";
+            v.variable.clear();
             v.variable.resize(4);
             v.variable[0] = Scalar(0.0);
             v.variable[1] = Scalar(0.0);

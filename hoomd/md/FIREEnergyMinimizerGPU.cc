@@ -230,7 +230,12 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
     if (m_prof)
         m_prof->push(m_exec_conf, "FIRE update velocities");
 
-    Scalar invfnorm = 1.0/fnorm;
+    Scalar factor_t;
+    if (fabs(fnorm) > EPSILON)
+        factor_t = m_alpha*vnorm/fnorm;
+    else
+        factor_t = 1.0;
+
     Scalar factor_r = 0.0;
 
     if (fabs(tnorm) > EPSILON)
@@ -253,8 +258,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
                           d_index_array.data,
                           group_size,
                           m_alpha,
-                          vnorm,
-                          invfnorm);
+                          factor_t);
 
         if(m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
