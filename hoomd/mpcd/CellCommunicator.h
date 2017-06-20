@@ -124,7 +124,7 @@ class CellCommunicator
 
     private:
         static unsigned int num_instances;      //!< Number of communicator instances
-        unsigned int m_id;                      //!< Id for this communicator to use in tags
+        const unsigned int m_id;                //!< Id for this communicator to use in tags
 
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
