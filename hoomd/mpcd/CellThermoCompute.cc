@@ -141,8 +141,8 @@ void mpcd::CellThermoCompute::computeCellProperties()
     #ifdef ENABLE_MPI
     if (m_use_mpi)
         {
-        m_vel_comm->finalize(m_cell_vel, mpcd::detail::CellVelocityPackOp());
         m_energy_comm->finalize(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        m_vel_comm->finalize(m_cell_vel, mpcd::detail::CellVelocityPackOp());
 
         finishOuterCellProperties();
         }

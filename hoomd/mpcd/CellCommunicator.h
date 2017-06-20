@@ -123,6 +123,9 @@ class CellCommunicator
             }
 
     private:
+        static unsigned int num_instances;      //!< Number of communicator instances
+        unsigned int m_id;                      //!< Id for this communicator to use in tags
+
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
@@ -258,8 +261,8 @@ void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
             const unsigned int neigh = m_neighbors[idx];
             const unsigned int offset = m_begin[idx];
             const size_t num_bytes = sizeof(typename PackOpT::element) * m_num_send[idx];
-            MPI_Isend(send_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(send_buf + offset, num_bytes, MPI_BYTE, neigh, m_id, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_buf + offset, num_bytes, MPI_BYTE, neigh, m_id, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         }
     }

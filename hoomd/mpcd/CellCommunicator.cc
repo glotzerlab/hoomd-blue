@@ -12,13 +12,17 @@
 
 #include "CellCommunicator.h"
 
+// initialize with zero instances of the communicator
+unsigned int mpcd::CellCommunicator::num_instances = 0;
+
 /*!
  * \param sysdef System definition
  * \param cl MPCD cell list
  */
 mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysdef,
                                          std::shared_ptr<mpcd::CellList> cl)
-    : m_sysdef(sysdef),
+    : m_id(num_instances++),
+      m_sysdef(sysdef),
       m_pdata(sysdef->getParticleData()),
       m_exec_conf(m_pdata->getExecConf()),
       m_mpi_comm(m_exec_conf->getMPICommunicator()),
@@ -33,8 +37,8 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
-        m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack", m_exec_conf));
-        m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack", m_exec_conf));
+        m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack_" + std::to_string(m_id), m_exec_conf));
+        m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack_" + std::to_string(m_id), m_exec_conf));
         }
     #endif // ENABLE_CUDA
 
@@ -242,8 +246,8 @@ void mpcd::CellCommunicator::initialize()
         for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
             {
             const unsigned int offset = m_begin[idx];
-            MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], m_id, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], m_id, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
