@@ -43,7 +43,17 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         bool hasConverged() const {return m_converged;}
 
         //! Return the potential energy after the last iteration
-        Scalar getEnergy() const { return m_old_energy; }
+        Scalar getEnergy() const
+            {
+            if (m_was_reset)
+                {
+                m_exec_conf->msg->warning() << "FIRE has just been initialized. Return energy==0."
+                    << std::endl;
+                return Scalar(0.0);
+                }
+
+            return m_energy_total;
+            }
 
         //! Set the minimum number of steps for which the search direction must be bad before finding a new direction
         /*! \param nmin is the new nmin to set
@@ -105,6 +115,7 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         Scalar m_ftol;                      //!< stopping tolerance based on total force
         Scalar m_wtol;                      //!< stopping tolerance based on total torque
         Scalar m_etol;                      //!< stopping tolerance based on the chance in energy
+        Scalar m_energy_total;              //!< Total energy of all integrator groups
         Scalar m_old_energy;                //!< energy from the previous iteration
         bool m_converged;                   //!< whether the minimization has converged
         Scalar m_deltaT_max;                //!< maximum timesteps after rescaling (set by user)
