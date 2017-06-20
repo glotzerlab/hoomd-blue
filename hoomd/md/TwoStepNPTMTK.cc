@@ -183,6 +183,11 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         throw std::runtime_error("Error during NPT integration.");
         }
 
+    // update box dimensions
+    bool twod = m_sysdef->getNDimensions()==2;
+
+    m_V = m_pdata->getGlobalBox().getVolume(twod);  // current volume
+
     unsigned int group_size = m_group->getNumMembers();
 
     // profile this step
@@ -223,9 +228,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     c.x = m_mat_exp_r[0] * c.x + m_mat_exp_r[1] * c.y + m_mat_exp_r[2] * c.z;
     c.y = m_mat_exp_r[3] * c.y + m_mat_exp_r[4] * c.z;
     c.z = m_mat_exp_r[5] * c.z;
-
-    // update box dimensions
-    bool twod = m_sysdef->getNDimensions()==2;
 
     global_box.setL(make_scalar3(a.x,b.y,c.z));
     Scalar xy = b.x/b.y;
@@ -867,7 +869,6 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
-
     if (m_flags & baro_x)
         {
         nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_S[0]->getValue(timestep)) + mtk_term;
@@ -903,7 +904,6 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
         nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
         nuzz -= m_gamma*nuzz;
         }
-
 
     // store integrator variables
     setIntegratorVariables(v);
