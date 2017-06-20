@@ -250,7 +250,7 @@ class UpdaterBoxMC : public Updater
             }
 
         //! Get delta_lnV
-        const Scalar get_lnvolume_delta() const
+        const Scalar get_ln_volume_delta() const
             {
             return m_lnVolume_delta;
             }
@@ -281,8 +281,8 @@ class UpdaterBoxMC : public Updater
         Scalar m_frequency;                         //!< Frequency of BoxMC moves versus HPMC integrator moves
 
         Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
-        Scalar m_lnVolume_delta;                      //!< Amount by which to change parameter during box-change
         float m_Volume_weight;                     //!< relative weight of volume moves
+        Scalar m_lnVolume_delta;                      //!< Amount by which to change parameter during box-change
         float m_lnVolume_weight;                   //!< relative weight of volume moves
         Scalar m_Volume_A1;                         //!< Ratio of Lx to Ly to use in isotropic volume changes
         Scalar m_Volume_A2;                         //!< Ratio of Lx to Lz to use in isotropic volume changes

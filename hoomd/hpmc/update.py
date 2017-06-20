@@ -147,11 +147,11 @@ class boxmc(_updater):
         self.cpp_updater.volume(self.volume_delta, self.volume_weight);
         return {'delta': self.volume_delta, 'weight': self.volume_weight};
 
-    def ln_volume(self, delta_lnV=None, weight=None):
+    def ln_volume(self, delta=None, weight=None):
         R""" Enable/disable isobaric volume move and set parameters.
 
         Args:
-            delta_lnV (float): maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
+            delta (float): maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
             weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
 
         Sample the isobaric distribution of box volumes by rescaling the box.
@@ -176,10 +176,10 @@ class boxmc(_updater):
             self.ln_volume_weight = float(weight)
 
         if delta is not None:
-            self.ln_volume_delta = float(delta_lnV)
+            self.ln_volume_delta = float(delta)
 
         self.cpp_updater.ln_volume(self.ln_volume_delta, self.ln_volume_weight);
-        return
+        return {'delta': self.ln_volume_delta, 'weight': self.ln_volume_weight};
 
     def length(self, delta=None, weight=None):
         R""" Enable/disable isobaric box dimension move and set parameters.
