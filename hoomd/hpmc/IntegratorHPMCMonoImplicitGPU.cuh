@@ -931,7 +931,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
         // check against the updated particle
         Shape shape_i(quat<Scalar>(), s_params[__scalar_as_int(postype_i.w)]);
-        Scalar R = shape_i.getInsphereRadius();
+        Scalar R = max(shape_i.getInsphereRadius() - shape_test.getCircumsphereDiameter(),0.0);
 
         if (d > Scalar(0.0) && R > Scalar(0.0))
             {

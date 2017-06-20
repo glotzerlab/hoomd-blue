@@ -32,6 +32,9 @@
 #define DEVICE __attribute__((always_inline))
 #endif
 
+// Check against zero with absolute tolerance
+#define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
+
 namespace hpmc
 {
 
@@ -58,7 +61,7 @@ struct OBB
     {
     vec3<OverlapReal> lengths; // half-axes
     vec3<OverlapReal> center;
-    rotmat3<OverlapReal> rotation;
+    quat<OverlapReal> rotation;
 
     //! Default construct a 0 OBB
     DEVICE OBB() {}
@@ -91,7 +94,7 @@ struct OBB
         {
         std::vector< vec3<OverlapReal> > corners(8);
 
-        rotmat3<OverlapReal> r(transpose(rotation));
+        rotmat3<OverlapReal> r(conj(rotation));
         corners[0] = center + r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[1] = center - r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[2] = center + r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
@@ -107,7 +110,12 @@ struct OBB
     DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
         {
         center = ::rotate(q,center) + v;
-        rotation = rotmat3<OverlapReal>(q) * rotation;
+        rotation = q * rotation;
+        }
+
+    DEVICE OverlapReal getVolume() const
+        {
+        return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
         }
 
     } __attribute__((aligned(32)));
@@ -125,13 +133,13 @@ struct OBB
 DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;
+    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
     // rotate translation into A's frame
-    t = transpose(a.rotation)*t;
+    t = rotate(conj(a.rotation),t);
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
@@ -228,6 +236,95 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     return true;
     }
 
+// Intersect ray R(t) = p + t*d against OBB a. When intersecting,
+// return intersection distance tmin and point q of intersection
+// Ericson, Christer, Real-Time Collision Detection (Page 180)
+DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, OBB a, OverlapReal &tmin, vec3<OverlapReal> &q, OverlapReal abs_tol)
+    {
+    tmin = 0.0f; // set to -FLT_MAX to get first hit on line
+    OverlapReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+    // rotate ray in local coordinate system
+    quat<OverlapReal> a_transp(conj(a.rotation));
+    vec3<OverlapReal> p_local(rotate(a_transp,p-a.center));
+    vec3<OverlapReal> d_local(rotate(a_transp,d));
+
+    // For all three slabs
+    if (CHECK_ZERO(d_local.x, abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.x < - a.lengths.x || p_local.x > a.lengths.x) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.x;
+        OverlapReal t1 = (- a.lengths.x - p_local.x) * ood;
+        OverlapReal t2 = (a.lengths.x - p_local.x) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.y,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.y < - a.lengths.y || p_local.y > a.lengths.y) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.y;
+        OverlapReal t1 = (- a.lengths.y - p_local.y) * ood;
+        OverlapReal t2 = (a.lengths.y - p_local.y) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.z,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.z < - a.lengths.z || p_local.z > a.lengths.z) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.z;
+        OverlapReal t1 = (- a.lengths.z - p_local.z) * ood;
+        OverlapReal t2 = (a.lengths.z - p_local.z) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin) in space frame
+    q = rotate(a.rotation,p_local + d_local * tmin);
+
+    return true;
+    }
+
 #ifndef NVCC
 DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
     {
@@ -276,12 +373,14 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
 
     // sort by descending eigenvalue, so split can occur along axis with largest covariance
+    OverlapReal sign(eigen_vec.determinant().real());
     if (eigen_val(0).real() < eigen_val(1).real())
         {
         std::swap(r.row0.x,r.row0.y);
         std::swap(r.row1.x,r.row1.y);
         std::swap(r.row2.x,r.row2.y);
         std::swap(eigen_val(1),eigen_val(0));
+        sign *= -1;
         }
 
     if (eigen_val(1).real() < eigen_val(2).real())
@@ -290,6 +389,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         std::swap(r.row1.y,r.row1.z);
         std::swap(r.row2.y,r.row2.z);
         std::swap(eigen_val(1),eigen_val(2));
+        sign *= -1;
         }
 
     if (eigen_val(0).real() < eigen_val(1).real())
@@ -298,6 +398,16 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         std::swap(r.row1.x,r.row1.y);
         std::swap(r.row2.x,r.row2.y);
         std::swap(eigen_val(1),eigen_val(0));
+        sign *= -1;
+        }
+
+    if (sign < OverlapReal(0.0))
+        {
+        // swap row two and three
+        std::swap(r.row0.y,r.row0.z);
+        std::swap(r.row1.y,r.row1.z);
+        std::swap(r.row2.y,r.row2.z);
+        std::swap(eigen_val(1),eigen_val(2));
         }
 
     vec3<OverlapReal> axis[3];
@@ -305,7 +415,7 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
     axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
 
-    res.rotation = r;
+    res.rotation = quat<OverlapReal>(r);
 
     vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX,FLT_MAX,FLT_MAX);
     vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX,-FLT_MAX,-FLT_MAX);

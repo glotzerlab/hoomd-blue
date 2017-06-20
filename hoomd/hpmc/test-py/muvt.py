@@ -63,9 +63,10 @@ class muvt_updater_test(unittest.TestCase):
     def test_polyhedron(self):
         self.mc = hpmc.integrate.polyhedron(seed=10);
         self.mc.set_params(deterministic=True)
-        self.mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-                                (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-                                faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
+        import math
+        v = [(-0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (0,0, 1.0/math.sqrt(2)),(0,0,-1.0/math.sqrt(2))];
+        f = [(0,4,1),(1,4,2),(2,4,3),(3,4,0),(0,5,1),(1,5,2),(2,5,3),(3,5,0)]
+        self.mc.shape_param.set('A', vertices=v, faces=f)
 
         self.muvt=hpmc.update.muvt(mc=self.mc,seed=456,transfer_types=['A'])
         self.muvt.set_fugacity('A', 100)
