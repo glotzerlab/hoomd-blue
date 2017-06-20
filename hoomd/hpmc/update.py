@@ -342,7 +342,7 @@ class boxmc(_updater):
 
         """
         counters = self.cpp_updater.getCounters(1);
-        return counters.getVolumeAcceptance();
+        return counters.getLogVolumeAcceptance();
 
     def get_shear_acceptance(self):
         R"""  Get the average acceptance ratio for shear changing moves.

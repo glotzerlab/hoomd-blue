@@ -569,7 +569,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, Saru& rng)
     Scalar A2 = m_Volume_A2;
 
     // Volume change
-    Scalar dlnV_max(m_Volume_delta);
+    Scalar dlnV_max(m_lnVolume_delta);
 
     // Choose a volume change
     Scalar dlnV = rng.s(-dlnV_max, dlnV_max);
@@ -591,7 +591,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, Saru& rng)
 
     if (!safe_box(newL, Ndim))
         {
-        m_count_total.volume_reject_count++;
+        m_count_total.ln_volume_reject_count++;
         }
     else
         {
@@ -612,11 +612,11 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, Saru& rng)
 
         if (accept)
             {
-            m_count_total.volume_accept_count++;
+            m_count_total.ln_volume_accept_count++;
             }
         else
             {
-            m_count_total.volume_reject_count++;
+            m_count_total.ln_volume_reject_count++;
             }
         }
     if (m_prof) m_prof->pop();
