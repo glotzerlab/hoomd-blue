@@ -645,7 +645,7 @@ extern "C" __global__
                                   unsigned int *d_group_members,
                                   unsigned int group_size,
                                   Scalar alpha,
-                                  Scalar factor_t);
+                                  Scalar factor_t)
     {
     // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
     int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
