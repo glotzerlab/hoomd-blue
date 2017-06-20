@@ -386,12 +386,14 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeNetForce(timestep+1);
 
     // but the accelerations only need to be calculated if the restart is not valid
-    // or particle positions have changed since last run()
-    if (!isValidRestart() || m_particles_reinitialized)
+    if (!isValidRestart())
         {
         computeAccelerations(timestep);
+        }
 
-        // (re-)initialize integration methods
+    if (m_particles_reinitialized)
+        {
+        // if particle positions have changed since last run(), reinitialize integrator variables
         initializeIntegrationMethods();
         }
 
