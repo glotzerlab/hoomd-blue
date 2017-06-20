@@ -30,6 +30,7 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysde
         m_ftol(Scalar(1e-1)),
         m_wtol(Scalar(1e-1)),
         m_etol(Scalar(1e-3)),
+        m_energy_total(Scalar(0.0)),
         m_old_energy(Scalar(0.0)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
@@ -113,6 +114,7 @@ void FIREEnergyMinimizer::reset()
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
+    m_energy_total = 0.0;
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
@@ -170,6 +172,7 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             }
         }
 
+    m_energy_total = pe_total;
     energy = pe_total/Scalar(total_group_size);
     }
 
@@ -244,7 +247,6 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
-        m_old_energy = energy;
         return;
         }
 

@@ -117,6 +117,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         energy += h_sumE.data[0];
         }
 
+    m_energy_total = energy;
     energy /= (Scalar) total_group_size;
 
     if (m_prof)
