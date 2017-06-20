@@ -386,7 +386,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeNetForce(timestep+1);
 
     // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart())
+    if (!isValidRestart() || m_particles_reinitialized)
         {
         computeAccelerations(timestep);
         }
