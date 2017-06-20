@@ -64,7 +64,7 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
     // cell list needs to be up to date first
     m_cl->compute(timestep);
 
-    if (m_prof) m_prof->push("MPCD thermo");
+    if (m_prof) m_prof->push(m_exec_conf, "MPCD thermo");
     const unsigned int ncells = m_cl->getNCells();
     if (ncells != m_ncells_alloc)
         {
@@ -73,7 +73,7 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
 
     computeCellProperties();
     m_needs_net_reduce = true;
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 std::vector<std::string> mpcd::CellThermoCompute::getProvidedLogQuantities()

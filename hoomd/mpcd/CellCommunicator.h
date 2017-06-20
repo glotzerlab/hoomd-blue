@@ -113,15 +113,6 @@ class CellCommunicator
             #endif // ENABLE_CUDA
             }
 
-        //! Set the profiler used by this compute
-        /*!
-         * \param prof Profiler to use (if null, do not profile)
-         */
-        void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            m_prof = prof;
-            }
-
     private:
         static unsigned int num_instances;      //!< Number of communicator instances
         const unsigned int m_id;                //!< Id for this communicator to use in tags
@@ -131,7 +122,6 @@ class CellCommunicator
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         const MPI_Comm m_mpi_comm;                                  //!< MPI Communicator
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
-        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         std::shared_ptr<mpcd::CellList> m_cl;   //!< MPCD cell list
 

@@ -110,21 +110,6 @@ class CellThermoCompute : public Compute
             #endif // ENABLE_MPI
             }
 
-        //! Set the profiler used by this compute
-        /*!
-         * \param prof Profiler to use (if null, do not profile)
-         */
-        virtual void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            Compute::setProfiler(prof);
-            #ifdef ENABLE_MPI
-            if (m_vel_comm)
-                m_vel_comm->setProfiler(prof);
-            if (m_energy_comm)
-                m_energy_comm->setProfiler(prof);
-            #endif // ENABLE_MPI
-            }
-
     protected:
         //! Compute the cell properties
         void computeCellProperties();
