@@ -246,8 +246,8 @@ void mpcd::CellCommunicator::initialize()
         for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
             {
             const unsigned int offset = m_begin[idx];
-            MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], m_id, m_mpi_comm, &m_reqs[2*idx]);
-            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], m_id, m_mpi_comm, &m_reqs[2*idx+1]);
+            MPI_Isend(h_send_idx.data + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_idx.data() + offset, m_num_send[idx], MPI_INT, m_neighbors[idx], 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
         }
