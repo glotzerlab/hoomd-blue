@@ -41,7 +41,10 @@ Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple Universi
   * numerous other small contributions enhancing the usability of HOOMD
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
-  * pair.eam
+  * pair.eam (known to be broken)
+
+Lin Yang, Alex Travesset, Iowa State University
+  * metal.pair.eam
 
 Philipp Mertmann, Ruhr University Bochum
  * charge.pppm

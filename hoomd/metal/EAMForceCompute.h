@@ -1,14 +1,17 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: Lin Yang, Alex Travesset
+// Previous Maintainer: Morozov
+
 #include "hoomd/ForceCompute.h"
 #include "hoomd/md/NeighborList.h"
 
 #include <memory>
 
 /*! \file EAMForceCompute.h
-    \brief Declares the EAMForceCompute class
-*/
+ \brief Declares the EAMForceCompute class
+ */
 
 #ifdef NVCC
 #error This header cannot be compiled by nvcc
@@ -19,81 +22,93 @@
 #ifndef __EAMFORCECOMPUTE_H__
 #define __EAMFORCECOMPUTE_H__
 
-//! Computes Lennard-Jones forces on each particle
-/*! The total pair force is summed for each particle when compute() is called. Forces are only summed between
-    neighboring particles with a separation distance less than \c r_cut. A NeighborList must be provided
-    to identify these neighbors. Calling compute() in this class will in turn result in a call to the
-    NeighborList's compute() to make sure that the neighbor list is up to date.
+//! Computes the potential and force on each particle based on values given in a EAM potential
+/*! \b Overview
+ The total potential and force is computed for each particle when compute() is called. Potentials and
+ forces are only computed between neighbouring particles with a separation distance less than
+ \c r_cut. A NeighborList must be provided to identify these neighbours.
 
-    Usage: Construct a EAMForceCompute, providing it an already constructed ParticleData and NeighborList.
-    Then set parameters for all possible pairs of types by calling setParams.
+ \b Interpolation
+ The cubic interpolation is used. For each data point, including the value of the point, there are 3
+ coefficients.
 
-    Forces can be computed directly by calling compute() and then retrieved with a call to acquire(), but
-    a more typical usage will be to add the force compute to NVEUpdater or NVTUpdater.
+ \b Potential memory layout
+ The potential data and the coefficients are stored in six GPUArray<Scalar> arrays: the embedded
+ potential function (m_F) and its derivative (m_dF), the electron density function (m_rho) and its
+ derivative (m_drho), the pair potential function (m_rphi) and its derivative (m_drphi). The 3
+ coefficients for a data point is stored continuously, for example, h_F.data[100].w is the embedded
+ potential function's value read from the 100st position of the potential file,
+ h_F.data[100].z, h_F.data[100].y, h_F.data[100*].x, are for interpolating embedded function,
+ h_dF.data[100].z, h_dF.data[100].y, h_dF.data[100].x, are for interpolating derivative embedded
+ function.
 
-    \ingroup computes
-*/
-class EAMForceCompute : public ForceCompute
+ \ingroup computes
+ */
+class EAMForceCompute: public ForceCompute
     {
-    public:
-        //! Constructs the compute
-        EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef,  char *filename, int type_of_file);
+public:
+    //! Constructs the compute
+    EAMForceCompute(std::shared_ptr<SystemDefinition> sysdef, char *filename, int type_of_file);
 
-        //! Destructor
-        virtual ~EAMForceCompute();
+    //! Destructor
+    virtual ~EAMForceCompute();
 
-        //! Sets the neighbor list to be used for the EAM force
-        virtual void set_neighbor_list(std::shared_ptr<NeighborList> nlist);
+    //! Sets the neighbor list to be used for the EAM force
+    virtual void set_neighbor_list(std::shared_ptr<NeighborList> nlist);
 
-        //! Get the r cut value read from the EAM potential file
-        virtual Scalar get_r_cut();
+    //! Get the r cut value read from the EAM potential file
+    virtual Scalar get_r_cut();
 
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector< std::string > getProvidedLogQuantities();
+    //! Returns a list of log quantities this compute calculates
+    virtual std::vector<std::string> getProvidedLogQuantities();
 
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
+    //! Calculates the requested log value and returns it
+    virtual Scalar getLogValue(const std::string &quantity, unsigned int timestep);
 
-        //! Shifting modes that can be applied to the energy
-        virtual void loadFile(char *filename, int type_of_file);
+    //! Load EAM potential file
+    virtual void loadFile(char *filename, int type_of_file);
 
+protected:
+    std::shared_ptr<NeighborList> m_nlist; //!< the neighborlist to use for the computation
+    Scalar m_r_cut;                        //!< cut-off radius
+    unsigned int m_ntypes;                 //!< number of potential element types
+    unsigned int nrho;                     //!< number of tabulated values of interpolated F(rho)
+    Scalar drho;                           //!< interval of rho in interpolated table
+    Scalar rdrho;                          //!< 1.0 / drho
+    unsigned int nr;                       //!< number of tabulated values of interpolated rho(r), r*phi(r)
+    Scalar dr;                             //!< interval of r in interpolated table
+    Scalar rdr;                            //!< 1.0 / dr
+    std::vector<double> mass;              //!< array mass(type)
+    std::vector<int> types;                //!< array type(id)
+    std::vector<int> nproton;              //!< atomic number
+    std::vector<double> lconst;            //!< lattice constant
+    std::vector<std::string> atomcomment;  //!< atom comment
+    std::vector<std::string> names;        //!< array names(type)
 
-    protected:
-        std::shared_ptr<NeighborList> m_nlist;       //!< The neighborlist to use for the computation
-        Scalar m_r_cut;                                //!< Cuttoff radius beyond which the force is set to 0
-        unsigned int m_ntypes;                         //!< Store the width and height of lj1 and lj2 here
+    GPUArray<Scalar4> m_F;                 //!< embedded function and its coefficients
+    GPUArray<Scalar4> m_rho;               //!< electron density and its coefficients
+    GPUArray<Scalar4> m_rphi;              //!< pair wise function and its coefficients
+    GPUArray<Scalar4> m_dF;                //!< derivative embedded function and its coefficients
+    GPUArray<Scalar4> m_drho;              //!< derivative electron density and its coefficients
+    GPUArray<Scalar4> m_drphi;             //!< derivative pair wise function and its coefficients
+    GPUArray<Scalar> m_dFdP;               //!< derivative F / derivative P
 
-        Scalar drho;                                   //!< Undocumented parameter
-        Scalar dr;                                     //!< Undocumented parameter
-        Scalar rdrho;                                  //!< Undocumented parameter
-        Scalar rdr;                                    //!< Undocumented parameter
-        std::vector<Scalar> mass;                           //!< Undocumented parameter
-        std::vector<int> types;                             //!< Undocumented parameter
-        std::vector<std::string> names;                          //!< Undocumented parameter
-        unsigned int nr;                               //!< Undocumented parameter
-        unsigned int nrho;                             //!< Undocumented parameter
+    //! Actually compute the forces
+    virtual void computeForces(unsigned int timestep);
 
+    //! Method to be called when number of types changes
+    virtual void slotNumTypesChange()
+        {
+        m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
+        throw std::runtime_error("Unsupported feature");
+        }
 
-        std::vector<Scalar> electronDensity;                //!< array rho(r)
-        std::vector<Scalar2> pairPotential;                  //!< array Z(r)
-        std::vector<Scalar> embeddingFunction;              //!< array F(rho)
-
-        std::vector<Scalar> derivativeElectronDensity;      //!< array rho'(r)
-        std::vector<Scalar> derivativePairPotential;        //!< array Z'(r)
-        std::vector<Scalar> derivativeEmbeddingFunction;    //!< array F'(rho)
-
-        //! Actually compute the forces
-        virtual void computeForces(unsigned int timestep);
-
-        //! Method to be called when number of types changes
-        virtual void slotNumTypesChange()
-            {
-            m_exec_conf->msg->error() << "Changing the number of types is unsupported for pair.eam" << std::endl;
-            throw std::runtime_error("Unsupported feature");
-            }
+    //! cubic interpolation
+    virtual void interpolation(int num_all, int num_per, Scalar delta, ArrayHandle<Scalar4> *f,
+            ArrayHandle<Scalar4> *df);
     };
 
 //! Exports the EAMForceCompute class to python
-void export_EAMForceCompute(pybind11::module& m);
+void export_EAMForceCompute(pybind11::module &m);
 
 #endif
