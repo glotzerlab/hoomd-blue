@@ -97,6 +97,32 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
+//! Stuff an integer inside a float
+HOSTDEVICE inline float __int_as_float(int a)
+    {
+    union
+        {
+        int a; float b;
+        } u;
+
+    u.a = a;
+
+    return u.b;
+    }
+
+//! Stuff an integer inside a double
+HOSTDEVICE inline double __int_as_double(int a)
+    {
+    union
+        {
+        int a; double b;
+        } u;
+
+    u.a = a;
+
+    return u.b;
+    }
+
 //! Stuff an integer inside a Scalar
 HOSTDEVICE inline Scalar __int_as_scalar(int a)
     {
@@ -108,6 +134,32 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
     u.a = a;
 
     return u.b;
+    }
+
+//! Extract an integer from a float stuffed by __int_as_float()
+HOSTDEVICE inline int __float_as_int(float b)
+    {
+    union
+        {
+        int a; float b;
+        } u;
+
+    u.b = b;
+
+    return u.a;
+    }
+
+//! Extract an integer from a double stuffed by __int_as_double()
+HOSTDEVICE inline int __double_as_int(double b)
+    {
+    union
+        {
+        int a; double b;
+        } u;
+
+    u.b = b;
+
+    return u.a;
     }
 
 //! Extract an integer from a Scalar stuffed by __int_as_scalar()

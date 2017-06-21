@@ -68,7 +68,7 @@ struct CellEnergyPackOp
         {
         element e;
         e.energy = val.x;
-        e.np = __scalar_as_int(val.z);
+        e.np = __double_as_int(val.z);
         return e;
         }
 
@@ -76,7 +76,7 @@ struct CellEnergyPackOp
         {
         return make_double3(e.energy + val.x,
                             val.y,
-                            __int_as_scalar(__scalar_as_int(val.z) + e.np));
+                            __int_as_double(__double_as_int(val.z) + e.np));
         }
     };
 

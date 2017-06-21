@@ -142,7 +142,7 @@ __global__ void begin_cell_thermo(double4 *d_cell_vel,
     if (idx % tpp == 0)
         {
         d_cell_vel[cell_id] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
-        d_cell_energy[cell_id] = make_double3(ke, 0.0, __int_as_scalar(np));
+        d_cell_energy[cell_id] = make_double3(ke, 0.0, __int_as_double(np));
         }
     }
 
@@ -179,7 +179,7 @@ __global__ void end_cell_thermo(double4 *d_cell_vel,
     const double3 cell_energy = d_cell_energy[cell_id];
     const double ke = cell_energy.x;
     double temp(0.0);
-    const unsigned int np = __scalar_as_int(cell_energy.z);
+    const unsigned int np = __double_as_int(cell_energy.z);
 
     if (mass > 0.)
         {
@@ -195,7 +195,7 @@ __global__ void end_cell_thermo(double4 *d_cell_vel,
         }
 
     d_cell_vel[cell_id] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-    d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_scalar(np));
+    d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_double(np));
     }
 
 //! Computes the cell thermo for inner cells
@@ -317,7 +317,7 @@ __global__ void inner_cell_thermo(double4 *d_cell_vel,
             }
 
         d_cell_vel[cell_id] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-        d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_scalar(np));
+        d_cell_energy[cell_id] = make_double3(ke, temp, __int_as_double(np));
         }
     }
 
@@ -362,7 +362,7 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_t
 
     const double3 cell_energy = d_cell_energy[idx];
     thermo.energy = cell_energy.x;
-    if (__scalar_as_int(cell_energy.z) > 1)
+    if (__double_as_int(cell_energy.z) > 1)
         {
         thermo.temperature = cell_energy.y;
         thermo.flag = 1;

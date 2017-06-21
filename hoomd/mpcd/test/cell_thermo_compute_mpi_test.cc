@@ -76,7 +76,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(2,2,2)].x,  3.0, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(2,2,2)].y,  2.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(2,2,2)].z), 2);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2,2,2)].z), 2);
                 break;
             case 1:
                 CHECK_CLOSE(h_cell_vel.data[ci(1,2,2)].x,  1.0, tol);
@@ -86,7 +86,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(1,2,2)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(1,2,2)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(1,2,2)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1,2,2)].z), 1);
                 break;
             case 2:
                 CHECK_CLOSE(h_cell_vel.data[ci(2,1,2)].x, -1.0, tol);
@@ -96,7 +96,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(2,1,2)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(2,1,2)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(2,1,2)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2,1,2)].z), 1);
                 break;
             case 3:
                 CHECK_CLOSE(h_cell_vel.data[ci(1,1,2)].x,  1.0, tol);
@@ -106,7 +106,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(1,1,2)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(1,1,2)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(1,1,2)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1,1,2)].z), 1);
                 break;
             case 4:
                 CHECK_CLOSE(h_cell_vel.data[ci(2,2,1)].x, -1.0, tol);
@@ -116,7 +116,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(2,2,1)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(2,2,1)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(2,2,1)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2,2,1)].z), 1);
                 break;
             case 5:
                 CHECK_CLOSE(h_cell_vel.data[ci(1,2,1)].x,  1.0, tol);
@@ -126,7 +126,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(1,2,1)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(1,2,1)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(1,2,1)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1,2,1)].z), 1);
                 break;
             case 6:
                 CHECK_CLOSE(h_cell_vel.data[ci(2,1,1)].x, -1.0, tol);
@@ -136,7 +136,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(2,1,1)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(2,1,1)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(2,1,1)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(2,1,1)].z), 1);
                 break;
             case 7:
                 CHECK_CLOSE(h_cell_vel.data[ci(1,1,1)].x,  1.0, tol);
@@ -146,7 +146,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
                 CHECK_CLOSE(h_cell_energy.data[ci(1,1,1)].x,  1.5, tol);
                 CHECK_CLOSE(h_cell_energy.data[ci(1,1,1)].y,  0.0, tol);
-                UP_ASSERT_EQUAL(__scalar_as_int(h_cell_energy.data[ci(1,1,1)].z), 1);
+                UP_ASSERT_EQUAL(__double_as_int(h_cell_energy.data[ci(1,1,1)].z), 1);
                 break;
             }
 
@@ -190,7 +190,7 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
          */
         CHECK_CLOSE(h_cell_energy.data[local_idx].x, 13.5, tol);
         CHECK_CLOSE(h_cell_energy.data[local_idx].y, 10./9., tol);
-        CHECK_CLOSE(__scalar_as_int(h_cell_energy.data[local_idx].z), 9, tol);
+        CHECK_CLOSE(__double_as_int(h_cell_energy.data[local_idx].z), 9, tol);
 
         // Check the net stats of the system
         CHECK_CLOSE(thermo->getNetMomentum().x, 1.0, tol);

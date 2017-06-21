@@ -72,8 +72,8 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
                     int3 global_cell = cl->getGlobalCell(make_int3(i,j,k));
                     global_cell.x += 1; global_cell.y += 1; global_cell.z += 1;
 
-                    h_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
-                    h_ref_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_scalar(global_cell.z));
+                    h_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_double(global_cell.z));
+                    h_ref_props.data[ci(i,j,k)] = make_double3(global_cell.x, global_cell.y, __int_as_double(global_cell.z));
                     }
                 }
             }
@@ -113,7 +113,7 @@ void cell_communicator_reduce_test(std::shared_ptr<ExecutionConfiguration> exec_
 
                     UP_ASSERT_EQUAL(h_props.data[ci(i,j,k)].x, h_ref_props.data[ci(i,j,k)].x * noverlap);
                     UP_ASSERT_EQUAL(h_props.data[ci(i,j,k)].y, h_ref_props.data[ci(i,j,k)].y); // energy packing doesn't touch y element
-                    UP_ASSERT_EQUAL(__scalar_as_int(h_props.data[ci(i,j,k)].z), __scalar_as_int(h_ref_props.data[ci(i,j,k)].z) * noverlap);
+                    UP_ASSERT_EQUAL(__double_as_int(h_props.data[ci(i,j,k)].z), __double_as_int(h_ref_props.data[ci(i,j,k)].z) * noverlap);
                     }
                 }
             }

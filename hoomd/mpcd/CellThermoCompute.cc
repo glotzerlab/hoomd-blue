@@ -285,7 +285,7 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         summer.compute(momentum, ke, np, cur_cell);
 
         h_cell_vel.data[cur_cell] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
-        h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_scalar(np));
+        h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_double(np));
         }
     }
 
@@ -308,7 +308,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
         const double3 cell_energy = h_cell_energy.data[cur_cell];
         const double ke = cell_energy.x;
         double temp(0.0);
-        const unsigned int np = __scalar_as_int(cell_energy.z);
+        const unsigned int np = __double_as_int(cell_energy.z);
         if (mass > 0.)
             {
             // average velocity is only defined when there is some mass in the cell
@@ -322,7 +322,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
                 }
             }
         h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-        h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_scalar(np));
+        h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
         }
     }
 #endif // ENABLE_MPI
@@ -410,7 +410,7 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                     }
 
                 h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-                h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_scalar(np));
+                h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
                 } // i
             } //j
         } // k
@@ -459,7 +459,7 @@ void mpcd::CellThermoCompute::computeNetProperties()
                     const double3 cell_energy = h_cell_energy.data[idx];
                     energy += cell_energy.x;
 
-                    if (__scalar_as_int(cell_energy.z) > 1)
+                    if (__double_as_int(cell_energy.z) > 1)
                         {
                         temp += cell_energy.y;
                         ++n_temp_cells;
