@@ -32,6 +32,7 @@ Not yet released
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
 
 *Other changes*
+
 * Optimized performance of HPMC sphere union overlap check
 * Improved performance of rigid bodies in MPI simulations
 * Support triclinic boxes with rigid bodies
