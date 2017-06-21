@@ -30,6 +30,7 @@ Not yet released
 * hpmc.integrate.sphere_union() and hpmc.integrate.polyhedron() missed overlaps
 * `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps
 * fix alignment error when running implicit depletants on GPU with ntrial > 0
+* `metal.pair.eam` now produces correct results
 
 *Other changes*
 

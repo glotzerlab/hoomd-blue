@@ -29,8 +29,8 @@ class eam(force._force):
     potential, etc. are read in from the specified file.
 
     Particle type names must match those referenced in the EAM potential file.
-    
-    Particle mass (in atomic mass) **must** be set in the input script, users are allowed to set different mass values 
+
+    Particle mass (in atomic mass) **must** be set in the input script, users are allowed to set different mass values
     other than those in the potential file.
 
     Two file formats are supported: *Alloy* and *FS*. They are described in LAMMPS documentation
@@ -39,9 +39,6 @@ class eam(force._force):
 
     .. attention::
         EAM is **NOT** supported in MPI parallel simulations.
-
-    .. danger::
-        HOOMD-blue's EAM implementation was known to be broken, the current implementation is fixed on 05/01/2017.
 
     Example::
 
