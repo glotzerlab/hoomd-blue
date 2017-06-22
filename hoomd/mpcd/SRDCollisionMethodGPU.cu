@@ -96,6 +96,7 @@ __global__ void srd_rotate(Scalar4 *d_vel,
                            const double cos_a,
                            const double one_minus_cos_a,
                            const double sin_a,
+                           const double *d_factors,
                            const unsigned int N_mpcd,
                            const unsigned int N_tot)
     {
@@ -147,6 +148,13 @@ __global__ void srd_rotate(Scalar4 *d_vel,
     new_vel.z = (cos_a + rot_vec.z*rot_vec.z*one_minus_cos_a) * vel.z;
     new_vel.z += (rot_vec.x*rot_vec.z*one_minus_cos_a - sin_a*rot_vec.y) * vel.x;
     new_vel.z += (rot_vec.y*rot_vec.z*one_minus_cos_a + sin_a*rot_vec.x) * vel.y;
+
+    // rescale the velocity if factor is available
+    if (d_factors != NULL)
+        {
+        const double factor = d_factors[cell];
+        new_vel.x *= factor; new_vel.y *= factor; new_vel.z *= factor;
+        }
 
     new_vel.x += avg_vel.x;
     new_vel.y += avg_vel.y;
@@ -243,6 +251,7 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                        const double4 *d_cell_vel,
                        const double3 *d_rotvec,
                        const double angle,
+                       const double *d_factors,
                        const unsigned int N_mpcd,
                        const unsigned int N_tot,
                        const unsigned int block_size)
@@ -271,6 +280,7 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                                                             cos_a,
                                                             one_minus_cos_a,
                                                             sin_a,
+                                                            d_factors,
                                                             N_mpcd,
                                                             N_tot);
 

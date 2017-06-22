@@ -41,6 +41,7 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                        const double4 *d_cell_vel,
                        const double3 *d_rotvec,
                        const double angle,
+                       const double *d_factors,
                        const unsigned int N_mpcd,
                        const unsigned int N_tot,
                        const unsigned int block_size);

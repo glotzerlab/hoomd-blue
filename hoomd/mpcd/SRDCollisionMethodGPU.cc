@@ -79,6 +79,13 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
     ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(), access_location::device, access_mode::read);
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::read);
 
+    // load scale factors if required
+    std::unique_ptr< ArrayHandle<double> > d_factors;
+    if (m_use_thermostat)
+        {
+        d_factors.reset(new ArrayHandle<double>(m_factors, access_location::device, access_mode::read));
+        }
+
     if (m_embed_group)
         {
         ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(), access_location::device, access_mode::read);
@@ -95,6 +102,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
                               d_cell_vel.data,
                               d_rotvec.data,
                               m_angle,
+                              (m_use_thermostat) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());
@@ -111,6 +119,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
                               d_cell_vel.data,
                               d_rotvec.data,
                               m_angle,
+                              (m_use_thermostat) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());
