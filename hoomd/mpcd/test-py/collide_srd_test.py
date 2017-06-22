@@ -121,12 +121,21 @@ class mpcd_collide_srd_test(unittest.TestCase):
     # test thermostat
     def test_thermostat(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90., kT=1.0)
+        self.assertTrue(srd.thermostat)
         srd.disable()
 
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
-        srd.set_thermostat(kT=hoomd.variant.linear_interp([[0,2.0],[10,1.0]]))
-        srd.set_thermostat(enable=True)
-        srd.set_thermostat(enable=False)
+        srd.set_params(kT=hoomd.variant.linear_interp([[0,2.0],[10,1.0]]))
+        self.assertFalse(srd.thermostat)
+
+        srd.set_params(thermostat=True)
+        self.assertTrue(srd.thermostat)
+
+        srd.set_params(thermostat=False)
+        self.assertFalse(srd.thermostat)
+
+        srd.set_params(kT=5.0, thermostat=True)
+        self.assertTrue(srd.thermostat)
 
     def tearDown(self):
         del self.ig

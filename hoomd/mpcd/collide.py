@@ -102,6 +102,7 @@ class _collision_method(hoomd.meta._metadata):
         Only one collision method can be attached to the system at any time.
         If another method is already set, :py:meth:`disable()` must be called
         first before switching.
+
         """
         hoomd.util.print_status_line()
 
@@ -118,6 +119,7 @@ class _collision_method(hoomd.meta._metadata):
         Disabling the collision method removes it from the current MPCD system definition.
         Only one collision method can be attached to the system at any time, so
         use this method to remove the current collision method before adding another.
+
         """
         hoomd.util.print_status_line()
 
@@ -190,7 +192,7 @@ class srd(_collision_method):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle']
+        self.metadata_fields += ['angle','kT','thermostat']
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
@@ -204,25 +206,33 @@ class srd(_collision_method):
                                   hoomd.context.current.mpcd._thermo)
 
         hoomd.util.quiet_status()
-        self.set_params(angle=angle)
+        self.set_params(angle=angle, kT=kT, thermostat=(kT is not None))
         if group is not None:
             self.embed(group)
-        if kT is not None:
-            self.set_thermostat(kT=kT, enable=True)
         hoomd.util.unquiet_status()
 
-    def set_params(self, angle=None, shift=None):
+    def set_params(self, angle=None, shift=None, kT=None, thermostat=None):
         """ Set parameters for the SRD collision method
 
         Args:
             angle (float): SRD rotation angle (degrees)
             shift (bool): If True, perform a random shift of the underlying cell list
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat (in energy units).
+            thermostat (bool): If True, enable the thermostat. Otherwise, disable the thermostat.
+
+        Warning:
+            Setting *kT* will **not** automatically enable a disabled thermostat.
+            These options are independent by design, and *thermostat* must be
+            explicitly set True to reenable the thermostat.
 
         Examples::
 
             srd.set_params(angle=90.)
             srd.set_params(shift=False)
             srd.set_params(angle=130., shift=True)
+            srd.set_params(thermostat=False)
+            srd.set_params(kT=1.0)
+            srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]), thermostat=True)
 
         """
         hoomd.util.print_status_line()
@@ -233,29 +243,9 @@ class srd(_collision_method):
         if shift is not None:
             self.shift = shift
             self._cpp.enableGridShifting(shift)
-
-    def set_thermostat(self, kT=None, enable=None):
-        """ Configure thermostat for the SRD collision method
-
-        Args:
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set point for the thermostat (in energy units).
-            enable (bool): If True, enable the thermostat. Otherwise, disable the thermostat.
-
-        Examples::
-            srd.set_thermostat(kT=1.0)
-            srd.set_thermostat(enable=False)
-            srd.set_thermostat(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]), enable=True)
-
-        Warning:
-            Setting *kT* will **not** automatically enable a disabled thermostat.
-            These options are independent by design, and *enable* must be
-            explicitly set True to reenable a thermostat using this method.
-
-        """
-        hoomd.util.print_status_line()
-
         if kT is not None:
             self.kT = hoomd.variant._setup_variant_input(kT)
             self._cpp.setTemperature(self.kT.cpp_variant)
-        if enable is not None:
-            self._cpp.enableThermostat(enable)
+        if thermostat is not None:
+            self.thermostat = thermostat
+            self._cpp.enableThermostat(thermostat)
