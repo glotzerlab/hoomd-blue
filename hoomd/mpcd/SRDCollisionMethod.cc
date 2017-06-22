@@ -243,5 +243,7 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
                       unsigned int,
                       std::shared_ptr<mpcd::CellThermoCompute>>())
         .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
+        .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
+        .def("enableThermostat", &mpcd::SRDCollisionMethod::enableThermostat)
     ;
     }
