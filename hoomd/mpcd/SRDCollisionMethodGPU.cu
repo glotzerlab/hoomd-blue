@@ -9,9 +9,8 @@
  */
 
 #include "SRDCollisionMethodGPU.cuh"
+#include "RandomNumbers.h"
 #include "hoomd/extern/saruprngCUDA.h"
-
-#define MPCD_2PI 6.283185307179586
 
 namespace mpcd
 {
@@ -19,13 +18,18 @@ namespace gpu
 {
 namespace kernel
 {
+template<bool use_thermostat>
 __global__ void srd_draw_vectors(double3 *d_rotvec,
+                                 double *d_factors,
+                                 const double3 *d_cell_energy,
                                  const Index3D ci,
                                  const int3 origin,
                                  const uint3 global_dim,
                                  const Index3D global_ci,
                                  const unsigned int timestep,
                                  const unsigned int seed,
+                                 const Scalar T_set,
+                                 const unsigned int n_dimensions,
                                  const unsigned int Ncell)
     {
     // one thread per cell
@@ -54,23 +58,34 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
     // Initialize the PRNG using the cell index, timestep, and seed for the hash
     SaruGPU saru(global_idx, timestep, seed);
 
-    // calculate the random rotation vector for the cell
-    const double theta = saru.d(0, MPCD_2PI);
-    const double u = saru.d(-1.0, 1.0);
+    // draw rotation vector off the surface of the sphere
+    double3 rotvec;
+    mpcd::detail::SpherePointGenerator<double> sphgen;
+    sphgen(saru, rotvec);
+    d_rotvec[idx] = rotvec;
 
-    /*
-     * Sometimes numbers get drawn really close to -1 or +1, and the machine precision difference is a really
-     * small (negative) number. This causes sqrt() to fail with nan error, so we need to handle those cases by
-     * forcing the sqrt() to 0.0.
-     */
-    double sqrtu = 0.0;
-    const double one_minus_u2 = 1.0-u*u;
-    if (one_minus_u2 > 0.0)
+    if (use_thermostat)
         {
-        sqrtu = slow::sqrt(one_minus_u2);
-        }
+        const double3 cell_energy = d_cell_energy[idx];
+        const unsigned int np = __double_as_int(cell_energy.z);
+        double factor = 1.0;
+        if (np > 1)
+            {
+            // the total number of degrees of freedom in the cell divided by 2
+            const double alpha = n_dimensions*(np-1)/(double)2.;
 
-    d_rotvec[idx] = make_double3(sqrtu * slow::cos(theta), sqrtu*slow::sin(theta), u);
+            // draw a random kinetic energy for the cell at the set temperature
+            mpcd::detail::GammaGenerator<double> gamma_gen(alpha,T_set);
+            const double rand_ke = gamma_gen(saru);
+
+            // generate the scale factor from the current temperature
+            // (don't use the kinetic energy of this cell, since this
+            // is total not relative to COM)
+            const double cur_ke = alpha * cell_energy.y;
+            factor = fast::sqrt(rand_ke/cur_ke);
+            }
+        d_factors[idx] = factor;
+        }
     }
 __global__ void srd_rotate(Scalar4 *d_vel,
                            Scalar4 *d_vel_embed,
@@ -150,34 +165,73 @@ __global__ void srd_rotate(Scalar4 *d_vel,
 } // end namespace kernel
 
 cudaError_t srd_draw_vectors(double3 *d_rotvec,
+                             double *d_factors,
+                             const double3 *d_cell_energy,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,
                              const Index3D& global_ci,
                              const unsigned int timestep,
                              const unsigned int seed,
+                             const Scalar T_set,
+                             const unsigned int n_dimensions,
                              const unsigned int block_size)
     {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
+
+    if (d_factors != NULL)
         {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors);
-        max_block_size = attr.maxThreadsPerBlock;
+        static unsigned int max_block_themostat = UINT_MAX;
+        if (max_block_themostat == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<true>);
+            max_block_themostat = attr.maxThreadsPerBlock;
+            }
+
+        unsigned int run_block_size = min(block_size, max_block_themostat);
+
+        const unsigned int Ncell = ci.getNumElements();
+        dim3 grid(Ncell / run_block_size + 1);
+        mpcd::gpu::kernel::srd_draw_vectors<true><<<grid, run_block_size>>>(d_rotvec,
+                                                                            d_factors,
+                                                                            d_cell_energy,
+                                                                            ci,
+                                                                            origin,
+                                                                            global_dim,
+                                                                            global_ci,
+                                                                            timestep,
+                                                                            seed,
+                                                                            T_set,
+                                                                            n_dimensions,
+                                                                            Ncell);
         }
+    else
+        {
+        static unsigned int max_block_nothemostat = UINT_MAX;
+        if (max_block_nothemostat == UINT_MAX)
+            {
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<false>);
+            max_block_nothemostat = attr.maxThreadsPerBlock;
+            }
 
-    unsigned int run_block_size = min(block_size, max_block_size);
+        unsigned int run_block_size = min(block_size, max_block_nothemostat);
 
-    const unsigned int Ncell = ci.getNumElements();
-    dim3 grid(Ncell / run_block_size + 1);
-    mpcd::gpu::kernel::srd_draw_vectors<<<grid, run_block_size>>>(d_rotvec,
-                                                                  ci,
-                                                                  origin,
-                                                                  global_dim,
-                                                                  global_ci,
-                                                                  timestep,
-                                                                  seed,
-                                                                  Ncell);
+        const unsigned int Ncell = ci.getNumElements();
+        dim3 grid(Ncell / run_block_size + 1);
+        mpcd::gpu::kernel::srd_draw_vectors<false><<<grid, run_block_size>>>(d_rotvec,
+                                                                             d_factors,
+                                                                             d_cell_energy,
+                                                                             ci,
+                                                                             origin,
+                                                                             global_dim,
+                                                                             global_ci,
+                                                                             timestep,
+                                                                             seed,
+                                                                             T_set,
+                                                                             n_dimensions,
+                                                                             Ncell);
+        }
 
     return cudaSuccess;
     }

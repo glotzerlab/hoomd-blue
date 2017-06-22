@@ -12,8 +12,6 @@
 #include "RandomNumbers.h"
 #include "hoomd/extern/saruprng.h"
 
-#define MPCD_2PI 6.283185307179586
-
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
                                              unsigned int period,
@@ -47,6 +45,13 @@ void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push(m_exec_conf, "MPCD collide");
+    // resize the rotation vectors and rescale factors
+    m_rotvec.resize(m_cl->getNCells());
+    if (m_use_thermostat)
+        {
+        m_factors.resize(m_cl->getNCells());
+        }
+
     // draw rotation vectors for each cell
     drawRotationVectors(timestep);
 
@@ -57,13 +62,6 @@ void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
 
 void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
     {
-    // resize the rotation vectors and rescale factors
-    m_rotvec.resize(m_cl->getNCells());
-    if (m_use_thermostat)
-        {
-        m_factors.resize(m_cl->getNCells());
-        }
-
     // cell indexers and rotation vectors
     const Index3D& ci = m_cl->getCellIndexer();
     const Index3D& global_ci = m_cl->getGlobalCellIndexer();
