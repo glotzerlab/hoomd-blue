@@ -9,6 +9,7 @@
  */
 
 #include "SRDCollisionMethod.h"
+#include "RandomNumbers.h"
 #include "hoomd/extern/saruprng.h"
 
 #define MPCD_2PI 6.283185307179586
@@ -20,7 +21,8 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> s
                                              unsigned int seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
     : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase,seed),
-      m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0)
+      m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0),
+      m_use_thermostat(false), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
     }
@@ -55,12 +57,28 @@ void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
 
 void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
     {
-    // resize the rotation vectors
+    // resize the rotation vectors and rescale factors
     m_rotvec.resize(m_cl->getNCells());
+    if (m_use_thermostat)
+        {
+        m_factors.resize(m_cl->getNCells());
+        }
 
+    // cell indexers and rotation vectors
     const Index3D& ci = m_cl->getCellIndexer();
     const Index3D& global_ci = m_cl->getGlobalCellIndexer();
     ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::overwrite);
+
+    // optional scale factors
+    std::unique_ptr< ArrayHandle<double> > h_factors;
+    std::unique_ptr< ArrayHandle<double3> > h_cell_energy;
+    Scalar T_set(1.0);
+    if (m_use_thermostat)
+        {
+        h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::overwrite));
+        h_cell_energy.reset(new ArrayHandle<double3>(m_thermo->getCellEnergies(), access_location::host, access_mode::read));
+        T_set = m_T->getValue(timestep);
+        }
 
     for (unsigned int k=0; k < ci.getD(); ++k)
         {
@@ -70,27 +88,39 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 {
                 const int3 global_cell = m_cl->getGlobalCell(make_int3(i,j,k));
                 const unsigned int global_idx = global_ci(global_cell.x, global_cell.y, global_cell.z);
+                const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
                 Saru saru(global_idx, timestep, m_seed);
 
-                // calculate the random rotation vector for the cell
-                const double theta = saru.d(0, MPCD_2PI);
-                const double u = saru.d(-1.0, 1.0);
+                // draw rotation vector off the surface of the sphere
+                double3 rotvec;
+                mpcd::detail::SpherePointGenerator<double> sphgen;
+                sphgen(saru, rotvec);
+                h_rotvec.data[idx] = rotvec;
 
-                /*
-                 * Sometimes numbers get drawn really close to -1 or +1, and the machine precision difference is a really
-                 * small (negative) number. This causes sqrt() to fail with nan error, so we need to handle those cases by
-                 * forcing the sqrt() to 0.0.
-                 */
-                double sqrtu = 0.0;
-                const double one_minus_u2 = 1.0-u*u;
-                if (one_minus_u2 > 0.0)
+                if (m_use_thermostat)
                     {
-                    sqrtu = slow::sqrt(one_minus_u2);
-                    }
+                    const double3 cell_energy = h_cell_energy->data[idx];
+                    const unsigned int np = __double_as_int(cell_energy.z);
+                    double factor = 1.0;
+                    if (np > 1)
+                        {
+                        // the total number of degrees of freedom in the cell divided by 2
+                        const double alpha = m_sysdef->getNDimensions()*(np-1)/(double)2.;
 
-                h_rotvec.data[ci(i,j,k)] = make_double3(sqrtu * slow::cos(theta), sqrtu*slow::sin(theta), u);
+                        // draw a random kinetic energy for the cell at the set temperature
+                        mpcd::detail::GammaGenerator<double> gamma_gen(alpha,T_set);
+                        const double rand_ke = gamma_gen(saru);
+
+                        // generate the scale factor from the current temperature
+                        // (don't use the kinetic energy of this cell, since this
+                        // is total not relative to COM)
+                        const double cur_ke = alpha * cell_energy.y;
+                        factor = fast::sqrt(rand_ke/cur_ke);
+                        }
+                    h_factors->data[idx] = factor;
+                    }
                 }
             }
         }
@@ -122,6 +152,13 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     const double cos_a = slow::cos(m_angle);
     const double one_minus_cos_a = 1.0 - cos_a;
     const double sin_a = slow::sin(m_angle);
+
+    // load scale factors if required
+    std::unique_ptr< ArrayHandle<double> > h_factors;
+    if (m_use_thermostat)
+        {
+        h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::read));
+        }
 
     for (unsigned int cur_p = 0; cur_p < N_tot; ++cur_p)
         {
@@ -169,6 +206,13 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
         new_vel.z = (cos_a + rot_vec.z*rot_vec.z*one_minus_cos_a) * vel.z;
         new_vel.z += (rot_vec.x*rot_vec.z*one_minus_cos_a - sin_a*rot_vec.y) * vel.x;
         new_vel.z += (rot_vec.y*rot_vec.z*one_minus_cos_a + sin_a*rot_vec.x) * vel.y;
+
+        // rescale the temperature if thermostatting is enabled
+        if (m_use_thermostat)
+            {
+            double factor = h_factors->data[cell];
+            new_vel.x *= factor; new_vel.y *= factor; new_vel.z *= factor;
+            }
 
         new_vel.x += avg_vel.x;
         new_vel.y += avg_vel.y;

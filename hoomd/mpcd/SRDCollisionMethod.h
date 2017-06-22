@@ -18,6 +18,8 @@
 #include "CollisionMethod.h"
 #include "CellThermoCompute.h"
 
+#include "hoomd/Variant.h"
+
 namespace mpcd
 {
 
@@ -59,10 +61,34 @@ class SRDCollisionMethod : public mpcd::CollisionMethod
             return m_rotvec;
             }
 
+        //! Get the cell-level rescale factors for the temperature
+        const GPUVector<double>& getScaleFactors() const
+            {
+            return m_factors;
+            }
+
+        //! Set the temperature and enable the thermostat
+        void setTemperature(std::shared_ptr<::Variant> T)
+            {
+            m_T = T;
+            // setting the temperature should enable the thermostat by default
+            enableThermostat(true);
+            }
+
+        //! Enable or disable the thermostat
+        void enableThermostat(bool enable)
+            {
+            m_use_thermostat = enable;
+            }
+
     protected:
         std::shared_ptr<mpcd::CellThermoCompute> m_thermo;  //!< Cell thermo
         GPUVector<double3> m_rotvec;    //!< MPCD rotation vectors
         double m_angle; //!< MPCD rotation angle (radians)
+
+        bool m_use_thermostat;          //!< Flag if thermostat is enabled
+        std::shared_ptr<::Variant> m_T; //!< Temperature for thermostat
+        GPUVector<double> m_factors;    //!< Cell-level rescale factors
 
         //! Randomly draw cell rotation vectors
         virtual void drawRotationVectors(unsigned int timestep);
