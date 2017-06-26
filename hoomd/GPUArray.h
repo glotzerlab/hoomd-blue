@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -790,6 +790,9 @@ template<class T> T* GPUArray<T>::aquire(const access_location::Enum location, c
     // base case - handle acquiring a NULL GPUArray by simply returning NULL to prevent any memcpys from being attempted
     if (isNull())
         return NULL;
+
+    if (m_exec_conf)
+        m_exec_conf->setGPUDevice();
 
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)

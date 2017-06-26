@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,6 +7,7 @@
 #include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
+#include "SharedSignal.h"
 
 #include <memory>
 
@@ -22,6 +23,7 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/numpy.h>
 
 /*! \ingroup hoomd_lib
     @{
@@ -56,7 +58,7 @@ class Updater
     public:
         //! Constructs the compute and associates it with the ParticleData
         Updater(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Updater() {};
+        virtual ~Updater()  {};
 
         //! Abstract method that performs the update
         /*! Derived classes will implement this method to perform their specific update
@@ -104,6 +106,34 @@ class Updater
             return Scalar(0.0);
             }
 
+        //! Returns a list of log matrix quantities this compute calculates
+        /*! The base class implementation just returns an empty vector. Derived classes should override
+            this behavior and return a list of quantities that they log.
+
+            See LogMatrix for more information on what this is about.
+        */
+        virtual std::vector< std::string > getProvidedLogMatrixQuantities()
+            {
+            return std::vector< std::string >();
+            }
+
+        //! Calculates the requested log matrix and returns it
+        /*! \param quantity Name of the log quantity to get
+            \param timestep Current time step of the simulation
+
+            The base class just returns an empty shared_ptr. Derived classes should override this behavior and return
+            the calculated value for the given quantity. Only quantities listed in
+            the return value getProvidedLogMatrixQuantities() will be requested from
+            getLogMatrixValue().
+
+            See LogMatrix for more information on what this is about.
+        */
+        virtual pybind11::array getLogMatrix(const std::string& quantity, unsigned int timestep)
+            {
+            unsigned char tmp[] = {0};
+            return pybind11::array(0,tmp);
+            }
+
         //! Print some basic stats to stdout
         /*! Derived classes can optionally implement this function. A System will
             call all of the Updaters' printStats functions at the end of a run
@@ -146,6 +176,26 @@ class Updater
             return m_exec_conf;
             }
 
+        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+            {
+            m_slots.push_back(slot);
+            }
+
+        void removeDisconnectedSlots()
+            {
+            for(unsigned int i = 0; i < m_slots.size();)
+                {
+                if(!m_slots[i]->connected())
+                    {
+                    m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
+                    m_slots.erase(m_slots.begin()+i);
+                    }
+                else
+                    {
+                    i++;
+                    }
+                }
+            }
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
@@ -154,6 +204,7 @@ class Updater
         std::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Updater class to python

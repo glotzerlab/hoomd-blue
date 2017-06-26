@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -36,13 +36,21 @@ const unsigned int MAX_SPHERE_CENTERS = 8;
 
 //! Data structure for sphere centers and diameters
 /*! \ingroup hpmc_data_structs */
-struct sphinx3d_params : aligned_struct
+struct sphinx3d_params : param_base
     {
     OverlapReal circumsphereDiameter;               //!< Circumsphere Diameter of all spheres defined in intersection
     unsigned int N;                                //!< Number of spheres
     OverlapReal diameter[MAX_SPHERE_CENTERS];      //!< Sphere Diameters
     vec3<OverlapReal> center[MAX_SPHERE_CENTERS];  //!< Sphere Centers (in local frame)
     unsigned int ignore;    //!< 0: Process overlaps - if (a.ignore == True) and (b.ignore == True) then test_overlap(a,b) = False
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 }; // end namespace detail
@@ -132,7 +140,6 @@ struct ShapeSphinx
 
     //!Ignore flag for overlaps
     HOSTDEVICE static bool isParallel() {return false; }
-
 
     quat<Scalar> orientation;                   //!< Orientation of the sphinx
 

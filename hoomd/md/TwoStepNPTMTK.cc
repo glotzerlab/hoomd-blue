@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -966,7 +966,7 @@ void export_TwoStepNPTMTK(py::module& m)
     py::enum_<TwoStepNPTMTK::couplingMode>(twostepnptmtk,"couplingMode")
     .value("couple_none", TwoStepNPTMTK::couplingMode::couple_none)
     .value("couple_xy", TwoStepNPTMTK::couplingMode::couple_xy)
-    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_xz)
     .value("couple_yz", TwoStepNPTMTK::couplingMode::couple_yz)
     .value("couple_xyz", TwoStepNPTMTK::couplingMode::couple_xyz)
     .export_values()

@@ -238,7 +238,7 @@ class compressor (unittest.TestCase):
         self.args['relax'] = 1e3
         system = create_empty(N=2, box=data.boxdim(L=3), particle_types=['A'])
         system.particles[1].position = (2.0,0,0)
-        mc = hpmc.integrate.convex_polyhedron(seed=1,max_verts=8)
+        mc = hpmc.integrate.convex_polyhedron(seed=1)
         mc.set_params(d=0.1, a=0.1)
         mc.shape_param.set('A', vertices=[ (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
            (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: jproc
@@ -502,10 +502,10 @@ class wallpotential(external._external_force):
 
     The wall potential can be linearly extrapolated beyond a minimum separation from the wall
     :math:`r_{\mathrm{extrap}}` in the active half-space. This can be useful for bringing particles outside the
-    half-space into the active half-space. It also useful for pushing particles off the wall by
-    effectively limiting the maximum force experienced by the particle. The potential is extrapolated into **both**
+    half-space into the active half-space. It can also be useful for typical wall force usages by
+    effectively limiting the maximum force experienced by the particle due to the wall. The potential is extrapolated into **both**
     half-spaces and the cutoff :math:`r_{\mathrm{cut}}` only applies in the active half-space. The user should
-    then be careful using this mode with multiple nested walls. It is intended to be used primarily for equilibration.
+    then be careful using this mode with multiple nested walls. It is intended to be used primarily for initialization.
 
     The extrapolated potential has the following form:
 
@@ -513,18 +513,18 @@ class wallpotential(external._external_force):
         :nowrap:
 
         \begin{eqnarray*}
-        V(r) =& V_{\mathrm{pair}}(r) &, r > r_{\rm extrap} \\
-             =& V_{\mathrm{pair}}(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}_{\rm pair}(r_{\rm extrap}) \cdot \vec{n}&, r \le r_{\rm extrap}
+        V_{\mathrm{extrap}}(r) =& V(r) &, r > r_{\rm extrap} \\
+             =& V(r_{\rm extrap}) + (r_{\rm extrap}-r)\vec{F}(r_{\rm extrap}) \cdot \vec{n}&, r \le r_{\rm extrap}
         \end{eqnarray*}
 
     where :math:`\vec{n}` is the normal into the active half-space.
     This gives an effective force on the particle due to the wall:
 
-    .. math:
+    .. math::
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F} =& \vec{F}_{\rm pair}(r) &, r > r_{\rm extrap} \\
+        \vec{F}(r) =& \vec{F}_{\rm pair}(r) &, r > r_{\rm extrap} \\
                 =& \vec{F}_{\rm pair}(r_{\rm extrap}) &, r \le r_{\rm extrap}
         \end{eqnarray*}
 
@@ -534,7 +534,7 @@ class wallpotential(external._external_force):
         :nowrap:
 
         \begin{eqnarray*}
-        \vec{F}_{\rm pair} =& -\nabla V_{\rm pair}(r) &, r < r_{\rm cut} \\
+        \vec{F}_{\rm pair}(r) =& -\nabla V_{\rm pair}(r) &, r < r_{\rm cut} \\
                            =& 0 &, r \ge r_{\mathrm{cut}}
         \end{eqnarray*}
 

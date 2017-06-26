@@ -28,9 +28,10 @@ p = int(option.get_user()[0])
 P = params[p]
 
 class sphereEOS_test(unittest.TestCase):
+    n = 7
     def setUp(self):
-        n = 7;
-        N = n**3
+        context.initialize()
+        n = self.n
         a = (math.pi / (6*phi_p_ref[P]))**(1.0/3.0);
 
         self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
@@ -105,6 +106,9 @@ class sphereEOS_test(unittest.TestCase):
 
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(phi_p_avg-phi_p_ref[P]),ci*(phi_p_ref[P]*rel_err_cs+phi_p_err))
+
+class sphereEOS_test_noncubic(sphereEOS_test):
+    n = [7, 8, 6]
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

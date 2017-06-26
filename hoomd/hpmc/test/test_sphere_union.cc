@@ -24,17 +24,13 @@ using namespace hpmc::detail;
 
 unsigned int err_count;
 
-template<class Shape, unsigned int max_n_members>
-void build_tree(typename ShapeUnion<Shape, max_n_members>::param_type& data)
+template<class Shape>
+void build_tree(typename ShapeUnion<Shape>::param_type& data)
     {
-    typedef typename ShapeUnion<Shape, max_n_members>::param_type::gpu_tree_type gpu_tree_type;
-    typename gpu_tree_type::obb_tree_type tree;
+    typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
+    OBBTree tree;
     hpmc::detail::OBB *obbs;
-    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.N);
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned AABB memory.");
-        }
+    obbs = new hpmc::detail::OBB[data.N];
 
     // construct bounding box tree
     for (unsigned int i = 0; i < data.N; ++i)
@@ -43,8 +39,8 @@ void build_tree(typename ShapeUnion<Shape, max_n_members>::param_type& data)
         obbs[i] = OBB(dummy.getAABB(data.mpos[i]));
         }
 
-    tree.buildTree(obbs, data.N);
-    free(obbs);
+    tree.buildTree(obbs, data.N, 4);
+    delete[] obbs;
     data.tree = gpu_tree_type(tree);
     }
 
@@ -67,8 +63,7 @@ UP_TEST( construction )
     par_j.radius = R_j;
     par_i.ignore = 0;
 
-    ShapeUnion<ShapeSphere, 8>::param_type params;
-    params.N = 2;
+    ShapeUnion<ShapeSphere>::param_type params(2,false);
     params.diameter = 2*R;
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
@@ -78,10 +73,10 @@ UP_TEST( construction )
     params.mparams[1] = par_j;
     params.moverlap[0] = 1;
     params.moverlap[1] = 1;
-    build_tree<ShapeSphere, 8>(params);
+    build_tree<ShapeSphere>(params);
 
     // construct and check
-    ShapeUnion<ShapeSphere, 8> a(o, params);
+    ShapeUnion<ShapeSphere> a(o, params);
     MY_CHECK_CLOSE(a.orientation.s, o.s, tol);
     MY_CHECK_CLOSE(a.orientation.v.x, o.v.x, tol);
     MY_CHECK_CLOSE(a.orientation.v.y, o.v.y, tol);
@@ -122,8 +117,7 @@ UP_TEST( non_overlap )
     par_j.radius = R_j;
     par_i.ignore = 0;
 
-    ShapeUnion<ShapeSphere, 8>::param_type params;
-    params.N = 2;
+    ShapeUnion<ShapeSphere>::param_type params(2,false);
     params.diameter = 2*R;
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
@@ -134,11 +128,11 @@ UP_TEST( non_overlap )
     params.ignore = 0;
     params.moverlap[0] = 1;
     params.moverlap[1] = 1;
-    build_tree<ShapeSphere, 8>(params);
+    build_tree<ShapeSphere>(params);
 
     // create two identical dumbbells
-    ShapeUnion<ShapeSphere, 8> a(o_a, params);
-    ShapeUnion<ShapeSphere, 8> b(o_b, params);
+    ShapeUnion<ShapeSphere> a(o_a, params);
+    ShapeUnion<ShapeSphere> b(o_b, params);
 
     // trivial orientation
     r_a = vec3<Scalar>(0,0,0);
@@ -197,8 +191,7 @@ UP_TEST( overlapping_dumbbells )
     par_j.radius = R_j;
     par_i.ignore = 0;
 
-    ShapeUnion<ShapeSphere, 8>::param_type params;
-    params.N = 2;
+    ShapeUnion<ShapeSphere>::param_type params(2,false);
     params.diameter = 2*R;
     params.mpos[0] = vec3<Scalar>(x_i, 0, 0);
     params.mpos[1] = vec3<Scalar>(x_j, 0, 0);
@@ -209,11 +202,11 @@ UP_TEST( overlapping_dumbbells )
     params.ignore = 0;
     params.moverlap[0] = 1;
     params.moverlap[1] = 1;
-    build_tree<ShapeSphere, 8>(params);
+    build_tree<ShapeSphere>(params);
 
     // create two identical dumbbells
-    ShapeUnion<ShapeSphere, 8> a(o_a, params);
-    ShapeUnion<ShapeSphere, 8> b(o_b, params);
+    ShapeUnion<ShapeSphere> a(o_a, params);
+    ShapeUnion<ShapeSphere> b(o_b, params);
 
     // trivial orientation
     r_a = vec3<Scalar>(0,0,0);
