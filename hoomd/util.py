@@ -15,6 +15,24 @@ import hoomd;
 from hoomd import _hoomd;
 
 ## \internal
+# \brief Compatibility definition of a basestring for python 2/3
+try:
+    _basestring = basestring
+except NameError:
+    _basestring = str
+
+## \internal
+# \brief Checks if a variable is an instance of a string or a
+#        list of strings, and always returns a list.
+# \param s Variable to turn into a list of strings
+# \returns A list of strings
+def listify(s):
+    if isinstance(s, _basestring):
+        return [s]
+    else:
+        return s
+
+## \internal
 # \brief Internal flag tracking if status lines should be quieted
 _status_quiet_count = 0;
 
