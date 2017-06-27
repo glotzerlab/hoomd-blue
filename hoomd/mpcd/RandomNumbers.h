@@ -15,6 +15,8 @@
 #ifndef MPCD_RANDOM_NUMBERS_H_
 #define MPCD_RANDOM_NUMBERS_H_
 
+#include "hoomd/HOOMDMath.h"
+
 #ifdef NVCC
 #define HOSTDEVICE __host__ __device__
 #else
@@ -29,13 +31,13 @@ namespace detail
 {
 
 //! Generate a random point on the surface of a sphere
-template<typename Real=double>
+template<typename Real>
 class SpherePointGenerator
     {
     public:
         HOSTDEVICE explicit SpherePointGenerator() {}
 
-        template<typename GeneratorType, typename Real3=double3>
+        template<typename GeneratorType, typename Real3>
         HOSTDEVICE inline void operator()(GeneratorType& rng, Real3& point)
             {
             // draw a random angle

@@ -189,7 +189,6 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
         collide->collide(sample_i);
         ArrayHandle<double3> h_rotvec(collide->getRotationVectors(), access_location::host, access_mode::read);
 
-        std::vector<unsigned int> cur_fphi(nbins, 0), cur_ftheta(nbins, 0);
         for (unsigned int cell_i = 0; cell_i < ncells; ++cell_i)
             {
             const double3 rotvec = h_rotvec.data[cell_i];
