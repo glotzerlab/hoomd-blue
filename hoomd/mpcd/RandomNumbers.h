@@ -53,10 +53,10 @@ class SpherePointGenerator
                 }
             while (one_minus_u2 < Real(0.0));
 
-            // project onto the sphere surface using slow math to ensure norm is correct
-            const Real sqrtu = slow::sqrt(one_minus_u2);
-            point.x = sqrtu * slow::cos(theta);
-            point.y = sqrtu*slow::sin(theta);
+            // project onto the sphere surface
+            const Real sqrtu = fast::sqrt(one_minus_u2);
+            point.x = sqrtu * fast::cos(theta);
+            point.y = sqrtu * fast::sin(theta);
             point.z = u;
             }
     };
