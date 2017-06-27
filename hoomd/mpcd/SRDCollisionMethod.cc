@@ -19,8 +19,7 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> s
                                              unsigned int seed,
                                              std::shared_ptr<mpcd::CellThermoCompute> thermo)
     : mpcd::CollisionMethod(sysdata,cur_timestep,period,phase,seed),
-      m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0),
-      m_use_thermostat(false), m_factors(m_exec_conf)
+      m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
     }
@@ -47,7 +46,7 @@ void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf, "MPCD collide");
     // resize the rotation vectors and rescale factors
     m_rotvec.resize(m_cl->getNCells());
-    if (m_use_thermostat)
+    if (m_T)
         {
         m_factors.resize(m_cl->getNCells());
         }
@@ -71,7 +70,8 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
     std::unique_ptr< ArrayHandle<double> > h_factors;
     std::unique_ptr< ArrayHandle<double3> > h_cell_energy;
     Scalar T_set(1.0);
-    if (m_use_thermostat)
+    const bool use_thermostat = (m_T) ? true : false;
+    if (use_thermostat)
         {
         h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::overwrite));
         h_cell_energy.reset(new ArrayHandle<double3>(m_thermo->getCellEnergies(), access_location::host, access_mode::read));
@@ -97,7 +97,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 sphgen(saru, rotvec);
                 h_rotvec.data[idx] = rotvec;
 
-                if (m_use_thermostat)
+                if (use_thermostat)
                     {
                     const double3 cell_energy = h_cell_energy->data[idx];
                     const unsigned int np = __double_as_int(cell_energy.z);
@@ -152,8 +152,9 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     const double sin_a = slow::sin(m_angle);
 
     // load scale factors if required
+    const bool use_thermostat = (m_T) ? true : false;
     std::unique_ptr< ArrayHandle<double> > h_factors;
-    if (m_use_thermostat)
+    if (use_thermostat)
         {
         h_factors.reset(new ArrayHandle<double>(m_factors, access_location::host, access_mode::read));
         }
@@ -206,7 +207,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
         new_vel.z += (rot_vec.y*rot_vec.z*one_minus_cos_a + sin_a*rot_vec.x) * vel.y;
 
         // rescale the temperature if thermostatting is enabled
-        if (m_use_thermostat)
+        if (use_thermostat)
             {
             double factor = h_factors->data[cell];
             new_vel.x *= factor; new_vel.y *= factor; new_vel.z *= factor;
@@ -244,6 +245,6 @@ void mpcd::detail::export_SRDCollisionMethod(pybind11::module& m)
                       std::shared_ptr<mpcd::CellThermoCompute>>())
         .def("setRotationAngle", &mpcd::SRDCollisionMethod::setRotationAngle)
         .def("setTemperature", &mpcd::SRDCollisionMethod::setTemperature)
-        .def("enableThermostat", &mpcd::SRDCollisionMethod::enableThermostat)
+        .def("unsetTemperature", &mpcd::SRDCollisionMethod::unsetTemperature)
     ;
     }
