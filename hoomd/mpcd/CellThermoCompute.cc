@@ -21,7 +21,7 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),
           m_needs_net_reduce(true), m_cell_vel(m_exec_conf), m_cell_energy(m_exec_conf),
-          m_ncells_alloc(0)
+          m_ncells_alloc(0), m_enable_log(true)
     {
     assert(m_mpcd_pdata);
     assert(m_cl);
@@ -78,7 +78,10 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
 
 std::vector<std::string> mpcd::CellThermoCompute::getProvidedLogQuantities()
     {
-    return m_logname_list;
+    if (m_enable_log)
+        return m_logname_list;
+    else
+        return std::vector<std::string>();
     }
 
 Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigned int timestep)
@@ -524,5 +527,6 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     py::class_<mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoCompute> >
         (m, "CellThermoCompute", py::base<Compute>())
         .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
+        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >())
+        .def("enableLogging", &mpcd::CellThermoCompute::enableLogging);
     }

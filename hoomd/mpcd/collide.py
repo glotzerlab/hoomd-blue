@@ -184,13 +184,18 @@ class at(_collision_method):
         else:
             collide_class = _mpcd.ATCollisionMethodGPU
             thermo_class = _mpcd.CellThermoComputeGPU
+
+        # create an auxilliary thermo compute and disable logging on it
+        rand_thermo = thermo_class(hoomd.context.current.mpcd.data)
+        rand_thermo.enableLogging(False)
+
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
                                   -1,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo,
-                                  thermo_class(hoomd.context.current.mpcd.data),
+                                  rand_thermo,
                                   self.kT.cpp_variant)
 
         hoomd.util.quiet_status()

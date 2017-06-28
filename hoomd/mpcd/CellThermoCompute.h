@@ -110,6 +110,18 @@ class CellThermoCompute : public Compute
             #endif // ENABLE_MPI
             }
 
+        //! Enable / disable logging
+        /*!
+         * \param enable If True, expose quantities to the logger
+         *
+         * Internal CellThermoCompute instances should not provide any quantities
+         * to the logger.
+         */
+        void enableLogging(bool enable)
+            {
+            m_enable_log = enable;
+            }
+
     protected:
         //! Compute the cell properties
         void computeCellProperties();
@@ -143,7 +155,8 @@ class CellThermoCompute : public Compute
         GPUVector<double3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
         unsigned int m_ncells_alloc;        //!< Number of cells allocated for
 
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
+        bool m_enable_log;                          //!< Flag to enable logging
+        std::vector<std::string> m_logname_list;    //!< Cache all generated logged quantities names
 
     private:
         //! Allocate memory per cell
