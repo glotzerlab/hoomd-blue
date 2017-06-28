@@ -22,12 +22,16 @@ namespace gpu
 {
 
 cudaError_t srd_draw_vectors(double3 *d_rotvec,
+                             double *d_factors,
+                             const double3 *d_cell_energy,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,
                              const Index3D& global_ci,
                              const unsigned int timestep,
                              const unsigned int seed,
+                             const Scalar T_set,
+                             const unsigned int n_dimensions,
                              const unsigned int block_size);
 
 cudaError_t srd_rotate(Scalar4 *d_vel,
@@ -37,6 +41,7 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                        const double4 *d_cell_vel,
                        const double3 *d_rotvec,
                        const double angle,
+                       const double *d_factors,
                        const unsigned int N_mpcd,
                        const unsigned int N_tot,
                        const unsigned int block_size);

@@ -102,6 +102,7 @@ class _collision_method(hoomd.meta._metadata):
         Only one collision method can be attached to the system at any time.
         If another method is already set, :py:meth:`disable()` must be called
         first before switching.
+
         """
         hoomd.util.print_status_line()
 
@@ -118,6 +119,7 @@ class _collision_method(hoomd.meta._metadata):
         Disabling the collision method removes it from the current MPCD system definition.
         Only one collision method can be attached to the system at any time, so
         use this method to remove the current collision method before adding another.
+
         """
         hoomd.util.print_status_line()
 
@@ -132,6 +134,9 @@ class srd(_collision_method):
         period (int): Number of integration steps between collisions
         angle (float): SRD rotation angle (degrees)
         group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature set
+            point for the thermostat (in energy units). If False (default), no
+            thermostat is applied and an NVE simulation is run.
 
     This class implements the classic stochastic rotation dynamics collision
     rule for MPCD. Every *period* steps, the particles are binned into cells
@@ -165,22 +170,31 @@ class srd(_collision_method):
     the MPCD particles and *group*. Accordingly, the system must be properly
     initialized to the correct temperature. (SRD has an H theorem, and so
     particles exchange momentum to reach an equilibrium temperature.) A thermostat
-    can be applied in conjunction with the SRD method, in which case the particle
-    velocities are rescaled. The thermostat causes the SRD algorithm to still
-    conserve momentum, but energy is no longer conserved. See XX for a
-    description of available thermostats.
+    can be applied in conjunction with the SRD method through the *kT* parameter.
+    SRD employs a Maxwell-Boltzmann thermostat on the cell level, which generates
+    the (correct) isothermal ensemble. The temperature is defined relative to the
+    cell-average velocity, and so can be used to dissipate heat in nonequilibrium
+    simulations. Under this thermostat, the SRD algorithm still conserves momentum,
+    but energy is of course no longer conserved.
+
+    Note:
+        Setting *kT* will automatically enable the thermostat, while omitting
+        it will perform an NVE simulation. Use :py:meth:`set_thermostat()` to
+        enable / disable the thermostat or change the temperature setpoint
+        during a simulation.
 
     Examples::
 
         collide.srd(seed=42, period=1, angle=130.)
         collide.srd(seed=77, period=50, angle=130., group=hoomd.group.all())
+        collide.srd(seed=1991, period=10, angle=90., kT=1.5)
 
     """
-    def __init__(self, seed, period, angle, group=None):
+    def __init__(self, seed, period, angle, group=None, kT=False):
         hoomd.util.print_status_line()
 
         _collision_method.__init__(self, seed, period)
-        self.metadata_fields += ['angle']
+        self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
             collide_class = _mpcd.SRDCollisionMethod
@@ -194,23 +208,29 @@ class srd(_collision_method):
                                   hoomd.context.current.mpcd._thermo)
 
         hoomd.util.quiet_status()
-        self.set_params(angle=angle)
+        self.set_params(angle=angle, kT=kT)
         if group is not None:
             self.embed(group)
         hoomd.util.unquiet_status()
 
-    def set_params(self, angle=None, shift=None):
+    def set_params(self, angle=None, shift=None, kT=None):
         """ Set parameters for the SRD collision method
 
         Args:
             angle (float): SRD rotation angle (degrees)
             shift (bool): If True, perform a random shift of the underlying cell list
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature
+                set point for the thermostat (in energy units). If False, any
+                set thermostat is removed and an NVE simulation is run.
 
         Examples::
 
             srd.set_params(angle=90.)
             srd.set_params(shift=False)
-            srd.set_params(angle=130., shift=True)
+            srd.set_params(angle=130., shift=True, kT=1.0)
+            srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
+            srd.set_params(kT=False)
+
         """
         hoomd.util.print_status_line()
 
@@ -220,3 +240,10 @@ class srd(_collision_method):
         if shift is not None:
             self.shift = shift
             self._cpp.enableGridShifting(shift)
+        if kT is not None:
+            if kT is False:
+                self._cpp.unsetTemperature()
+                self.kT = kT
+            else:
+                self.kT = hoomd.variant._setup_variant_input(kT)
+                self._cpp.setTemperature(self.kT.cpp_variant)

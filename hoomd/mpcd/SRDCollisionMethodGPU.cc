@@ -25,21 +25,47 @@ mpcd::SRDCollisionMethodGPU::SRDCollisionMethodGPU(std::shared_ptr<mpcd::SystemD
 
 void mpcd::SRDCollisionMethodGPU::drawRotationVectors(unsigned int timestep)
     {
-    // resize the rotation vectors
-    m_rotvec.resize(m_cl->getNCells());
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::overwrite);
 
-    m_tuner_rotvec->begin();
-    mpcd::gpu::srd_draw_vectors(d_rotvec.data,
-                                m_cl->getCellIndexer(),
-                                m_cl->getOriginIndex(),
-                                m_cl->getGlobalDim(),
-                                m_cl->getGlobalCellIndexer(),
-                                timestep,
-                                m_seed,
-                                m_tuner_rotvec->getParam());
-    if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
-    m_tuner_rotvec->end();
+    if (m_T)
+        {
+        ArrayHandle<double> d_factors(m_factors, access_location::device, access_mode::overwrite);
+        ArrayHandle<double3> d_cell_energy(m_thermo->getCellEnergies(), access_location::device, access_mode::read);
+
+        m_tuner_rotvec->begin();
+        mpcd::gpu::srd_draw_vectors(d_rotvec.data,
+                                    d_factors.data,
+                                    d_cell_energy.data,
+                                    m_cl->getCellIndexer(),
+                                    m_cl->getOriginIndex(),
+                                    m_cl->getGlobalDim(),
+                                    m_cl->getGlobalCellIndexer(),
+                                    timestep,
+                                    m_seed,
+                                    m_T->getValue(timestep),
+                                    m_sysdef->getNDimensions(),
+                                    m_tuner_rotvec->getParam());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        m_tuner_rotvec->end();
+        }
+    else
+        {
+        m_tuner_rotvec->begin();
+        mpcd::gpu::srd_draw_vectors(d_rotvec.data,
+                                    NULL,
+                                    NULL,
+                                    m_cl->getCellIndexer(),
+                                    m_cl->getOriginIndex(),
+                                    m_cl->getGlobalDim(),
+                                    m_cl->getGlobalCellIndexer(),
+                                    timestep,
+                                    m_seed,
+                                    1.0,
+                                    m_sysdef->getNDimensions(),
+                                    m_tuner_rotvec->getParam());
+        if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
+        m_tuner_rotvec->end();
+        }
     }
 
 void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
@@ -52,6 +78,13 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
     // acquire cell velocities and rotation vectors
     ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(), access_location::device, access_mode::read);
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::read);
+
+    // load scale factors if required
+    std::unique_ptr< ArrayHandle<double> > d_factors;
+    if (m_T)
+        {
+        d_factors.reset(new ArrayHandle<double>(m_factors, access_location::device, access_mode::read));
+        }
 
     if (m_embed_group)
         {
@@ -69,6 +102,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
                               d_cell_vel.data,
                               d_rotvec.data,
                               m_angle,
+                              (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());
@@ -85,6 +119,7 @@ void mpcd::SRDCollisionMethodGPU::rotate(unsigned int timestep)
                               d_cell_vel.data,
                               d_rotvec.data,
                               m_angle,
+                              (m_T) ? d_factors->data : NULL,
                               N_mpcd,
                               N_tot,
                               m_tuner_rotate->getParam());

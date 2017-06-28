@@ -189,7 +189,6 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
         collide->collide(sample_i);
         ArrayHandle<double3> h_rotvec(collide->getRotationVectors(), access_location::host, access_mode::read);
 
-        std::vector<unsigned int> cur_fphi(nbins, 0), cur_ftheta(nbins, 0);
         for (unsigned int cell_i = 0; cell_i < ncells; ++cell_i)
             {
             const double3 rotvec = h_rotvec.data[cell_i];
@@ -318,6 +317,51 @@ void srd_collision_method_embed_test(std::shared_ptr<ExecutionConfiguration> exe
     CHECK_CLOSE(orig_mom.z, mom.z, tol_small);
     }
 
+//! Test that the thermostat can generate the correct temperature
+template<class CM>
+void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    const BoxDim box(10.0);
+    auto sysdef = std::make_shared<::SystemDefinition>(0, box, 1, 0, 0, 0, 0, exec_conf);
+    auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, exec_conf);
+    auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, pdata);
+
+    auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
+    std::shared_ptr<mpcd::SRDCollisionMethod> collide = std::make_shared<CM>(mpcd_sys, 0, 1, -1, 827, thermo);
+
+    // timestep counter and number of samples to make
+    unsigned int timestep = 0;
+    const unsigned int N = 1000;
+
+    // set the temperature to 2.0 and check
+        {
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(2.0);
+        collide->setTemperature(T);
+        double mean(0.0);
+        for (unsigned int i=0; i < N; ++i)
+            {
+            collide->collide(timestep++);
+            mean += thermo->getTemperature();
+            }
+        mean /= N;
+        CHECK_CLOSE(mean, 2.0, tol);
+        }
+
+    // change the temperature and check again
+        {
+        std::shared_ptr<::Variant> T = std::make_shared<::VariantConst>(4.0);
+        collide->setTemperature(T);
+        double mean(0.0);
+        for (unsigned int i=0; i < N; ++i)
+            {
+            collide->collide(timestep++);
+            mean += thermo->getTemperature();
+            }
+        mean /= N;
+        CHECK_CLOSE(mean, 4.0, tol);
+        }
+    }
+
 //! basic test case for MPCD SRDCollisionMethod class
 UP_TEST( srd_collision_method_basic )
     {
@@ -332,6 +376,10 @@ UP_TEST( srd_collision_method_rotvec )
 UP_TEST( srd_collision_method_embed )
     {
     srd_collision_method_embed_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
+    }
+UP_TEST( srd_collision_method_thermostat )
+    {
+    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
 #ifdef ENABLE_CUDA
 //! basic test case for MPCD SRDCollisionMethodGPU class
@@ -348,5 +396,9 @@ UP_TEST( srd_collision_method_rotvec_gpu )
 UP_TEST( srd_collision_method_embed_gpu )
     {
     srd_collision_method_embed_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    }
+UP_TEST( srd_collision_method_thermostat_gpu )
+    {
+    srd_collision_method_thermostat_test<mpcd::SRDCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
 #endif // ENABLE_CUDA

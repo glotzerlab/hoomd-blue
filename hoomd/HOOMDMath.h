@@ -441,6 +441,22 @@ inline HOSTDEVICE double exp(double x)
     return ::exp(x);
     }
 
+//! Compute the natural log of x
+inline HOSTDEVICE float log(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return __logf(x);
+    #else
+    return ::log(x);
+    #endif
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE double log(double x)
+    {
+    return ::log(x);
+    }
+
 //! Compute the sqrt of x
 inline HOSTDEVICE float sqrt(float x)
     {
@@ -570,6 +586,22 @@ inline HOSTDEVICE float exp(float x)
 inline HOSTDEVICE double exp(double x)
     {
     return ::exp(x);
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE float log(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return logf(x);
+    #else
+    return ::log(x);
+    #endif
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE double log(double x)
+    {
+    return ::log(x);
     }
 
 //! Compute the sqrt of x
