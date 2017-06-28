@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    ATCollisionMethod.cc
     CellCommunicator.cc
     CellThermoCompute.cc
     CellList.cc
@@ -21,6 +22,7 @@ set(_mpcd_sources
     )
 
 set(_mpcd_headers
+    ATCollisionMethod.h
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
