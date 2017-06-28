@@ -174,7 +174,7 @@ void mpcd::ATCollisionMethod::applyVelocities()
 
         if (idx < N_mpcd)
             {
-            h_vel.data[idx] = make_scalar4(vnew.x, vnew.y, vnew.z, __int_as_scalar(cell));
+            h_vel.data[pidx] = make_scalar4(vnew.x, vnew.y, vnew.z, __int_as_scalar(cell));
             }
         else
             {

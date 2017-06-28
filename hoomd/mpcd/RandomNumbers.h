@@ -18,9 +18,9 @@
 #include "hoomd/HOOMDMath.h"
 
 #ifdef NVCC
-#define HOSTDEVICE __host__ __device__
+#define DEVICE __device__
 #else
-#define HOSTDEVICE
+#define DEVICE
 #endif // NVCC
 
 #define MPCD_2PI 6.283185307179586
@@ -35,10 +35,10 @@ template<typename Real>
 class SpherePointGenerator
     {
     public:
-        HOSTDEVICE explicit SpherePointGenerator() {}
+        DEVICE explicit SpherePointGenerator() {}
 
         template<typename GeneratorType, typename Real3>
-        HOSTDEVICE inline void operator()(GeneratorType& rng, Real3& point)
+        DEVICE inline void operator()(GeneratorType& rng, Real3& point)
             {
             // draw a random angle
             const Real theta = rng.s(Real(0), Real(MPCD_2PI));
@@ -66,7 +66,7 @@ template<typename Real, bool use_cache=true>
 class NormalGenerator
     {
     public:
-        HOSTDEVICE explicit NormalGenerator()
+        DEVICE explicit NormalGenerator()
             : m_cache(false), m_val(0.0)
             {}
 
@@ -76,7 +76,7 @@ class NormalGenerator
          * \returns Normally distributed random variable with mean zero and unit variance
          */
         template<typename GeneratorType>
-        HOSTDEVICE inline Real operator()(GeneratorType& rng)
+        DEVICE inline Real operator()(GeneratorType& rng)
             {
             // if available, use value from the cache first
             if (use_cache && m_cache)
@@ -138,7 +138,7 @@ class GammaGenerator
          * \param alpha
          * \param b
          */
-        HOSTDEVICE explicit GammaGenerator(const Real alpha, const Real b)
+        DEVICE explicit GammaGenerator(const Real alpha, const Real b)
             : m_b(b)
             {
             m_d = alpha - Real(1./3.);
@@ -158,7 +158,7 @@ class GammaGenerator
          * The squeeze test is performed to bypass some transcendental calls.
          */
         template<typename GeneratorType>
-        HOSTDEVICE inline Real operator()(GeneratorType& rng)
+        DEVICE inline Real operator()(GeneratorType& rng)
             {
             Real v;
             while(1)
