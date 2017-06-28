@@ -47,20 +47,23 @@ void mpcd::ATCollisionMethod::collide(unsigned int timestep)
     m_cl->compute(timestep);
     m_thermo->compute(timestep);
 
-    if (m_prof) m_prof->push(m_exec_conf, "MPCD collide");
-
+    if (m_prof) m_prof->push("MPCD collide");
+    if (m_prof) m_prof->push(m_exec_conf, "draw");
     // draw velocities for each particle from the normal distribution
     drawVelocities(timestep);
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // compute the cell average of the random velocities
     m_pdata->swapVelocities(); m_mpcd_pdata->swapVelocities();
     m_rand_thermo->compute(timestep);
     m_pdata->swapVelocities(); m_mpcd_pdata->swapVelocities();
 
+    if (m_prof) m_prof->push(m_exec_conf, "apply");
     // apply random velocities
     applyVelocities();
-
     if (m_prof) m_prof->pop(m_exec_conf);
+
+    if (m_prof) m_prof->pop();
     }
 
 void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
