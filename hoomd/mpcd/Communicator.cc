@@ -285,7 +285,7 @@ void mpcd::Communicator::migrateParticles()
         unsigned int n_recv_left, n_recv_right;
         if (left_neigh != right_neigh)
             {
-            m_reqs.reserve(4);
+            m_reqs.resize(4);
             MPI_Isend(&n_send_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
             MPI_Irecv(&n_recv_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[1]);
             MPI_Isend(&n_send_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, &m_reqs[2]);
@@ -296,7 +296,7 @@ void mpcd::Communicator::migrateParticles()
             {
             // send right, receive left (same thing, really) only if neighbors match
             n_recv_right = 0;
-            m_reqs.reserve(2);
+            m_reqs.resize(2);
             MPI_Isend(&n_send_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, &m_reqs[0]);
             MPI_Irecv(&n_recv_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, &m_reqs[1]);
             MPI_Waitall(2, m_reqs.data(), MPI_STATUSES_IGNORE);
@@ -308,7 +308,7 @@ void mpcd::Communicator::migrateParticles()
             ArrayHandle<mpcd::detail::pdata_element> h_sendbuf(m_sendbuf, access_location::host, access_mode::read);
             ArrayHandle<mpcd::detail::pdata_element> h_recvbuf(m_recvbuf, access_location::host, access_mode::overwrite);
             if (m_prof) m_prof->push("MPI send/recv");
-            m_reqs.reserve(4);
+            m_reqs.resize(4);
             int nreq = 0;
             if (n_send_right != 0)
                 {
@@ -429,7 +429,7 @@ void mpcd::Communicator::checkDecomposition()
     const Scalar3 global_L = global_box.getL();
 
     // 4 requests will be needed per call
-    m_reqs.reserve(4);
+    m_reqs.resize(4);
 
     int error = 0;
     for (unsigned int dim=0; dim < m_sysdef->getNDimensions(); ++dim)

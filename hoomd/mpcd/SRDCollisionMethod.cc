@@ -60,7 +60,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
 
     const Index3D& ci = m_cl->getCellIndexer();
     const Index3D& global_ci = m_cl->getGlobalCellIndexer();
-    ArrayHandle<Scalar3> h_rotvec(m_rotvec, access_location::host, access_mode::overwrite);
+    ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::overwrite);
 
     for (unsigned int k=0; k < ci.getD(); ++k)
         {
@@ -115,7 +115,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
         }
 
     // acquire cell velocities
-    ArrayHandle<Scalar4> h_cell_vel(m_thermo->getCellVelocities(), access_location::host, access_mode::read);
+    ArrayHandle<double4> h_cell_vel(m_thermo->getCellVelocities(), access_location::host, access_mode::read);
 
     // load rotation vector and precompute functions for rotation matrix
     ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::read);
@@ -146,7 +146,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
             }
 
         // subtract average velocity
-        const Scalar4 avg_vel = h_cell_vel.data[cell];
+        const double4 avg_vel = h_cell_vel.data[cell];
         vel.x -= avg_vel.x;
         vel.y -= avg_vel.y;
         vel.z -= avg_vel.z;

@@ -98,14 +98,14 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
         // positions should be in order now
         ArrayHandle<Scalar4> h_pos(pdata->getPositions(), access_location::host, access_mode::read);
-        UP_ASSERT_EQUAL(h_pos.data[0].x, -0.5); UP_ASSERT_EQUAL(h_pos.data[0].y, -0.5); UP_ASSERT_EQUAL(h_pos.data[0].z, -0.5);
-        UP_ASSERT_EQUAL(h_pos.data[1].x,  0.5); UP_ASSERT_EQUAL(h_pos.data[1].y, -0.5); UP_ASSERT_EQUAL(h_pos.data[1].z, -0.5);
-        UP_ASSERT_EQUAL(h_pos.data[2].x, -0.5); UP_ASSERT_EQUAL(h_pos.data[2].y,  0.5); UP_ASSERT_EQUAL(h_pos.data[2].z, -0.5);
-        UP_ASSERT_EQUAL(h_pos.data[3].x,  0.5); UP_ASSERT_EQUAL(h_pos.data[3].y,  0.5); UP_ASSERT_EQUAL(h_pos.data[3].z, -0.5);
-        UP_ASSERT_EQUAL(h_pos.data[4].x, -0.5); UP_ASSERT_EQUAL(h_pos.data[4].y, -0.5); UP_ASSERT_EQUAL(h_pos.data[4].z,  0.5);
-        UP_ASSERT_EQUAL(h_pos.data[5].x,  0.5); UP_ASSERT_EQUAL(h_pos.data[5].y, -0.5); UP_ASSERT_EQUAL(h_pos.data[5].z,  0.5);
-        UP_ASSERT_EQUAL(h_pos.data[6].x, -0.5); UP_ASSERT_EQUAL(h_pos.data[6].y,  0.5); UP_ASSERT_EQUAL(h_pos.data[6].z,  0.5);
-        UP_ASSERT_EQUAL(h_pos.data[7].x,  0.5); UP_ASSERT_EQUAL(h_pos.data[7].y,  0.5); UP_ASSERT_EQUAL(h_pos.data[7].z,  0.5);
+        CHECK_CLOSE(h_pos.data[0].x, -0.5, tol); CHECK_CLOSE(h_pos.data[0].y, -0.5, tol); CHECK_CLOSE(h_pos.data[0].z, -0.5, tol);
+        CHECK_CLOSE(h_pos.data[1].x,  0.5, tol); CHECK_CLOSE(h_pos.data[1].y, -0.5, tol); CHECK_CLOSE(h_pos.data[1].z, -0.5, tol);
+        CHECK_CLOSE(h_pos.data[2].x, -0.5, tol); CHECK_CLOSE(h_pos.data[2].y,  0.5, tol); CHECK_CLOSE(h_pos.data[2].z, -0.5, tol);
+        CHECK_CLOSE(h_pos.data[3].x,  0.5, tol); CHECK_CLOSE(h_pos.data[3].y,  0.5, tol); CHECK_CLOSE(h_pos.data[3].z, -0.5, tol);
+        CHECK_CLOSE(h_pos.data[4].x, -0.5, tol); CHECK_CLOSE(h_pos.data[4].y, -0.5, tol); CHECK_CLOSE(h_pos.data[4].z,  0.5, tol);
+        CHECK_CLOSE(h_pos.data[5].x,  0.5, tol); CHECK_CLOSE(h_pos.data[5].y, -0.5, tol); CHECK_CLOSE(h_pos.data[5].z,  0.5, tol);
+        CHECK_CLOSE(h_pos.data[6].x, -0.5, tol); CHECK_CLOSE(h_pos.data[6].y,  0.5, tol); CHECK_CLOSE(h_pos.data[6].z,  0.5, tol);
+        CHECK_CLOSE(h_pos.data[7].x,  0.5, tol); CHECK_CLOSE(h_pos.data[7].y,  0.5, tol); CHECK_CLOSE(h_pos.data[7].z,  0.5, tol);
         // types were set to the actual order of things
         UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[0].w), 0);
         UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[1].w), 1);
@@ -118,14 +118,14 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
         // velocities should also be sorted
         ArrayHandle<Scalar4> h_vel(pdata->getVelocities(), access_location::host, access_mode::read);
-        UP_ASSERT_EQUAL(h_vel.data[0].x, 0.); UP_ASSERT_EQUAL(h_vel.data[0].y, -0.5); UP_ASSERT_EQUAL(h_vel.data[0].z, 0.5);
-        UP_ASSERT_EQUAL(h_vel.data[1].x, 1.); UP_ASSERT_EQUAL(h_vel.data[1].y, -1.5); UP_ASSERT_EQUAL(h_vel.data[1].z, 1.5);
-        UP_ASSERT_EQUAL(h_vel.data[2].x, 2.); UP_ASSERT_EQUAL(h_vel.data[2].y, -2.5); UP_ASSERT_EQUAL(h_vel.data[2].z, 2.5);
-        UP_ASSERT_EQUAL(h_vel.data[3].x, 3.); UP_ASSERT_EQUAL(h_vel.data[3].y, -3.5); UP_ASSERT_EQUAL(h_vel.data[3].z, 3.5);
-        UP_ASSERT_EQUAL(h_vel.data[4].x, 4.); UP_ASSERT_EQUAL(h_vel.data[4].y, -4.5); UP_ASSERT_EQUAL(h_vel.data[4].z, 4.5);
-        UP_ASSERT_EQUAL(h_vel.data[5].x, 5.); UP_ASSERT_EQUAL(h_vel.data[5].y, -5.5); UP_ASSERT_EQUAL(h_vel.data[5].z, 5.5);
-        UP_ASSERT_EQUAL(h_vel.data[6].x, 6.); UP_ASSERT_EQUAL(h_vel.data[6].y, -6.5); UP_ASSERT_EQUAL(h_vel.data[6].z, 6.5);
-        UP_ASSERT_EQUAL(h_vel.data[7].x, 7.); UP_ASSERT_EQUAL(h_vel.data[7].y, -7.5); UP_ASSERT_EQUAL(h_vel.data[7].z, 7.5);
+        CHECK_CLOSE(h_vel.data[0].x, 0., tol); CHECK_CLOSE(h_vel.data[0].y, -0.5, tol); CHECK_CLOSE(h_vel.data[0].z, 0.5, tol);
+        CHECK_CLOSE(h_vel.data[1].x, 1., tol); CHECK_CLOSE(h_vel.data[1].y, -1.5, tol); CHECK_CLOSE(h_vel.data[1].z, 1.5, tol);
+        CHECK_CLOSE(h_vel.data[2].x, 2., tol); CHECK_CLOSE(h_vel.data[2].y, -2.5, tol); CHECK_CLOSE(h_vel.data[2].z, 2.5, tol);
+        CHECK_CLOSE(h_vel.data[3].x, 3., tol); CHECK_CLOSE(h_vel.data[3].y, -3.5, tol); CHECK_CLOSE(h_vel.data[3].z, 3.5, tol);
+        CHECK_CLOSE(h_vel.data[4].x, 4., tol); CHECK_CLOSE(h_vel.data[4].y, -4.5, tol); CHECK_CLOSE(h_vel.data[4].z, 4.5, tol);
+        CHECK_CLOSE(h_vel.data[5].x, 5., tol); CHECK_CLOSE(h_vel.data[5].y, -5.5, tol); CHECK_CLOSE(h_vel.data[5].z, 5.5, tol);
+        CHECK_CLOSE(h_vel.data[6].x, 6., tol); CHECK_CLOSE(h_vel.data[6].y, -6.5, tol); CHECK_CLOSE(h_vel.data[6].z, 6.5, tol);
+        CHECK_CLOSE(h_vel.data[7].x, 7., tol); CHECK_CLOSE(h_vel.data[7].y, -7.5, tol); CHECK_CLOSE(h_vel.data[7].z, 7.5, tol);
         // cells should be in the right order now too
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[0].w), 0);
         UP_ASSERT_EQUAL(__scalar_as_int(h_vel.data[1].w), 1);

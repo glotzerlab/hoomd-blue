@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    CellCommunicator.cc
     CellThermoCompute.cc
     CellList.cc
     CollisionMethod.cc

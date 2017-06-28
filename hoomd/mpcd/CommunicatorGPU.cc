@@ -225,7 +225,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
             // loop over neighbors
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors, access_location::host, access_mode::read);
             unsigned int nreq = 0;
-            m_reqs.reserve(2*m_n_unique_neigh);
+            m_reqs.resize(2*m_n_unique_neigh);
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                 {
                 if (m_stages[ineigh] != (int)stage)
@@ -261,7 +261,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
 
             // loop over neighbors
             unsigned int nreq = 0;
-            m_reqs.reserve(2*m_n_unique_neigh);
+            m_reqs.resize(2*m_n_unique_neigh);
             unsigned int sendidx = 0;
             for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ++ineigh)
                 {

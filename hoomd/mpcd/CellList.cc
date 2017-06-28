@@ -154,10 +154,10 @@ void mpcd::CellList::updateGlobalBox()
         m_global_cell_dim.z = 1;
         }
 
-    const Scalar eps = 1.0e-8f;
-    if ( fabs(L.x - Scalar(m_global_cell_dim.x)*m_cell_size) > eps*m_cell_size ||
-         fabs(L.y - Scalar(m_global_cell_dim.y)*m_cell_size) > eps*m_cell_size ||
-         (m_sysdef->getNDimensions() == 3 && fabs(L.z - Scalar(m_global_cell_dim.z)*m_cell_size) > eps*m_cell_size) )
+    const double eps = 1e-5;
+    if ( fabs((double)L.x - m_global_cell_dim.x*(double)m_cell_size) > eps*m_cell_size ||
+         fabs((double)L.y - m_global_cell_dim.y*(double)m_cell_size) > eps*m_cell_size ||
+         (m_sysdef->getNDimensions() == 3 && fabs((double)L.z - m_global_cell_dim.z*(double)m_cell_size) > eps*m_cell_size) )
         {
         m_exec_conf->msg->error() << "mpcd: Box size must be even multiple of cell size" << std::endl;
         throw std::runtime_error("MPCD cell size must evenly divide box");
@@ -786,11 +786,9 @@ void mpcd::CellList::getCellStatistics() const
  */
 const int3 mpcd::CellList::getLocalCell(const int3& global) const
     {
-    int3 wrap = wrapGlobalCell(global);
-
-    int3 local = make_int3(wrap.x - m_origin_idx.x,
-                           wrap.y - m_origin_idx.y,
-                           wrap.z - m_origin_idx.z);
+    int3 local = make_int3(global.x - m_origin_idx.x,
+                           global.y - m_origin_idx.y,
+                           global.z - m_origin_idx.z);
 
     return local;
     }

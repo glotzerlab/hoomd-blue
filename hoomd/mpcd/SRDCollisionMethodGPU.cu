@@ -19,7 +19,7 @@ namespace gpu
 {
 namespace kernel
 {
-__global__ void srd_draw_vectors(Scalar3 *d_rotvec,
+__global__ void srd_draw_vectors(double3 *d_rotvec,
                                  const Index3D ci,
                                  const int3 origin,
                                  const uint3 global_dim,
@@ -76,8 +76,8 @@ __global__ void srd_rotate(Scalar4 *d_vel,
                            Scalar4 *d_vel_embed,
                            const unsigned int *d_embed_group,
                            const unsigned int *d_embed_cell_ids,
-                           const Scalar4 *d_cell_vel,
-                           const Scalar3 *d_rotvec,
+                           const double4 *d_cell_vel,
+                           const double3 *d_rotvec,
                            const double cos_a,
                            const double one_minus_cos_a,
                            const double sin_a,
@@ -111,7 +111,7 @@ __global__ void srd_rotate(Scalar4 *d_vel,
         }
 
     // subtract average velocity
-    const Scalar4 avg_vel = d_cell_vel[cell];
+    const double4 avg_vel = d_cell_vel[cell];
     vel.x -= avg_vel.x;
     vel.y -= avg_vel.y;
     vel.z -= avg_vel.z;
@@ -149,7 +149,7 @@ __global__ void srd_rotate(Scalar4 *d_vel,
     }
 } // end namespace kernel
 
-cudaError_t srd_draw_vectors(Scalar3 *d_rotvec,
+cudaError_t srd_draw_vectors(double3 *d_rotvec,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,
@@ -186,8 +186,8 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                        Scalar4 *d_vel_embed,
                        const unsigned int *d_embed_group,
                        const unsigned int *d_embed_cell_ids,
-                       const Scalar4 *d_cell_vel,
-                       const Scalar3 *d_rotvec,
+                       const double4 *d_cell_vel,
+                       const double3 *d_rotvec,
                        const double angle,
                        const unsigned int N_mpcd,
                        const unsigned int N_tot,

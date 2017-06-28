@@ -21,7 +21,7 @@ namespace mpcd
 namespace gpu
 {
 
-cudaError_t srd_draw_vectors(Scalar3 *d_rotvec,
+cudaError_t srd_draw_vectors(double3 *d_rotvec,
                              const Index3D& ci,
                              const int3 origin,
                              const uint3 global_dim,
@@ -34,8 +34,8 @@ cudaError_t srd_rotate(Scalar4 *d_vel,
                        Scalar4 *d_vel_embed,
                        const unsigned int *d_embed_group,
                        const unsigned int *d_embed_cell_ids,
-                       const Scalar4 *d_cell_vel,
-                       const Scalar3 *d_rotvec,
+                       const double4 *d_cell_vel,
+                       const double3 *d_rotvec,
                        const double angle,
                        const unsigned int N_mpcd,
                        const unsigned int N_tot,

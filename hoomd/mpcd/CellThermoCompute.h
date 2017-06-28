@@ -48,13 +48,13 @@ class CellThermoCompute : public Compute
             }
 
         //! Get the cell velocities from the last call to compute
-        const GPUArray<Scalar4>& getCellVelocities() const
+        const GPUArray<double4>& getCellVelocities() const
             {
             return m_cell_vel;
             }
 
         //! Get the cell energies from the last call to compute
-        const GPUArray<Scalar3>& getCellEnergies() const
+        const GPUArray<double3>& getCellEnergies() const
             {
             return m_cell_energy;
             }
@@ -103,29 +103,27 @@ class CellThermoCompute : public Compute
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
             #ifdef ENABLE_MPI
-            if (m_cell_comm)
-                m_cell_comm->setAutotunerParams(enable, period);
-            #endif // ENABLE_MPI
-            }
-
-        //! Set the profiler used by this compute
-        /*!
-         * \param prof Profiler to use (if null, do not profile)
-         */
-        virtual void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            Compute::setProfiler(prof);
-            #ifdef ENABLE_MPI
-            if (m_cell_comm)
-                {
-                m_cell_comm->setProfiler(prof);
-                }
+            if (m_vel_comm)
+                m_vel_comm->setAutotunerParams(enable, period);
+            if (m_energy_comm)
+                m_energy_comm->setAutotunerParams(enable, period);
             #endif // ENABLE_MPI
             }
 
     protected:
         //! Compute the cell properties
-        virtual void computeCellProperties();
+        void computeCellProperties();
+
+        #ifdef ENABLE_MPI
+        //! Begin the calculation of outer cell properties
+        virtual void beginOuterCellProperties();
+
+        //! Finish the calculation of outer cell properties
+        virtual void finishOuterCellProperties();
+        #endif // ENABLE_MPI
+
+        //! Calculate the inner cell properties
+        virtual void calcInnerCellProperties();
 
         //! Compute the net properties from the cell properties
         virtual void computeNetProperties();
@@ -133,14 +131,16 @@ class CellThermoCompute : public Compute
         std::shared_ptr<mpcd::ParticleData> m_mpcd_pdata;       //!< MPCD particle data
         std::shared_ptr<mpcd::CellList> m_cl;                   //!< MPCD cell list
         #ifdef ENABLE_MPI
-        std::shared_ptr<CellCommunicator> m_cell_comm;          //!< Cell communicator
+        bool m_use_mpi;                                         //!< Flag if communication is required
+        std::shared_ptr<CellCommunicator> m_vel_comm;           //!< Cell velocity communicator
+        std::shared_ptr<CellCommunicator> m_energy_comm;        //!< Cell energy communicator
         #endif // ENABLE_MPI
 
         bool m_needs_net_reduce;            //!< Flag if a net reduction is necessary
         GPUArray<double> m_net_properties;  //!< Scalar properties of the system
 
-        GPUVector<Scalar4> m_cell_vel;      //!< Average velocity of a cell + cell mass
-        GPUVector<Scalar3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
+        GPUVector<double4> m_cell_vel;      //!< Average velocity of a cell + cell mass
+        GPUVector<double3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
         unsigned int m_ncells_alloc;        //!< Number of cells allocated for
 
         std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names

@@ -22,68 +22,75 @@
 #endif // ENABLE_CUDA
 
 #include "CommunicatorUtilities.h"
+#include "CellList.h"
 
-#ifdef ENABLE_CUDA
-#include "hoomd/Autotuner.h"
-#endif // ENABLE_CUDA
 #include "hoomd/DomainDecomposition.h"
 #include "hoomd/GPUArray.h"
+#include "hoomd/GPUVector.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/SystemDefinition.h"
 
+#include <map>
+#include <set>
+
 namespace mpcd
 {
 
-//! Reduces properties across the MPCD cell list
+//! Communicates properties across the MPCD cell list
 class CellCommunicator
     {
     public:
         //! Constructor
-        /*!
-         * \param sysdef System definition
-         * \param cl MPCD cell list
-         */
         CellCommunicator(std::shared_ptr<SystemDefinition> sysdef,
-                         std::shared_ptr<mpcd::CellList> cl)
-            : m_sysdef(sysdef),
-              m_pdata(sysdef->getParticleData()),
-              m_exec_conf(m_pdata->getExecConf()),
-              m_mpi_comm(m_exec_conf->getMPICommunicator()),
-              m_decomposition(m_pdata->getDomainDecomposition()),
-              m_cl(cl),
-              m_send_buf(m_exec_conf),
-              m_recv_buf(m_exec_conf),
-              m_needs_init(true)
-            {
-            m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
-                {
-                m_tuner_pack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_pack", m_exec_conf));
-                m_tuner_unpack.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_cell_comm_unpack", m_exec_conf));
-                }
-            #endif // ENABLE_CUDA
-
-            m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
-            }
+                         std::shared_ptr<mpcd::CellList> cl);
 
         //! Destructor
-        ~CellCommunicator()
-            {
-            m_exec_conf->msg->notice(5) << "Destroying MPCD CellCommunicator" << std::endl;
-            m_cl->getSizeChangeSignal().disconnect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(this);
-            }
+        virtual ~CellCommunicator();
 
         //! Reduce cell list properties
         /*!
          * \param props Properties to reduce
-         * \param reduction_op Binary reduction operator
+         * \param op Binary reduction operator
          *
          * Properties are reduced across domain boundaries, as marked in the cell list.
          */
         template<typename T, class PackOpT>
-        void reduce(const GPUArray<T>& props, PackOpT pack_op);
+        void communicate(const GPUArray<T>& props, const PackOpT op)
+            {
+            begin(props, op);
+            finalize(props, op);
+            }
+
+        //! Begin communication of the grid
+        template<typename T, class PackOpT>
+        void begin(const GPUArray<T>& props, const PackOpT op);
+
+        //! Finalize communication of the grid
+        template<typename T, class PackOpT>
+        void finalize(const GPUArray<T>& props, const PackOpT op);
+
+        //! Get the number of unique cells with communication
+        unsigned int getNCells()
+            {
+            if (m_needs_init)
+                {
+                initialize();
+                m_needs_init = false;
+                }
+            return m_num_cells;
+            }
+
+        //! Get the list of unique cells with communication
+        const GPUArray<unsigned int>& getCells()
+            {
+            if (m_needs_init)
+                {
+                initialize();
+                m_needs_init = false;
+                }
+            return m_cells;
+            }
 
         //! Set autotuner parameters
         /*!
@@ -106,46 +113,51 @@ class CellCommunicator
             #endif // ENABLE_CUDA
             }
 
-        //! Set the profiler used by this compute
-        /*!
-         * \param prof Profiler to use (if null, do not profile)
-         */
-        void setProfiler(std::shared_ptr<Profiler> prof)
-            {
-            m_prof = prof;
-            }
-
     private:
+        static unsigned int num_instances;      //!< Number of communicator instances
+        const unsigned int m_id;                //!< Id for this communicator to use in tags
+
         std::shared_ptr<SystemDefinition> m_sysdef;                 //!< System definition
         std::shared_ptr<::ParticleData> m_pdata;                    //!< HOOMD particle data
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf;  //!< Execution configuration
         const MPI_Comm m_mpi_comm;                                  //!< MPI Communicator
         std::shared_ptr<DomainDecomposition> m_decomposition;       //!< Domain decomposition
-        std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         std::shared_ptr<mpcd::CellList> m_cl;   //!< MPCD cell list
 
-        //! Cartesian coordinate axes for communicating
-        enum struct axis : unsigned char
+        bool m_communicating;   //!< Flag if communication is occurring
+        GPUVector<unsigned char> m_send_buf;    //!< Send buffer
+        GPUVector<unsigned char> m_recv_buf;    //!< Receive buffer
+        GPUArray<unsigned int> m_send_idx;      //!< Indexes of cells in send buffer
+        std::vector<MPI_Request> m_reqs;        //!< MPI request objects
+
+        std::vector<unsigned int> m_neighbors;  //!< Unique neighbor ranks
+        std::vector<unsigned int> m_begin;      //!< Begin offset of every neighbor
+        std::vector<unsigned int> m_num_send;   //!< Number of cells to send to every neighbor
+
+        unsigned int m_num_cells;               //!< Number of unique cells to receive
+        GPUArray<unsigned int> m_cells;         //!< Unique cells to receive
+        GPUArray<unsigned int> m_recv;          //!< Reordered mapping of buffer from ranks to group received cells together
+        GPUArray<unsigned int> m_recv_begin;    //!< Begin offset of every unique cell
+        GPUArray<unsigned int> m_recv_end;      //!< End offset of every unique cell
+
+        bool m_needs_init;      //!< Flag if grid needs to be initialized
+        //! Slot that communicator needs to be reinitialized
+        void slotInit()
             {
-            x=0,
-            y,
-            z
-            };
-        unsigned int m_neigh[6];                //!< Neighbor ranks
-        Index3D m_idx[6];                       //!< Communication indexers for buffers
-        uint3 m_right_offset[3];                //!< Offsets for reading out of right faces
-        unsigned int m_max_cells;               //!< Maximum number of cells in any face
-        GPUVector<unsigned char> m_send_buf;    //!< MPI buffer for sending
-        GPUVector<unsigned char> m_recv_buf;    //!< MPI buffer for receiving
+            m_needs_init = true;
+            }
+
+        //! Initialize the grid
+        void initialize();
 
         //! Packs the property buffer
         template<typename T, class PackOpT>
-        void packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
+        void packBuffer(const GPUArray<T>& props, const PackOpT op);
 
         //! Unpacks the property buffer
         template<typename T, class PackOpT>
-        void unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim);
+        void unpackBuffer(const GPUArray<T>& props, const PackOpT op);
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<Autotuner> m_tuner_pack;    //!< Tuner for pack kernel
@@ -153,524 +165,277 @@ class CellCommunicator
 
         //! Packs the property buffer on the GPU
         template<typename T, class PackOpT>
-        void packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
+        void packBufferGPU(const GPUArray<T>& props, const PackOpT op);
 
         //! Unpacks the property buffer on the GPU
         template<typename T, class PackOpT>
-        void unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim);
+        void unpackBufferGPU(const GPUArray<T>& props, const PackOpT op);
         #endif // ENABLE_CUDA
-
-        bool m_needs_init;                      //!< Flag if initialization is required
-        //! Initialize the communication internals
-        void initialize()
-            {
-            if (!m_needs_init) return;
-
-            // setup the comm dimensions and determine maximum number of cells to communicate
-            m_max_cells = 0;
-            if (m_cl->isCommunicating(mpcd::detail::face::east))
-                {
-                setupCommDim(axis::x);
-                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)].getNumElements();
-                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::west)].getNumElements();
-                if (num_cells > m_max_cells) m_max_cells = num_cells;
-                }
-            if (m_cl->isCommunicating(mpcd::detail::face::north))
-                {
-                setupCommDim(axis::y);
-                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)].getNumElements();
-                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::south)].getNumElements();
-                if (num_cells > m_max_cells) m_max_cells = num_cells;
-                }
-            if (m_cl->isCommunicating(mpcd::detail::face::up))
-                {
-                setupCommDim(axis::z);
-                unsigned int num_cells = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)].getNumElements();
-                num_cells += m_idx[static_cast<unsigned int>(mpcd::detail::face::down)].getNumElements();
-                if (num_cells > m_max_cells) m_max_cells = num_cells;
-                }
-
-            // initialization succeeded, flip flag
-            m_needs_init = false;
-            }
-
-        //! Slot that communicator needs to be reinitialized
-        void slotInit()
-            {
-            m_needs_init = true;
-            }
-
-        //! Size buffers large enough to hold all send elements
-        void sizeBuffers(size_t elem_bytes)
-            {
-            m_send_buf.resize(elem_bytes * m_max_cells);
-            m_recv_buf.resize(elem_bytes * m_max_cells);
-            }
-
-        //! Setup buffers for communication
-        /*!
-         * \param dim Dimension (x,y,z) along which communication is occurring
-         */
-        void setupCommDim(axis dim)
-            {
-            // determine the "right" and "left" faces from the dimension
-            unsigned int right_face,left_face;
-            if (dim == axis::x)
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::east);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::west);
-                }
-            else if (dim == axis::y)
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::north);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::south);
-                }
-            else // m_comm_dim == axis::z
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::up);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::down);
-                }
-
-            // get the communication neighbors
-            m_neigh[right_face] = m_decomposition->getNeighborRank(right_face);
-            m_neigh[left_face] = m_decomposition->getNeighborRank(left_face);
-
-            // get the number of cells being sent / received
-            auto num_comm_cells = m_cl->getNComm();
-            const unsigned int num_right = num_comm_cells[right_face];
-            const unsigned int num_left = num_comm_cells[left_face];
-
-            // setup the buffer indexers and the offset into the cell list
-            const Index3D& ci = m_cl->getCellIndexer();
-            Index3D left_idx, right_idx;
-            uint3 right_offset = make_uint3(0,0,0);
-            if (dim == axis::x)
-                {
-                left_idx = Index3D(num_left, ci.getH(), ci.getD());
-                right_idx = Index3D(num_right, ci.getH(), ci.getD());
-                right_offset.x = ci.getW() - right_idx.getW();
-                }
-            else if (dim == axis::y)
-                {
-                left_idx = Index3D(ci.getW(), num_left, ci.getD());
-                right_idx = Index3D(ci.getW(), num_right, ci.getD());
-                right_offset.y = ci.getH() - right_idx.getH();
-                }
-            else // m_comm_dim == axis::z
-                {
-                left_idx = Index3D(ci.getW(), ci.getH(), num_left);
-                right_idx = Index3D(ci.getW(), ci.getH(), num_right);
-                right_offset.z = ci.getD() - right_idx.getD();
-                }
-            m_idx[right_face] = right_idx;
-            m_idx[left_face] = left_idx;
-            m_right_offset[static_cast<unsigned int>(dim)] = right_offset;
-
-            // validate the box size
-            unsigned int err = 0;
-            const unsigned int nextra = m_cl->getNExtraCells();
-            if (dim == axis::x && (left_idx.getW() + nextra) > right_offset.x)
-                {
-                err = std::max(err, left_idx.getW() + nextra - right_offset.x);
-                }
-            if (dim == axis::y && (left_idx.getH() + nextra) > right_offset.y)
-                {
-                err = std::max(err, left_idx.getH() + nextra - right_offset.y);
-                }
-            if (dim == axis::z && (left_idx.getD() + nextra) > right_offset.z)
-                {
-                err = std::max(err, left_idx.getD() + nextra - right_offset.z);
-                }
-
-            MPI_Allreduce(MPI_IN_PLACE, &err, 1, MPI_UNSIGNED, MPI_MAX, m_mpi_comm);
-            if (err)
-                {
-                if (nextra >= err)
-                    {
-                    m_exec_conf->msg->error() << "mpcd: Simulation box is overdecomposed by " << err << " cells. " << std::endl;
-                    m_exec_conf->msg->error() << "Reduce the number of extra communication cells, or decrease the number of ranks." << std::endl;
-                    }
-                else
-                    {
-                    m_exec_conf->msg->error() << "mpcd: Simulation box is overdecomposed by " << err << " cells. " << std::endl;
-                    m_exec_conf->msg->error() << "Decrease the number of ranks." << std::endl;
-                    }
-                throw std::runtime_error("Simulation box is overdecomposed for MPCD");
-                }
-            }
     };
 
 } // end namespace mpcd
 
 /*!
- * \tparam T Type of data to reduce (inferred)
- * \tparam ReductionOpT Binary reduction operator (inferred)
+ * \param props Property buffer to pack
+ * \param op Packing operator to apply to the send buffer
+ *
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
+ *
+ * The data in \a props is packed into the send buffers, and nonblocking MPI
+ * send / receive operations are initiated. If communication is already occurring,
+ * the method returns immediately and no action is taken.
  */
 template<typename T, class PackOpT>
-void mpcd::CellCommunicator::reduce(const GPUArray<T>& props, PackOpT pack_op)
+void mpcd::CellCommunicator::begin(const GPUArray<T>& props, const PackOpT op)
     {
-    if (m_prof) m_prof->push("MPCD cell comm");
+    // check if communication is occurring and place a lock on
+    if (m_communicating) return;
+    m_communicating = true;
+
+    // ensure that the property grid is sufficiently sized compared to the cell list
     if (props.getNumElements() < m_cl->getNCells())
         {
         m_exec_conf->msg->error() << "mpcd: cell property to be reduced is smaller than cell list dimensions" << std::endl;
         throw std::runtime_error("MPCD cell property has insufficient dimensions");
         }
 
-    if (m_prof) m_prof->push("init");
-    if (m_needs_init) initialize();
-    sizeBuffers(sizeof(typename PackOpT::element));
-    if (m_prof) m_prof->pop();
-
-    // Communicate along each dimensions
-    for (unsigned int dim = 0; dim < m_sysdef->getNDimensions(); ++dim)
+    // initialize grid if required
+    if (m_needs_init)
         {
-        if (!m_cl->isCommunicating(static_cast<mpcd::detail::face>(2*dim))) continue;
+        initialize();
+        m_needs_init = false;
+        }
 
-        // TODO: decide which pathway to take to pack / unpack the buffers
-        #ifdef ENABLE_CUDA
+    // resize send / receive buffers for this comm element
+    m_send_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
+    m_recv_buf.resize(m_send_idx.getNumElements() * sizeof(typename PackOpT::element));
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        packBufferGPU(props, op);
+        }
+    else
+    #endif // ENABLE_CUDA
+        {
+        packBuffer(props, op);
+        }
+
+    // make the MPI calls
+        {
+        // determine whether to use CPU or GPU CUDA buffers
+        access_location::Enum mpi_loc;
+        #ifdef ENABLE_MPI_CUDA
         if (m_exec_conf->isCUDAEnabled())
             {
-            packBufferGPU(props, pack_op, static_cast<axis>(dim));
+            mpi_loc = access_location::device;
             }
         else
-        #endif // ENABLE_CUDA
+        #endif // ENABLE_MPI_CUDA
             {
-            packBuffer(props, pack_op, static_cast<axis>(dim));
+            mpi_loc = access_location::host;
             }
 
-        // send along dir, and receive along the opposite direction from sending
-        // TODO: decide whether to try to use CUDA-aware MPI, or just pass over CPU
+        ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
+        ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
+        typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
+        typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
+        #ifdef ENABLE_MPI_CUDA
+        if (mpi_loc == access_location::device) cudaDeviceSynchronize();
+        #endif // ENABLE_MPI_CUDA
+
+        m_reqs.resize(2*m_neighbors.size());
+        for (unsigned int idx=0; idx < m_neighbors.size(); ++idx)
             {
-            #ifdef ENABLE_MPI_CUDA
-            access_location::Enum mpi_loc = (m_exec_conf->isCUDAEnabled()) ? access_location::device : access_location::host;
-            ArrayHandle<unsigned char> h_send_buf(m_send_buf, mpi_loc, access_mode::read);
-            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, mpi_loc, access_mode::overwrite);
-            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
-            #else
-            if (m_prof) m_prof->push("copy");
-            ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::read);
-            ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::overwrite);
-            if (m_prof) m_prof->pop();
-            #endif // ENABLE_MPI_CUDA
-
-            // determine face for operations
-            unsigned int right_face,left_face;
-            if (static_cast<axis>(dim) == axis::x)
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::east);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::west);
-                }
-            else if (static_cast<axis>(dim) == axis::y)
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::north);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::south);
-                }
-            else // m_comm_dim == axis::z
-                {
-                right_face = static_cast<unsigned int>(mpcd::detail::face::up);
-                left_face = static_cast<unsigned int>(mpcd::detail::face::down);
-                }
-
-            const unsigned int num_right_bytes = m_idx[right_face].getNumElements()*sizeof(typename PackOpT::element);
-            const unsigned int num_left_bytes = m_idx[left_face].getNumElements()*sizeof(typename PackOpT::element);
-            if (m_prof) m_prof->push("MPI send/recv");
-            if (m_neigh[left_face] != m_neigh[right_face])
-                {
-                std::vector<MPI_Request> reqs(4);
-                std::vector<MPI_Status> stats(reqs.size());
-                // send left, receive right
-                /*
-                 * the send buffer is packed left face-right face, but the
-                 * receive buffer is packed right face-left face so that if
-                 * the left/right neighbors are the same, the send buffer
-                 * can be sent in one call rather than two
-                 */
-                MPI_Isend(h_send_buf.data, num_left_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
-                MPI_Irecv(h_recv_buf.data, num_right_bytes, MPI_BYTE, m_neigh[right_face], 0, m_mpi_comm, &reqs[1]);
-
-                // send right, receive left
-                MPI_Isend(h_send_buf.data + num_left_bytes, num_right_bytes, MPI_BYTE, m_neigh[right_face], 1, m_mpi_comm, &reqs[2]);
-                MPI_Irecv(h_recv_buf.data + num_right_bytes, num_left_bytes, MPI_BYTE, m_neigh[left_face], 1, m_mpi_comm, &reqs[3]);
-
-                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
-                }
-            else
-                {
-                std::vector<MPI_Request> reqs(2);
-                std::vector<MPI_Status> stats(reqs.size());
-                MPI_Isend(h_send_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[0]);
-                MPI_Irecv(h_recv_buf.data, num_left_bytes + num_right_bytes, MPI_BYTE, m_neigh[left_face], 0, m_mpi_comm, &reqs[1]);
-
-                MPI_Waitall(reqs.size(), &reqs.front(), &stats.front());
-                }
-            #ifdef ENABLE_MPI_CUDA
-            // MPI calls can execute in multiple streams, so force a synchronization before we move on
-            if (mpi_loc == access_location::device) cudaDeviceSynchronize();
-            #endif // ENABLE_MPI_CUDA
-            if (m_prof) m_prof->pop(0, 2*(num_right_bytes + num_left_bytes));
-            }
-
-        #ifdef ENABLE_CUDA
-        if (m_exec_conf->isCUDAEnabled())
-            {
-            unpackBufferGPU(props, pack_op, static_cast<axis>(dim));
-            }
-        else
-        #endif // ENABLE_CUDA
-            {
-            unpackBuffer(props, pack_op, static_cast<axis>(dim));
+            const unsigned int neigh = m_neighbors[idx];
+            const unsigned int offset = m_begin[idx];
+            const size_t num_bytes = sizeof(typename PackOpT::element) * m_num_send[idx];
+            MPI_Isend(send_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx]);
+            MPI_Irecv(recv_buf + offset, num_bytes, MPI_BYTE, neigh, 0, m_mpi_comm, &m_reqs[2*idx+1]);
             }
         }
-    if (m_prof) m_prof->pop();
+    }
+
+//! Finalize communication of the grid
+/*!
+ * \param props Property buffer to unpack
+ * \param op Packing operator to apply to the receive buffer
+ *
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
+ *
+ * Existing MPI requests are finalized, and then the received buffers are
+ * unpacked into \a props. If no communication is ongoing, the method immediately
+ * returns and takes no action.
+ */
+template<typename T, class PackOpT>
+void mpcd::CellCommunicator::finalize(const GPUArray<T>& props, const PackOpT op)
+    {
+    if (!m_communicating) return;
+
+    // finish all MPI requests
+    MPI_Waitall(m_reqs.size(), m_reqs.data(), MPI_STATUSES_IGNORE);
+    #ifdef ENABLE_MPI_CUDA
+    // MPI calls can execute in multiple streams, so force a synchronization before we move on
+    if (m_exec_conf->isCUDAEnabled()) cudaDeviceSynchronize();
+    #endif // ENABLE_MPI_CUDA
+
+    // unpack the buffer
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        unpackBufferGPU(props, op);
+        }
+    else
+    #endif // ENABLE_CUDA
+        {
+        unpackBuffer(props, op);
+        }
+
+    m_communicating = false;
     }
 
 /*!
  * \param props Property buffer to pack
+ * \param op Packing operator to apply to the send buffer
  *
- * \tparam T Type of buffer to pack, implicit
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
  *
- * \post Communicated cells in \a props are packed into \a m_send_buf
+ * The packing operator applies a unary pack functor to \a props, which permits
+ * a reduction or transformation of the data to be sent. See mpcd::detail::CellEnergyPackOp
+ * for an example.
  *
- * The send buffer, which is assumed to already be properly sized, is
- * reinterpreted as a pointer to type \a T. The send buffer is packed from
- * \a props using \a m_send_offset and the communication indexer, \a m_comm_idx.
- *
- * \note This method of reading and writing is not cache-friendly, but this is unavoidable
- * to some extent due to 3d indexing. It would be possible to establish a more
- * cache-friendly pathway by rearranging indexes, but the performance gains would
- * probably not be very much compared to the complexity and (lack of) code readability.
+ * \post Communicated cells in \a props are packed into \a m_send_buf.
  */
 template<typename T, class PackOpT>
-void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
+void mpcd::CellCommunicator::packBuffer(const GPUArray<T>& props, const PackOpT op)
     {
-    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
-
-    if (m_prof) m_prof->push("pack");
-    const Index3D& ci = m_cl->getCellIndexer();
     ArrayHandle<T> h_props(props, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_send_idx(m_send_idx, access_location::host, access_mode::read);
     ArrayHandle<unsigned char> h_send_buf(m_send_buf, access_location::host, access_mode::overwrite);
     typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(h_send_buf.data);
 
-    // get the offsets based on the comm dimension
-    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
-    Index3D left_idx, right_idx;
-    if (dim == axis::x)
+    for (unsigned int idx=0; idx < m_send_idx.getNumElements(); ++idx)
         {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
+        send_buf[idx] = op.pack(h_props.data[h_send_idx.data[idx]]);
         }
-    else if (dim == axis::y)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
-        }
-    else
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
-        }
-
-    // pack for sending through left face
-    for (unsigned int k=0; k < left_idx.getD(); ++k)
-        {
-        for (unsigned int j=0; j < left_idx.getH(); ++j)
-            {
-            for (unsigned int i=0; i < left_idx.getW(); ++i)
-                {
-                send_buf[left_idx(i,j,k)] = pack_op.pack(h_props.data[ci(i,j,k)]);
-                }
-            }
-        }
-
-    // pack for sending through right face
-    send_buf += left_idx.getNumElements();
-    for (unsigned int k=0; k < right_idx.getD(); ++k)
-        {
-        for (unsigned int j=0; j < right_idx.getH(); ++j)
-            {
-            for (unsigned int i=0; i < right_idx.getW(); ++i)
-                {
-                send_buf[right_idx(i,j,k)] = pack_op.pack(h_props.data[ci(right_offset.x+i,right_offset.y+j,right_offset.z+k)]);
-                }
-            }
-        }
-    if (m_prof) m_prof->pop();
     }
 
 /*!
  * \param props Property buffer to pack
- * \param reduction_op Reduction operator to apply when unpacking buffers
+ * \param op Packing operator to apply to the received buffer
  *
- * \tparam T Type of buffer to pack, implicit
- * \tparam ReductionOpT Reduction operator functor type, implicit
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
+ *
+ * The packing operator must be associative so that the order it is applied
+ * to the received cells does not matter, e.g., addition.
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
 template<typename T, class PackOpT>
-void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, PackOpT pack_op, axis dim)
+void mpcd::CellCommunicator::unpackBuffer(const GPUArray<T>& props, const PackOpT op)
     {
-    if (m_prof) m_prof->push("unpack");
-    const Index3D& ci = m_cl->getCellIndexer();
-    ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_recv(m_recv, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_cells(m_cells, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_recv_begin(m_recv_begin, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_recv_end(m_recv_end, access_location::host, access_mode::read);
 
-    // get the offsets based on the comm dimension
-    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
-    Index3D left_idx, right_idx;
-    if (dim == axis::x)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
-        }
-    else if (dim == axis::y)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
-        }
-    else
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
-        }
-
-    // unpack the right buffer
     ArrayHandle<unsigned char> h_recv_buf(m_recv_buf, access_location::host, access_mode::read);
     typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(h_recv_buf.data);
-    for (unsigned int k=0; k < right_idx.getD(); ++k)
+
+    ArrayHandle<T> h_props(props, access_location::host, access_mode::readwrite);
+
+    for (unsigned int idx=0; idx < m_num_cells; ++idx)
         {
-        for (unsigned int j=0; j < right_idx.getH(); ++j)
+        const unsigned int cell_idx = h_cells.data[idx];
+        const unsigned int begin = h_recv_begin.data[idx];
+        const unsigned int end = h_recv_end.data[idx];
+
+        // loop through all received data for this cell, and unpack it iteratively
+        T val = h_props.data[cell_idx];
+        for (unsigned int i = begin; i < end; ++i)
             {
-            for (unsigned int i=0; i < right_idx.getW(); ++i)
-                {
-                const unsigned int target = ci(right_offset.x+i,right_offset.y+j,right_offset.z+k);
-                const T cur_val = h_props.data[target];
-                h_props.data[target] = pack_op.unpack(recv_buf[right_idx(i,j,k)], cur_val);
-                }
+            val = op.unpack(recv_buf[h_recv.data[i]], val);
             }
+
+        // save the accumulated unpacked value
+        h_props.data[cell_idx] = val;
         }
-
-    // unpack the left buffer
-    recv_buf += right_idx.getNumElements();
-    for (unsigned int k=0; k < left_idx.getD(); ++k)
-        {
-        for (unsigned int j=0; j < left_idx.getH(); ++j)
-            {
-            for (unsigned int i=0; i < left_idx.getW(); ++i)
-                {
-                const unsigned int target = ci(i,j,k);
-                const T cur_val = h_props.data[target];
-                h_props.data[target] = pack_op.unpack(recv_buf[left_idx(i,j,k)], cur_val);
-                }
-            }
-        }
-
-
-    if (m_prof) m_prof->pop();
     }
 
 #ifdef ENABLE_CUDA
 /*!
  * \param props Property buffer to pack
+ * \param op Packing operator to apply to the send buffer
  *
- * \tparam T Type of buffer to pack, implicit
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
  *
- * \post Communicated cells in \a props are packed into \a m_send_buf
+ * The packing operator applies a unary pack functor to \a props, which permits
+ * a reduction or transformation of the data to be sent. See mpcd::detail::CellEnergyPackOp
+ * for an example.
+ *
+ * \post Communicated cells in \a props are packed into \a m_send_buf.
  */
 template<typename T, class PackOpT>
-void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
+void mpcd::CellCommunicator::packBufferGPU(const GPUArray<T>& props, const PackOpT op)
     {
-    assert(m_send_buf.getNumElements() >= sizeof(PackOpT::element) * (m_left_idx.getNumElements() + m_right_idx.getNumElements()));
-    if (m_prof) m_prof->push(m_exec_conf,"pack");
-
     ArrayHandle<T> d_props(props, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_send_idx(m_send_idx, access_location::device, access_mode::read);
     ArrayHandle<unsigned char> d_send_buf(m_send_buf, access_location::device, access_mode::overwrite);
     typename PackOpT::element* send_buf = reinterpret_cast<typename PackOpT::element*>(d_send_buf.data);
 
-    // get the offsets based on the comm dimension
-    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
-    Index3D left_idx, right_idx;
-    if (dim == axis::x)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
-        }
-    else if (dim == axis::y)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
-        }
-    else
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
-        }
-
     m_tuner_pack->begin();
     mpcd::gpu::pack_cell_buffer(send_buf,
-                                send_buf + left_idx.getNumElements(),
-                                left_idx,
-                                right_idx,
-                                right_offset,
                                 d_props.data,
-                                pack_op,
-                                m_cl->getCellIndexer(),
+                                d_send_idx.data,
+                                op,
+                                m_send_idx.getNumElements(),
                                 m_tuner_pack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_pack->end();
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*!
  * \param props Property buffer to pack
- * \param reduction_op Reduction operator to apply when unpacking buffers
+ * \param op Packing operator to apply to the received buffer
  *
- * \tparam T Type of buffer to pack, implicit
- * \tparam ReductionOpT Reduction operator functor type, implicit
+ * \tparam T Type of buffer to pack (inferred)
+ * \tparam PackOpT Packing operator type (inferred)
+ *
+ * The packing operator must be associative so that the order it is applied
+ * to the received cells does not matter, e.g., addition.
  *
  * \post The bytes from \a m_recv_buf are unpacked into \a props.
  */
 template<typename T, class PackOpT>
-void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, PackOpT pack_op, axis dim)
+void mpcd::CellCommunicator::unpackBufferGPU(const GPUArray<T>& props, const PackOpT op)
     {
-    if (m_prof) m_prof->push("copy");
+    ArrayHandle<unsigned int> d_recv(m_recv, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_cells(m_cells, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_recv_begin(m_recv_begin, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_recv_end(m_recv_end, access_location::device, access_mode::read);
+
     ArrayHandle<unsigned char> d_recv_buf(m_recv_buf, access_location::device, access_mode::read);
     typename PackOpT::element* recv_buf = reinterpret_cast<typename PackOpT::element*>(d_recv_buf.data);
-    if (m_prof) m_prof->pop();
 
-    if (m_prof) m_prof->push(m_exec_conf, "unpack");
     ArrayHandle<T> d_props(props, access_location::device, access_mode::readwrite);
-
-    // get the offsets based on the comm dimension
-    uint3 right_offset = m_right_offset[static_cast<unsigned int>(dim)];
-    Index3D left_idx, right_idx;
-    if (dim == axis::x)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::west)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::east)];
-        }
-    else if (dim == axis::y)
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::south)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::north)];
-        }
-    else
-        {
-        left_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::down)];
-        right_idx = m_idx[static_cast<unsigned int>(mpcd::detail::face::up)];
-        }
 
     m_tuner_unpack->begin();
     mpcd::gpu::unpack_cell_buffer(d_props.data,
-                                  pack_op,
-                                  m_cl->getCellIndexer(),
-                                  recv_buf + right_idx.getNumElements(),
+                                  d_cells.data,
+                                  d_recv.data,
+                                  d_recv_begin.data,
+                                  d_recv_end.data,
                                   recv_buf,
-                                  left_idx,
-                                  right_idx,
-                                  right_offset,
+                                  op,
+                                  m_num_cells,
                                   m_tuner_unpack->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner_unpack->end();
-    if (m_prof) m_prof->pop(m_exec_conf);
     }
 #endif // ENABLE_CUDA
 
