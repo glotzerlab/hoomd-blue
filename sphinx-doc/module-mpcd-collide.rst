@@ -8,6 +8,7 @@ mpcd.collide
 .. autosummary::
     :nosignatures:
 
+    at
     srd
 
 .. rubric:: Details
