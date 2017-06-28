@@ -42,6 +42,7 @@ set(_mpcd_headers
 
 if (ENABLE_CUDA)
 list(APPEND _mpcd_sources
+    ATCollisionMethodGPU.cc
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
@@ -50,6 +51,8 @@ list(APPEND _mpcd_sources
     StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
+    ATCollisionMethodGPU.cuh
+    ATCollisionMethodGPU.h
     CellCommunicator.cuh
     CellThermoComputeGPU.cuh
     CellThermoComputeGPU.h
@@ -68,6 +71,7 @@ list(APPEND _mpcd_headers
 endif()
 
 set(_mpcd_cu_sources
+    ATCollisionMethodGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     CommunicatorGPU.cu

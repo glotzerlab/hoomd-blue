@@ -5,7 +5,7 @@
 
 #include "hoomd/mpcd/ATCollisionMethod.h"
 #ifdef ENABLE_CUDA
-// #include "hoomd/mpcd/ATCollisionMethodGPU.h"
+#include "hoomd/mpcd/ATCollisionMethodGPU.h"
 #endif // ENABLE_CUDA
 
 #include "hoomd/SnapshotSystemData.h"
@@ -87,7 +87,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
         }
 
     // perform the collision many times, and ensure that the average temperature is correct
-    const unsigned int num_sample = 500000;
+    const unsigned int num_sample = 50000;
     double Tavg = 0.0;
     for (unsigned int timestep=2; timestep < 2+num_sample; ++timestep)
         {
@@ -97,12 +97,18 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
         collide->collide(timestep);
         }
     Tavg /= num_sample;
-    std::cout << Tavg << std::endl;
-    CHECK_CLOSE(Tavg, 1.5, 0.01);
+    CHECK_CLOSE(Tavg, 1.5, 0.02);
     }
 
-//! basic test case for MPCD SRDCollisionMethod class
+//! basic test case for MPCD ATCollisionMethod class
 UP_TEST( at_collision_method_basic )
     {
     at_collision_method_basic_test<mpcd::ATCollisionMethod>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
+#ifdef ENABLE_CUDA
+//! basic test case for MPCD ATCollisionMethodGPU class
+UP_TEST( at_collision_method_basic_gpu )
+    {
+    at_collision_method_basic_test<mpcd::ATCollisionMethodGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    }
+#endif // ENABLE_CUDA
