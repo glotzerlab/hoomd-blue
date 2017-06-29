@@ -50,7 +50,7 @@ struct cell_thermo_element
         }
     };
 
-//! Convenience struct for common parameters passed to MPCD kernels
+//! Convenience struct for common parameters passed to GPU kernels
 struct thermo_args_t
     {
     thermo_args_t(double4 *cell_vel_,
@@ -62,9 +62,11 @@ struct thermo_args_t
                   const unsigned int N_mpcd_,
                   const Scalar mass_,
                   const Scalar4 *embed_vel_,
-                  const unsigned int *embed_idx_)
+                  const unsigned int *embed_idx_,
+                  bool need_energy_)
         : cell_vel(cell_vel_), cell_energy(cell_energy_), cell_np(cell_np_), cell_list(cell_list_),
-          cli(cli_), vel(vel_), N_mpcd(N_mpcd_), mass(mass_), embed_vel(embed_vel_), embed_idx(embed_idx_)
+          cli(cli_), vel(vel_), N_mpcd(N_mpcd_), mass(mass_), embed_vel(embed_vel_), embed_idx(embed_idx_),
+          need_energy(need_energy_)
         { }
 
     double4 *cell_vel;              //!< Cell velocities (output)
@@ -78,6 +80,7 @@ struct thermo_args_t
     const Scalar mass;              //!< MPCD particle mass
     const Scalar4 *embed_vel;       //!< Embedded particle velocities
     const unsigned int *embed_idx;  //!< Embedded particle indexes
+    const bool need_energy;         //!< Flag if energy calculations are required
     };
 #undef HOSTDEVICE
 }
@@ -97,6 +100,7 @@ cudaError_t end_cell_thermo(double4 *d_cell_vel,
                             const unsigned int *d_cells,
                             const unsigned int Ncell,
                             const unsigned int n_dimensions,
+                            const bool need_energy,
                             const unsigned int block_size);
 
 //! Kernel driver to perform cell thermo compute for inner cells
@@ -114,6 +118,7 @@ cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element *d_tmp_therm
                                   const double3 *d_cell_energy,
                                   const Index3D& tmp_ci,
                                   const Index3D& ci,
+                                  const bool need_energy,
                                   const unsigned int block_size);
 
 //! Wrapper to cub device reduce for cell thermo properties

@@ -68,7 +68,8 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
                                          m_mpcd_pdata->getN(),
                                          m_mpcd_pdata->getMass(),
                                          d_embed_vel.data,
-                                         d_embed_cell.data);
+                                         d_embed_cell.data,
+                                         m_flags[mpcd::detail::thermo_options::energy]);
 
         m_begin_tuner->begin();
         const unsigned int param = m_begin_tuner->getParam();
@@ -93,7 +94,8 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
                                          m_mpcd_pdata->getN(),
                                          m_mpcd_pdata->getMass(),
                                          NULL,
-                                         NULL);
+                                         NULL,
+                                         m_flags[mpcd::detail::thermo_options::energy]);
 
         m_begin_tuner->begin();
         const unsigned int param = m_begin_tuner->getParam();
@@ -120,6 +122,7 @@ void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
                          d_cells.data,
                          m_vel_comm->getNCells(),
                          m_sysdef->getNDimensions(),
+                         m_flags[mpcd::detail::thermo_options::energy],
                          m_end_tuner->getParam());
     if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_end_tuner->end();
@@ -177,7 +180,8 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
                                          m_mpcd_pdata->getN(),
                                          m_mpcd_pdata->getMass(),
                                          d_embed_vel.data,
-                                         d_embed_cell.data);
+                                         d_embed_cell.data,
+                                         m_flags[mpcd::detail::thermo_options::energy]);
 
         m_inner_tuner->begin();
         const unsigned int param = m_inner_tuner->getParam();
@@ -204,7 +208,8 @@ void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
                                          m_mpcd_pdata->getN(),
                                          m_mpcd_pdata->getMass(),
                                          NULL,
-                                         NULL);
+                                         NULL,
+                                         m_flags[mpcd::detail::thermo_options::energy]);
 
         m_inner_tuner->begin();
         const unsigned int param = m_inner_tuner->getParam();
@@ -254,6 +259,7 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
                                          d_cell_energy.data,
                                          tmp_ci,
                                          ci,
+                                         m_flags[mpcd::detail::thermo_options::energy],
                                          m_stage_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         m_stage_tuner->end();

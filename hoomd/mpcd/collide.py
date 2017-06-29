@@ -188,6 +188,7 @@ class at(_collision_method):
         # create an auxilliary thermo compute and disable logging on it
         rand_thermo = thermo_class(hoomd.context.current.mpcd.data)
         rand_thermo.enableLogging(False)
+        hoomd.context.current.system.addCompute(rand_thermo, "mpcd_at_thermo")
 
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),

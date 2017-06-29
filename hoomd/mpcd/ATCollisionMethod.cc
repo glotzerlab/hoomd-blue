@@ -24,8 +24,6 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sys
       m_thermo(thermo), m_rand_thermo(rand_thermo), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
-
-//     m_rand_thermo->enableEnergy(false);
     }
 
 

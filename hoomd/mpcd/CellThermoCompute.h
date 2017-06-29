@@ -23,6 +23,7 @@
 #endif // ENABLE_MPI
 
 #include "hoomd/Compute.h"
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 namespace mpcd
@@ -122,6 +123,23 @@ class CellThermoCompute : public Compute
             m_enable_log = enable;
             }
 
+        //! Get the signal for requested thermo flags
+        /*!
+         * \returns A signal that subscribers can attach a callback to in order
+         *          to request certain data.
+         *
+         * For performance reasons, the CellThermoCompute should be able to
+         * supply many related cell-level quantities from a single kernel launch.
+         * However, sometimes these quantities are not needed, and it is better
+         * to skip calculating them. Subscribing classes can optionally request
+         * some of these quantities via a callback return mpcd::detail::ThermoFlags
+         * with the appropriate bits set.
+         */
+        Nano::Signal<mpcd::detail::ThermoFlags ()>& getFlagsSignal()
+            {
+            return m_flag_signal;
+            }
+
     protected:
         //! Compute the cell properties
         void computeCellProperties();
@@ -157,6 +175,11 @@ class CellThermoCompute : public Compute
 
         bool m_enable_log;                          //!< Flag to enable logging
         std::vector<std::string> m_logname_list;    //!< Cache all generated logged quantities names
+
+        Nano::Signal<mpcd::detail::ThermoFlags ()> m_flag_signal; //!< Signal for requested flags
+        mpcd::detail::ThermoFlags m_flags;  //!< Requested thermo flags
+        //! Updates the requested optional flags
+        void updateFlags();
 
     private:
         //! Allocate memory per cell

@@ -17,6 +17,7 @@
 #define DEVICE __device__ __forceinline__
 #else
 #define DEVICE
+#include <bitset>
 #endif
 
 namespace mpcd
@@ -38,6 +39,19 @@ struct thermo_index
         energy,         //!< Net kinetic energy
         temperature,    //!< Average temperature
         num_quantities  //!< Total number of thermo quantities
+        };
+    };
+
+#ifndef NVCC
+//! Flags for optional thermo data
+typedef std::bitset<32> ThermoFlags;
+#endif
+//! Bits corresponding to optional cell thermo data
+struct thermo_options
+    {
+    enum value
+        {
+        energy=0    //!< Cell-level energy
         };
     };
 
