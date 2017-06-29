@@ -22,12 +22,16 @@ mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> s
       m_thermo(thermo), m_rotvec(m_exec_conf), m_angle(0.0), m_factors(m_exec_conf)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SRD collision method" << std::endl;
+
+    m_thermo->getFlagsSignal().connect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
 
 mpcd::SRDCollisionMethod::~SRDCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD SRD collision method" << std::endl;
+
+    m_thermo->getFlagsSignal().disconnect<mpcd::SRDCollisionMethod, &mpcd::SRDCollisionMethod::getRequestedThermoFlags>(this);
     }
 
 void mpcd::SRDCollisionMethod::collide(unsigned int timestep)
