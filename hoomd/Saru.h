@@ -379,7 +379,7 @@ HOSTDEVICE Saru Saru::fork() const
 
     Saru z;
     z.state.x=churned2+state.x+(churned3^state.y);
-    unsigned int add=(z.state.y+churned1)>>1;
+    unsigned int add=(z.state.x+churned1)>>1;
     if (z.state.y-oWeylOffset<oWeylPeriod-add) z.state.y+=add;
     else z.state.y+=add-oWeylPeriod;
     return z;
