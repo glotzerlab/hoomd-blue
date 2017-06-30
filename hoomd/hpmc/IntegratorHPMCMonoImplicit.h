@@ -163,7 +163,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
-        std::vector<Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
+        std::vector<hoomd::detail::Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
         bool m_rng_initialized;                                  //!< True if RNGs have been initialized
         unsigned int m_n_trial;                                 //!< Number of trial re-insertions per depletant
 
@@ -355,7 +355,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         // initialize a set of random number generators
         for (unsigned int i = 0; i < n_omp_threads; ++i)
             {
-            m_rng_depletant.push_back(Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
+            m_rng_depletant.push_back(hoomd::detail::Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
             }
         m_rng_initialized = true;
         }
@@ -440,7 +440,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), h_params.data[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
@@ -894,7 +894,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
         Scalar3 shift = make_scalar3(0,0,0);
         shift.x = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
         shift.y = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));

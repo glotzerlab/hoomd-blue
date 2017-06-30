@@ -11,7 +11,7 @@
 
 
 #include "hoomd/Compute.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "HPMCCounters.h"   // do we need this to keep track of the statistics?
@@ -65,7 +65,7 @@ class ExternalFieldMono : public ExternalField
         virtual void compute(unsigned int timestep) {}
 
         //! method to accept or reject the proposed move used by the integrator.
-        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng){return 0;}
+        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng){return 0;}
 
         //! method to calculate the boltzmann factor for the proposed move.
         virtual Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}

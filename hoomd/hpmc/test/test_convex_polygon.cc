@@ -15,8 +15,6 @@ HOOMD_UP_MAIN();
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-
-#include "hoomd/extern/saruprng.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
