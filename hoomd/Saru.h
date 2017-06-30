@@ -46,12 +46,31 @@ namespace detail
 
 //! Saru random number generator
 /*!
- * See:
+ * Saru is a pseudo-random number generator that requires only a 64-bit state vector.
+ * The generator is first seeded using one, two, or three 32-bit unsigned integers.
+ * The seeds are hashed together to generate an initially random state consisting
+ * of two 32-bit words. The hash routines pass TestU01's Crush. The seeded generator
+ * is then able to generate streams of random numbers using a combination of
+ * a linear congruential generator (LCG) and an Offset Weyl Sequence (OWS) to advance
+ * the state. The streaming generator has a period of 3666320093*2^32, and passes
+ * DIEHARD, Rabbit, Gorilla, and TestU01's SmallCrush, Crush, and BigCrush. On
+ * the GPU, typical use is then to seed the generator per-kernel and per-thread
+ * to generate random microstreams (e.g., each thread gets a generator hashed from
+ * the particle tag, the timestep, and a user-defined seed).
  *
- * Y. Ashfar, F. Schmid, A. Pishevar, and S. Worley. "Exploiting seeding of random
+ * See
+ *
+ * C.L. Phillips, J.A. Anderson, and S.C. Glotzer. "Pseudo-random number generation
+ * for Brownian Dynamics and Dissipative Particle Dynamics simulations on GPU devices",
+ * J. Comput. Phys. 230, 7191-7201 (2011).
+ *
+ * and
+ *
+ * Y. Afshar, F. Schmid, A. Pishevar, and S. Worley. "Exploiting seeding of random
  * number generators for efficient domain decomposition parallelization of dissipative
  * particle dynamics", Comput. Phys. Commun. 184, 1119-1128 (2013).
  *
+ * for more details.
  */
 class Saru
     {
