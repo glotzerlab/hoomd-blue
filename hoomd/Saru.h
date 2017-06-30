@@ -127,18 +127,19 @@ class Saru
         template <unsigned int steps>
         HOSTDEVICE inline unsigned int u32();
 
-        //! Draw a random float on (0,1) advanced ahead \a steps
+        //! Draw a random float on [0,1) advanced ahead \a steps
         template <unsigned int steps>
         HOSTDEVICE inline float f();
 
-        //! Draw a random double on (0,1) advanced ahead \a steps
+        //! Draw a random double on [0,1) advanced ahead \a steps
         template <unsigned int steps>
         HOSTDEVICE inline double d();
 
-        //! Draw a random float in a given interval advanced ahead \a steps
+        //! Draw a random float on [a,b) advanced ahead \a steps
         template <unsigned int steps>
         HOSTDEVICE inline float f(float low, float b);
 
+        //! Draw a random double on [a,b) advanced ahead \a steps
         template <unsigned int steps>
         HOSTDEVICE inline double d(double low, double b);
         //@}
