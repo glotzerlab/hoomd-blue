@@ -7,7 +7,6 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/ParticleGroup.h"
 #include <memory>
-#include "hoomd/extern/saruprng.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 

@@ -12,12 +12,7 @@
 #endif
 
 #include "hoomd/HOOMDMath.h"
-
-#ifdef NVCC
-#include "hoomd/extern/saruprngCUDA.h"
-#else
-#include "hoomd/extern/saruprng.h"
-#endif
+#include "hoomd/Saru.h"
 
 
 /*! \file EvaluatorPairDPDLJThermo.h
@@ -31,24 +26,6 @@
 #else
 #define DEVICE
 #endif
-
-// call different Saru PRNG initializers on the host / device
-// SARU is SaruGPU Class when included in nvcc and Saru Class when included into the host compiler
-#ifdef NVCC
-#define SARU(ix,iy,iz) SaruGPU saru( (ix) , (iy) , (iz) )
-#else
-#define SARU(ix, iy, iz) Saru saru( (ix) , (iy) , (iz) )
-#endif
-
-// use different Saru PRNG returns on the host / device
-// CALL_SARU is currently define to return a random Scalar for both the GPU and Host.  By changing saru.f to saru.d, a double could be returned instead.
-#ifdef NVCC
-#define CALL_SARU(x,y) saru.f( (x), (y))
-#else
-#define CALL_SARU(x,y) saru.f( (x), (y))
-#endif
-
-
 
 //! Class for evaluating the DPD Thermostat pair potential
 /*! <b>General Overview</b>
@@ -224,11 +201,11 @@ class EvaluatorPairDPDLJThermo
                    m_oj = m_j;
                    }
 
-                SARU(m_oi, m_oj, m_seed + m_timestep);
+                hoomd::detail::Saru rng(m_oi, m_oj, m_seed + m_timestep);
 
 
                 // Generate a single random number
-                Scalar alpha = CALL_SARU(-1,1) ;
+                Scalar alpha = rng.s<Scalar>(-1,1);
 
                 // conservative lj
                 force_divr = r2inv * r6inv * (Scalar(12.0)*lj1*r6inv - Scalar(6.0)*lj2);

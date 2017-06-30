@@ -6,9 +6,11 @@
 
 #include "TwoStepBD.h"
 #include "hoomd/VectorMath.h"
-#include "hoomd/extern/saruprng.h"
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
+
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 
 #ifdef ENABLE_MPI
@@ -97,7 +99,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
         unsigned int ptag = h_tag.data[j];
 
         // Initialize the RNG
-        Saru saru(ptag, timestep + m_seed);
+        detail::Saru saru(ptag, timestep, m_seed);
 
         // compute the random force
         Scalar rx = saru.s<Scalar>(-1,1);
