@@ -116,6 +116,7 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
