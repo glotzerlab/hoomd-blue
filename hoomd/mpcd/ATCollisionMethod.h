@@ -58,6 +58,8 @@ class ATCollisionMethod : public mpcd::CollisionMethod
 
         //! Apply the random velocities to particles in each cell
         virtual void applyVelocities();
+
+        void scheduleCallbacks(unsigned int timestep);
     };
 
 namespace detail

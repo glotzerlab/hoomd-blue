@@ -24,12 +24,16 @@ mpcd::ATCollisionMethod::ATCollisionMethod(std::shared_ptr<mpcd::SystemData> sys
       m_thermo(thermo), m_rand_thermo(rand_thermo), m_T(T)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD AT collision method" << std::endl;
+
+    m_thermo->getCallbackSignal().connect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::scheduleCallbacks>(this);
     }
 
 
 mpcd::ATCollisionMethod::~ATCollisionMethod()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD AT collision method" << std::endl;
+
+    m_thermo->getCallbackSignal().disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::scheduleCallbacks>(this);
     }
 
 void mpcd::ATCollisionMethod::collide(unsigned int timestep)
@@ -46,22 +50,22 @@ void mpcd::ATCollisionMethod::collide(unsigned int timestep)
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push("MPCD collide");
-    if (m_prof) m_prof->push(m_exec_conf, "draw");
-    // draw velocities for each particle from the normal distribution
-    drawVelocities(timestep);
+    if (m_prof) m_prof->push(m_exec_conf, "apply");
+    // apply random velocities
+    applyVelocities();
     if (m_prof) m_prof->pop(m_exec_conf);
+    if (m_prof) m_prof->pop();
+    }
+
+void mpcd::ATCollisionMethod::scheduleCallbacks(unsigned int timestep)
+    {
+    // draw the random velocities
+    drawVelocities(timestep);
 
     // compute the cell average of the random velocities
     m_pdata->swapVelocities(); m_mpcd_pdata->swapVelocities();
     m_rand_thermo->compute(timestep);
     m_pdata->swapVelocities(); m_mpcd_pdata->swapVelocities();
-
-    if (m_prof) m_prof->push(m_exec_conf, "apply");
-    // apply random velocities
-    applyVelocities();
-    if (m_prof) m_prof->pop(m_exec_conf);
-
-    if (m_prof) m_prof->pop();
     }
 
 void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
