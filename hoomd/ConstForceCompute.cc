@@ -96,7 +96,7 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz, Scalar tx, Sca
         }
    }
 
-/*! \param i Index of the particle to set
+/*! \param tag Tag of the particle to set
     \param fx x-component of the force
     \param fy y-component of the force
     \param fz z-component of the force
@@ -104,27 +104,31 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz, Scalar tx, Sca
     \param ty y-component of the torque vector
     \param tz z-component of the torque vector
 */
-void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz, Scalar tx, Scalar ty, Scalar tz)
+void ConstForceCompute::setParticleForce(unsigned int tag, Scalar fx, Scalar fy, Scalar fz, Scalar tx, Scalar ty, Scalar tz)
     {
-
     assert(m_pdata != NULL);
-    assert(i < m_pdata->getN());
+    assert(tag < m_pdata->getNGlobal());
 
-    ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::overwrite);
-    ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::overwrite);
-    assert(h_force.data);
-    assert(h_torque.data);
+    unsigned int idx = m_pdata->getRTag(tag);
+    bool ptl_local = (idx < m_pdata->getN());
 
-    h_force.data[i].x = fx;
-    h_force.data[i].y = fy;
-    h_force.data[i].z = fz;
-    h_force.data[i].w = 0;
+    if (ptl_local)
+        {
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::readwrite);
+        ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::readwrite);
+        assert(h_force.data);
+        assert(h_torque.data);
 
-    h_torque.data[i].x = tx;
-    h_torque.data[i].y = ty;
-    h_torque.data[i].z = tz;
-    h_torque.data[i].w = 0;
+        h_force.data[idx].x = fx;
+        h_force.data[idx].y = fy;
+        h_force.data[idx].z = fz;
+        h_force.data[idx].w = 0;
 
+        h_torque.data[idx].x = tx;
+        h_torque.data[idx].y = ty;
+        h_torque.data[idx].z = tz;
+        h_torque.data[idx].w = 0;
+        }
     }
 
 /*! \param group Group to set the force or torque for
@@ -197,6 +201,12 @@ void ConstForceCompute::rearrangeForces()
 void ConstForceCompute::computeForces(unsigned int timestep)
     {
     if (m_particles_sorted==true) rearrangeForces();
+
+    // execute python callback to update the forces, if present
+    if (m_callback != py::none())
+        {
+        m_callback(timestep);
+        }
     }
 
 
@@ -206,5 +216,7 @@ void export_ConstForceCompute(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)
     .def("setGroupForce", &ConstForceCompute::setGroupForce)
+    .def("setParticleForce", &ConstForceCompute::setParticleForce)
+    .def("setCallback", &ConstForceCompute::setCallback)
     ;
     }
