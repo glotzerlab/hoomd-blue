@@ -82,7 +82,7 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
         {
         const Scalar3 mom = thermo->getNetMomentum();
         CHECK_CLOSE(mom.x, orig_mom.x, tol_small);
-        CHECK_CLOSE(mom.y, orig_mom.y, tol_small);
+        CHECK_SMALL(mom.y, tol_small);
         CHECK_CLOSE(mom.z, orig_mom.z, tol_small);
         }
 
