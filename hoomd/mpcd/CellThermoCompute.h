@@ -140,9 +140,15 @@ class CellThermoCompute : public Compute
             return m_flag_signal;
             }
 
+        //! Get the signal to attach a callback function
+        Nano::Signal<void (unsigned int)>& getCallbackSignal()
+            {
+            return m_callbacks;
+            }
+
     protected:
         //! Compute the cell properties
-        void computeCellProperties();
+        void computeCellProperties(unsigned int timestep);
 
         #ifdef ENABLE_MPI
         //! Begin the calculation of outer cell properties
@@ -180,6 +186,8 @@ class CellThermoCompute : public Compute
         mpcd::detail::ThermoFlags m_flags;  //!< Requested thermo flags
         //! Updates the requested optional flags
         void updateFlags();
+
+        Nano::Signal<void (unsigned int)> m_callbacks;  //!< Signal for callback functions
 
     private:
         //! Allocate memory per cell

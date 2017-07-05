@@ -73,7 +73,7 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
         reallocate(ncells);
         }
 
-    computeCellProperties();
+    computeCellProperties(timestep);
     m_needs_net_reduce = true;
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -116,7 +116,7 @@ Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigne
         }
     }
 
-void mpcd::CellThermoCompute::computeCellProperties()
+void mpcd::CellThermoCompute::computeCellProperties(unsigned int timestep)
     {
     /*
      * In MPI simulations, begin by calculating the velocities and energies of
@@ -138,7 +138,13 @@ void mpcd::CellThermoCompute::computeCellProperties()
      * While communication is occurring on the outer cells, do the full calculation
      * on the inner cells. In non-MPI simulations, only this part happens.
      */
-     calcInnerCellProperties();
+    calcInnerCellProperties();
+
+    /*
+     * Execute any additional callbacks that can be overlapped with outer communication.
+     */
+    if (!m_callbacks.empty())
+        m_callbacks.emit(timestep);
 
     /*
      * In MPI simulations, we need to finalize the communication on the outer cells
