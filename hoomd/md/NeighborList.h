@@ -314,6 +314,9 @@ class NeighborList : public Compute
         //! Add an exclusion for every bond in the ConstraintData
         void addExclusionsFromConstraints();
 
+        //! Add an exclusion for every pair in the ParticleData
+        void addExclusionsFromPairs();
+
         //! Test if an exclusion has been made
         bool isExcluded(unsigned int tag1, unsigned int tag2);
 
