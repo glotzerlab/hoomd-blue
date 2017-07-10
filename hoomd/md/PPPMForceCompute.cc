@@ -1403,6 +1403,7 @@ void PPPMForceCompute::computeBodyCorrection()
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
 
@@ -1430,7 +1431,11 @@ void PPPMForceCompute::computeBodyCorrection()
 
             if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
                 {
-                Scalar3 dx = box.minImage(vec_to_scalar3(posi-posj));
+                // account for self-interactions in the rigid body reference frame
+                Scalar3 dx = vec_to_scalar3(posi-posj);
+                int3 delta_img = h_image.data[i]-h_image.data[j];
+                box.shift(dx,delta_img);
+
                 Scalar rsq = dot(dx,dx);
 
                 Scalar force_divr(0.0);
