@@ -221,20 +221,6 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // Move particles between domains. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
-        m_comm->forceMigrate();
-        m_comm->communicate(timestep);
-        }
-#endif
-
-    // compute the net forces
-    computeNetForce(timestep);
-
     if (m_prof)
         {
         m_prof->push("Integrate");
