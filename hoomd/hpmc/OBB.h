@@ -478,13 +478,23 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     // compute normalized eigenvectors
     Eigen::EigenSolver<Eigen::MatrixXd> es;
     es.compute(m);
-    Eigen::MatrixXcd eigen_vec = es.eigenvectors();
 
     rotmat3<OverlapReal> r;
 
-    r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
-    r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
-    r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
+    if (es.info() != Eigen::Success)
+        {
+        // numerical issue, set r to identity matrix
+        r.row0 = vec3<OverlapReal>(1,0,0);
+        r.row1 = vec3<OverlapReal>(0,1,0);
+        r.row2 = vec3<OverlapReal>(0,0,1);
+        }
+    else
+        {
+        Eigen::MatrixXcd eigen_vec = es.eigenvectors();
+        r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
+        r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
+        r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
+        }
 
     if (pts.size() >= 3)
         {
