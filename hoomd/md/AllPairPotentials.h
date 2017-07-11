@@ -22,6 +22,7 @@
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairDLVO.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialPairGPU.h"
@@ -68,6 +69,8 @@ typedef PotentialPair<EvaluatorPairForceShiftedLJ> PotentialPairForceShiftedLJ;
 typedef PotentialPair<EvaluatorPairMie> PotentialPairMie;
 //! Pair potential force compute for ReactionField potential
 typedef PotentialPair<EvaluatorPairReactionField> PotentialPairReactionField;
+//! Pair potential force compute for DLVO potential
+typedef PotentialPair<EvaluatorPairDLVO> PotentialPairDLVO;
 
 #ifdef ENABLE_CUDA
 //! Pair potential force compute for lj forces on the GPU
@@ -100,7 +103,8 @@ typedef PotentialPairGPU<EvaluatorPairForceShiftedLJ, gpu_compute_force_shifted_
 typedef PotentialPairGPU<EvaluatorPairMie, gpu_compute_mie_forces> PotentialPairMieGPU;
 //! Pair potential force compute for reaction field forces on the GPU
 typedef PotentialPairGPU< EvaluatorPairReactionField, gpu_compute_reaction_field_forces > PotentialPairReactionFieldGPU;
-
+//! Pair potential force compute for DLVO forces on the GPU
+typedef PotentialPairGPU< EvaluatorPairDLVO, gpu_compute_dlvo_forces > PotentialPairDLVOGPU;
 #endif
 
 #endif // __PAIR_POTENTIALS_H__
