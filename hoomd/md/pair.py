@@ -2507,7 +2507,7 @@ class DLVO(pair):
         if d_max is None :
             sysdef = hoomd.context.current.system_definition;
             d_max = sysdef.getParticleData().getMaxDiameter()
-            hoomd.context.msg.notice(2, "Notice: slj set d_max=" + str(d_max) + "\n");
+            hoomd.context.msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
 
         # SLJ requires diameter shifting to be on
         self.nlist.cpp_nlist.setDiameterShift(True);
