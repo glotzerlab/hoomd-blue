@@ -1417,6 +1417,7 @@ void PPPMForceCompute::computeBodyCorrection()
         unsigned int ibody = h_body.data[i];
         vec3<Scalar> posi(h_postype.data[i]);
         Scalar qi(h_charge.data[i]);
+        int3 img_i = h_image.data[i];
 
         for (unsigned int j = 0; j < nptl + nghost; ++j)
             {
@@ -1431,11 +1432,11 @@ void PPPMForceCompute::computeBodyCorrection()
 
             if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
                 {
-                // account for self-interactions in the rigid body reference frame
-                Scalar3 dx = vec_to_scalar3(posi-posj);
-                int3 delta_img = h_image.data[i]-h_image.data[j];
-                box.shift(dx,delta_img);
-
+                // account for self-interactions by shifting into the body reference frame
+                int3 img_j = h_image.data[j];
+                int3 delta_img = img_j - img_i;
+                Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
+                Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
                 Scalar rsq = dot(dx,dx);
 
                 Scalar force_divr(0.0);
@@ -1444,7 +1445,7 @@ void PPPMForceCompute::computeBodyCorrection()
                 // compute correction
                 eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
 
-                // subtract
+                // subtract long range self-energy
                 m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
                 }
             }
