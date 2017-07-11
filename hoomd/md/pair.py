@@ -2450,6 +2450,7 @@ class DLVO(pair):
         r_cut (float): Default cutoff radius (in distance units).
         nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
         name (str): Name of the force instance.
+        d_max (float): Maximum diameter particles in the simulation will have (in distance units)
 
     :py:class:`DLVO` evaluates the forces for the pair potential
     .. math::
@@ -2457,7 +2458,7 @@ class DLVO(pair):
         V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[
             \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
             + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right]
-            + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
+            + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
             = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
 
      where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
@@ -2469,7 +2470,9 @@ class DLVO(pair):
 
     See Israelachvili 2011, pp. 317.
 
-    The DLVO potential does not need charge, but does need diameter.
+    The DLVO potential does not need charge, but does need diameter. See :py:class:`slj` for an explanation
+    on how diameters are handled in the neighbor lists.
+
     Due to the way that DLVO modifies the cutoff condition, it will not function properly with the
     xplor shifting mode. See :py:class:`pair` for details on how forces are calculated and the available energy
     shifting and smoothing modes.
@@ -2494,7 +2497,7 @@ class DLVO(pair):
         DLVO.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
         DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
     """
-    def __init__(self, r_cut, nlist, name=None):
+    def __init__(self, r_cut, nlist, d_max=None, name=None):
         hoomd.util.print_status_line();
 
         # initialize the base class
@@ -2529,7 +2532,7 @@ class DLVO(pair):
         kappa = coeff['kappa'];
         A = coeff['A'];
 
-        return hoomd.make_scalar3(kappa, Z, A);
+        return _hoomd.make_scalar3(kappa, Z, A);
 
 class square_density(pair):
     R""" Soft potential for simulating a van-der-Waals liquid
