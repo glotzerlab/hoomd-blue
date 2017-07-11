@@ -2459,7 +2459,7 @@ class DLVO(pair):
             \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
             + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right]
             + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
-            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
+            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
 
      where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
      :math:`d_i` is the diameter of particle :math:`i`.
