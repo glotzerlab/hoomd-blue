@@ -55,7 +55,7 @@ class pair_DLVO_tests (unittest.TestCase):
 # test the validity of the pair potential
 class test_pair_DLVO_potential(unittest.TestCase):
     def setUp(self):
-        snap = data.make_snapshot(N=2, box=data.boxdim(L=10),particle_types=['A'])
+        snap = data.make_snapshot(N=2, box=data.boxdim(L=20),particle_types=['A'])
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.position[1] = (1.5,0,0)
