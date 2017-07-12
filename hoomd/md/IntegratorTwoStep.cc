@@ -346,8 +346,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    m_prepared = true;
-
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -367,9 +365,14 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
 #endif
         computeNetForce(timestep+1);
 
-    // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart())
+    // accelerations only need to be calculated if the accelerations have not yet been set
+    if (!m_pdata->isAccelSet())
+        {
         computeAccelerations(timestep);
+        m_pdata->notifyAccelSet();
+        }
+
+    m_prepared = true;
     }
 
 /*! Return the combined flags of all integration methods.
