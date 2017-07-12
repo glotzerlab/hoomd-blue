@@ -360,10 +360,10 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep);
 
     // accelerations only need to be calculated if the accelerations have not yet been set
     if (!m_pdata->isAccelSet())
