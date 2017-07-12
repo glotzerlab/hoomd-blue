@@ -144,6 +144,7 @@ class mode_standard(_integrator):
 
     def reset_methods(self):
         R""" (Re-)initialize the integrator variables in all integration methods
+        ..versionadded:: v2.2
 
         Examples::
 
