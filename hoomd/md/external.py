@@ -94,7 +94,7 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the input
-        type = hoomd.util.listify(str)
+        type = hoomd.util.listify(type)
 
         for typei in type:
             self.set_single(typei, coeffs);
