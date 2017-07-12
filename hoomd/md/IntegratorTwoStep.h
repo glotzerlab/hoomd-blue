@@ -112,12 +112,12 @@ class IntegratorTwoStep : public Integrator
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
 
+        //! (Re-)initialize the integration method
+        void initializeIntegrationMethods();
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
-
-        //! Help function to initialize the integration method
-        void initializeIntegrationMethods();
 
         //! Helper function to be called when particle number changes
         void slotGlobalParticleNumberChange()

@@ -391,12 +391,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         computeAccelerations(timestep);
         }
 
-    if (m_particles_reinitialized)
-        {
-        // if particle positions have changed since last run(), reinitialize integrator variables
-        initializeIntegrationMethods();
-        }
-
     m_particles_reinitialized = false;
     }
 
@@ -465,6 +459,7 @@ void export_IntegratorTwoStep(py::module& m)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
         .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
+        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
         ;
 
     py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")

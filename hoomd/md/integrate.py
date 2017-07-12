@@ -76,6 +76,12 @@ class mode_standard(_integrator):
 
         integrate.mode_standard(dt=0.005)
         integrator_mode = integrate.mode_standard(dt=0.001)
+
+    Some integration methods (notable :py:class:`nvt`, :py:class:`npt` and :py:class:`nph` maintain state between
+    different :py:func:`hoomd.run()` commands, to allow for restartable simulations. After adding or removing particles, however,
+    a new :py:func:`hoomd.run()` will continue from the old state and the integrator variables will re-equilibrate.
+    To ensure equilibration from a unique reference state (such as all integrator variables set to zero),
+    the method :py:method:reset_methods() can be use to re-initialize the variables.
     """
     def __init__(self, dt, aniso=None):
         hoomd.util.print_status_line();
@@ -135,6 +141,22 @@ class mode_standard(_integrator):
                 raise RuntimeError("Error setting anisotropic integration mode.");
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
+
+    def reset_methods(self):
+        R""" (Re-)initialize the integrator variables in all integration methods
+
+        Examples::
+
+            run(100)
+            # .. modify the system state, e.g. add particles ..
+            integrator_mode.reset_methods()
+            run(100)
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+        self.cpp_integrator.initializeIntegrationMethods();
+
 
 class nvt(_integration_method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
