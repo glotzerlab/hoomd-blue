@@ -4,7 +4,7 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/RandomNumbers.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include <vector>
 
 #include "hoomd/test/upp11_config.h"
@@ -41,7 +41,7 @@ UP_TEST( sphere_point_test )
     const double dtheta = 2.0*mpcd_pi/static_cast<double>(nbins); // [0, 2pi)
     std::vector<unsigned int> fphi(nbins, 0), ftheta(nbins, 0);
 
-    Saru rng(7, 7, 91);
+    hoomd::detail::Saru rng(7, 7, 91);
     mpcd::detail::SpherePointGenerator<double> gen;
 
     const unsigned int N = 500000;
@@ -93,7 +93,7 @@ void check_moments(GeneratorType& gen,
                    const double ref_var,
                    const double ref_tol)
     {
-    Saru rng(7, 7, 91);
+    hoomd::detail::Saru rng(7, 7, 91);
 
     // compute moments of the distribution
     double mean(0), var(0);

@@ -10,7 +10,7 @@
 
 #include "SRDCollisionMethod.h"
 #include "RandomNumbers.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 
 mpcd::SRDCollisionMethod::SRDCollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata,
                                              unsigned int cur_timestep,
@@ -93,7 +93,7 @@ void mpcd::SRDCollisionMethod::drawRotationVectors(unsigned int timestep)
                 const unsigned int idx = ci(i,j,k);
 
                 // Initialize the PRNG using the current cell index, timestep, and seed for the hash
-                Saru saru(global_idx, timestep, m_seed);
+                hoomd::detail::Saru saru(global_idx, timestep, m_seed);
 
                 // draw rotation vector off the surface of the sphere
                 double3 rotvec;

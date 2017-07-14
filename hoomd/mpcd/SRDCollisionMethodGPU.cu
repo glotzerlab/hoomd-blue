@@ -10,7 +10,7 @@
 
 #include "SRDCollisionMethodGPU.cuh"
 #include "RandomNumbers.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 
 namespace mpcd
 {
@@ -56,7 +56,7 @@ __global__ void srd_draw_vectors(double3 *d_rotvec,
     const unsigned int global_idx = global_ci(global_cell.x, global_cell.y, global_cell.z);
 
     // Initialize the PRNG using the cell index, timestep, and seed for the hash
-    SaruGPU saru(global_idx, timestep, seed);
+    hoomd::detail::Saru saru(global_idx, timestep, seed);
 
     // draw rotation vector off the surface of the sphere
     double3 rotvec;
