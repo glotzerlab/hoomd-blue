@@ -21,11 +21,11 @@
 #endif
 
 #include "hoomd/md/IntegratorTwoStep.h"
-
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 
 #include <math.h>
 
+using namespace hoomd;
 using namespace std;
 using namespace std::placeholders;
 
@@ -52,7 +52,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
 
-    Saru saru(11, 21, 33);
+    detail::Saru saru(11, 21, 33);
 
     // setup a simple initial state
     Scalar tiny = 1e-3;

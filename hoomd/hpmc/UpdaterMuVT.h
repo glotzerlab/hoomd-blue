@@ -470,7 +470,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     unsigned int group = 0;
     #endif
 
-    Saru rng(timestep, this->m_seed, 0x03d2034a^group);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x03d2034a^group);
 
     bool active = true;
     unsigned int mod = 0;
@@ -730,7 +730,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 unsigned int tag = UINT_MAX;
 
                 // in Gibbs ensemble, we should not use correlated random numbers with box 1
-                Saru rng_local(rng.u32());
+                hoomd::detail::Saru rng_local(rng.u32());
 
                 // choose a random particle type out of those being transfered
                 assert(m_transfer_types.size() > 0);
@@ -1033,7 +1033,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         // select a random particle tag of given type
 
                         // make sure we are not using the same random numbers as box 1
-                        Saru rng_local(rng.u32());
+                        hoomd::detail::Saru rng_local(rng.u32());
 
                         unsigned int type_offs = rand_select(rng_local, N_old-1);
                         tag = getNthTypeTag(other_type, type_offs);

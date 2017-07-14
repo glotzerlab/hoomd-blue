@@ -302,7 +302,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar yz,
                                           unsigned int timestep,
                                           Scalar boltzmann,
-                                          Saru& rng
+                                          hoomd::detail::Saru& rng
                                           )
     {
     // Make a backup copy of position data
@@ -387,7 +387,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    Saru rng(m_seed, timestep, 0xf6a510ab);
+    hoomd::detail::Saru rng(m_seed, timestep, 0xf6a510ab);
 
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
@@ -447,7 +447,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
@@ -521,7 +521,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
@@ -611,7 +611,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_shear(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
@@ -662,7 +662,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_aspect(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
