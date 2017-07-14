@@ -79,6 +79,36 @@ class boxMC_sanity_checks (unittest.TestCase):
         del self.snapshot
         context.initialize()
 
+    # This test places two particles that overlap significantly.
+    # The maximum move displacement is set so that the overlap cannot be removed.
+    # It then performs an NPT run and ensures that no volume or shear moves were accepted.
+    def test_rejects_overlaps_lnV(self):
+        self.snapshot = data.make_snapshot(N=2, box=data.boxdim(L=4), particle_types=['A'])
+        self.system = init.read_snapshot(self.snapshot)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=1, d=0.1, a=0.1)
+        self.mc.set_params(deterministic=True)
+        self.boxMC = hpmc.update.boxmc(self.mc, betaP=1000, seed=1)
+        self.boxMC.ln_volume(delta=0.01, weight=1)
+        self.mc.shape_param.set('A', vertices=[  (1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),
+                                            (1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1) ])
+
+        self.system.particles[1].position = (0.7,0,0)
+
+        run(0)
+        overlaps = self.mc.count_overlaps()
+        self.assertGreater(overlaps, 0)
+
+        run(100)
+        self.assertEqual(overlaps, self.mc.count_overlaps())
+        self.assertEqual(self.boxMC.get_ln_volume_acceptance(), 0)
+        self.assertEqual(self.boxMC.get_shear_acceptance(), 0)
+
+        del self.boxMC
+        del self.mc
+        del self.system
+        del self.snapshot
+        context.initialize()
+
     # This test runs an orthorhombic simple cubic lattice in the NPT ensemble to ensure
     # that the aspect ratios are preserved by volume moves.
     def test_VolumeMove_box_aspect_ratio(self):
@@ -197,6 +227,11 @@ class boxMC_test_methods (unittest.TestCase):
         boxMC.volume(delta=1.0)
         boxMC.volume(delta=1.0, weight=1)
 
+    def test_methods_setlnVMove(self):
+        boxMC = self.boxMC
+        boxMC.ln_volume(delta=1.0)
+        boxMC.ln_volume(delta=1.0, weight=1)
+
     def test_methods_setLengthMove(self):
         boxMC = self.boxMC
         # test scalar delta
@@ -222,6 +257,8 @@ class boxMC_test_methods (unittest.TestCase):
         self.assertEqual(tuple([float(n) for n in boxMC.shear()['delta']]), delta)
         boxMC.volume(delta=0.1)
         self.assertEqual(boxMC.volume()['delta'], 0.1)
+        boxMC.ln_volume(delta=0.01)
+        self.assertEqual(boxMC.ln_volume()['delta'], 0.01)
         boxMC.aspect(delta=0.1)
         self.assertEqual(boxMC.aspect()['delta'], 0.1)
 

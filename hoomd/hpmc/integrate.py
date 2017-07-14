@@ -1082,11 +1082,17 @@ class polyhedron(mode_hpmc):
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+
         * .. versionadded:: 2.2
+
     * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
+
         * .. versionadded:: 2.2
-    * *hull_only* (**default: True **) - if True, only consider intersections between hull polygons
+
+    * *hull_only* (**default: True**) - if True, only consider intersections between hull polygons
+
         * .. versionadded:: 2.2
 
     Warning:

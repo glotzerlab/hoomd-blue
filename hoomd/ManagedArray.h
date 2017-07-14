@@ -90,25 +90,25 @@ class ManagedArray
             }
 
         //! random access operator
-        HOSTDEVICE T& operator[](unsigned int i)
+        HOSTDEVICE inline T& operator[](unsigned int i)
             {
             return data[i];
             }
 
         //! random access operator (const version)
-        HOSTDEVICE const T& operator[](unsigned int i) const
+        HOSTDEVICE inline const T& operator[](unsigned int i) const
             {
             return data[i];
             }
 
         //! Get pointer to array data
-        HOSTDEVICE T * get()
+        HOSTDEVICE inline T * get()
             {
             return data;
             }
 
         //! Get pointer to array data (const version)
-        HOSTDEVICE const T* get() const
+        HOSTDEVICE inline const T* get() const
             {
             return data;
             }
