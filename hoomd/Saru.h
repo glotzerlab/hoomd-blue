@@ -144,7 +144,7 @@ class Saru
         HOSTDEVICE inline double d(double low, double b);
         //@}
 
-        //! \name Uniform generators on [0,1)
+        //! \name Single-step advancers
         //@{
         //! Draw a random 32-bit unsigned integer
         HOSTDEVICE inline unsigned int u32();
@@ -185,9 +185,6 @@ class Saru
         static const unsigned int oWeylDelta=(oWeylPeriod-0x80000000)+(oWeylOffset-0x80000000); //!< wraps mod 2^32
 
         //! Advance the Linear Congruential Generator
-        /* Compile-time template function to efficently advance a state x with
-           a LCG (mod 2^32) N steps.  Runtime, this all becomes a super-simple
-           single multiply and add. */
         template <unsigned int steps>
         HOSTDEVICE inline  void advanceLCG();
 
@@ -504,7 +501,7 @@ HOSTDEVICE inline unsigned int Saru::u32()
     }
 
 /*!
- * \returns A random uniform double in [0,1).
+ * \returns A random uniform float in [0,1).
  *
  * \post The state of the generator is advanced one step.
  */
@@ -523,7 +520,7 @@ HOSTDEVICE inline double Saru::d()
     return d<1>();
     }
 
-//! Template specialization for double
+//! Template specialization for float
 /*!
  * \returns A random uniform float in [0,1).
  *
@@ -609,6 +606,8 @@ HOSTDEVICE inline void Saru::advanceLCG()
     }
 
 /*!
+ * \param x
+ *
  * \tparam offset
  * \tparam delta
  * \tparam modulus
