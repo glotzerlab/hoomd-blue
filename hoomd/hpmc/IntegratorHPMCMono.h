@@ -1246,9 +1246,9 @@ void IntegratorHPMCMono<Shape>::connectGSDSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
-    typedef ::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
     auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
-    std::shared_ptr<::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
