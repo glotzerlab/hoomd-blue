@@ -19,7 +19,7 @@
 #ifdef NVCC
 #include "HPMCPrecisionSetup.h"
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/extern/kernels/segreducecsr.cuh"
 #include "hoomd/extern/kernels/segreduce.cuh"
@@ -487,7 +487,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
         }
 
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int overlap_checks = 0;
 
@@ -846,7 +846,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
         my_cell = d_cell_set[active_cell_idx];
         }
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int idx_i = UINT_MAX;
 
@@ -931,7 +931,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
         // check against the updated particle
         Shape shape_i(quat<Scalar>(), s_params[__scalar_as_int(postype_i.w)]);
-        Scalar R = shape_i.getInsphereRadius();
+        Scalar R = max(shape_i.getInsphereRadius() - shape_test.getCircumsphereDiameter(),0.0);
 
         if (d > Scalar(0.0) && R > Scalar(0.0))
             {

@@ -1,6 +1,5 @@
-
 #include "hoomd/ExecutionConfiguration.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
@@ -435,7 +434,6 @@ UP_TEST( overlap_faceted_offset )
     UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
     }
 
-#include "hoomd/extern/saruprng.h"
 UP_TEST( random_support_test )
     {
     detail::faceted_sphere_params p;
@@ -462,7 +460,7 @@ UP_TEST( random_support_test )
 
     ShapeFacetedSphere::initializeVertices(p,false);
 
-    Saru rng;
+    hoomd::detail::Saru rng;
 
     detail::SupportFuncFacetedSphere support(p);
     for (unsigned int i = 0; i < 10000; ++i)
@@ -505,7 +503,7 @@ UP_TEST( random_support_test_2 )
 
     ShapeFacetedSphere::initializeVertices(p,false);
 
-    Saru rng;
+    hoomd::detail::Saru rng;
 
     detail::SupportFuncFacetedSphere support(p);
     for (unsigned int i = 0; i < 10000; ++i)

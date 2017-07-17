@@ -28,13 +28,9 @@ template<class Shape>
 void build_tree(typename ShapeUnion<Shape>::param_type& data)
     {
     typedef typename ShapeUnion<Shape>::param_type::gpu_tree_type gpu_tree_type;
-    typename gpu_tree_type::obb_tree_type tree;
+    OBBTree tree;
     hpmc::detail::OBB *obbs;
-    int retval = posix_memalign((void**)&obbs, 32, sizeof(hpmc::detail::OBB)*data.N);
-    if (retval != 0)
-        {
-        throw std::runtime_error("Error allocating aligned AABB memory.");
-        }
+    obbs = new hpmc::detail::OBB[data.N];
 
     // construct bounding box tree
     for (unsigned int i = 0; i < data.N; ++i)
@@ -43,8 +39,8 @@ void build_tree(typename ShapeUnion<Shape>::param_type& data)
         obbs[i] = OBB(dummy.getAABB(data.mpos[i]));
         }
 
-    tree.buildTree(obbs, data.N);
-    free(obbs);
+    tree.buildTree(obbs, data.N, 4);
+    delete[] obbs;
     data.tree = gpu_tree_type(tree);
     }
 

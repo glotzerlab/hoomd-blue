@@ -90,25 +90,25 @@ class ManagedArray
             }
 
         //! random access operator
-        HOSTDEVICE T& operator[](unsigned int i)
+        HOSTDEVICE inline T& operator[](unsigned int i)
             {
             return data[i];
             }
 
         //! random access operator (const version)
-        HOSTDEVICE const T& operator[](unsigned int i) const
+        HOSTDEVICE inline const T& operator[](unsigned int i) const
             {
             return data[i];
             }
 
         //! Get pointer to array data
-        HOSTDEVICE T * get()
+        HOSTDEVICE inline T * get()
             {
             return data;
             }
 
         //! Get pointer to array data (const version)
-        HOSTDEVICE const T* get() const
+        HOSTDEVICE inline const T* get() const
             {
             return data;
             }
@@ -175,14 +175,14 @@ class ManagedArray
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate(N, managed);
+            data = managed_allocator<T>::allocate_construct(N, managed);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate(data, N, managed);
+                managed_allocator<T>::deallocate_destroy(data, N, managed);
                 }
             }
         #endif

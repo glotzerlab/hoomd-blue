@@ -7,7 +7,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable C++11
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.1.0)
+if (CMAKE_VERSION VERSION_GREATER 3.0.99)
     # let cmake set the flags
     set(CMAKE_CXX_STANDARD 11)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,5 +29,5 @@ endif()
 # Enable compiler warnings on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas -Wno-deprecated-declarations")
-    set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-unknown-pragmas")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-unknown-pragmas")
 endif()

@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: jglaser
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -15,8 +17,6 @@
 #ifndef __SHAPE_POLYHEDRON_H__
 #define __SHAPE_POLYHEDRON_H__
 
-//#define DEBUG_OUTPUT
-
 /*! \file ShapePolyhedron.h
     \brief Defines the general polyhedron shape
 */
@@ -30,28 +30,27 @@
 #include <iostream>
 #endif
 
-// Check against zero with absolute tolerance
-#define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
+/*!  This overlap check has been optimized to the best of my ability. However, further optimizations may still be possible,
+  in particular regarding the tree traversal and the type of bounding volume hiarchy. Generally, I have found
+  OBB's to perform superior to AABB's and spheres, because they are tightly fitting. The tandem overlap check is also
+  faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
+  to the possibility of parallellizing over the leave nodes, but that also leads to longer autotuning times. Even though
+  tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
+  Then the stack frame could be increased using cudaDeviceSetLimit().
+
+  Since GPU performance is mostly deplorable for concave polyhedra, I have not put much effort into optimizing for that code path.
+  The parallel overlap check code path has been left in here for future experimentation, and can be enabled by
+  uncommenting the below line.
+  */
+
+// uncomment for parallel overlap checks
+//#define LEAVES_AGAINST_TREE_TRAVERSAL
 
 namespace hpmc
 {
 
 namespace detail
 {
-
-//! maximum number of faces that can be stored
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACES=25000;
-
-//! maximum number of vertices per face
-/*! \ingroup hpmc_data_structs */
-const unsigned int MAX_POLY3D_FACE_VERTS=4;
-
-//! Maximum number of OBB Tree nodes
-const unsigned int MAX_POLY3D_NODES=5000;
-
-//! Maximum number of faces per OBB tree leaf node
-const unsigned int MAX_POLY3D_CAPACITY=2;
 
 //! Data structure for general polytopes
 /*! \ingroup hpmc_data_structs */
@@ -62,20 +61,27 @@ struct poly3d_data : param_base
 
     #ifndef NVCC
     //! Constructor
-    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, bool _managed)
-        : n_faces(_n_faces)
+    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
+        : n_verts(nverts), n_faces(_n_faces), hull_only(0)
         {
-        verts = poly3d_verts(nverts, _managed);
+        convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
+        verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
         }
     #endif
 
-    poly3d_verts verts;                             //!< Holds parameters of convex hull
+    GPUTree tree;                                   //!< Tree for fast locality lookups
+    poly3d_verts convex_hull_verts;                 //!< Holds parameters of convex hull
+    ManagedArray<vec3<OverlapReal> > verts;         //!< Vertex coordinates
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
+    unsigned int n_verts;                           //!< Number of vertices
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
+    vec3<OverlapReal> origin;                       //!< A point *inside* the surface
+    unsigned int hull_only;                         //!< If 1, only the hull of the shape is considered for overlaps
+    OverlapReal sweep_radius;                       //!< Radius of a sweeping sphere
 
      //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
@@ -84,6 +90,8 @@ struct poly3d_data : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
         {
+        tree.load_shared(ptr, load, ptr_max);
+        convex_hull_verts.load_shared(ptr, load, ptr_max);
         verts.load_shared(ptr, load, ptr_max);
         face_offs.load_shared(ptr, load, ptr_max);
         face_verts.load_shared(ptr, load, ptr_max);
@@ -93,6 +101,8 @@ struct poly3d_data : param_base
     //! Attach managed memory to CUDA stream
     void attach_to_stream(cudaStream_t stream) const
         {
+        tree.attach_to_stream(stream);
+        convex_hull_verts.attach_to_stream(stream);
         verts.attach_to_stream(stream);
         face_offs.attach_to_stream(stream);
         face_verts.attach_to_stream(stream);
@@ -125,46 +135,17 @@ static __device__ int warp_reduce(int val, int width)
 */
 struct ShapePolyhedron
     {
-    typedef detail::GPUTree<detail::MAX_POLY3D_CAPACITY> gpu_tree_type;
-
     //! Define the parameter type
-    typedef struct : public param_base {
-        detail::poly3d_data data;
-        gpu_tree_type tree;
-
-        //! Load dynamic data members into shared memory and increase pointer
-        /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
-
-         */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
-            {
-            tree.load_shared(ptr, load, ptr_max);
-            data.load_shared(ptr, load, ptr_max);
-            }
-
-        #ifdef ENABLE_CUDA
-        //! Attach managed memory to CUDA stream
-        void attach_to_stream(cudaStream_t stream) const
-            {
-            // attach managed memory arrays to stream
-            tree.attach_to_stream(stream);
-            data.attach_to_stream(stream);
-            }
-        #endif
-        }
-        param_type;
+    typedef detail::poly3d_data param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapePolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
-        : orientation(_orientation),
-        data(_params.data), tree(_params.tree)
+        : orientation(_orientation), data(_params), tree(_params.tree)
         {
         }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() { return data.verts.N > 1; }
+    DEVICE bool hasOrientation() { return data.n_verts > 1; }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return data.ignore; }
@@ -173,7 +154,7 @@ struct ShapePolyhedron
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
-        return data.verts.diameter;
+        return data.convex_hull_verts.diameter;
         }
 
     //! Get the in-sphere radius
@@ -186,22 +167,29 @@ struct ShapePolyhedron
     //! Return true if this is a sphero-shape
     DEVICE OverlapReal isSpheroPolyhedron() const
         {
-        return data.verts.sweep_radius != OverlapReal(0.0);
+        return data.sweep_radius != OverlapReal(0.0);
         }
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.verts.diameter/Scalar(2));
+        return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return true; }
+    HOSTDEVICE static bool isParallel()
+        {
+        #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
+        return true;
+        #else
+        return false;
+        #endif
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
     const detail::poly3d_data& data;     //!< Vertices
-    const gpu_tree_type &tree;           //!< Tree for particle features
+    const detail::GPUTree &tree;           //!< Tree for particle features
     };
 
 DEVICE inline OverlapReal det_4x4(vec3<OverlapReal> a, vec3<OverlapReal> b, vec3<OverlapReal> c, vec3<OverlapReal> d)
@@ -261,61 +249,6 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     OverlapReal v = vb * denom;
     OverlapReal w = vc * denom;
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
-
-    #if 0
-    vec3<OverlapReal> bc = c - b;
-    // Compute parameteric position s for projection P' of P on AB<
-    // P' = A + s*AB, s = snom/(snom+denom)
-    OverlapReal snom = dot(p-a, ab);
-    OverlapReal sdenom = dot(p-b,a-b);
-
-    // Compute parametric position for projection P' of P on AC,
-    // P' = A + t*AC, s= tnom/(tnom+tdenom)
-    OverlapReal tnom = dot(p-a, ac);
-    OverlapReal tdenom = dot(p-c, a-c);
-
-
-    if (snom <= OverlapReal(0.0) && tnom <= 0.0) return a; // Vertex region early out
-
-    // Compute parametric position u for projection P' of P on BC,
-    // P' = B + u*BC, u = unom/(unom+udenom)
-    OverlapReal unom = dot(p-b, bc);
-    OverlapReal udenom = dot(p-c,b-c);
-
-    if (sdenom <= OverlapReal(0.0) && unom <= OverlapReal(0.0)) return b; // Vertex region early out
-    if (tdenom <= OverlapReal(0.0) && udenom <= OverlapReal(0.0)) return c; // Vertex region early out
-
-    // P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
-    vec3<OverlapReal> n = cross(b-a, c-a);
-    vec3<OverlapReal> vc = dot(n, cross(a-p,b-p));
-
-    // If P outside AB and within feature region of AB,
-    // return projection of P onto AB
-    if (vc <= OverlapReal(0.0) && snom >= OverlapReal(0.0) && sdenom >= OverlapReal(0.0))
-        return a + snom / (snom + sdenom) * ab;
-
-    // P is outside (or on) BC if the triple scalar product [N PB PC] <= 0
-    OverlapReal va = dot(n, cross(b-p, c-p));
-
-    // If P outside BC and within feature region of BC,
-    // return projection of P onto BC
-    if (va <= OverlapReal(0.0) && unom >= OverlapReal(0.0) && udenom >= OverlapReal(0.0))
-        return b + unom / (unom + udenom) * bc;
-
-    // P is outside (or on) C if the triple sclar product [N PC PA] <= 0
-    OverlapReal vb = dot(n, cross(c-p, a-p));
-
-    // If P outside CA and within feature region of CA,
-    // return projection of P onto CA
-    if (vb <= OverlapREal(0.0) && tnom >= OverlapReal(0.0) && tdenom >= OverlapReal(0.0))
-        return a + tnom / (tnom + denom) * ac;
-
-    // P must project inside the face region. Compute Q using barycentric coordinates
-    OverlapReal u = va / (va + vb + vc);
-    OverlapReal v = vb / (va + vb + vc);
-    OverlapReal w = OverlapReal(1.0) - u - v; // = vc / (va + vb + vc)
-    return u*a+v*b+w*c;
-    #endif
     }
 
 
@@ -331,8 +264,8 @@ DEVICE inline OverlapReal clamp(OverlapReal n, OverlapReal min, OverlapReal max)
 // Computes closest points C1 and C2 of S1(s)=P1+s*(Q1-P1) and
 // S2(t)=P2+t*(Q2-P2), returning s and t. Function result is squared
 // distance between between S1(s) and S2(t)
-DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, const vec3<OverlapReal>& q1,
-    const vec3<OverlapReal>& p2, const vec3<OverlapReal>& q2, OverlapReal &s, OverlapReal &t, vec3<OverlapReal> &c1, vec3<OverlapReal> &c2)
+DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal> p1, const vec3<OverlapReal>& q1,
+    const vec3<OverlapReal>& p2, const vec3<OverlapReal>& q2, OverlapReal &s, OverlapReal &t, vec3<OverlapReal> &c1, vec3<OverlapReal> &c2, OverlapReal abs_tol)
     {
     vec3<OverlapReal> d1 = q1 - p1; // Direction vector of segment S1
     vec3<OverlapReal> d2 = q2 - p2; // Direction vector of segment S2
@@ -341,10 +274,8 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
     OverlapReal e = dot(d2, d2); // Squared length of segment S2, always nonnegative
     OverlapReal f = dot(d2, r);
 
-    const OverlapReal EPSILON(1e-6);
-
     // Check if either or both segments degenerate into points
-    if (a <= EPSILON && e <= EPSILON)
+    if (CHECK_ZERO(a,abs_tol) && CHECK_ZERO(e,abs_tol))
         {
         // Both segments degenerate into points
         s = t = OverlapReal(0.0);
@@ -353,7 +284,7 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
         return dot(c1 - c2, c1 - c2);
         }
 
-    if (a <= EPSILON) {
+    if (CHECK_ZERO(a, abs_tol)) {
         // First segment degenerates into a point
         s = OverlapReal(0.0);
         t = f / e; // s = 0 => t = (b*s + f) / e = f / e
@@ -362,7 +293,7 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
     else
         {
         OverlapReal c = dot(d1, r);
-        if (e <= EPSILON)
+        if (CHECK_ZERO(e, abs_tol))
             {
             // Second segment degenerates into a point
             t = OverlapReal(0.0);
@@ -393,12 +324,11 @@ DEVICE inline OverlapReal closestPtSegmentSegment(const vec3<OverlapReal>& p1, c
                 t = OverlapReal(0.0);
                 s = clamp(-c / a, OverlapReal(0.0), OverlapReal(1.0));
                 }
-             else
-                 if (t > OverlapReal(1.0))
-                    {
-                    t = OverlapReal(1.0);
-                    s = clamp((b - c) / a, OverlapReal(0.0), OverlapReal(1.0));
-                    }
+             else if (t > OverlapReal(1.0))
+                {
+                t = OverlapReal(1.0);
+                s = clamp((b - c) / a, OverlapReal(0.0), OverlapReal(1.0));
+                }
              }
         }
 
@@ -510,49 +440,49 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     const vec3<OverlapReal> &c1,
     const vec3<OverlapReal> &a2,
     const vec3<OverlapReal> &b2,
-    const vec3<OverlapReal> &c2)
+    const vec3<OverlapReal> &c2,
+    OverlapReal abs_tol)
     {
     // nine pairs of edges
     OverlapReal dmin_sq(FLT_MAX);
 
-    vec3<OverlapReal> edge1, edge2;
     vec3<OverlapReal> p1, p2;
     OverlapReal s,t;
 
     OverlapReal dsq;
-    dsq = closestPtSegmentSegment(a1,b1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,b1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,b1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,b1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(a1,c1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(a1,c1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,a2,b2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,a2,b2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,a2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,a2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
-    dsq = closestPtSegmentSegment(b1,c1,b2,c2, s,t,p1,p2);
+    dsq = closestPtSegmentSegment(b1,c1,b2,c2, s,t,p1,p2, abs_tol);
     if (dsq < dmin_sq)
         dmin_sq = dsq;
 
@@ -592,17 +522,16 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
-DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
+#include <hoomd/extern/triangle_triangle.h>
+
+DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
                                               unsigned int cur_node_a,
                                               unsigned int cur_node_b,
-                                              unsigned int &err)
+                                              unsigned int &err,
+                                              OverlapReal abs_tol)
     {
-    // An absolute tolerance.
-    // Possible improvement: make this adaptive as a function of ratios of occuring length scales
-    const OverlapReal abs_tol(1e-16);
-
     // loop through faces of cur_node_a
     unsigned int na = a.tree.getNumParticles(cur_node_a);
     unsigned int nb = b.tree.getNumParticles(cur_node_b);
@@ -611,254 +540,65 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
         {
         unsigned int iface = a.tree.getParticle(cur_node_a, i);
 
+        // Load number of face vertices
+        unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
+        unsigned int offs_a = a.data.face_offs[iface];
+
+        float U[3][3];
+
+        quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
+
+        if (nverts_a > 2)
+            {
+            for (unsigned int ivert = 0; ivert < 3; ++ivert)
+                {
+                unsigned int idx_a = a.data.face_verts[offs_a+ivert];
+                vec3<float> v = a.data.verts[idx_a];
+                v = rotate(q,v) + dr;
+                U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
+                }
+            }
+
         // loop through faces of cur_node_b
         for (unsigned int j= 0; j< nb; j++)
             {
             unsigned int nverts_b, offs_b;
-            bool intersect = false;
 
             unsigned int jface = b.tree.getParticle(cur_node_b, j);
-
-            // Load number of face vertices
-            unsigned int nverts_a = a.data.face_offs[iface + 1] - a.data.face_offs[iface];
-            unsigned int offs_a = a.data.face_offs[iface];
 
             // fetch next face of particle b
             nverts_b = b.data.face_offs[jface + 1] - b.data.face_offs[jface];
             offs_b = b.data.face_offs[jface];
 
-            unsigned int nverts_s0 = nverts_a;
-            unsigned int nverts_s1 = nverts_b;
-
             if (nverts_a > 2 && nverts_b > 2)
                 {
-                // check collision between polygons
-                unsigned int offs_s0 = offs_a;
-                unsigned int offs_s1 = offs_b;
-
-                vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
-                quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
-                // loop over edges of iface, then jface
-                for (unsigned int ivertab = 0; ivertab < nverts_a+nverts_b; ivertab++)
+                float V[3][3];
+                for (unsigned int ivert = 0; ivert < 3; ++ivert)
                     {
-                    const ShapePolyhedron &s0 = (ivertab < nverts_a ? a : b);
-                    const ShapePolyhedron &s1 = (ivertab < nverts_a ? b : a);
+                    unsigned int idx_b = b.data.face_verts[offs_b+ivert];
+                    vec3<float> v = b.data.verts[idx_b];
+                    V[ivert][0] = v.x; V[ivert][1] = v.y; V[ivert][2] = v.z;
+                    }
 
-                    if (ivertab == nverts_a)
-                        {
-                        dr = rotate(conj(quat<OverlapReal>(a.orientation)),r_ab);
-                        q = conj(quat<OverlapReal>(a.orientation))*quat<OverlapReal>(b.orientation);
-                        nverts_s0 = nverts_b;
-                        nverts_s1 = nverts_a;
-                        offs_s0 = offs_b;
-                        offs_s1 = offs_a;
-                        }
-
-                    unsigned int ivert = (ivertab < nverts_a ? ivertab : ivertab - nverts_a);
-
-                    unsigned int idx_a = s0.data.face_verts[offs_s0+ivert];
-                    vec3<OverlapReal> v_a;
-                    v_a.x = s0.data.verts.x[idx_a];
-                    v_a.y = s0.data.verts.y[idx_a];
-                    v_a.z = s0.data.verts.z[idx_a];
-                    v_a = rotate(q,v_a) + dr;
-
-                    // Load next vertex (t)
-                    unsigned face_idx_next = (ivert + 1 == nverts_s0) ? 0 : ivert + 1;
-                    unsigned int idx_next_a = s0.data.face_verts[offs_s0 + face_idx_next];
-                    vec3<OverlapReal> v_next_a;
-                    v_next_a.x = s0.data.verts.x[idx_next_a];
-                    v_next_a.y = s0.data.verts.y[idx_next_a];
-                    v_next_a.z = s0.data.verts.z[idx_next_a];
-                    v_next_a = rotate(q,v_next_a) + dr;
-
-                    bool collinear = false;
-                    unsigned int face_idx_aux_a = face_idx_next + 1;
-                    vec3<OverlapReal> v_aux_a,c;
-                    do
-                        {
-                        face_idx_aux_a = (face_idx_aux_a == nverts_s0) ? 0 : face_idx_aux_a;
-                        unsigned int idx_aux_a = s0.data.face_verts[offs_s0 + face_idx_aux_a];
-                        v_aux_a.x = s0.data.verts.x[idx_aux_a];
-                        v_aux_a.y = s0.data.verts.y[idx_aux_a];
-                        v_aux_a.z = s0.data.verts.z[idx_aux_a];
-                        v_aux_a = rotate(q,v_aux_a) + dr;
-                        c = cross(v_next_a - v_a, v_aux_a - v_a);
-                        collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                        } while(collinear && ++face_idx_aux_a < nverts_s0);
-
-                    if (collinear)
-                        {
-                        err++;
-                        return true;
-                        }
-
-                    bool overlap = false;
-
-                    // Load vertex 0
-                    vec3<OverlapReal> v_next_b;
-                    unsigned int idx_v = s1.data.face_verts[offs_s1];
-                    v_next_b.x = s1.data.verts.x[idx_v];
-                    v_next_b.y = s1.data.verts.y[idx_v];
-                    v_next_b.z = s1.data.verts.z[idx_v];
-
-                    // vertex 1
-                    idx_v = s1.data.face_verts[offs_s1 + 1];
-                    vec3<OverlapReal> v_b;
-                    v_b.x = s1.data.verts.x[idx_v];
-                    v_b.y = s1.data.verts.y[idx_v];
-                    v_b.z = s1.data.verts.z[idx_v];
-
-                    // vertex 2
-                    idx_v = s1.data.face_verts[offs_s1 + 2];
-                    vec3<OverlapReal> v_aux_b;
-                    v_aux_b.x = s1.data.verts.x[idx_v];
-                    v_aux_b.y = s1.data.verts.y[idx_v];
-                    v_aux_b.z = s1.data.verts.z[idx_v];
-
-                    OverlapReal det_h = det_4x4(v_next_b, v_b, v_aux_b, v_a);
-                    OverlapReal det_t = det_4x4(v_next_b, v_b, v_aux_b, v_next_a);
-
-                    // for edge i to intersect face j, it is a necessary condition that it intersects the supporting plane
-                    intersect = CHECK_ZERO(det_h,abs_tol) || CHECK_ZERO(det_t,abs_tol) || detail::signbit(det_h) != detail::signbit(det_t);
-
-                    if (intersect)
-                        {
-                        unsigned int n_intersect = 0;
-
-                        for (unsigned int jvert = 0; jvert < nverts_s1; ++jvert)
-                            {
-                            // Load vertex (p_i)
-                            unsigned int idx_v = s1.data.face_verts[offs_s1+jvert];
-                            vec3<OverlapReal> v_b;
-                            v_b.x = s1.data.verts.x[idx_v];
-                            v_b.y = s1.data.verts.y[idx_v];
-                            v_b.z = s1.data.verts.z[idx_v];
-
-                            // Load next vertex (p_i+1)
-                            unsigned int next_vert_b = (jvert + 1 == nverts_s1) ? 0 : jvert + 1;
-                            idx_v = s1.data.face_verts[offs_s1 + next_vert_b];
-                            vec3<OverlapReal> v_next_b;
-                            v_next_b.x = s1.data.verts.x[idx_v];
-                            v_next_b.y = s1.data.verts.y[idx_v];
-                            v_next_b.z = s1.data.verts.z[idx_v];
-
-                            // compute determinants in homogeneous coordinates
-                            OverlapReal det_s = det_4x4(v_a, v_next_a, v_aux_a, v_b);
-                            OverlapReal det_u = det_4x4(v_a, v_next_a, v_aux_a, v_next_b);
-                            OverlapReal det_v = det_4x4(v_a, v_next_a, v_b, v_next_b);
-
-                            if (CHECK_ZERO(det_u, abs_tol) && !CHECK_ZERO(det_s,abs_tol))
-                                {
-                                // the endpoint of this edge touches the fictitious plane
-                                // check if the next vertex of this face will be on the same side of the plane
-                                unsigned int idx_aux_b = (jvert + 2 >= nverts_s1) ? jvert + 2 - nverts_s1 : jvert + 2;
-                                idx_v = s1.data.face_verts[offs_s1 + idx_aux_b];
-                                vec3<OverlapReal> v_aux_b;
-                                v_aux_b.x = s1.data.verts.x[idx_v];
-                                v_aux_b.y = s1.data.verts.y[idx_v];
-                                v_aux_b.z = s1.data.verts.z[idx_v];
-
-                                OverlapReal det_w = det_4x4(v_a, v_next_a, v_aux_a, v_aux_b);
-                                if (CHECK_ZERO(det_w, abs_tol) || detail::signbit(det_w) == detail::signbit(det_s))
-                                    {
-                                    // the edge is reflected by the plane
-                                    if (test_vertex_line_segment_overlap(v_next_b, v_next_a, v_a, abs_tol))
-                                        {
-                                        overlap = true;
-                                        }
-                                    }
-                                // otherwise, ignore (to avoid double-counting of edges piercing the plane)
-                                }
-                            else if (CHECK_ZERO(det_v,abs_tol) || (CHECK_ZERO(det_s,abs_tol) && CHECK_ZERO(det_u,abs_tol)))
-                                {
-                                // iedge lies in the imaginary plane
-                                if (test_line_segment_overlap(v_a, v_b, v_next_a - v_a, v_next_b - v_b,abs_tol))
-                                    {
-                                    overlap = true;
-                                    }
-                                }
-                            else
-                                {
-                                /*
-                                 * odd-parity rule
-                                 */
-                                int v = detail::signbit(det_v) ? -1 : 1;
-
-                                if (CHECK_ZERO(det_s,abs_tol))
-                                    {
-                                    // the first point of this edge touches the fictitious plane
-                                    // check if the previous vertex of this face was on the plane
-                                    int idx_prev_b = ((int)jvert -1 < 0) ? nverts_s1 - 1: jvert -1;
-                                    idx_v = s1.data.face_verts[offs_s1 + idx_prev_b];
-                                    vec3<OverlapReal> v_prev_b;
-                                    v_prev_b.x = s1.data.verts.x[idx_v];
-                                    v_prev_b.y = s1.data.verts.y[idx_v];
-                                    v_prev_b.z = s1.data.verts.z[idx_v];
-
-                                    OverlapReal det_w = det_4x4(v_a, v_next_a, v_aux_a, v_prev_b);
-                                    if (CHECK_ZERO(det_w, abs_tol) || detail::signbit(det_w) == detail::signbit(det_u))
-                                        {
-                                        // the edge is reflected by the plane
-                                        if (test_vertex_line_segment_overlap(v_prev_b, v_next_a, v_a, abs_tol))
-                                            {
-                                            overlap = true;
-                                            }
-                                        }
-                                    else
-                                        {
-                                        // b's edge contacts the supporting plane of edgei
-                                        int u = detail::signbit(det_u) ? -1 : 1;
-                                        if (u*v < 0)
-                                            {
-                                            n_intersect++;
-                                            }
-                                        }
-                                    }
-                                else
-                                    {
-                                    int s = detail::signbit(det_s) ? -1 : 1;
-                                    int u = detail::signbit(det_u) ? -1 : 1;
-
-                                    if (s*u < 0 && s*v>0)
-                                        {
-                                        n_intersect++;
-                                        }
-                                    }
-                                }
-                            }
-
-                        overlap |= (n_intersect % 2);
-                        } // end if (intersect)
-                    if (overlap)
-                        {
-                        // overlap
-                        return true;
-                        }
-                    } // end loop over edges
+                // check collision between triangles
+                if (NoDivTriTriIsect(V[0],V[1],V[2],U[0],U[1],U[2],abs_tol))
+                    {
+                    return true;
+                    }
                 }
 
             if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
                 {
-                vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
-                quat<OverlapReal> q = conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation);
-
                 OverlapReal dsqmin(FLT_MAX);
 
                 // Load vertex 0 on a
-                vec3<OverlapReal> a0;
                 unsigned int idx_a = a.data.face_verts[offs_a];
-                a0.x = a.data.verts.x[idx_a];
-                a0.y = a.data.verts.y[idx_a];
-                a0.z = a.data.verts.z[idx_a];
+                vec3<OverlapReal> a0 = a.data.verts[idx_a];
                 a0 = rotate(q, a0) + dr;
 
                 // vertex 0 on b
                 unsigned int idx_b = b.data.face_verts[offs_b];
-                vec3<OverlapReal> b0;
-                b0.x = b.data.verts.x[idx_b];
-                b0.y = b.data.verts.y[idx_b];
-                b0.z = b.data.verts.z[idx_b];
+                vec3<OverlapReal> b0 = b.data.verts[idx_b];
 
                 vec3<OverlapReal> b1, b2;
 
@@ -866,24 +606,11 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     {
                     // vertex 1 on b
                     idx_b = b.data.face_verts[offs_b + 1];
-                    b1.x = b.data.verts.x[idx_b];
-                    b1.y = b.data.verts.y[idx_b];
-                    b1.z = b.data.verts.z[idx_b];
+                    b1 = b.data.verts[idx_b];
 
-                    // vertex 1 on b
-                    if (nverts_b == 2)
-                        {
-                        // degenerate
-                        idx_b = b.data.face_verts[offs_b];
-                        }
-                    else
-                        {
-                        idx_b = b.data.face_verts[offs_b + 1];
-                        }
-
-                    b2.x = b.data.verts.x[idx_b];
-                    b2.y = b.data.verts.y[idx_b];
-                    b2.z = b.data.verts.z[idx_b];
+                    // vertex 2 on b
+                    idx_b = b.data.face_verts[offs_b + 2];
+                    b2 = b.data.verts[idx_b];
                     }
 
                 if (nverts_b > 1 && nverts_a == 1)
@@ -900,25 +627,12 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     {
                     // vertex 1 on a
                     idx_a = a.data.face_verts[offs_a + 1];
-                    a1.x = a.data.verts.x[idx_a];
-                    a1.y = a.data.verts.y[idx_a];
-                    a1.z = a.data.verts.z[idx_a];
+                    a1 = a.data.verts[idx_a];
                     a1 = rotate(q, a1) + dr;
 
                     // vertex 2 on a
-                    if (nverts_a == 2)
-                        {
-                        // degenerate
-                        idx_a = a.data.face_verts[offs_a];
-                        }
-                    else
-                        {
-                        idx_a = a.data.face_verts[offs_a + 2];
-                        }
-
-                    a2.x = a.data.verts.x[idx_a];
-                    a2.y = a.data.verts.y[idx_a];
-                    a2.z = a.data.verts.z[idx_a];
+                    idx_a = a.data.face_verts[offs_a + 2];
+                    a2 = a.data.verts[idx_a];
                     a2 = rotate(q, a2) + dr;
                     }
 
@@ -932,7 +646,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
                 if (nverts_b > 1 && nverts_a > 1)
                     {
-                    dsqmin = shortest_distance_triangles(a0, a1, a2, b0, b1, b2);
+                    dsqmin = shortest_distance_triangles(a0, a1, a2, b0, b1, b2, abs_tol);
                     }
 
                 if (nverts_a == 1 && nverts_b == 1)
@@ -941,7 +655,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     dsqmin = dot(a0-b0,a0-b0);
                     }
 
-                OverlapReal R_ab = a.data.verts.sweep_radius + b.data.verts.sweep_radius;
+                OverlapReal R_ab = a.data.sweep_radius + b.data.sweep_radius;
 
                 if (R_ab*R_ab >= dsqmin)
                     {
@@ -954,84 +668,102 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
     return false;
     }
 
-#ifdef DEBUG_OUTPUT
-inline void output_polys(const ShapePolyhedron& a, const ShapePolyhedron& b, quat<OverlapReal> q, const vec3<Scalar> dr)
+// From Real-time Collision Detection (Christer Ericson)
+// Given ray pq and triangle abc, returns whether segment intersects
+// triangle and if so, also returns the barycentric coordinates (u,v,w)
+// of the intersection point
+// Note: the triangle is assumed to be oriented counter-clockwise when viewed from the direction of p
+DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<OverlapReal>& q,
+     const vec3<OverlapReal>& a, const vec3<OverlapReal>& b, const vec3<OverlapReal>& c,
+    OverlapReal &u, OverlapReal &v, OverlapReal &w, OverlapReal &t)
     {
-    std::cout << "shape polyV " << a.data.verts.N << " ";
-    for (unsigned int i = 0; i < a.data.verts.N; ++i)
-        {
-        vec3<OverlapReal> v(a.data.verts.x[i], a.data.verts.y[i], a.data.verts.z[i]);
-        std::cout << v.x << " " << v.y << " " << v.z << " ";
-        }
-    std::cout << a.data.n_faces << " ";
-    for (unsigned int i = 0; i < a.data.n_faces; ++i)
-        {
-        unsigned int len = a.data.face_offs[i+1] - a.data.face_offs[i];
-        std::cout << len << " ";
-        for (unsigned int j = 0; j < len; ++j)
-            {
-            std::cout << a.data.face_verts[a.data.face_offs[i]+j] << " ";
-            }
-        }
-    quat<OverlapReal> q_a(q);
-    std::cout << "ffff0000 " << dr.x << " " << dr.y << " " << dr.z << " " << q_a.s << " " <<
-        q_a.v.x << " " << q_a.v.y << " " << q_a.v.z << std::endl;
+    vec3<OverlapReal> ab = b - a;
+    vec3<OverlapReal> ac = c - a;
+    vec3<OverlapReal> qp = p - q;
 
-    std::cout << "shape polyV " << b.data.verts.N << " ";
-    for (unsigned int i = 0; i < b.data.verts.N; ++i)
-        {
-        std::cout << b.data.verts.x[i] << " " << b.data.verts.y[i] << " " << b.data.verts.z[i] << " ";
-        }
-    std::cout << b.data.n_faces << " ";
-    for (unsigned int i = 0; i < b.data.n_faces; ++i)
-        {
-        unsigned int len = b.data.face_offs[i+1] - b.data.face_offs[i];
-        std::cout << len << " ";
-        for (unsigned int j = 0; j < len; ++j)
-            {
-            std::cout << b.data.face_verts[b.data.face_offs[i]+j] << " ";
-            }
-        }
-    std::cout << "ff00ff00 " << 0 << " " << 0 << " " << 0 << " " << 1 << " " <<
-        0 << " " << 0 << " " << 0 << std::endl;
+    // Compute triangle normal. Can be precalculated or cached if
+    // intersecting multiple segments against the same triangle
+    vec3<OverlapReal> n = cross(ab, ac);
+
+    // Compute denominator d. If d <= 0, segment is parallel to or points
+    // away from triangle, so exit early
+    float d = dot(qp, n);
+    if (d <= OverlapReal(0.0)) return false;
+
+    // Compute intersection t value of pq with plane of triangle. A ray
+    // intersects iff 0 <= t. Segment intersects iff 0 <= t <= 1. Delay
+    // dividing by d until intersection has been found to pierce triangle
+    vec3<OverlapReal> ap = p - a;
+    t = dot(ap, n);
+    if (t < OverlapReal(0.0)) return false;
+//    if (t > d) return false; // For segment; exclude this code line for a ray test
+
+    // Compute barycentric coordinate components and test if within bounds
+    vec3<OverlapReal> e = cross(qp, ap);
+    v = dot(ac, e);
+    if (v < OverlapReal(0.0) || v > d) return false;
+    w = -dot(ab, e);
+    if (w < OverlapReal(0.0) || v + w > d) return false;
+
+    // Segment/ray intersects triangle. Perform delayed division and
+    // compute the last barycentric coordinate component
+    float ood = OverlapReal(1.0) / d;
+    t *= ood;
+    v *= ood;
+    w *= ood;
+    u = OverlapReal(1.0) - v - w;
+    return true;
     }
 
-inline void output_obb(const detail::OBB& obb, std::string color)
+#ifndef NVCC
+//! Traverse the bounding volume test tree recursively
+inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
+     unsigned int cur_node_a, unsigned int cur_node_b,
+     const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, unsigned int &err, OverlapReal abs_tol)
     {
-    std::vector< vec3<OverlapReal> > corners(8);
-    std::vector< std::pair<unsigned int, unsigned int> > edges(12);
-    vec3<OverlapReal> ex(1,0,0);
-    vec3<OverlapReal> ey(0,1,0);
-    vec3<OverlapReal> ez(0,0,1);
-    corners[0] =  ex*obb.lengths.x + ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[1] =  OverlapReal(-1.0)*ex*obb.lengths.x + ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[2] =  ex*obb.lengths.x - ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[3] =  OverlapReal(-1.0)* ex*obb.lengths.x - ey*obb.lengths.y + ez*obb.lengths.z;
-    corners[4] =  ex*obb.lengths.x + ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[5] =  OverlapReal(-1.0)* ex*obb.lengths.x + ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[6] =  ex*obb.lengths.x - ey*obb.lengths.y - ez*obb.lengths.z;
-    corners[7] =  OverlapReal(-1.0)* ex*obb.lengths.x - ey*obb.lengths.y - ez*obb.lengths.z;
+    detail::OBB obb_a = a.tree.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr);
+    detail::OBB obb_b = b.tree.getOBB(cur_node_b);
 
-    edges[0] = std::make_pair(0,1);
-    edges[1] = std::make_pair(0,2);
-    edges[2] = std::make_pair(0,4);
-    edges[3] = std::make_pair(1,3);
-    edges[4] = std::make_pair(1,5);
-    edges[5] = std::make_pair(2,3);
-    edges[6] = std::make_pair(2,6);
-    edges[7] = std::make_pair(3,7);
-    edges[8] = std::make_pair(4,5);
-    edges[9] = std::make_pair(4,6);
-    edges[10] = std::make_pair(5,7);
-    edges[11] = std::make_pair(6,7);
+    if (!overlap(obb_a, obb_b)) return false;
 
-    for (unsigned int i = 0; i < 12; ++i)
+    if (a.tree.isLeaf(cur_node_a))
         {
-        vec3<OverlapReal> r_a,r_b;
-        r_a = obb.center + obb.rotation*corners[edges[i].first];
-        r_b = obb.center + obb.rotation*corners[edges[i].second];
-        std::cout << "connection 0.1 " << color << " " << r_a.x << " " << r_a.y << " " << r_a.z
-            << " " << r_b.x << " " << r_b.y << " " << r_b.z << std::endl;
+        if (b.tree.isLeaf(cur_node_b))
+            {
+            return test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, cur_node_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, cur_node_a, right_b, q, dr, err, abs_tol);
+            }
+        }
+    else
+        {
+        if (b.tree.isLeaf(cur_node_b))
+            {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
+
+            return BVHCollision(a, b, left_a, cur_node_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, cur_node_b, q, dr, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, left_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, left_a, right_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, right_b, q, dr, err, abs_tol);
+            }
         }
     }
 #endif
@@ -1050,18 +782,20 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& b,
                                  unsigned int& err)
     {
-
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
         {
-        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.verts),
-               ShapeSpheropolyhedron(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.convex_hull_verts),
+               ShapeSpheropolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
         }
     else
         {
-        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.verts),
-           ShapeConvexPolyhedron(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.convex_hull_verts),
+           ShapeConvexPolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
         }
+
+    OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
+    const OverlapReal abs_tol(DaDb*1e-12);
 
     vec3<OverlapReal> dr = r_ab;
     /*
@@ -1073,7 +807,12 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
+    #ifdef NVCC
+    const detail::GPUTree& tree_a = a.tree;
+    const detail::GPUTree& tree_b = b.tree;
+    #endif
 
+    #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
@@ -1082,9 +821,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int offset = 0;
     unsigned int stride = 1;
     #endif
-
-    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_a = a.tree;
-    const detail::GPUTree<detail::MAX_POLY3D_CAPACITY>& tree_b = b.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
@@ -1100,7 +836,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err)) return true;
+                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, abs_tol)) return true;
                 }
             }
         }
@@ -1119,258 +855,130 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err)) return true;
+                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err,abs_tol)) return true;
                 }
             }
         }
+    #else
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    #ifndef NVCC
+    if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
+    #else
+    // stackless traversal on GPU
+    unsigned long int stack = 0;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+
+    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+        {
+        unsigned int query_node_a = cur_node_a;
+        unsigned int query_node_b = cur_node_b;
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q,dr_rot)
+            && test_narrow_phase_overlap(dr, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
+        }
+    #endif
+    #endif
 
     // no intersecting edge, check if one polyhedron is contained in the other
 
-    // since the origin must be contained within each shape, a zero separation is an overlap
-    const OverlapReal tol(1e-12);
-    if (dot(dr,dr) < tol) return true;
-
     // if shape(A) == shape(B), only consider intersections
-    if (&a.data == &b.data) return false;
-
-    // a small rotation angle for perturbation
-    const OverlapReal eps_angle(0.123456);
-
-    // a relative translation amount for perturbation
-    const OverlapReal eps_trans(0.456789);
-
-    // An absolute tolerance.
-    // Possible improvement: make this adaptive as a function of ratios of occuring length scales
-    const OverlapReal abs_tol(1e-7);
+    if (&a.data == &b.data && dot(dr,dr) != OverlapReal(0.0) ) return false;
 
     for (unsigned int ord = 0; ord < 2; ++ord)
         {
-        // load pair of shapes
-        const ShapePolyhedron &s0 = (ord == 0) ? a : b;
+        // load shape
         const ShapePolyhedron &s1 = (ord == 0) ? b : a;
 
-        vec3<OverlapReal> v_a,v_next_a,v_aux_a;
+        // if the shape is a hull only, skip
+        if (s1.data.hull_only) continue;
 
-        // the origin vertex is (0,0,0), and must be contained in the shape
-        if (ord == 0)
-            {
-            v_a = -dr;
-            }
-        else
-            {
-            v_a = dr;
-            }
-
-        // Check if s0 is contained in s1 by shooting a ray from one of its origin
-        // to a point 2*outside the circumsphere of b in direction of the origin separation
-
+        vec3<OverlapReal> p;
 
         if (ord == 0)
             {
-            v_next_a = dr*(b.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr)));
+            p = -dr+rotate(quat<OverlapReal>(a.orientation),a.data.origin);
             }
         else
             {
-            v_next_a = -dr*a.getCircumsphereDiameter()*fast::rsqrt(dot(dr,dr));
+            p = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin);
             }
 
-       bool degenerate = false;
-       unsigned int perturb_count = 0;
-       const unsigned int MAX_PERTURB_COUNT = 10;
-       do
+        // Check if s0 is contained in s1 by shooting a ray from its origin
+        // in direction of origin separation
+        vec3<OverlapReal> n = dr+rotate(quat<OverlapReal>(b.orientation),b.data.origin)-
+            rotate(quat<OverlapReal>(a.orientation),a.data.origin);
+
+        // rotate ray in coordinate system of shape s1
+        p = rotate(conj(quat<OverlapReal>(s1.orientation)), p);
+        n = rotate(conj(quat<OverlapReal>(s1.orientation)), n);
+
+        if (ord != 0)
             {
-            degenerate = false;
-            unsigned int n_overlap = 0;
+            n = -n;
+            }
 
-            // load a second, non-colinear vertex
-            bool collinear = false;
-            unsigned int aux_idx = 0;
-            do
+        vec3<OverlapReal> q = p + n;
+
+        unsigned int n_overlap = 0;
+
+        // query ray against OBB tree
+        unsigned cur_node_s1 = 0;
+        while (cur_node_s1 < s1.tree.getNumNodes())
+            {
+            unsigned int query_node = cur_node_s1;
+            if (s1.tree.queryRay(p,n, cur_node_s1, abs_tol))
                 {
-                v_aux_a.x = s0.data.verts.x[aux_idx];
-                v_aux_a.y = s0.data.verts.y[aux_idx];
-                v_aux_a.z = s0.data.verts.z[aux_idx];
-                v_aux_a = rotate(quat<OverlapReal>(s0.orientation),v_aux_a);
+                unsigned int n_faces = s1.tree.getNumParticles(query_node);
 
-                if (ord == 0)
+                // loop through faces
+                for (unsigned int j = 0; j < n_faces; j ++)
                     {
-                    v_aux_a -= dr;
-                    }
-                else
-                    {
-                    v_aux_a += dr;
-                    }
+                    // fetch next face
+                    unsigned int jface = s1.tree.getParticle(query_node, j);
+                    unsigned int offs_b = s1.data.face_offs[jface];
 
-                // check if collinear
-                vec3<OverlapReal> c = cross(v_next_a - v_a, v_aux_a - v_a);
-                collinear = CHECK_ZERO(dot(c,c),abs_tol);
-                aux_idx++;
-                } while(collinear && aux_idx < s0.data.verts.N);
+                    if (s1.data.face_offs[jface + 1] - offs_b < 3) continue;
 
-            if (aux_idx == s0.data.verts.N)
-                {
-                err++;
-                return true;
-                }
+                    // Load vertex 0
+                    vec3<OverlapReal> v_b[3];
+                    unsigned int idx_v = s1.data.face_verts[offs_b];
+                    v_b[0] = s1.data.verts[idx_v];
 
-            // loop through faces
-            for (unsigned int jface = 0; jface < s1.data.n_faces; jface ++)
-                {
-                unsigned int nverts, offs_b;
-                bool intersect = false;
+                    // vertex 1
+                    idx_v = s1.data.face_verts[offs_b + 1];
+                    v_b[1] = s1.data.verts[idx_v];
 
-                // fetch next face
-                nverts = s1.data.face_offs[jface + 1] - s1.data.face_offs[jface];
-                offs_b = s1.data.face_offs[jface];
+                    // vertex 2
+                    idx_v = s1.data.face_verts[offs_b + 2];
+                    v_b[2] = s1.data.verts[idx_v];
 
-                if (nverts < 3) continue;
+                    OverlapReal u,v,w,t;
 
-                // Load vertex 0
-                vec3<OverlapReal> v_next_b;
-                unsigned int idx_v = s1.data.face_verts[offs_b];
-                v_next_b.x = s1.data.verts.x[idx_v];
-                v_next_b.y = s1.data.verts.y[idx_v];
-                v_next_b.z = s1.data.verts.z[idx_v];
-                v_next_b = rotate(quat<OverlapReal>(s1.orientation),v_next_b);
-
-                // vertex 1
-                idx_v = s1.data.face_verts[offs_b + 1];
-                vec3<OverlapReal> v_b;
-                v_b.x = s1.data.verts.x[idx_v];
-                v_b.y = s1.data.verts.y[idx_v];
-                v_b.z = s1.data.verts.z[idx_v];
-                v_b = rotate(quat<OverlapReal>(s1.orientation),v_b);
-
-                // vertex 2
-                idx_v = s1.data.face_verts[offs_b + 2];
-                vec3<OverlapReal> v_aux_b;
-                v_aux_b.x = s1.data.verts.x[idx_v];
-                v_aux_b.y = s1.data.verts.y[idx_v];
-                v_aux_b.z = s1.data.verts.z[idx_v];
-                v_aux_b = rotate(quat<OverlapReal>(s1.orientation),v_aux_b);
-
-                OverlapReal det_h = det_4x4(v_next_b, v_b, v_aux_b, v_a);
-                OverlapReal det_t = det_4x4(v_next_b, v_b, v_aux_b, v_next_a);
-
-                // for edge i to intersect face j, it is a necessary condition that it intersects the supporting plane
-                intersect = CHECK_ZERO(det_h,abs_tol) || CHECK_ZERO(det_t,abs_tol) || detail::signbit(det_h) != detail::signbit(det_t);
-
-                if (intersect)
-                    {
-                    bool overlap = false;
-                    unsigned int n_intersect = 0;
-
-                    for (unsigned int jvert = 0; jvert < nverts; ++jvert)
-                        {
-                        // Load vertex (p_i)
-                        unsigned int idx_v = s1.data.face_verts[offs_b+jvert];
-                        vec3<OverlapReal> v_b;
-                        v_b.x = s1.data.verts.x[idx_v];
-                        v_b.y = s1.data.verts.y[idx_v];
-                        v_b.z = s1.data.verts.z[idx_v];
-                        v_b = rotate(quat<OverlapReal>(s1.orientation),v_b);
-
-                        // Load next vertex (p_i+1)
-                        unsigned int next_vert_b = (jvert + 1 == nverts) ? 0 : jvert + 1;
-                        idx_v = s1.data.face_verts[offs_b + next_vert_b];
-                        vec3<OverlapReal> v_next_b;
-                        v_next_b.x = s1.data.verts.x[idx_v];
-                        v_next_b.y = s1.data.verts.y[idx_v];
-                        v_next_b.z = s1.data.verts.z[idx_v];
-                        v_next_b = rotate(quat<OverlapReal>(s1.orientation),v_next_b);
-
-                        // compute determinants in homogeneous coordinates
-                        OverlapReal det_s = det_4x4(v_a, v_next_a, v_aux_a, v_b);
-                        OverlapReal det_u = det_4x4(v_a, v_next_a, v_aux_a, v_next_b);
-                        OverlapReal det_v = det_4x4(v_a, v_next_a, v_b, v_next_b);
-
-                        if (CHECK_ZERO(det_u, abs_tol) ||CHECK_ZERO(det_s,abs_tol) || CHECK_ZERO(det_v,abs_tol))
-                            {
-                            degenerate = true;
-                            break;
-                            }
-                        /*
-                         * odd-parity rule
-                         */
-                        int v = detail::signbit(det_v) ? -1 : 1;
-
-                        int s = detail::signbit(det_s) ? -1 : 1;
-                        int u = detail::signbit(det_u) ? -1 : 1;
-
-                        if (s*u < 0 && s*v>0)
-                            {
-                            n_intersect++;
-                            }
-                        } // end loop over vertices
-
-                   if (degenerate)
-                        {
-                        break;
-                        }
-
-                   if (n_intersect % 2)
-                        {
-                        overlap = true;
-                        }
-                    if (overlap)
+                    // two-sided triangle test
+                    if (IntersectRayTriangle(p, q, v_b[0], v_b[1], v_b[2],u,v,w,t)
+                     || IntersectRayTriangle(p, q, v_b[2], v_b[1], v_b[0],u,v,w,t))
                         {
                         n_overlap++;
                         }
-                    } // end if intersect
-                } // end loop over faces
-
-            if (! degenerate)
-                {
-                // apply odd parity rule
-                if (n_overlap % 2)
-                    {
-                    return true;
                     }
                 }
-            else
-                {
-                // perturb the end point
-                v_next_a = rotate(quat<OverlapReal>::fromAxisAngle(v_aux_a, eps_angle), v_next_a);
+            }
 
-                // find the closest vertex to the origin of the first shape
-                OverlapReal min_dist(FLT_MAX);
-                vec3<OverlapReal> v_min;
-                for (unsigned int i = 0; i < s0.data.verts.N; ++i)
-                    {
-                    vec3<OverlapReal> v;
-                    v.x = s0.data.verts.x[i];
-                    v.y = s0.data.verts.y[i];
-                    v.z = s0.data.verts.z[i];
-
-                    v = rotate(quat<OverlapReal>(s0.orientation), v);
-                    OverlapReal d = fast::sqrt(dot(v,v));
-                    if (d < min_dist)
-                        {
-                        min_dist = d;
-                        v_min = v;
-                        }
-                    }
-
-                // perturb the origin of the ray along the direction of the closest vertex
-                if (ord == 0)
-                    {
-                    v_a += eps_trans*(v_min-v_a+dr)-dr;
-                    }
-                else
-                    {
-                    v_a += eps_trans*(v_min-v_a-dr)+dr;
-                    }
-
-                perturb_count ++;
-                if (perturb_count == MAX_PERTURB_COUNT)
-                    {
-                    err++;
-                    return true;
-                    }
-                }
-            } while (degenerate);
+        // apply odd parity rule
+        if (n_overlap % 2)
+            {
+            return true;
+            }
         }
-
     return false;
     }
 
