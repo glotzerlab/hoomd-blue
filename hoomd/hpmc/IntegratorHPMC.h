@@ -12,7 +12,6 @@
 
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
-#include "hoomd/extern/saruprng.h"
 
 #include "HPMCCounters.h"
 #include "ExternalField.h"

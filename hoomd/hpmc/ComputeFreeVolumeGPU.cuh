@@ -10,12 +10,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
+#include "hoomd/Saru.h"
 
 #include <curand_kernel.h>
 
 #ifdef NVCC
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
 #include "hoomd/TextureTools.h"
 #endif
 
@@ -277,7 +277,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    SaruGPU rng(i, seed+select, timestep);
+    hoomd::detail::Saru rng(i, seed+select, timestep);
 
     unsigned int my_cell;
 
