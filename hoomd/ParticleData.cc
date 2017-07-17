@@ -3051,6 +3051,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
@@ -3071,5 +3072,6 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
     }
