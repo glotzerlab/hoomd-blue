@@ -104,7 +104,7 @@ class sort(hoomd.update._updater):
             quiet (bool): Quiet the individual run calls.
 
         Returns:
-            opt_period (int): The optimal sorting period from the scanned range.
+            int: The optimal sorting period from the scanned range.
 
         The optimal sorting period for the MPCD particles is determined from
         a sequence of short runs. The sorting period is first set to *start*.
