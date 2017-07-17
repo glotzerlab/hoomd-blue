@@ -2438,6 +2438,100 @@ class reaction_field(pair):
 
         return _hoomd.make_scalar3(epsilon, eps_rf, _hoomd.int_as_scalar(int(use_charge)));
 
+class DLVO(pair):
+    R""" DLVO colloidal interaction
+
+    :py:class:`DLVO` specifies that a DLVO dispersion and electrostatic interaction should be
+    applied between every non-excluded particle pair in the simulation.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+        d_max (float): Maximum diameter particles in the simulation will have (in distance units)
+
+    :py:class:`DLVO` evaluates the forces for the pair potential
+    .. math::
+
+        V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[
+            \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
+            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right]
+            + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
+            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
+
+     where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
+     :math:`d_i` is the diameter of particle :math:`i`.
+
+    The first term corresponds to the attractive van der Waals interaction with A being the Hamaker constant,
+    the second term to the repulsive double-layer interaction between two spherical surfaces with Z proportional
+    to the surface electric potential.
+
+    See Israelachvili 2011, pp. 317.
+
+    The DLVO potential does not need charge, but does need diameter. See :py:class:`slj` for an explanation
+    on how diameters are handled in the neighbor lists.
+
+    Due to the way that DLVO modifies the cutoff condition, it will not function properly with the
+    xplor shifting mode. See :py:class:`pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in units of energy*distance)
+    - :math:`\kappa` - *kappa* (in units of 1/distance)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}` - *r_on* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+
+    Example::
+
+        nl = nlist.cell()
+        DLVO.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+        DLVO.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
+        DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
+    """
+    def __init__(self, r_cut, nlist, d_max=None, name=None):
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # update the neighbor list
+        if d_max is None :
+            sysdef = hoomd.context.current.system_definition;
+            d_max = sysdef.getParticleData().getMaxDiameter()
+            hoomd.context.msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
+
+        # SLJ requires diameter shifting to be on
+        self.nlist.cpp_nlist.setDiameterShift(True);
+        self.nlist.cpp_nlist.setMaximumDiameter(d_max);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairDLVO(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairDLVO;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairDLVOGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairDLVOGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['kappa', 'Z', 'A'];
+
+    def process_coeff(self, coeff):
+        Z = coeff['Z'];
+        kappa = coeff['kappa'];
+        A = coeff['A'];
+
+        return _hoomd.make_scalar3(kappa, Z, A);
+
 class square_density(pair):
     R""" Soft potential for simulating a van-der-Waals liquid
 
