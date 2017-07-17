@@ -358,7 +358,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     else
 #endif
         {
-        updateRigidBodies(timestep+1);
+        updateRigidBodies(timestep);
         }
 
         // compute the net force on all particles
