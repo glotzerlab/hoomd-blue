@@ -62,7 +62,7 @@ class mpcd_init_make_random(unittest.TestCase):
             # check velocities are distributed OK using loose tolerance on mean and variance
             vel = snap.particles.velocity
             vel = np.reshape(vel, (3*snap.particles.N, 1))
-            self.assertAlmostEqual(np.mean(vel), 0.0, places=2)
+            self.assertAlmostEqual(np.mean(vel), 0.0, places=5)
             # sigma^2 = kT / m
             self.assertAlmostEqual(np.mean(vel**2), 0.5, places=2)
 

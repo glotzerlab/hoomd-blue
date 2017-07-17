@@ -97,6 +97,7 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
+#ifndef NVCC
 //! Stuff an integer inside a float
 HOSTDEVICE inline float __int_as_float(int a)
     {
@@ -109,6 +110,7 @@ HOSTDEVICE inline float __int_as_float(int a)
 
     return u.b;
     }
+#endif // NVCC
 
 //! Stuff an integer inside a double
 HOSTDEVICE inline double __int_as_double(int a)
@@ -136,6 +138,7 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
     return u.b;
     }
 
+#ifndef NVCC
 //! Extract an integer from a float stuffed by __int_as_float()
 HOSTDEVICE inline int __float_as_int(float b)
     {
@@ -148,6 +151,7 @@ HOSTDEVICE inline int __float_as_int(float b)
 
     return u.a;
     }
+#endif // NVCC
 
 //! Extract an integer from a double stuffed by __int_as_double()
 HOSTDEVICE inline int __double_as_int(double b)

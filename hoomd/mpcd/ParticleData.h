@@ -76,6 +76,7 @@ class ParticleData
                      const BoxDim& local_box,
                      Scalar kT,
                      unsigned int seed,
+                     unsigned int ndimensions,
                      std::shared_ptr<ExecutionConfiguration> exec_conf,
                      std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
 
@@ -93,7 +94,7 @@ class ParticleData
                                     const BoxDim& global_box);
 
         //! Default initialize the MPCD particle data per rank
-        void initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed);
+        void initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed, unsigned int ndimensions);
 
         //! Take a snapshot of the MPCD particle data
         void takeSnapshot(mpcd::ParticleDataSnapshot& snapshot, const BoxDim& global_box) const;

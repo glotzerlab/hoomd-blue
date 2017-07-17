@@ -323,7 +323,7 @@ void srd_collision_method_thermostat_test(std::shared_ptr<ExecutionConfiguration
     {
     const BoxDim box(10.0);
     auto sysdef = std::make_shared<::SystemDefinition>(0, box, 1, 0, 0, 0, 0, exec_conf);
-    auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, exec_conf);
+    auto pdata = std::make_shared<mpcd::ParticleData>(10000, box, 1.0, 42, 3, exec_conf);
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(sysdef, pdata);
 
     auto thermo = std::make_shared<mpcd::CellThermoCompute>(mpcd_sys);
