@@ -30,7 +30,8 @@
 #include "hoomd/CellListGPU.h"
 #endif
 
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 #include <math.h>
 
@@ -315,7 +316,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     }
 
 //! Helper function to get gaussian random numbers
-Scalar inline gaussianRand(Saru& saru, Scalar sigma)
+Scalar inline gaussianRand(detail::Saru& saru, Scalar sigma)
 {
     Scalar x1 = saru.d();
     Scalar x2 = saru.d();
@@ -342,7 +343,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
-    Saru saru(54321);
+    detail::Saru saru(54321);
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);

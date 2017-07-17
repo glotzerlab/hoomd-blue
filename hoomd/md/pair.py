@@ -163,10 +163,8 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the inputs
-        if isinstance(a, str):
-            a = [a];
-        if isinstance(b, str):
-            b = [b];
+        a = hoomd.util.listify(a)
+        b = hoomd.util.listify(b)
 
         for ai in a:
             for bi in b:

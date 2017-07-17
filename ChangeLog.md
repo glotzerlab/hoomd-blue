@@ -40,7 +40,22 @@ Not yet released
 * Raise an error when an updater is given a period of 0
 * Revised compilation instructions
 * Misc documentation improvements
-* Fully document `contrain.rigid`
+* Fully document `constrain.rigid`
+
+## v2.1.8
+
+Released 2017/07/18
+
+*Bug fixes*
+
+* `init.read_getar` now correctly restores static quantities when given a particular frame.
+* Fix bug where many short calls to `run()` caused incorrect results when using `md.integrate.langevin`.
+* Fix a bug in the Saru pseudo-random number generator that caused some double-precision values to be drawn outside the valid range [0,1) by a small amount. Both floats and doubles are now drawn on [0,1).
+* Fix a bug where coefficients for multi-character unicode type names failed to process in Python 2.
+
+*Other changes*
+
+* The Saru generator has been moved into `hoomd/Saru.h`, and plugins depending on Saru or SaruGPU will need to update their includes. The `SaruGPU` class has been removed. Use `hoomd::detail::Saru` instead for both CPU and GPU plugins.
 
 ## v2.1.7
 

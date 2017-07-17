@@ -371,7 +371,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();

@@ -1,6 +1,5 @@
 
 #include "hoomd/ExecutionConfiguration.h"
-#include "hoomd/extern/saruprng.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 

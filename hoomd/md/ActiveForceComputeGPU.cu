@@ -5,8 +5,9 @@
 // Maintainer: joaander
 
 #include "ActiveForceComputeGPU.cuh"
-#include "hoomd/extern/saruprngCUDA.h"
 #include "EvaluatorConstraintEllipsoid.h"
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 #include <assert.h>
 
@@ -213,7 +214,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
 
     if (is2D) // 2D
         {
-        SaruGPU saru(idx, timestep, seed);
+        detail::Saru saru(tag, timestep, seed);
         Scalar delta_theta; // rotational diffusion angle
         delta_theta = rotationDiff * gaussian_rng(saru, 1.0);
         Scalar theta; // angle on plane defining orientation of active force vector
@@ -227,7 +228,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         {
         if (rx == 0) // if no constraint
             {
-            SaruGPU saru(idx, timestep, seed);
+            detail::Saru saru(tag, timestep, seed);
             Scalar u = saru.d(0, 1.0); // generates an even distribution of random unit vectors in 3D
             Scalar v = saru.d(0, 1.0);
             Scalar theta = 2.0 * M_PI * u;
@@ -266,7 +267,7 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         else // if constraint
             {
             EvaluatorConstraintEllipsoid Ellipsoid(P, rx, ry, rz);
-            SaruGPU saru(idx, timestep, seed);
+            detail::Saru saru(tag, timestep, seed);
             Scalar3 current_pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
             Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.
