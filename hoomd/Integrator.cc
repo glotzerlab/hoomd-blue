@@ -221,6 +221,8 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
+    m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
+
     if (m_prof)
         {
         m_prof->push("Integrate");
