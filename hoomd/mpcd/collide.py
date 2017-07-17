@@ -126,6 +126,114 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
 
+class at(_collision_method):
+    """ Andersen thermostat method
+
+    Args:
+        seed (int): Seed to the collision method random number generator (must be positive)
+        period (int): Number of integration steps between collisions
+        group (:py:mod:`hoomd.group`): Group of particles to embed in collisions
+        kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set
+            point for the thermostat (in energy units).
+
+    This class implements the Andersen thermostat collision rule for MPCD.
+    Every *period* steps, the particles are binned into cells (see XX). New
+    particle velocities are then randomly drawn from a Gaussian distribution
+    (using *seed*) relative to the center-of-mass velocity for the cell. The random
+    velocities are given zero-mean so that the cell momentum is conserved. This
+    collision rule naturally imparts the canonical (NVT) ensemble consistent
+    with *kT*.
+
+    The properties of the SRD fluid are tuned using *period*, *kT*, the
+    underlying size of the MPCD cell list (see XX), and the particle density.
+    These parameters combine in a nontrivial way to set specific fluid properties.
+    See XX for a discussion of how to choose these values.
+
+    Note:
+        The *period* must be chosen as a multiple of the MPCD
+        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
+        result in an error when :py:meth:`hoomd.run()` is called.
+
+    When the total mean-free path of the MPCD particles is small, the underlying
+    MPCD cell list must be randomly shifted in order to ensure Galilean
+    invariance. Because the performance penalty from grid shifting is small,
+    shifting is enabled by default in all simulations. Disable it using
+    :py:meth:`set_params()` if you are sure that you do not want to use it.
+
+    HOOMD particles in *group* can be embedded into the collision step. See
+    :py:meth:`embed()`. A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    must be specified in order to integrate the positions of particles in *group*.
+    The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
+
+    Examples::
+
+        collide.at(seed=42, period=1, kT=1.0)
+        collide.at(seed=77, period=50, kT=1.5, group=hoomd.group.all())
+
+    """
+    def __init__(self, seed, period, group=None, kT=False):
+        hoomd.util.print_status_line()
+
+        _collision_method.__init__(self, seed, period)
+        self.metadata_fields += ['kT']
+        self.kT = hoomd.variant._setup_variant_input(kT)
+
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            collide_class = _mpcd.ATCollisionMethod
+            thermo_class = _mpcd.CellThermoCompute
+        else:
+            collide_class = _mpcd.ATCollisionMethodGPU
+            thermo_class = _mpcd.CellThermoComputeGPU
+
+        # create an auxilliary thermo compute and disable logging on it
+        if hoomd.context.current.mpcd._at_thermo is None:
+            rand_thermo = thermo_class(hoomd.context.current.mpcd.data)
+            rand_thermo.enableLogging(False)
+            hoomd.context.current.system.addCompute(rand_thermo, "mpcd_at_thermo")
+            hoomd.context.current.mpcd._at_thermo = rand_thermo
+
+        self._cpp = collide_class(hoomd.context.current.mpcd.data,
+                                  hoomd.context.current.system.getCurrentTimeStep(),
+                                  self.period,
+                                  -1,
+                                  self.seed,
+                                  hoomd.context.current.mpcd._thermo,
+                                  hoomd.context.current.mpcd._at_thermo,
+                                  self.kT.cpp_variant)
+
+        hoomd.util.quiet_status()
+        if group is not None:
+            self.embed(group)
+        hoomd.util.unquiet_status()
+
+    def set_params(self, angle=None, shift=None, kT=None):
+        """ Set parameters for the SRD collision method
+
+        Args:
+            angle (float): SRD rotation angle (degrees)
+            shift (bool): If True, perform a random shift of the underlying cell list
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature
+                set point for the thermostat (in energy units). If False, any
+                set thermostat is removed and an NVE simulation is run.
+
+        Examples::
+
+            srd.set_params(angle=90.)
+            srd.set_params(shift=False)
+            srd.set_params(angle=130., shift=True, kT=1.0)
+            srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
+            srd.set_params(kT=False)
+
+        """
+        hoomd.util.print_status_line()
+
+        if shift is not None:
+            self.shift = shift
+            self._cpp.enableGridShifting(shift)
+        if kT is not None:
+            self.kT = hoomd.variant._setup_variant_input(kT)
+            self._cpp.setTemperature(self.kT.cpp_variant)
+
 class srd(_collision_method):
     """ Stochastic rotation dynamics method
 
@@ -176,12 +284,6 @@ class srd(_collision_method):
     cell-average velocity, and so can be used to dissipate heat in nonequilibrium
     simulations. Under this thermostat, the SRD algorithm still conserves momentum,
     but energy is of course no longer conserved.
-
-    Note:
-        Setting *kT* will automatically enable the thermostat, while omitting
-        it will perform an NVE simulation. Use :py:meth:`set_thermostat()` to
-        enable / disable the thermostat or change the temperature setpoint
-        during a simulation.
 
     Examples::
 

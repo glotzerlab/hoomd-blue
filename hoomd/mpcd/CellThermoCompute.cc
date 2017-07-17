@@ -21,7 +21,7 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),
           m_needs_net_reduce(true), m_cell_vel(m_exec_conf), m_cell_energy(m_exec_conf),
-          m_ncells_alloc(0)
+          m_ncells_alloc(0), m_enable_log(true)
     {
     assert(m_mpcd_pdata);
     assert(m_cl);
@@ -43,7 +43,6 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
         }
     #endif // ENABLE_MPI
 
-
     // quantities supplied to the logger
     m_logname_list.push_back(std::string("mpcd_momentum_x") + suffix);
     m_logname_list.push_back(std::string("mpcd_momentum_y") + suffix);
@@ -64,6 +63,9 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
     // cell list needs to be up to date first
     m_cl->compute(timestep);
 
+    // ensure optional flags are up to date
+    updateFlags();
+
     if (m_prof) m_prof->push(m_exec_conf, "MPCD thermo");
     const unsigned int ncells = m_cl->getNCells();
     if (ncells != m_ncells_alloc)
@@ -71,14 +73,17 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
         reallocate(ncells);
         }
 
-    computeCellProperties();
+    computeCellProperties(timestep);
     m_needs_net_reduce = true;
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 std::vector<std::string> mpcd::CellThermoCompute::getProvidedLogQuantities()
     {
-    return m_logname_list;
+    if (m_enable_log)
+        return m_logname_list;
+    else
+        return std::vector<std::string>();
     }
 
 Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigned int timestep)
@@ -111,7 +116,7 @@ Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigne
         }
     }
 
-void mpcd::CellThermoCompute::computeCellProperties()
+void mpcd::CellThermoCompute::computeCellProperties(unsigned int timestep)
     {
     /*
      * In MPI simulations, begin by calculating the velocities and energies of
@@ -124,7 +129,8 @@ void mpcd::CellThermoCompute::computeCellProperties()
         beginOuterCellProperties();
 
         m_vel_comm->begin(m_cell_vel, mpcd::detail::CellVelocityPackOp());
-        m_energy_comm->begin(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        if (m_flags[mpcd::detail::thermo_options::energy])
+            m_energy_comm->begin(m_cell_energy, mpcd::detail::CellEnergyPackOp());
         }
     #endif // ENABLE_MPI
 
@@ -132,7 +138,13 @@ void mpcd::CellThermoCompute::computeCellProperties()
      * While communication is occurring on the outer cells, do the full calculation
      * on the inner cells. In non-MPI simulations, only this part happens.
      */
-     calcInnerCellProperties();
+    calcInnerCellProperties();
+
+    /*
+     * Execute any additional callbacks that can be overlapped with outer communication.
+     */
+    if (!m_callbacks.empty())
+        m_callbacks.emit(timestep);
 
     /*
      * In MPI simulations, we need to finalize the communication on the outer cells
@@ -141,7 +153,8 @@ void mpcd::CellThermoCompute::computeCellProperties()
     #ifdef ENABLE_MPI
     if (m_use_mpi)
         {
-        m_energy_comm->finalize(m_cell_energy, mpcd::detail::CellEnergyPackOp());
+        if (m_flags[mpcd::detail::thermo_options::energy])
+            m_energy_comm->finalize(m_cell_energy, mpcd::detail::CellEnergyPackOp());
         m_vel_comm->finalize(m_cell_vel, mpcd::detail::CellVelocityPackOp());
 
         finishOuterCellProperties();
@@ -190,8 +203,9 @@ struct CellPropertySum
      * \param ke Cell kinetic energy (output)
      * \param np Number of particles in cell (output)
      * \param cell Index of cell to evaluate
+     * \param energy If true, then the kinetic energy is evaluated into \a ke
      */
-    inline void compute(double4& momentum, double& ke, unsigned int& np, const unsigned int cell)
+    inline void compute(double4& momentum, double& ke, unsigned int& np, const unsigned int cell, const bool energy)
         {
         momentum = make_double4(0.0, 0.0, 0.0, 0.0);
         ke = 0.0;
@@ -223,7 +237,8 @@ struct CellPropertySum
             momentum.w += mass_i;
 
             // also compute ke of the particle
-            ke += 0.5 * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
+            if (energy)
+                ke += 0.5 * mass_i * (vel_i.x * vel_i.x + vel_i.y * vel_i.y + vel_i.z * vel_i.z);
             }
     }
 
@@ -276,16 +291,18 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
                                          N_mpcd);
 
     // Loop over all outer cells and compute total momentum, mass, energy
+    const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
     for (unsigned int idx=0; idx < m_vel_comm->getNCells(); ++idx)
         {
         const unsigned int cur_cell = h_cells.data[idx];
 
         // compute the cell properties
-        double4 momentum; double ke; unsigned int np;
-        summer.compute(momentum, ke, np, cur_cell);
+        double4 momentum; double ke(0.0); unsigned int np(0);
+        summer.compute(momentum, ke, np, cur_cell, need_energy);
 
         h_cell_vel.data[cur_cell] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
-        h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_double(np));
+        if (need_energy)
+            h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_double(np));
         }
     }
 
@@ -296,6 +313,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
     ArrayHandle<unsigned int> h_cells(m_vel_comm->getCells(), access_location::host, access_mode::read);
 
     // Loop over all outer cells and normalize the summed quantities
+    const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
     for (unsigned int idx=0; idx < m_vel_comm->getNCells(); ++idx)
         {
         const unsigned int cur_cell = h_cells.data[idx];
@@ -305,24 +323,27 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
         double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
         const double mass = cell_vel.w;
 
-        const double3 cell_energy = h_cell_energy.data[cur_cell];
-        const double ke = cell_energy.x;
-        double temp(0.0);
-        const unsigned int np = __double_as_int(cell_energy.z);
         if (mass > 0.)
             {
             // average velocity is only defined when there is some mass in the cell
             vel_cm.x /= mass; vel_cm.y /= mass; vel_cm.z /= mass;
+            }
+        h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
 
+        if (need_energy)
+            {
+            const double3 cell_energy = h_cell_energy.data[cur_cell];
+            const double ke = cell_energy.x;
+            double temp(0.0);
+            const unsigned int np = __double_as_int(cell_energy.z);
             // temperature is only defined for 2 or more particles
             if (np > 1)
                 {
                 const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
                 temp = 2. * (ke - ke_cm) / (m_sysdef->getNDimensions() * (np-1));
                 }
+            h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
             }
-        h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-        h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
         }
     }
 #endif // ENABLE_MPI
@@ -382,6 +403,7 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
         }
 
     // iterate over all of the inner cells and compute average velocity, energy, temperature
+    const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
     for (unsigned int k=lo.z; k < hi.z; ++k)
         {
         for (unsigned int j=lo.y; j < hi.y; ++j)
@@ -391,26 +413,29 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                 const unsigned int cur_cell = ci(i,j,k);
 
                 // compute the cell properties
-                double4 momentum; double ke; unsigned int np;
-                summer.compute(momentum, ke, np, cur_cell);
+                double4 momentum; double ke(0.0); unsigned int np(0);
+                summer.compute(momentum, ke, np, cur_cell, need_energy);
 
                 const double mass = momentum.w;
-                double temp(0.0);
                 double3 vel_cm = make_double3(0.0,0.0,0.0);
                 if (mass > 0.)
                     {
                     vel_cm.x = momentum.x / mass;
                     vel_cm.y = momentum.y / mass;
                     vel_cm.z = momentum.z / mass;
+                    }
+
+                h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+                if (need_energy)
+                    {
+                    double temp(0.0);
                     if (np > 1)
                         {
                         const double ke_cm = 0.5 * mass * (vel_cm.x*vel_cm.x + vel_cm.y*vel_cm.y + vel_cm.z*vel_cm.z);
                         temp = 2. * (ke - ke_cm) / (m_sysdef->getNDimensions() * (np-1));
                         }
+                    h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
                     }
-
-                h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
-                h_cell_energy.data[cur_cell] = make_double3(ke, temp, __int_as_double(np));
                 } // i
             } //j
         } // k
@@ -438,6 +463,8 @@ void mpcd::CellThermoCompute::computeNetProperties()
         ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::read);
         ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
 
+        const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
+
         double3 net_momentum = make_double3(0,0,0);
         double energy(0.0), temp(0.0);
         for (unsigned int k=0; k < upper.z; ++k)
@@ -456,13 +483,16 @@ void mpcd::CellThermoCompute::computeNetProperties()
                     net_momentum.y += cell_mass * cell_vel.y;
                     net_momentum.z += cell_mass * cell_vel.z;
 
-                    const double3 cell_energy = h_cell_energy.data[idx];
-                    energy += cell_energy.x;
-
-                    if (__double_as_int(cell_energy.z) > 1)
+                    if (need_energy)
                         {
-                        temp += cell_energy.y;
-                        ++n_temp_cells;
+                        const double3 cell_energy = h_cell_energy.data[idx];
+                        energy += cell_energy.x;
+
+                        if (__double_as_int(cell_energy.z) > 1)
+                            {
+                            temp += cell_energy.y;
+                            ++n_temp_cells;
+                            }
                         }
                     }
                 }
@@ -502,6 +532,20 @@ void mpcd::CellThermoCompute::computeNetProperties()
     if (m_prof) m_prof->pop();
     }
 
+void mpcd::CellThermoCompute::updateFlags()
+    {
+    mpcd::detail::ThermoFlags flags;
+    if (m_enable_log)
+        flags[mpcd::detail::thermo_options::energy] = 1;
+
+    if (!m_flag_signal.empty())
+        {
+        m_flag_signal.emit_accumulate([&](mpcd::detail::ThermoFlags f){ flags |= f; });
+        }
+
+    m_flags = flags;
+    }
+
 /*!
  * \param ncells Number of cells
  */
@@ -524,5 +568,6 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     py::class_<mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoCompute> >
         (m, "CellThermoCompute", py::base<Compute>())
         .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
+        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >())
+        .def("enableLogging", &mpcd::CellThermoCompute::enableLogging);
     }

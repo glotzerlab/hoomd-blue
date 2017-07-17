@@ -5,6 +5,7 @@ endif(NOT BUILD_MD)
 
 set(_mpcd_sources
     module.cc
+    ATCollisionMethod.cc
     CellCommunicator.cc
     CellThermoCompute.cc
     CellList.cc
@@ -21,6 +22,7 @@ set(_mpcd_sources
     )
 
 set(_mpcd_headers
+    ATCollisionMethod.h
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
@@ -40,6 +42,7 @@ set(_mpcd_headers
 
 if (ENABLE_CUDA)
 list(APPEND _mpcd_sources
+    ATCollisionMethodGPU.cc
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
@@ -48,6 +51,8 @@ list(APPEND _mpcd_sources
     StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
+    ATCollisionMethodGPU.cuh
+    ATCollisionMethodGPU.h
     CellCommunicator.cuh
     CellThermoComputeGPU.cuh
     CellThermoComputeGPU.h
@@ -66,6 +71,7 @@ list(APPEND _mpcd_headers
 endif()
 
 set(_mpcd_cu_sources
+    ATCollisionMethodGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
     CommunicatorGPU.cu

@@ -4,6 +4,7 @@
 ## Setup all of the test executables in a for loop
 if (BUILD_TESTING)
 set(TEST_LIST
+    at_collision_method
     cell_list
     cell_thermo_compute
     sorter

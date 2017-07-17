@@ -192,6 +192,8 @@ class system(hoomd.meta._metadata):
         else:
             self._thermo = _mpcd.CellThermoComputeGPU(self.data)
         hoomd.context.current.system.addCompute(self._thermo, "mpcd_thermo")
+        # extra thermo for the Andersen thermostat
+        self._at_thermo = None
 
         # if MPI is enabled, automatically add a communicator to the system
         if hoomd.comm.get_num_ranks() > 1:

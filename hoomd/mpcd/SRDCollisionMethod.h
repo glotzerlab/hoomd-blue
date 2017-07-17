@@ -79,6 +79,16 @@ class SRDCollisionMethod : public mpcd::CollisionMethod
             m_T = std::shared_ptr<::Variant>();
             }
 
+        //! Get the requested thermo flags
+        mpcd::detail::ThermoFlags getRequestedThermoFlags() const
+            {
+            mpcd::detail::ThermoFlags flags;
+            if (m_T)
+                flags[mpcd::detail::thermo_options::energy] = 1;
+
+            return flags;
+            }
+
     protected:
         std::shared_ptr<mpcd::CellThermoCompute> m_thermo;  //!< Cell thermo
         GPUVector<double3> m_rotvec;    //!< MPCD rotation vectors

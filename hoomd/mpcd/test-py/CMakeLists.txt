@@ -1,6 +1,7 @@
 # Maintainer: mphoward
 
 set(TEST_LIST
+    collide_at
     collide_srd
     data_snapshot
     init_make_random

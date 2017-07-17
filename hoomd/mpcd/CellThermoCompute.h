@@ -23,6 +23,7 @@
 #endif // ENABLE_MPI
 
 #include "hoomd/Compute.h"
+#include "hoomd/extern/nano-signal-slot/nano_signal_slot.hpp"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 namespace mpcd
@@ -110,9 +111,44 @@ class CellThermoCompute : public Compute
             #endif // ENABLE_MPI
             }
 
+        //! Enable / disable logging
+        /*!
+         * \param enable If True, expose quantities to the logger
+         *
+         * Internal CellThermoCompute instances should not provide any quantities
+         * to the logger.
+         */
+        void enableLogging(bool enable)
+            {
+            m_enable_log = enable;
+            }
+
+        //! Get the signal for requested thermo flags
+        /*!
+         * \returns A signal that subscribers can attach a callback to in order
+         *          to request certain data.
+         *
+         * For performance reasons, the CellThermoCompute should be able to
+         * supply many related cell-level quantities from a single kernel launch.
+         * However, sometimes these quantities are not needed, and it is better
+         * to skip calculating them. Subscribing classes can optionally request
+         * some of these quantities via a callback return mpcd::detail::ThermoFlags
+         * with the appropriate bits set.
+         */
+        Nano::Signal<mpcd::detail::ThermoFlags ()>& getFlagsSignal()
+            {
+            return m_flag_signal;
+            }
+
+        //! Get the signal to attach a callback function
+        Nano::Signal<void (unsigned int)>& getCallbackSignal()
+            {
+            return m_callbacks;
+            }
+
     protected:
         //! Compute the cell properties
-        void computeCellProperties();
+        void computeCellProperties(unsigned int timestep);
 
         #ifdef ENABLE_MPI
         //! Begin the calculation of outer cell properties
@@ -143,7 +179,15 @@ class CellThermoCompute : public Compute
         GPUVector<double3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
         unsigned int m_ncells_alloc;        //!< Number of cells allocated for
 
-        std::vector<std::string> m_logname_list;  //!< Cache all generated logged quantities names
+        bool m_enable_log;                          //!< Flag to enable logging
+        std::vector<std::string> m_logname_list;    //!< Cache all generated logged quantities names
+
+        Nano::Signal<mpcd::detail::ThermoFlags ()> m_flag_signal; //!< Signal for requested flags
+        mpcd::detail::ThermoFlags m_flags;  //!< Requested thermo flags
+        //! Updates the requested optional flags
+        void updateFlags();
+
+        Nano::Signal<void (unsigned int)> m_callbacks;  //!< Signal for callback functions
 
     private:
         //! Allocate memory per cell
