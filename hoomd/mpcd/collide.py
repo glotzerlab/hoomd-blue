@@ -144,7 +144,7 @@ class at(_collision_method):
     collision rule naturally imparts the canonical (NVT) ensemble consistent
     with *kT*.
 
-    The properties of the SRD fluid are tuned using *period*, *kT*, the
+    The properties of the AT fluid are tuned using *period*, *kT*, the
     underlying size of the MPCD cell list (see XX), and the particle density.
     These parameters combine in a nontrivial way to set specific fluid properties.
     See XX for a discussion of how to choose these values.

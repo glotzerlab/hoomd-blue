@@ -9,7 +9,7 @@
  */
 
 #include "CollisionMethod.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 
 /*!
  * \param sysdata MPCD system data
@@ -98,8 +98,7 @@ void mpcd::CollisionMethod::drawGridShift(unsigned int timestep)
     else
         {
         // Saru PRNG using seed and timestep as seeds
-        // TODO: do we need to be careful about drawing random numbers elsewhere with these inputs?
-        Saru saru(timestep / m_period, m_seed);
+        hoomd::detail::Saru saru(0xffffffff, timestep / m_period, m_seed);
         const Scalar max_shift = m_cl->getMaxGridShift();
 
         // draw shift variables from uniform distribution

@@ -11,7 +11,7 @@
 #include "ATCollisionMethodGPU.cuh"
 #include "ParticleDataUtilities.h"
 #include "RandomNumbers.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 
 namespace mpcd
 {
@@ -53,7 +53,7 @@ __global__ void at_draw_velocity(Scalar4 *d_vel,
         }
 
     // draw random velocities from normal distribution
-    SaruGPU rng(tag, timestep, seed);
+    hoomd::detail::Saru rng(tag, timestep, seed);
     mpcd::detail::NormalGenerator<Scalar,true> gen;
     const Scalar3 vel = fast::sqrt(T/mass) * make_scalar3(gen(rng), gen(rng), gen(rng));
 
