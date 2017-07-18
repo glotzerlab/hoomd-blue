@@ -11,6 +11,9 @@ Not yet released
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
 * force.constant and force.active can now apply torques
+* Add Lennard-Jones 12-8 pair potential
+* Add Buckingham (exp-6) pair potential
+* Add Coulomb 1-4 special_pair potential
 
 *Deprecated*
 
