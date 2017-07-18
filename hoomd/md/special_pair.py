@@ -369,7 +369,8 @@ class coulomb(_special_pair):
         is separate from those of other non-bonded interactions. Therefore, the total energy of non-bonded interactions
         is obtained by adding that of standard and special interactions.
 
-    .. versionadded:: 2.1.5
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
 
     """
     def __init__(self, name=None):
