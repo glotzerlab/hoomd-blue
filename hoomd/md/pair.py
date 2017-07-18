@@ -2567,7 +2567,8 @@ class buckingham(pair):
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
 
-    .. versionadded:: 2.1.6
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
 
     Example::
 
@@ -2641,6 +2642,9 @@ class lj1208(pair):
       - *optional*: defaults to the global r_cut specified in the pair command
     - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
       - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
 
     Example::
 
