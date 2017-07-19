@@ -228,7 +228,7 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_lnV(unsigned int timestep, Saru& rng);
+        void update_lnV(unsigned int timestep, hoomd::detail::Saru& rng);
 
 
         //! Perform box update in NpT shear distribution
