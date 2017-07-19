@@ -4,7 +4,7 @@
 
 ## v2.1.8
 
-Released 2017/07/18
+Released 2017/07/19
 
 *Bug fixes*
 
