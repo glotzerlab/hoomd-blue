@@ -355,7 +355,11 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // perform communication
         m_comm->communicate(timestep);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep);
+        }
 
         // compute the net force on all particles
 #ifdef ENABLE_CUDA
