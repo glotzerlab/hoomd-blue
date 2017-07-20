@@ -90,25 +90,25 @@ class ManagedArray
             }
 
         //! random access operator
-        HOSTDEVICE T& operator[](unsigned int i)
+        HOSTDEVICE inline T& operator[](unsigned int i)
             {
             return data[i];
             }
 
         //! random access operator (const version)
-        HOSTDEVICE const T& operator[](unsigned int i) const
+        HOSTDEVICE inline const T& operator[](unsigned int i) const
             {
             return data[i];
             }
 
         //! Get pointer to array data
-        HOSTDEVICE T * get()
+        HOSTDEVICE inline T * get()
             {
             return data;
             }
 
         //! Get pointer to array data (const version)
-        HOSTDEVICE const T* get() const
+        HOSTDEVICE inline const T* get() const
             {
             return data;
             }
@@ -133,21 +133,19 @@ class ManagedArray
          */
         HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
             {
-            // we use at most this many bytes due to aligment
-            unsigned int max_bytes = sizeof(T) -1 + sizeof(T)*N;
+            // size in ints (round up)
+            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
-            if (max_bytes > available_bytes) return;
+            // align ptr to size of data type
+            unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
+            char *ptr_align = (char *)((unsigned long int)(ptr + max_align_bytes) & ~((unsigned long int) max_align_bytes));
 
-            available_bytes -= max_bytes;
+            if (size_int*sizeof(int)+max_align_bytes > available_bytes)
+                return;
 
             #if defined (__CUDA_ARCH__)
             // only in GPU code
-
-            // align ptr to size of data type
-            ptr = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~((unsigned long int) sizeof(T) - 1));
-
-            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
-
             unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
             unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
 
@@ -155,7 +153,7 @@ class ManagedArray
                 {
                 if (cur_offset + tidx < size_int)
                     {
-                    ((int *)ptr)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
+                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
                     }
                 }
 
@@ -163,25 +161,31 @@ class ManagedArray
             __syncthreads();
 
             // redirect data ptr
-            data = (T *) ptr;
+            if (tidx == 0)
+                {
+                data = (T *) ptr;
+                }
+
+            __syncthreads();
+            #endif
 
             // increment pointer
-            ptr += N*sizeof(T);
-            #endif
+            ptr = ptr_align + size_int*sizeof(int);
+            available_bytes -= size_int*sizeof(int)+max_align_bytes;
             }
 
     protected:
         #ifndef NVCC
         void allocate()
             {
-            data = managed_allocator<T>::allocate(N, managed);
+            data = managed_allocator<T>::allocate_construct(N, managed);
             }
 
         void deallocate()
             {
             if (N > 0)
                 {
-                managed_allocator<T>::deallocate(data, N, managed);
+                managed_allocator<T>::deallocate_destroy(data, N, managed);
                 }
             }
         #endif

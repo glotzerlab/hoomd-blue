@@ -12,8 +12,8 @@
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
-    create the hoomd python module and define the exports here.
-*/
+ create the hoomd python module and define the exports here.
+ */
 
 PYBIND11_PLUGIN(_metal)
     {

@@ -145,12 +145,6 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
         //! Get the random number of depletants
         virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local);
 
-        //! Get the number of configurational bias attempts
-        unsigned int getNumTrials() const
-            {
-            // FIXME
-            return 0;
-            }
     };
 
 //! Export the UpdaterMuVT class to python
@@ -233,7 +227,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             lnb = Scalar(0.0);
 
             // try inserting depletants in old configuration (compute configurational bias weight factor)
-            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, type, getNumTrials(), lnb))
+            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, type, m_mc_implicit->getNumTrials(), lnb))
                 {
                 lnboltzmann -= lnb;
                 }
@@ -282,7 +276,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             // fix the maximum number of removed depletants at the average number
             // of depletants in the excluded volume sphere
             unsigned int m = (unsigned int)(V*n_R) + 1;
-            Saru rng(this->m_seed, timestep,  0x2138af32);
+            hoomd::detail::Saru rng(this->m_seed, timestep,  0x2138af32);
             unsigned int n_remove = rand_select(rng, m-1);
 
             if (n_free >= n_remove && n_remove >= n_overlap)
@@ -388,7 +382,7 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
             {
             lnb = Scalar(0.0);
             // compute configurational bias weight
-            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, new_type, getNumTrials(), lnb))
+            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, new_type, m_mc_implicit->getNumTrials(), lnb))
                 {
                 lnboltzmann -= lnb;
                 }
@@ -413,7 +407,7 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
             }
 
         // try inserting depletants in new configuration
-        if (moveDepletantsInUpdatedRegion(timestep, n_insert, delta_old, tag, new_type, getNumTrials(), lnb))
+        if (moveDepletantsInUpdatedRegion(timestep, n_insert, delta_old, tag, new_type, m_mc_implicit->getNumTrials(), lnb))
             {
             lnboltzmann += lnb;
             }
@@ -495,7 +489,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
-            if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, getNumTrials(), lnb, true))
+            if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, m_mc_implicit->getNumTrials(), lnb, true))
                 {
                 lnboltzmann += lnb;
                 }
@@ -511,7 +505,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
                 {
                 Scalar n_R = m_mc_implicit->getDepletantDensity();
 
-                Saru rng(this->m_seed, timestep,  0x123763de);
+                hoomd::detail::Saru rng(this->m_seed, timestep,  0x123763de);
 
                 // fix the maximum number of inserted depletants at the average number
                 // of depletants in the excluded volume sphere
@@ -568,9 +562,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x974762fa );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x974762fa );
     #else
-    Saru rng(timestep, this->m_seed, 0x974762fa );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x974762fa );
     #endif
 
     // update the aabb tree
@@ -772,9 +766,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x123b09af );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x123b09af );
     #else
-    Saru rng(timestep, this->m_seed, 0x123b09af );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x123b09af );
     #endif
 
     // update the aabb tree
@@ -945,9 +939,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x64f123da );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x64f123da );
     #else
-    Saru rng(timestep, this->m_seed, 0x64f123da );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x64f123da );
     #endif
 
     // update the aabb tree
@@ -1142,9 +1136,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
     #else
-    Saru rng(timestep, this->m_seed, 0x1412459a);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x1412459a);
     #endif
 
     // update the aabb tree
@@ -1303,9 +1297,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
     #else
-    Saru rng(timestep, this->m_seed, 0x1412459a);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x1412459a);
     #endif
 
     // update the aabb tree
@@ -1510,9 +1504,9 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
 
         // draw a random vector in the box
         #ifdef ENABLE_MPI
-        Saru rng(this->m_seed, this->m_exec_conf->getNPartitions()*this->m_exec_conf->getRank()+this->m_exec_conf->getPartition(), timestep);
+        hoomd::detail::Saru rng(this->m_seed, this->m_exec_conf->getNPartitions()*this->m_exec_conf->getRank()+this->m_exec_conf->getPartition(), timestep);
         #else
-        Saru rng(this->m_seed, timestep);
+        hoomd::detail::Saru rng(this->m_seed, timestep);
         #endif
 
         uint3 dim = make_uint3(1,1,1);

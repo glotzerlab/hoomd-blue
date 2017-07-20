@@ -9,6 +9,8 @@
 #include <vector>
 #include <stack>
 
+#include "HPMCPrecisionSetup.h"
+
 #include "OBB.h"
 
 #ifndef __OBB_TREE_H__
@@ -260,6 +262,12 @@ inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capa
     }
 
 
+//! Define a weak ordering on OBB centroid projections
+inline bool compare_proj(const std::pair<OverlapReal,unsigned int> &lhs, const std::pair<OverlapReal,unsigned int> &rhs)
+    {
+    return lhs.first < rhs.first;
+    }
+
 /*! \param obbs List of OBBs
     \param idx List of indices
     \param start Start point in obbs and idx to examine
@@ -329,11 +337,19 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
     else
         {
         // the x-axis has largest covariance by construction, so split along that axis
-        // split on x direction according to spatial median
+
+        // Object mean
+        OverlapReal split_proj(0.0);
+        for (unsigned int i = 0; i < len; ++i)
+            {
+            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/len;
+            }
+
+        // split on x direction according to object mean
         for (unsigned int i = 0; i < start_right; i++)
             {
             OverlapReal proj = dot(obbs[start+i].center-my_obb.center,my_axes.row0);
-            if (proj < OverlapReal(0.0))
+            if (proj < split_proj)
                 {
                 // if on the left side, everything is happy, just continue on
                 }

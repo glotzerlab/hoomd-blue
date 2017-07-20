@@ -38,6 +38,8 @@ set(_hpmc_headers
     IntegratorHPMCMono.h
     IntegratorHPMCMonoImplicitGPU.h
     IntegratorHPMCMonoImplicit.h
+    IntegratorHPMCMonoImplicitNew.h
+    IntegratorHPMCMonoImplicitNewGPU.h
     MinkowskiMath.h
     modules.h
     Moves.h
@@ -62,7 +64,6 @@ set(_hpmc_headers
     UpdaterRemoveDrift.h
     XenoCollide2D.h
     XenoCollide3D.h
-    triangle_triangle.h
     )
 
 # if (ENABLE_CUDA)
@@ -71,6 +72,7 @@ set(_hpmc_headers
 # endif()
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
+                     IntegratorHPMCMonoImplicitGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
                      all_kernels_simple_polygon.cu

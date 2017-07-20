@@ -1,6 +1,8 @@
 // Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
+// Maintainer: jglaser
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 #include "HPMCPrecisionSetup.h"
@@ -28,11 +30,21 @@
 #include <iostream>
 #endif
 
+/*!  This overlap check has been optimized to the best of my ability. However, further optimizations may still be possible,
+  in particular regarding the tree traversal and the type of bounding volume hiarchy. Generally, I have found
+  OBB's to perform superior to AABB's and spheres, because they are tightly fitting. The tandem overlap check is also
+  faster than checking all leaves against the tree on the CPU. On the GPU, leave against tree traversal may be faster due
+  to the possibility of parallellizing over the leave nodes, but that also leads to longer autotuning times. Even though
+  tree traversal is non-recursive, occasionally I see stack errors (= overflows) on Pascal GPUs when the shape is highly complicated.
+  Then the stack frame could be increased using cudaDeviceSetLimit().
+
+  Since GPU performance is mostly deplorable for concave polyhedra, I have not put much effort into optimizing for that code path.
+  The parallel overlap check code path has been left in here for future experimentation, and can be enabled by
+  uncommenting the below line.
+  */
+
 // uncomment for parallel overlap checks
 //#define LEAVES_AGAINST_TREE_TRAVERSAL
-
-// uncomment to do an early-rejection check of convex hulls - on the GPU, this adds additional divergence
-//#define POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
 
 namespace hpmc
 {
@@ -49,23 +61,27 @@ struct poly3d_data : param_base
 
     #ifndef NVCC
     //! Constructor
-    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, bool _managed)
-        : n_faces(_n_faces), hull_only(0)
+    poly3d_data(unsigned int nverts, unsigned int _n_faces, unsigned int _n_face_verts, unsigned int n_hull_verts, bool _managed)
+        : n_verts(nverts), n_faces(_n_faces), hull_only(0)
         {
-        verts = poly3d_verts(nverts, _managed);
+        convex_hull_verts = poly3d_verts(n_hull_verts, _managed);
+        verts = ManagedArray<vec3<OverlapReal> >(nverts, _managed);
         face_offs = ManagedArray<unsigned int>(n_faces+1,_managed);
         face_verts = ManagedArray<unsigned int>(_n_face_verts, _managed);
         }
     #endif
 
     GPUTree tree;                                   //!< Tree for fast locality lookups
-    poly3d_verts verts;                             //!< Holds parameters of convex hull
+    poly3d_verts convex_hull_verts;                 //!< Holds parameters of convex hull
+    ManagedArray<vec3<OverlapReal> > verts;         //!< Vertex coordinates
     ManagedArray<unsigned int> face_offs;           //!< Offset of every face in the list of vertices per face
     ManagedArray<unsigned int> face_verts;          //!< Ordered vertex IDs of every face
+    unsigned int n_verts;                           //!< Number of vertices
     unsigned int n_faces;                           //!< Number of faces
     unsigned int ignore;                            //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
     vec3<OverlapReal> origin;                       //!< A point *inside* the surface
     unsigned int hull_only;                         //!< If 1, only the hull of the shape is considered for overlaps
+    OverlapReal sweep_radius;                       //!< Radius of a sweeping sphere
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
@@ -74,6 +90,7 @@ struct poly3d_data : param_base
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
         tree.load_shared(ptr, available_bytes);
+        convex_hull_verts.load_shared(ptr, available_bytes);
         verts.load_shared(ptr, available_bytes);
         face_offs.load_shared(ptr, available_bytes);
         face_verts.load_shared(ptr, available_bytes);
@@ -84,6 +101,7 @@ struct poly3d_data : param_base
     void attach_to_stream(cudaStream_t stream) const
         {
         tree.attach_to_stream(stream);
+        convex_hull_verts.attach_to_stream(stream);
         verts.attach_to_stream(stream);
         face_offs.attach_to_stream(stream);
         face_verts.attach_to_stream(stream);
@@ -126,7 +144,7 @@ struct ShapePolyhedron
         }
 
     //! Does this shape have an orientation
-    DEVICE bool hasOrientation() { return data.verts.N > 1; }
+    DEVICE bool hasOrientation() { return data.n_verts > 1; }
 
     //!Ignore flag for acceptance statistics
     DEVICE bool ignoreStatistics() const { return data.ignore; }
@@ -135,7 +153,7 @@ struct ShapePolyhedron
     DEVICE OverlapReal getCircumsphereDiameter() const
         {
         // return the precomputed diameter
-        return data.verts.diameter;
+        return data.convex_hull_verts.diameter;
         }
 
     //! Get the in-sphere radius
@@ -148,13 +166,13 @@ struct ShapePolyhedron
     //! Return true if this is a sphero-shape
     DEVICE OverlapReal isSpheroPolyhedron() const
         {
-        return data.verts.sweep_radius != OverlapReal(0.0);
+        return data.sweep_radius != OverlapReal(0.0);
         }
 
     //! Return the bounding box of the shape in world coordinates
     DEVICE detail::AABB getAABB(const vec3<Scalar>& pos) const
         {
-        return detail::AABB(pos, data.verts.diameter/Scalar(2));
+        return detail::AABB(pos, data.convex_hull_verts.diameter/Scalar(2));
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
@@ -186,7 +204,6 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     vec3<OverlapReal> ac = c - a;
     vec3<OverlapReal> ap = p - a;
 
-    #if 1
     OverlapReal d1 = dot(ab, ap);
     OverlapReal d2 = dot(ac, ap);
     if (d1 <= OverlapReal(0.0) && d2 <= OverlapReal(0.0)) return a; // barycentric coordiantes (1,0,0)
@@ -231,62 +248,6 @@ DEVICE inline vec3<OverlapReal> closestPointToTriangle(const vec3<OverlapReal>& 
     OverlapReal v = vb * denom;
     OverlapReal w = vc * denom;
     return a + ab*v+ac * w; // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
-    #endif
-
-    #if 0
-    vec3<OverlapReal> bc = c - b;
-    // Compute parameteric position s for projection P' of P on AB<
-    // P' = A + s*AB, s = snom/(snom+denom)
-    OverlapReal snom = dot(p-a, ab);
-    OverlapReal sdenom = dot(p-b,a-b);
-
-    // Compute parametric position for projection P' of P on AC,
-    // P' = A + t*AC, s= tnom/(tnom+tdenom)
-    OverlapReal tnom = dot(p-a, ac);
-    OverlapReal tdenom = dot(p-c, a-c);
-
-
-    if (snom <= OverlapReal(0.0) && tnom <= 0.0) return a; // Vertex region early out
-
-    // Compute parametric position u for projection P' of P on BC,
-    // P' = B + u*BC, u = unom/(unom+udenom)
-    OverlapReal unom = dot(p-b, bc);
-    OverlapReal udenom = dot(p-c,b-c);
-
-    if (sdenom <= OverlapReal(0.0) && unom <= OverlapReal(0.0)) return b; // Vertex region early out
-    if (tdenom <= OverlapReal(0.0) && udenom <= OverlapReal(0.0)) return c; // Vertex region early out
-
-    // P is outside (or on) AB if the triple scalar product [N PA PB] <= 0
-    vec3<OverlapReal> n = cross(b-a, c-a);
-    OverlapReal vc = dot(n, cross(a-p,b-p));
-
-    // If P outside AB and within feature region of AB,
-    // return projection of P onto AB
-    if (vc <= OverlapReal(0.0) && snom >= OverlapReal(0.0) && sdenom >= OverlapReal(0.0))
-        return a + snom / (snom + sdenom) * ab;
-
-    // P is outside (or on) BC if the triple scalar product [N PB PC] <= 0
-    OverlapReal va = dot(n, cross(b-p, c-p));
-
-    // If P outside BC and within feature region of BC,
-    // return projection of P onto BC
-    if (va <= OverlapReal(0.0) && unom >= OverlapReal(0.0) && udenom >= OverlapReal(0.0))
-        return b + unom / (unom + udenom) * bc;
-
-    // P is outside (or on) C if the triple sclar product [N PC PA] <= 0
-    OverlapReal vb = dot(n, cross(c-p, a-p));
-
-    // If P outside CA and within feature region of CA,
-    // return projection of P onto CA
-    if (vb <= OverlapReal(0.0) && tnom >= OverlapReal(0.0) && tdenom >= OverlapReal(0.0))
-        return a + tnom / (tnom + tdenom) * ac;
-
-    // P must project inside the face region. Compute Q using barycentric coordinates
-    OverlapReal u = va / (va + vb + vc);
-    OverlapReal v = vb / (va + vb + vc);
-    OverlapReal w = OverlapReal(1.0) - u - v; // = vc / (va + vb + vc)
-    return u*a+v*b+w*c;
-    #endif
     }
 
 
@@ -560,9 +521,9 @@ DEVICE inline OverlapReal shortest_distance_triangles(
     return dmin_sq;
     }
 
-#include "triangle_triangle.h"
+#include <hoomd/extern/triangle_triangle.h>
 
-DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
+DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
                                               unsigned int cur_node_a,
@@ -584,7 +545,6 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
 
         float U[3][3];
 
-        vec3<OverlapReal> dr = rotate(conj(quat<OverlapReal>(b.orientation)),-r_ab);
         quat<OverlapReal> q(conj(quat<OverlapReal>(b.orientation))*quat<OverlapReal>(a.orientation));
 
         if (nverts_a > 2)
@@ -592,10 +552,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
             for (unsigned int ivert = 0; ivert < 3; ++ivert)
                 {
                 unsigned int idx_a = a.data.face_verts[offs_a+ivert];
-                vec3<float> v;
-                v.x = a.data.verts.x[idx_a];
-                v.y = a.data.verts.y[idx_a];
-                v.z = a.data.verts.z[idx_a];
+                vec3<float> v = a.data.verts[idx_a];
                 v = rotate(q,v) + dr;
                 U[ivert][0] = v.x; U[ivert][1] = v.y; U[ivert][2] = v.z;
                 }
@@ -618,10 +575,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                 for (unsigned int ivert = 0; ivert < 3; ++ivert)
                     {
                     unsigned int idx_b = b.data.face_verts[offs_b+ivert];
-                    vec3<float> v;
-                    v.x = b.data.verts.x[idx_b];
-                    v.y = b.data.verts.y[idx_b];
-                    v.z = b.data.verts.z[idx_b];
+                    vec3<float> v = b.data.verts[idx_b];
                     V[ivert][0] = v.x; V[ivert][1] = v.y; V[ivert][2] = v.z;
                     }
 
@@ -637,19 +591,13 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                 OverlapReal dsqmin(FLT_MAX);
 
                 // Load vertex 0 on a
-                vec3<OverlapReal> a0;
                 unsigned int idx_a = a.data.face_verts[offs_a];
-                a0.x = a.data.verts.x[idx_a];
-                a0.y = a.data.verts.y[idx_a];
-                a0.z = a.data.verts.z[idx_a];
+                vec3<OverlapReal> a0 = a.data.verts[idx_a];
                 a0 = rotate(q, a0) + dr;
 
                 // vertex 0 on b
                 unsigned int idx_b = b.data.face_verts[offs_b];
-                vec3<OverlapReal> b0;
-                b0.x = b.data.verts.x[idx_b];
-                b0.y = b.data.verts.y[idx_b];
-                b0.z = b.data.verts.z[idx_b];
+                vec3<OverlapReal> b0 = b.data.verts[idx_b];
 
                 vec3<OverlapReal> b1, b2;
 
@@ -657,15 +605,11 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     {
                     // vertex 1 on b
                     idx_b = b.data.face_verts[offs_b + 1];
-                    b1.x = b.data.verts.x[idx_b];
-                    b1.y = b.data.verts.y[idx_b];
-                    b1.z = b.data.verts.z[idx_b];
+                    b1 = b.data.verts[idx_b];
 
                     // vertex 2 on b
                     idx_b = b.data.face_verts[offs_b + 2];
-                    b2.x = b.data.verts.x[idx_b];
-                    b2.y = b.data.verts.y[idx_b];
-                    b2.z = b.data.verts.z[idx_b];
+                    b2 = b.data.verts[idx_b];
                     }
 
                 if (nverts_b > 1 && nverts_a == 1)
@@ -682,16 +626,12 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     {
                     // vertex 1 on a
                     idx_a = a.data.face_verts[offs_a + 1];
-                    a1.x = a.data.verts.x[idx_a];
-                    a1.y = a.data.verts.y[idx_a];
-                    a1.z = a.data.verts.z[idx_a];
+                    a1 = a.data.verts[idx_a];
                     a1 = rotate(q, a1) + dr;
 
                     // vertex 2 on a
                     idx_a = a.data.face_verts[offs_a + 2];
-                    a2.x = a.data.verts.x[idx_a];
-                    a2.y = a.data.verts.y[idx_a];
-                    a2.z = a.data.verts.z[idx_a];
+                    a2 = a.data.verts[idx_a];
                     a2 = rotate(q, a2) + dr;
                     }
 
@@ -714,7 +654,7 @@ DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> r_ab,
                     dsqmin = dot(a0-b0,a0-b0);
                     }
 
-                OverlapReal R_ab = a.data.verts.sweep_radius + b.data.verts.sweep_radius;
+                OverlapReal R_ab = a.data.sweep_radius + b.data.sweep_radius;
 
                 if (R_ab*R_ab >= dsqmin)
                     {
@@ -774,6 +714,59 @@ DEVICE inline bool IntersectRayTriangle(const vec3<OverlapReal>& p, const vec3<O
     return true;
     }
 
+#ifndef NVCC
+//! Traverse the bounding volume test tree recursively
+inline bool BVHCollision(const ShapePolyhedron& a, const ShapePolyhedron &b,
+     unsigned int cur_node_a, unsigned int cur_node_b,
+     const quat<OverlapReal>& q, const vec3<OverlapReal>& dr, unsigned int &err, OverlapReal abs_tol)
+    {
+    detail::OBB obb_a = a.tree.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr);
+    detail::OBB obb_b = b.tree.getOBB(cur_node_b);
+
+    if (!overlap(obb_a, obb_b)) return false;
+
+    if (a.tree.isLeaf(cur_node_a))
+        {
+        if (b.tree.isLeaf(cur_node_b))
+            {
+            return test_narrow_phase_overlap(dr, a, b, cur_node_a, cur_node_b, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, cur_node_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, cur_node_a, right_b, q, dr, err, abs_tol);
+            }
+        }
+    else
+        {
+        if (b.tree.isLeaf(cur_node_b))
+            {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
+
+            return BVHCollision(a, b, left_a, cur_node_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, cur_node_b, q, dr, err, abs_tol);
+            }
+        else
+            {
+            unsigned int left_a = a.tree.getLeftChild(cur_node_a);
+            unsigned int right_a = a.tree.getEscapeIndex(left_a);
+            unsigned int left_b = b.tree.getLeftChild(cur_node_b);
+            unsigned int right_b = b.tree.getEscapeIndex(left_b);
+
+            return BVHCollision(a, b, left_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, left_a, right_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, left_b, q, dr, err, abs_tol)
+                || BVHCollision(a, b, right_a, right_b, q, dr, err, abs_tol);
+            }
+        }
+    }
+#endif
+
 //! Polyhedron overlap test
 /*! \param r_ab Vector defining the position of shape b relative to shape a (r_b - r_a)
     \param a first shape
@@ -788,19 +781,17 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                  const ShapePolyhedron& b,
                                  unsigned int& err)
     {
-    #ifdef POLYHEDRON_CHECK_CONVEX_HULL_OVERLAP
     // test overlap of convex hulls
     if (a.isSpheroPolyhedron() || b.isSpheroPolyhedron())
         {
-        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.verts),
-               ShapeSpheropolyhedron(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeSpheropolyhedron(a.orientation,a.data.convex_hull_verts),
+               ShapeSpheropolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
         }
     else
         {
-        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.verts),
-           ShapeConvexPolyhedron(b.orientation,b.data.verts),err)) return false;
+        if (!test_overlap(r_ab, ShapeConvexPolyhedron(a.orientation,a.data.convex_hull_verts),
+           ShapeConvexPolyhedron(b.orientation,b.data.convex_hull_verts),err)) return false;
         }
-    #endif
 
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
     const OverlapReal abs_tol(DaDb*1e-12);
@@ -815,9 +806,10 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
      * a) an edge of one polyhedron intersects the face of the other
      * b) the center of mass of one polyhedron is contained in the other
      */
-
+    #ifdef NVCC
     const detail::GPUTree& tree_a = a.tree;
     const detail::GPUTree& tree_b = b.tree;
+    #endif
 
     #ifdef LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
@@ -867,18 +859,22 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             }
         }
     #else
-    // perform a tandem tree traversal
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    #ifndef NVCC
+    if (BVHCollision(a,b,0,0, q, dr_rot, err, abs_tol)) return true;
+    #else
+    // stackless traversal on GPU
     unsigned long int stack = 0;
     unsigned int cur_node_a = 0;
     unsigned int cur_node_b = 0;
-
-    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
-    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
 
     detail::OBB obb_a = tree_a.getOBB(cur_node_a);
     obb_a.affineTransform(q, dr_rot);
 
     detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
 
     while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
         {
@@ -886,8 +882,9 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         unsigned int query_node_b = cur_node_b;
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q,dr_rot)
-            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
+            && test_narrow_phase_overlap(dr, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
         }
+    #endif
     #endif
 
     // no intersecting edge, check if one polyhedron is contained in the other
@@ -953,21 +950,15 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                     // Load vertex 0
                     vec3<OverlapReal> v_b[3];
                     unsigned int idx_v = s1.data.face_verts[offs_b];
-                    v_b[0].x = s1.data.verts.x[idx_v];
-                    v_b[0].y = s1.data.verts.y[idx_v];
-                    v_b[0].z = s1.data.verts.z[idx_v];
+                    v_b[0] = s1.data.verts[idx_v];
 
                     // vertex 1
                     idx_v = s1.data.face_verts[offs_b + 1];
-                    v_b[1].x = s1.data.verts.x[idx_v];
-                    v_b[1].y = s1.data.verts.y[idx_v];
-                    v_b[1].z = s1.data.verts.z[idx_v];
+                    v_b[1] = s1.data.verts[idx_v];
 
                     // vertex 2
                     idx_v = s1.data.face_verts[offs_b + 2];
-                    v_b[2].x = s1.data.verts.x[idx_v];
-                    v_b[2].y = s1.data.verts.y[idx_v];
-                    v_b[2].z = s1.data.verts.z[idx_v];
+                    v_b[2] = s1.data.verts[idx_v];
 
                     OverlapReal u,v,w,t;
 

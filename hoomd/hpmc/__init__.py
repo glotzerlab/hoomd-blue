@@ -7,37 +7,7 @@ HPMC performs hard particle Monte Carlo simulations of a variety of classes of s
 
 .. rubric:: Overview
 
-HPMC implements hard particle Monte Carlo in HOOMD-blue. It supports:
-
-- Dimensions: 2D and 3D
-- Box shape: triclinic
-- Ensembles:
-    - NVT
-    - NPT (:py:class:`update.boxmc`)
-    - Implicit depletants
-    - Grand canonical ensemble (:py:class:`update.muvt`)
-    - Gibbs ensemble (:py:class:`update.muvt`)
-- Shapes:
-    - Spheres / disks (:py:class:`integrate.sphere`)
-    - Union of spheres (:py:class:`integrate.sphere_union`)
-    - Convex polygons (:py:class:`integrate.convex_polygon`)
-    - Convex spheropolygons (:py:class:`integrate.convex_spheropolygon`)
-    - Simple polygons (:py:class:`integrate.simple_polygon`)
-    - Ellipsoids / ellipses (:py:class:`integrate.ellipsoid`)
-    - Convex polyhedra (:py:class:`integrate.convex_polyhedron`)
-    - Convex spheropolyhedra (:py:class:`integrate.convex_spheropolyhedron`)
-    - Faceted spheres (:py:class:`integrate.faceted_sphere`)
-    - General polyhedra (:py:class:`integrate.polyhedron`)
-- Execution:
-    - Canonical hard particle MC on a single CPU core
-    - Parallel update scheme on a single GPU
-    - Parallel updates on many CPU cores / GPUs using MPI
-    - Frenkel-Ladd free energy determination
-- Analysis:
-    - Scale distribution function for pressure determination in NVT (:py:class:`analyze.sdf`)
-    - Free volume (:py:class:`compute.free_volume`)
-- File I/O:
-    - Loose integration with pos_writer
+HPMC implements hard particle Monte Carlo in HOOMD-blue.
 
 .. rubric:: Logging
 

@@ -374,14 +374,17 @@ DEVICE inline void findAscent(unsigned int a_count, unsigned int b_count, unsign
  * This function supposed to be called from a while-loop:
  *
  * unsigned long int stack = 0;
+ * // load OBBs for the two nodes
+ * obb_a = ...
+ * // transform OBB a into B's frame
+ * ...
+ * obb_b = ...
+ *
  * while (cur_node_a != a.tree.getNumNodes() && cur_node_b != b.tree.getNumNodes())
  *     {
  *     query_node_a = cur_node_a;
  *     query_node_b = cur_node_b;
- *     // load OBBs for the two nodes
- *     obb_a = ...
- *     obb_b = ...
- *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b))
+ *     if (traverseBinaryStack(a, b, cur_node_a, cur_node_b, stack, obb_a, obb_b, ..))
  *            test_narrow_phase(a, b, query_node_a, query_node_b, ...)
  *     }
  */
@@ -390,6 +393,9 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     {
     bool leaf = false;
     bool ascend = true;
+
+    unsigned int old_a = cur_node_a;
+    unsigned int old_b = cur_node_b;
 
     if (overlap(obb_a, obb_b))
         {
@@ -401,6 +407,7 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
             {
             // descend into subtree with larger volume first (unless there are no children)
             bool descend_A = obb_a.getVolume() > obb_b.getVolume() ? !a.isLeaf(cur_node_a) : b.isLeaf(cur_node_b);
+
             if (descend_A)
                 {
                 cur_node_a = a.getLeftChild(cur_node_a);
@@ -441,9 +448,13 @@ DEVICE inline bool traverseBinaryStack(const GPUTree& a, const GPUTree &b, unsig
     if (cur_node_a < a.getNumNodes() && cur_node_b < b.getNumNodes())
         {
         // pre-fetch OBBs
-        obb_a = a.getOBB(cur_node_a);
-        obb_a.affineTransform(q, dr);
-        obb_b = b.getOBB(cur_node_b);
+        if (old_a != cur_node_a)
+            {
+            obb_a = a.getOBB(cur_node_a);
+            obb_a.affineTransform(q, dr);
+            }
+        if (old_b != cur_node_b)
+            obb_b = b.getOBB(cur_node_b);
         }
 
     return leaf;

@@ -23,6 +23,7 @@ md.pair
     md.pair.pair
     md.pair.reaction_field
     md.pair.slj
+    md.pair.square_density
     md.pair.table
     md.pair.tersoff
     md.pair.yukawa

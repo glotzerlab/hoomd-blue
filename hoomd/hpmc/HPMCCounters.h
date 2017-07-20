@@ -95,6 +95,8 @@ struct hpmc_boxmc_counters_t
     {
     unsigned long long int volume_accept_count;      //!< Count of accepted volume moves
     unsigned long long int volume_reject_count;      //!< Count of rejected volume moves
+    unsigned long long int ln_volume_accept_count;   //!< Count of accepted volume moves
+    unsigned long long int ln_volume_reject_count;   //!< Count of rejected volume moves
     unsigned long long int shear_accept_count;       //!< Count of accepted shear moves
     unsigned long long int shear_reject_count;       //!< Count of rejected shear moves
     unsigned long long int aspect_accept_count;      //!< Count of accepted aspect moves
@@ -104,6 +106,8 @@ struct hpmc_boxmc_counters_t
         {
         volume_accept_count = 0;
         volume_reject_count = 0;
+        ln_volume_accept_count = 0;
+        ln_volume_reject_count = 0;
         shear_accept_count = 0;
         shear_reject_count = 0;
         aspect_accept_count = 0;
@@ -120,6 +124,18 @@ struct hpmc_boxmc_counters_t
         else
             return double(volume_accept_count) / double(volume_reject_count + volume_accept_count);
         }
+
+    //! Get the ln(V) acceptance
+    /*! \returns The ratio of volume moves that are accepted, or 0 if there are no volume moves
+    */
+    DEVICE double getLogVolumeAcceptance()
+        {
+        if (ln_volume_reject_count + ln_volume_accept_count == 0)
+            return 0.0;
+        else
+            return double(ln_volume_accept_count) / double(ln_volume_reject_count + ln_volume_accept_count);
+        }
+
 
     //! Get the shear acceptance
     /*! \returns The ratio of shear moves that are accepted, or 0 if there are no shear moves
@@ -148,7 +164,7 @@ struct hpmc_boxmc_counters_t
     */
     DEVICE unsigned long long int getNMoves()
         {
-        return volume_accept_count + volume_reject_count + shear_accept_count + shear_reject_count + aspect_accept_count + aspect_reject_count;
+        return ln_volume_accept_count + ln_volume_reject_count + volume_accept_count + volume_reject_count + shear_accept_count + shear_reject_count + aspect_accept_count + aspect_reject_count;
         }
     };
 
@@ -157,9 +173,11 @@ DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, co
     {
     hpmc_boxmc_counters_t result;
     result.volume_accept_count = a.volume_accept_count - b.volume_accept_count;
+    result.ln_volume_accept_count = a.ln_volume_accept_count - b.ln_volume_accept_count;
     result.shear_accept_count = a.shear_accept_count - b.shear_accept_count;
     result.aspect_accept_count = a.aspect_accept_count - b.aspect_accept_count;
     result.volume_reject_count = a.volume_reject_count - b.volume_reject_count;
+    result.ln_volume_reject_count = a.ln_volume_reject_count - b.ln_volume_reject_count;
     result.shear_reject_count = a.shear_reject_count - b.shear_reject_count;
     result.aspect_reject_count = a.aspect_reject_count - b.aspect_reject_count;
     return result;
@@ -170,11 +188,50 @@ DEVICE inline hpmc_boxmc_counters_t operator-(const hpmc_boxmc_counters_t& a, co
 struct hpmc_implicit_counters_t
     {
     unsigned long long int insert_count;                //!< Count of depletants inserted
+    unsigned long long int free_volume_count;           //!< Count of depletants in free volume
+    unsigned long long int overlap_count;               //!< Count of depletants in free volume which overlap
+    unsigned long long int reinsert_count;              //!< Count of resinserted depletants
 
     //! Construct a zero set of counters
     hpmc_implicit_counters_t()
         {
         insert_count = 0;
+        free_volume_count = 0;
+        overlap_count = 0;
+        reinsert_count = 0;
+        }
+
+    //! Get the fraction of the free volume to the insertion sphere
+    /*! \returns The ratio of depletants inserted into the free volume
+    */
+    DEVICE double getFreeVolumeFraction()
+        {
+        if (insert_count == 0)
+            return 0.0;
+        else
+            return double(free_volume_count) / double(insert_count);
+        }
+
+    //! Get the fraction of non-overlapping depletants
+    /*! \returns The ratio of non-overlapping depletants to depletants inserted
+    */
+    DEVICE double getOverlapFraction()
+        {
+        if (insert_count == 0)
+            return 0.0;
+        else
+            return (double)overlap_count/(double)insert_count;
+        }
+
+    //! Get the ratio of configurational bias attempts to depletant insertions
+    /*! \returns The ratio of configuration bias attempts to depletant insertions
+    */
+    DEVICE double getConfigurationalBiasRatio()
+        {
+        if (insert_count == 0)
+            return 0.0;
+        else
+            return double(reinsert_count) / double(insert_count);
         }
     };
 
@@ -273,6 +330,9 @@ DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t&
     {
     hpmc_implicit_counters_t result;
     result.insert_count = a.insert_count - b.insert_count;
+    result.free_volume_count = a.free_volume_count - b.free_volume_count;
+    result.overlap_count = a.overlap_count - b.overlap_count;
+    result.reinsert_count = a.reinsert_count - b.reinsert_count;
     return result;
     }
 

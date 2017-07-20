@@ -55,6 +55,13 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_excell_block_size->setEnabled(enable);
             }
 
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic)
+            {
+            this->m_exec_conf->msg->notice(2) << "hpmc: Sorting cell list to enable deterministic simulations." << std::endl;
+            m_cl->setSortCellList(deterministic);
+            }
+
     protected:
         std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep
@@ -196,7 +203,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
