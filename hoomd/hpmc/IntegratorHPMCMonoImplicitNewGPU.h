@@ -125,8 +125,6 @@ class IntegratorHPMCMonoImplicitNewGPU : public IntegratorHPMCMonoImplicitNew<Sh
 /*! \param sysdef System definition
     \param cl Cell list
     \param seed Random number generator seed
-
-    NOTE: only 3d supported at this time
     */
 
 template< class Shape >
@@ -263,13 +261,6 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
     // check if we are below a minimum image convention box size
     BoxDim box = this->m_pdata->getBox();
     Scalar3 npd = box.getNearestPlaneDistance();
-
-    // Currently only 3D
-    if (this->m_sysdef->getNDimensions() != 3)
-        {
-        this->m_exec_conf->msg->error() << "At this time, implicit depletant simulations are supported in 3D only." << std::endl;
-        throw std::runtime_error("Error performing HPMC update");
-        }
 
     if ((box.getPeriodic().x && npd.x <= this->m_nominal_width*2) ||
         (box.getPeriodic().y && npd.y <= this->m_nominal_width*2) ||
