@@ -70,6 +70,7 @@ set(_hpmc_headers
 # endif()
 
 set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
+                     IntegratorHPMCMonoImplicitGPU.cu
                      all_kernels_sphere.cu
                      all_kernels_convex_polygon.cu
                      all_kernels_simple_polygon.cu

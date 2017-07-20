@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeEllipsoid.h"
@@ -40,6 +41,7 @@ void export_ellipsoid(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeEllipsoid >(m, "IntegratorHPMCMonoEllipsoid");
     export_IntegratorHPMCMonoImplicit< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitEllipsoid");
+    export_IntegratorHPMCMonoImplicitNew< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitNewEllipsoid");
     export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
     export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
@@ -55,6 +57,7 @@ void export_ellipsoid(py::module& m)
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
     export_IntegratorHPMCMonoImplicitGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitGPUEllipsoid");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoImplicitNewGPUEllipsoid");
     export_ComputeFreeVolumeGPU< ShapeEllipsoid >(m, "ComputeFreeVolumeGPUEllipsoid");
     #endif
     }

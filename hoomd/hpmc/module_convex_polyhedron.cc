@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeConvexPolyhedron.h"

@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSpheropolygon.h"
@@ -40,6 +41,7 @@ void export_spheropolygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSpheropolygon >(m, "IntegratorHPMCMonoSpheropolygon");
     export_IntegratorHPMCMonoImplicit< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitSpheropolygon");
+    export_IntegratorHPMCMonoImplicitNew< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitNewSpheropolygon");
     export_ComputeFreeVolume< ShapeSpheropolygon >(m, "ComputeFreeVolumeSpheropolygon");
     export_AnalyzerSDF< ShapeSpheropolygon >(m, "AnalyzerSDFSpheropolygon");
     export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTSpheropolygon");
@@ -55,6 +57,7 @@ void export_spheropolygon(py::module& m)
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitGPUSpheropolygon");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoImplicitNewGPUSpheropolygon");
     export_ComputeFreeVolumeGPU< ShapeSpheropolygon >(m, "ComputeFreeVolumeGPUSpheropolygon");
     #endif
     }

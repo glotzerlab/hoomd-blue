@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeSphere.h"
@@ -40,6 +41,7 @@ void export_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeSphere >(m, "IntegratorHPMCMonoSphere");
     export_IntegratorHPMCMonoImplicit< ShapeSphere >(m, "IntegratorHPMCMonoImplicitSphere");
+    export_IntegratorHPMCMonoImplicitNew< ShapeSphere >(m, "IntegratorHPMCMonoImplicitNewSphere");
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
@@ -54,6 +56,7 @@ void export_sphere(py::module& m)
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");
     export_IntegratorHPMCMonoImplicitGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitGPUSphere");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeSphere >(m, "IntegratorHPMCMonoImplicitNewGPUSphere");
     export_ComputeFreeVolumeGPU< ShapeSphere >(m, "ComputeFreeVolumeGPUSphere");
     #endif
     }

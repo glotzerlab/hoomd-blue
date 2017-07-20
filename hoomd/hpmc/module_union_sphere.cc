@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
@@ -40,6 +41,7 @@ void export_union_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoSphereUnion");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitSphereUnion");
+    export_IntegratorHPMCMonoImplicitNew< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitNewSphereUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeSphereUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeSphere, , > >(m, "AnalyzerSDFSphereUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeSphere> >(m, "UpdaterMuVTSphereUnion");
@@ -56,6 +58,7 @@ void export_union_sphere(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoGPUSphereUnion");
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitGPUSphereUnion");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeSphere> >(m, "IntegratorHPMCMonoImplicitNewGPUSphereUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeSphere> >(m, "ComputeFreeVolumeGPUSphereUnion");
 
     #endif

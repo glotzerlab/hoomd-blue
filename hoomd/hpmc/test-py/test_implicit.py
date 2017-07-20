@@ -28,7 +28,7 @@ class implicit_test_sphere (unittest.TestCase):
             self.num_samples = 10
             self.steps = 1000
 
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='circumsphere')
         self.mc.set_params(d=0.1)
 
         q=1.0
@@ -123,7 +123,7 @@ class implicit_test_cube(unittest.TestCase):
 
         self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=math.sqrt(2.0))
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='circumsphere')
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0

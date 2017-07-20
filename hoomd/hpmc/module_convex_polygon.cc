@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
 #include "ShapeConvexPolygon.h"
@@ -43,6 +44,7 @@ void export_convex_polygon(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeConvexPolygon >(m, "IntegratorHPMCMonoConvexPolygon");
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitConvexPolygon");
+    export_IntegratorHPMCMonoImplicitNew< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewConvexPolygon");
     export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
@@ -58,6 +60,7 @@ void export_convex_polygon(py::module& m)
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitGPUConvexPolygon");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolygon");
     export_ComputeFreeVolumeGPU< ShapeConvexPolygon >(m, "ComputeFreeVolumeGPUConvexPolygon");
     #endif
     }

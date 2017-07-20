@@ -145,12 +145,6 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
         //! Get the random number of depletants
         virtual unsigned int getNumDepletants(unsigned int timestep, Scalar V, bool local);
 
-        //! Get the number of configurational bias attempts
-        unsigned int getNumTrials() const
-            {
-            // FIXME
-            return 0;
-            }
     };
 
 //! Export the UpdaterMuVT class to python
@@ -233,7 +227,7 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             lnb = Scalar(0.0);
 
             // try inserting depletants in old configuration (compute configurational bias weight factor)
-            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, type, getNumTrials(), lnb))
+            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, type, m_mc_implicit->getNumTrials(), lnb))
                 {
                 lnboltzmann -= lnb;
                 }
@@ -388,7 +382,7 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
             {
             lnb = Scalar(0.0);
             // compute configurational bias weight
-            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, new_type, getNumTrials(), lnb))
+            if (moveDepletantsIntoNewPosition(timestep, n_overlap, delta, pos, orientation, new_type, m_mc_implicit->getNumTrials(), lnb))
                 {
                 lnboltzmann -= lnb;
                 }
@@ -413,7 +407,7 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
             }
 
         // try inserting depletants in new configuration
-        if (moveDepletantsInUpdatedRegion(timestep, n_insert, delta_old, tag, new_type, getNumTrials(), lnb))
+        if (moveDepletantsInUpdatedRegion(timestep, n_insert, delta_old, tag, new_type, m_mc_implicit->getNumTrials(), lnb))
             {
             lnboltzmann += lnb;
             }
@@ -495,7 +489,7 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
-            if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, getNumTrials(), lnb, true))
+            if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, m_mc_implicit->getNumTrials(), lnb, true))
                 {
                 lnboltzmann += lnb;
                 }
