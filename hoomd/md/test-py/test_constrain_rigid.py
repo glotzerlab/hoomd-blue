@@ -1,6 +1,5 @@
 from hoomd import *
 from hoomd import md
-from hoomd import deprecated
 import math
 import unittest
 
@@ -10,15 +9,10 @@ context.initialize()
 class test_constrain_rigid(unittest.TestCase):
     def setUp(self):
         # particle radius
-        N_A = 2000
-        N_B = 2000
-
         r_rounding = .5
-        species_A = dict(bond_len=2.1, type=['A'], bond="linear", count=N_A)
-        species_B = dict(bond_len=2.1, type=['B'], bond="linear", count=N_B)
+        self.system = init.read_gsd(os.path.join(os.path.dirname(__file__),'test_data_diblock_copolymer_system.gsd'));
 
         # generate a system of N=8 AB diblocks
-        self.system=deprecated.init.create_random_polymers(box=data.boxdim(L=50), polymers=[species_A,species_B], separation=dict(A=1.0, B=1.0));
         self.nl = md.nlist.cell()
 
         for p in self.system.particles:
