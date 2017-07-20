@@ -89,11 +89,11 @@ struct poly3d_data : param_base
      */
     HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        tree.load_shared(ptr, load, ptr_max);
-        convex_hull_verts.load_shared(ptr, load, ptr_max);
-        verts.load_shared(ptr, load, ptr_max);
-        face_offs.load_shared(ptr, load, ptr_max);
-        face_verts.load_shared(ptr, load, ptr_max);
+        tree.load_shared(ptr, available_bytes);
+        convex_hull_verts.load_shared(ptr, available_bytes);
+        verts.load_shared(ptr, available_bytes);
+        face_offs.load_shared(ptr, available_bytes);
+        face_verts.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
