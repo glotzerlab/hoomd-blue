@@ -194,7 +194,7 @@ class mode_hpmc(_integrator):
     with the **depletant_mode='overlap_regions'** argument. The new mode results in
     free diffusion of colloids that do not share any overlap volume with other colloids and
     can speed up equilibration of dilute systems of colloids in a dense depletant bath. Both modes
-    yield the same statistics, but different dynamics.
+    yield the same statistics, but different dynamics (Glaser, to be published).
     """
 
     ## \internal
