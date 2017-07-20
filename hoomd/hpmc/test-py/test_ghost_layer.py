@@ -30,7 +30,7 @@ class test_ghost_layer(unittest.TestCase):
 
     def test_base(self):
         # setup the MC integration
-        system = init.read_snapshot(data.make_snapshot(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50),particle_types=['A','B']))
+        system = init.read_snapshot(data.make_snapshot(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50),particle_types=['A']))
 
         mc = hpmc.integrate.convex_polyhedron(seed=123)
         mc.set_params(d=0,a=0)
