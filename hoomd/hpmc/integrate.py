@@ -186,22 +186,22 @@ class mode_hpmc(_integrator):
 
     HPMC supports integration with depletants. An ideal gas of depletants is generated 'on-the-fly' and
     and used in the Metropolis acceptance criterion for the 'colloid' particles. Depletants
-    can be of arbitrary shape themselves, however they are assumed to be 'hard' only with respect
-    to the colloids, but mutually interpenetrable. The main idea is described in
+    are of arbitrary shape, however they are assumed to be 'hard' only with respect
+    to the colloids, and mutually interpenetrable. The main idea is described in
     See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1063/1.4935175>`_ .
 
     As of version 2.2, hoomd.hpmc supports a new acceptance rule for depletants which is enabled
     with the **depletant_mode='overlap_regions'** argument. The new mode results in
-    free diffusion of colloids that do not share any overlap volume with other colloids and
-    can speed up equilibration of dilute systems of colloids in a dense depletant bath. Both modes
-    yield the same statistics, but different dynamics (Glaser, to be published).
+    free diffusion of colloids that do not share any overlap volume with other colloids. This
+    speeds up equilibration of dilute systems of colloids in a dense depletant bath. Both modes
+    yield the same equilibrium statistics, but different dynamics (Glaser, to be published).
     """
 
     ## \internal
     # \brief Initialize an empty integrator
     #
     # \post the member shape_param is created
-    def __init__(self, implicit, depletant_mode):
+    def __init__(self, implicit, depletant_mode=None):
         _integrator.__init__(self);
         self.implicit=implicit
         self.depletant_mode=depletant_mode
@@ -1457,7 +1457,7 @@ class faceted_sphere(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit);
+        mode_hpmc.__init__(self,implicit, depletant_mode);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -1801,7 +1801,7 @@ class ellipsoid(mode_hpmc):
         hoomd.util.print_status_line();
 
         # initialize base class
-        mode_hpmc.__init__(self,implicit,depletant_mode);
+        mode_hpmc.__init__(self,implicit, depletant_mode);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
