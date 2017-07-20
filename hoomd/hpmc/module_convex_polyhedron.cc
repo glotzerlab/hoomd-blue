@@ -61,6 +61,7 @@ void export_convex_polyhedron(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoGPUConvexPolyhedron");
     export_IntegratorHPMCMonoImplicitGPU< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedron");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedron");
     export_ComputeFreeVolumeGPU< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeGPUConvexPolyhedron");
 
     #endif
