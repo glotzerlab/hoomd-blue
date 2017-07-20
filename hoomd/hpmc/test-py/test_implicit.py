@@ -16,8 +16,7 @@ context.initialize()
 class implicit_test_sphere (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654,n=[10,10,10]) #target a packing fraction of 0.2
-
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
         self.long = False
         self.num_samples = 0
         self.steps = 10
