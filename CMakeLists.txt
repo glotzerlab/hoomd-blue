@@ -49,15 +49,44 @@ include (CMake_preprocessor_flags.cmake)
 
 set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
 
-if (UPDATE_SUBMODULES)
-  message(STATUS "Updating git submodules")
-  execute_process(COMMAND git submodule update --init
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-else (UPDATE_SUBMODULES)
-  message(STATUS "Not updating git submodules")
-endif (UPDATE_SUBMODULES)
+if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
+    # only attempt to update submodules if this is a git repository and we have a git executable
+    if (UPDATE_SUBMODULES)
+      message(STATUS "Updating git submodules")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+else()
+    if (UPDATE_SUBMODULES)
+    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
+                   "The source directory is not a git clone or the git executable is not available.")
+    endif()
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
+
+# Check for submodules
+if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cereal/include/cereal/cereal.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/cub/cub/cub.cuh OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/pybind/include/pybind11/pybind11.h OR
+    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
+	NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp
+    )
+
+    if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
+        # appropriate message for a git repository
+        message(FATAL_ERROR "Submodules not found. Execute `git submodule update --init`. "
+                            "in the source directory to provide them, or clone with the --recurisve option.")
+    else()
+        # appropriate message for a tarball checkout
+        message(FATAL_ERROR "Submodules not found. This is not a git clone. You can either use git to clone hoomd "
+                            "or you can manually download all the required submodules and extract them in the proper "
+                            "location in `hoomd/extern`. See the file .gitmodules for a list of all submodules "
+                            "and the hoomd git repository submodule references for which commits of these repositories "
+                            "must be provided.")
+    endif()
+endif()
 
 find_package(libgetar)
 

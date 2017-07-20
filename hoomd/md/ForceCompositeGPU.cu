@@ -156,7 +156,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                             {
                             // incomplete molecule
                             atomicMax(&(d_flag->x), d_body[central_idx[m]] + 1);
-                            return;
                             }
 
                         // calculate body force and torques

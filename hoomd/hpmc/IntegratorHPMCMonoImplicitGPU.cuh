@@ -17,7 +17,7 @@
 #ifdef NVCC
 #include "HPMCPrecisionSetup.h"
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 #include "hoomd/TextureTools.h"
 #endif
 
@@ -379,7 +379,7 @@ __global__ void gpu_hpmc_insert_depletants_queue_kernel(Scalar4 *d_postype,
     Scalar d_max = d_d_max[type_i];
 
     // one RNG per group
-    SaruGPU rng(active_cell_idx*n_groups+group, seed+select, timestep);
+    hoomd::detail::Saru rng(active_cell_idx*n_groups+group, seed+select, timestep);
 
     // iterate over depletants
     for (unsigned int i_dep = 0; i_dep < n_depletants; i_dep += n_groups)

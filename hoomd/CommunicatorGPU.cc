@@ -1803,6 +1803,13 @@ void CommunicatorGPU::removeGhostParticleTags()
 //! Build a ghost particle list, exchange ghost particle data with neighboring processors
 void CommunicatorGPU::exchangeGhosts()
     {
+    CommFlags current_flags = getFlags();
+    if (current_flags[comm_flag::reverse_net_force] && this->m_exec_conf->isCUDAEnabled())
+        {
+        this->m_exec_conf->msg->error() << "Reverse force communication is not enabled on the GPU." << std::endl;
+        throw std::runtime_error("Error during communication");
+        }
+
     // check if simulation box is sufficiently large for domain decomposition
     checkBoxSize();
 

@@ -78,8 +78,7 @@ class param_dict(dict):
         # hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(types, str):
-            types = [types];
+        types = hoomd.util.listify(types)
 
         for typei in types:
             self.__getitem__(typei).set(**params);
@@ -127,7 +126,7 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
 
     def __str__(self):
         # should we put this in the c++ side?
-        return "sphere(r = {})".format(self.diameter)
+        return "sphere(diameter = {})".format(self.diameter)
 
     def make_param(self, diameter, ignore_statistics=False):
         return self.make_fn(float(diameter)/2.0,

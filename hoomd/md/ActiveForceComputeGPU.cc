@@ -138,7 +138,7 @@ void ActiveForceComputeGPU::setForces()
                                      m_block_size);
     }
 
-/*! This function applies rotational diffusion to all active particles. The angle between the torque vector and 
+/*! This function applies rotational diffusion to all active particles. The angle between the torque vector and
  * force vector does not change
     \param timestep Current timestep
 */
