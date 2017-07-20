@@ -239,6 +239,18 @@ class nvt(_integration_method):
             self.cpp_method.setTau(tau);
             self.tau = tau
 
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        Args:
+            seed (int): Random number seed
+ 
+        Note:
+            Radomization is applied at the start of the next :py:func:`hoomd.run`.            
+
+        """
+        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed) 
+
 class npt(_integration_method):
     R""" NPT Integration via MTK barostat-thermostat.
 
@@ -587,6 +599,18 @@ class npt(_integration_method):
 
         return data
 
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        Args:
+            seed (int): Random number seed
+
+        Note:
+            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+
+        """
+        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
+
 class nph(npt):
     R""" NPH Integration via MTK barostat-thermostat..
 
@@ -623,6 +647,19 @@ class nph(npt):
         hoomd.util.quiet_status();
         npt.__init__(self, nph=True, kT=1.0, **params);
         hoomd.util.unquiet_status();
+
+    def randomize_velocities(self, kT, seed):
+        R""" Assign random velocities to particles in the group.
+
+        Args:
+            kT (float): New temperature (if set) (in energy units) 
+            seed (int): Random number seed
+
+        Note:
+            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+
+        """
+        sef.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class nve(_integration_method):
     R""" NVE Integration via Velocity-Verlet
@@ -717,6 +754,19 @@ class nve(_integration_method):
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
+
+    def randomize_velocities(self, kT, seed):
+        R""" Assign random velocities to particles in the group.
+
+        Args:
+            kT (float): New temperature (if set) (in energy units)
+            seed (int): Random number seed
+
+        Note:
+            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+
+        """
+        sef.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class langevin(_integration_method):
     R""" Langevin dynamics.
@@ -1333,3 +1383,15 @@ class berendsen(_integration_method):
         self.kT = kT
         self.tau = tau
         self.metadata_fields = ['kT','tau']
+
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        Args:
+            seed (int): Random number seed
+
+        Note:
+            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+
+        """
+        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)

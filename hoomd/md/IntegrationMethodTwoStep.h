@@ -218,6 +218,14 @@ class IntegrationMethodTwoStep
          */
         virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
 
+        void setRandomizeVelocitiesParams(Scalar T_randomize, unsigned int seed_randomize)
+            {
+            m_T_randomize = T_randomize;
+            m_seed_randomize = seed_randomize;
+            }
+
+        void randomizeVelocities(unsigned int timestep);
+
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
         const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
@@ -225,6 +233,11 @@ class IntegrationMethodTwoStep
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
+        
+        /*! Member variables for randomizeVelocities().*/
+        Scalar m_T_randomize=0; 
+        unsigned int m_seed_randomize=0;
+        bool m_shouldRandomize=false;
 
         // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
         // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
