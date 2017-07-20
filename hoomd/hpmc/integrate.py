@@ -421,8 +421,11 @@ class mode_hpmc(_integrator):
                 itype = hoomd.context.current.system_definition.getParticleData().getTypeByName(depletant_type)
                 self.cpp_integrator.setDepletantType(itype)
             if ntrial is not None:
-                self.implicit_params.append('ntrial')
-                self.cpp_integrator.setNTrial(ntrial)
+                if depletant_mode_circumsphere(self.depletant_mode):
+                    self.implicit_params.append('ntrial')
+                    self.cpp_integrator.setNTrial(ntrial)
+                else:
+                    hoomd.context.msg.warning("ntrial is only supported with depletant_mode='circumsphere'. Ignoring.\n")
         elif any([p is not None for p in [nR,depletant_type,ntrial]]):
             hoomd.context.msg.warning("Implicit depletant parameters not supported by this integrator.\n")
 
