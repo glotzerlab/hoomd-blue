@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -75,7 +75,7 @@ void GSDDumpWriter::initFileIO()
         retval = gsd_create(m_fname.c_str(),
                             o.str().c_str(),
                             "hoomd",
-                            gsd_make_version(1,1));
+                            gsd_make_version(1,2));
         if (retval != 0)
             {
             m_exec_conf->msg->error() << "dump.gsd: " << strerror(errno) << " - " << m_fname << endl;
@@ -261,6 +261,9 @@ void GSDDumpWriter::analyze(unsigned int timestep)
         if (root)
             writeTopology(bdata_snapshot, adata_snapshot, ddata_snapshot, idata_snapshot, cdata_snapshot, pdata_snapshot);
         }
+
+    // emit on all ranks, the slot needs to handle the mpi logic.
+    m_write_signal.emit(m_handle);
 
     if (root)
         {

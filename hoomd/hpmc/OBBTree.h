@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,6 +8,8 @@
 #include "hoomd/VectorMath.h"
 #include <vector>
 #include <stack>
+
+#include "HPMCPrecisionSetup.h"
 
 #include "OBB.h"
 
@@ -43,26 +45,23 @@ const unsigned int OBB_INVALID_NODE = 0xffffffff;   //!< Invalid node index sent
 //! Node in an OBBTree
 /*! Stores data for a node in the OBB tree
 */
-template<unsigned int node_capacity>
 struct OBBNode
     {
     //! Default constructor
     OBBNode()
         {
         left = right = parent = OBB_INVALID_NODE;
-        num_particles = 0;
-        skip = 0;
+        escape = 0;
         }
 
     OBB obb;           //!< The box bounding this node's volume
     unsigned int left;   //!< Index of the left child
     unsigned int right;  //!< Index of the right child
     unsigned int parent; //!< Index of the parent node
-    unsigned int skip;   //!< Number of array indices to skip to get to the next node in an in order traversal
+    unsigned int escape; //!< Index of next node in in-order traversal
 
-    unsigned int particles[node_capacity];      //!< Indices of the particles contained in the node
-    unsigned int num_particles;                 //!< Number of particles contained in the node
-    } __attribute__((aligned(32)));
+    std::vector<unsigned int> particles;      //!< Indices of the particles contained in the node
+    };
 
 //! OBB Tree
 /*! An OBBTree stores a binary tree of OBBs. A leaf node stores up to node_capacity particles by index. The bounding
@@ -75,9 +74,8 @@ struct OBBNode
 
     **Implementation details**
 
-    OBBTree stores all nodes in a flat array manged by std::vector. To easily locate particle leaf nodes for update,
-    a reverse mapping is stored to locate the leaf node containing a particle. m_root tracks the index of the root node
-    as the tree is built. The nodes store the indices of their left and right children along with their OBB. Nodes
+    OBBTree stores all nodes in a flat array manged by std::vector. The tree is in *post-order*.
+    The nodes store the indices of their left and right children along with their OBB. Nodes
     are allocated as needed with allocate(). With multiple particles per leaf node, the total number of internal nodes
     needed is not known (but can be estimated) until build time.
 
@@ -85,13 +83,12 @@ struct OBBNode
     tail recursion, or it uses a local stack to traverse the tree. The stack is cached between calls to limit
     the amount of dynamic memory allocation.
 */
-template< unsigned int node_capacity>
 class OBBTree
     {
     public:
         //! Construct an OBBTree
         OBBTree()
-            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_root(0)
+            : m_nodes(0), m_num_nodes(0), m_node_capacity(0), m_leaf_capacity(0), m_root(0)
             {
             }
 
@@ -99,24 +96,18 @@ class OBBTree
         ~OBBTree()
             {
             if (m_nodes)
-                free(m_nodes);
+                delete [] m_nodes;
             }
 
         //! Build a tree smartly from a list of OBBs and internal coordinates
         inline void buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-            OverlapReal vertex_radius, unsigned int N);
+            OverlapReal vertex_radius, unsigned int N, unsigned int leaf_capacity);
 
         //! Build a tree from a list of OBBs
-        inline void buildTree(OBB *obbs, unsigned int N);
-
-        //! Find all particles that overlap with the query OBB
-        inline unsigned int query(std::vector<unsigned int>& hits, const OBB& obb) const;
+        inline void buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity);
 
         //! Update the OBB of a particle
         inline void update(unsigned int idx, const OBB& obb);
-
-        //! Get the height of a given particle's leaf node
-        inline unsigned int height(unsigned int idx);
 
         //! Get the number of nodes
         inline unsigned int getNumNodes() const
@@ -135,7 +126,7 @@ class OBBTree
         //! Get the OBBNode
         /*! \param node Index of the node (not the particle) to query
          */
-        inline const OBBNode<node_capacity>& getNode(unsigned int node) const
+        inline const OBBNode& getNode(unsigned int node) const
             {
             return m_nodes[node];
             }
@@ -148,12 +139,12 @@ class OBBTree
             return (m_nodes[node].obb);
             }
 
-        //! Get the skip of a given node
+        //! Get the the escape index for a given node
         /*! \param node Index of the node (not the particle) to query
         */
-        inline unsigned int getNodeSkip(unsigned int node) const
+        inline unsigned int getEscapeIndex(unsigned int node) const
             {
-            return (m_nodes[node].skip);
+            return (m_nodes[node].escape);
             }
 
         //! Get the left child of a given node
@@ -169,7 +160,7 @@ class OBBTree
         */
         inline unsigned int getNodeNumParticles(unsigned int node) const
             {
-            return (m_nodes[node].num_particles);
+            return (m_nodes[node].particles.size());
             }
 
         //! Get the particles in a given node
@@ -177,15 +168,22 @@ class OBBTree
         */
         inline unsigned int getNodeParticle(unsigned int node, unsigned int j) const
             {
+            assert(m_nodes[node].particles.size() > j);
             return (m_nodes[node].particles[j]);
             }
 
+        //! Get the capacity of leaf nodes
+        unsigned int getLeafNodeCapacity() const
+            {
+            return m_leaf_capacity;
+            }
+
     private:
-        OBBNode<node_capacity> *m_nodes;                  //!< The nodes of the tree
+        OBBNode *m_nodes;                  //!< The nodes of the tree
         unsigned int m_num_nodes;           //!< Number of nodes
         unsigned int m_node_capacity;       //!< Capacity of the nodes array
+        unsigned int m_leaf_capacity;       //!< Number of particles in leaf nodes
         unsigned int m_root;                //!< Index to the root node of the tree
-        std::vector<unsigned int> m_mapping;//!< Reverse mapping to find node given a particle index
 
         //! Initialize the tree to hold N particles
         inline void init(unsigned int N);
@@ -197,8 +195,8 @@ class OBBTree
         //! Allocate a new node
         inline unsigned int allocateNode();
 
-        //! Update the skip value for a node
-        inline unsigned int updateSkip(unsigned int idx);
+        //! Update the escape index for a node
+        inline void updateEscapeIndex(unsigned int idx, unsigned int parent_idx);
     };
 
 
@@ -206,89 +204,14 @@ class OBBTree
 
     Initialize the tree with room for N particles.
 */
-template<unsigned int node_capacity>
-inline void OBBTree<node_capacity>::init(unsigned int N)
+inline void OBBTree::init(unsigned int N)
     {
     // clear the nodes
     m_num_nodes = 0;
 
-    // init the root node and mapping to invalid states
+    // init the root node to invalid state
     m_root = OBB_INVALID_NODE;
-    m_mapping.resize(N);
-
-    for (unsigned int i = 0; i < N; i++)
-        m_mapping[i] = OBB_INVALID_NODE;
     }
-
-/*! \param hits Output vector of positive hits.
-    \param obb The OBB to query
-    \returns the number of box overlap checks made during the recursion
-
-    The *hits* vector is not cleared, elements are only added with push_back. query() traverses the tree and finds all
-    of the leaf nodes that intersect *obb*. The index of each intersecting leaf node is added to the hits vector.
-*/
-template<unsigned int node_capacity>
-inline unsigned int OBBTree<node_capacity>::query(std::vector<unsigned int>& hits, const OBB& obb) const
-    {
-    unsigned int box_overlap_counts = 0;
-
-    // avoid pointer indirection overhead of std::vector
-    OBBNode<node_capacity>* nodes = &m_nodes[0];
-
-    // stackless search
-    for (unsigned int current_node_idx = 0; current_node_idx < m_num_nodes; current_node_idx++)
-        {
-        // cache current node pointer
-        const OBBNode<node_capacity>& current_node = nodes[current_node_idx];
-
-        box_overlap_counts++;
-        if (overlap(current_node.obb, obb))
-            {
-            if (current_node.left == OBB_INVALID_NODE)
-                {
-                for (unsigned int i = 0; i < current_node.num_particles; i++)
-                    hits.push_back(current_node.particles[i]);
-                }
-            }
-        else
-            {
-            // skip ahead
-            current_node_idx += current_node.skip;
-            }
-        }
-
-    return box_overlap_counts;
-    }
-
-
-/*! \param idx Particle to get height for
-    \returns Height of the node
-*/
-template<unsigned int node_capacity>
-inline unsigned int OBBTree<node_capacity>::height(unsigned int idx)
-    {
-    assert(idx < m_mapping.size());
-
-    // find the node this particle is in
-    unsigned int node_idx = m_mapping[idx];
-
-    // handle invalid nodes
-    if (node_idx == OBB_INVALID_NODE)
-        return 0;
-
-    // follow the parent pointers up and count the steps
-    unsigned int height = 1;
-
-    unsigned int current_node = m_nodes[node_idx].parent;
-    while (current_node != OBB_INVALID_NODE)
-        {
-        current_node = m_nodes[current_node].parent;
-        height += 1;
-        }
-
-    return height;
-    }
-
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
     \param internal_coordinates List of lists of vertex contents of OBBs
@@ -298,10 +221,10 @@ inline unsigned int OBBTree<node_capacity>::height(unsigned int idx)
     Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
     the construction process.
 */
-template<unsigned int node_capacity>
-inline void OBBTree<node_capacity>::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-    OverlapReal vertex_radius, unsigned int N)
+inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
+    OverlapReal vertex_radius, unsigned int N, unsigned int leaf_capacity)
     {
+    m_leaf_capacity = leaf_capacity;
     init(N);
 
     std::vector<unsigned int> idx;
@@ -309,7 +232,7 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, std::vector<std::vector
         idx.push_back(i);
 
     m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
-    updateSkip(m_root);
+    updateEscapeIndex(m_root,getNumNodes());
     }
 
 /*! \param obbs List of OBBs for each particle (must be 32-byte aligned)
@@ -318,9 +241,9 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, std::vector<std::vector
     Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
     the construction process.
 */
-template<unsigned int node_capacity>
-inline void OBBTree<node_capacity>::buildTree(OBB *obbs, unsigned int N)
+inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity)
     {
+    m_leaf_capacity = leaf_capacity;
     init(N);
 
     std::vector<unsigned int> idx;
@@ -335,9 +258,15 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, unsigned int N)
         }
 
     m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
-    updateSkip(m_root);
+    updateEscapeIndex(m_root, getNumNodes());
     }
 
+
+//! Define a weak ordering on OBB centroid projections
+inline bool compare_proj(const std::pair<OverlapReal,unsigned int> &lhs, const std::pair<OverlapReal,unsigned int> &rhs)
+    {
+    return lhs.first < rhs.first;
+    }
 
 /*! \param obbs List of OBBs
     \param idx List of indices
@@ -352,8 +281,7 @@ inline void OBBTree<node_capacity>::buildTree(OBB *obbs, unsigned int N)
     The obbs and idx lists are passed in by reference. Each node is given a subrange of the list to own (start to
     start + len). When building the node, it partitions it's subrange into two sides (like quick sort).
 */
-template<unsigned int node_capacity>
-inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
+inline unsigned int OBBTree::buildNode(OBB *obbs,
                                        std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
                                        OverlapReal vertex_radius,
                                        std::vector<unsigned int>& idx,
@@ -377,20 +305,16 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
     my_obb = compute_obb(merge_internal_coordinates, vertex_radius);
 
     // handle the case of a leaf node creation
-    if (len <= node_capacity)
+    if (len <= m_leaf_capacity)
         {
         unsigned int new_node = allocateNode();
         m_nodes[new_node].obb = my_obb;
         m_nodes[new_node].parent = parent;
-        m_nodes[new_node].num_particles = len;
 
         for (unsigned int i = 0; i < len; i++)
             {
             // assign the particle indices into the leaf node
-            m_nodes[new_node].particles[i] = idx[start+i];
-
-            // assign the reverse mapping from particle indices to leaf node indices
-            m_mapping[idx[start+i]] = new_node;
+            m_nodes[new_node].particles.push_back(idx[start+i]);
             }
 
         return new_node;
@@ -403,7 +327,7 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
     unsigned int start_left = 0;
     unsigned int start_right = len;
 
-    rotmat3<OverlapReal> my_axes(transpose(my_obb.rotation));
+    rotmat3<OverlapReal> my_axes(conj(my_obb.rotation));
 
     // if there are only 2 obbs, put one on each side
     if (len == 2)
@@ -413,11 +337,19 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
     else
         {
         // the x-axis has largest covariance by construction, so split along that axis
-        // split on x direction according to spatial median
+
+        // Object mean
+        OverlapReal split_proj(0.0);
+        for (unsigned int i = 0; i < len; ++i)
+            {
+            split_proj += dot(obbs[start+i].center-my_obb.center,my_axes.row0)/len;
+            }
+
+        // split on x direction according to object mean
         for (unsigned int i = 0; i < start_right; i++)
             {
             OverlapReal proj = dot(obbs[start+i].center-my_obb.center,my_axes.row0);
-            if (proj < OverlapReal(0.0))
+            if (proj < split_proj)
                 {
                 // if on the left side, everything is happy, just continue on
                 }
@@ -443,8 +375,10 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
 
     // note: calling buildNode has side effects, the m_nodes array may be reallocated. So we need to determine the left
     // and right children, then build our node (can't say m_nodes[my_idx].left = buildNode(...))
-    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radius, idx, start+start_left, start_right-start_left, my_idx);
+
+    // create nodes in post-order
     unsigned int new_right = buildNode(obbs, internal_coordinates,  vertex_radius, idx, start+start_right, len-start_right, my_idx);
+    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radius, idx, start+start_left, start_right-start_left, my_idx);
 
     // now, create the children and connect them up
     m_nodes[my_idx].obb = my_obb;
@@ -457,63 +391,49 @@ inline unsigned int OBBTree<node_capacity>::buildNode(OBB *obbs,
 
 /*! \param idx Index of the node to update
 
-    updateSkip() updates the skip field of every node in the tree. The skip field is used in the stackless
-    implementation of query. Each node's skip field lists the number of nodes that are children to this node. Because
-    of the order in which nodes are built in buildNode(), this number is the number of elements to skip in a search
-    if a box-box test does not overlap.
+    updateEscapeIndex() pdates the escape index of every node in the tree. The escape index is used in the stackless
+    implementation of query. Each node's escape index points to the next node on the same level.
 */
-template<unsigned int node_capacity>
-inline unsigned int OBBTree<node_capacity>::updateSkip(unsigned int idx)
+inline void OBBTree::updateEscapeIndex(unsigned int idx, unsigned int escape)
     {
-    // leaf nodes have no nodes under them
-    if (isNodeLeaf(idx))
-        {
-        return 1;
-        }
-    else
-        {
-        // node idx needs to skip all the nodes underneath it (determined recursively)
-        unsigned int left_idx = m_nodes[idx].left;
-        unsigned int right_idx = m_nodes[idx].right;
+    unsigned int left_idx = m_nodes[idx].left;
+    unsigned int right_idx = m_nodes[idx].right;
 
-        unsigned int skip = updateSkip(left_idx) + updateSkip(right_idx);
-        m_nodes[idx].skip = skip;
-        return skip + 1;
-        }
+    m_nodes[idx].escape = escape;
+
+    if (isNodeLeaf(idx)) return;
+
+    updateEscapeIndex(right_idx, escape);
+    updateEscapeIndex(left_idx, right_idx);
     }
 
 /*! Allocates a new node in the tree
 */
-template<unsigned int node_capacity>
-inline unsigned int OBBTree<node_capacity>::allocateNode()
+inline unsigned int OBBTree::allocateNode()
     {
     // grow the memory if needed
     if (m_num_nodes >= m_node_capacity)
         {
         // determine new capacity
-        OBBNode<node_capacity> *m_new_nodes = NULL;
+        OBBNode *m_new_nodes = NULL;
         unsigned int m_new_node_capacity = m_node_capacity*2;
         if (m_new_node_capacity == 0)
             m_new_node_capacity = 16;
 
         // allocate new memory
-        int retval = posix_memalign((void**)&m_new_nodes, 32, m_new_node_capacity*sizeof(OBBNode<node_capacity>));
-        if (retval != 0)
-            {
-            throw std::runtime_error("Error allocating OBBTree memory");
-            }
+        m_new_nodes = new OBBNode[m_new_node_capacity];
 
         // if we have old memory, copy it over
         if (m_nodes != NULL)
             {
-            memcpy(m_new_nodes, m_nodes, sizeof(OBBNode<node_capacity>)*m_num_nodes);
-            free(m_nodes);
+            std::copy(m_nodes, m_nodes + m_num_nodes, m_new_nodes);
+            delete[] m_nodes;
             }
         m_nodes = m_new_nodes;
         m_node_capacity = m_new_node_capacity;
         }
 
-    m_nodes[m_num_nodes] = OBBNode<node_capacity>();
+    m_nodes[m_num_nodes] = OBBNode();
     m_num_nodes++;
     return m_num_nodes-1;
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -76,4 +76,7 @@ cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
 cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
                                                 const Scalar3 *d_params);
 
+//! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
+cudaError_t gpu_compute_dlvo_forces(const pair_args_t & args,
+                                                const Scalar3 *d_params);
 #endif

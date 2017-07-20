@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -160,9 +160,9 @@ class nvt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -216,13 +216,13 @@ class nvt(_integration_method):
         R""" Changes parameters of an existing integrator.
 
         Args:
-            T (float): New temperature (if set) (in energy units)
+            kT (float): New temperature (if set) (in energy units)
             tau (float): New coupling constant (if set) (in time units)
 
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(tau=0.7, T=2.0)
+            integrator.set_params(tau=0.7, kT=2.0)
 
         """
         hoomd.util.print_status_line();
@@ -333,7 +333,7 @@ class npt(_integration_method):
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     * Glaser et. al (2013), to be published
 
-    Both *T* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
+    Both *kT* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -341,7 +341,7 @@ class npt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -515,7 +515,7 @@ class npt(_integration_method):
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(dt=3e-3, T=2.0, P=1.0)
+            integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
 
         """
         hoomd.util.print_status_line();
@@ -597,7 +597,7 @@ class nph(npt):
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`npt` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`npt`, except that *T* cannot be specified.
+    The available options are identical to those of :py:class:`npt`, except that *kT* cannot be specified.
     For further information, refer to the documentation of :py:class:`npt`.
 
     Note:
@@ -777,7 +777,7 @@ class langevin(_integration_method):
 
     :py:class:`langevin` must be used with :py:class:`mode_standard`.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -1000,7 +1000,7 @@ class brownian(_integration_method):
 
     :py:class:`brownian` must be used with integrate.mode_standard.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -1064,7 +1064,7 @@ class brownian(_integration_method):
 
         Examples::
 
-            integrator.set_params(T=2.0)
+            integrator.set_params(kT=2.0)
 
         """
         hoomd.util.print_status_line();
@@ -1293,6 +1293,9 @@ class berendsen(_integration_method):
 
     .. attention::
         :py:class:`berendsen` does not function with MPI parallel simulations.
+
+    .. attention::
+        :py:class:`berendsen` does not integrate rotational degrees of freedom.
     """
     def __init__(self, group, kT, tau):
         hoomd.util.print_status_line();

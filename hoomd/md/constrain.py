@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -255,47 +255,101 @@ class distance(_constraint_force):
 class rigid(_constraint_force):
     R""" Constrain particles in rigid bodies.
 
-    Combine particles into rigid bodies. Rigid bodies are defined by a single central particle, and a number of constituent
-    particles. The type of a particle determines whether it is a central particle or not. For central particle types,
-    the parameters passed to :py:class:`rigid` specify which constituent particle types and positions are associated with it.
+    .. rubric:: Overview
 
-    The system may initialized with the central particles only, and the constituent particles are created automatically
-    around every central particle upon a call to :py:meth:`create_bodies()`
+    Rigid bodies are defined by a single central particle and a number of
+    constituent particles. All of these are particles in the HOOMD system configuration and can interact with
+    other particles via force computes. The mass and moment of inertia of the central particle set the full
+    mass and moment of inertia of the rigid body (constituent particle mass is ignored).
 
-    Example for defining a cylindrical rigid body of two constituent particles of type 'const' and a central particle of
-    type 'central'::
+    The central particle is at the center of mass of the rigid body and the orientation quaternion defines the rotation
+    from the body space into the simulation box. In body space, the center of mass of the body is at 0,0,0 and the
+    moment of inertia is diagonal. You specify the constituent particles to :py:class:`rigid` for each type of body
+    in body coordinates. Then, :py:class:`rigid` takes control of those particles, and sets their position and
+    orientation in the simulation box relative to the position and orientation of the central particle.
+    :py:class:`rigid` also transfers forces and torques from constituent particles to the central
+    particle. Then, MD integrators can use these forces and torques to integrate the equations of motion of the
+    central particles (representing the whole rigid body) forward in time.
 
+    .. rubric:: Defining bodies
 
-        # create the constituent particle type
-        system.particles.types.add('const')
-        # define the rigid body type
-        rigid = md.constrain.rigid()
-        rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
-        # .. create pair.lj() ..
-        # create constituent particles and run
+    :py:class:`rigid` accepts one local body environment per body type. The type of a body is the particle type
+    of the central particle in that body. In this way, each particle of type *R* in the system configuration defines
+    a body of type *R*.
+
+    As a convenience, you do not need to create placeholder entries for all of the constituent particles in your
+    initial configuration. You only need to specify the positions and orientations of all the central particles.
+    When you call :py:meth:`create_bodies()`, it will create all constituent particles that do not exist. (those
+    that already exist e.g. in a restart file are left unchanged).
+
+    Example that creates rigid rods::
+
+        # Place the type R central particles
+        uc = hoomd.lattice.unitcell(N = 1,
+                                    a1 = [10.8, 0,   0],
+                                    a2 = [0,    1.2, 0],
+                                    a3 = [0,    0,   1.2],
+                                    dimensions = 3,
+                                    position = [[0,0,0]],
+                                    type_name = ['R'],
+                                    mass = [1.0],
+                                    moment_inertia = [[0,
+                                                       1/12*1.0*8**2,
+                                                       1/12*1.0*8**2]],
+                                    orientation = [[1, 0, 0, 0]]);
+        system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18]);
+
+        # Add consituent particles of type A and create the rods
+        system.particles.types.add('A');
+        rigid = hoomd.md.constrain.rigid();
+        rigid.set_param('R',
+                        types=['A']*8,
+                        positions=[(-4,0,0),(-3,0,0),(-2,0,0),(-1,0,0),
+                                   (1,0,0),(2,0,0),(3,0,0),(4,0,0)]);
+
         rigid.create_bodies()
-        run(100)
 
-    In this example, only particles of type 'central' are assumed to exist already, whereas the constituent particles
-    will be created with the run() command. Multiple, subsequent run()'s are supported, and the particles won't be duplicated
-    once created.
+    .. danger:: Automatic creation of constituent particles can change particle tags. If bonds have been defined between
+        particles in the initial configuration, or bonds connect to constituent particles, rigid bodies should be
+        created manually.
 
-    .. danger::
-        Automatic creation of constituent particles can change particle tags. If bonds have been defined between particles
-        in the initial configuration, or bonds connect to constituent particles, rigid bodies should be created manually.
+    When you create the constituent particles manually (i.e. in an input file or with snapshots), the central particle
+    of a rigid body must have a lower tag than all of its constituent particles. Constituent particles follow in
+    monotonically increasing tag order, corresponding to the order they were defined in the argument to
+    :py:meth:`set_param()`. The order of central and contiguous particles need **not** to be contiguous.
+    Additionally, you must set the ``body`` field for each of the particles in the rigid body to the tag of
+    the central particle (for both the central and constituent particles). Set ``body`` to -1 for particles that do
+    not belong to a rigid body. After setting an initial configuration that contains properly defined bodies and
+    all their constituent particles, call :py:meth:`validate_bodies` to verify that the bodies are defined
+    and prepare the constraint.
 
-    Example with manual initialization of constituent particles::
+    You must call either :py:meth:`create_bodies` or :py:meth:`validate_bodies` prior to starting a simulation
+    :py:func:`hoomd.run`.
 
-        # intialize system, including constituent particles and some bonds
-        system = init.read_xml('init.xml')
-        rigid.set_param('central', positions=[(-0.5,0,0),(0.5,0,0)], types=['const','const'])
-        run(100)
+    .. rubric:: Integrating bodies
 
-    .. important::
-        When you create the constituent particles manually, the central particle of a rigid body must have a lower tag than
-        all of its constituent particles. Constituent particles follow in monotically increasing tag order, corresponding
-        to the order they were defined in the argument to :py:meth:`set_param()`. The order of central and contiguous particles need
-        **not** to be contiguous.
+    Most integrators in HOOMD support the integration of rotational degrees of freedom. When there are rigid bodies
+    present in the system, do not apply integrators to the constituent particles, only the central and non-rigid
+    particles.
+
+    Example::
+
+        rigid = hoomd.group.rigid_center();
+        hoomd.md.integrate.langevin(group=rigid, kT=1.0, seed=42);
+
+    .. rubric:: Thermodynamic quantities of bodies
+
+    HOOMD computes thermodynamic quantities (temperature, kinetic energy, etc...) appropriately when there are rigid
+    bodies present in the system. When it does so, it ignores all constituent particles and computes the translational
+    and rotational energies of the central particles, which represent the whole body. :py:class:`hoomd.analyze.log`
+    can log the translational and rotational energy terms separately.
+
+    .. rubric:: Restarting simulations with rigid bodies.
+
+    To restart, use :py:class:`hoomd.dump.gsd` to write restart files. GSD stores all of the particle data fields
+    needed to reconstruct the state of the system, including the body tag, rotational momentum, and orientation
+    of the body. Restarting from a gsd file is equivalent to manual constituent particle creation. You still need to
+    specify the same local body space environment to :py:class:`rigid` as you did in the earlier simulation.
 
     """
     def __init__(self):
@@ -412,6 +466,11 @@ class rigid(_constraint_force):
             create (bool): When True, create rigid bodies, otherwise validate existing ones.
         """
         self.cpp_force.validateRigidBodies(create)
+
+    def validate_bodies(self):
+        R""" Validate that bodies are well defined and prepare for the simulation run.
+        """
+        self.cpp_force.validateRigidBodies(False)
 
     ## \internal
     # \brief updates force coefficients

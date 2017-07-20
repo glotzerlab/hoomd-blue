@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -23,6 +23,7 @@
 #include "EvaluatorPairForceShiftedLJ.h"
 #include "EvaluatorPairMie.h"
 #include "EvaluatorPairReactionField.h"
+#include "EvaluatorPairDLVO.h"
 
 cudaError_t gpu_compute_ljtemp_forces(const pair_args_t& pair_args,
                                       const Scalar2 *d_params)
@@ -130,5 +131,12 @@ cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
                                                 const Scalar3 *d_params)
     {
     return gpu_compute_pair_forces<EvaluatorPairReactionField>(args,
+                                                     d_params);
+    }
+
+cudaError_t gpu_compute_dlvo_forces(const pair_args_t & args,
+                                                const Scalar3 *d_params)
+    {
+    return gpu_compute_pair_forces<EvaluatorPairDLVO>(args,
                                                      d_params);
     }

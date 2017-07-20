@@ -14,6 +14,7 @@ set(TEST_LIST
     test_force_shifted_lj
     test_gaussian_force
     test_gayberne_force
+    test_cosinesq_angle_force
     test_harmonic_angle_force
     test_harmonic_bond_force
     test_harmonic_dihedral_force

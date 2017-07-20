@@ -2,6 +2,56 @@
 
 [TOC]
 
+## v2.2.0
+
+Not yet released
+
+*New features*
+
+* Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+* HPMC: `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+* HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
+* MD: `force.constant` and `force.active` can now apply torques
+* `dump.gsd` can now save internal state to gsd files. Call `dump_state(object)` to save the state for a particular object. The following objects are supported:
+    * HPMC integrators save shape and trial move size state
+* HPMC integrators restore state from a gsd file read by `init.read_gsd` when the option `restore_state` is `True`.
+* Add *dynamic* argument to `hoomd.dump.gsd` to specify which quantity categories should be written every frame.
+* Added support for a 3 body potential that is harmonic in the local density.
+* Add generic capability for bidirectional ghost communication, enabling multi body potentials in MPI simulation.
+* HPMC: Deterministic HPMC integration on the GPU (optional): `mc.set_params(deterministic=True)`.
+* MD: `quiet` option to `nlist.tune` to quiet the output of the embedded `run()` commands.
+* Interoperability with other python libraries that set the active CUDA device.
+* HPMC: New `hpmc.update.boxmc.ln_volume()` move allows logarithmic volume moves for fast equilibration
+* MD: Add special pairs as exclusions from neighbor lists.
+* MD: Add cosine squared angle potential `md.angle.cosinesq`
+* MD: Add `md.pair.DLVO()` for evaluation of colloidal dispersion and electrostatic forces
+
+*Deprecated*
+
+* HPMC: `hpmc.integrate.sphere_union()` no longer needs the `max_members` parameter.
+* HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` no longer needs the `max_verts` parameter.
+* The *static* argument to `hoomd.dump.gsd` should no longer be used. Use *dynamic* instead.
+
+*Bug fixes*
+
+* `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps.
+* Fix alignment error when running implicit depletants on GPU with ntrial > 0.
+* `metal.pair.eam` now produces correct results.
+* HPMC now behaves correctly when the user provides different RNG seeds on different ranks.
+
+*Other changes*
+
+* Optimized performance of HPMC sphere union overlap check and polyhedron shape
+* Improved performance of rigid bodies in MPI simulations
+* Support triclinic boxes with rigid bodies
+* Raise an error when an updater is given a period of 0
+* Revised compilation instructions
+* Misc documentation improvements
+* Fully document `constrain.rigid`
+* `-march=native` is no longer set by default (this is now a suggestion in the documentation)
+* Compiler flags now default to CMake defaults
+* `ENABLE_CUDA` and `ENABLE_MPI` CMake options default OFF. User must explicitly choose to enable optional dependencies.
+
 ## v2.1.8
 
 Released 2017/07/19

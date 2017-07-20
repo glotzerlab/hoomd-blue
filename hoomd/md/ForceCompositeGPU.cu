@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -596,6 +596,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
+    const BoxDim global_box,
     uint2 *d_flag)
     {
 
@@ -658,12 +659,16 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     quat<Scalar> local_orientation(d_body_orientation[body_indexer(body_type, idx_in_body)]);
     quat<Scalar> updated_orientation = orientation*local_orientation;
 
-    int3 imgi = img;
-    box.wrap(updated_pos, imgi);
+    // this runs before the ForceComputes,
+    // wrap into box, allowing rigid bodies to span multiple images
+    int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
+    int3 negimgi = make_int3(-imgi.x,-imgi.y,-imgi.z);
+    updated_pos = global_box.shift(updated_pos, negimgi);
+
     unsigned int type = __scalar_as_int(d_postype[idx].w);
 
     d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
-    d_image[idx] = imgi;
+    d_image[idx] = img+imgi;
     }
 
 void gpu_update_composite(unsigned int N,
@@ -681,6 +686,7 @@ void gpu_update_composite(unsigned int N,
     const unsigned int *d_molecule_idx,
     int3 *d_image,
     const BoxDim box,
+    const BoxDim global_box,
     unsigned int block_size,
     uint2 *d_flag)
     {
@@ -715,5 +721,6 @@ void gpu_update_composite(unsigned int N,
         d_molecule_idx,
         d_image,
         box,
+        global_box,
         d_flag);
     }

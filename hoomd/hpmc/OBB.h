@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -16,6 +16,8 @@
 #ifndef NVCC
 #include "hoomd/extern/Eigen/Dense"
 #include "hoomd/extern/Eigen/Eigenvalues"
+
+#include "hoomd/extern/quickhull/QuickHull.hpp"
 #endif
 
 /*! \file OBB.h
@@ -31,6 +33,9 @@
 #else
 #define DEVICE __attribute__((always_inline))
 #endif
+
+// Check against zero with absolute tolerance
+#define CHECK_ZERO(x, abs_tol) ((x < abs_tol && x >= 0) || (-x < abs_tol && x < 0))
 
 namespace hpmc
 {
@@ -58,7 +63,7 @@ struct OBB
     {
     vec3<OverlapReal> lengths; // half-axes
     vec3<OverlapReal> center;
-    rotmat3<OverlapReal> rotation;
+    quat<OverlapReal> rotation;
 
     //! Default construct a 0 OBB
     DEVICE OBB() {}
@@ -91,7 +96,7 @@ struct OBB
         {
         std::vector< vec3<OverlapReal> > corners(8);
 
-        rotmat3<OverlapReal> r(transpose(rotation));
+        rotmat3<OverlapReal> r(conj(rotation));
         corners[0] = center + r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[1] = center - r.row0*lengths.x + r.row1*lengths.y + r.row2*lengths.z;
         corners[2] = center + r.row0*lengths.x - r.row1*lengths.y + r.row2*lengths.z;
@@ -107,7 +112,12 @@ struct OBB
     DEVICE void affineTransform(const quat<OverlapReal>& q, const vec3<OverlapReal>& v)
         {
         center = ::rotate(q,center) + v;
-        rotation = rotmat3<OverlapReal>(q) * rotation;
+        rotation = q * rotation;
+        }
+
+    DEVICE OverlapReal getVolume() const
+        {
+        return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
         }
 
     } __attribute__((aligned(32)));
@@ -122,20 +132,20 @@ struct OBB
 
     \returns true when the two OBBs overlap, false otherwise
 */
-DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=false)
+DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
     // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r = transpose(a.rotation) * b.rotation;
+    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
 
     // rotate translation into A's frame
-    t = transpose(a.rotation)*t;
+    t = rotate(conj(a.rotation),t);
 
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
-    const OverlapReal eps(1e-3); // can be large, because false positives don't harm
+    const OverlapReal eps(1e-6); // can be large, because false positives don't harm
 
     OverlapReal rabs[3][3];
     rabs[0][0] = fabs(r.row0.x) + eps;
@@ -228,7 +238,149 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=false)
     return true;
     }
 
+// Intersect ray R(t) = p + t*d against OBB a. When intersecting,
+// return intersection distance tmin and point q of intersection
+// Ericson, Christer, Real-Time Collision Detection (Page 180)
+DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<OverlapReal>& d, OBB a, OverlapReal &tmin, vec3<OverlapReal> &q, OverlapReal abs_tol)
+    {
+    tmin = 0.0f; // set to -FLT_MAX to get first hit on line
+    OverlapReal tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+    // rotate ray in local coordinate system
+    quat<OverlapReal> a_transp(conj(a.rotation));
+    vec3<OverlapReal> p_local(rotate(a_transp,p-a.center));
+    vec3<OverlapReal> d_local(rotate(a_transp,d));
+
+    // For all three slabs
+    if (CHECK_ZERO(d_local.x, abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.x < - a.lengths.x || p_local.x > a.lengths.x) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.x;
+        OverlapReal t1 = (- a.lengths.x - p_local.x) * ood;
+        OverlapReal t2 = (a.lengths.x - p_local.x) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.y,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.y < - a.lengths.y || p_local.y > a.lengths.y) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.y;
+        OverlapReal t1 = (- a.lengths.y - p_local.y) * ood;
+        OverlapReal t2 = (a.lengths.y - p_local.y) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    if (CHECK_ZERO(d_local.z,abs_tol))
+        {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (p_local.z < - a.lengths.z || p_local.z > a.lengths.z) return false;
+        }
+     else
+        {
+        // Compute intersection t value of ray with near and far plane of slab
+        OverlapReal ood = OverlapReal(1.0) / d_local.z;
+        OverlapReal t1 = (- a.lengths.z - p_local.z) * ood;
+        OverlapReal t2 = (a.lengths.z - p_local.z) * ood;
+
+        // Make t1 be intersection with near plane, t2 with far plane
+        if (t1 > t2) detail::swap(t1, t2);
+
+        // Compute the intersection of slab intersection intervals
+        tmin = detail::max(tmin, t1);
+        tmax = detail::min(tmax, t2);
+
+        // Exit with no collision as soon as slab intersection becomes empty
+        if (tmin > tmax) return false;
+        }
+
+    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin) in space frame
+    q = rotate(a.rotation,p_local + d_local * tmin);
+
+    return true;
+    }
+
 #ifndef NVCC
+// Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
+
+// Compute the center point, ’c’, and axis orientation, u[0] and u[1], of
+// the minimum area rectangle in the xy plane containing the points pt[].
+inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double> &c, vec2<double> u[2])
+    {
+    double minArea = DBL_MAX;
+
+    // initialize to some default unit vectors
+    u[0] = vec2<double>(1,0);
+    u[1] = vec2<double>(0,1);
+
+    // Loop through all edges; j trails i by 1, modulo numPts
+    for (int i = 0, j = numPts - 1; i < numPts; j = i, i++)
+        {
+        // Get current edge e0 (e0x,e0y), normalized
+        vec2<double> e0 = pt[i] - pt[j];
+
+        const double eps_abs(1e-12); // if edge is too short, do not consider
+        if (dot(e0,e0) < eps_abs) continue;
+        e0 = e0/sqrt(dot(e0,e0));
+
+        // Get an axis e1 orthogonal to edge e0
+        vec2<double> e1 = vec2<double>(-e0.y, e0.x); // = Perp2D(e0)
+
+        // Loop through all points to get maximum extents
+        double min0 = 0.0, min1 = 0.0, max0 = 0.0, max1 = 0.0;
+
+        for (int k = 0; k < numPts; k++)
+            {
+            // Project points onto axes e0 and e1 and keep track
+            // of minimum and maximum values along both axes
+            vec2<double> d = pt[k] - pt[j];
+            double dotp = dot(d, e0);
+            if (dotp < min0) min0 = dotp;
+            if (dotp > max0) max0 = dotp;
+            dotp = dot(d, e1);
+            if (dotp < min1) min1 = dotp;
+            if (dotp > max1) max1 = dotp;
+            }
+        double area = (max0 - min0) * (max1 - min1);
+
+        // If best so far, remember area, center, and axes
+        if (area < minArea)
+            {
+            minArea = area;
+            c = pt[j] + 0.5 * ((min0 + max0) * e0 + (min1 + max1) * e1);
+            u[0] = e0; u[1] = e1;
+            }
+        }
+    return minArea;
+    }
+
 DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
     {
     // compute mean
@@ -243,69 +395,214 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
     // compute covariance matrix
     Eigen::MatrixXd m(3,3);
-
     m(0,0) = m(0,1) = m(0,2) = m(1,0) = m(1,1) = m(1,2) = m(2,0) = m(2,1) = m(2,2) = 0.0;
 
-    for (unsigned int i = 0; i < n; ++i)
+    std::vector<vec3<double> > hull_pts;
+
+    if (pts.size() >= 3)
         {
-        vec3<OverlapReal> dr = pts[i] - mean;
+        // compute convex hull
+        typedef quickhull::Vector3<OverlapReal> vec;
 
-        m(0,0) += dr.x * dr.x/OverlapReal(n);
-        m(1,0) += dr.y * dr.x/OverlapReal(n);
-        m(2,0) += dr.z * dr.x/OverlapReal(n);
+        quickhull::QuickHull<OverlapReal> qh;
+        std::vector<vec> qh_pts;
+        for (auto it = pts.begin(); it != pts.end(); ++it)
+            qh_pts.push_back(vec(it->x,it->y,it->z));
+        auto hull = qh.getConvexHull(qh_pts, true, false);
+        auto indexBuffer = hull.getIndexBuffer();
+        auto vertexBuffer = hull.getVertexBuffer();
 
-        m(0,1) += dr.x * dr.y/OverlapReal(n);
-        m(1,1) += dr.y * dr.y/OverlapReal(n);
-        m(2,1) += dr.z * dr.y/OverlapReal(n);
+        OverlapReal hull_area(0.0);
+        vec hull_centroid(0.0,0.0,0.0);
 
-        m(0,2) += dr.x * dr.z/OverlapReal(n);
-        m(1,2) += dr.y * dr.z/OverlapReal(n);
-        m(2,2) += dr.z * dr.z/OverlapReal(n);
+        for (unsigned int i = 0; i < vertexBuffer.size(); ++i)
+            hull_pts.push_back(vec3<double>(vertexBuffer[i].x,vertexBuffer[i].y,vertexBuffer[i].z));
+
+        for (unsigned int i = 0; i < indexBuffer.size(); i+=3)
+            {
+            // triangle vertices
+            vec p = vertexBuffer[indexBuffer[i]];
+            vec q = vertexBuffer[indexBuffer[i+1]];
+            vec r = vertexBuffer[indexBuffer[i+2]];
+
+            vec centroid = OverlapReal(1./3.)*(p+q+r);
+            vec cross = (q-p).crossProduct(r-p);
+            OverlapReal area = OverlapReal(0.5)*sqrt(cross.dotProduct(cross));
+            hull_area += area;
+            hull_centroid += area*centroid;
+
+            OverlapReal fac = area/12.0;
+            m(0,0) += fac*(9.0*centroid.x*centroid.x + p.x*p.x + q.x*q.x + r.x*r.x);
+            m(0,1) += fac*(9.0*centroid.x*centroid.y + p.x*p.y + q.x*q.y + r.x*r.y);
+            m(0,2) += fac*(9.0*centroid.x*centroid.z + p.x*p.z + q.x*q.z + r.x*r.z);
+            m(1,0) += fac*(9.0*centroid.y*centroid.x + p.y*p.x + q.y*q.x + r.y*r.x);
+            m(1,1) += fac*(9.0*centroid.y*centroid.y + p.y*p.y + q.y*q.y + r.y*r.y);
+            m(1,2) += fac*(9.0*centroid.y*centroid.z + p.y*p.z + q.y*q.z + r.y*r.z);
+            m(2,0) += fac*(9.0*centroid.z*centroid.x + p.z*p.x + q.z*q.x + r.z*r.x);
+            m(2,1) += fac*(9.0*centroid.z*centroid.y + p.z*p.y + q.z*q.y + r.z*r.y);
+            m(2,2) += fac*(9.0*centroid.z*centroid.z + p.z*p.z + q.z*q.z + r.z*r.z);
+            }
+
+        hull_centroid /= hull_area;
+        m(0,0) = m(0,0)/hull_area - hull_centroid.x*hull_centroid.x;
+        m(0,1) = m(0,1)/hull_area - hull_centroid.x*hull_centroid.y;
+        m(0,2) = m(0,2)/hull_area - hull_centroid.x*hull_centroid.z;
+        m(1,0) = m(1,0)/hull_area - hull_centroid.y*hull_centroid.x;
+        m(1,1) = m(1,1)/hull_area - hull_centroid.y*hull_centroid.y;
+        m(1,2) = m(1,2)/hull_area - hull_centroid.y*hull_centroid.z;
+        m(2,0) = m(2,0)/hull_area - hull_centroid.z*hull_centroid.x;
+        m(2,1) = m(2,1)/hull_area - hull_centroid.z*hull_centroid.y;
+        m(2,2) = m(2,2)/hull_area - hull_centroid.z*hull_centroid.z;
+        }
+    else
+        {
+        // degenerate case
+        for (unsigned int i = 0; i < n; ++i)
+            {
+            vec3<OverlapReal> dr = pts[i] - mean;
+
+            m(0,0) += dr.x * dr.x/(double)n;
+            m(1,0) += dr.y * dr.x/(double)n;
+            m(2,0) += dr.z * dr.x/(double)n;
+
+            m(0,1) += dr.x * dr.y/(double)n;
+            m(1,1) += dr.y * dr.y/(double)n;
+            m(2,1) += dr.z * dr.y/(double)n;
+
+            m(0,2) += dr.x * dr.z/(double)n;
+            m(1,2) += dr.y * dr.z/(double)n;
+            m(2,2) += dr.z * dr.z/(double)n;
+            }
         }
 
     // compute normalized eigenvectors
     Eigen::EigenSolver<Eigen::MatrixXd> es;
     es.compute(m);
-    Eigen::MatrixXcd eigen_vec = es.eigenvectors();
-    Eigen::VectorXcd eigen_val = es.eigenvalues();
 
     rotmat3<OverlapReal> r;
 
-    r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
-    r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
-    r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
-
-    // sort by descending eigenvalue, so split can occur along axis with largest covariance
-    if (eigen_val(0).real() < eigen_val(1).real())
+    if (es.info() != Eigen::Success)
         {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(eigen_val(1),eigen_val(0));
+        // numerical issue, set r to identity matrix
+        r.row0 = vec3<OverlapReal>(1,0,0);
+        r.row1 = vec3<OverlapReal>(0,1,0);
+        r.row2 = vec3<OverlapReal>(0,0,1);
+        }
+    else
+        {
+        Eigen::MatrixXcd eigen_vec = es.eigenvectors();
+        r.row0 = vec3<OverlapReal>(eigen_vec(0,0).real(),eigen_vec(0,1).real(),eigen_vec(0,2).real());
+        r.row1 = vec3<OverlapReal>(eigen_vec(1,0).real(),eigen_vec(1,1).real(),eigen_vec(1,2).real());
+        r.row2 = vec3<OverlapReal>(eigen_vec(2,0).real(),eigen_vec(2,1).real(),eigen_vec(2,2).real());
         }
 
-    if (eigen_val(1).real() < eigen_val(2).real())
+    if (pts.size() >= 3)
         {
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(eigen_val(1),eigen_val(2));
+        bool done = false;
+        vec3<double> cur_axis[3];
+        cur_axis[0] = vec3<double>(r.row0.x, r.row1.x, r.row2.x);
+        cur_axis[1] = vec3<double>(r.row0.y, r.row1.y, r.row2.y);
+        cur_axis[2] = vec3<double>(r.row0.z, r.row1.z, r.row2.z);
+
+        double min_V = DBL_MAX;
+        unsigned int min_axis = 0;
+        vec2<double> min_axes_2d[2];
+
+        // iteratively improve OBB
+        while (! done)
+            {
+            bool updated_axes = false;
+
+            // test if a projection normal to any axis reduces the volume of the bounding box
+            for (unsigned int test_axis = 0; test_axis < 3; ++test_axis)
+                {
+                // project normal to test_axis
+                std::vector<vec2<double> > proj_2d(hull_pts.size());
+                for (unsigned int i = 0; i < hull_pts.size(); ++i)
+                    {
+                    unsigned k = 0;
+                    for (unsigned int j = 0 ; j < 3; j++)
+                        {
+                        if (j != test_axis)
+                            {
+                            if (k++ == 0)
+                                proj_2d[i].x = dot(cur_axis[j], hull_pts[i]);
+                            else
+                                proj_2d[i].y = dot(cur_axis[j], hull_pts[i]);
+                            }
+                        }
+                    }
+
+                vec2<double> new_axes_2d[2];
+                vec2<double> c;
+                double area = MinAreaRect(&proj_2d.front(),hull_pts.size(),c,new_axes_2d);
+
+                // find extent along test_axis
+                double proj_min = DBL_MAX;
+                double proj_max = -DBL_MAX;
+                for (unsigned int i = 0; i < hull_pts.size(); ++i)
+                    {
+                    double proj = dot(hull_pts[i], cur_axis[test_axis]);
+
+                    if (proj > proj_max) proj_max = proj;
+                    if (proj < proj_min) proj_min = proj;
+                    }
+                double extent = proj_max - proj_min;
+
+                // bounding box volume
+                double V = extent*area;
+                double eps_rel(1e-6); // convergence criterion
+                if (V < min_V && (min_V-V) > eps_rel*min_V)
+                    {
+                    min_V = V;
+                    min_axes_2d[0] = new_axes_2d[0];
+                    min_axes_2d[1] = new_axes_2d[1];
+                    min_axis = test_axis;
+                    updated_axes = true;
+                    }
+                } // end loop over test axis
+
+            if (updated_axes)
+                {
+                vec3<double> new_axis[3];
+
+                // test axis stays the same
+                new_axis[min_axis] = cur_axis[min_axis];
+
+                // rotate axes
+                for (unsigned int j = 0 ; j < 3; j++)
+                    {
+                    if (j != min_axis)
+                        {
+                        for (unsigned int l = j+1; l < 3; l++)
+                            if (l != min_axis)
+                                {
+                                new_axis[l] = min_axes_2d[0].x*cur_axis[j]+min_axes_2d[0].y*cur_axis[l];
+                                new_axis[j] = min_axes_2d[1].x*cur_axis[j]+min_axes_2d[1].y*cur_axis[l];
+                                }
+                        }
+                    }
+
+                // update axes
+                for (unsigned int j = 0; j < 3; j++) cur_axis[j] = new_axis[j];
+                }
+            else
+                {
+                // local minimum reached
+                done = true;
+                }
+            }
+
+        // update rotation matrix
+        r.row0 = cur_axis[0]; r.row1 = cur_axis[1]; r.row2 = cur_axis[2];
+        r = transpose(r);
         }
 
-    if (eigen_val(0).real() < eigen_val(1).real())
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(eigen_val(1),eigen_val(0));
-        }
-
+    // final axes
     vec3<OverlapReal> axis[3];
     axis[0] = vec3<OverlapReal>(r.row0.x, r.row1.x, r.row2.x);
     axis[1] = vec3<OverlapReal>(r.row0.y, r.row1.y, r.row2.y);
     axis[2] = vec3<OverlapReal>(r.row0.z, r.row1.z, r.row2.z);
-
-    res.rotation = r;
 
     vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX,FLT_MAX,FLT_MAX);
     vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX,-FLT_MAX,-FLT_MAX);
@@ -334,9 +631,46 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
 
     res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
 
+    // sort by descending length, so split can occur along longest axis
+    if (res.lengths.x < res.lengths.y)
+        {
+        std::swap(r.row0.x,r.row0.y);
+        std::swap(r.row1.x,r.row1.y);
+        std::swap(r.row2.x,r.row2.y);
+        std::swap(res.lengths.x,res.lengths.y);
+        }
+
+    if (res.lengths.y < res.lengths.z)
+        {
+        std::swap(r.row0.y,r.row0.z);
+        std::swap(r.row1.y,r.row1.z);
+        std::swap(r.row2.y,r.row2.z);
+        std::swap(res.lengths.y, res.lengths.z);
+        }
+
+    if (res.lengths.x < res.lengths.y)
+        {
+        std::swap(r.row0.x,r.row0.y);
+        std::swap(r.row1.x,r.row1.y);
+        std::swap(r.row2.x,r.row2.y);
+        std::swap(res.lengths.x, res.lengths.y);
+        }
+
+    // make sure coordinate system is proper
+    if (r.det() < OverlapReal(0.0))
+        {
+        // swap column two and three
+        std::swap(r.row0.y,r.row0.z);
+        std::swap(r.row1.y,r.row1.z);
+        std::swap(r.row2.y,r.row2.z);
+        std::swap(res.lengths.y,res.lengths.z);
+        }
+
     res.lengths.x += vertex_radius;
     res.lengths.y += vertex_radius;
     res.lengths.z += vertex_radius;
+
+    res.rotation = quat<OverlapReal>(r);
 
     return res;
     }

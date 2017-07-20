@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -232,7 +232,7 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                     {
                     if (body_type != type && h_body_type.data[m_body_idx(body_type,i)] != type) continue;
 
-                    // distance to central particle 
+                    // distance to central particle
                     Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
                     Scalar d = sqrt(dot(dr,dr));
                     if (d > m_d_max[type])
@@ -240,11 +240,11 @@ Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
                         m_d_max[type] = d;
                         }
 
-                    if (body_type != type) 
+                    if (body_type != type)
                         {
                         // for non-central particles, distance to every other particle
                         for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
-                            { 
+                            {
                             dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
                             d = sqrt(dot(dr,dr));
 
@@ -503,12 +503,13 @@ void ForceComposite::validateRigidBodies(bool create)
                             pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
                             quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
 
-                            // wrap into box
-                            int3 img = central_img;
-                            global_box.wrap(pos, img);
+                            // wrap into box, allowing rigid bodies to span multiple images
+                            int3 img = global_box.getImage(vec_to_scalar3(pos));
+                            int3 negimg = make_int3(-img.x, -img.y, -img.z);
+                            pos = global_box.shift(pos, negimg);
 
                             snap_out.pos[snap_idx_out] = pos;
-                            snap_out.image[snap_idx_out] = img;
+                            snap_out.image[snap_idx_out] = central_img + img;
                             snap_out.orientation[snap_idx_out] = orientation;
 
                             // set charge and diameter
@@ -567,12 +568,13 @@ void ForceComposite::validateRigidBodies(bool create)
                             pos += rotate(central_orientation, vec3<Scalar>(h_body_pos.data[m_body_idx(body_type,j)]));
                             quat<Scalar> orientation = central_orientation*quat<Scalar>(h_body_orientation.data[m_body_idx(body_type,j)]);
 
-                            // wrap into box
-                            int3 img = central_img;
-                            global_box.wrap(pos, img);
+                            // wrap into box, allowing rigid bodies to span multiple images
+                            int3 img = global_box.getImage(vec_to_scalar3(pos));
+                            int3 negimg = make_int3(-img.x, -img.y, -img.z);
+                            pos = global_box.shift(pos, negimg);
 
                             snap_out.pos[i] = pos;
-                            snap_out.image[i] = img;
+                            snap_out.image[i] = central_img + img;
                             snap_out.orientation[i] = orientation;
 
                             it->second++;
@@ -845,6 +847,7 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
+    const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // we need to update both local and ghost particles
     unsigned int nptl = m_pdata->getN() + m_pdata->getNGhosts();
@@ -915,14 +918,15 @@ void ForceComposite::updateCompositeParticles(unsigned int timestep)
         updated_pos += dr_space;
         quat<Scalar> updated_orientation = orientation*local_orientation;
 
-        // this runs before the ForceComputes, wrap particle into box
-        int3 imgi = img;
-
-        box.wrap(updated_pos, imgi);
+        // this runs before the ForceComputes,
+        // wrap into box, allowing rigid bodies to span multiple images
+        int3 imgi = box.getImage(vec_to_scalar3(updated_pos));
+        int3 negimgi = make_int3(-imgi.x,-imgi.y,-imgi.z);
+        updated_pos = global_box.shift(updated_pos, negimgi);
 
         h_postype.data[iptl] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, h_postype.data[iptl].w);
         h_orientation.data[iptl] = quat_to_scalar4(updated_orientation);
-        h_image.data[iptl] = imgi;
+        h_image.data[iptl] = img+imgi;
         }
     }
 
