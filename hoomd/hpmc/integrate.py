@@ -181,6 +181,20 @@ class mode_hpmc(_integrator):
 
     See the *State data* section of the `HOOMD GSD schema <http://gsd.readthedocs.io/en/latest/schema-hoomd.html>`_ for
     details on GSD data chunk names and how the data are stored.
+
+    .. rubric:: Depletants
+
+    HPMC supports integration with depletants. An ideal gas of depletants is generated 'on-the-fly' and
+    and used in the Metropolis acceptance criterion for the 'colloid' particles. Depletants
+    can be of arbitrary shape themselves, however they are assumed to be 'hard' only with respect
+    to the colloids, but mutually interpenetrable. The main idea is described in
+    See `J. Glaser et. al. 2015 <http://dx.doi.org/10.1063/1.4935175>`_ .
+
+    As of version 2.2, hoomd.hpmc supports a new acceptance rule for depletants which is enabled
+    with the **depletant_mode='overlap_regions'** argument. The new mode results in
+    free diffusion of colloids that do not share any overlap volume with other colloids and
+    can speed up equilibration of dilute systems of colloids in a dense depletant bath. Both modes
+    yield the same statistics, but different dynamics.
     """
 
     ## \internal
