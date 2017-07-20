@@ -249,7 +249,7 @@ class nvt(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.            
 
         """
-        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed) 
+        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed) 
 
 class npt(_integration_method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -609,7 +609,7 @@ class npt(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.
 
         """
-        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
+        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
 
 class nph(npt):
     R""" NPH Integration via MTK barostat-thermostat..
@@ -766,7 +766,7 @@ class nve(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.
 
         """
-        sef.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class langevin(_integration_method):
     R""" Langevin dynamics.
@@ -1394,4 +1394,4 @@ class berendsen(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.
 
         """
-        sef.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
+        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
