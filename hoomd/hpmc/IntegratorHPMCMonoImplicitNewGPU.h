@@ -584,7 +584,7 @@ void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
                         ArrayHandle<hpmc_implicit_counters_t> d_implicit_count(this->m_implicit_count, access_location::device, access_mode::readwrite);
 
                         // apply acceptance/rejection criterium
-                        detail::gpu_hpmc_implicit_accept_reject<Shape>(
+                        detail::gpu_hpmc_implicit_accept_reject_new<Shape>(
                             detail::hpmc_implicit_args_new_t(d_postype.data,
                                 d_orientation.data,
                                 d_old_postype.data,
