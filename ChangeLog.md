@@ -8,7 +8,6 @@ Not yet released
 
 *New features*
 
-* hpmc.integrate.sphere_union() takes new capacity parameter to optimize performance for different shape sizes
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
 * HPMC: `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
 * HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
@@ -32,9 +31,6 @@ Not yet released
 * HPMC: `hpmc.integrate.sphere_union()` no longer needs the `max_members` parameter.
 * HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` no longer needs the `max_verts` parameter.
 * The *static* argument to `hoomd.dump.gsd` should no longer be used. Use *dynamic* instead.
-
-*Other changes*
-* Optimized performance of HPMC sphere union overlap check
 
 *Bug fixes*
 
