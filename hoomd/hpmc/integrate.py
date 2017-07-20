@@ -130,6 +130,22 @@ class interaction_matrix:
 
         return self.values[cur_pair];
 
+# Helper method to inform about implicit depletants citation
+def cite_depletants():
+    _citation = hoomd.cite.article(cite_key='glaser2015',
+                                   author=['J Glaser', 'A S Karas', 'S C Glotzer'],
+                                   title='A parallel algorithm for implicit depletant simulations',
+                                   journal='The Journal of Chemical Physics',
+                                   volume=143,
+                                   pages='184110',
+                                   year='2015',
+                                   doi='10.1063/1.4935175',
+                                   feature='implicit depletants')
+
+    if hoomd.context.bib is None:
+        hoomd.cite._extra_default_entries.append(_citation)
+    else:
+        hoomd.context.bib.add(_citation)
 
 class mode_hpmc(_integrator):
     R""" Base class HPMC integrator.
@@ -181,6 +197,10 @@ class mode_hpmc(_integrator):
 
         # setup interaction matrix
         self.overlap_checks = interaction_matrix()
+
+        # citation notice
+        if self.implicit:
+            cite_depletants()
 
         #initialize list to check implicit params
         if self.implicit:
