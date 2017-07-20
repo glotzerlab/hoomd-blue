@@ -34,6 +34,7 @@ class nlist_stencil_tests (unittest.TestCase):
         self.nl.reset_exclusions(exclusions = ['bond']);
         self.nl.reset_exclusions(exclusions = ['angle']);
         self.nl.reset_exclusions(exclusions = ['dihedral']);
+        self.nl.reset_exclusions(exclusions = ['pair']);
         self.nl.reset_exclusions(exclusions = ['bond', 'angle']);
 
     # test reset_exclusions error messages

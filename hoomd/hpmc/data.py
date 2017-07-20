@@ -78,8 +78,7 @@ class param_dict(dict):
         # hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(types, str):
-            types = [types];
+        types = hoomd.util.listify(types)
 
         for typei in types:
             self.__getitem__(typei).set(**params);

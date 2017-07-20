@@ -22,21 +22,21 @@ using namespace std;
 class SignalHolder
     {
     public:
-        detail::SharedSignal<void()> signal;
+        hoomd::detail::SharedSignal<void()> signal;
     };
 
 class OtherSignalHolder
     {
     public:
-        detail::SharedSignal<bool(int)> signal;
+        hoomd::detail::SharedSignal<bool(int)> signal;
     };
 
 class SlotHolder
     {
     public:
-        SlotHolder(detail::SharedSignal<void()>& signal) : slot(signal, this, &SlotHolder::callback){}
+        SlotHolder(hoomd::detail::SharedSignal<void()>& signal) : slot(signal, this, &SlotHolder::callback){}
         void callback(){ std::cout << "SlotHolder::callback()" << std::endl; }
-        detail::SharedSignalSlot<void()> slot;
+        hoomd::detail::SharedSignalSlot<void()> slot;
     };
 
 class SlotContainer
@@ -46,7 +46,7 @@ class SlotContainer
         ~SlotContainer() {std::cout << "SlotContainer destroyed" << std::endl;}
         void callback(){ std::cout << "SlotContainer::callback() object @ " << hex << this << dec<< " with value = " << *pint << std::endl; }
         bool otherCallback(int i){ std::cout << "SlotContainer::otherCallback("<<i<<")@ " << hex << this << dec<< " with value = " << *pint << std::endl; return i == 0;}
-        vector< std::unique_ptr<detail::SignalSlot> > slots;
+        vector< std::unique_ptr<hoomd::detail::SignalSlot> > slots;
         std::unique_ptr<int> pint;
     };
 
@@ -68,8 +68,8 @@ UP_TEST( SharedSignal_basic_test )
         std::unique_ptr<SlotContainer> s(new SlotContainer(2));
         // nano.connect<SlotContainer, &SlotContainer::callback>(s.get());
         sig.signal.emit();
-        s->slots.push_back(std::unique_ptr<detail::SignalSlot>(new detail::SharedSignalSlot<void()>(sig.signal, s.get(), &SlotContainer::callback) ) );
-        s->slots.push_back(std::unique_ptr<detail::SignalSlot>(new detail::SharedSignalSlot<bool(int)>(osig.signal, s.get(), &SlotContainer::otherCallback) ) );
+        s->slots.push_back(std::unique_ptr<hoomd::detail::SignalSlot>(new hoomd::detail::SharedSignalSlot<void()>(sig.signal, s.get(), &SlotContainer::callback) ) );
+        s->slots.push_back(std::unique_ptr<hoomd::detail::SignalSlot>(new hoomd::detail::SharedSignalSlot<bool(int)>(osig.signal, s.get(), &SlotContainer::otherCallback) ) );
         sig.signal.emit();
         osig.signal.emit(0);
         }
@@ -83,8 +83,8 @@ UP_TEST( SharedSignal_basic_test )
         OtherSignalHolder osig;
         // nano.connect<SlotContainer, &SlotContainer::callback>(s.get());
         sig.signal.emit();
-        s->slots.push_back(std::unique_ptr<detail::SignalSlot>(new detail::SharedSignalSlot<void()>(sig.signal, s.get(), &SlotContainer::callback) ) );
-        s->slots.push_back(std::unique_ptr<detail::SignalSlot>(new detail::SharedSignalSlot<bool(int)>(osig.signal, s.get(), &SlotContainer::otherCallback) ) );
+        s->slots.push_back(std::unique_ptr<hoomd::detail::SignalSlot>(new hoomd::detail::SharedSignalSlot<void()>(sig.signal, s.get(), &SlotContainer::callback) ) );
+        s->slots.push_back(std::unique_ptr<hoomd::detail::SignalSlot>(new hoomd::detail::SharedSignalSlot<bool(int)>(osig.signal, s.get(), &SlotContainer::otherCallback) ) );
         sig.signal.emit();
         osig.signal.emit(0);
         }

@@ -5,6 +5,9 @@
 #define SYSTEM_SIGNAL
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <functional>
+
+namespace hoomd
+{
 namespace detail // Adding namespace to avoid name conflicts with Nano
 {
 /*! \ingroup hoomd_lib
@@ -136,5 +139,6 @@ class SharedSignalSlot<R(Args...)> : public SignalSlot
         SharedSignal<R(Args...)>&   m_signal;
         std::function<R(Args...)>   m_func;
     };
-}
+} // end namespace detail
+} // end namespace hoomd
 #endif

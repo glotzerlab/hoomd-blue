@@ -172,7 +172,7 @@ class Compute
             m_comm = comm;
             }
 #endif
-        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
             {
             m_slots.push_back(slot);
             }
@@ -201,7 +201,7 @@ class Compute
         std::shared_ptr<Communicator> m_comm;             //!< The communicator this compute is to use
 #endif
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
+        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
         bool m_force_compute;           //!< true if calculation is enforced
 
         //! Simple method for testing if the computation should be run or not

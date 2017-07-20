@@ -21,6 +21,8 @@
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/stl.h>
+
+#include "hoomd/extern/quickhull/QuickHull.hpp"
 #endif
 
 namespace hpmc{
@@ -160,9 +162,29 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
                              std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     ShapePolyhedron::param_type result;
-    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), exec_conf->isCUDAEnabled());
+
+    // compute convex hull of vertices
+    typedef quickhull::Vector3<OverlapReal> vec;
+
+    std::vector<vec> qh_pts;
+    for (unsigned int i = 0; i < len(verts); i++)
+        {
+        pybind11::list v = pybind11::cast<pybind11::list>(verts[i]);
+        vec vert;
+        vert.x = pybind11::cast<OverlapReal>(v[0]);
+        vert.y = pybind11::cast<OverlapReal>(v[1]);
+        vert.z = pybind11::cast<OverlapReal>(v[2]);
+        qh_pts.push_back(vert);
+        }
+
+    quickhull::QuickHull<OverlapReal> qh;
+    auto hull = qh.getConvexHull(qh_pts, true, false);
+    auto vertexBuffer = hull.getVertexBuffer();
+
+    result = detail::poly3d_data(len(verts), len(face_offs)-1, len(face_verts), vertexBuffer.size(), exec_conf->isCUDAEnabled());
     result.ignore = ignore_stats;
-    result.verts.sweep_radius = R;
+    result.sweep_radius = result.convex_hull_verts.sweep_radius = R;
+    result.n_verts = len(verts);
     result.n_faces = len(face_offs)-1;
     result.origin = vec3<OverlapReal>(pybind11::cast<OverlapReal>(origin[0]), pybind11::cast<OverlapReal>(origin[1]), pybind11::cast<OverlapReal>(origin[2]));
     result.hull_only = hull_only;
@@ -170,6 +192,15 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
     if (len(overlap) != result.n_faces)
         {
         throw std::runtime_error("Number of member overlap flags must be equal to number faces");
+        }
+
+    unsigned int k = 0;
+    for (auto it = vertexBuffer.begin(); it != vertexBuffer.end(); ++it)
+        {
+        result.convex_hull_verts.x[k] = it->x;
+        result.convex_hull_verts.y[k] = it->y;
+        result.convex_hull_verts.z[k] = it->z;
+        k++;
         }
 
     for (unsigned int i = 0; i < len(face_offs); i++)
@@ -192,22 +223,14 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         vert.x = pybind11::cast<OverlapReal>(v[0]);
         vert.y = pybind11::cast<OverlapReal>(v[1]);
         vert.z = pybind11::cast<OverlapReal>(v[2]);
-        result.verts.x[i] = vert.x;
-        result.verts.y[i] = vert.y;
-        result.verts.z[i] = vert.z;
+        result.verts[i] = vert;
         radius_sq = max(radius_sq, dot(vert, vert));
-        }
-    for (unsigned int i = len(verts); i < result.verts.N; i++)
-        {
-        result.verts.x[i] = 0;
-        result.verts.y[i] = 0;
-        result.verts.z[i] = 0;
         }
 
     for (unsigned int i = 0; i < len(face_verts); i++)
         {
         unsigned int j = pybind11::cast<unsigned int>(face_verts[i]);
-        if (j >= result.verts.N)
+        if (j >= result.n_verts)
             {
             std::ostringstream oss;
             oss << "Invalid vertex index " << j << " specified" << std::endl;
@@ -227,14 +250,11 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         unsigned int n_vert = 0;
         for (unsigned int j = result.face_offs[i]; j < result.face_offs[i+1]; ++j)
             {
-            vec3<OverlapReal> v;
-            v.x = result.verts.x[result.face_verts[j]];
-            v.y = result.verts.y[result.face_verts[j]];
-            v.z = result.verts.z[result.face_verts[j]];
-
+            vec3<OverlapReal> v = result.verts[result.face_verts[j]];
             face_vec.push_back(v);
             n_vert++;
             }
+
         std::vector<OverlapReal> vertex_radii(n_vert, result.verts.sweep_radius);
         obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         obbs[i].mask = result.face_overlap[i];
@@ -242,12 +262,12 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
         }
 
     OBBTree tree;
-    tree.buildTree(obbs, internal_coordinates, result.verts.sweep_radius, len(face_offs)-1, leaf_capacity);
+    tree.buildTree(obbs, internal_coordinates, result.sweep_radius, len(face_offs)-1, leaf_capacity);
     result.tree = GPUTree(tree, exec_conf->isCUDAEnabled());
     delete [] obbs;
 
     // set the diameter
-    result.verts.diameter = 2*(sqrt(radius_sq)+result.verts.sweep_radius);
+    result.convex_hull_verts.diameter = 2*(sqrt(radius_sq)+result.sweep_radius);
 
     return result;
     }
@@ -610,7 +630,18 @@ public:
     pybind11::list getVerts()
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
-        return poly3d_verts_to_python(m_access(params[m_typeid]).verts);
+        access_type& param = m_access(params[m_typeid]);
+
+        pybind11::list verts;
+        for(size_t i = 0; i < param.n_verts; i++)
+            {
+            pybind11::list v;
+            v.append(pybind11::cast<Scalar>(param.verts[i].x));
+            v.append(pybind11::cast<Scalar>(param.verts[i].y));
+            v.append(pybind11::cast<Scalar>(param.verts[i].z));
+            verts.append(v);
+            }
+        return verts;
         }
 
     pybind11::list getFaces()
@@ -651,7 +682,7 @@ public:
     OverlapReal getSweepRadius() const
         {
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
-        return m_access(params[m_typeid]).verts.sweep_radius;
+        return m_access(params[m_typeid]).sweep_radius;
         }
 
     unsigned int getCapacity() const

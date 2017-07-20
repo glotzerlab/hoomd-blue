@@ -168,7 +168,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
+            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
 
             Scalar xrand = rng_i.f();
             Scalar yrand = rng_i.f();
