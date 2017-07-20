@@ -45,6 +45,7 @@ void export_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoConvexPolyhedron");
     export_IntegratorHPMCMonoImplicit< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitConvexPolyhedron");
+    export_IntegratorHPMCMonoImplicitNew< ShapeConvexPolyhedron >(m, "IntegratorHPMCMonoImplicitNewConvexPolyhedron");
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
