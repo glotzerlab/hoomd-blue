@@ -807,7 +807,7 @@ class sphere(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
         dim = hoomd.context.current.system_definition.getNDimensions()
@@ -817,9 +817,11 @@ class sphere(mode_hpmc):
             shape = self.shape_param.get(typename)
             # Need to add logic to figure out whether this is 2D or not
             if dim == 3:
-                result[typename] = dict(type='Sphere', diameter=shape.diameter)
+                result.append(dict(type='Sphere',
+                                   diameter=shape.diameter))
             else:
-                result[typename] = dict(type='Disk', diameter=shape.diameter)
+                result.append(dict(type='Disk',
+                                   diameter=shape.diameter))
 
         return result
 
@@ -911,16 +913,16 @@ class convex_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
 
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            result[typename] = dict(type='Polygon',
+            result.append(dict(type='Polygon',
                                    rounding_radius=0,
-                                   vertices=shape.vertices)
+                                   vertices=shape.vertices))
 
         return result
 
@@ -1020,16 +1022,16 @@ class convex_spheropolygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
 
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            result[typename] = dict(type='Polygon',
+            result.append(dict(type='Polygon',
                                    rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices)
+                                   vertices=shape.vertices))
 
         return result
 
@@ -1120,16 +1122,16 @@ class simple_polygon(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
 
         for i in range(ntypes):
             typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
             shape = self.shape_param.get(typename)
-            result[typename] = dict(type='Polygon',
+            result.append(dict(type='Polygon',
                                    rounding_radius=0,
-                                   vertices=shape.vertices)
+                                   vertices=shape.vertices))
 
         return result
 
@@ -1164,7 +1166,6 @@ class polyhedron(mode_hpmc):
           don't translate the shape such that (0,0,0) right next to a face).
 
     * *faces* (**required**) - a list of vertex indices for every face
-    * *overlap* (**default: 1 for all faces**) - only check overlap between faces for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
     * *sweep_radius* (**default: 0.0**) - rounding radius applied to polyhedron
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
@@ -1270,30 +1271,6 @@ class polyhedron(mode_hpmc):
                 shape_def += '{0} '.format(vi)
 
         return shape_def
-
-    def get_type_shapes(self):
-        """ Get all the types of shapes in the current simulation
-        Returns:
-            A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
-        """
-        result = dict()
-
-        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
-
-        for i in range(ntypes):
-            typename = hoomd.context.current.system_definition.getParticleData().getNameByType(i);
-            shape = self.shape_param.get(typename)
-            dim = hoomd.context.current.system_definition.getNDimensions()
-            # Currently can't trivially pull the radius for nonspherical shapes
-            result[typename] = dict(type='Polyhedron',
-                                   rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices,
-                                   faces=shape.faces,
-                                   colors=shape.colors
-                                   )
-
-        return result
-
 
 class convex_polyhedron(mode_hpmc):
     R""" HPMC integration for convex polyhedra (3D).
@@ -1405,7 +1382,7 @@ class convex_polyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
 
@@ -1414,9 +1391,9 @@ class convex_polyhedron(mode_hpmc):
             shape = self.shape_param.get(typename)
             dim = hoomd.context.current.system_definition.getNDimensions()
             # Currently can't trivially pull the radius for nonspherical shapes
-            result[typename] = dict(type='ConvexPolyhedron',
+            result.append(dict(type='ConvexPolyhedron',
                                    rounding_radius=0,
-                                   vertices=shape.vertices)
+                                   vertices=shape.vertices))
 
         return result
 
@@ -1765,7 +1742,7 @@ class convex_spheropolyhedron(mode_hpmc):
         Returns:
             A list of dictionaries, one for each particle type in the system. Currently assumes that all 3D shapes are convex.
         """
-        result = dict()
+        result = []
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
 
@@ -1774,9 +1751,9 @@ class convex_spheropolyhedron(mode_hpmc):
             shape = self.shape_param.get(typename)
             dim = hoomd.context.current.system_definition.getNDimensions()
             # Currently can't trivially pull the radius for nonspherical shapes
-            result[typename] = dict(type='ConvexPolyhedron',
+            result.append(dict(type='ConvexPolyhedron',
                                    rounding_radius=shape.sweep_radius,
-                                   vertices=shape.vertices)
+                                   vertices=shape.vertices))
 
         return result
 
