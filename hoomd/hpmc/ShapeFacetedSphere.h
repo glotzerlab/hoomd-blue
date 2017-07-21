@@ -48,7 +48,7 @@ struct faceted_sphere_params : param_base
     {
     //! Empty constructor
     faceted_sphere_params()
-        : diameter(1.0), N(1), ignore(1)
+        : diameter(1.0), N(0), ignore(1)
         { }
 
     #ifndef NVCC
