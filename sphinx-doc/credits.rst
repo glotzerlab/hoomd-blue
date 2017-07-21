@@ -41,7 +41,7 @@ Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple Universi
   * numerous other small contributions enhancing the usability of HOOMD
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
-  * pair.eam
+  * pair.eam (original implementation)
 
 Philipp Mertmann, Ruhr University Bochum
  * charge.pppm
@@ -187,6 +187,12 @@ Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
   * Matrix logging and hdf5 logging: hoomd.hdf5.log
 
+Lin Yang, Alex Travesset, Iowa State University
+  * metal.pair.eam - reworked implementation
+
+Tim Moore, Vanderbilt University
+  * angle.cosinesq
+
 
 HPMC developers
 ---------------
@@ -263,8 +269,8 @@ The following people contributed to the :py:mod:`hoomd.hpmc` package.
     * Wall overlap checks
     * Lattice external potential
 
-Vyas Ramasubramani, University of Michigan
- * hpmc.util.tune fixes for tuning by type
+* Vyas Ramasubramani, University of Michigan
+    * hpmc.util.tune fixes for tuning by type
 
 DEM developers
 --------------

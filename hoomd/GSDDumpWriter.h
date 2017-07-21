@@ -73,7 +73,7 @@ class GSDDumpWriter : public Analyzer
         //! Write out the data for the current timestep
         void analyze(unsigned int timestep);
 
-        detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
+        hoomd::detail::SharedSignal<int (gsd_handle&)>& getWriteSignal() { return m_write_signal; }
 
     private:
         std::string m_fname;                //!< The file name we are writing to
@@ -88,7 +88,7 @@ class GSDDumpWriter : public Analyzer
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
 
-        detail::SharedSignal<int (gsd_handle&)> m_write_signal;
+        hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
         //! Write a type mapping out to the file
         void writeTypeMapping(std::string chunk, std::vector< std::string > type_mapping);

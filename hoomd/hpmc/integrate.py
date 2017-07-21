@@ -87,10 +87,8 @@ class interaction_matrix:
         hoomd.util.print_status_line();
 
         # listify the inputs
-        if isinstance(a, str):
-            a = [a];
-        if isinstance(b, str):
-            b = [b];
+        a = hoomd.util.listify(a)
+        b = hoomd.util.listify(b)
 
         for ai in a:
             for bi in b:
@@ -1082,11 +1080,17 @@ class polyhedron(mode_hpmc):
 
         * .. deprecated:: 2.1
              Replaced by :py:class:`interaction_matrix`.
+
     * *capacity* (**default: 4**) - set to the maximum number of particles per leaf node for better performance
+
         * .. versionadded:: 2.2
+
     * *origin* (**default: (0,0,0)**) - a point strictly inside the shape, needed for correctness of overlap checks
+
         * .. versionadded:: 2.2
-    * *hull_only* (**default: True **) - if True, only consider intersections between hull polygons
+
+    * *hull_only* (**default: True**) - if True, only consider intersections between hull polygons
+
         * .. versionadded:: 2.2
 
     Warning:

@@ -364,8 +364,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    m_prepared = true;
-
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -375,23 +373,28 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // perform communication
         m_comm->communicate(timestep);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep);
+        }
 
         // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep);
 
-    // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart() || m_particles_reinitialized)
+    // accelerations only need to be calculated if the accelerations have not yet been set
+    if (!m_pdata->isAccelSet())
         {
         computeAccelerations(timestep);
+        m_pdata->notifyAccelSet();
         }
 
-    m_particles_reinitialized = false;
+    m_prepared = true;
     }
 
 /*! Return the combined flags of all integration methods.

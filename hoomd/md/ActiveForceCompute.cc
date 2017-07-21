@@ -6,10 +6,12 @@
 
 
 #include "ActiveForceCompute.h"
+#include "hoomd/Saru.h"
 
 #include <vector>
 
 using namespace std;
+using namespace hoomd;
 namespace py = pybind11;
 
 /*! \file ActiveForceCompute.cc
@@ -237,7 +239,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
 
         if (m_sysdef->getNDimensions() == 2) // 2D
             {
-            Saru saru(idx, timestep, m_seed);
+            hoomd::detail::Saru saru(tag, timestep, m_seed);
             Scalar delta_theta; // rotational diffusion angle
             delta_theta = m_rotationConst * gaussian_rng(saru, 1.0);
             Scalar theta; // angle on plane defining orientation of active force vector
@@ -251,7 +253,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
             {
             if (m_rx == 0) // if no constraint
                 {
-                Saru saru(idx, timestep, m_seed);
+                hoomd::detail::Saru saru(tag, timestep, m_seed);
                 Scalar u = saru.s(Scalar(0), Scalar(1.0)); // generates an even distribution of random unit vectors in 3D
                 Scalar v = saru.s(Scalar(0), Scalar(1.0));
                 Scalar theta = 2.0 * M_PI * u;
@@ -294,7 +296,7 @@ void ActiveForceCompute::rotationalDiffusion(unsigned int timestep)
             else // if constraint exists
                 {
                 EvaluatorConstraintEllipsoid Ellipsoid(m_P, m_rx, m_ry, m_rz);
-                Saru saru(idx, timestep, m_seed);
+                hoomd::detail::Saru saru(tag, timestep, m_seed);
 
                 Scalar3 current_pos = make_scalar3(h_pos.data[idx].x, h_pos.data[idx].y, h_pos.data[idx].z);
                 Scalar3 norm_scalar3 = Ellipsoid.evalNormal(current_pos); // the normal vector to which the particles are confined.

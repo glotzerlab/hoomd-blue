@@ -60,6 +60,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/num_util.cc
                    extern/vmdsock.cc
                    extern/xmlParser.cc
+                   extern/quickhull/QuickHull.cpp
                    )
 
 set(_hoomd_headers
@@ -122,6 +123,7 @@ set(_hoomd_headers
     ParticleGroup.cuh
     ParticleGroup.h
     Profiler.h
+    Saru.h
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h

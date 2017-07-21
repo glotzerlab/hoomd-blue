@@ -59,6 +59,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_nghosts(0),
           m_max_nparticles(0),
           m_nglobal(0),
+          m_accel_set(false),
           m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
@@ -134,6 +135,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_nghosts(0),
       m_max_nparticles(0),
       m_nglobal(0),
+      m_accel_set(false),
       m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
@@ -957,6 +959,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // copy over accel_set flag from snapshot
+    m_accel_set = snapshot.is_accel_set;
+
     // set global number of particles
     setNGlobal(nglobal);
 
@@ -1202,6 +1207,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    // copy over acceleration set flag (this is a copy in case users take a snapshot before running)
+    snapshot.is_accel_set = m_accel_set;
 
     return index;
     }
@@ -3069,6 +3077,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
@@ -3089,5 +3098,6 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
     }

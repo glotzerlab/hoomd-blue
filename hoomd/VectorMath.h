@@ -1216,6 +1216,12 @@ struct rotmat3
         return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
         }
 
+    //! Returns the determinant
+    DEVICE Real det()
+        {
+        return row0.x*(row1.y*row2.z-row1.z*row2.y)-row0.y*(row1.x*row2.z-row1.z*row2.x)+row0.z*(row1.x*row2.y-row1.y*row2.x);
+        }
+
     vec3<Real> row0;   //!< First row
     vec3<Real> row1;   //!< Second row
     vec3<Real> row2;   //!< Third row

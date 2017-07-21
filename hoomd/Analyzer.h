@@ -115,7 +115,7 @@ class Analyzer
             m_comm = comm;
             }
 #endif
-        void addSlot(std::shared_ptr<detail::SignalSlot> slot)
+        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
             {
             m_slots.push_back(slot);
             }
@@ -145,7 +145,7 @@ class Analyzer
 #endif
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
-        std::vector< std::shared_ptr<detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
+        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Analyzer class to python
