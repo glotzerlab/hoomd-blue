@@ -1184,10 +1184,10 @@ class mode_minimize_fire(_integrator):
 
     Args:
         group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
-        * .. deprecated:: 2.2
-            py:class:`integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`integrate.nve()`
-            and py:class:`integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
-            automatically :py:class:`integrate.nve()` will be used for integration
+          Deprecated in version v2.2:
+          :py:class:`hoomd.md.integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`hoomd.md.integrate.nve()`
+          and :py:class:`hoomd.md.integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
+          automatically :py:class:`hoomd.md.integrate.nve()` will be used for integration
         dt (float): This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
         Nmin (int): Number of steps energy change is negative before allowing :math:`\alpha` and :math:`\delta t` to adapt.
         finc (float): Factor to increase :math:`\delta t` by
@@ -1199,7 +1199,10 @@ class mode_minimize_fire(_integrator):
         Etol (float): energy convergence criteria (in energy units)
         min_steps (int): A minimum number of attempts before convergence criteria are considered
         aniso (bool): Whether to integrate rotational degrees of freedom (bool), default None (autodetect).
-        * ..versionadded:: 2.2
+          Added in version v2.2
+
+    .. versionadded:: v2.1
+    .. versionchanged:: v2.2
 
     :py:class:`mode_minimize_fire` uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
     for a group of particles while keeping all other particles fixed.  This method is published in
@@ -1231,14 +1234,15 @@ class mode_minimize_fire(_integrator):
     If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept
     frozen but will still interact with the particles being moved.
 
-    Example:
+    Examples::
 
         fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
         nve=integrate.nve(group=group.all())
         while not(fire.has_converged()):
            run(100)
 
-    Example with box relaxation:
+    Examples::
+
         fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
         nph=integrate.nph(group=group.all(),P=0.0,gamma=.5)
         while not(fire.has_converged()):
@@ -1249,16 +1253,11 @@ class mode_minimize_fire(_integrator):
         Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box).
         The quantity minimized is in any case the energy (not the enthalpy or any other quantity).
 
-    .. versionadded:: v2.1
-
     Note:
         As a default setting, the algorithm will start with a :math:`\delta t = \frac{1}{10} \delta t_{max}` and
         attempts at least 10 search steps.  In practice, it was found that this prevents the simulation from making too
         aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
         attempts can be set by the user.
-
-    Warning:
-        All other integration methods must be disabled before using the FIRE energy minimizer.
 
     .. attention::
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
