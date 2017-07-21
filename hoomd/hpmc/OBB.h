@@ -166,8 +166,6 @@ DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     // rotate translation into A's frame
     t = rotate(conj(a.rotation),t);
 
-    const OverlapReal eps(1e-6); // can be large, because false positives won't affect correctness
-
     // compute common subexpressions. Add in epsilon term to counteract
     // arithmetic errors when two edges are parallel and their cross prodcut is (near) null
     const OverlapReal eps(1e-6); // can be large, because false positives don't harm
