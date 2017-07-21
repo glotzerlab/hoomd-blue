@@ -8,7 +8,7 @@
     \brief Declaration of ExternalField base class
 */
 #include "hoomd/Compute.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
@@ -353,7 +353,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this);
           }
 
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru&)
+        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru&)
             {
             return fabs(boltzmann(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0)) < SMALL;
             }

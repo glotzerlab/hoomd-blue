@@ -111,6 +111,6 @@ add_custom_target(copy_${PACKAGE_NAME}_headers ALL DEPENDS ${_${PACKAGE_NAME}_he
 endif()
 
 if (BUILD_TESTING)
-    # add_subdirectory(test-py)
+    add_subdirectory(test-py)
     # add_subdirectory(test)
 endif()

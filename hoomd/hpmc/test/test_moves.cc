@@ -8,7 +8,7 @@ HOOMD_UP_MAIN();
 
 
 
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -33,7 +33,7 @@ struct ShapeDummy
 
 UP_TEST( rand_rotate_3d )
     {
-    Saru rng(123, 456, 789);
+    hoomd::detail::Saru rng(123, 456, 789);
 
     quat<Scalar> a(1, vec3<Scalar>(0,0,0));
     for (int i=0; i<10000; i++)
@@ -58,7 +58,7 @@ UP_TEST( rand_rotate_3d )
 
 UP_TEST( rand_rotate_2d )
     {
-    Saru rng(123, 456, 789);
+    hoomd::detail::Saru rng(123, 456, 789);
 
     Scalar a = .1;
 
@@ -88,7 +88,7 @@ UP_TEST( rand_rotate_2d )
 
 UP_TEST( rand_translate_3d )
     {
-    Saru rng(123, 456, 789);
+    hoomd::detail::Saru rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -114,7 +114,7 @@ UP_TEST( rand_translate_3d )
 
 UP_TEST( rand_translate_2d )
     {
-    Saru rng(123, 456, 789);
+    hoomd::detail::Saru rng(123, 456, 789);
     Scalar d = 0.1;
     // test randomly generated quaternions for unit norm
 
@@ -140,7 +140,7 @@ UP_TEST( rand_translate_2d )
 
 void test_rand_select(const unsigned int max)
     {
-    Saru rng(123, 456, 789);
+    hoomd::detail::Saru rng(123, 456, 789);
 
     const unsigned int nsamples = (max+1)*1000000;
     unsigned int counts[max+1];

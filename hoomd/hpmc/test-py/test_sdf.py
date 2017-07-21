@@ -140,6 +140,7 @@ class sdf_test1 (unittest.TestCase):
             p.position = (lox + i*ax + ax/2, loy + j*ay + ay/2, 0);
 
         self.mc = hpmc.integrate.convex_polygon(seed=10, d=0.1);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', vertices=[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]);
 
         if comm.get_rank() == 0:

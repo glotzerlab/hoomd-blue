@@ -28,7 +28,7 @@ ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
 
-    
+
     setForce(fx,fy,fz,tx,ty,tz);
     }
 
@@ -39,7 +39,7 @@ ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef,
     \param fz z-component of the force
     \note This class doesn't actually do anything with the particle data. It just returns a constant force
 */
-ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, 
+ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group,
         Scalar fx, Scalar fy, Scalar fz,
         Scalar tx, Scalar ty, Scalar tz)
         : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz), m_tx(tx), m_ty(ty), m_tz(tz)
@@ -131,9 +131,9 @@ void ConstForceCompute::setParticleForce(unsigned int i, Scalar fx, Scalar fy, S
     \param fx x-component of the force
     \param fy y-component of the force
     \param fz z-component of the force
-    \param tx x-component of the torque vector 
-    \param ty y-component of the torque vector 
-    \param tz z-component of the torque vector 
+    \param tx x-component of the torque vector
+    \param ty y-component of the torque vector
+    \param tz z-component of the torque vector
 */
 void ConstForceCompute::setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz, Scalar tx, Scalar ty, Scalar tz)
     {

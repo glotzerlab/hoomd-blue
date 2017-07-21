@@ -12,7 +12,6 @@
 
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
-#include "hoomd/extern/saruprng.h"
 
 #include "HPMCCounters.h"
 #include "ExternalField.h"
@@ -251,6 +250,9 @@ class IntegratorHPMC : public Integrator
         virtual void slotNumTypesChange();
 
         ExternalField* getExternalField() { return m_external_base; }
+
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic) {};
 
     protected:
         unsigned int m_seed;                        //!< Random number seed

@@ -7,6 +7,7 @@
 #include "HOOMDMath.h"
 #include "SystemDefinition.h"
 #include "Profiler.h"
+#include "SharedSignal.h"
 
 #include <memory>
 
@@ -57,7 +58,7 @@ class Updater
     public:
         //! Constructs the compute and associates it with the ParticleData
         Updater(std::shared_ptr<SystemDefinition> sysdef);
-        virtual ~Updater() {};
+        virtual ~Updater()  {};
 
         //! Abstract method that performs the update
         /*! Derived classes will implement this method to perform their specific update
@@ -175,6 +176,26 @@ class Updater
             return m_exec_conf;
             }
 
+        void addSlot(std::shared_ptr<hoomd::detail::SignalSlot> slot)
+            {
+            m_slots.push_back(slot);
+            }
+
+        void removeDisconnectedSlots()
+            {
+            for(unsigned int i = 0; i < m_slots.size();)
+                {
+                if(!m_slots[i]->connected())
+                    {
+                    m_exec_conf->msg->notice(8) << "Found dead signal @" << std::hex << m_slots[i].get() << std::dec<< std::endl;
+                    m_slots.erase(m_slots.begin()+i);
+                    }
+                else
+                    {
+                    i++;
+                    }
+                }
+            }
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this compute is associated with
         const std::shared_ptr<ParticleData> m_pdata;      //!< The particle data this compute is associated with
@@ -183,6 +204,7 @@ class Updater
         std::shared_ptr<Communicator> m_comm;             //!< The communicator this updater is to use
 #endif
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
+        std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
     };
 
 //! Export the Updater class to python

@@ -51,7 +51,7 @@ struct poly3d_verts : param_base
     #ifndef NVCC
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
-        : N(_N)
+        : N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;

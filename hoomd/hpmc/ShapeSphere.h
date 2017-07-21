@@ -62,6 +62,14 @@ namespace detail
         return std::max(a,b);
         #endif
         }
+
+    template<class T> HOSTDEVICE inline void swap(T& a, T&b)
+        {
+        T c;
+        c = a;
+        a = b;
+        b = c;
+        }
     }
 
 //! Base class for parameter structure data types

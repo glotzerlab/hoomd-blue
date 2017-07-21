@@ -256,6 +256,12 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     : Updater(sysdef), m_mc(mc), m_seed(seed), m_npartition(npartition), m_gibbs(false),
       m_max_vol_rescale(0.1), m_move_ratio(0.5), m_transfer_ratio(1.0), m_gibbs_other(0)
     {
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
+
     m_fugacity.resize(m_pdata->getNTypes(), std::shared_ptr<Variant>(new VariantConst(0.0)));
     m_type_map.resize(m_pdata->getNTypes());
 
@@ -464,7 +470,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
     unsigned int group = 0;
     #endif
 
-    Saru rng(timestep, this->m_seed, 0x03d2034a^group);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x03d2034a^group);
 
     bool active = true;
     unsigned int mod = 0;
@@ -724,7 +730,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 unsigned int tag = UINT_MAX;
 
                 // in Gibbs ensemble, we should not use correlated random numbers with box 1
-                Saru rng_local(rng.u32());
+                hoomd::detail::Saru rng_local(rng.u32());
 
                 // choose a random particle type out of those being transfered
                 assert(m_transfer_types.size() > 0);
@@ -1027,7 +1033,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                         // select a random particle tag of given type
 
                         // make sure we are not using the same random numbers as box 1
-                        Saru rng_local(rng.u32());
+                        hoomd::detail::Saru rng_local(rng.u32());
 
                         unsigned int type_offs = rand_select(rng_local, N_old-1);
                         tag = getNthTypeTag(other_type, type_offs);
