@@ -62,13 +62,13 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
 
 /*! \param timesteps is the iteration number
 */
-void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
+void FIREEnergyMinimizerGPU::update(unsigned int timestep)
     {
 
     if (m_converged)
         return;
 
-    IntegratorTwoStep::update(timesteps);
+    IntegratorTwoStep::update(timestep);
 
     Scalar Pt(0.0);  //translational power
     Scalar Pr(0.0); //rotational power
@@ -220,9 +220,11 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->pop(m_exec_conf);
 
     unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " wnorm " << wnorm << " energy-energy_old " << energy-m_old_energy << std::endl;
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
+        m_exec_conf->msg->notice(4) << "FIRE converged in timestep " << timestep << std::endl;
         return;
         }
 

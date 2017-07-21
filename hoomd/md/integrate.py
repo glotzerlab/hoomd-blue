@@ -1194,7 +1194,8 @@ class mode_minimize_fire(_integrator):
         fdec (float): Factor to decrease :math:`\delta t` by
         alpha_start (float): Initial (and maximum) :math:`\alpha`
         falpha (float): Factor to decrease :math:`\alpha t` by
-        ftol (float): force convergence criteria (in force units)
+        ftol (float): force convergence criteria (in units of force over mass)
+        wtol (float): angular momentum convergence criteria (in units of angular momentum)
         Etol (float): energy convergence criteria (in energy units)
         min_steps (int): A minimum number of attempts before convergence criteria are considered
         aniso (bool): Whether to integrate rotational degrees of freedom (bool), default None (autodetect).
@@ -1263,7 +1264,7 @@ class mode_minimize_fire(_integrator):
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
 
     """
-    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
         hoomd.util.print_status_line();
 
         # Error out in MPI simulations
@@ -1287,7 +1288,7 @@ class mode_minimize_fire(_integrator):
 
         if group is not None:
             hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
-            nve = integrate.nve(group=group)
+            integrate_nve = nve(group=group)
 
         self.aniso = aniso
 
@@ -1323,6 +1324,10 @@ class mode_minimize_fire(_integrator):
         self.cpp_integrator.setFtol(ftol);
         self.ftol = ftol
         self.metadata_fields.append(ftol)
+
+        self.cpp_integrator.setWtol(wtol);
+        self.wtol = wtol
+        self.metadata_fields.append(wtol)
 
         self.cpp_integrator.setEtol(Etol);
         self.Etol = Etol
