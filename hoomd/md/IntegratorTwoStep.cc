@@ -20,13 +20,10 @@ namespace py = pybind11;
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_particles_reinitialized(true), m_gave_warning(false),
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
     m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
-
-    // connect to particle number change signal
-    m_pdata->getGlobalParticleNumberChangeSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
@@ -39,8 +36,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
         m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
     #endif
-
-    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 /*! \param prof The profiler to set
