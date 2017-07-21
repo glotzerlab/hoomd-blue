@@ -305,6 +305,8 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
             break;
         }
 
+    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso << std::endl;
+
     if (aniso)
         {
         // loop through all methods
