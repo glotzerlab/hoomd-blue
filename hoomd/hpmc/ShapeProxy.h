@@ -255,7 +255,7 @@ inline ShapePolyhedron::param_type make_poly3d_data(pybind11::list verts,pybind1
             n_vert++;
             }
 
-        std::vector<OverlapReal> vertex_radii(n_vert, result.verts.sweep_radius);
+        std::vector<OverlapReal> vertex_radii(n_vert, result.sweep_radius);
         obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         obbs[i].mask = result.face_overlap[i];
         internal_coordinates.push_back(face_vec);

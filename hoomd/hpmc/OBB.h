@@ -351,10 +351,6 @@ DEVICE inline bool IntersectRayOBB(const vec3<OverlapReal>& p, const vec3<Overla
     }
 
 #ifndef NVCC
-<<<<<<< HEAD
-DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const std::vector<OverlapReal>& vertex_radii,
-    bool make_sphere)
-=======
 // Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
 
 // Compute the center point, ’c’, and axis orientation, u[0] and u[1], of
@@ -408,8 +404,8 @@ inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double> &c, vec2<d
     return minArea;
     }
 
-DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
->>>>>>> fix_faceted_sphere
+DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const std::vector<OverlapReal>& vertex_radii,
+    bool make_sphere)
     {
     // compute mean
     OBB res;
@@ -672,54 +668,48 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         res.center += OverlapReal(0.5)*(proj_max.y + proj_min.y)*axis[1];
         res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
-<<<<<<< HEAD
         res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
+
+        // sort by decreasing length, so split can occur along longest axis
+        if (res.lengths.x < res.lengths.y)
+            {
+            std::swap(r.row0.x,r.row0.y);
+            std::swap(r.row1.x,r.row1.y);
+            std::swap(r.row2.x,r.row2.y);
+            std::swap(res.lengths.x,res.lengths.y);
+            }
+
+        if (res.lengths.y < res.lengths.z)
+            {
+            std::swap(r.row0.y,r.row0.z);
+            std::swap(r.row1.y,r.row1.z);
+            std::swap(r.row2.y,r.row2.z);
+            std::swap(res.lengths.y, res.lengths.z);
+            }
+
+        if (res.lengths.x < res.lengths.y)
+            {
+            std::swap(r.row0.x,r.row0.y);
+            std::swap(r.row1.x,r.row1.y);
+            std::swap(r.row2.x,r.row2.y);
+            std::swap(res.lengths.x, res.lengths.y);
+            }
+
+        // make sure coordinate system is proper
+        if (r.det() < OverlapReal(0.0))
+            {
+            // swap column two and three
+            std::swap(r.row0.y,r.row0.z);
+            std::swap(r.row1.y,r.row1.z);
+            std::swap(r.row2.y,r.row2.z);
+            std::swap(res.lengths.y,res.lengths.z);
+            }
         }
     else
         {
         res.lengths.x = res.lengths.y = res.lengths.z = max_r;
         res.is_sphere = 1;
         }
-=======
-    // sort by descending length, so split can occur along longest axis
-    if (res.lengths.x < res.lengths.y)
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(res.lengths.x,res.lengths.y);
-        }
-
-    if (res.lengths.y < res.lengths.z)
-        {
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(res.lengths.y, res.lengths.z);
-        }
-
-    if (res.lengths.x < res.lengths.y)
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(res.lengths.x, res.lengths.y);
-        }
-
-    // make sure coordinate system is proper
-    if (r.det() < OverlapReal(0.0))
-        {
-        // swap column two and three
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(res.lengths.y,res.lengths.z);
-        }
-
-    res.lengths.x += vertex_radius;
-    res.lengths.y += vertex_radius;
-    res.lengths.z += vertex_radius;
->>>>>>> fix_faceted_sphere
 
     res.rotation = quat<OverlapReal>(r);
 

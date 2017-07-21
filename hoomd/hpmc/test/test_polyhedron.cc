@@ -60,7 +60,7 @@ GPUTree build_tree(poly3d_data &data)
             n_vert++;
             }
 
-        std::vector<OverlapReal> vertex_radii(n_vert,data.verts.sweep_radius);
+        std::vector<OverlapReal> vertex_radii(n_vert,data.sweep_radius);
         obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         internal_coordinates.push_back(face_vec);
         }
