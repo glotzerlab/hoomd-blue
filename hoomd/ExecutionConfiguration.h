@@ -122,8 +122,26 @@ struct ExecutionConfiguration
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName() const;
+
+    //! Activate the GPU
+    /*! This low-overhead call should be made before any operation that uses the GPU. It ensures that the selected
+        device is active. GPUArray calls it whenever an array handle is accessed. This should cover almost all
+        cases where it is necessary to set the active GPU.
+
+        This needs to be called because another library (i.e. a GPU library imported into a user python script)
+        may have changed the active GPU context for this process.
+    */
+    void setGPUDevice() const
+        {
+        #ifdef ENABLE_CUDA
+        if (isCUDAEnabled())
+            cudaSetDevice(m_gpu_id);
+        #endif
+        }
+
 #ifdef ENABLE_CUDA
     cudaDeviceProp dev_prop;    //!< Cached device properties
+    int m_gpu_id;               //!< GPU ID
 
     //! Get the compute capability of the GPU that we are running on
     std::string getComputeCapabilityAsString() const;

@@ -84,4 +84,7 @@ cudaError_t gpu_compute_buckingham_forces(const pair_args_t& pair_args,
 cudaError_t gpu_compute_lj1208_forces(const pair_args_t& pair_args,
                                       const Scalar2 *d_params);
 
+//! Compute DLVO potential pair forces on the GPU with EvaluatorPairDLVO
+cudaError_t gpu_compute_dlvo_forces(const pair_args_t & args,
+                                                const Scalar3 *d_params);
 #endif

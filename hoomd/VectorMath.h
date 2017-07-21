@@ -691,6 +691,9 @@ DEVICE inline Real perpdot(const vec2<Real>& a, const vec2<Real>& b)
     }
 
 
+template<class Real>
+struct rotmat3;
+
 /////////////////////////////// quat ///////////////////////////////////
 
 //! Quaternion
@@ -757,6 +760,9 @@ struct quat
     DEVICE quat() : s(1), v(vec3<Real>(0,0,0))
         {
         }
+
+    //! Construct a quaternion from a rotation matrix
+    DEVICE quat(const rotmat3<Real>& r);
 
     //! Construct a quat from an axis and an angle.
     /*! \param axis angle to represent
@@ -930,6 +936,42 @@ DEVICE inline quat<Real> conj(const quat<Real>& a)
     {
     return quat<Real>(a.s, -a.v);
     }
+
+//! Construct a quaternion from a rotation matrix
+/*! \note The rotation matrix must have positive determinant
+ http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+ */
+template < class Real >
+DEVICE inline quat<Real>::quat(const rotmat3<Real>& r)
+    {
+    Scalar tr = r.row0.x+r.row1.y+r.row2.z;
+
+    if (tr > Real(0.0))
+        {
+        Real S = sqrt(tr+Real(1.0))*Real(2.0);
+        s = Real(0.25)*S;
+        v = vec3<Real>((r.row2.y-r.row1.z)/S,(r.row0.z-r.row2.x)/S,(r.row1.x-r.row0.y)/S);
+        }
+    else if ( (r.row0.x > r.row1.y) && (r.row0.x > r.row2.z))
+        {
+        Real S = sqrt(Real(1.0)+r.row0.x-r.row1.y-r.row2.z)*Real(2.0);
+        s = (r.row2.y-r.row1.z)/S;
+        v = vec3<Real>(Real(0.25)*S, (r.row0.y+r.row1.x)/S, (r.row0.z+r.row2.x)/S);
+        }
+    else if (r.row1.y > r.row2.z)
+        {
+        Real S = sqrt(Real(1.0)+r.row1.y - r.row0.x - r.row2.z)*Real(2.0);
+        s = (r.row0.z-r.row2.x)/S;
+        v = vec3<Real>((r.row0.y+r.row1.x)/S,Real(0.25)*S,(r.row1.z+r.row2.y)/S);
+        }
+    else
+        {
+        Real S = sqrt(Real(1.0)+ r.row2.z - r.row0.x - r.row1.y)*Real(2.0);
+        s = (r.row1.x-r.row0.y)/S;
+        v = vec3<Real>((r.row0.z+r.row2.x)/S,(r.row1.z+r.row2.y)/S,Real(0.25)*S);
+        }
+    }
+
 
 //! rotate a vec3 by a quaternion
 /*! \param a quat (should be a unit quaternion (Cos(theta/2), Sin(theta/2)*axis_unit_vector))
@@ -1174,6 +1216,12 @@ struct rotmat3
         return rotmat3<Real>(quat<Real>::fromAxisAngle(axis, theta));
         }
 
+    //! Returns the determinant
+    DEVICE Real det()
+        {
+        return row0.x*(row1.y*row2.z-row1.z*row2.y)-row0.y*(row1.x*row2.z-row1.z*row2.x)+row0.z*(row1.x*row2.y-row1.y*row2.x);
+        }
+
     vec3<Real> row0;   //!< First row
     vec3<Real> row1;   //!< Second row
     vec3<Real> row2;   //!< Third row
@@ -1230,6 +1278,7 @@ DEVICE inline rotmat3<Real> transpose(const rotmat3<Real>& A)
                            vec3<Real>(A.row0.y, A.row1.y, A.row2.y),
                            vec3<Real>(A.row0.z, A.row1.z, A.row2.z));
     }
+
 
 /////////////////////////////// generic operations /////////////////////////////////
 

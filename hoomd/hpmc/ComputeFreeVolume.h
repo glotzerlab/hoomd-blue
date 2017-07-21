@@ -100,6 +100,12 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
     {
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
+
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
     this->m_cl->setFlagType();
@@ -162,7 +168,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
+            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
 
             Scalar xrand = rng_i.f();
             Scalar yrand = rng_i.f();

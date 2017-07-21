@@ -24,6 +24,7 @@
 #include "ForceComposite.h"
 #include "ForceDistanceConstraint.h"
 #include "HarmonicAngleForceCompute.h"
+#include "CosineSqAngleForceCompute.h"
 #include "HarmonicDihedralForceCompute.h"
 #include "HarmonicImproperForceCompute.h"
 #include "IntegrationMethodTwoStep.h"
@@ -69,6 +70,7 @@
 #include "ForceCompositeGPU.h"
 #include "ForceDistanceConstraintGPU.h"
 #include "HarmonicAngleForceComputeGPU.h"
+#include "CosineSqAngleForceComputeGPU.h"
 #include "HarmonicDihedralForceComputeGPU.h"
 #include "HarmonicImproperForceComputeGPU.h"
 #include "NeighborListGPUBinned.h"
@@ -198,6 +200,7 @@ PYBIND11_PLUGIN(_md)
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
     export_HarmonicAngleForceCompute(m);
+    export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
     export_HarmonicDihedralForceCompute(m);
     export_OPLSDihedralForceCompute(m);
@@ -220,6 +223,7 @@ PYBIND11_PLUGIN(_md)
     export_PotentialTersoff<PotentialTripletSquareDensity> (m, "PotentialSquareDensity");
     export_PotentialPair<PotentialPairMie>(m, "PotentialPairMie");
     export_PotentialPair<PotentialPairReactionField>(m, "PotentialPairReactionField");
+    export_PotentialPair<PotentialPairDLVO>(m, "PotentialPairDLVO");
     export_tersoff_params(m);
     export_AnisoPotentialPair<AnisoPotentialPairGB>(m, "AnisoPotentialPairGB");
     export_AnisoPotentialPair<AnisoPotentialPairDipole>(m, "AnisoPotentialPairDipole");
@@ -267,6 +271,7 @@ PYBIND11_PLUGIN(_md)
     export_PotentialPairGPU<PotentialPairSLJGPU, PotentialPairSLJ>(m, "PotentialPairSLJGPU");
     export_PotentialPairGPU<PotentialPairYukawaGPU, PotentialPairYukawa>(m, "PotentialPairYukawaGPU");
     export_PotentialPairGPU<PotentialPairReactionFieldGPU, PotentialPairReactionField>(m, "PotentialPairReactionFieldGPU");
+    export_PotentialPairGPU<PotentialPairDLVOGPU, PotentialPairDLVO>(m, "PotentialPairDLVOGPU");
     export_PotentialPairGPU<PotentialPairEwaldGPU, PotentialPairEwald>(m, "PotentialPairEwaldGPU");
     export_PotentialPairGPU<PotentialPairMorseGPU, PotentialPairMorse>(m, "PotentialPairMorseGPU");
     export_PotentialPairGPU<PotentialPairDPDGPU, PotentialPairDPD>(m, "PotentialPairDPDGPU");
@@ -288,6 +293,7 @@ PYBIND11_PLUGIN(_md)
     export_BondTablePotentialGPU(m);
     export_TablePotentialGPU(m);
     export_HarmonicAngleForceComputeGPU(m);
+    export_CosineSqAngleForceComputeGPU(m);
     export_TableAngleForceComputeGPU(m);
     export_HarmonicDihedralForceComputeGPU(m);
     export_OPLSDihedralForceComputeGPU(m);

@@ -729,6 +729,40 @@ void NeighborList::addExclusionsFromConstraints()
         addExclusion(constraints[i].tag[0], constraints[i].tag[1]);
     }
 
+/*! After calling addExclusionFromPairs() all pairs specified in the attached ParticleData will be
+    added as exlusions. Any additional pairs added after this will not be automatically added as exclusions.
+*/
+void NeighborList::addExclusionsFromPairs()
+    {
+    std::shared_ptr<PairData> pair_data = m_sysdef->getPairData();
+
+    // access pair data by snapshot
+    PairData::Snapshot snapshot;
+    pair_data->takeSnapshot(snapshot);
+
+    // broadcast global bond list
+    std::vector<PairData::members_t> pairs;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            pairs = snapshot.groups;
+
+        bcast(pairs, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#endif
+        {
+        pairs = snapshot.groups;
+        }
+
+    // for each pair
+    for (unsigned int i = 0; i < pairs.size(); i++)
+        // add an exclusion
+        addExclusion(pairs[i].tag[0], pairs[i].tag[1]);
+    }
+
 /*! \param tag1 First particle tag in the pair
     \param tag2 Second particle tag in the pair
     \return true if the particles \a tag1 and \a tag2 have been excluded from the neighbor list
@@ -1437,6 +1471,7 @@ void export_NeighborList(py::module& m)
         .def("addExclusionsFromAngles", &NeighborList::addExclusionsFromAngles)
         .def("addExclusionsFromDihedrals", &NeighborList::addExclusionsFromDihedrals)
         .def("addExclusionsFromConstraints", &NeighborList::addExclusionsFromConstraints)
+        .def("addExclusionsFromPairs", &NeighborList::addExclusionsFromPairs)
         .def("addOneThreeExclusionsFromTopology", &NeighborList::addOneThreeExclusionsFromTopology)
         .def("addOneFourExclusionsFromTopology", &NeighborList::addOneFourExclusionsFromTopology)
         .def("setFilterBody", &NeighborList::setFilterBody)

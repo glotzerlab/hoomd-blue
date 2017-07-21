@@ -28,9 +28,10 @@ p = int(option.get_user()[0])
 P = params[p]
 
 class sphereEOS_test(unittest.TestCase):
+    n = 7
     def setUp(self):
-        n = 7;
-        N = n**3
+        context.initialize()
+        n = self.n
         a = (math.pi / (6*phi_p_ref[P]))**(1.0/3.0);
 
         self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
@@ -47,8 +48,8 @@ class sphereEOS_test(unittest.TestCase):
 
         tunables = []
         boxmc = hpmc.update.boxmc(self.mc,betaP=P,seed=123)
-        boxmc.volume(delta=1,weight=1)
-        tunables = ['dV']
+        boxmc.ln_volume(delta=0.001,weight=1)
+        tunables = ['dlnV']
 
         npt_tune = hpmc.util.tune_npt(boxmc, tunables = tunables, target = 0.2, gamma=1)
 
@@ -58,9 +59,9 @@ class sphereEOS_test(unittest.TestCase):
             d = self.mc.get_d();
             translate_acceptance = self.mc.get_translate_acceptance();
             util.quiet_status()
-            v = boxmc.volume()['delta']
+            v = boxmc.ln_volume()['delta']
             util.unquiet_status()
-            volume_acceptance = boxmc.get_volume_acceptance();
+            volume_acceptance = boxmc.get_ln_volume_acceptance();
             if comm.get_rank() == 0:
                 print('d: {:3.2f} accept: {:3.2f} / v: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance,v,volume_acceptance));
 
@@ -105,6 +106,9 @@ class sphereEOS_test(unittest.TestCase):
 
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(phi_p_avg-phi_p_ref[P]),ci*(phi_p_ref[P]*rel_err_cs+phi_p_err))
+
+class sphereEOS_test_noncubic(sphereEOS_test):
+    n = [7, 8, 6]
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

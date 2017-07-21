@@ -105,8 +105,7 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(type, str):
-            type = [type];
+        type = hoomd.util.listify(type)
 
         for typei in type:
             self.set_single(typei, coeffs);
@@ -329,7 +328,8 @@ class lj(_special_pair):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar3(lj1, lj2,r_cut);
+        r_cut_squared = r_cut * r_cut
+        return _hoomd.make_scalar3(lj1, lj2, r_cut_squared);
 
 
 class coulomb(_special_pair):

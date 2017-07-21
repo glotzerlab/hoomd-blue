@@ -32,6 +32,7 @@ class boxmc(_updater):
     - :py:meth:`length` - change box lengths independently
     - :py:meth:`shear` - shear the box
     - :py:meth:`volume` - scale the box lengths uniformly
+    - :py:meth:`ln_volume` - scale the box lengths uniformly with logarithmic increments
 
     Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
     pressure :math:`P^*` are left for the user to perform.
@@ -44,7 +45,7 @@ class boxmc(_updater):
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
         boxMC.set_betap(2.0)
-        boxMC.volume(delta=0.01, weight=2.0)
+        boxMC.ln_volume(delta=0.01, weight=2.0)
         boxMC.length(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
 
@@ -77,6 +78,8 @@ class boxmc(_updater):
 
         self.volume_delta = 0.0;
         self.volume_weight = 0.0;
+        self.ln_volume_delta = 0.0;
+        self.ln_volume_weight = 0.0;
         self.length_delta = [0.0, 0.0, 0.0];
         self.length_weight = 0.0;
         self.shear_delta = [0.0, 0.0, 0.0];
@@ -89,6 +92,8 @@ class boxmc(_updater):
                                  'seed',
                                  'volume_delta',
                                  'volume_weight',
+                                 'ln_volume_delta',
+                                 'ln_volume_weight',
                                  'length_delta',
                                  'length_weight',
                                  'shear_delta',
@@ -141,6 +146,40 @@ class boxmc(_updater):
 
         self.cpp_updater.volume(self.volume_delta, self.volume_weight);
         return {'delta': self.volume_delta, 'weight': self.volume_weight};
+
+    def ln_volume(self, delta=None, weight=None):
+        R""" Enable/disable isobaric volume move and set parameters.
+
+        Args:
+            delta (float): maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
+
+        Sample the isobaric distribution of box volumes by rescaling the box.
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
+
+        Example::
+
+            box_update.ln_volume(delta=0.001)
+            box_update.ln_volume(delta=0.001, weight=2)
+            box_update.ln_volume(delta=0.001, weight=0.15)
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if weight is not None:
+            self.ln_volume_weight = float(weight)
+
+        if delta is not None:
+            self.ln_volume_delta = float(delta)
+
+        self.cpp_updater.ln_volume(self.ln_volume_delta, self.ln_volume_weight);
+        return {'delta': self.ln_volume_delta, 'weight': self.ln_volume_weight};
 
     def length(self, delta=None, weight=None):
         R""" Enable/disable isobaric box dimension move and set parameters.
@@ -286,6 +325,24 @@ class boxmc(_updater):
         """
         counters = self.cpp_updater.getCounters(1);
         return counters.getVolumeAcceptance();
+
+    def get_ln_volume_acceptance(self):
+        R""" Get the average acceptance ratio for log(V) changing moves.
+
+        Returns:
+            The average volume change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param[name].set(....);
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
+            run(100)
+            v_accept = box_update.get_ln_volume_acceptance()
+
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getLogVolumeAcceptance();
 
     def get_shear_acceptance(self):
         R"""  Get the average acceptance ratio for shear changing moves.
@@ -524,7 +581,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -548,7 +605,7 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.capacity);
+                cls = _hpmc.UpdaterMuVTSphereUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -700,7 +757,7 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.capacity);
+                cls = _hpmc.RemoveDriftUpdaterSphereUnion;
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");

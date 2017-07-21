@@ -63,7 +63,7 @@ class UpdateOrder
         /*! \param N new size
             \post The order is 0, 1, 2, ... N-1
         */
-        void resize(unsigned int N)
+    void resize(unsigned int N)
             {
             // initialize the update order
             m_update_order.resize(N);
@@ -78,7 +78,7 @@ class UpdateOrder
         */
         void shuffle(unsigned int timestep, unsigned int select = 0)
             {
-            Saru rng(timestep, m_seed+select, 0xfa870af6);
+            hoomd::detail::Saru rng(timestep, m_seed+select, 0xfa870af6);
             float r = rng.f();
 
             // reverse the order with 1/2 probability
@@ -474,7 +474,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
+            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
@@ -648,7 +648,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
         Scalar3 shift = make_scalar3(0,0,0);
         shift.x = rng.s(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
         shift.y = rng.s(-m_nominal_width/Scalar(2.0),m_nominal_width/Scalar(2.0));
@@ -1246,9 +1246,9 @@ void IntegratorHPMCMono<Shape>::connectGSDSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
-    typedef ::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
     auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
-    std::shared_ptr<::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
     addSlot(pslot);
     }
 
