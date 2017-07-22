@@ -11,7 +11,7 @@
 
 #include <hoomd/Updater.h>
 #include <hoomd/Variant.h>
-#include <hoomd/extern/saruprng.h>
+#include "hoomd/Saru.h"
 #include <cmath>
 
 // Need Moves.h for rand_select
@@ -216,32 +216,32 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_L(unsigned int timestep, Saru& rng);
+        void update_L(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_V(unsigned int timestep, Saru& rng);
+        void update_V(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform box update in NpT ln(V) distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_lnV(unsigned int timestep, Saru& rng);
+        void update_lnV(unsigned int timestep, hoomd::detail::Saru& rng);
 
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_shear(unsigned int timestep, Saru& rng);
+        void update_shear(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_aspect(unsigned int timestep, Saru& rng);
+        void update_aspect(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Get volume change parameter
         const Scalar get_volume_delta() const
@@ -323,7 +323,7 @@ class UpdaterBoxMC : public Updater
                                      Scalar yz,
                                      unsigned int timestep,
                                      Scalar boltzmann,
-                                     Saru& rng
+                                     hoomd::detail::Saru& rng
                                      );
                                      //!< attempt specified box change and undo if overlaps generated
         inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);
