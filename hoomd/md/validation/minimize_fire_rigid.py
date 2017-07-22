@@ -53,7 +53,7 @@ class minimize_rigid_test(unittest.TestCase):
         log = analyze.log(quantities=['potential_energy'],period=100,filename=None)
         run(1)
         old_energy = log.query('potential_energy')
-        while not(fire.has_converged() and get_step() < max_conv):
+        while not(fire.has_converged()) and get_step() < max_conv:
             run(100)
         self.assertTrue(fire.has_converged())
 
