@@ -1266,12 +1266,6 @@ class mode_minimize_fire(_integrator):
     def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
         hoomd.util.print_status_line();
 
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration mode.")
-
         # initialize base class
         _integrator.__init__(self);
 

@@ -15,17 +15,18 @@ class minimize_rigid_test(unittest.TestCase):
         context.initialize()
 
         snapshot = data.make_snapshot(N=2,particle_types=['A','B'],box=data.boxdim(L=15))
-        snapshot.particles.typeid[0] = 0
-        snapshot.particles.typeid[1] = 1
-        snapshot.particles.position[0] = (0,0,0)
-        snapshot.particles.position[1] = (0,0,1)
-        snapshot.particles.orientation[0]= (1,0,0,0)
+        if comm.get_rank() == 0:
+            snapshot.particles.typeid[0] = 0
+            snapshot.particles.typeid[1] = 1
+            snapshot.particles.position[0] = (0,0,0)
+            snapshot.particles.position[1] = (0,0,1)
+            snapshot.particles.orientation[0]= (1,0,0,0)
 
-        # rotate minimally away from the parallel configuration
-        angle_deg = .01
-        snapshot.particles.orientation[1]= (math.cos(0.5*angle_deg*math.pi/180),0,0,math.sin(0.5*angle_deg*math.pi/180))
-        snapshot.particles.moment_inertia[0] = (0.5,1,1)
-        snapshot.particles.moment_inertia[1] = (0.5,1,1)
+            # rotate minimally away from the parallel configuration
+            angle_deg = .01
+            snapshot.particles.orientation[1]= (math.cos(0.5*angle_deg*math.pi/180),0,0,math.sin(0.5*angle_deg*math.pi/180))
+            snapshot.particles.moment_inertia[0] = (0.5,1,1)
+            snapshot.particles.moment_inertia[1] = (0.5,1,1)
         self.s = init.read_snapshot(snapshot)
 
         self.nl = md.nlist.cell()
