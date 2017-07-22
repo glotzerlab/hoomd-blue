@@ -273,7 +273,10 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
     wnorm = sqrt(wnorm);
 
     unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
-    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " wnorm " << wnorm << " energy-energy_old " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE vnorm " << vnorm << " tnorm " << wnorm << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE Pt " << Pt << " Pr " << Pr << std::endl;
+
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_exec_conf->msg->notice(4) << "FIRE converged in timestep " << timestep << std::endl;
@@ -358,6 +361,8 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
         IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
+
+        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
 
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {

@@ -249,7 +249,10 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
         m_prof->pop(m_exec_conf);
 
     unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
-    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " wnorm " << wnorm << " energy-energy_old " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE vnorm " << vnorm << " tnorm " << wnorm << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE Pt " << Pt << " Pr " << Pr << std::endl;
+
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
@@ -338,6 +341,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
         if (m_prof)
             m_prof->push(m_exec_conf, "FIRE zero velocities");
 
+        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
+
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
@@ -345,7 +350,6 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
             ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
 
             gpu_fire_zero_v(d_vel.data,
                             d_index_array.data,
@@ -356,7 +360,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timestep)
             if ((*method)->getAnisotropic())
                 {
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-                gpu_fire_zero_v(d_angmom.data,
+                gpu_fire_zero_angmom(d_angmom.data,
                                 d_index_array.data,
                                 group_size);
                 if(m_exec_conf->isCUDAErrorCheckingEnabled())
