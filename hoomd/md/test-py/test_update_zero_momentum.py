@@ -12,7 +12,7 @@ import os
 class update_zero_momentum_tests (unittest.TestCase):
     def setUp(self):
         print
-        deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
 
         context.current.sorter.set_params(grid=8)
 
@@ -31,7 +31,21 @@ class update_zero_momentum_tests (unittest.TestCase):
         md.update.zero_momentum(period = lambda n: n*100);
         run(100);
 
+    # test if it actually zeros the momentum
+    def test_zero(self):
+        # set ONE particle one velocity on a particular rank to a nonzero value
+        self.s.particles[0].velocity = (len(self.s.particles),0,0)
+        log = analyze.log(filename=None, quantities=['momentum'],period=1)
+        md.integrate.mode_standard(dt=0)
+        nve = md.integrate.nve(group=group.all())
+        run(1)
+        self.assertAlmostEqual(log.query('momentum'),1.0,5)
+        zero = md.update.zero_momentum(period=1)
+        run(1)
+        self.assertAlmostEqual(log.query('momentum'),0,5)
+
     def tearDown(self):
+        del self.s
         context.initialize();
 
 if __name__ == '__main__':
