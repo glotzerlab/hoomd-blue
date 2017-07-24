@@ -67,7 +67,7 @@ class analyze_log_tests (unittest.TestCase):
 # test analyze.log with query
 class analyze_log_query_tests (unittest.TestCase):
     def setUp(self):
-        init.create_lattice(lattice.sc(a=1.5),n=[5,5,4]); # must be close enough to interact
+        init.create_lattice(lattice.sc(a=1.5),n=[8,8,8]); # must be close enough to interact
         nl = hoomd.md.nlist.cell()
         self.pair = hoomd.md.pair.lj(r_cut=2.5, nlist = nl)
         self.pair.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
@@ -142,7 +142,7 @@ if enable_hdf5:
 @unittest.skipIf(not enable_hdf5, "no h5py module available.")
 class analyze_log_hdf5_query_tests (unittest.TestCase):
     def setUp(self):
-        init.create_lattice(lattice.sc(a=1.5),n=[5,5,4]); # must be close enough to interact
+        init.create_lattice(lattice.sc(a=1.5),n=[8,8,8]); # must be close enough to interact
         nl = hoomd.md.nlist.cell()
         self.pair = hoomd.md.pair.lj(r_cut=2.5, nlist = nl)
         self.pair.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
