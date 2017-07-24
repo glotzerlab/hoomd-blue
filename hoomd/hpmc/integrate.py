@@ -1978,9 +1978,9 @@ class convex_polyhedron_union(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         max_members (int): Set the maximum number of members in the convex polyhedron union
-            * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
-            * .. versionadded:: 2.2
+
+    .. versionadded:: 2.2
 
     Convex polyhedron union parameters:
 
@@ -1988,9 +1988,6 @@ class convex_polyhedron_union(mode_hpmc):
     * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
     * *orientations* (**required**) - list of orientations of constituent polyhedra.
     * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
-
-        * .. versionadded:: 2.1
-
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
@@ -1998,15 +1995,16 @@ class convex_polyhedron_union(mode_hpmc):
              Replaced by :py:class:`interaction_matrix`.
 
     Example::
+
         mc = hpmc.integrate.convex_polyhedron_union(seed=27)
-        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
-        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
-                      [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
-        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
-                    centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
-        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
-        print('center of the first cube = ', mc.shape_param['A'].centers[0])
-        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
+                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
+        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
+                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
+        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
+        print('center of the first cube = ', mc.shape_param['A'].centers[0])
+        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
 
     def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=32):
