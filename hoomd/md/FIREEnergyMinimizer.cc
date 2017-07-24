@@ -2,13 +2,11 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
-// Maintainer: askeys
+// Maintainer: jglaser
 
 
 
 #include "FIREEnergyMinimizer.h"
-#include "TwoStepNVE.h"
-
 
 using namespace std;
 namespace py = pybind11;
@@ -18,25 +16,22 @@ namespace py = pybind11;
 */
 
 /*! \param sysdef SystemDefinition this method will act on. Must not be NULL.
-    \param group The group of particles this integration method is to work on
     \param dt maximum step size
-    \param reset_and_create_integrator Set to true to completely initialize this class
 
     \post The method is constructed with the given particle data and a NULL profiler.
 */
-FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef,
-                                         std::shared_ptr<ParticleGroup> group,
-                                         Scalar dt,
-                                         bool reset_and_create_integrator)
+FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysdef, Scalar dt)
     :   IntegratorTwoStep(sysdef, dt),
-        m_group(group),
         m_nmin(5),
         m_finc(Scalar(1.1)),
         m_fdec(Scalar(0.5)),
         m_alpha_start(Scalar(0.1)),
         m_falpha(Scalar(0.99)),
         m_ftol(Scalar(1e-1)),
+        m_wtol(Scalar(1e-1)),
         m_etol(Scalar(1e-3)),
+        m_energy_total(Scalar(0.0)),
+        m_old_energy(Scalar(0.0)),
         m_deltaT_max(dt),
         m_deltaT_set(dt/Scalar(10.0)),
         m_run_minsteps(10)
@@ -46,39 +41,13 @@ FIREEnergyMinimizer::FIREEnergyMinimizer(std::shared_ptr<SystemDefinition> sysde
     // sanity check
     assert(m_sysdef);
     assert(m_pdata);
-    if (reset_and_create_integrator)
-        {
-        reset();
-        //createIntegrator();
-        std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(sysdef, group));
-        addIntegrationMethod(integrator);
-        setDeltaT(m_deltaT_set);
-        }
+    reset();
     }
 
 FIREEnergyMinimizer::~FIREEnergyMinimizer()
     {
     m_exec_conf->msg->notice(5) << "Destroying FIREEnergyMinimizer" << endl;
     }
-
-//void FIREEnergyMinimizer::createIntegrator()
-//    {
-//    std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(m_sysdef, 0, m_pdata->getN()-1));
-//    std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(m_sysdef, selector_all));
-//    std::shared_ptr<TwoStepNVE> integrator(new TwoStepNVE(m_sysdef, group_all));
-//    addIntegrationMethod(integrator);
-//    setDeltaT(m_deltaT);
-//    }
-
-/*! \param dt is the new timestep to set
-
-The timestep is used by the underlying NVE integrator to advance the particles.
-*/
-void FIREEnergyMinimizer::setDeltaT(Scalar dt)
-    {
-    IntegratorTwoStep::setDeltaT(dt);
-    }
-
 
 /*! \param finc is the new fractional increase to set
 */
@@ -145,8 +114,10 @@ void FIREEnergyMinimizer::reset()
     m_n_since_start = 0;
     m_alpha = m_alpha_start;
     m_was_reset = true;
+    m_energy_total = 0.0;
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
 
     unsigned int n = m_pdata->getN();
     for (unsigned int i=0; i<n; i++)
@@ -154,30 +125,32 @@ void FIREEnergyMinimizer::reset()
         h_vel.data[i].x = Scalar(0.0);
         h_vel.data[i].y = Scalar(0.0);
         h_vel.data[i].z = Scalar(0.0);
+        h_angmom.data[i] = make_scalar4(0,0,0,0);
         }
+
     setDeltaT(m_deltaT_set);
-    m_pdata->notifyParticleSort();
     }
 
 /*! \param timesteps is the current timestep
 */
-void FIREEnergyMinimizer::update(unsigned int timesteps)
+void FIREEnergyMinimizer::update(unsigned int timestep)
     {
     if (m_converged)
         return;
 
-    unsigned int group_size = m_group->getNumMembers();
-    if (group_size == 0)
-        return;
+    IntegratorTwoStep::update(timestep);
 
-    IntegratorTwoStep::update(timesteps);
-
-    Scalar P(0.0);
+    Scalar Pt(0.0); //translational power
+    Scalar Pr(0.0); //rotational power
     Scalar vnorm(0.0);
     Scalar fnorm(0.0);
+    Scalar tnorm(0.0);
+    Scalar wnorm(0.0);
 
     // Calculate the per-particle potential energy over particles in the group
     Scalar energy(0.0);
+
+    unsigned int total_group_size = 0;
 
     {
     const GPUArray< Scalar4 >& net_force = m_pdata->getNetForce();
@@ -185,12 +158,31 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
     // total potential energy
     double pe_total = 0.0;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        pe_total += (double)h_net_force.data[j].w;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        total_group_size += group_size;
+
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            pe_total += (double)h_net_force.data[j].w;
+            }
         }
-    energy = pe_total/Scalar(group_size);
+
+    m_energy_total = pe_total;
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &total_group_size, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    energy = pe_total/Scalar(total_group_size);
     }
 
 
@@ -203,31 +195,157 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    bool aniso = false;
+
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        P += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
-        fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
-        vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            Pt += h_accel.data[j].x*h_vel.data[j].x + h_accel.data[j].y*h_vel.data[j].y + h_accel.data[j].z*h_vel.data[j].z;
+            fnorm += h_accel.data[j].x*h_accel.data[j].x+h_accel.data[j].y*h_accel.data[j].y+h_accel.data[j].z*h_accel.data[j].z;
+            vnorm += h_vel.data[j].x*h_vel.data[j].x+ h_vel.data[j].y*h_vel.data[j].y + h_vel.data[j].z*h_vel.data[j].z;
+            }
+
+        if ((*method)->getAnisotropic())
+            {
+            aniso = true;
+
+            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+
+                vec3<Scalar> t(h_net_torque.data[j]);
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+
+                // rotate torque into principal frame
+                t = rotate(conj(q),t);
+
+                // check for zero moment of inertia
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+                // ignore torque component along an axis for which the moment of inertia zero
+                if (x_zero) t.x = 0;
+                if (y_zero) t.y = 0;
+                if (z_zero) t.z = 0;
+
+                // s is the pure imaginary quaternion with im. part equal to true angular velocity
+                vec3<Scalar> s = (Scalar(1./2.) * conj(q) * p).v;
+
+                // rotational power = torque * angvel
+                Pr += dot(t,s);
+                tnorm += dot(t,t);
+                wnorm += dot(s,s);
+                }
+            }
         }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &fnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &vnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &Pt, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+
+        if (aniso)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &tnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &wnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &Pr, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
+        }
+    #endif
 
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
 
-    if ((fnorm/sqrt(Scalar(m_sysdef->getNDimensions()*group_size)) < m_ftol && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
+    tnorm = sqrt(tnorm);
+    wnorm = sqrt(wnorm);
+
+    unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE vnorm " << vnorm << " tnorm " << wnorm << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE Pt " << Pt << " Pr " << Pr << std::endl;
+
+    if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
+        m_exec_conf->msg->notice(4) << "FIRE converged in timestep " << timestep << std::endl;
         m_converged = true;
         return;
         }
 
-    Scalar invfnorm = 1.0/fnorm;
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    Scalar factor_t;
+    if (fabs(fnorm) > EPSILON)
+        factor_t = m_alpha*vnorm/fnorm;
+    else
+        factor_t = 1.0;
+
+    Scalar factor_r = 0.0;
+
+    if (fabs(tnorm) > EPSILON)
+        factor_r = m_alpha * wnorm / tnorm;
+    else
+        factor_r = 1.0;
+
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
-        unsigned int j = m_group->getMemberIndex(group_idx);
-        h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + m_alpha*h_accel.data[j].x*invfnorm*vnorm;
-        h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + m_alpha*h_accel.data[j].y*invfnorm*vnorm;
-        h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + m_alpha*h_accel.data[j].z*invfnorm*vnorm;
+        std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+        unsigned int group_size = current_group->getIndexArray().getNumElements();
+        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+            {
+            unsigned int j = current_group->getMemberIndex(group_idx);
+            h_vel.data[j].x = h_vel.data[j].x*(1.0-m_alpha) + h_accel.data[j].x*factor_t;
+            h_vel.data[j].y = h_vel.data[j].y*(1.0-m_alpha) + h_accel.data[j].y*factor_t;
+            h_vel.data[j].z = h_vel.data[j].z*(1.0-m_alpha) + h_accel.data[j].z*factor_t;
+            }
+
+        if ((*method)->getAnisotropic())
+            {
+            ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+                vec3<Scalar> t(h_net_torque.data[j]);
+                quat<Scalar> p(h_angmom.data[j]);
+                quat<Scalar> q(h_orientation.data[j]);
+                vec3<Scalar> I(h_inertia.data[j]);
+
+                // rotate torque into principal frame
+                t = rotate(conj(q),t);
+
+                // check for zero moment of inertia
+                bool x_zero, y_zero, z_zero;
+                x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
+
+                // ignore torque component along an axis for which the moment of inertia zero
+                if (x_zero) t.x = 0;
+                if (y_zero) t.y = 0;
+                if (z_zero) t.z = 0;
+
+                // update angular momentum
+                p = p*Scalar(1.0-m_alpha) + Scalar(2.0)*q*t*factor_r;
+                h_angmom.data[j] = quat_to_scalar4(p);
+                }
+            }
         }
+
+    // A simply naive measure is to sum up the power coming from translational and rotational motions,
+    // more sophisticated measure can be devised later
+    Scalar P = Pt + Pr;
 
     if (P > Scalar(0.0))
         {
@@ -243,12 +361,31 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         IntegratorTwoStep::setDeltaT(m_deltaT*m_fdec);
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+
+        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
+
+        for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            h_vel.data[j].x = Scalar(0.0);
-            h_vel.data[j].y = Scalar(0.0);
-            h_vel.data[j].z = Scalar(0.0);
+            std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
+            unsigned int group_size = current_group->getIndexArray().getNumElements();
+            for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                {
+                unsigned int j = current_group->getMemberIndex(group_idx);
+                h_vel.data[j].x = Scalar(0.0);
+                h_vel.data[j].y = Scalar(0.0);
+                h_vel.data[j].z = Scalar(0.0);
+                }
+
+            if ((*method)->getAnisotropic())
+                {
+                ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
+                for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+                    {
+                    unsigned int j = current_group->getMemberIndex(group_idx);
+                    h_angmom.data[j] = make_scalar4(0,0,0,0);
+                    }
+                }
+
             }
         }
     m_n_since_start++;
@@ -256,20 +393,21 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
     }
 
-
 void export_FIREEnergyMinimizer(py::module& m)
     {
     py::class_<FIREEnergyMinimizer, std::shared_ptr<FIREEnergyMinimizer> >(m, "FIREEnergyMinimizer", py::base<IntegratorTwoStep>())
-        .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar >())
+        .def(py::init< std::shared_ptr<SystemDefinition>, Scalar>())
         .def("reset", &FIREEnergyMinimizer::reset)
         .def("setDeltaT", &FIREEnergyMinimizer::setDeltaT)
         .def("hasConverged", &FIREEnergyMinimizer::hasConverged)
+        .def("getEnergy", &FIREEnergyMinimizer::getEnergy)
         .def("setNmin", &FIREEnergyMinimizer::setNmin)
         .def("setFinc", &FIREEnergyMinimizer::setFinc)
         .def("setFdec", &FIREEnergyMinimizer::setFdec)
         .def("setAlphaStart", &FIREEnergyMinimizer::setAlphaStart)
         .def("setFalpha", &FIREEnergyMinimizer::setFalpha)
         .def("setFtol", &FIREEnergyMinimizer::setFtol)
+        .def("setWtol", &FIREEnergyMinimizer::setWtol)
         .def("setEtol", &FIREEnergyMinimizer::setEtol)
         .def("setMinSteps", &FIREEnergyMinimizer::setMinSteps)
         ;

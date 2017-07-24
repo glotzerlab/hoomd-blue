@@ -67,7 +67,7 @@ void IntegrationMethodTwoStep::setDeltaT(Scalar deltaT)
     expected values, this function throws the appropriate warning and returns
     "false."  Otherwise, the function returns true.
 */
-bool IntegrationMethodTwoStep::restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables)
+bool IntegrationMethodTwoStep::restartInfoTestValid(const IntegratorVariables& v, std::string type, unsigned int nvariables)
     {
     bool good = true;
     if (v.type == "")

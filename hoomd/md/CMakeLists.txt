@@ -346,3 +346,7 @@ if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
 endif()
+
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
+endif()
