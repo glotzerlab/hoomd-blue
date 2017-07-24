@@ -89,7 +89,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
         //! Return true if a particle trial move is accepted
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng)
             {
-            // calc boltzmann factor from springs
+            // calc boltzmann factor from the external potential
             Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);
             bool reject = false;
             if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)

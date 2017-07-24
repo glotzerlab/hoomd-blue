@@ -507,7 +507,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++) // only do the loop if the external is accepted. allows to track statistics better
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
                 detail::AABB aabb = aabb_i_local;

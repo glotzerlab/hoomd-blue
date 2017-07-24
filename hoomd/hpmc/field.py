@@ -919,27 +919,25 @@ class callback(_external):
     R""" Use a python-defined energy function in MC integration
 
     Args:
+
         mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
         callback (:py:function:) A python funtion to evaluate the energy of a configuration
         composite (:py:bool:): True if this evaluator is part of a composite external field
 
     Example::
-        def energy(snapshot):
-            # evaluate the energy in a linear potential gradient along the x-axis
-            gradient = (5,0,0)
-            e += 0
-            for p in snap.particles.position:
-                e -= numpy.dot(gradient,p)
-            return e
 
-        mc = hpmc.integrate.sphere(seed=415236);
-        mc.shape_param.set('A',diameter=1.0)
-        hpmc.field.callback(mc=mc, energy_function=energy);
-        run(100)
+          def energy(snapshot):
+              # evaluate the energy in a linear potential gradient along the x-axis
+              gradient = (5,0,0)
+              e = 0
+              for p in snap.particles.position:
+                  e -= numpy.dot(gradient,p)
+              return e
 
-        # get current energy of a specific configuration
-            init_box = hoomd.data.boxdim(L=10, dimensions=3);
-            snap = hoomd.data.make_snapshot(N=1, box=init_box, particle_types=['A']);
+          mc = hpmc.integrate.sphere(seed=415236);
+          mc.shape_param.set('A',diameter=1.0)
+          hpmc.field.callback(mc=mc, energy_function=energy);
+          run(100)
     """
     def __init__(self, mc, energy_function, composite=False):
         hoomd.util.print_status_line();
