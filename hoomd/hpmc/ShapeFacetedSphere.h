@@ -68,13 +68,12 @@ struct faceted_sphere_params : param_base
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        verts.load_shared(ptr, load, ptr_max);
-        additional_verts.load_shared(ptr, load, ptr_max);
+        verts.load_shared(ptr, available_bytes);
+        additional_verts.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA

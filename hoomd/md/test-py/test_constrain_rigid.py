@@ -19,6 +19,16 @@ class test_constrain_rigid(unittest.TestCase):
             p.moment_inertia = (.5,.5,1)
             #p.moment_inertia = (0,0,0)
 
+    def test_unequal_argument_lengths(self):
+        # create constituent particle types
+        self.system.particles.types.add('A_const')
+
+        rigid = md.constrain.rigid()
+        # try passing inconsistent numbers of arguments
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*3, positions=[(1,2,3),(4,5,6)])
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*2, positions=[(1,2,3),(4,5,6)], charges=[0])
+        self.assertRaises(RuntimeError,rigid.set_param,'A', types=['A_const']*2, positions=[(1,2,3),(4,5,6)], diameters=[0])
+
     def test_energy_conservation(self):
         # create rigid spherocylinders out of two particles (not including the central particle)
         len_cyl = .5

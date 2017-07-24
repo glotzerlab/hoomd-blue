@@ -30,6 +30,13 @@ class integrate_nvt_tests (unittest.TestCase):
         nvt.set_params(kT=1.3);
         nvt.set_params(tau=0.6);
 
+    # test re-initialization of integrator variables
+    def test_reinit(self):
+        all = group.all()
+        integrator = md.integrate.mode_standard(dt=0.005);
+        nvt = md.integrate.nvt(all, kT=1.0, tau=0.5)
+        integrator.reset_methods()
+
     # test w/ empty group
     def test_empty(self):
         # currently cannot catch run-time errors in MPI simulations
