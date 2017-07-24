@@ -172,7 +172,6 @@ void NeighborListTree::updateImageVectors()
     if (m_n_images > m_image_list.size())
         {
         m_image_list.resize(m_n_images);
-        m_image_idx.resize(m_n_images);
         }
 
     vec3<Scalar> latt_a = vec3<Scalar>(box.getLatticeVector(0));
@@ -181,7 +180,6 @@ void NeighborListTree::updateImageVectors()
 
     // there is always at least 1 image, which we put as our first thing to look at
     m_image_list[0] = vec3<Scalar>(0.0, 0.0, 0.0);
-    m_image_idx[0] = make_int3(0,0,0);
 
     // iterate over all other combinations of images, skipping those that are
     unsigned int n_images = 1;
@@ -199,7 +197,6 @@ void NeighborListTree::updateImageVectors()
                     if (!sys3d || (k != 0 && !periodic.z)) continue;
 
                     m_image_list[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
-                    m_image_idx[n_images] = make_int3(i,j,k);
                     ++n_images;
                     }
                 }
@@ -216,44 +213,11 @@ void NeighborListTree::buildTree()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::readwrite);
 
-    const BoxDim& box = m_pdata->getBox();
-    Scalar ghost_layer_width(0.0);
-    #ifdef ENABLE_MPI
-    if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
-    #endif
-
-    Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
-    if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
-    if (!box.getPeriodic().y) ghost_width.y = ghost_layer_width;
-    if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
-        {
-        ghost_width.z = ghost_layer_width;
-        }
-
     // construct a point AABB for each particle owned by this rank, and push it into the right spot in the AABB list
     for (unsigned int i=0; i < m_pdata->getN()+m_pdata->getNGhosts(); ++i)
         {
         // make a point particle AABB
         vec3<Scalar> my_pos(h_postype.data[i]);
-
-        /* check if the particle is inside the unit cell + ghost layer in all dimensions
-         *
-         * This is not strictly necessary for building the tree, but the tree traversal
-         * may get stuck when particles are far outside the box
-         */
-        Scalar3 f = box.makeFraction(vec_to_scalar3(my_pos),ghost_width);
-        if (((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
-            (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
-            (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001))) && i < m_pdata->getN())
-            {
-            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-            m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[i] << " is out of bounds "
-                                      << "(x: " << my_pos.x << ", y: " << my_pos.y << ", z: " << my_pos.z
-                                      << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
-            throw runtime_error("Error updating neighborlist");
-            return;
-            }
-
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];
         h_aabbs.data[my_aabb_idx] = AABB(my_pos,i);
@@ -282,7 +246,6 @@ void NeighborListTree::traverseTree()
 
     // acquire particle data
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
 
@@ -354,13 +317,8 @@ void NeighborListTree::traverseTree()
                                 // skip self-interaction always
                                 bool excluded = (i == j);
 
-                                if (m_filter_body && !excluded && body_i != NO_BODY)
-                                    {
-                                    // two particles of the same body are excluded except when the same body
-                                    // is interacting with itself via periodic boundary conditions (i.e. via a nontrivial translation)
-                                    bool self = h_image.data[i] - m_image_idx[cur_image] != h_image.data[j];
-                                    excluded = body_i == h_body.data[j] && !self;
-                                    }
+                                if (m_filter_body && body_i != NO_BODY)
+                                    excluded = excluded | (body_i == h_body.data[j]);
 
                                 if (!excluded)
                                     {

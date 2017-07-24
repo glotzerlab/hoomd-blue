@@ -221,19 +221,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // Move particles between domains. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
-        m_comm->forceMigrate();
-        m_comm->communicate(timestep);
-        }
-#endif
-
-    // compute the net forces
-    computeNetForce(timestep);
+    m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
     if (m_prof)
         {
@@ -284,7 +272,16 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
         p_tot_z += mass*(double)h_vel.data[i].z;
         }
 
-    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getNGlobal());
 
     // done!
     return Scalar(p_tot);

@@ -60,7 +60,7 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
@@ -145,7 +145,7 @@ class charge_pppm_screening_test(unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(L=25))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(L=25))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)

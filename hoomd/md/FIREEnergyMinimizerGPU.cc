@@ -62,13 +62,13 @@ FIREEnergyMinimizerGPU::FIREEnergyMinimizerGPU(std::shared_ptr<SystemDefinition>
 
 /*! \param timesteps is the iteration number
 */
-void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
+void FIREEnergyMinimizerGPU::update(unsigned int timestep)
     {
 
     if (m_converged)
         return;
 
-    IntegratorTwoStep::update(timesteps);
+    IntegratorTwoStep::update(timestep);
 
     Scalar Pt(0.0);  //translational power
     Scalar Pr(0.0); //rotational power
@@ -117,6 +117,14 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         energy += h_sumE.data[0];
         }
 
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &total_group_size, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
     m_energy_total = energy;
     energy /= (Scalar) total_group_size;
 
@@ -134,6 +142,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
     if (m_prof)
         m_prof->push(m_exec_conf, "FIRE P, vnorm, fnorm");
+
+    bool aniso = false;
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -175,6 +185,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
 
         if ((*method)->getAnisotropic())
             {
+            aniso = true;
+
                 {
                 ArrayHandle<Scalar> d_partial_sum_Pr(m_partial_sum1, access_location::device, access_mode::overwrite);
                 ArrayHandle<Scalar> d_partial_sum_wnorm(m_partial_sum2, access_location::device, access_mode::overwrite);
@@ -211,6 +223,23 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             }
 
         }
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &fnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &vnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &Pt, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+
+        if (aniso)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &tnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &wnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &Pr, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
+        }
+    #endif
+
     vnorm = sqrt(vnorm);
     fnorm = sqrt(fnorm);
     wnorm = sqrt(wnorm);
@@ -220,9 +249,14 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         m_prof->pop(m_exec_conf);
 
     unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE vnorm " << vnorm << " tnorm " << wnorm << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE Pt " << Pt << " Pr " << Pr << std::endl;
+
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
         m_converged = true;
+        m_exec_conf->msg->notice(4) << "FIRE converged in timestep " << timestep << std::endl;
         return;
         }
 
@@ -307,6 +341,8 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
         if (m_prof)
             m_prof->push(m_exec_conf, "FIRE zero velocities");
 
+        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
+
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
@@ -314,7 +350,6 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             ArrayHandle< unsigned int > d_index_array(current_group->getIndexArray(), access_location::device, access_mode::read);
 
             ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
-            ArrayHandle<Scalar3> d_accel(m_pdata->getAccelerations(), access_location::device, access_mode::read);
 
             gpu_fire_zero_v(d_vel.data,
                             d_index_array.data,
@@ -325,7 +360,7 @@ void FIREEnergyMinimizerGPU::update(unsigned int timesteps)
             if ((*method)->getAnisotropic())
                 {
                 ArrayHandle<Scalar4> d_angmom(m_pdata->getAngularMomentumArray(), access_location::device, access_mode::readwrite);
-                gpu_fire_zero_v(d_angmom.data,
+                gpu_fire_zero_angmom(d_angmom.data,
                                 d_index_array.data,
                                 group_size);
                 if(m_exec_conf->isCUDAErrorCheckingEnabled())

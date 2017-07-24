@@ -133,12 +133,12 @@ void FIREEnergyMinimizer::reset()
 
 /*! \param timesteps is the current timestep
 */
-void FIREEnergyMinimizer::update(unsigned int timesteps)
+void FIREEnergyMinimizer::update(unsigned int timestep)
     {
     if (m_converged)
         return;
 
-    IntegratorTwoStep::update(timesteps);
+    IntegratorTwoStep::update(timestep);
 
     Scalar Pt(0.0); //translational power
     Scalar Pr(0.0); //rotational power
@@ -173,6 +173,15 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         }
 
     m_energy_total = pe_total;
+
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &pe_total, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &total_group_size, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
     energy = pe_total/Scalar(total_group_size);
     }
 
@@ -185,6 +194,8 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
+
+    bool aniso = false;
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -200,6 +211,8 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
 
         if ((*method)->getAnisotropic())
             {
+            aniso = true;
+
             ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
@@ -237,6 +250,22 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
             }
         }
 
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &fnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &vnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &Pt, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+
+        if (aniso)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &tnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &wnorm, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &Pr, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
+        }
+    #endif
+
     fnorm = sqrt(fnorm);
     vnorm = sqrt(vnorm);
 
@@ -244,8 +273,13 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
     wnorm = sqrt(wnorm);
 
     unsigned int ndof = m_sysdef->getNDimensions()*total_group_size;
+    m_exec_conf->msg->notice(10) << "FIRE fnorm " << fnorm << " tnorm " << tnorm << " delta_E " << energy-m_old_energy << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE vnorm " << vnorm << " tnorm " << wnorm << std::endl;
+    m_exec_conf->msg->notice(10) << "FIRE Pt " << Pt << " Pr " << Pr << std::endl;
+
     if ((fnorm/sqrt(Scalar(ndof)) < m_ftol && wnorm/sqrt(Scalar(ndof)) < m_wtol  && fabs(energy-m_old_energy) < m_etol) && m_n_since_start >= m_run_minsteps)
         {
+        m_exec_conf->msg->notice(4) << "FIRE converged in timestep " << timestep << std::endl;
         m_converged = true;
         return;
         }
@@ -328,6 +362,8 @@ void FIREEnergyMinimizer::update(unsigned int timesteps)
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
 
+        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
+
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {
             std::shared_ptr<ParticleGroup> current_group = (*method)->getGroup();
@@ -371,6 +407,7 @@ void export_FIREEnergyMinimizer(py::module& m)
         .def("setAlphaStart", &FIREEnergyMinimizer::setAlphaStart)
         .def("setFalpha", &FIREEnergyMinimizer::setFalpha)
         .def("setFtol", &FIREEnergyMinimizer::setFtol)
+        .def("setWtol", &FIREEnergyMinimizer::setWtol)
         .def("setEtol", &FIREEnergyMinimizer::setEtol)
         .def("setMinSteps", &FIREEnergyMinimizer::setMinSteps)
         ;

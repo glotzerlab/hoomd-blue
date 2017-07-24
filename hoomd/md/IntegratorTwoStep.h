@@ -112,23 +112,16 @@ class IntegratorTwoStep : public Integrator
         //! Set autotuner parameters
         virtual void setAutotunerParams(bool enable, unsigned int period);
 
+        //! (Re-)initialize the integration method
+        void initializeIntegrationMethods();
+
     protected:
         //! Helper method to test if all added methods have valid restart information
         bool isValidRestart();
 
-        //! Help function to initialize the integration method
-        void initializeIntegrationMethods();
-
-        //! Helper function to be called when particle number changes
-        void slotGlobalParticleNumberChange()
-            {
-            m_particles_reinitialized = true;
-            }
-
         std::vector< std::shared_ptr<IntegrationMethodTwoStep> > m_methods;   //!< List of all the integration methods
 
         bool m_prepared;              //!< True if preprun has been called
-        bool m_particles_reinitialized;  //!< True if particles have been reinitialized
         bool m_gave_warning;          //!< True if a warning has been given about no methods added
         AnisotropicMode m_aniso_mode; //!< Anisotropic mode for this integrator
 

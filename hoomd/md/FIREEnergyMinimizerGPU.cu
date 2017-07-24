@@ -19,12 +19,6 @@
 
 //! Shared memory used in reducing sums
 extern __shared__ Scalar fire_sdata[];
-//! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ Scalar fire_sdata1[];
-//! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ Scalar fire_sdata2[];
-//! Shared memory used in simultaneously reducing three sums (currently unused)
-extern __shared__ Scalar fire_sdata3[];
 
 //! The kernel function to zeros velocities, called by gpu_fire_zero_v()
 /*! \param d_vel device array of particle velocities
@@ -57,6 +51,25 @@ void gpu_fire_zero_v_kernel(Scalar4 *d_vel,
     }
 
 
+//! The kernel function to zero angular momenta, called by gpu_fire_zero_angmom()
+extern "C" __global__
+void gpu_fire_zero_angmom_kernel(Scalar4 *d_angmom,
+                            unsigned int *d_group_members,
+                            unsigned int group_size)
+    {
+    // determine which particle this thread works on (MEM TRANSFER: 4 bytes)
+    int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (group_idx < group_size)
+        {
+        unsigned int idx = d_group_members[group_idx];
+
+        // write out the results (MEM_TRANSFER: 32 bytes)
+        d_angmom[idx] = make_scalar4(0,0,0,0);
+        }
+    }
+
+
 /*! \param d_vel device array of particle velocities
     \param d_group_members Device array listing the indicies of the mebers of the group to integrate
     \param group_size Number of members in the group
@@ -80,6 +93,24 @@ cudaError_t gpu_fire_zero_v(Scalar4 *d_vel,
 
     return cudaSuccess;
     }
+
+cudaError_t gpu_fire_zero_angmom(Scalar4 *d_angmom,
+                            unsigned int *d_group_members,
+                            unsigned int group_size)
+    {
+    // setup the grid to run the kernel
+    int block_size = 256;
+    dim3 grid( (group_size/block_size) + 1, 1, 1);
+    dim3 threads(block_size, 1, 1);
+
+    // run the kernel
+    gpu_fire_zero_angmom_kernel<<< grid, threads >>>(d_angmom,
+                                                d_group_members,
+                                                group_size);
+
+    return cudaSuccess;
+    }
+
 
 //! Kernel function for reducing the potential energy to a partial sum
 /*! \param d_group_members Device array listing the indicies of the mebers of the group to sum

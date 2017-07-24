@@ -20,13 +20,10 @@ namespace py = pybind11;
 using namespace std;
 
 IntegratorTwoStep::IntegratorTwoStep(std::shared_ptr<SystemDefinition> sysdef, Scalar deltaT)
-    : Integrator(sysdef, deltaT), m_prepared(false), m_particles_reinitialized(true), m_gave_warning(false),
+    : Integrator(sysdef, deltaT), m_prepared(false), m_gave_warning(false),
     m_aniso_mode(Automatic)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorTwoStep" << endl;
-
-    // connect to particle number change signal
-    m_pdata->getGlobalParticleNumberChangeSignal().connect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 IntegratorTwoStep::~IntegratorTwoStep()
@@ -39,8 +36,6 @@ IntegratorTwoStep::~IntegratorTwoStep()
         m_comm->getComputeCallbackSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::updateRigidBodies>(this);
         }
     #endif
-
-    m_pdata->getGlobalParticleNumberChangeSignal().disconnect<IntegratorTwoStep, &IntegratorTwoStep::slotGlobalParticleNumberChange>(this);
     }
 
 /*! \param prof The profiler to set
@@ -310,6 +305,8 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
             break;
         }
 
+    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso << std::endl;
+
     if (aniso)
         {
         // loop through all methods
@@ -364,8 +361,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    m_prepared = true;
-
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -375,29 +370,28 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // perform communication
         m_comm->communicate(timestep);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep);
+        }
 
         // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep);
 
-    // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart() || m_particles_reinitialized)
+    // accelerations only need to be calculated if the accelerations have not yet been set
+    if (!m_pdata->isAccelSet())
         {
         computeAccelerations(timestep);
+        m_pdata->notifyAccelSet();
         }
 
-    if (m_particles_reinitialized)
-        {
-        // if particle positions have changed since last run(), reinitialize integrator variables
-        initializeIntegrationMethods();
-        }
-
-    m_particles_reinitialized = false;
+    m_prepared = true;
     }
 
 /*! Return the combined flags of all integration methods.
@@ -465,6 +459,7 @@ void export_IntegratorTwoStep(py::module& m)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
         .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
+        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
         ;
 
     py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")

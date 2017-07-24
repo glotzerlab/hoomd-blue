@@ -8,7 +8,7 @@
     \brief Updates ExternalField base class
 */
 #include "hoomd/Updater.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
@@ -136,7 +136,7 @@ class UpdaterExternalFieldWall : public Updater
         virtual void update(unsigned int timestep)
             {
             // Choose whether or not to update the external field
-            Saru rng(m_seed, timestep, 0xf6a510ab);
+            hoomd::detail::Saru rng(m_seed, timestep, 0xba015a6f);
             unsigned int move_type_select = rng.u32() & 0xffff;
             unsigned int move_ratio = m_move_ratio * 65536;
             // Attempt and evaluate a move
