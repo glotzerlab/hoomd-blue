@@ -10,6 +10,7 @@ Not yet released
 
 * Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
 * Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
+* Fix a bug where `pair.compute_energy()` did not report correct results in MPI parallel simulations.
 
 ## v2.1.8
 
