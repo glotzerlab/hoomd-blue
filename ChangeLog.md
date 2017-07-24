@@ -2,6 +2,15 @@
 
 [TOC]
 
+## v2.1.9
+
+Not yet released
+
+*Bug fixes*
+
+* Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
+* Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
+
 ## v2.1.8
 
 Released 2017/07/19
