@@ -9,6 +9,8 @@ Not yet released
 *New features*
 
 * Add `hoomd.hdf5.log` to log quantities in hdf5 format. Matrix quantities can be logged.
+* `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+* force.constant and force.active can now apply torques
 * HPMC: `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
 * HPMC: `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
 * MD: `force.constant` and `force.active` can now apply torques
@@ -25,6 +27,9 @@ Not yet released
 * MD: Add special pairs as exclusions from neighbor lists.
 * MD: Add cosine squared angle potential `md.angle.cosinesq`
 * MD: Add `md.pair.DLVO()` for evaluation of colloidal dispersion and electrostatic forces
+* MD: Add Lennard-Jones 12-8 pair potential
+* MD: Add Buckingham (exp-6) pair potential
+* MD: Add Coulomb 1-4 special_pair potential
 
 *Deprecated*
 
@@ -51,6 +56,15 @@ Not yet released
 * `-march=native` is no longer set by default (this is now a suggestion in the documentation)
 * Compiler flags now default to CMake defaults
 * `ENABLE_CUDA` and `ENABLE_MPI` CMake options default OFF. User must explicitly choose to enable optional dependencies.
+
+## v2.1.9
+
+Not yet released
+
+*Bug fixes*
+
+* Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
+* Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
 
 ## v2.1.8
 

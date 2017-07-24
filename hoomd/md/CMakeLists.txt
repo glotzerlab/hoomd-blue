@@ -66,11 +66,13 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
+                EvaluatorSpecialPairCoulomb.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
                 EvaluatorConstraintSphere.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
+                EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
@@ -79,6 +81,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGauss.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
+                EvaluatorPairLJ1208.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
@@ -342,4 +345,8 @@ endif()
 if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
+endif()
+
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
 endif()

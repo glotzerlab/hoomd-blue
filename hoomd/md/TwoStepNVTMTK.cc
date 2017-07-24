@@ -44,16 +44,9 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
         m_exec_conf->msg->warning() << "integrate.nvt: tau set less than 0.0 in NVTUpdater" << endl;
 
     // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "nvt_mtk", 4))
+    if (!restartInfoTestValid(getIntegratorVariables(), "nvt_mtk", 4))
         {
-        v.type = "nvt_mtk";
-        v.variable.resize(4);
-        v.variable[0] = Scalar(0.0);
-        v.variable[1] = Scalar(0.0);
-        v.variable[2] = Scalar(0.0);
-        v.variable[3] = Scalar(0.0);
+        initializeIntegratorVariables();
         setValidRestart(false);
         }
     else
@@ -61,7 +54,6 @@ TwoStepNVTMTK::TwoStepNVTMTK(std::shared_ptr<SystemDefinition> sysdef,
         setValidRestart(true);
         }
 
-    setIntegratorVariables(v);
     m_log_name = string("nvt_mtk_reservoir_energy") + suffix;
     }
 
