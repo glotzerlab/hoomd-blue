@@ -9,7 +9,7 @@
 */
 
 #include "hoomd/Compute.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/SnapshotSystemData.h"
 
@@ -87,7 +87,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
         void compute(unsigned int timestep) { }
 
         //! Return true if a particle trial move is accepted
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng)
+        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
             {
             // calc boltzmann factor from the external potential
             Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);
