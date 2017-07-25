@@ -472,6 +472,9 @@ class mode_hpmc(_integrator):
         Returns:
             List of tuples. True/false value of the i,j entry indicates overlap/non-overlap of the ith and jth particles (by tag)
 
+        Note:
+            :py:meth:`map_overlaps` does not support MPI parallel simulations.
+
         Example:
             mc = hpmc.integrate.shape(...)
             mc.shape_param.set(...)
