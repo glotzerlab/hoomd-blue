@@ -772,7 +772,7 @@ class sphere(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -880,7 +880,7 @@ class convex_polygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
@@ -983,7 +983,7 @@ class convex_spheropolygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
@@ -1089,7 +1089,7 @@ class simple_polygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set parameters
@@ -1226,7 +1226,7 @@ class polyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1340,7 +1340,7 @@ class convex_polyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if implicit:
                 if depletant_mode_circumsphere(depletant_mode):
                     self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
@@ -1470,7 +1470,7 @@ class faceted_sphere(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1570,7 +1570,7 @@ class sphinx(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
 
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
@@ -1693,7 +1693,7 @@ class convex_spheropolyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1814,7 +1814,7 @@ class ellipsoid(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1920,7 +1920,7 @@ class sphere_union(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
@@ -2024,7 +2024,7 @@ class convex_polyhedron_union(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
