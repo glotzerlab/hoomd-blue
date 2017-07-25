@@ -48,6 +48,8 @@ def dimer_overlap_manual(system, verts, Ap, Aq, Bp, Bq):
     mc = hpmc.integrate.convex_polyhedron(seed=27)
     mc.shape_param.set('A', vertices=verts)
 
+    result = False
+
     for r_i, q_i in zip(numpy.asarray(Ap, dtype=float), numpy.asarray(Aq, dtype=float)):
         for r_j, q_j in zip(numpy.asarray(Bp, dtype=float), numpy.asarray(Bq, dtype=float)):
             system.particles[0].position = r_i
@@ -66,17 +68,13 @@ def dimer_overlap_manual(system, verts, Ap, Aq, Bp, Bq):
             overlap_map = mc.map_overlaps()
 
             if overlap_map[0][1] > 0:
-                # clean up
-                del mc
-                system.restore_snapshot(backup)
-
-                return True
+                result = True;
 
     # clean up
     del mc
     system.restore_snapshot(backup)
 
-    return False
+    return result
 
 ## Helper function to check if two convex polyhedron dimers overlap using the convex_polyhedron_union methods
 # \param system hoomd system
@@ -93,6 +91,8 @@ def dimer_overlap_union(system, verts, Ap, Aq, Bp, Bq):
     mc = hpmc.integrate.convex_polyhedron_union(seed=27);
     mc.shape_param.set("A", vertices=[verts, verts], centers=Ap, orientations=Aq);
     mc.shape_param.set("B", vertices=[verts, verts], centers=Bp, orientations=Bq);
+
+    result = False
 
     # set the particle unions at the origin with no rotation, since locations of dimer constituents
     # has already been taken care of
@@ -115,16 +115,12 @@ def dimer_overlap_union(system, verts, Ap, Aq, Bp, Bq):
     overlap_map = mc.map_overlaps()
 
     if overlap_map[0][1] > 0:
-        # clean up
-        del mc
-        system.restore_snapshot(backup)
-
-        return True
+        result = True
 
     # clean up
     del mc
     system.restore_snapshot(backup)
-    return False
+    return result
 
 # Rotate a vector with a unit quaternion
 # \param q rotation quaternion
