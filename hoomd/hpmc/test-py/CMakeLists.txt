@@ -87,6 +87,7 @@ set(EXCLUDE_FROM_MPI
     create_shapes.py
     test_sdf.py
     map_overlap.py
+    shape_union.py
    )
 
 set(MPI_ONLY
