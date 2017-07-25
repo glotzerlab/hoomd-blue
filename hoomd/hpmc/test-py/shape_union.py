@@ -5,7 +5,7 @@ import unittest
 import os
 import numpy
 
-context.initialize("--notice-level=0")
+context.initialize()
 
 def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);
@@ -257,7 +257,7 @@ class helper_functions(unittest.TestCase):
 
     def tearDown(self):
         del self.system
-        context.initialize("--notice-level=0")
+        context.initialize()
 
 class shape_union(unittest.TestCase):
     def setUp(self):
@@ -416,7 +416,7 @@ class shape_union(unittest.TestCase):
 
     def tearDown(self):
         del self.system
-        context.initialize("--notice-level=0");
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
