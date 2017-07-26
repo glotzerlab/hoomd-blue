@@ -297,7 +297,7 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
     
     /* Done randomizing velocities*/
 
-    /* Reset the falg*/
+    /* Reset the flag*/
     m_shouldRandomize = false;
     }
 

@@ -222,6 +222,7 @@ class IntegrationMethodTwoStep
             {
             m_T_randomize = T_randomize;
             m_seed_randomize = seed_randomize;
+            m_shouldRandomize = true;
             }
 
         void randomizeVelocities(unsigned int timestep);

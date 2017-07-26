@@ -239,7 +239,7 @@ class nvt(_integration_method):
             self.cpp_method.setTau(tau);
             self.tau = tau
 
-    def randomize_velocities(self, seed):
+    def randomize_velocities(self, kT, seed):
         R""" Assign random velocities to particles in the group.
 
         Args:
@@ -249,7 +249,7 @@ class nvt(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.            
 
         """
-        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed) 
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed) 
 
 class npt(_integration_method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -599,7 +599,7 @@ class npt(_integration_method):
 
         return data
 
-    def randomize_velocities(self, seed):
+    def randomize_velocities(self, kT, seed):
         R""" Assign random velocities to particles in the group.
 
         Args:
@@ -609,7 +609,7 @@ class npt(_integration_method):
             Radomization is applied at the start of the next :py:func:`hoomd.run`.
 
         """
-        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class nph(npt):
     R""" NPH Integration via MTK barostat-thermostat..
