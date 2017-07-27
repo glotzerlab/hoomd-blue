@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -54,6 +55,7 @@ void export_spheropolygon(py::module& m)
     export_RemoveDriftUpdater<ShapeSpheropolygon>(m, "RemoveDriftUpdaterSpheropolygon");
     // export_ExternalFieldWall<ShapeSpheropolygon>(m, "WallSpheropolygon");
     // export_UpdaterExternalFieldWall<ShapeSpheropolygon>(m, "UpdaterExternalFieldWallSpheropolygon");
+    export_ExternalCallback<ShapeSpheropolygon>(m, "ExternalCallbackSpheropolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSpheropolygon >(m, "IntegratorHPMCMonoGPUSpheropolygon");

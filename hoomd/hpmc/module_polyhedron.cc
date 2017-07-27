@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -54,6 +55,7 @@ void export_polyhedron(py::module& m)
     export_RemoveDriftUpdater<ShapePolyhedron>(m, "RemoveDriftUpdaterPolyhedron");
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
     export_UpdaterExternalFieldWall<ShapePolyhedron>(m, "UpdaterExternalFieldWallPolyhedron");
+    export_ExternalCallback<ShapePolyhedron>(m, "ExternalCallbackPolyhedron");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapePolyhedron >(m, "IntegratorHPMCMonoGPUPolyhedron");

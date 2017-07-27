@@ -15,6 +15,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -54,6 +55,7 @@ void export_union_sphere(py::module& m)
     export_RemoveDriftUpdater<ShapeUnion<ShapeSphere> >(m, "RemoveDriftUpdaterSphereUnion");
     export_ExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "WallSphereUnion");
     export_UpdaterExternalFieldWall<ShapeUnion<ShapeSphere> >(m, "UpdaterExternalFieldWallSphereUnion");
+    export_ExternalCallback<ShapeUnion<ShapeSphere> >(m, "ExternalCallbackSphereUnion");
 
     #ifdef ENABLE_CUDA
 

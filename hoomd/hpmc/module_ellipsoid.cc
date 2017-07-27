@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -54,6 +55,7 @@ void export_ellipsoid(py::module& m)
     export_RemoveDriftUpdater<ShapeEllipsoid>(m, "RemoveDriftUpdaterEllipsoid");
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
     export_UpdaterExternalFieldWall<ShapeEllipsoid>(m, "UpdaterExternalFieldWallEllipsoid");
+    export_ExternalCallback<ShapeEllipsoid>(m, "ExternalCallbackEllipsoid");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeEllipsoid >(m, "IntegratorHPMCMonoGPUEllipsoid");
