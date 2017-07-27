@@ -231,7 +231,7 @@ class implicit_test_cube(unittest.TestCase):
 class implicit_test_sphere_new (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
 
         self.num_samples = 0
         self.steps = 10

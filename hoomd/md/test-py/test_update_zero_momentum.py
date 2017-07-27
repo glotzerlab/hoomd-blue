@@ -11,7 +11,7 @@ import os
 class update_zero_momentum_tests (unittest.TestCase):
     def setUp(self):
         print
-        init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
 
         context.current.sorter.set_params(grid=8)
 
