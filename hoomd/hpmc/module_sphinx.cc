@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -54,6 +55,7 @@ void export_sphinx(py::module& m)
     export_RemoveDriftUpdater<ShapeSphinx>(m, "RemoveDriftUpdaterSphinx");
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
     export_UpdaterExternalFieldWall<ShapeSphinx>(m, "UpdaterExternalFieldWallSphinx");
+    export_ExternalCallback<ShapeSphinx>(m, "ExternalCallbackSphinx");
 
     #ifdef ENABLE_CUDA
     #ifdef ENABLE_SPHINX_GPU

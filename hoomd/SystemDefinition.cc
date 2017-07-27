@@ -141,7 +141,7 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
 
     if (particles)
         {
-        m_particle_data->takeSnapshot(snap->particle_data);
+        snap->map = m_particle_data->takeSnapshot(snap->particle_data);
         snap->has_particle_data = true;
         }
     else
