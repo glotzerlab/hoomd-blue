@@ -113,6 +113,7 @@ SET(EXCLUDE_FROM_MPI
     test_force_active
     test_update_ellipsoid
     test_meta_md
+    test_minimize_fire
     )
 
 if (ENABLE_MPI)

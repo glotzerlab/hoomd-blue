@@ -145,14 +145,14 @@ class SystemDefinition
 
         //! Return a snapshot of the current system data
         template <class Real>
-        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles,
-                                                           bool bonds,
-                                                           bool angles,
-                                                           bool dihedrals,
-                                                           bool impropers,
-                                                           bool constraints,
-                                                           bool integrators,
-                                                           bool pairs);
+        std::shared_ptr< SnapshotSystemData<Real> > takeSnapshot(bool particles= true,
+                                                           bool bonds = false,
+                                                           bool angles = false,
+                                                           bool dihedrals = false,
+                                                           bool impropers = false,
+                                                           bool constraints = false,
+                                                           bool integrators = false,
+                                                           bool pairs = false);
 
         //! Re-initialize the system from a snapshot
         template <class Real>

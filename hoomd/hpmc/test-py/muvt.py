@@ -1,5 +1,4 @@
 from hoomd import *
-from hoomd import deprecated
 from hoomd import hpmc
 
 import unittest
@@ -13,7 +12,7 @@ context.initialize()
 
 class muvt_updater_test(unittest.TestCase):
     def setUp(self):
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.001,min_dist=4.0,seed=12345)
+        self.system = init.create_lattice(lattice.sc(a=8.059959770082347),n=[10,10,10]);
 
     def tearDown(self):
         del self.muvt

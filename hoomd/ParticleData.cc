@@ -1630,6 +1630,31 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     return result;
 }
 
+/*! \param tag Global particle tag
+    \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
+    \returns Force of particle referenced by tag
+ */
+Scalar ParticleData::getPNetVirial(unsigned int tag, unsigned int component) const
+    {
+    unsigned int i = getRTag(tag);
+    bool found = (i < getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::read);
+        result = h_net_virial.data[m_net_virial.getPitch()*component+i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
+
 //! Set the current position of a particle
 /* \post In parallel simulations, the particle is moved to a new domain if necessary.
  * \warning Do not call during a simulation (method can overwrite ghost particle data)
@@ -2293,6 +2318,7 @@ void export_ParticleData(py::module& m)
     .def("getAngularMomentum", &ParticleData::getAngularMomentum)
     .def("getPNetForce", &ParticleData::getPNetForce)
     .def("getNetTorque", &ParticleData::getNetTorque)
+    .def("getPNetVirial", &ParticleData::getPNetVirial)
     .def("getMomentsOfInertia", &ParticleData::getMomentsOfInertia)
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)
