@@ -3,7 +3,6 @@
 
 from hoomd import *
 from hoomd import md;
-from hoomd import deprecated
 context.initialize()
 import unittest
 import os
@@ -11,7 +10,7 @@ import os
 # md.pair.slj
 class pair_slj_tests (unittest.TestCase):
     def setUp(self):
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

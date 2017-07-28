@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 import unittest
 import os
@@ -12,7 +11,7 @@ context.initialize()
 # charge.pppm
 class charge_pppm_tests (unittest.TestCase):
     def setUp(self):
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
 
         for i in range(0,50):
             self.s.particles[i].charge = -1;
