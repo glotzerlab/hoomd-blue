@@ -439,7 +439,7 @@ namespace getardump{
 
         vector<string> foundFrames(availableFrames.begin(), availableFrames.end());
         string selectedFrame;
-        if(foundFrames.size() && ("latest" == frame || "any" == frame))
+        if(foundFrames.size() && ("latest" == frame || "any" == frame || "" == foundFrames.back()))
             selectedFrame = foundFrames.back();
         else if(foundFrames.size() && "earliest" == frame)
             selectedFrame = foundFrames.front();

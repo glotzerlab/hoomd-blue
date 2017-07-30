@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 import unittest
 import os
@@ -12,7 +11,7 @@ context.initialize()
 # charge.pppm
 class charge_pppm_tests (unittest.TestCase):
     def setUp(self):
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
 
         for i in range(0,50):
             self.s.particles[i].charge = -1;
@@ -60,7 +59,7 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
@@ -145,7 +144,7 @@ class charge_pppm_screening_test(unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(L=25))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(L=25))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)

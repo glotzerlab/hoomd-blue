@@ -273,22 +273,21 @@ class GPUTree
 
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
+            \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
             {
-            m_center.load_shared(ptr, load, ptr_max);
-            m_lengths.load_shared(ptr, load, ptr_max);
-            m_rotation.load_shared(ptr, load, ptr_max);
+            m_center.load_shared(ptr, available_bytes);
+            m_lengths.load_shared(ptr, available_bytes);
+            m_rotation.load_shared(ptr, available_bytes);
 
-            m_left.load_shared(ptr, load, ptr_max);
-            m_escape.load_shared(ptr, load, ptr_max);
-            m_ancestors.load_shared(ptr, load, ptr_max);
+            m_left.load_shared(ptr, available_bytes);
+            m_escape.load_shared(ptr, available_bytes);
+            m_ancestors.load_shared(ptr, available_bytes);
 
-            m_leaf_ptr.load_shared(ptr, load, ptr_max);
-            m_leaf_obb_ptr.load_shared(ptr, load, ptr_max);
-            m_particles.load_shared(ptr, load, ptr_max);
+            m_leaf_ptr.load_shared(ptr, available_bytes);
+            m_leaf_obb_ptr.load_shared(ptr, available_bytes);
+            m_particles.load_shared(ptr, available_bytes);
             }
 
         //! Get the capacity of leaf nodes

@@ -10,12 +10,12 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
+#include "hoomd/Saru.h"
 
 #include <curand_kernel.h>
 
 #ifdef NVCC
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
 #include "hoomd/TextureTools.h"
 #endif
 
@@ -219,6 +219,8 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
     bool master = (offset == 0 && threadIdx.x == 0);
     unsigned int n_groups = blockDim.z;
 
+    __shared__ unsigned int s_n_overlap;
+
     // determine sample idx
     unsigned int i;
     if (gridDim.y > 1)
@@ -266,12 +268,10 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_overlap + n_groups);
-    char *s_extra_begin = s_extra;
 
+    unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
-
-    __shared__ unsigned int s_n_overlap;
+        s_params[cur_type].load_shared(s_extra, available_bytes);
 
     if (master)
         {
@@ -293,7 +293,7 @@ __global__ void gpu_hpmc_free_volume_kernel(unsigned int n_sample,
         }
 
     // one RNG per particle
-    SaruGPU rng(i, seed+select, timestep);
+    hoomd::detail::Saru rng(i, seed+select, timestep);
 
     unsigned int my_cell;
 
@@ -469,13 +469,13 @@ cudaError_t gpu_hpmc_free_volume(const hpmc_free_volume_args_t& args, const type
         }
 
     // determine dynamically requested shared memory
-    char *ptr_begin = (char *)nullptr + shared_bytes + attr.sharedSizeBytes; // start after statically & dynamically allocated shared memory
-    char *ptr =  ptr_begin;
+    char *ptr = (char *)nullptr;
+    unsigned int available_bytes = max_extra_bytes;
     for (unsigned int i = 0; i < args.num_types; ++i)
         {
-        d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+        d_params[i].load_shared(ptr, available_bytes);
         }
-    unsigned int extra_bytes = ptr - ptr_begin;
+    unsigned int extra_bytes = max_extra_bytes - available_bytes;
 
     shared_bytes += extra_bytes;
 

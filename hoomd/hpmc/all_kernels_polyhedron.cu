@@ -4,6 +4,7 @@
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "IntegratorHPMCMonoImplicitGPU.cuh"
+#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
 #include "ShapePolyhedron.h"
 
@@ -18,9 +19,13 @@ template cudaError_t gpu_hpmc_free_volume<ShapePolyhedron>(const hpmc_free_volum
                                                        const typename ShapePolyhedron::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapePolyhedron>(const hpmc_args_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
-template void gpu_hpmc_implicit_count_overlaps<ShapePolyhedron>(const hpmc_implicit_args_t& args,
+template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapePolyhedron>(const hpmc_implicit_args_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapePolyhedron>(const hpmc_implicit_args_t& args,
+                                                  const typename ShapePolyhedron::param_type *d_params);
+template cudaError_t gpu_hpmc_insert_depletants_queue<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
+                                                  const typename ShapePolyhedron::param_type *d_params);
+template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
 
 }; // end namespace detail

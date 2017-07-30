@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 
 #include <cassert>
 
@@ -410,10 +410,10 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_type_group + n_groups);
-    char *s_extra_begin = s_extra;
 
+    unsigned int available_bytes = max_extra_bytes;
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
+        s_params[cur_type].load_shared(s_extra, available_bytes);
 
     // initialize the shared memory array for communicating overlaps
     if (master && group == 0)
@@ -475,7 +475,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (active)
         {
         // one RNG per cell
-        SaruGPU rng(my_cell, seed+select, timestep);
+        hoomd::detail::Saru rng(my_cell, seed+select, timestep);
 
         // select one of the particles randomly from the cell
         unsigned int my_cell_offset = rand_select(rng, my_cell_size-1);
@@ -855,9 +855,8 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         }
 
     static unsigned int base_shared_bytes = UINT_MAX;
-    bool shared_bytes_changed = base_shared_bytes != shared_bytes;
-    if (shared_bytes_changed != base_shared_bytes)
-        base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
 
     unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
     static unsigned int extra_bytes = UINT_MAX;
@@ -867,13 +866,13 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         cudaDeviceSynchronize();
 
         // determine dynamically requested shared memory
-        char *ptr_begin = (char *)nullptr + base_shared_bytes; // start after dynamically allocated shared memory
-        char *ptr =  ptr_begin;
+        char *ptr = (char *)nullptr;
+        unsigned int available_bytes = max_extra_bytes;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+            params[i].load_shared(ptr, available_bytes);
             }
-        extra_bytes = ptr - ptr_begin;
+        extra_bytes = max_extra_bytes - available_bytes;
         }
 
     shared_bytes += extra_bytes;

@@ -30,20 +30,30 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
     {
     public:
         //! Constructs the minimizer and associates it with the system
-        FIREEnergyMinimizer(std::shared_ptr<SystemDefinition>,  std::shared_ptr<ParticleGroup>, Scalar, bool=true);
+        FIREEnergyMinimizer(std::shared_ptr<SystemDefinition>,  Scalar);
         virtual ~FIREEnergyMinimizer();
 
         //! Reset the minimization
         virtual void reset();
-
-        //! Set the timestep
-        virtual void setDeltaT(Scalar);
 
         //! Perform one minimization iteration
         virtual void update(unsigned int);
 
         //! Return whether or not the minimization has converged
         bool hasConverged() const {return m_converged;}
+
+        //! Return the potential energy after the last iteration
+        Scalar getEnergy() const
+            {
+            if (m_was_reset)
+                {
+                m_exec_conf->msg->warning() << "FIRE has just been initialized. Return energy==0."
+                    << std::endl;
+                return Scalar(0.0);
+                }
+
+            return m_energy_total;
+            }
 
         //! Set the minimum number of steps for which the search direction must be bad before finding a new direction
         /*! \param nmin is the new nmin to set
@@ -67,6 +77,11 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         */
         void setFtol(Scalar ftol) {m_ftol = ftol;}
 
+        //! Set the stopping criterion based on the total torque on all particles in the system
+        /*! \param wtol is the new torque tolerance to set
+        */
+        void setWtol(Scalar wtol) {m_wtol = wtol;}
+
         //! Set the stopping criterion based on the change in energy between successive iterations
         /*! \param etol is the new energy tolerance to set
         */
@@ -77,23 +92,18 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         */
         void setMinSteps(unsigned int steps) {m_run_minsteps = steps;}
 
-        //! Access the group
-        std::shared_ptr<ParticleGroup> getGroup() { return m_group; }
-
         //! Get needed pdata flags
         /*! FIREEnergyMinimzer needs the potential energy, so its flag is set
         */
         virtual PDataFlags getRequestedPDataFlags()
             {
-            PDataFlags flags;
+            PDataFlags flags = IntegratorTwoStep::getRequestedPDataFlags();
             flags[pdata_flag::potential_energy] = 1;
             return flags;
             }
 
     protected:
         //! Function to create the underlying integrator
-        //virtual void createIntegrator();
-        const std::shared_ptr<ParticleGroup> m_group;     //!< The group of particles this method works on
         unsigned int m_nmin;                //!< minimum number of consecutive successful search directions before modifying alpha
         unsigned int m_n_since_negative;    //!< counts the number of consecutive successful search directions
         unsigned int m_n_since_start;       //!< counts the number of consecutvie search attempts
@@ -103,7 +113,9 @@ class FIREEnergyMinimizer : public IntegratorTwoStep
         Scalar m_alpha_start;               //!< starting value of alpha
         Scalar m_falpha;                    //!< fraction to rescale alpha on successful search direction
         Scalar m_ftol;                      //!< stopping tolerance based on total force
+        Scalar m_wtol;                      //!< stopping tolerance based on total torque
         Scalar m_etol;                      //!< stopping tolerance based on the chance in energy
+        Scalar m_energy_total;              //!< Total energy of all integrator groups
         Scalar m_old_energy;                //!< energy from the previous iteration
         bool m_converged;                   //!< whether the minimization has converged
         Scalar m_deltaT_max;                //!< maximum timesteps after rescaling (set by user)

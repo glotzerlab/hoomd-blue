@@ -81,6 +81,18 @@ void ForceComposite::setParam(unsigned int body_typeid,
             <<" (position, orientation, type) are of unequal length." << std::endl;
         throw std::runtime_error("Error initializing ForceComposite");
         }
+    if (charge.size() && charge.size() != pos.size())
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Charges are non-empty but of different"
+            <<" length than the positions." << std::endl;
+        throw std::runtime_error("Error initializing ForceComposite");
+        }
+    if (diameter.size() && diameter.size() != pos.size())
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Diameters are non-empty but of different"
+            <<" length than the positions." << std::endl;
+        throw std::runtime_error("Error initializing ForceComposite");
+        }
 
     bool body_updated = false;
 

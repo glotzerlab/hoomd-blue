@@ -19,7 +19,7 @@
 #ifdef NVCC
 #include "HPMCPrecisionSetup.h"
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/extern/kernels/segreducecsr.cuh"
 #include "hoomd/extern/kernels/segreduce.cuh"
@@ -220,7 +220,7 @@ struct hpmc_implicit_args_t
     };
 
 template< class Shape >
-void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t &args, const typename Shape::param_type *d_params);
+cudaError_t gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t &args, const typename Shape::param_type *d_params);
 
 template< class Shape >
 cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t &args, const typename Shape::param_type *d_params);
@@ -383,10 +383,9 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_check_overlaps + overlap_idx.getNumElements());
-    char *s_extra_begin = s_extra;
 
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
+        s_params[cur_type].load_shared(s_extra, max_extra_bytes);
 
     __syncthreads();
 
@@ -487,7 +486,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
         }
 
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int overlap_checks = 0;
 
@@ -801,10 +800,9 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
 
     // initialize extra shared mem
     char *s_extra = (char *)(s_queue_gid + max_queue_size);
-    char *s_extra_begin = s_extra;
 
     for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
-        s_params[cur_type].load_shared(s_extra, true, s_extra_begin + max_extra_bytes);
+        s_params[cur_type].load_shared(s_extra, max_extra_bytes);
 
     __syncthreads();
 
@@ -846,7 +844,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
         my_cell = d_cell_set[active_cell_idx];
         }
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int idx_i = UINT_MAX;
 
@@ -1404,7 +1402,7 @@ __global__ void gpu_curand_implicit_setup(unsigned int n_rng,
     \ingroup hpmc_kernels
 */
 template< class Shape >
-void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const typename Shape::param_type *d_params)
+cudaError_t gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const typename Shape::param_type *d_params)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
@@ -1459,13 +1457,13 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
     implicit_postype_tex.filterMode = cudaFilterModePoint;
     cudaError_t error = cudaBindTexture(0, implicit_postype_tex, args.d_postype, sizeof(Scalar4)*args.max_n);
     if (error != cudaSuccess)
-        return;
+        return error;
 
     implicit_postype_old_tex.normalized = false;
     implicit_postype_old_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, implicit_postype_old_tex, args.d_postype_old, sizeof(Scalar4)*args.max_n);
     if (error != cudaSuccess)
-        return;
+        return error;
 
     if (args.has_orientation)
         {
@@ -1473,20 +1471,20 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
         implicit_orientation_tex.filterMode = cudaFilterModePoint;
         error = cudaBindTexture(0, implicit_orientation_tex, args.d_orientation, sizeof(Scalar4)*args.max_n);
         if (error != cudaSuccess)
-            return;
+            return error;
 
         implicit_orientation_old_tex.normalized = false;
         implicit_orientation_old_tex.filterMode = cudaFilterModePoint;
         error = cudaBindTexture(0, implicit_orientation_old_tex, args.d_orientation_old, sizeof(Scalar4)*args.max_n);
         if (error != cudaSuccess)
-            return;
+            return error;
         }
 
     implicit_cell_idx_tex.normalized = false;
     implicit_cell_idx_tex.filterMode = cudaFilterModePoint;
     error = cudaBindTexture(0, implicit_cell_idx_tex, args.d_cell_idx, sizeof(unsigned int)*args.cli.getNumElements());
     if (error != cudaSuccess)
-        return;
+        return error;
 
     unsigned int shared_bytes = args.num_types * (sizeof(typename Shape::param_type))
         + args.overlap_idx.getNumElements() * sizeof(unsigned int);
@@ -1509,7 +1507,7 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
         char *ptr =  ptr_begin;
         for (unsigned int i = 0; i < args.num_types; ++i)
             {
-            d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+            d_params[i].load_shared(ptr, max_extra_bytes);
             }
         extra_bytes = ptr - ptr_begin;
         }
@@ -1584,6 +1582,8 @@ void gpu_hpmc_implicit_count_overlaps(const hpmc_implicit_args_t& args, const ty
     // return total number of overlaps
     mgpu::Scan<mgpu::MgpuScanTypeExc>(args.d_overlap_cell, (int) args.n_active_cells, (unsigned int)0, mgpu::plus<unsigned int>(),
         (unsigned int *) 0, (args.ntrial ? &args.n_overlaps : (unsigned int *) 0), args.d_overlap_cell_scan, *args.mgpu_context);
+
+    return cudaSuccess;
     }
 
 //! Kernel driver for gpu_hpmc_implicit_reinsert_kernel() and gpu_hpmc_implict_accept_reject_kernel()
@@ -1685,7 +1685,7 @@ cudaError_t gpu_hpmc_implicit_accept_reject(const hpmc_implicit_args_t& args, co
             char *ptr =  ptr_begin;
             for (unsigned int i = 0; i < args.num_types; ++i)
                 {
-                d_params[i].load_shared(ptr,false, ptr_begin + max_extra_bytes);
+                d_params[i].load_shared(ptr, max_extra_bytes);
                 }
             extra_bytes = ptr - ptr_begin;
             }

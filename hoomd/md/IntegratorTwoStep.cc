@@ -250,6 +250,18 @@ bool IntegratorTwoStep::isValidRestart()
     return res;
     }
 
+/*! \returns true If all added integration methods have valid restart information
+*/
+void IntegratorTwoStep::initializeIntegrationMethods()
+    {
+    // loop through all methods
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // initialize each of them
+        (*method)->initializeIntegratorVariables();
+        }
+    }
+
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
     Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
@@ -292,6 +304,8 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
             aniso = getAnisotropic();
             break;
         }
+
+    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso << std::endl;
 
     if (aniso)
         {
@@ -336,6 +350,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             if(getAnisotropic())
                 m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
                     " with anisotropic forces defined" << endl;
+            break;
         case Automatic:
         default:
             aniso = getAnisotropic();
@@ -346,8 +361,6 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
     for (method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->setAnisotropic(aniso);
 
-    m_prepared = true;
-
 #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -357,19 +370,28 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
         // perform communication
         m_comm->communicate(timestep);
         }
+    else
 #endif
+        {
+        updateRigidBodies(timestep);
+        }
 
         // compute the net force on all particles
 #ifdef ENABLE_CUDA
     if (m_exec_conf->exec_mode == ExecutionConfiguration::GPU)
-        computeNetForceGPU(timestep+1);
+        computeNetForceGPU(timestep);
     else
 #endif
-        computeNetForce(timestep+1);
+        computeNetForce(timestep);
 
-    // but the accelerations only need to be calculated if the restart is not valid
-    if (!isValidRestart())
+    // accelerations only need to be calculated if the accelerations have not yet been set
+    if (!m_pdata->isAccelSet())
+        {
         computeAccelerations(timestep);
+        m_pdata->notifyAccelSet();
+        }
+
+    m_prepared = true;
     }
 
 /*! Return the combined flags of all integration methods.
@@ -437,6 +459,7 @@ void export_IntegratorTwoStep(py::module& m)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
         .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
+        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
         ;
 
     py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")
