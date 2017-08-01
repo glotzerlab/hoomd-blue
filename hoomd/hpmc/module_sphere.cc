@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -53,6 +54,7 @@ void export_sphere(py::module& m)
     export_RemoveDriftUpdater<ShapeSphere>(m, "RemoveDriftUpdaterSphere");
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
     export_UpdaterExternalFieldWall<ShapeSphere>(m, "UpdaterExternalFieldWallSphere");
+    export_ExternalCallback<ShapeSphere>(m, "ExternalCallbackSphere");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSphere >(m, "IntegratorHPMCMonoGPUSphere");

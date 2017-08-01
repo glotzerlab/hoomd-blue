@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from hoomd import *
-from hoomd import deprecated
 from hoomd import hpmc
 import math
 import unittest
@@ -17,8 +16,7 @@ context.initialize()
 class implicit_test_sphere (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
-
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
         self.long = False
         self.num_samples = 0
         self.steps = 10
@@ -108,7 +106,8 @@ class implicit_test_cube(unittest.TestCase):
         phi_c_ini = 0.01
         phi_c = 0.1
         self.V_cube = 1.0
-        N=1000
+        n = [10] * 3
+        N = math.pow(10,3)
 
         self.long = False
         self.num_samples = 0
@@ -121,7 +120,7 @@ class implicit_test_cube(unittest.TestCase):
         L_ini= math.pow(N*self.V_cube/phi_c_ini,1.0/3.0)
         L_target= math.pow(N*self.V_cube/phi_c,1.0/3.0)
 
-        self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=math.sqrt(2.0))
+        self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
         self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='circumsphere')
         self.mc.set_params(d=0.1,a=0.15)
@@ -232,7 +231,7 @@ class implicit_test_cube(unittest.TestCase):
 class implicit_test_sphere_new (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
 
         self.num_samples = 0
         self.steps = 10
