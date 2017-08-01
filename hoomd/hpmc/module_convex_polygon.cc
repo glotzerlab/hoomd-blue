@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -57,6 +58,7 @@ void export_convex_polygon(py::module& m)
     export_RemoveDriftUpdater<ShapeConvexPolygon>(m, "RemoveDriftUpdaterConvexPolygon");
     // export_ExternalFieldWall<ShapeConvexPolygon>(m, "WallConvexPolygon");
     // export_UpdaterExternalFieldWall<ShapeConvexPolygon>(m, "UpdaterExternalFieldWallConvexPolygon");
+    export_ExternalCallback<ShapeConvexPolygon>(m, "ExternalCallbackConvexPolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeConvexPolygon >(m, "IntegratorHPMCMonoGPUConvexPolygon");

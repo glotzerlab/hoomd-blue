@@ -1,7 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -14,7 +13,7 @@ class multi_context(unittest.TestCase):
         c2 = context.SimulationContext()
 
         with c1:
-            deprecated.init.create_random(N=2000, phi_p=0.2)
+            init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,20]) #target a packing fraction of 0.2
             nl = md.nlist.cell()
             lj = md.pair.lj(r_cut=3.0, nlist = nl)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
@@ -23,7 +22,7 @@ class multi_context(unittest.TestCase):
             md.integrate.nvt(group=group.all(), kT=1.2, tau=0.5)
 
         with c2:
-            deprecated.init.create_random(N=1000, phi_p=0.02)
+            init.create_lattice(lattice.sc(a=2.9693145670757697),n=[10,10,10]) #target a packing fraction of 0.02
             nl = md.nlist.cell()
             lj = md.pair.lj(r_cut=3.0, nlist = nl)
             lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
@@ -58,4 +57,3 @@ class multi_context(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])
-

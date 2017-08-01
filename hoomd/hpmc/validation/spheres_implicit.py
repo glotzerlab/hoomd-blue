@@ -108,12 +108,12 @@ class implicit_test (unittest.TestCase):
         a = L_target/n
         self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
+        self.system.particles.types.add('B')
+
+    def test_measure_etap(self):
         self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='circumsphere')
         self.mc.set_params(d=0.1,a=0.1)
-
-        self.system.particles.types.add('B')
         self.mc.set_params(depletant_type='B')
-
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
 
@@ -127,7 +127,7 @@ class implicit_test (unittest.TestCase):
         # warm up
         run(2000);
 
-    def test_measure_etap(self):
+
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR)
@@ -170,18 +170,10 @@ class implicit_test (unittest.TestCase):
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
 
-class implicit_test_new (unittest.TestCase):
-    def setUp(self):
-        # initialize random configuration
-        a = L_target/n
-        self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
-
+    def test_measure_etap_new(self):
         self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
         self.mc.set_params(d=0.1,a=0.1)
-
-        self.system.particles.types.add('B')
         self.mc.set_params(depletant_type='B')
-
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
 
@@ -195,7 +187,6 @@ class implicit_test_new (unittest.TestCase):
         # warm up
         run(2000);
 
-    def test_measure_etap(self):
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
         self.mc.set_params(nR=nR)
@@ -238,6 +229,10 @@ class implicit_test_new (unittest.TestCase):
         # check against reference value within reference error + measurement error
         self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
 
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

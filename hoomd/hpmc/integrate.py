@@ -724,7 +724,7 @@ class sphere(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1153,7 +1153,7 @@ class polyhedron(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1283,7 +1283,7 @@ class convex_polyhedron(mode_hpmc):
         nselect (int): (Override the automatic choice for the number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1408,7 +1408,7 @@ class faceted_sphere(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1523,7 +1523,7 @@ class sphinx(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1629,7 +1629,7 @@ class convex_spheropolyhedron(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         max_verts (int): Set the maximum number of vertices in a polyhedron. (deprecated in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
@@ -1768,7 +1768,7 @@ class ellipsoid(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         restore_state(bool): Restore internal state from initialization file when True. See :py:class:`mode_hpmc`
                              for a description of what state data restored. (added in version 2.2)
 
@@ -1861,7 +1861,7 @@ class sphere_union(mode_hpmc):
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
-            * .. versionadded:: 2.2
+            (added in version 2.2)
         max_members (int): Set the maximum number of members in the sphere union
             * .. deprecated:: 2.2
         capacity (int): Set to the number of constituent spheres per leaf node. (added in version 2.2)

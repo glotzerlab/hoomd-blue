@@ -16,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -57,6 +58,7 @@ void export_simple_polygon(py::module& m)
     export_RemoveDriftUpdater<ShapeSimplePolygon>(m, "RemoveDriftUpdaterSimplePolygon");
     // export_ExternalFieldWall<ShapeSimplePolygon>(m, "WallSimplePolygon");
     // export_UpdaterExternalFieldWall<ShapeSimplePolygon>(m, "UpdaterExternalFieldWallSimplePolygon");
+    export_ExternalCallback<ShapeSimplePolygon>(m, "ExternalCallbackSimplePolygon");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeSimplePolygon >(m, "IntegratorHPMCMonoGPUSimplePolygon");
