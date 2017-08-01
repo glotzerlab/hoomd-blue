@@ -9,6 +9,7 @@ md.special_pair
     :nosignatures:
 
     md.special_pair.lj
+    md.special_pair.coulomb
 
 .. rubric:: Details
 

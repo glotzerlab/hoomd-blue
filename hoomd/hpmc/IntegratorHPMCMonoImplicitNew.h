@@ -120,7 +120,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         void slotNumTypesChange();
 
     protected:
-        Scalar m_n_R;                                            //!< Averge depletant number density in free volume
+        Scalar m_n_R;                                            //!< Average depletant number density in free volume
         unsigned int m_type;                                     //!< Type of depletant particle to generate
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
@@ -518,8 +518,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                 // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
                 // Here, circumsphere refers to the sphere around the depletant-excluded volume
-                // POSSIBLE OPTIMIZATION: generate the list in the first loop over colliding particles
-
                 detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+m_d_dep);
                 vec3<Scalar> pos_i_old(h_postype.data[i]);
 

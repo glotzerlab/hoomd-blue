@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 import hoomd;
 context.initialize()
 import unittest
@@ -13,12 +12,7 @@ import numpy
 # unit tests for init.take_snapshot and init.restore_snapshot
 class init_take_restore_snapshot (unittest.TestCase):
     def setUp(self):
-        polymer1 = dict(bond_len=1.2, type=['A']*2 + ['B']*3, bond="linear", count=100);
-        polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-        polymers = [polymer1, polymer2]
-        box = data.boxdim(L=35);
-        separation=dict(A=0.42, B=0.42)
-        self.s = deprecated.init.create_random_polymers(box=box, polymers=polymers, separation=separation);
+        self.s = init.read_gsd(os.path.join(os.path.dirname(os.path.dirname(__file__)),'md','test-py','test_data_polymer_system_small.gsd'));
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
 
@@ -145,10 +139,7 @@ class init_take_restore_snapshot (unittest.TestCase):
 # test take_snapshot with the numpy API
 class init_verify_npy_dtype (unittest.TestCase):
     def setUp(self):
-        polymer = dict(bond_len=1.2, type=['A']*1 + ['B']*2, bond="linear", count=3);
-        box = data.boxdim(L=35);
-        separation=dict(A=0.42, B=0.42)
-        self.s = deprecated.init.create_random_polymers(box=box, polymers=[polymer], separation=separation);
+        self.s = init.read_gsd(os.path.join(os.path.dirname(os.path.dirname(__file__)),'md','test-py','test_data_polymer_system_small2.gsd'));
         self.assertTrue(self.s);
         self.assertTrue(self.s.sysdef);
 
