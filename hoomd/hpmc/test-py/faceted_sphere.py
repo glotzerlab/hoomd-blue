@@ -11,8 +11,7 @@ def create_empty(**kwargs):
     snap = data.make_snapshot(**kwargs);
     return init.read_snapshot(snap);
 
-# Tests that randomly generated systems of multi-object particles have the expected logical overlap status.
-
+# test overlaps of faceted sphere configurations
 class faceted_sphere(unittest.TestCase):
     def test_special_case(self):
         d=1.0
