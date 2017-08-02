@@ -44,7 +44,7 @@ struct union_params : param_base
 
     //! Default constructor
     DEVICE union_params()
-        : N(0)
+        : diameter(0.0), N(0), ignore(0)
         { }
 
     //! Load dynamic data members into shared memory and increase pointer
