@@ -1980,6 +1980,8 @@ class convex_polyhedron_union(mode_hpmc):
         move_ratio (float): Ratio of translation moves to rotation moves.
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
         max_members (int): Set the maximum number of members in the convex polyhedron union
         capacity (int): Set to the number of constituent convex polyhedra per leaf node
 
@@ -2010,19 +2012,19 @@ class convex_polyhedron_union(mode_hpmc):
         print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
     """
 
-    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, max_members=None, capacity=32):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
         hoomd.util.print_status_line();
 
-        if max_members is not None:
-            hoomd.context.msg.warning("max_members is deprecated. Ignoring.\n")
-
         # initialize base class
-        mode_hpmc.__init__(self,implicit);
+        mode_hpmc.__init__(self,implicit, depletant_mode);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             if(implicit):
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
             else:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
         else:
@@ -2031,7 +2033,10 @@ class convex_polyhedron_union(mode_hpmc):
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
-                self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
 
         # set default parameters
         setD(self.cpp_integrator,d);
@@ -2040,7 +2045,6 @@ class convex_polyhedron_union(mode_hpmc):
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
-        self.capacity = capacity;
         self.initialize_shape_params();
 
         # meta data

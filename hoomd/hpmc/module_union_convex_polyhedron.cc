@@ -5,6 +5,7 @@
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 #include "AnalyzerSDF.h"
 
@@ -23,6 +24,7 @@
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
+#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -40,6 +42,7 @@ void export_union_convex_polyhedron(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoConvexPolyhedronUnion");
     export_IntegratorHPMCMonoImplicit< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoImplicitNew< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion");
     export_ComputeFreeVolume< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeConvexPolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
@@ -56,6 +59,7 @@ void export_union_convex_polyhedron(py::module& m)
 
     export_IntegratorHPMCMonoGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoGPUConvexPolyhedronUnion");
     export_IntegratorHPMCMonoImplicitGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion");
     export_ComputeFreeVolumeGPU< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeGPUConvexPolyhedronUnion");
 
     #endif

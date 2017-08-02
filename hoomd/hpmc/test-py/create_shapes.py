@@ -175,6 +175,49 @@ class sphere_union_test(unittest.TestCase):
         del self.system
         context.initialize();
 
+class convex_polyhedron_union_test(unittest.TestCase):
+    def setUp(self):
+        self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
+
+        self.mc = hpmc.integrate.convex_polyhedron_union(seed=10);
+
+        hs = 0.5
+        cube_verts = [[-hs,-hs,-hs],
+                      [-hs,-hs,hs],
+                      [-hs,hs,-hs],
+                      [-hs,hs,hs],
+                      [hs,-hs,-hs],
+                      [hs,-hs,hs],
+                      [hs,hs,-hs],
+                      [hs,hs,hs]]
+
+        # positions of cubes in dimer coordinates
+        cubes = numpy.array([[-hs, 0, 0],[hs, 0, 0]])
+        # rotate cubes in dimer by 90 degrees about the x axis. shouldn't make a difference.
+        cube_ors = numpy.array([[numpy.cos(numpy.pi/2./2.),numpy.sin(numpy.pi/2./2.),0.,0.],
+                                [numpy.cos(numpy.pi/2./2.),numpy.sin(numpy.pi/2./2.),0.,0.]])
+
+
+        self.mc.shape_param.set("A", vertices=[cube_verts, cube_verts], centers=cubes, orientations=cube_ors);
+
+        context.current.sorter.set_params(grid=8)
+
+    def test_convexpolyhedron_union(self):
+        # check 1, see if there are any overlaps. There should be none as the square is oriented along the box and L>1
+        self.system.particles[0].position = (0,0,0);
+        self.system.particles[0].orientation = (1,0,0,0);
+
+        # verify that the particle is created correctly
+        run(1);
+
+        # verify that there are no overlaps
+        self.assertEqual(self.mc.count_overlaps(), 0);
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize();
+
 class convex_spheropolygon_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=10, dimensions=2), particle_types=['A'])
