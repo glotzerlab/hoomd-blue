@@ -64,9 +64,11 @@ struct OBB
     vec3<OverlapReal> lengths; // half-axes
     vec3<OverlapReal> center;
     quat<OverlapReal> rotation;
+    unsigned int mask;
+    unsigned int is_sphere;
 
     //! Default construct a 0 OBB
-    DEVICE OBB() {}
+    DEVICE OBB() : mask(1), is_sphere(0) {}
 
     //! Construct an OBB from a sphere
     /*! \param _position Position of the sphere
@@ -76,12 +78,16 @@ struct OBB
         {
         lengths = vec3<OverlapReal>(radius,radius,radius);
         center = _position;
+        mask = 1;
+        is_sphere = 1;
         }
 
     DEVICE OBB(const detail::AABB& aabb)
         {
         lengths = OverlapReal(0.5)*(vec3<OverlapReal>(aabb.getUpper())-vec3<OverlapReal>(aabb.getLower()));
         center = aabb.getPosition();
+        mask = 1;
+        is_sphere = 0;
         }
 
     //! Construct an OBB from an AABB
@@ -89,6 +95,12 @@ struct OBB
     DEVICE vec3<OverlapReal> getPosition() const
         {
         return center;
+        }
+
+    //! Return true if this OBB is a sphere
+    DEVICE bool isSphere() const
+        {
+        return is_sphere;
         }
 
     //! Get list of OBB corners
@@ -134,11 +146,22 @@ struct OBB
 */
 DEVICE inline bool overlap(const OBB& a, const OBB& b, bool exact=true)
     {
-    // rotate B in A's coordinate frame
-    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
+    // exit early if the masks don't match
+    if (! (a.mask & b.mask)) return false;
 
     // translation vector
     vec3<OverlapReal> t = b.center - a.center;
+
+    // if both OBBs are spheres, simplify overlap check
+    if (a.isSphere() && b.isSphere())
+        {
+        OverlapReal rsq = dot(t,t);
+        OverlapReal RaRb = a.lengths.x + b.lengths.x;
+        return rsq <= RaRb*RaRb;
+        }
+
+    // rotate B in A's coordinate frame
+    rotmat3<OverlapReal> r(conj(a.rotation) * b.rotation);
 
     // rotate translation into A's frame
     t = rotate(conj(a.rotation),t);
@@ -381,7 +404,8 @@ inline double MinAreaRect(vec2<double> pt[], int numPts, vec2<double> &c, vec2<d
     return minArea;
     }
 
-DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, OverlapReal vertex_radius)
+DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, const std::vector<OverlapReal>& vertex_radii,
+    bool make_sphere)
     {
     // compute mean
     OBB res;
@@ -607,6 +631,8 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
     vec3<OverlapReal> proj_min = vec3<OverlapReal>(FLT_MAX,FLT_MAX,FLT_MAX);
     vec3<OverlapReal> proj_max = vec3<OverlapReal>(-FLT_MAX,-FLT_MAX,-FLT_MAX);
 
+    OverlapReal max_r = -FLT_MAX;
+
     // project points onto axes
     for (unsigned int i = 0; i < n; ++i)
         {
@@ -615,60 +641,75 @@ DEVICE inline OBB compute_obb(const std::vector< vec3<OverlapReal> >& pts, Overl
         proj.y = dot(pts[i]-mean, axis[1]);
         proj.z = dot(pts[i]-mean, axis[2]);
 
-        if (proj.x > proj_max.x) proj_max.x = proj.x;
-        if (proj.y > proj_max.y) proj_max.y = proj.y;
-        if (proj.z > proj_max.z) proj_max.z = proj.z;
+        if (make_sphere)
+            {
+            if (sqrt(dot(proj,proj))+vertex_radii[i] > max_r)
+                {
+                max_r = sqrt(dot(proj,proj)) + vertex_radii[i];
+                }
+            }
+        else
+            {
+            if (proj.x+vertex_radii[i] > proj_max.x) proj_max.x = proj.x+vertex_radii[i];
+            if (proj.y+vertex_radii[i] > proj_max.y) proj_max.y = proj.y+vertex_radii[i];
+            if (proj.z+vertex_radii[i] > proj_max.z) proj_max.z = proj.z+vertex_radii[i];
 
-        if (proj.x < proj_min.x) proj_min.x = proj.x;
-        if (proj.y < proj_min.y) proj_min.y = proj.y;
-        if (proj.z < proj_min.z) proj_min.z = proj.z;
+            if (proj.x-vertex_radii[i] < proj_min.x) proj_min.x = proj.x-vertex_radii[i];
+            if (proj.y-vertex_radii[i] < proj_min.y) proj_min.y = proj.y-vertex_radii[i];
+            if (proj.z-vertex_radii[i] < proj_min.z) proj_min.z = proj.z-vertex_radii[i];
+            }
         }
 
     res.center = mean;
-    res.center += OverlapReal(0.5)*(proj_max.x + proj_min.x)*axis[0];
-    res.center += OverlapReal(0.5)*(proj_max.y + proj_min.y)*axis[1];
-    res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
-    res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
-
-    // sort by descending length, so split can occur along longest axis
-    if (res.lengths.x < res.lengths.y)
+    if (! make_sphere)
         {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(res.lengths.x,res.lengths.y);
-        }
+        res.center += OverlapReal(0.5)*(proj_max.x + proj_min.x)*axis[0];
+        res.center += OverlapReal(0.5)*(proj_max.y + proj_min.y)*axis[1];
+        res.center += OverlapReal(0.5)*(proj_max.z + proj_min.z)*axis[2];
 
-    if (res.lengths.y < res.lengths.z)
+        res.lengths = OverlapReal(0.5)*(proj_max - proj_min);
+
+        // sort by decreasing length, so split can occur along longest axis
+        if (res.lengths.x < res.lengths.y)
+            {
+            std::swap(r.row0.x,r.row0.y);
+            std::swap(r.row1.x,r.row1.y);
+            std::swap(r.row2.x,r.row2.y);
+            std::swap(res.lengths.x,res.lengths.y);
+            }
+
+        if (res.lengths.y < res.lengths.z)
+            {
+            std::swap(r.row0.y,r.row0.z);
+            std::swap(r.row1.y,r.row1.z);
+            std::swap(r.row2.y,r.row2.z);
+            std::swap(res.lengths.y, res.lengths.z);
+            }
+
+        if (res.lengths.x < res.lengths.y)
+            {
+            std::swap(r.row0.x,r.row0.y);
+            std::swap(r.row1.x,r.row1.y);
+            std::swap(r.row2.x,r.row2.y);
+            std::swap(res.lengths.x, res.lengths.y);
+            }
+
+        // make sure coordinate system is proper
+        if (r.det() < OverlapReal(0.0))
+            {
+            // swap column two and three
+            std::swap(r.row0.y,r.row0.z);
+            std::swap(r.row1.y,r.row1.z);
+            std::swap(r.row2.y,r.row2.z);
+            std::swap(res.lengths.y,res.lengths.z);
+            }
+        }
+    else
         {
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(res.lengths.y, res.lengths.z);
+        res.lengths.x = res.lengths.y = res.lengths.z = max_r;
+        res.is_sphere = 1;
         }
-
-    if (res.lengths.x < res.lengths.y)
-        {
-        std::swap(r.row0.x,r.row0.y);
-        std::swap(r.row1.x,r.row1.y);
-        std::swap(r.row2.x,r.row2.y);
-        std::swap(res.lengths.x, res.lengths.y);
-        }
-
-    // make sure coordinate system is proper
-    if (r.det() < OverlapReal(0.0))
-        {
-        // swap column two and three
-        std::swap(r.row0.y,r.row0.z);
-        std::swap(r.row1.y,r.row1.z);
-        std::swap(r.row2.y,r.row2.z);
-        std::swap(res.lengths.y,res.lengths.z);
-        }
-
-    res.lengths.x += vertex_radius;
-    res.lengths.y += vertex_radius;
-    res.lengths.z += vertex_radius;
 
     res.rotation = quat<OverlapReal>(r);
 

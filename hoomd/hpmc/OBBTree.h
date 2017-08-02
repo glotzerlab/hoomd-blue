@@ -104,7 +104,7 @@ class OBBTree
             OverlapReal vertex_radius, unsigned int N, unsigned int leaf_capacity);
 
         //! Build a tree from a list of OBBs
-        inline void buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity);
+        inline void buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity, bool sphere_tree);
 
         //! Update the OBB of a particle
         inline void update(unsigned int idx, const OBB& obb);
@@ -190,7 +190,9 @@ class OBBTree
 
         //! Build a node of the tree recursively
         inline unsigned int buildNode(OBB *obbs, std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-            OverlapReal vertex_radius, std::vector<unsigned int>& idx, unsigned int start, unsigned int len, unsigned int parent);
+            std::vector< std::vector<OverlapReal> >& vertex_radii, std::vector<unsigned int>& idx,
+            unsigned int start, unsigned int len, unsigned int parent,
+            bool sphere_tree);
 
         //! Allocate a new node
         inline unsigned int allocateNode();
@@ -231,7 +233,11 @@ inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapRe
     for (unsigned int i = 0; i < N; i++)
         idx.push_back(i);
 
-    m_root = buildNode(obbs, internal_coordinates, vertex_radius, idx, 0, N, OBB_INVALID_NODE);
+    std::vector<std::vector<OverlapReal> > vertex_radii(N);
+    for (unsigned int i = 0; i < N; ++i)
+        vertex_radii[i] = std::vector<OverlapReal>(internal_coordinates[i].size(), vertex_radius);
+
+    m_root = buildNode(obbs, internal_coordinates, vertex_radii, idx, 0, N, OBB_INVALID_NODE, false);
     updateEscapeIndex(m_root,getNumNodes());
     }
 
@@ -241,7 +247,7 @@ inline void OBBTree::buildTree(OBB *obbs, std::vector<std::vector<vec3<OverlapRe
     Builds a balanced tree from a given list of OBBs for each particle. Data in \a obbs will be modified during
     the construction process.
 */
-inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity)
+inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capacity, bool sphere_tree)
     {
     m_leaf_capacity = leaf_capacity;
     init(N);
@@ -252,12 +258,24 @@ inline void OBBTree::buildTree(OBB *obbs, unsigned int N, unsigned int leaf_capa
 
     // initialize internal coordinates from OBB corners
     std::vector< std::vector<vec3<OverlapReal> > > internal_coordinates;
+    std::vector< std::vector<OverlapReal > > vertex_radii;
     for (unsigned int i = 0; i < N; ++i)
         {
-        internal_coordinates.push_back(obbs[i].getCorners());
+        if (obbs[i].isSphere())
+            {
+            internal_coordinates.push_back(std::vector< vec3<OverlapReal> >(1,obbs[i].getPosition()));
+
+            // all OBB lengths are equal to the radius
+            vertex_radii.push_back(std::vector<OverlapReal>(1,obbs[i].lengths.x));
+            }
+        else
+            {
+            internal_coordinates.push_back(obbs[i].getCorners());
+            vertex_radii.push_back(std::vector<OverlapReal>(8,0.0));
+            }
         }
 
-    m_root = buildNode(obbs, internal_coordinates, 0.0, idx, 0, N, OBB_INVALID_NODE);
+    m_root = buildNode(obbs, internal_coordinates, vertex_radii, idx, 0, N, OBB_INVALID_NODE, sphere_tree);
     updateEscapeIndex(m_root, getNumNodes());
     }
 
@@ -283,26 +301,38 @@ inline bool compare_proj(const std::pair<OverlapReal,unsigned int> &lhs, const s
 */
 inline unsigned int OBBTree::buildNode(OBB *obbs,
                                        std::vector<std::vector<vec3<OverlapReal> > >& internal_coordinates,
-                                       OverlapReal vertex_radius,
+                                       std::vector<std::vector<OverlapReal> >& vertex_radii,
                                        std::vector<unsigned int>& idx,
                                        unsigned int start,
                                        unsigned int len,
-                                       unsigned int parent)
+                                       unsigned int parent,
+                                       bool sphere_tree)
     {
     // merge all the OBBs into one, as tightly as possible
     OBB my_obb = obbs[start];
     std::vector<vec3<OverlapReal> > merge_internal_coordinates;
+    std::vector<OverlapReal > merge_vertex_radii;
 
     for (unsigned int i = start; i < start+len; ++i)
         {
         for (unsigned int j = 0; j < internal_coordinates[i].size(); ++j)
             {
             merge_internal_coordinates.push_back(internal_coordinates[i][j]);
+            merge_vertex_radii.push_back(vertex_radii[i][j]);
             }
         }
 
+    // combine masks
+    unsigned int mask = 0;
+
+    for (unsigned int i = start; i < start+len; ++i)
+        {
+        mask |= obbs[i].mask;
+        }
+
     // merge internal coordinates
-    my_obb = compute_obb(merge_internal_coordinates, vertex_radius);
+    my_obb = compute_obb(merge_internal_coordinates, merge_vertex_radii, sphere_tree);
+    my_obb.mask = mask;
 
     // handle the case of a leaf node creation
     if (len <= m_leaf_capacity)
@@ -362,6 +392,7 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
                 std::swap(obbs[start+i], obbs[start+start_right-1]);
                 std::swap(idx[start+i], idx[start+start_right-1]);
                 std::swap(internal_coordinates[start+i], internal_coordinates[start+start_right-1]);
+                std::swap(vertex_radii[start+i], vertex_radii[start+start_right-1]);
                 start_right--;
                 i--;
                 }
@@ -377,8 +408,8 @@ inline unsigned int OBBTree::buildNode(OBB *obbs,
     // and right children, then build our node (can't say m_nodes[my_idx].left = buildNode(...))
 
     // create nodes in post-order
-    unsigned int new_right = buildNode(obbs, internal_coordinates,  vertex_radius, idx, start+start_right, len-start_right, my_idx);
-    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radius, idx, start+start_left, start_right-start_left, my_idx);
+    unsigned int new_right = buildNode(obbs, internal_coordinates,  vertex_radii, idx, start+start_right, len-start_right, my_idx, sphere_tree);
+    unsigned int new_left = buildNode(obbs, internal_coordinates, vertex_radii, idx, start+start_left, start_right-start_left, my_idx, sphere_tree);
 
     // now, create the children and connect them up
     m_nodes[my_idx].obb = my_obb;

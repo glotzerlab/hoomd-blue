@@ -52,12 +52,16 @@ GPUTree build_tree(poly3d_data &data)
         {
         std::vector< vec3<OverlapReal> > face_vec;
 
+        unsigned int n_vert = 0;
         for (unsigned int j = data.face_offs[i]; j < data.face_offs[i+1]; ++j)
             {
             vec3<OverlapReal> v = data.verts[data.face_verts[j]];
             face_vec.push_back(v);
+            n_vert++;
             }
-        obbs[i] = hpmc::detail::compute_obb(face_vec, data.sweep_radius);
+
+        std::vector<OverlapReal> vertex_radii(n_vert,data.sweep_radius);
+        obbs[i] = hpmc::detail::compute_obb(face_vec, vertex_radii, false);
         internal_coordinates.push_back(face_vec);
         }
     unsigned int capacity = 4;
