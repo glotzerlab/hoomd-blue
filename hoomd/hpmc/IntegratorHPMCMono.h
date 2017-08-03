@@ -780,15 +780,14 @@ inline unsigned int IntegratorHPMCMono<Shape>::countOverlapsEx(unsigned int time
 
     bool bTags = std::distance(first, last) != 0;
     unsigned int N = bTags ? std::distance(first, last) : m_pdata->getN();
+    std::vector<bool> membership(m_pdata->getNGlobal(), !bTags);
     IteratorType first__ = first;
+    while(first != last) membership[*first++] = true;
+    first = first__;
     // Loop over all particles or the particles specified by the iterators
     for (unsigned int j = 0; j < N; j++)
         {
-        // if(bTags)
-        //     std::cout << "n - tags: " << std::boolalpha << bTags << "tag: " << *first << "@ 0x"<< std::hex << &(*first) << std::dec << " rtag: " << h_rtags.data[*first] << std::endl;
         unsigned int i = bTags ? h_rtags.data[*first++] : j;
-        // if(bTags)
-        //     std::cout << "x - tags: " << std::boolalpha << bTags << "tag: " << *first << "@ 0x"<< std::hex << &(*first) << std::dec << " rtag: " << h_rtags.data[*first] << std::endl;
         if (i >= m_pdata->getN()) // not owned by this processor.
             continue;
         // read in the current position and orientation
@@ -832,26 +831,13 @@ inline unsigned int IntegratorHPMCMono<Shape>::countOverlapsEx(unsigned int time
 
                             unsigned int typ_j = __scalar_as_int(postype_j.w);
                             Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
-                            bool bTags__ = false;
-                            if(bTags)
-                                {
-                                bTags__ = std::find(first__, last, h_tag.data[j]) == last; // if bTags is true this introduces a O(N) in this inner loop YIKES!!!!!!!!!!!!!!!!!!!
-                                // std::cout << "x - tags: " << std::boolalpha << bTags
-                                //                                                     << " equal tag: "<< h_tag.data[i]
-                                //                                                     << " i: " << i
-                                //                                                     << " j: " << j
-                                //                                                     << " tag j: " << h_tag.data[j]
-                                //                                                     << " found: " << bTags__
-                                //                                                     << std::endl;
-                                }
-                            if ( (bTags__ || h_tag.data[i] <= h_tag.data[j])
+                            if ( (!membership[h_tag.data[j]] || h_tag.data[i] <= h_tag.data[j])
                                 && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                 && check_circumsphere_overlap(r_ij, shape_i, shape_j)
                                 && test_overlap(r_ij, shape_i, shape_j, err_count)
                                 && test_overlap(-r_ij, shape_j, shape_i, err_count))
                                 {
                                 overlap_count++;
-                                // std::cout << "particle "<< h_tag.data[i] << " overlaps with particle " << h_tag.data[j] << " found: " << !bTags__ << std::endl;
                                 if (early_exit)
                                     {
                                     // exit early from loop over neighbor particles
