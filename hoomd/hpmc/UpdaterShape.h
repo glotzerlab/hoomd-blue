@@ -293,7 +293,20 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             unsigned int overlaps = 1;
             if(m_pdata->getNTypes() == m_pdata->getNGlobal())
                 {
-                overlaps = m_mc->countOverlapsEx(timestep, true, m_update_order.begin(), m_update_order.begin()+m_nselect);
+                overlaps = m_mc->countOverlapsEx(timestep, false, m_update_order.begin(), m_update_order.begin()+m_nselect);
+                unsigned int overlaps_check = m_mc->countOverlaps(timestep, false);
+                if(overlaps != overlaps_check)
+                    {
+                    std::cout << "The particles are: ";
+                    for(size_t i = 0; i < m_nselect; i++)
+                        {
+                            std::cout << m_update_order[i] << ", ";
+                        }
+                    std::cout << std::endl;
+
+                    std::cout << "ERROR !!!!!! overlaps detected!" << "overlap is "<< overlaps << " check is "<< overlaps_check << std::endl;
+                    throw std::runtime_error("ERROR !!!!!! overlaps detected!");
+                    }
                 }
             else
                 {
