@@ -62,6 +62,7 @@ set(TEST_LIST_CPU
     external_lattice.py
     map_overlap.py
     hpmc_gsd_state.py
+    faceted_sphere.py
     )
 
 set(TEST_LIST_GPU
@@ -74,6 +75,7 @@ set(TEST_LIST_GPU
     test_ghost_layer.py
     muvt.py
     shape_proxy.py
+    faceted_sphere.py
     )
 
 set(EXCLUDE_FROM_MPI
