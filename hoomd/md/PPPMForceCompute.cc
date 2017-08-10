@@ -1439,7 +1439,7 @@ void PPPMForceCompute::computeBodyCorrection()
 
             for (auto itj = it; itj != body_end; ++itj)
                 {
-                unsigned int j = it->second;
+                unsigned int j = itj->second;
                 vec3<Scalar> posj(h_postype.data[j]);
                 Scalar qj(h_charge.data[j]);
 
