@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
+#include <map>
 
 namespace py = pybind11;
 
@@ -1409,44 +1410,59 @@ void PPPMForceCompute::computeBodyCorrection()
 
     m_body_energy = Scalar(0.0);
 
-    unsigned int group_size = m_group->getNumMembers();
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    std::multimap<unsigned int, unsigned> body_map;
+
+    if (m_group->getNumMembers() != nptl)
         {
-        unsigned int i = m_group->getMemberIndex(group_idx);
+        m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+        }
 
+    // save references to each body's constituent particles
+    for (unsigned int i = 0; i < nptl+nghost; ++i)
+        {
         unsigned int ibody = h_body.data[i];
-        vec3<Scalar> posi(h_postype.data[i]);
-        Scalar qi(h_charge.data[i]);
-        int3 img_i = h_image.data[i];
+        if (ibody != NO_BODY) body_map.insert(std::make_pair(ibody,i));
+        }
 
-        for (unsigned int j = 0; j < nptl + nghost; ++j)
+    // iterate over unique bodies
+    for (auto it = body_map.begin(); it != body_map.end(); it = body_map.upper_bound(it->first))
+        {
+        auto body_end = body_map.upper_bound(it->first);
+
+        for (auto iti = it; iti != body_end; ++iti)
             {
-            // strictly we would have to check if j is member of the group
-            // assuming that rigid bodies are completely included here
+            unsigned int i = iti->second;
 
-            unsigned jbody = h_body.data[j];
-            vec3<Scalar> posj(h_postype.data[j]);
-            Scalar qj(h_charge.data[j]);
+            vec3<Scalar> posi(h_postype.data[i]);
+            Scalar qi(h_charge.data[i]);
+            int3 img_i = h_image.data[i];
 
-            Scalar qiqj = qi*qj;
-
-            if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
+            for (auto itj = it; itj != body_end; ++itj)
                 {
-                // account for self-interactions by shifting into the body reference frame
-                int3 img_j = h_image.data[j];
-                int3 delta_img = img_j - img_i;
-                Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
-                Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
-                Scalar rsq = dot(dx,dx);
+                unsigned int j = it->second;
+                vec3<Scalar> posj(h_postype.data[j]);
+                Scalar qj(h_charge.data[j]);
 
-                Scalar force_divr(0.0);
-                Scalar pair_eng(0.0);
+                Scalar qiqj = qi*qj;
 
-                // compute correction
-                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+                if (qiqj != Scalar(0.0) && i != j)
+                    {
+                    // account for self-interactions by shifting into the body reference frame
+                    int3 img_j = h_image.data[j];
+                    int3 delta_img = img_j - img_i;
+                    Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
+                    Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
+                    Scalar rsq = dot(dx,dx);
 
-                // subtract long range self-energy
-                m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                    Scalar force_divr(0.0);
+                    Scalar pair_eng(0.0);
+
+                    // compute correction
+                    eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                    // subtract long range self-energy
+                    m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                    }
                 }
             }
         }
