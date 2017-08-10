@@ -1411,6 +1411,7 @@ void PPPMForceCompute::computeBodyCorrection()
     m_body_energy = Scalar(0.0);
 
     std::multimap<unsigned int, unsigned> body_map;
+    std::map<unsigned int, Scalar> body_type;
 
     if (m_group->getNumMembers() != nptl)
         {
@@ -1429,6 +1430,17 @@ void PPPMForceCompute::computeBodyCorrection()
         {
         auto body_end = body_map.upper_bound(it->first);
 
+        unsigned int type = __scalar_as_int(h_postype.data[it->second].w);
+        auto energy_it = body_type.find(type);
+
+        if (energy_it != body_type.end())
+            {
+            // use cached result
+            m_body_energy += energy_it->second;
+            continue;
+            }
+
+        Scalar body_energy(0.0);
         for (auto iti = it; iti != body_end; ++iti)
             {
             unsigned int i = iti->second;
@@ -1461,10 +1473,15 @@ void PPPMForceCompute::computeBodyCorrection()
                     eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
 
                     // subtract long range self-energy
-                    m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                    body_energy -= Scalar(0.5)*qiqj*pair_eng;
                     }
                 }
             }
+
+        m_body_energy += body_energy;
+
+        // store precalculated body type
+        body_type.insert(std::make_pair(type, body_energy));
         }
     if (m_prof) m_prof->pop();
     }
