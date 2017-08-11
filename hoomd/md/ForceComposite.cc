@@ -18,12 +18,16 @@ namespace py = pybind11;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
-        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
+        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
+         m_comm_ghost_layer_connected(false), m_box_size_warning_issued(false)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
     m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
 
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+
+    // connect to box change signal
+    m_pdata->getBoxChangeSignal().connect<ForceComposite, &ForceComposite::checkBoxSize>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -42,6 +46,8 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
+
+    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
     }
 
 //! Destructor
@@ -50,6 +56,7 @@ ForceComposite::~ForceComposite()
     // disconnect from signal in ParticleData;
     m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    m_pdata->getBoxChangeSignal().disconnect<ForceComposite, &ForceComposite::checkBoxSize>(this);
     #ifdef ENABLE_MPI
     if (m_comm_ghost_layer_connected)
         m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
@@ -178,8 +185,51 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             m_d_max_changed[type[i]] = true;
             }
+
+        // story body diameter
+        m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
+
+        // check that the composite body fits into the box
+        checkBoxSize();
         }
    }
+
+Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
+    {
+    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
+
+    // get maximum pairwise distance
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+
+    Scalar d_max(0.0);
+
+    for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+        {
+        // distance to central particle
+        Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+        Scalar d = sqrt(dot(dr,dr));
+        if (d > d_max)
+            {
+            d_max = d;
+            }
+
+        // distance to every other particle
+        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+            {
+            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+            d = sqrt(dot(dr,dr));
+
+            if (d > d_max)
+                {
+                d_max = d;
+                }
+            }
+        }
+
+    return d_max;
+    }
 
 void ForceComposite::slotNumTypesChange()
     {
@@ -209,6 +259,8 @@ void ForceComposite::slotNumTypesChange()
 
     m_d_max.resize(new_ntypes, Scalar(0.0));
     m_d_max_changed.resize(new_ntypes, false);
+
+    m_body_max_diameter.resize(new_ntypes,0.0);
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
