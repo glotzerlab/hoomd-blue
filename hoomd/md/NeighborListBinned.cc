@@ -90,6 +90,7 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     const BoxDim& box = m_pdata->getBox();
     Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
@@ -184,14 +185,24 @@ void NeighborListBinned::buildNlist(unsigned int timestep)
                 // (2) the r_cut(i,j) indicates to skip, or
                 // (3) they are in the same body
                 bool excluded = ((i == (int)cur_neigh) || (r_cut <= Scalar(0.0)));
-                if (m_filter_body && body_i != NO_BODY)
-                    excluded = excluded | (body_i == h_body.data[cur_neigh]);
-                if (excluded)
-                    continue;
 
                 Scalar3 neigh_pos = make_scalar3(cur_xyzf.x, cur_xyzf.y, cur_xyzf.z);
                 Scalar3 dx = my_pos - neigh_pos;
                 dx = box.minImage(dx);
+
+                if (m_filter_body && body_i != NO_BODY && body_i == h_body.data[cur_neigh])
+                    {
+                    Scalar3 rtest = my_pos - dx;
+                    int3 test_img = h_image.data[i];
+                    int3 img_j = h_image.data[cur_neigh];
+                    box.wrap(rtest, test_img);
+                    // if the images match, then it is the particle in the same image of the body
+                    // so it should be excluded
+                    excluded |= (test_img == img_j);
+                    }
+
+                if (excluded)
+                    continue;
 
                 Scalar r_list = r_cut + m_r_buff;
                 Scalar sqshift = Scalar(0.0);
