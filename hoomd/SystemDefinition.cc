@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -141,7 +141,7 @@ std::shared_ptr< SnapshotSystemData<Real> > SystemDefinition::takeSnapshot(bool 
 
     if (particles)
         {
-        m_particle_data->takeSnapshot(snap->particle_data);
+        snap->map = m_particle_data->takeSnapshot(snap->particle_data);
         snap->has_particle_data = true;
         }
     else

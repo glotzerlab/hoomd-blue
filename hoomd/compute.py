@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -106,6 +106,31 @@ class _compute:
 
         hoomd.context.current.system.addCompute(self.cpp_compute, self.compute_name);
         self.enabled = True;
+
+    @classmethod
+    def _gsd_state_name(cls):
+        raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def _connect_gsd(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_compute, "connectGSDSignal"):
+            self.cpp_compute.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def restore_state(self):
+        """ Resore the state information from the file used to initialize the simulations
+        """
+        hoomd.util.print_status_line();
+        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_compute, "restoreStateGSD"):
+            self.cpp_compute.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
+        else:
+            if hoomd.context.current.state_reader is None:
+                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+            else:
+                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+            raise RuntimeError("Can not restore state information!");
+
 
 # set default counter
 _compute.cur_id = 0;

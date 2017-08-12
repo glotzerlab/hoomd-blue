@@ -37,6 +37,9 @@ set(_hoomd_sources Analyzer.cc
                    IntegratorData.cc
                    LoadBalancer.cc
                    Logger.cc
+		   LogPlainTXT.cc
+		   LogMatrix.cc
+		   LogHDF5.cc
                    Messenger.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -57,6 +60,7 @@ set(_hoomd_sources Analyzer.cc
                    extern/num_util.cc
                    extern/vmdsock.cc
                    extern/xmlParser.cc
+                   extern/quickhull/QuickHull.cpp
                    )
 
 set(_hoomd_headers
@@ -110,6 +114,9 @@ set(_hoomd_headers
     LoadBalancerGPU.h
     LoadBalancer.h
     Logger.h
+    LogPlainTXT.h
+    LogMatrix.h
+    LogHDF5.h
     Messenger.h
     ParticleData.cuh
     ParticleData.h
@@ -120,6 +127,7 @@ set(_hoomd_headers
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
+    SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
     SystemDefinition.h
@@ -245,6 +253,7 @@ set(files analyze.py
           util.py
           variant.py
           lattice.py
+	  hdf5.py
     )
 
 install(FILES ${files}

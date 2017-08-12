@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from hoomd import *
-from hoomd import deprecated
 from hoomd import hpmc
 import math
 import unittest
@@ -11,12 +10,11 @@ context.initialize()
 class test_ghost_layer(unittest.TestCase):
     def test_implicit(self):
         # setup the MC integration
-        system = deprecated.init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
+        system = init.read_snapshot(data.make_snapshot(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50),particle_types=['A','B']))
 
         mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
         mc.set_params(d=0,a=0)
 
-        system.particles.types.add('B')
         mc.set_params(nR=0,depletant_type='B')
 
         cube_verts=[(-1, -1, -1), (-1, -1, 1), (-1, 1, -1), (-1, 1, 1), (1, -1, -1), (1, -1, 1), (1, 1, -1), (1, 1, 1)]
@@ -32,9 +30,9 @@ class test_ghost_layer(unittest.TestCase):
 
     def test_base(self):
         # setup the MC integration
-        system = deprecated.init.create_random(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50), min_dist=math.sqrt(2.0))
+        system = init.read_snapshot(data.make_snapshot(N=2,box=data.boxdim(Lx=100,Ly=50,Lz=50),particle_types=['A']))
 
-        mc = hpmc.integrate.convex_polyhedron(seed=123,max_verts=8)
+        mc = hpmc.integrate.convex_polyhedron(seed=123)
         mc.set_params(d=0,a=0)
 
         cube_verts=[(-1, -1, -1), (-1, -1, 1), (-1, 1, -1), (-1, 1, 1), (1, -1, -1), (1, -1, 1), (1, 1, -1), (1, 1, 1)]

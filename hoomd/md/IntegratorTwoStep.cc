@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -250,6 +250,18 @@ bool IntegratorTwoStep::isValidRestart()
     return res;
     }
 
+/*! \returns true If all added integration methods have valid restart information
+*/
+void IntegratorTwoStep::initializeIntegrationMethods()
+    {
+    // loop through all methods
+    for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
+        {
+        // initialize each of them
+        (*method)->initializeIntegratorVariables();
+        }
+    }
+
 /*! \param group Group over which to count degrees of freedom.
     IntegratorTwoStep totals up the degrees of freedom that each integration method provide to the group.
     Three degrees of freedom are subtracted from the total to account for the constrained position of the system center of
@@ -292,6 +304,8 @@ unsigned int IntegratorTwoStep::getRotationalNDOF(std::shared_ptr<ParticleGroup>
             aniso = getAnisotropic();
             break;
         }
+
+    m_exec_conf->msg->notice(8) << "IntegratorTwoStep: Setting anisotropic mode = " << aniso << std::endl;
 
     if (aniso)
         {
@@ -336,6 +350,7 @@ void IntegratorTwoStep::prepRun(unsigned int timestep)
             if(getAnisotropic())
                 m_exec_conf->msg->warning() << "Forcing isotropic integration mode"
                     " with anisotropic forces defined" << endl;
+            break;
         case Automatic:
         default:
             aniso = getAnisotropic();
@@ -444,6 +459,7 @@ void export_IntegratorTwoStep(py::module& m)
         .def("setAnisotropicMode", &IntegratorTwoStep::setAnisotropicMode)
         .def("addForceComposite", &IntegratorTwoStep::addForceComposite)
         .def("removeForceComputes", &IntegratorTwoStep::removeForceComputes)
+        .def("initializeIntegrationMethods", &IntegratorTwoStep::initializeIntegrationMethods)
         ;
 
     py::enum_<IntegratorTwoStep::AnisotropicMode>(m,"IntegratorAnisotropicMode")

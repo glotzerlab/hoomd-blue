@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -6,6 +6,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "XenoCollide3D.h"
+#include "hoomd/ManagedArray.h"
 
 #ifndef __SHAPE_CONVEX_POLYHEDRON_H__
 #define __SHAPE_CONVEX_POLYHEDRON_H__
@@ -36,8 +37,7 @@ namespace detail
 //! Data structure for polyhedron vertices
 //! Note that vectorized methods using this struct will assume unused coordinates are set to zero.
 /*! \ingroup hpmc_data_structs */
-template<unsigned int max_verts>
-struct poly3d_verts : aligned_struct
+struct poly3d_verts : param_base
 
     {
     //! Default constructor initializes zero values.
@@ -46,16 +46,49 @@ struct poly3d_verts : aligned_struct
           diameter(OverlapReal(0)),
           sweep_radius(OverlapReal(0)),
           ignore(0)
+        { }
+
+    #ifndef NVCC
+    //! Shape constructor
+    poly3d_verts(unsigned int _N, bool _managed)
+        : N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
-        for (unsigned int i=0; i < max_verts; i++)
+        unsigned int align_size = 8; //for AVX
+        unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
+        x = ManagedArray<OverlapReal>(N_align,_managed);
+        y = ManagedArray<OverlapReal>(N_align,_managed);
+        z = ManagedArray<OverlapReal>(N_align,_managed);
+        for (unsigned int i = 0; i <  N_align; ++i)
             {
-            x[i] = y[i] = z[i] = OverlapReal(0);
+            x[i] = y[i] = z[i] = OverlapReal(0.0);
             }
         }
+    #endif
 
-    OverlapReal x[max_verts];        //!< X coordinate of vertices
-    OverlapReal y[max_verts];        //!< Y coordinate of vertices
-    OverlapReal z[max_verts];        //!< Z coordinate of vertices
+    //! Load dynamic data members into shared memory and increase pointer
+    /*! \param ptr Pointer to load data to (will be incremented)
+        \param available_bytes Size of remaining shared memory allocation
+     */
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
+        {
+        x.load_shared(ptr,available_bytes);
+        y.load_shared(ptr,available_bytes);
+        z.load_shared(ptr,available_bytes);
+        }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        x.attach_to_stream(stream);
+        y.attach_to_stream(stream);
+        z.attach_to_stream(stream);
+        }
+    #endif
+
+    ManagedArray<OverlapReal> x;        //!< X coordinate of vertices
+    ManagedArray<OverlapReal> y;        //!< Y coordinate of vertices
+    ManagedArray<OverlapReal> z;        //!< Z coordinate of vertices
     unsigned int N;                         //!< Number of vertices
     OverlapReal diameter;                   //!< Circumsphere diameter
     OverlapReal sweep_radius;               //!< Radius of the sphere sweep (used for spheropolyhedra)
@@ -70,7 +103,6 @@ struct poly3d_verts : aligned_struct
     \ingroup minkowski
 */
 
-template<unsigned int max_verts>
 class SupportFuncConvexPolyhedron
     {
     public:
@@ -78,7 +110,7 @@ class SupportFuncConvexPolyhedron
         /*! \param _verts Polyhedron vertices
             Note that for performance it is assumed that unused vertices (beyond N) have already been set to zero.
         */
-        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts<max_verts>& _verts)
+        DEVICE SupportFuncConvexPolyhedron(const poly3d_verts& _verts)
             : verts(_verts)
             {
             }
@@ -100,13 +132,13 @@ class SupportFuncConvexPolyhedron
                 __m256 ny_v = _mm256_broadcast_ss(&n.y);
                 __m256 nz_v = _mm256_broadcast_ss(&n.z);
                 __m256 max_dot_v = _mm256_broadcast_ss(&max_dot);
-                float d_s[max_verts] __attribute__((aligned(32)));
+                float d_s[verts.N] __attribute__((aligned(32)));
 
                 for (unsigned int i = 0; i < verts.N; i+=8)
                     {
-                    __m256 x_v = _mm256_load_ps(verts.x + i);
-                    __m256 y_v = _mm256_load_ps(verts.y + i);
-                    __m256 z_v = _mm256_load_ps(verts.z + i);
+                    __m256 x_v = _mm256_load_ps(verts.x.get() + i);
+                    __m256 y_v = _mm256_load_ps(verts.y.get() + i);
+                    __m256 z_v = _mm256_load_ps(verts.z.get() + i);
 
                     __m256 d_v = _mm256_add_ps(_mm256_mul_ps(nx_v, x_v), _mm256_add_ps(_mm256_mul_ps(ny_v, y_v), _mm256_mul_ps(nz_v, z_v)));
 
@@ -146,13 +178,13 @@ class SupportFuncConvexPolyhedron
                 __m128 ny_v = _mm_load_ps1(&n.y);
                 __m128 nz_v = _mm_load_ps1(&n.z);
                 __m128 max_dot_v = _mm_load_ps1(&max_dot);
-                float d_s[max_verts] __attribute__((aligned(16)));
+                float d_s[verts.N] __attribute__((aligned(16)));
 
                 for (unsigned int i = 0; i < verts.N; i+=4)
                     {
-                    __m128 x_v = _mm_load_ps(verts.x + i);
-                    __m128 y_v = _mm_load_ps(verts.y + i);
-                    __m128 z_v = _mm_load_ps(verts.z + i);
+                    __m128 x_v = _mm_load_ps(verts.x.get() + i);
+                    __m128 y_v = _mm_load_ps(verts.y.get() + i);
+                    __m128 z_v = _mm_load_ps(verts.z.get() + i);
 
                     __m128 d_v = _mm_add_ps(_mm_mul_ps(nx_v, x_v), _mm_add_ps(_mm_mul_ps(ny_v, y_v), _mm_mul_ps(nz_v, z_v)));
 
@@ -199,10 +231,13 @@ class SupportFuncConvexPolyhedron
 
                 for (unsigned int i = 4; i < verts.N; i+=4)
                     {
-                    OverlapReal d0 = dot(n, vec3<OverlapReal>(verts.x[i], verts.y[i], verts.z[i]));
-                    OverlapReal d1 = dot(n, vec3<OverlapReal>(verts.x[i+1], verts.y[i+1], verts.z[i+1]));
-                    OverlapReal d2 = dot(n, vec3<OverlapReal>(verts.x[i+2], verts.y[i+2], verts.z[i+2]));
-                    OverlapReal d3 = dot(n, vec3<OverlapReal>(verts.x[i+3], verts.y[i+3], verts.z[i+3]));
+                    const OverlapReal *verts_x = verts.x.get() + i;
+                    const OverlapReal *verts_y = verts.y.get() + i;
+                    const OverlapReal *verts_z = verts.z.get() + i;
+                    OverlapReal d0 = dot(n, vec3<OverlapReal>(verts_x[0], verts_y[0], verts_z[0]));
+                    OverlapReal d1 = dot(n, vec3<OverlapReal>(verts_x[1], verts_y[1], verts_z[1]));
+                    OverlapReal d2 = dot(n, vec3<OverlapReal>(verts_x[2], verts_y[2], verts_z[2]));
+                    OverlapReal d3 = dot(n, vec3<OverlapReal>(verts_x[3], verts_y[3], verts_z[3]));
 
                     if (d0 > max_dot0)
                         {
@@ -255,7 +290,7 @@ class SupportFuncConvexPolyhedron
             }
 
     private:
-        const poly3d_verts<max_verts>& verts;      //!< Vertices of the polyhedron
+        const poly3d_verts& verts;      //!< Vertices of the polyhedron
     };
 
 
@@ -269,11 +304,10 @@ class SupportFuncConvexPolyhedron
 
     \ingroup shape
 */
-template<unsigned int max_verts>
 struct ShapeConvexPolyhedron
     {
     //! Define the parameter type
-    typedef detail::poly3d_verts<max_verts> param_type;
+    typedef detail::poly3d_verts param_type;
 
     //! Initialize a polyhedron
     DEVICE ShapeConvexPolyhedron(const quat<Scalar>& _orientation, const param_type& _params)
@@ -334,7 +368,7 @@ struct ShapeConvexPolyhedron
 
     quat<Scalar> orientation;    //!< Orientation of the polyhedron
 
-    const detail::poly3d_verts<max_verts>& verts;     //!< Vertices
+    const detail::poly3d_verts& verts;     //!< Vertices
     };
 
 //! Check if circumspheres overlap
@@ -345,9 +379,8 @@ struct ShapeConvexPolyhedron
 
     \ingroup shape
 */
-template<unsigned int max_verts>
-DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeConvexPolyhedron<max_verts>& a,
-    const ShapeConvexPolyhedron<max_verts> &b)
+DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const ShapeConvexPolyhedron& a,
+    const ShapeConvexPolyhedron &b)
     {
     vec3<OverlapReal> dr(r_ab);
 
@@ -365,17 +398,16 @@ DEVICE inline bool check_circumsphere_overlap(const vec3<Scalar>& r_ab, const Sh
 
     \ingroup shape
 */
-template<unsigned int max_verts>
 DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
-                                 const ShapeConvexPolyhedron<max_verts>& a,
-                                 const ShapeConvexPolyhedron<max_verts>& b,
+                                 const ShapeConvexPolyhedron& a,
+                                 const ShapeConvexPolyhedron& b,
                                  unsigned int& err)
     {
     vec3<OverlapReal> dr(r_ab);
     OverlapReal DaDb = a.getCircumsphereDiameter() + b.getCircumsphereDiameter();
 
-    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron<max_verts>(a.verts),
-                                  detail::SupportFuncConvexPolyhedron<max_verts>(b.verts),
+    return detail::xenocollide_3d(detail::SupportFuncConvexPolyhedron(a.verts),
+                                  detail::SupportFuncConvexPolyhedron(b.verts),
                                   rotate(conj(quat<OverlapReal>(a.orientation)), dr),
                                   conj(quat<OverlapReal>(a.orientation))* quat<OverlapReal>(b.orientation),
                                   DaDb/2.0,

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMCMonoGPU.cuh"
@@ -198,6 +198,9 @@ cudaError_t gpu_hpmc_shift(Scalar4 *d_postype,
                                                          N,
                                                          box,
                                                          shift);
+
+    // after this kernel we return control of cuda managed memory to the host
+    cudaDeviceSynchronize();
 
     return cudaSuccess;
     }
