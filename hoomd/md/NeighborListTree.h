@@ -91,7 +91,6 @@ class NeighborListTree : public NeighborList
         std::vector<unsigned int>  m_map_pid_tree;   //!< Maps the particle id to its tag in tree for sorting
 
         std::vector< vec3<Scalar> > m_image_list;    //!< List of translation vectors
-        std::vector< int3 > m_image_idx;             //!< List of image indices
         unsigned int m_n_images;                //!< The number of image vectors to check
 
         //! Driver for tree configuration

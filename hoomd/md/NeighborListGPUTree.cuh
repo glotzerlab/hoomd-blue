@@ -110,10 +110,8 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
                                     const Scalar2 *d_leaf_db,
                                     // particle data
                                     const Scalar4 *d_pos,
-                                    const int3 *d_image,
                                     // images
                                     const Scalar3 *d_image_list,
-                                    const int3 *d_image_idx,
                                     const unsigned int nimages,
                                     // neighbor list cutoffs
                                     const Scalar *d_r_cut,
