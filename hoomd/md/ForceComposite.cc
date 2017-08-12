@@ -19,7 +19,8 @@ namespace py = pybind11;
 */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
-         m_comm_ghost_layer_connected(false), m_box_size_warning_issued(false)
+         m_global_max_d(0.0),
+         m_comm_ghost_layer_connected(false), m_global_max_d_changed(true)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
     m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
@@ -27,7 +28,7 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
 
     // connect to box change signal
-    m_pdata->getBoxChangeSignal().connect<ForceComposite, &ForceComposite::checkBoxSize>(this);
+    m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -56,7 +57,7 @@ ForceComposite::~ForceComposite()
     // disconnect from signal in ParticleData;
     m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
-    m_pdata->getBoxChangeSignal().disconnect<ForceComposite, &ForceComposite::checkBoxSize>(this);
+    m_pdata->getCompositeParticlesSignal().disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
     #ifdef ENABLE_MPI
     if (m_comm_ghost_layer_connected)
         m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
@@ -189,8 +190,8 @@ void ForceComposite::setParam(unsigned int body_typeid,
         // story body diameter
         m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
 
-        // check that the composite body fits into the box
-        checkBoxSize();
+        // indicate that the maximum diameter may have changed
+        m_global_max_d_changed = true;
         }
    }
 

@@ -87,6 +87,7 @@ class ForceComposite : public MolecularForceCompute
         std::vector<Scalar> m_d_max;                              //!< Maximum body diameter per constituent particle type
         std::vector<bool> m_d_max_changed;                        //!< True if maximum body diameter changed (per type)
         std::vector<Scalar> m_body_max_diameter;                  //!< List of diameters for all body types
+        Scalar m_global_max_d;                                    //!< Maximum over all body diameters
 
         //! Helper function to be called when the number of types changes
         void slotNumTypesChange();
@@ -97,31 +98,28 @@ class ForceComposite : public MolecularForceCompute
             m_ptls_added_removed = true;
             }
 
-        //! Method to check if the box is not too small given the rigid body definitions
-        void checkBoxSize()
+        //! Returns the maximum diameter over all rigid bodies
+        Scalar getMaxBodyDiameter()
             {
-            const BoxDim& box = m_pdata->getBox();
-            Scalar3 nearest_plane_distance = box.getNearestPlaneDistance();
-
-            // find maximum diameter over all bodies
-            Scalar d_max(0.0);
-            ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
-            for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
+            if (m_global_max_d_changed)
                 {
-                if (h_body_len.data[i] != 0 && m_body_max_diameter[i] > d_max)
-                    d_max = m_body_max_diameter[i];
+                // find maximum diameter over all bodies
+                Scalar d_max(0.0);
+                ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+                for (unsigned int i = 0; i < m_pdata->getNTypes(); ++i)
+                    {
+                    if (h_body_len.data[i] != 0 && m_body_max_diameter[i] > d_max)
+                        d_max = m_body_max_diameter[i];
+                    }
+
+                // cache value
+                m_global_max_d = d_max;
+                m_global_max_d_changed = false;
+
+                m_exec_conf->msg->notice(7) << "ForceComposite: Maximum body diameter is " << m_global_max_d << std::endl;
                 }
 
-            if (!m_box_size_warning_issued &&
-                ((box.getPeriodic().x && nearest_plane_distance.x <= d_max) ||
-                (box.getPeriodic().y && nearest_plane_distance.y <= d_max) ||
-                (this->m_sysdef->getNDimensions() == 3 && box.getPeriodic().z && nearest_plane_distance.z <= d_max)))
-                {
-                // issue a warning to the user, hope they know what they are doing
-                m_exec_conf->msg->warning() << "constrain.rigid(): Simulation box is too small! The neighbor list may be missing self-interactions of rigid bodies." << std::endl;
-                m_exec_conf->msg->warning() << "This warning will be printed only once!" << std::endl;
-                m_box_size_warning_issued = true;
-                }
+            return m_global_max_d;
             }
 
         //! Return the requested minimum ghost layer width
@@ -151,7 +149,7 @@ class ForceComposite : public MolecularForceCompute
 
     private:
         bool m_comm_ghost_layer_connected; //!< Track if we have already connected ghost layer width requests
-        bool m_box_size_warning_issued;    //!< True if we have warned the user about the box size
+        bool m_global_max_d_changed;       //!< True if we updated any rigid body
     };
 
 //! Exports the ForceComposite to python

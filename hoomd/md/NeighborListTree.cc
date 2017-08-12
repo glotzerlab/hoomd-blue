@@ -151,6 +151,13 @@ void NeighborListTree::updateImageVectors()
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
 
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
+
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))

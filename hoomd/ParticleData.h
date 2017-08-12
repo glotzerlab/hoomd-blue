@@ -321,6 +321,10 @@ struct pdata_element
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getMomentsOfInertia() and
     setMomentsOfInertia()
 
+    The current maximum diameter of all composite particles is stored in ParticleData and can be requested
+    by the NeighborList or other classes to compute rigid body interactions correctly. The maximum value
+    is updated by querying all classes that compute rigid body forces for updated values whenever needed.
+
     ## Origin shifting
 
     Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion
@@ -519,6 +523,19 @@ class ParticleData
             return has_bodies;
             }
 
+        //! Return the maximum diameter of all registered composite particles
+        Scalar getMaxCompositeParticleDiameter()
+            {
+            Scalar d_max = 0.0;
+            m_composite_particles_signal.emit_accumulate([&](Scalar d)
+                                                            {
+                                                            if (d > d_max) d_max = d;
+                                                            }
+                                                        );
+
+            return d_max;
+            }
+
         //! Return positions and types
         const GPUArray< Scalar4 >& getPositions() const { return m_pos; }
 
@@ -707,6 +724,14 @@ class ParticleData
         Nano::Signal< void()>& getNumTypesChangeSignal()
             {
             return m_num_types_signal;
+            }
+
+        //! Connects a funtion to be called every time the maximum diameter of composite particles is needed
+        /*! The signal slot returns the maximum diameter
+         */
+        Nano::Signal< Scalar()>& getCompositeParticlesSignal()
+            {
+            return m_composite_particles_signal;
             }
 
         //! Gets the particle type index given a name
@@ -1036,6 +1061,7 @@ class ParticleData
         Nano::Signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
         Nano::Signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
         Nano::Signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
+        Nano::Signal<Scalar ()> m_composite_particles_signal;  //!< Signal that is triggered when the maximum diameter of a composite particle is needed
 
         #ifdef ENABLE_MPI
         Nano::Signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
