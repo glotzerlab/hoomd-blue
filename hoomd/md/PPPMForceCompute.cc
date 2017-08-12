@@ -642,7 +642,7 @@ void PPPMForceCompute::computeInfluenceFunction()
         if (n.x != 0 || n.y != 0 || n.z != 0)
             {
             Scalar sum1(0.0);
-            Scalar numerator = Scalar(4.0*M_PI)/(dot(k,k)+m_alpha*m_alpha);
+            Scalar numerator = Scalar(4.0*M_PI)/dot(k,k);
 
             Scalar denominator = gf_denom(snx*snx, sny*sny, snz*snz);
 

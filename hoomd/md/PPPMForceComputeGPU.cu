@@ -1601,7 +1601,7 @@ __global__ void gpu_compute_influence_function_kernel(const uint3 mesh_dim,
     if (l != 0 || m != 0 || n != 0)
         {
         Scalar sum1(0.0);
-        Scalar numerator = Scalar(4.0*M_PI)/(dot(kval,kval)+alpha*alpha);
+        Scalar numerator = Scalar(4.0*M_PI)/dot(kval,kval);
 
         for (int ix = -nbx; ix <= nbx; ix++)
             {
