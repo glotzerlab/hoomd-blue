@@ -159,7 +159,7 @@ class charge_pppm_screening_test(unittest.TestCase):
         all = group.all()
         nl = md.nlist.cell()
         c = md.charge.pppm(all, nlist = nl);
-        c.set_params(Nx=128, Ny=128, Nz=128, order=6, rcut=1.5, alpha=0.5);
+        c.set_params(Nx=128, Ny=128, Nz=128, order=7, rcut=1.5, alpha=0.5);
         log = analyze.log(quantities = ['potential_energy','pppm_energy'], period = 1, filename=None);
         md.integrate.mode_standard(dt=0.0);
         md.integrate.nve(all);
@@ -173,15 +173,15 @@ class charge_pppm_screening_test(unittest.TestCase):
         # periodic images in Mathematica
         self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.609791, 4)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.609791, 5)
 
         self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.609791, 4)
+        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.609791, 5)
 
         pe = log.query('potential_energy')
         print(log.query('pppm_energy'))
-        self.assertAlmostEqual(pe,-0.457344,3)
+        self.assertAlmostEqual(pe,-0.457344,4)
 
         del all
         del c
