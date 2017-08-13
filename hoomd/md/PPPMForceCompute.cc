@@ -177,7 +177,7 @@ void PPPMForceCompute::compute_gf_denom()
         h_gf_b.data[0] = 4.0 * (h_gf_b.data[0]*(l-m)*(l-m-0.5));
     }
 
-    int ifact = 1;
+    long int ifact = 1; // need long data type for seventh order polynomial
     for (k = 1; k < 2*(int)m_order; k++) ifact *= k;
     Scalar gaminv = 1.0/ifact;
     for (l = 0; l < (int)m_order; l++) h_gf_b.data[l] *= gaminv;
