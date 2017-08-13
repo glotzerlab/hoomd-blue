@@ -152,7 +152,7 @@ __global__ void gpu_bin_particles_kernel(const unsigned int N,
         return;
         }
 
-    // row-major mapping of bins onto array
+    // column-major mapping of bins onto array
     unsigned int bin = bin_coord.x + bin_dim.x * (bin_coord.y + bin_dim.y * bin_coord.z);
 
     // we bin non-deterministically here
@@ -241,7 +241,7 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                              mesh_dim.y+2*n_ghost_bins.y,
                              mesh_dim.z+2*n_ghost_bins.z);
 
-    // grid coordinates of bin (row-major)
+    // grid coordinates of bin (column-major)
     int i,j,k;
     k = bin /bin_dim.y / bin_dim.x;
     j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
@@ -657,7 +657,7 @@ __global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
                              mesh_dim.y+2*n_ghost_bins.y,
                              mesh_dim.z+2*n_ghost_bins.z);
 
-    // grid coordinates of bin (row-major)
+    // grid coordinates of bin (column-major)
     int i,j,k;
     k = bin /bin_dim.y / bin_dim.x;
     j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
@@ -1027,7 +1027,10 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                                           const BoxDim box,
                                           int order,
                                           const unsigned int *d_index_array,
-                                          unsigned int group_size)
+                                          unsigned int group_size,
+                                          const cufftComplex *inv_fourier_mesh_x,
+                                          const cufftComplex *inv_fourier_mesh_y,
+                                          const cufftComplex *inv_fourier_mesh_z)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1049,6 +1052,14 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
     // find cell the particle is in
     int3 cell_coord = find_cell(pos, inner_dim.x, inner_dim.y, inner_dim.z, n_ghost_cells, box, order, dr);
+
+    // ignore particles that are not within our domain (the error should be caught by HOOMD's cell list)
+    if (cell_coord.x < 0 || cell_coord.x >= grid_dim.x ||
+        cell_coord.y < 0 || cell_coord.y >= grid_dim.y ||
+        cell_coord.z < 0 || cell_coord.z >= grid_dim.z)
+        {
+        return;
+        }
 
     Scalar3 force = make_scalar3(0.0,0.0,0.0);
 
@@ -1092,7 +1103,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.x)
                     {
-                    if (neighl >= grid_dim.x)
+                    if (neighl >= (int)grid_dim.x)
                         neighl -= grid_dim.x;
                     else if (neighl < 0)
                         neighl += grid_dim.x;
@@ -1100,7 +1111,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.y)
                     {
-                    if (neighm >= grid_dim.y)
+                    if (neighm >= (int)grid_dim.y)
                         neighm -= grid_dim.y;
                     else if (neighm < 0)
                         neighm += grid_dim.y;
@@ -1108,14 +1119,15 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.z)
                     {
-                    if (neighn >= grid_dim.z)
+                    if (neighn >= (int)grid_dim.z)
                         neighn -= grid_dim.z;
                     else if (neighn < 0)
                         neighn += grid_dim.z;
                     }
 
-                // use row-major layout
+                // use column-major layout
                 unsigned int cell_idx = neighl + grid_dim.x * (neighm + grid_dim.y * neighn);
+
 
                 cufftComplex inv_mesh_x = tex1Dfetch(inv_fourier_mesh_tex_x,cell_idx);
                 cufftComplex inv_mesh_y = tex1Dfetch(inv_fourier_mesh_tex_y,cell_idx);
@@ -1181,7 +1193,10 @@ void gpu_compute_forces(const unsigned int N,
              box,
              order,
              d_index_array,
-             group_size);
+             group_size,
+             d_inv_fourier_mesh_x,
+             d_inv_fourier_mesh_y,
+             d_inv_fourier_mesh_z);
     }
 
 __global__ void kernel_calculate_pe_partial(
