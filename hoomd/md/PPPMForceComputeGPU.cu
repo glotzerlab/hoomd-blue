@@ -1054,9 +1054,9 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
     int3 cell_coord = find_cell(pos, inner_dim.x, inner_dim.y, inner_dim.z, n_ghost_cells, box, order, dr);
 
     // ignore particles that are not within our domain (the error should be caught by HOOMD's cell list)
-    if (cell_coord.x < 0 || cell_coord.x >= grid_dim.x ||
-        cell_coord.y < 0 || cell_coord.y >= grid_dim.y ||
-        cell_coord.z < 0 || cell_coord.z >= grid_dim.z)
+    if (cell_coord.x < 0 || cell_coord.x >= (int) grid_dim.x ||
+        cell_coord.y < 0 || cell_coord.y >= (int) grid_dim.y ||
+        cell_coord.z < 0 || cell_coord.z >= (int) grid_dim.z)
         {
         return;
         }
