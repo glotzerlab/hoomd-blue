@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -355,9 +355,10 @@ void GSDReader::readTopology()
 
 void export_GSDReader(py::module& m)
     {
-    py::class_< GSDReader >(m,"GSDReader")
+    py::class_< GSDReader, std::shared_ptr<GSDReader> >(m,"GSDReader")
     .def(py::init<std::shared_ptr<const ExecutionConfiguration>, const string&, const uint64_t>())
     .def("getTimeStep", &GSDReader::getTimeStep)
     .def("getSnapshot", &GSDReader::getSnapshot)
+    .def("clearSnapshot", &GSDReader::clearSnapshot)
     ;
     }

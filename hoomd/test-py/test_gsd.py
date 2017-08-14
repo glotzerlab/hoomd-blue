@@ -141,6 +141,13 @@ class gsd_write_tests (unittest.TestCase):
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
 
+    def test_dynamic(self):
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, dynamic=['momentum'], overwrite=True);
+        run(1);
+        data.gsd_snapshot(self.tmp_file, frame=0);
+        if comm.get_rank() == 0:
+            self.assertRaises(RuntimeError, data.gsd_snapshot, self.tmp_file, frame=1);
+
     # test write file
     def test_write_immediate(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, time_step=1000, overwrite=True);

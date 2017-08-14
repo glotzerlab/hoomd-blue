@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -38,7 +38,7 @@ const unsigned int MAX_POLY2D_VERTS=64;
 
 //! Data structure for polygon vertices
 /*! \ingroup hpmc_data_structs */
-struct poly2d_verts : aligned_struct
+struct poly2d_verts : param_base
     {
     //! Default constructor initializes zero values.
     DEVICE poly2d_verts()
@@ -52,6 +52,14 @@ struct poly2d_verts : aligned_struct
             x[i] = y[i] = OverlapReal(0);
             }
         }
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
 
     OverlapReal x[MAX_POLY2D_VERTS];    //!< X coordinate of vertices
     OverlapReal y[MAX_POLY2D_VERTS];    //!< Y coordinate of vertices

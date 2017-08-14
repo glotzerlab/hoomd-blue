@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -826,6 +826,9 @@ class ParticleData
 
         //! Get the net torque on a given particle
         Scalar4 getNetTorque(unsigned int tag) const;
+
+        //! Get the net virial for a given particle
+        Scalar getPNetVirial(unsigned int tag, unsigned int component) const;
 
         //! Set the current position of a particle
         /*! \param move If true, particle is automatically placed into correct domain

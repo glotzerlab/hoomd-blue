@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -313,6 +313,9 @@ class NeighborList : public Compute
 
         //! Add an exclusion for every bond in the ConstraintData
         void addExclusionsFromConstraints();
+
+        //! Add an exclusion for every pair in the ParticleData
+        void addExclusionsFromPairs();
 
         //! Test if an exclusion has been made
         bool isExcluded(unsigned int tag1, unsigned int tag2);

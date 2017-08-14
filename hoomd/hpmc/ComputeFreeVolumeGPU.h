@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
@@ -48,7 +48,7 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
                              unsigned int seed,
                              std::string suffix);
         //! Destructor
-        virtual ~ComputeFreeVolumeGPU() { };
+        virtual ~ComputeFreeVolumeGPU();
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -74,6 +74,8 @@ class ComputeFreeVolumeGPU : public ComputeFreeVolume<Shape>
         GPUArray<unsigned int> m_excell_idx;  //!< Particle indices in expanded cells
         GPUArray<unsigned int> m_excell_size; //!< Number of particles in each expanded cell
         Index2D m_excell_list_indexer;        //!< Indexer to access elements of the excell_idx list
+
+        cudaStream_t m_stream;                //!< CUDA stream for kernel execution
 
         std::unique_ptr<Autotuner> m_tuner_free_volume;     //!< Autotuner for the overlap/free volume counter
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
@@ -127,6 +129,17 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     m_last_nmax = 0xffffffff;
 
     m_tuner_excell_block_size.reset(new Autotuner(32,1024,32, 5, 1000000, "hpmc_free_volume_excell_block_size", this->m_exec_conf));
+
+    // create a cuda stream to ensure managed memory coherency
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+    }
+
+template<class Shape>
+ComputeFreeVolumeGPU<Shape>::~ComputeFreeVolumeGPU()
+    {
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 /*! \return the current free volume (by MC integration)
@@ -140,9 +153,9 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     Scalar nominal_width = this->m_mc->getMaxDiameter();
         {
         // add range of test particle
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[this->m_type]);
+        Shape tmp(o, params[this->m_type]);
         nominal_width += tmp.getCircumsphereDiameter();
         }
 
@@ -210,7 +223,7 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
     const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
     // access the parameters
-    ArrayHandle<typename Shape::param_type> d_params(this->m_mc->getParams(), access_location::device, access_mode::read);
+    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
 
         {
         // access counter
@@ -254,11 +267,13 @@ void ComputeFreeVolumeGPU<Shape>::computeFreeVolume(unsigned int timestep)
                                                    d_n_overlap_all.data,
                                                    this->m_cl->getGhostWidth(),
                                                    d_overlaps.data,
-                                                   overlap_idx);
+                                                   overlap_idx,
+                                                   m_stream,
+                                                   this->m_exec_conf->dev_prop);
 
 
         // invoke kernel for counting total overlap volume
-        detail::gpu_hpmc_free_volume<Shape> (free_volume_args, d_params.data);
+        detail::gpu_hpmc_free_volume<Shape> (free_volume_args, params.data());
 
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

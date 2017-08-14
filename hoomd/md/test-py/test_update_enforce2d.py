@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -12,8 +11,7 @@ import os
 class update_enforce2d_tests (unittest.TestCase):
     def setUp(self):
         print
-        s = deprecated.init.create_random(N=100, box=data.boxdim(L=100, dimensions=2));
-        s.dimensions = 2
+        s = init.create_lattice(lattice.sq(a=10),n=[10,10]);
 
         context.current.sorter.set_params(grid=8)
 

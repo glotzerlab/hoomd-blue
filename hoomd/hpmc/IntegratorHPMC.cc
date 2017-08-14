@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
@@ -25,6 +25,12 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
       m_communicator_flags_connected(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
+
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
 
     GPUArray<hpmc_counters_t> counters(1, this->m_exec_conf);
     m_count_total.swap(counters);
@@ -320,6 +326,7 @@ void export_IntegratorHPMC(py::module& m)
     .def("getCounters", &IntegratorHPMC::getCounters)
     .def("communicate", &IntegratorHPMC::communicate)
     .def("slotNumTypesChange", &IntegratorHPMC::slotNumTypesChange)
+    .def("setDeterministic", &IntegratorHPMC::setDeterministic)
     ;
 
    py::class_< hpmc_counters_t >(m, "hpmc_counters_t")

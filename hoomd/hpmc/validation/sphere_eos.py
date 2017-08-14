@@ -48,8 +48,8 @@ class sphereEOS_test(unittest.TestCase):
 
         tunables = []
         boxmc = hpmc.update.boxmc(self.mc,betaP=P,seed=123)
-        boxmc.volume(delta=1,weight=1)
-        tunables = ['dV']
+        boxmc.ln_volume(delta=0.001,weight=1)
+        tunables = ['dlnV']
 
         npt_tune = hpmc.util.tune_npt(boxmc, tunables = tunables, target = 0.2, gamma=1)
 
@@ -59,9 +59,9 @@ class sphereEOS_test(unittest.TestCase):
             d = self.mc.get_d();
             translate_acceptance = self.mc.get_translate_acceptance();
             util.quiet_status()
-            v = boxmc.volume()['delta']
+            v = boxmc.ln_volume()['delta']
             util.unquiet_status()
-            volume_acceptance = boxmc.get_volume_acceptance();
+            volume_acceptance = boxmc.get_ln_volume_acceptance();
             if comm.get_rank() == 0:
                 print('d: {:3.2f} accept: {:3.2f} / v: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance,v,volume_acceptance));
 
