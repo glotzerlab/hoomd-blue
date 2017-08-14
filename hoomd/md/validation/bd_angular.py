@@ -61,13 +61,13 @@ class bd_angular_test(unittest.TestCase):
         # analyze results
         hist, bins = np.histogram(cphi,bins=100,density=True)
 
-        # expected normalization constant of P(theta) = 1/Z*exp(-beta*E*cos(theta))
+        # expected normalization constant of P(theta) = 1/Z*exp(-beta*E*cos(theta))*sin(theta)
         Z = 29.6813
 
         # due to numerical issues it is hard to get the overall normalization (== integral)
         # exactly right
 
-        # verify if it all it is a constant factor
+        # verify if all it is a constant factor
         log_factor = math.log(hist[0])+E*0.5*(bins[1]+bins[0])+math.log(Z)
 
         # we could get better than one significant digit by running longer
