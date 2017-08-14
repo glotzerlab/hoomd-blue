@@ -7,32 +7,18 @@
 
 #include <cufft.h>
 
-void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
-                                         const uint3 n_ghost_bins,
-                                         const uint3 grid_dim,
-                                         const Scalar4 *d_particle_bins,
-                                         Scalar *d_mesh_scratch,
-                                         const Index2D& bin_idx,
-                                         const Index2D& scratch_idx,
-                                         const unsigned int *d_n_cell,
-                                         cufftComplex *d_mesh,
-                                         int order,
-                                         const BoxDim& box,
-                                         unsigned int block_size,
-                                         const cudaDeviceProp& dev_prop);
-
-void gpu_assign_particles_nondeterministic(const uint3 mesh_dim,
-                                         const uint3 n_ghost_bins,
-                                         const uint3 grid_dim,
-                                         unsigned int group_size,
-                                         const unsigned int *d_index_array,
-                                         const Scalar4 *d_postype,
-                                         const Scalar *d_charge,
-                                         cufftComplex *d_mesh,
-                                         int order,
-                                         const BoxDim& box,
-                                         unsigned int block_size,
-                                         const cudaDeviceProp& dev_prop);
+void gpu_assign_particles(const uint3 mesh_dim,
+                         const uint3 n_ghost_bins,
+                         const uint3 grid_dim,
+                         unsigned int group_size,
+                         const unsigned int *d_index_array,
+                         const Scalar4 *d_postype,
+                         const Scalar *d_charge,
+                         cufftComplex *d_mesh,
+                         int order,
+                         const BoxDim& box,
+                         unsigned int block_size,
+                         const cudaDeviceProp& dev_prop);
 
 void gpu_compute_mesh_virial(const unsigned int n_wave_vectors,
                              cufftComplex *d_fourier_mesh,

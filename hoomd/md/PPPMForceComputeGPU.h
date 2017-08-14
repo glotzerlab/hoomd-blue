@@ -121,9 +121,6 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         GPUArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
         GPUArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
 
-        GPUArray<Scalar> m_mesh_scratch;           //!< Mesh with scratch space for density reduction
-        Index2D m_scratch_idx;                     //!< Indexer for scratch space
-
         GPUFlags<Scalar> m_sum;                    //!< Sum over fourier mesh values
         GPUArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values
         GPUArray<Scalar> m_sum_virial_partial;     //!< Partial sums over virial mesh values

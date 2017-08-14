@@ -104,9 +104,6 @@ void PPPMForceComputeGPU::initializeFFT()
         cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
         }
 
-    unsigned int n_particle_bins = m_grid_dim.x*m_grid_dim.y*m_grid_dim.z;
-    m_scratch_idx = Index2D(n_particle_bins,(2*m_radius+1)*(2*m_radius+1)*(2*m_radius+1));
-
     // allocate mesh and transformed mesh
 
     // pad with offset
@@ -134,10 +131,6 @@ void PPPMForceComputeGPU::initializeFFT()
 
     GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
-
-    // allocate scratch space for density reduction
-    GPUArray<Scalar> mesh_scratch(m_scratch_idx.getNumElements(), m_exec_conf);
-    m_mesh_scratch.swap(mesh_scratch);
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
@@ -174,9 +167,6 @@ void PPPMForceComputeGPU::assignParticles()
     ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
-    // assign particles to mesh
-    ArrayHandle<Scalar> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
-
     // access the group
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
     unsigned int group_size = m_group->getNumMembers();
@@ -184,37 +174,18 @@ void PPPMForceComputeGPU::assignParticles()
     m_tuner_assign->begin();
     unsigned int block_size = m_tuner_assign->getParam();
 
-    /*
-       NOTE: we also provide a determinstic code path which is currently not used
-       it would further require making the binning of particles determinstic
-
-    gpu_assign_binned_particles_to_mesh_deterministic(m_mesh_points,
-                                        m_n_ghost_cells,
-                                        m_grid_dim,
-                                        d_particle_bins.data,
-                                        d_mesh_scratch.data,
-                                        m_bin_idx,
-                                        m_scratch_idx,
-                                        d_n_cell.data,
-                                        d_mesh.data,
-                                        m_order,
-                                        m_pdata->getBox(),
-                                        block_size,
-                                        m_exec_conf->dev_prop);
-    */
-
-    gpu_assign_particles_nondeterministic(m_mesh_points,
-                                        m_n_ghost_cells,
-                                        m_grid_dim,
-                                        group_size,
-                                        d_index_array.data,
-                                        d_postype.data,
-                                        d_charge.data,
-                                        d_mesh.data,
-                                        m_order,
-                                        m_pdata->getBox(),
-                                        block_size,
-                                        m_exec_conf->dev_prop);
+    gpu_assign_particles(m_mesh_points,
+                        m_n_ghost_cells,
+                        m_grid_dim,
+                        group_size,
+                        d_index_array.data,
+                        d_postype.data,
+                        d_charge.data,
+                        d_mesh.data,
+                        m_order,
+                        m_pdata->getBox(),
+                        block_size,
+                        m_exec_conf->dev_prop);
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
