@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2016 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -188,14 +188,6 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                 vec3<Scalar> t(d_torque[idx]);
                 vec3<Scalar> I(d_inertia[idx]);
 
-                if (D < 3)
-                    {
-                    t.x = t.y = 0;
-                    }
-
-                // rotate torque into principal frame
-                t = rotate(conj(q), t);
-
                 // check if the shape is degenerate
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
@@ -206,49 +198,29 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
-                vec3<Scalar> random_torque;
-                random_torque.x = gaussian_rng(saru, sigma_r);
-                random_torque.y = gaussian_rng(saru, sigma_r);
-                random_torque.z = gaussian_rng(saru, sigma_r);
+                vec3<Scalar> bf_torque;
+                bf_torque.x = gaussian_rng(saru, sigma_r);
+                bf_torque.y = gaussian_rng(saru, sigma_r);
+                bf_torque.z = gaussian_rng(saru, sigma_r);
 
-                if (x_zero)
+                if (x_zero) bf_torque.x = 0;
+                if (y_zero) bf_torque.y = 0;
+                if (z_zero) bf_torque.z = 0;
+
+                // use the damping by gamma_r and rotate back to lab frame
+                // For Future Updates: take special care when have anisotropic gamma_r
+                bf_torque = rotate(q, bf_torque);
+                if (D < 3)
                     {
-                    random_torque.x = 0;
+                    bf_torque.x = 0;
+                    bf_torque.y = 0;
                     t.x = 0;
-                    }
-
-                if (y_zero)
-                    {
-                    random_torque.y = 0;
                     t.y = 0;
                     }
 
-                if (z_zero)
-                    {
-                    random_torque.z = 0;
-                    t.z = 0;
-                    }
-
-               if (D < 3)
-                    {
-                    // rotate the "angular velocity" to lab frame
-                    random_torque = rotate(q, random_torque);
-                    random_torque.x = 0;
-                    random_torque.y = 0;
-                    // .. and back
-                    random_torque = rotate(conj(q), random_torque);
-                    }
-
-                // do the integration for the quaternion
-                quat<Scalar> qt = q + Scalar(0.5) * m_deltaT/gamma_r * q * (t + random_torque);
-
-                // solve the quadratic equation for the Lagrange multiplier
-                Scalar dotp = dot(qt,q);
-                Scalar lambda = -dotp + fast::sqrt(dotp*dotp-dot(qt,qt)+1); // larger root
-
-                // add in the constraint force to guarantee normalization [Eq. (13) in Illie et al.]
-                q = qt + lambda*q;
-
+                // do the integration for quaternion
+                q += Scalar(0.5) * deltaT * ((t + bf_torque) / gamma_r) * q ;
+                q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 d_orientation[idx] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame

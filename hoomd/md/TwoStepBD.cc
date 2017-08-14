@@ -157,11 +157,6 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 vec3<Scalar> t(h_torque.data[j]);
                 vec3<Scalar> I(h_inertia.data[j]);
 
-                if (D < 3)
-                    {
-                    t.x = t.y = 0;
-                    }
-
                 // rotate torque into principal frame
                 t = rotate(conj(q), t);
 
@@ -206,6 +201,8 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                     random_torque = rotate(q, random_torque);
                     random_torque.x = 0;
                     random_torque.y = 0;
+                    t.x = 0;
+                    t.y = 0;
                     // .. and back
                     random_torque = rotate(conj(q), random_torque);
                     }
@@ -215,10 +212,12 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
                 // solve the quadratic equation for the Lagrange multiplier
                 Scalar dotp = dot(qt,q);
-                Scalar lambda = -dotp + fast::sqrt(dotp*dotp-dot(qt,qt)+1); // larger root
+                Scalar lambda = -dotp + sqrt(dotp*dotp-dot(qt,qt)+1); // larger root
 
                 // add in the constraint force to guarantee normalization [Eq. (13) in Illie et al.]
                 q = qt + lambda*q;
+
+                std::cout << dot(q,q) << std::endl;
 
                 h_orientation.data[j] = quat_to_scalar4(q);
 
