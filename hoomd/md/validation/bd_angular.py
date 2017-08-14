@@ -61,7 +61,7 @@ class bd_angular_test(unittest.TestCase):
         # analyze results
         hist, bins = np.histogram(cphi,bins=100,density=True)
 
-        # expected normalization constant of P(theta) = 1/Z*exp(-beta*cos(theta))
+        # expected normalization constant of P(theta) = 1/Z*exp(-beta*E*cos(theta))
         Z = 29.6813
 
         # due to numerical issues it is hard to get the overall normalization (== integral)
