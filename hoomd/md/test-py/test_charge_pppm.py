@@ -229,13 +229,9 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
         run(1);
 
         # pairwise forces on a rigid body cancel out
-        self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[2], 0, 5)
-
-        self.assertAlmostEqual(self.s.particles[2].net_force[0], 0, 5)
-        self.assertAlmostEqual(self.s.particles[2].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[2].net_force[2], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0, 5)
 
         pe = log.query('potential_energy')
         self.assertAlmostEqual(pe,-0.741706,5)
@@ -267,13 +263,9 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
         run(1);
 
         # pairwise forces on a rigid body cancel out
-        self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[2], 0, 5)
-
-        self.assertAlmostEqual(self.s.particles[2].net_force[0], 0, 5)
-        self.assertAlmostEqual(self.s.particles[2].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[2].net_force[2], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0, 5)
 
         pe = log.query('potential_energy')
         dx = np.array(self.s.particles[2].position)-np.array(self.s.particles[1].position)
