@@ -630,41 +630,47 @@ void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
                                                     d_mesh);
     }
 
-__global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
-                                                           const uint3 n_ghost_bins,
-                                                           const Scalar4 *d_particle_bins,
-                                                           const unsigned int *d_n_cell,
-                                                           cufftComplex *d_mesh,
-                                                           const Index2D bin_idx,
-                                                           Scalar V_cell,
-                                                           int order)
-    {
-    unsigned int bin;
-
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        bin = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
-        }
-    else
-        {
-        bin = blockDim.x * blockIdx.x + threadIdx.x;
-        }
-
-    if (bin >= bin_idx.getW()) return;
+__global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
+                                            const uint3 n_ghost_bins,
+                                            unsigned int group_size,
+                                            const unsigned int *d_index_array,
+                                            const Scalar4 *d_postype,
+                                            const Scalar *d_charge,
+                                            cufftComplex *d_mesh,
+                                            Scalar V_cell,
+                                            int order,
+                                            BoxDim box)
+{
+    unsigned int group_idx = blockIdx.x*blockDim.x+threadIdx.x;
+    if (group_idx >= group_size) return;
 
     int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
                              mesh_dim.y+2*n_ghost_bins.y,
                              mesh_dim.z+2*n_ghost_bins.z);
 
     // grid coordinates of bin (column-major)
-    int i,j,k;
-    k = bin /bin_dim.y / bin_dim.x;
-    j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
-    i = bin % bin_dim.x;
+    unsigned int idx = d_index_array[group_idx];
 
-    // loop over particles in bin
-    unsigned int n_bin = d_n_cell[bin];
+    Scalar4 postype = d_postype[idx];
+
+    Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+    Scalar qi = d_charge[idx];
+
+    // compute coordinates in units of the cell size
+    Scalar3 dr = make_scalar3(0,0,0);
+    int3 bin_coord = find_cell(pos, mesh_dim.x, mesh_dim.y, mesh_dim.z, n_ghost_bins, box, order, dr);
+
+    // ignore particles that are not within our domain (the error should be caught by HOOMD's cell list)
+    if (bin_coord.x < 0 || bin_coord.x >= bin_dim.x ||
+        bin_coord.y < 0 || bin_coord.y >= bin_dim.y ||
+        bin_coord.z < 0 || bin_coord.z >= bin_dim.z)
+        {
+        return;
+        }
+
+    int i = bin_coord.x;
+    int j = bin_coord.y;
+    int k = bin_coord.z;
 
     int nlower = - (order - 1)/2;
     int nupper = order/2;
@@ -673,120 +679,116 @@ __global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
 
     int mult_fact = 2*order + 1;
 
-    for (unsigned int idx = 0; idx < n_bin; ++idx)
+    Scalar x0 = qi/V_cell;
+
+    bool ignore_x = false;
+    bool ignore_y = false;
+    bool ignore_z = false;
+
+    // loop over neighboring bins
+    for (int l = nlower; l <= nupper; ++l)
         {
-        Scalar4 xyzc = d_particle_bins[bin_idx(bin,idx)];
-
-        Scalar x0 = xyzc.w/V_cell;
-
-        bool ignore_x = false;
-        bool ignore_y = false;
-        bool ignore_z = false;
-
-        // loop over neighboring bins
-        for (int l = nlower; l <= nupper; ++l)
+        // precalculate assignment factor
+        result = Scalar(0.0);
+        for (int iorder = order-1; iorder >= 0; iorder--)
             {
-            // precalculate assignment factor
+            result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * dr.x;
+            }
+        Scalar y0 = x0 * result;
+
+        int neighi = i + l;
+        if (neighi >= (int)bin_dim.x)
+            {
+            if (! n_ghost_bins.x)
+                neighi -= (int)bin_dim.x;
+            else
+                ignore_x = true;
+            }
+        else if (neighi < 0)
+            {
+            if (! n_ghost_bins.x)
+                neighi += (int)bin_dim.x;
+            else
+                ignore_x = true;
+            }
+
+
+        for (int m = nlower; m <= nupper; ++m)
+            {
             result = Scalar(0.0);
             for (int iorder = order-1; iorder >= 0; iorder--)
                 {
-                result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * xyzc.x;
+                result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * dr.y;
                 }
-            Scalar y0 = x0 * result;
+            Scalar z0 = y0 * result;
 
-            int neighi = i + l;
-            if (neighi >= (int)bin_dim.x)
+            int neighj = j + m;
+            if (neighj >= (int) bin_dim.y)
                 {
-                if (! n_ghost_bins.x)
-                    neighi -= (int)bin_dim.x;
+                if (! n_ghost_bins.y)
+                    neighj -= (int)bin_dim.y;
                 else
-                    ignore_x = true;
+                    ignore_y = true;
                 }
-            else if (neighi < 0)
+            else if (neighj < 0)
                 {
-                if (! n_ghost_bins.x)
-                    neighi += (int)bin_dim.x;
+                if (! n_ghost_bins.y)
+                    neighj += (int)bin_dim.y;
                 else
-                    ignore_x = true;
+                    ignore_y = true;
                 }
 
 
-            for (int m = nlower; m <= nupper; ++m)
+            for (int n = nlower; n <= nupper; ++n)
                 {
                 result = Scalar(0.0);
                 for (int iorder = order-1; iorder >= 0; iorder--)
                     {
-                    result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * xyzc.y;
+                    result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * dr.z;
                     }
-                Scalar z0 = y0 * result;
 
-                int neighj = j + m;
-                if (neighj >= (int) bin_dim.y)
+                int neighk = k + n;
+
+                if (neighk >= (int)bin_dim.z)
                     {
-                    if (! n_ghost_bins.y)
-                        neighj -= (int)bin_dim.y;
+                    if (! n_ghost_bins.z)
+                        neighk -= (int)bin_dim.z;
                     else
-                        ignore_y = true;
+                        ignore_z = true;
                     }
-                else if (neighj < 0)
+                else if (neighk < 0)
                     {
-                    if (! n_ghost_bins.y)
-                        neighj += (int)bin_dim.y;
+                    if (! n_ghost_bins.z)
+                        neighk += (int)bin_dim.z;
                     else
-                        ignore_y = true;
+                        ignore_z = true;
                     }
 
-
-                for (int n = nlower; n <= nupper; ++n)
+                if (!ignore_x && !ignore_y && !ignore_z)
                     {
-                    result = Scalar(0.0);
-                    for (int iorder = order-1; iorder >= 0; iorder--)
-                        {
-                        result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * xyzc.z;
-                        }
+                    // write out to global memory using row-major
+                    unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
 
-                    int neighk = k + n;
-
-                    if (neighk >= (int)bin_dim.z)
-                        {
-                        if (! n_ghost_bins.z)
-                            neighk -= (int)bin_dim.z;
-                        else
-                            ignore_z = true;
-                        }
-                    else if (neighk < 0)
-                        {
-                        if (! n_ghost_bins.z)
-                            neighk += (int)bin_dim.z;
-                        else
-                            ignore_z = true;
-                        }
-
-                    if (!ignore_x && !ignore_y && !ignore_z)
-                        {
-                        // write out to global memory using row-major
-                        unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
-
-                        // compute fraction of particle density assigned to cell
-                        // from particles in this bin
-                        atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
-                        }
-
-                    ignore_z = false;
+                    // compute fraction of particle density assigned to cell
+                    // from particles in this bin
+                    atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
                     }
-                ignore_y = false;
+
+                ignore_z = false;
                 }
-            ignore_x = false;
-            } // end of loop over neighboring bins
-        } // end of ptl loop
+            ignore_y = false;
+            }
+        ignore_x = false;
+        } // end of loop over neighboring bins
     }
 
-void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
+void gpu_assign_particles_nondeterministic(const uint3 mesh_dim,
                                          const uint3 n_ghost_bins,
                                          const uint3 grid_dim,
-                                         const Scalar4 *d_particle_bins,
-                                         const Index2D& bin_idx,
-                                         const unsigned int *d_n_cell,
+                                         unsigned int group_size,
+                                         const unsigned int *d_index_array,
+                                         const Scalar4 *d_postype,
+                                         const Scalar *d_charge,
                                          cufftComplex *d_mesh,
                                          int order,
                                          const BoxDim& box,
@@ -799,12 +801,10 @@ void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
 
     static unsigned int max_block_size = UINT_MAX;
     static cudaFuncAttributes attr;
-    static int sm = -1;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_kernel);
+        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
@@ -814,26 +814,19 @@ void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
         run_block_size -= dev_prop.warpSize;
         }
 
-    unsigned int n_blocks = bin_idx.getW()/run_block_size;
-    if (bin_idx.getW()%run_block_size) n_blocks +=1;
-    dim3 grid(n_blocks, 1, 1);
+    unsigned int n_blocks = group_size/run_block_size+1;
 
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
-
-    gpu_assign_binned_particles_kernel<<<grid,run_block_size>>>(
+    gpu_assign_particles_kernel<<<n_blocks,run_block_size>>>(
           mesh_dim,
           n_ghost_bins,
-          d_particle_bins,
-          d_n_cell,
+          group_size,
+          d_index_array,
+          d_postype,
+          d_charge,
           d_mesh,
-          bin_idx,
           V_cell,
-          order);
+          order,
+          box);
     }
 
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
