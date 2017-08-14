@@ -25,6 +25,9 @@
     Brownian dynamics modifies the Langevin equation by setting the acceleration term to 0 and assuming terminal
     velocity.
 
+    The angular update equation is described in Illie, Briels and den Otter,
+    JCP 142, 114103, http://dx.doi.org/10.10631/1.4914322
+
     \ingroup updaters
 */
 class TwoStepBD : public TwoStepLangevinBase

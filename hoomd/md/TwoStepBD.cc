@@ -157,6 +157,9 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                 vec3<Scalar> t(h_torque.data[j]);
                 vec3<Scalar> I(h_inertia.data[j]);
 
+                // rotate torque into principal frame
+                t = rotate(conj(q), t);
+
                 bool x_zero, y_zero, z_zero;
                 x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
 
@@ -166,31 +169,56 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
                 // original Gaussian random torque
                 // Gaussian random distribution is preferred in terms of preserving the exact math
-                vec3<Scalar> bf_torque;
-                bf_torque.x = gaussian_rng(saru, sigma_r);
-                bf_torque.y = gaussian_rng(saru, sigma_r);
-                bf_torque.z = gaussian_rng(saru, sigma_r);
+                vec3<Scalar> random_torque;
+                random_torque.x = gaussian_rng(saru, sigma_r);
+                random_torque.y = gaussian_rng(saru, sigma_r);
+                random_torque.z = gaussian_rng(saru, sigma_r);
 
-                if (x_zero) bf_torque.x = 0;
-                if (y_zero) bf_torque.y = 0;
-                if (z_zero) bf_torque.z = 0;
+                if (x_zero)
+                    {
+                    random_torque.x = 0;
+                    t.x = 0;
+                    }
+
+                if (y_zero)
+                    {
+                    random_torque.y = 0;
+                    t.y = 0;
+                    }
+
+                if (z_zero)
+                    {
+                    random_torque.z = 0;
+                    t.z = 0;
+                    }
 
                 // use the damping by gamma_r and rotate back to lab frame
                 // Notes For the Future: take special care when have anisotropic gamma_r
                 // if aniso gamma_r, first rotate the torque into particle frame and divide the different gamma_r
-                // and then rotate the "angular velocity" back to lab frame and integrate
-                bf_torque = rotate(q, bf_torque);
                 if (D < 3)
                     {
-                    bf_torque.x = 0;
-                    bf_torque.y = 0;
+                    // rotate the "angular velocity" to lab frame
+                    random_torque = rotate(q, random_torque);
+                    random_torque.x = 0;
+                    random_torque.y = 0;
                     t.x = 0;
                     t.y = 0;
+                    // .. and back
+                    random_torque = rotate(conj(q), random_torque);
                     }
 
-                // do the integration for quaternion
-                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;
-                q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
+                // do the integration for the quaternion
+                quat<Scalar> qt = q + Scalar(0.5) * m_deltaT/gamma_r * q * (t + random_torque);
+
+                // solve the quadratic equation for the Lagrange multiplier
+                Scalar dotp = dot(qt,q);
+                Scalar lambda = -dotp + sqrt(dotp*dotp-dot(qt,qt)+1); // larger root
+
+                // add in the constraint force to guarantee normalization [Eq. (13) in Illie et al.]
+                q = qt + lambda*q;
+
+                std::cout << dot(q,q) << std::endl;
+
                 h_orientation.data[j] = quat_to_scalar4(q);
 
                 // draw a new random ang_mom for particle j in body frame
