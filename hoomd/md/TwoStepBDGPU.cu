@@ -240,7 +240,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
                     }
 
                 // do the integration for the quaternion
-                quat<Scalar> qt = q + Scalar(0.5) * m_deltaT/gamma_r * q * (t + random_torque);
+                quat<Scalar> qt = q + Scalar(0.5) * deltaT/gamma_r * q * (t + random_torque);
 
                 // solve the quadratic equation for the Lagrange multiplier
                 Scalar dotp = dot(qt,q);
