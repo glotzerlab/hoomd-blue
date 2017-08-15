@@ -1410,7 +1410,7 @@ void PPPMForceCompute::computeBodyCorrection()
 
     m_body_energy = Scalar(0.0);
 
-    std::multimap<unsigned int, unsigned> body_map;
+    std::multimap<unsigned int, unsigned int> body_map;
     std::map<unsigned int, Scalar> body_type;
 
     if (m_group->getNumMembers() != nptl)
