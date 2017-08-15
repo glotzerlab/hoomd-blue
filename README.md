@@ -47,7 +47,7 @@ For more detailed instructions, [see the documentation](http://hoomd-blue.readth
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
+     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, clang 3.4 (*no cuda*), clang 3.8)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH)
