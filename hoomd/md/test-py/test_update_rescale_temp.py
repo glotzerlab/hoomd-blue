@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -12,7 +11,7 @@ import os
 class update_rescale_temp_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.system = deprecated.init.create_random(N=10000, phi_p=0.01,min_dist=1);
+        self.system = init.create_lattice(lattice.sc(a=3.7411019268182444),n=[20,20,25]); #target a packing fraction of 0.01
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 

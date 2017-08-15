@@ -23,7 +23,7 @@
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/deprecated/RandomGenerator.h"
+#include "hoomd/SnapshotSystemData.h"
 
 #include <math.h>
 
@@ -258,9 +258,9 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
     const unsigned int N = 1000;
 
     // create two identical random particle systems to simulate
-    RandomInitializer rand_init(N, Scalar(0.2), Scalar(0.9), "A");
-    rand_init.setSeed(12345);
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap = rand_init.getSnapshot();
+    SimpleCubicInitializer cubic_init(10, Scalar(1.2), "A");
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
+
     std::shared_ptr<SystemDefinition> sysdef1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata1 = sysdef1->getParticleData();
     std::shared_ptr<ParticleSelector> selector_all1(new ParticleSelectorTag(sysdef1, 0, pdata1->getN()-1));
@@ -345,22 +345,8 @@ void nve_updater_compare_test(twostepnve_creator nve_creator1,
 void nve_updater_aniso_test(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnve_creator nve_creator)
 {
     // initialize random particle system
-    Scalar phi_p = 0.2;
-    unsigned int N = 150;
-    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
-    BoxDim box_g(L);
-    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
-    std::vector<string> types;
-    types.push_back("A");
-    std::vector<unsigned int> bonds;
-    std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
-    rand_init.setSeparationRadius("A", .5);
-
-    rand_init.generate();
-
-    std::shared_ptr<SnapshotSystemData<Scalar> > snap;
-    snap = rand_init.getSnapshot();
+    SimpleCubicInitializer cubic_init(12, Scalar(1.2), "A");
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
 
     // have to set moment of inertia to actually test aniso integration
     for(unsigned int i(0); i < snap->particle_data.size; ++i)

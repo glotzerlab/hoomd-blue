@@ -5,7 +5,6 @@ from __future__ import division
 
 from hoomd import *
 from hoomd import md
-from hoomd import deprecated
 context.initialize()
 import unittest
 import os

@@ -42,6 +42,17 @@ class ManagedArray
                 allocate();
                 }
             }
+
+        //! Convenience constructor to fill array with values
+        ManagedArray(unsigned int _N, bool _managed, const T& value)
+            : N(_N), managed(_managed)
+            {
+            if (N > 0)
+                {
+                allocate();
+                std::fill(data,data+N,value);
+                }
+            }
         #endif
 
         DEVICE virtual ~ManagedArray()
@@ -129,46 +140,49 @@ class ManagedArray
 
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
+            \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
             {
-            // align to size of data type
-            char *ptr_align = (char *)((unsigned long int)(ptr + (sizeof(T) - 1)) & ~((unsigned long int) sizeof(T) - 1));
+            // size in ints (round up)
+            unsigned int size_int = (sizeof(T)*N)/sizeof(int);
+            if ((sizeof(T)*N) % sizeof(int)) size_int++;
 
-            // can we fit the data into shared memory?
-            if (ptr_align + sizeof(T)*N >= ptr_max)
+            // align ptr to size of data type
+            unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
+            char *ptr_align = (char *)((unsigned long int)(ptr + max_align_bytes) & ~((unsigned long int) max_align_bytes));
+
+            if (size_int*sizeof(int)+max_align_bytes > available_bytes)
                 return;
 
-            // use aligned address
-            ptr = ptr_align;
-
             #if defined (__CUDA_ARCH__)
-            if (load)
+            // only in GPU code
+            unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+            unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
+
+            for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
                 {
-                unsigned int size_int = (sizeof(T)*N)/sizeof(int);
-
-                unsigned int tidx = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
-                unsigned int block_size = blockDim.x*blockDim.y*blockDim.z;
-
-                for (unsigned int cur_offset = 0; cur_offset < size_int; cur_offset += block_size)
+                if (cur_offset + tidx < size_int)
                     {
-                    if (cur_offset + tidx < size_int)
-                        {
-                        ((int *)ptr)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
-                        }
+                    ((int *)ptr_align)[cur_offset + tidx] = ((int *)data)[cur_offset + tidx];
                     }
+                }
 
-                __syncthreads();
+            // make sure all threads have read from data
+            __syncthreads();
 
-                // redirect data ptr
+            // redirect data ptr
+            if (tidx == 0)
+                {
                 data = (T *) ptr;
                 }
+
+            __syncthreads();
             #endif
 
             // increment pointer
-            ptr += N*sizeof(T);
+            ptr = ptr_align + size_int*sizeof(int);
+            available_bytes -= size_int*sizeof(int)+max_align_bytes;
             }
 
     protected:

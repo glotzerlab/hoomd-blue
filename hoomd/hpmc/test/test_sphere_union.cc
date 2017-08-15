@@ -39,7 +39,7 @@ void build_tree(typename ShapeUnion<Shape>::param_type& data)
         obbs[i] = OBB(dummy.getAABB(data.mpos[i]));
         }
 
-    tree.buildTree(obbs, data.N, 4);
+    tree.buildTree(obbs, data.N, 4, true);
     delete[] obbs;
     data.tree = gpu_tree_type(tree);
     }
