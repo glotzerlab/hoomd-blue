@@ -1,0 +1,243 @@
+pipeline
+    {
+    agent none
+
+
+    stages
+        {
+        stage('unit-clang38-py35-cd80')
+            {
+            agent { label 'gpu' }
+
+            environment
+                {
+                CC = '/usr/bin/clang'
+                CXX = '/usr/bin/clang++'
+                PYVER = '3.5'
+                CMAKE_BIN = '/usr/bin'
+                ENABLE_CUDA = 'ON'
+                ENABLE_MPI = 'OFF'
+                BUILD_VALIDATION = 'OFF'
+                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
+                }
+
+            steps
+                {
+                bitbucketStatusNotify(
+                    buildState: 'INPROGRESS',
+                    buildKey: 'unit-clang38-py35-cd80',
+                    buildName: 'unit-clang38-py35-cd80'
+                    )
+
+                sh 'git submodule update --init'
+
+                sh '''
+                    mkdir -p build
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                   '''
+
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+
+                sh '''
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                   '''
+
+                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
+                archive 'build/Testing/**/Test.xml'
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                success
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'SUCCESSFUL',
+                        buildKey: 'unit-clang38-py35-cd80',
+                        buildName: 'unit-clang38-py35-cd80',
+                        )
+                    }
+                failure
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'unit-clang38-py35-cd80',
+                        buildName: 'unit-clang38-py35-cd80',
+                        )
+                    }
+                unstable
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'unit-clang38-py35-cd80',
+                        buildName: 'unit-clang38-py35-cd80',
+                        )
+                    }
+                }
+            }
+
+
+        stage('vld-clang38-py35-mpi-cd80')
+            {
+            agent { label 'gpu' }
+
+            environment
+                {
+                CC = '/usr/bin/clang'
+                CXX = '/usr/bin/clang++'
+                PYVER = '3.5'
+                CMAKE_BIN = '/usr/bin'
+                ENABLE_CUDA = 'ON'
+                ENABLE_MPI = 'ON'
+                BUILD_VALIDATION = 'ON'
+                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
+                }
+
+            steps
+                {
+                bitbucketStatusNotify(
+                    buildState: 'INPROGRESS',
+                    buildKey: 'vld-clang38-py35-mpi-cd80',
+                    buildName: 'vld-clang38-py35-mpi-cd80'
+                    )
+
+                sh 'git submodule update --init'
+
+                sh '''
+                    mkdir -p build
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                   '''
+
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+
+                sh '''
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                   '''
+
+                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
+                archive 'build/Testing/**/Test.xml'
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                success
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'SUCCESSFUL',
+                        buildKey: 'vld-clang38-py35-mpi-cd80',
+                        buildName: 'vld-clang38-py35-mpi-cd80',
+                        )
+                    }
+                failure
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'vld-clang38-py35-mpi-cd80',
+                        buildName: 'vld-clang38-py35-mpi-cd80',
+                        )
+                    }
+                unstable
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'vld-clang38-py35-mpi-cd80',
+                        buildName: 'vld-clang38-py35-mpi-cd80',
+                        )
+                    }
+                }
+            }
+
+
+        stage('unit-gcc49-py27-cd75')
+            {
+            agent { label 'gpu' }
+
+            environment
+                {
+                CC = '/usr/bin/gcc-4.9'
+                CXX = '/usr/bin/g++-4.9'
+                PYVER = '2.7'
+                CMAKE_BIN = '/usr/bin'
+                ENABLE_CUDA = 'ON'
+                ENABLE_MPI = 'ON'
+                BUILD_VALIDATION = 'OFF'
+                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda75.img'
+                }
+
+            steps
+                {
+                bitbucketStatusNotify(
+                    buildState: 'INPROGRESS',
+                    buildKey: 'unit-gcc49-py27-cd75',
+                    buildName: 'unit-gcc49-py27-cd75'
+                    )
+
+                sh 'git submodule update --init'
+
+                sh '''
+                    mkdir -p build
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                   '''
+
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+
+                sh '''
+                    cd build
+                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                   '''
+
+                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                junit 'test.xml'
+                archive 'build/Testing/**/Test.xml'
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                success
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'SUCCESSFUL',
+                        buildKey: 'unit-gcc49-py27-cd75',
+                        buildName: 'unit-gcc49-py27-cd75',
+                        )
+                    }
+                failure
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'unit-gcc49-py27-cd75',
+                        buildName: 'unit-gcc49-py27-cd75',
+                        )
+                    }
+                unstable
+                    {
+                    bitbucketStatusNotify(
+                        buildState: 'FAILED',
+                        buildKey: 'unit-gcc49-py27-cd75',
+                        buildName: 'unit-gcc49-py27-cd75',
+                        )
+                    }
+                }
+            }
+
+
+        }
+    }
