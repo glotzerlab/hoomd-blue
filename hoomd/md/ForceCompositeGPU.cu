@@ -668,7 +668,8 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int type = __scalar_as_int(d_postype[idx].w);
 
     d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
-    d_image[idx] = img+imgi;
+    d_orientation[idx] = quat_to_scalar4(updated_orientation);
+    d_image[idx] = imgi;
     }
 
 void gpu_update_composite(unsigned int N,
