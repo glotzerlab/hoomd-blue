@@ -189,11 +189,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
                     }
 
                 // do the integration for quaternion
-                vec3<Scalar> t_tot = t+bf_torque;
-                Scalar norm = sqrt(dot(t_tot,t_tot));
-                q = quat<Scalar>::fromAxisAngle(t_tot/norm, m_deltaT * norm/ gamma_r) * q ;
-
-                // renormalize just in case
+                q += Scalar(0.5) * m_deltaT * ((t + bf_torque) / gamma_r) * q ;
                 q = q * (Scalar(1.0) / slow::sqrt(norm2(q)));
                 h_orientation.data[j] = quat_to_scalar4(q);
 
