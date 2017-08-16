@@ -33,7 +33,7 @@ pipeline
                     singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
                    '''
 
-                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
 
                 sh '''
                     cd build
@@ -82,7 +82,7 @@ pipeline
                     singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
                    '''
 
-                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
 
                 sh '''
                     cd build
@@ -131,7 +131,7 @@ pipeline
                     singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
                    '''
 
-                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 8'
+                sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
 
                 sh '''
                     cd build
