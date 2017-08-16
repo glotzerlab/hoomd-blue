@@ -43,12 +43,12 @@ pipeline
                 sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
-                archive 'build/Testing/**/Test.xml'
                 }
             post
                 {
                 always
                     {
+                    archive 'build/Testing/**/Test.xml'
                     deleteDir()
                     }
                 }
@@ -92,12 +92,12 @@ pipeline
                 sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
-                archive 'build/Testing/**/Test.xml'
                 }
             post
                 {
                 always
                     {
+                    archive 'build/Testing/**/Test.xml'
                     deleteDir()
                     }
                 }
@@ -141,12 +141,12 @@ pipeline
                 sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
-                archive 'build/Testing/**/Test.xml'
                 }
             post
                 {
                 always
                     {
+                    archive 'build/Testing/**/Test.xml'
                     deleteDir()
                     }
                 }
