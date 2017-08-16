@@ -92,20 +92,6 @@ references:
       - store_test_results:
           path: test-results
 
-  conda_build: &conda_build
-    steps:
-      - *load_code
-      - *update_submodules
-      - run:
-          name: Compile
-          working_directory: code
-          command: conda build --python ${PYVER} conda-recipe
-      - run: mv /opt/conda/conda-bld .
-      - persist_to_workspace:
-          root: .
-          paths:
-            - conda-bld/linux-64/hoomd-*.tar.bz2
-
 jobs:
   unit-gcc48-py27-cm28-mpi:
     <<: *test_container_config
@@ -212,38 +198,32 @@ jobs:
           working_directory: code/sphinx-doc
           command: sphinx-build -b html -d _build/doctrees -W -n . build/html
 
-  conda-build-python36:
-    <<: *conda_container_config
-    environment:
-      PYVER: "3.6"
-    <<: *conda_build
-
-  conda-build-py35:
-    <<: *conda_container_config
-    environment:
-      PYVER: "3.5"
-    <<: *conda_build
-
-  conda-build-py34:
-    <<: *conda_container_config
-    environment:
-      PYVER: "3.4"
-    <<: *conda_build
-
-  conda-build-py27:
-    <<: *conda_container_config
-    environment:
-      PYVER: "2.7"
-    <<: *conda_build
-
-  conda-upload:
+  conda-build:
     <<: *conda_container_config
     steps:
-      - attach_workspace:
-          at: .
+      - *load_code
+      - *update_submodules
       - run:
-          name: Upload
-          command: anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2
+          name: Build with python 2.7
+          working_directory: code
+          command: conda build --python 2.7 conda-recipe
+      - run:
+          name: Build with python 3.4
+          working_directory: code
+          command: conda build --python 3.4 conda-recipe
+      - run:
+          name: Build with python 3.5
+          working_directory: code
+          command: conda build --python 3.5 conda-recipe
+      - run:
+          name: Build with python 3.6
+          working_directory: code
+          command: conda build --python 3.6 conda-recipe
+      - run: mv /opt/conda/conda-bld .
+      - persist_to_workspace:
+          root: .
+          paths:
+            - conda-bld/linux-64/hoomd-*.tar.bz2
 
   conda-upload:
     <<: *conda_container_config
@@ -267,29 +247,14 @@ workflows:
       - unit-clang38-py35
       - vld-clang38-py35-mpi
       - sphinx-docs
-      - conda-build-python36:
-          filters:
-            tags:
-              only: /.*/
-      - conda-build-py35:
-          filters:
-            tags:
-              only: /.*/
-      - conda-build-py34:
-          filters:
-            tags:
-              only: /.*/
-      - conda-build-py27:
+      - conda-build:
           filters:
             tags:
               only: /.*/
       - hold:
           type: approval
           requires:
-            - conda-build-python36
-            - conda-build-py35
-            - conda-build-py34
-            - conda-build-py27
+            - conda-build
           filters:
             tags:
               only: /.*/
