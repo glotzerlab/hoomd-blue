@@ -1,6 +1,8 @@
 mkdir build
 cd build
 
+export GCC_ARCH=core2
+
 if [ "$(uname)" == "Darwin" ]; then
 
 cmake ../ \
