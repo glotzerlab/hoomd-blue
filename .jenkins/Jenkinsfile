@@ -25,7 +25,6 @@ pipeline
                 {
                 bitbucketStatusNotify(
                     buildState: 'INPROGRESS',
-                    buildName: 'unit-clang38-py35-cd80'
                     )
 
                 sh 'git submodule update --init'
@@ -58,21 +57,18 @@ pipeline
                     {
                     bitbucketStatusNotify(
                         buildState: 'SUCCESSFUL',
-                        buildName: 'unit-clang38-py35-cd80',
                         )
                     }
                 failure
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'unit-clang38-py35-cd80',
                         )
                     }
                 unstable
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'unit-clang38-py35-cd80',
                         )
                     }
                 }
@@ -99,7 +95,6 @@ pipeline
                 {
                 bitbucketStatusNotify(
                     buildState: 'INPROGRESS',
-                    buildName: 'vld-clang38-py35-mpi-cd80'
                     )
 
                 sh 'git submodule update --init'
@@ -132,21 +127,18 @@ pipeline
                     {
                     bitbucketStatusNotify(
                         buildState: 'SUCCESSFUL',
-                        buildName: 'vld-clang38-py35-mpi-cd80',
                         )
                     }
                 failure
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'vld-clang38-py35-mpi-cd80',
                         )
                     }
                 unstable
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'vld-clang38-py35-mpi-cd80',
                         )
                     }
                 }
@@ -173,7 +165,6 @@ pipeline
                 {
                 bitbucketStatusNotify(
                     buildState: 'INPROGRESS',
-                    buildName: 'unit-gcc49-py27-cd75'
                     )
 
                 sh 'git submodule update --init'
@@ -206,21 +197,18 @@ pipeline
                     {
                     bitbucketStatusNotify(
                         buildState: 'SUCCESSFUL',
-                        buildName: 'unit-gcc49-py27-cd75',
                         )
                     }
                 failure
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'unit-gcc49-py27-cd75',
                         )
                     }
                 unstable
                     {
                     bitbucketStatusNotify(
                         buildState: 'FAILED',
-                        buildName: 'unit-gcc49-py27-cd75',
                         )
                     }
                 }
