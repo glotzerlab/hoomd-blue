@@ -174,7 +174,7 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
     // acquire the particle data
     SnapshotParticleData<Scalar> snapshot;
 
-    m_pdata->takeSnapshot(snapshot);
+    const auto map = m_pdata->takeSnapshot(snapshot);
 
     BondData::Snapshot bdata_snapshot;
     if (m_output_bond) m_sysdef->getBondData()->takeSnapshot(bdata_snapshot);
@@ -238,7 +238,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            vec3<Scalar> pos = snapshot.pos[tag];
+            auto it = map.find(tag);
+            vec3<Scalar> pos = snapshot.pos[it->second];
 
             f << pos.x << " " << pos.y << " "<< pos.z << "\n";
 
@@ -260,7 +261,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            int3 image = snapshot.image[tag];
+            auto it = map.find(tag);
+            int3 image = snapshot.image[it->second];
 
             f << image.x << " " << image.y << " "<< image.z << "\n";
             if (!f.good())
@@ -281,7 +283,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            vec3<Scalar> vel = snapshot.vel[tag];
+            auto it = map.find(tag);
+            vec3<Scalar> vel = snapshot.vel[it->second];
 
             f << vel.x << " " << vel.y << " " << vel.z << "\n";
             if (!f.good())
@@ -302,7 +305,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            vec3<Scalar> accel = snapshot.accel[tag];
+            auto it = map.find(tag);
+            vec3<Scalar> accel = snapshot.accel[it->second];
 
             f << accel.x << " " << accel.y << " " << accel.z << "\n";
             if (!f.good())
@@ -323,7 +327,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar mass = snapshot.mass[tag];
+            auto it = map.find(tag);
+            Scalar mass = snapshot.mass[it->second];
 
             f << mass << "\n";
             if (!f.good())
@@ -344,7 +349,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar charge = snapshot.charge[tag];
+            auto it = map.find(tag);
+            Scalar charge = snapshot.charge[it->second];
 
             f << charge << "\n";
             if (!f.good())
@@ -365,7 +371,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar diameter = snapshot.diameter[tag];
+            auto it = map.find(tag);
+            Scalar diameter = snapshot.diameter[it->second];
 
             f << diameter << "\n";
             if (!f.good())
@@ -386,7 +393,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            unsigned int type = snapshot.type[tag];
+            auto it = map.find(tag);
+            unsigned int type = snapshot.type[it->second];
 
             f << m_pdata->getNameByType(type) << "\n";
             if (!f.good())
@@ -407,7 +415,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            unsigned int body = snapshot.body[tag];
+            auto it = map.find(tag);
+            unsigned int body = snapshot.body[it->second];
             int out = (body == NO_BODY) ? -1 : (int)body;
 
             f << out << "\n";
@@ -429,7 +438,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar4 orientation = quat_to_scalar4(snapshot.orientation[tag]);
+            auto it = map.find(tag);
+            Scalar4 orientation = quat_to_scalar4(snapshot.orientation[it->second]);
 
             f << orientation.x << " " << orientation.y << " " << orientation.z << " " << orientation.w << "\n";
             if (!f.good())
@@ -449,7 +459,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar4 angmom = quat_to_scalar4(snapshot.angmom[tag]);
+            auto it = map.find(tag);
+            Scalar4 angmom = quat_to_scalar4(snapshot.angmom[it->second]);
 
             f << angmom.x << " " << angmom.y << " " << angmom.z << " " << angmom.w << "\n";
             if (!f.good())
@@ -470,7 +481,8 @@ void HOOMDDumpWriter::writeFile(std::string fname, unsigned int timestep)
         for (unsigned int group_idx = 0; group_idx < N; ++group_idx)
             {
             const unsigned int tag = m_group->getMemberTag(group_idx);
-            Scalar3 I = vec_to_scalar3(snapshot.inertia[tag]);
+            auto it = map.find(tag);
+            Scalar3 I = vec_to_scalar3(snapshot.inertia[it->second]);
 
             f << I.x << " " << I.y << " " << I.z << "\n";
             if (!f.good())
