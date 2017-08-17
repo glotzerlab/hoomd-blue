@@ -1017,6 +1017,10 @@ UP_TEST( overlap_octahedron_sphere )
 
     // build an octahedron
     poly3d_data data_a;
+    memset((void *)&data_a.verts, 0, sizeof(data_a.verts));
+    memset(data_a.face_offs, 0, sizeof(data_a.face_offs));
+    memset(data_a.face_verts, 0, sizeof(data_a.face_verts));
+
     data_a.verts.sweep_radius = 0.0f;
     UP_ASSERT(MAX_POLY3D_VERTS >= 6);
     data_a.verts.N = 6;
@@ -1030,6 +1034,7 @@ UP_TEST( overlap_octahedron_sphere )
     data_a.verts.x[4] = 0; data_a.verts.y[4] = 0; data_a.verts.z[4] = 0.707106781186548; // vec3<OverlapReal>(0,0,0.707106781186548);
     data_a.verts.x[5] = 0; data_a.verts.y[5] = 0; data_a.verts.z[5] = -0.707106781186548; // vec3<OverlapReal>(0,0,-0.707106781186548);
     UP_ASSERT(MAX_POLY3D_FACE_VERTS >= 3);
+
     data_a.face_offs[0] = 0;
     data_a.face_verts[0] = 0; data_a.face_verts[1] = 4; data_a.face_verts[2] = 1;
     data_a.face_offs[1] = 3;
@@ -1051,6 +1056,10 @@ UP_TEST( overlap_octahedron_sphere )
     set_radius(data_a);
 
     poly3d_data data_b;
+    memset((void *)&data_b.verts, 0, sizeof(data_b.verts));
+    memset(data_b.face_offs, 0, sizeof(data_b.face_offs));
+    memset(data_b.face_verts, 0, sizeof(data_b.face_verts));
+
     data_b.verts.sweep_radius = 0.5;
     data_b.verts.N = 1;
     data_b.verts.x[0] = data_b.verts.y[0] = data_b.verts.z[0] = 0;
