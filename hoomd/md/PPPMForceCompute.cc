@@ -1396,94 +1396,105 @@ void PPPMForceCompute::computeBodyCorrection()
     {
     if (m_prof) m_prof->push("rigid body correction");
 
-    // do an N^2 search over particles, subtracting the real-space long-range part from the PPPM energy
-    unsigned int nptl = m_pdata->getN();
-    unsigned int nghost = m_pdata->getNGhosts();
+    // do an N^2 search over particles in a body, subtracting the real-space long-range part from the PPPM energy
 
-    // access particle data
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
+    // have a global view of all particles on rank 0
+    SnapshotParticleData<Scalar> snap;
+    m_pdata->takeSnapshot(snap);
 
-    const BoxDim& box = m_pdata->getBox();
+    unsigned int nptl = snap.size;
 
     m_body_energy = Scalar(0.0);
 
     std::multimap<unsigned int, unsigned int> body_map;
     std::map<unsigned int, Scalar> body_type;
+    const BoxDim& box = m_pdata->getGlobalBox();
 
-    if (m_group->getNumMembers() != nptl)
+    bool is_rank_zero = true;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+        is_rank_zero = !m_exec_conf->getRank();
         }
+    #endif
 
-    // save references to each body's constituent particles
-    for (unsigned int i = 0; i < nptl+nghost; ++i)
+    if (is_rank_zero)
         {
-        unsigned int ibody = h_body.data[i];
-        if (ibody != NO_BODY) body_map.insert(std::make_pair(ibody,i));
-        }
+        std::multimap<unsigned int, unsigned> body_map;
+        std::map<unsigned int, Scalar> body_type;
 
-    // iterate over unique bodies
-    for (auto it = body_map.begin(); it != body_map.end(); it = body_map.upper_bound(it->first))
-        {
-        auto body_end = body_map.upper_bound(it->first);
-
-        unsigned int type = __scalar_as_int(h_postype.data[it->second].w);
-        auto energy_it = body_type.find(type);
-
-        if (energy_it != body_type.end())
+        if (m_group->getNumMembers() != nptl)
             {
-            // use cached result
-            m_body_energy += energy_it->second;
-            continue;
+            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
             }
 
-        Scalar body_energy(0.0);
-        for (auto iti = it; iti != body_end; ++iti)
+        // save references to each body's constituent particles
+        for (unsigned int i = 0; i < nptl; ++i)
             {
-            unsigned int i = iti->second;
+            unsigned int ibody = snap.body[i];
+            if (ibody != NO_BODY) body_map.insert(std::make_pair(ibody,i));
+            }
 
-            vec3<Scalar> posi(h_postype.data[i]);
-            Scalar qi(h_charge.data[i]);
-            int3 img_i = h_image.data[i];
+        // iterate over unique bodies
+        for (auto it = body_map.begin(); it != body_map.end(); it = body_map.upper_bound(it->first))
+            {
+            auto body_end = body_map.upper_bound(it->first);
 
-            for (auto itj = it; itj != body_end; ++itj)
+            unsigned int type = snap.type[it->second];
+            auto energy_it = body_type.find(type);
+
+            if (energy_it != body_type.end())
                 {
-                unsigned int j = itj->second;
-                vec3<Scalar> posj(h_postype.data[j]);
-                Scalar qj(h_charge.data[j]);
+                // use cached result
+                m_body_energy += energy_it->second;
+                continue;
+                }
 
-                Scalar qiqj = qi*qj;
+            Scalar body_energy(0.0);
+            for (auto iti = it; iti != body_end; ++iti)
+                {
+                unsigned int i = iti->second;
 
-                if (qiqj != Scalar(0.0) && i != j)
+                vec3<Scalar> posi(snap.pos[i]);
+                Scalar qi(snap.charge[i]);
+                int3 img_i = snap.image[i];
+
+                for (auto itj = it; itj != body_end; ++itj)
                     {
-                    // account for self-interactions by shifting into the body reference frame
-                    int3 img_j = h_image.data[j];
-                    int3 delta_img = img_j - img_i;
-                    Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
-                    Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
-                    Scalar rsq = dot(dx,dx);
+                    unsigned int j = itj->second;
+                    vec3<Scalar> posj(snap.pos[j]);
+                    Scalar qj(snap.charge[j]);
 
-                    Scalar force_divr(0.0);
-                    Scalar pair_eng(0.0);
+                    Scalar qiqj = qi*qj;
 
-                    // compute correction
-                    eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+                    if (qiqj != Scalar(0.0) && i != j)
+                        {
+                        // account for self-interactions by shifting into the body reference frame
+                        int3 img_j = snap.image[j];
+                        int3 delta_img = img_j - img_i;
+                        Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
+                        Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
+                        Scalar rsq = dot(dx,dx);
 
-                    // subtract long range self-energy
-                    body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                        Scalar force_divr(0.0);
+                        Scalar pair_eng(0.0);
+
+                        // compute correction
+                        eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                        // subtract long range self-energy
+                        body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                        }
                     }
                 }
+
+            m_body_energy += body_energy;
+
+            // store precalculated body type
+            body_type.insert(std::make_pair(type, body_energy));
             }
-
-        m_body_energy += body_energy;
-
-        // store precalculated body type
-        body_type.insert(std::make_pair(type, body_energy));
         }
-    if (m_prof) m_prof->pop();
+        if (m_prof) m_prof->pop();
     }
 
 void PPPMForceCompute::fixExclusions()

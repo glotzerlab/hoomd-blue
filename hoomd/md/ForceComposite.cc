@@ -157,24 +157,25 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     if (body_updated)
         {
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
-
-        m_body_charge[body_typeid].resize(type.size());
-        m_body_diameter[body_typeid].resize(type.size());
-
-        // store body data in GPUArray
-        for (unsigned int i = 0; i < type.size(); ++i)
             {
-            h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
-            h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
-            h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
 
-            m_body_charge[body_typeid][i] = charge[i];
-            m_body_diameter[body_typeid][i] = diameter[i];
+            m_body_charge[body_typeid].resize(type.size());
+            m_body_diameter[body_typeid].resize(type.size());
+
+            // store body data in GPUArray
+            for (unsigned int i = 0; i < type.size(); ++i)
+                {
+                h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
+                h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
+                h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+
+                m_body_charge[body_typeid][i] = charge[i];
+                m_body_diameter[body_typeid][i] = diameter[i];
+                }
             }
-
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
 

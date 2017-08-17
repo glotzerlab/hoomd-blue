@@ -198,10 +198,11 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
         print
         # initialize a two particle system in a triclinic box
         snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=10))
-        snap.particles.position[0] = (0,0,0)
-        snap.particles.orientation[0] = (1,0,0,0)
-        snap.particles.charge[0] = 0
-        snap.particles.moment_inertia[0] = (1,1,1)
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.orientation[0] = (1,0,0,0)
+            snap.particles.charge[0] = 0
+            snap.particles.moment_inertia[0] = (1,1,1)
 
         self.s = init.read_snapshot(snap);
 
