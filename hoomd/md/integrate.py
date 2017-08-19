@@ -601,10 +601,10 @@ class nph(npt):
     For further information, refer to the documentation of :py:class:`npt`.
 
     Note:
-         A time scale *tau_p* for the relaxation of the barostat is required. This is defined as the
+         A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
          relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
          is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tau_p^2`, where :math:`d` is the dimensionality and :math:`N` the number
+         :math:`W=d N T_0 \tauP^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
     :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.
@@ -612,9 +612,9 @@ class nph(npt):
     Examples::
 
         # Triclinic unit cell
-        nph=integrate.nph(group=all, P=2.0, tau_p=1.0, couple="none", all=True)
+        nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
         # Cubic unit cell
-        nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
+        nph = integrate.nph(group=all, P=2.0, tauP=1.0)
     """
     def __init__(self, **params):
         hoomd.util.print_status_line();
@@ -758,6 +758,8 @@ class langevin(_integration_method):
     .. attention::
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
 
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
@@ -975,6 +977,8 @@ class brownian(_integration_method):
     .. attention::
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
+
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
 
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,

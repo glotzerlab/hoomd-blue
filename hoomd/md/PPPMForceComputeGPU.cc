@@ -237,6 +237,7 @@ void PPPMForceComputeGPU::assignParticles()
             GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(),m_exec_conf);
             m_particle_bins.swap(particle_bins);
             m_cell_overflowed.resetFlags(0);
+            continue;
             }
         else
             {
@@ -298,7 +299,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD);
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -375,18 +376,19 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
 
-        cufftExecC2C(m_cufft_plan,
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_x.data,
                      d_inv_fourier_mesh_x.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_cufft_plan,
+                     CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_y.data,
                      d_inv_fourier_mesh_y.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_cufft_plan,
+                     CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_z.data,
                      d_inv_fourier_mesh_z.data,
-                     CUFFT_INVERSE);
+                     CUFFT_INVERSE));
+
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI

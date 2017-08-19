@@ -5,9 +5,11 @@
 // Maintainer: joaander
 
 #include "TwoStepBDGPU.cuh"
-#include "hoomd/extern/saruprngCUDA.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMath.h"
+
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 #include <assert.h>
 
@@ -118,7 +120,7 @@ void gpu_brownian_step_one_kernel(Scalar4 *d_pos,
         unsigned int ptag = d_tag[idx];
 
         // compute the random force
-        SaruGPU saru(ptag, timestep + seed, 0x9977665);
+        detail::Saru saru(ptag, timestep, seed);
         Scalar rx = saru.s<Scalar>(-1,1);
         Scalar ry = saru.s<Scalar>(-1,1);
         Scalar rz =  saru.s<Scalar>(-1,1);

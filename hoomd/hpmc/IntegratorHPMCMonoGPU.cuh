@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 
 #include <cassert>
 
@@ -458,7 +458,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (active)
         {
         // one RNG per cell
-        SaruGPU rng(my_cell, seed+select, timestep);
+        hoomd::detail::Saru rng(my_cell, seed+select, timestep);
 
         // select one of the particles randomly from the cell
         unsigned int my_cell_offset = rand_select(rng, my_cell_size-1);

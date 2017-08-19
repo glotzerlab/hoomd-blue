@@ -9,6 +9,7 @@
 #ifdef ENABLE_CUDA
 
 #include <cufft.h>
+#include <sstream>
 
 //#define USE_HOST_DFFT
 
@@ -23,6 +24,8 @@
 #include "hoomd/extern/dfftlib/src/dfft_host.h"
 #endif
 #endif
+
+#define CHECK_CUFFT_ERROR(status) { handleCUFFTResult(status, __FILE__, __LINE__); }
 
 /*! Order parameter evaluated using the particle mesh method
  */
@@ -81,6 +84,17 @@ class PPPMForceComputeGPU : public PPPMForceCompute
 
         //! Helper function to correct forces on excluded particles
         virtual void fixExclusions();
+
+        //! Check for CUFFT errors
+        inline void handleCUFFTResult(cufftResult result, const char *file, unsigned int line) const
+            {
+            if (result != CUFFT_SUCCESS)
+                {
+                std::ostringstream oss;
+                oss << "CUFFT returned error " << result << " in file " << file << " line " << line << std::endl;
+                throw std::runtime_error(oss.str());
+                }
+            }
 
     private:
         std::unique_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles

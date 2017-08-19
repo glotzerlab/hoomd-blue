@@ -156,7 +156,6 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                             {
                             // incomplete molecule
                             atomicMax(&(d_flag->x), d_body[central_idx[m]] + 1);
-                            return;
                             }
 
                         // calculate body force and torques
@@ -664,6 +663,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
     unsigned int type = __scalar_as_int(d_postype[idx].w);
 
     d_postype[idx] = make_scalar4(updated_pos.x, updated_pos.y, updated_pos.z, __int_as_scalar(type));
+    d_orientation[idx] = quat_to_scalar4(updated_orientation);
     d_image[idx] = imgi;
     }
 

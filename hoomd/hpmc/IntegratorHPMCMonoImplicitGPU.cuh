@@ -19,7 +19,7 @@
 #ifdef NVCC
 #include "HPMCPrecisionSetup.h"
 #include "Moves.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/extern/kernels/segreducecsr.cuh"
 #include "hoomd/extern/kernels/segreduce.cuh"
@@ -471,7 +471,7 @@ __global__ void gpu_hpmc_implicit_count_overlaps_kernel(Scalar4 *d_postype,
         }
 
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int overlap_checks = 0;
 
@@ -820,7 +820,7 @@ __global__ void gpu_hpmc_implicit_reinsert_kernel(Scalar4 *d_postype,
         my_cell = d_cell_set[active_cell_idx];
         }
 
-    SaruGPU rng(group_global, seed+select, timestep);
+    hoomd::detail::Saru rng(group_global, seed+select, timestep);
 
     unsigned int idx_i = UINT_MAX;
 

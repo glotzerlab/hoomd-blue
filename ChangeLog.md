@@ -2,6 +2,85 @@
 
 [TOC]
 
+## v2.1.9
+
+Not yet released
+
+*Bug fixes*
+
+* Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
+* Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
+* Fix a bug where `pair.compute_energy()` did not report correct results in MPI parallel simulations.
+* Fix a bug where make rigid bodies with anisotropic constituent particles did not work on the GPU.
+* Fix hoomd compilation after the rebase in the cub repository.
+* `deprecated.dump.xml()` now writes correct results when particles have been added or deleted from the simulation.
+* Fix a critical bug where `charge.pppm()` calculated invalid forces on the GPU
+
+## v2.1.8
+
+Released 2017/07/19
+
+*Bug fixes*
+
+* `init.read_getar` now correctly restores static quantities when given a particular frame.
+* Fix bug where many short calls to `run()` caused incorrect results when using `md.integrate.langevin`.
+* Fix a bug in the Saru pseudo-random number generator that caused some double-precision values to be drawn outside the valid range [0,1) by a small amount. Both floats and doubles are now drawn on [0,1).
+* Fix a bug where coefficients for multi-character unicode type names failed to process in Python 2.
+
+*Other changes*
+
+* The Saru generator has been moved into `hoomd/Saru.h`, and plugins depending on Saru or SaruGPU will need to update their includes. The `SaruGPU` class has been removed. Use `hoomd::detail::Saru` instead for both CPU and GPU plugins.
+
+## v2.1.7
+
+Released 2017/05/11
+
+*Bug fixes*
+
+* Fix PPM exclusion handling on the CPU
+* Handle `r_cut` for special pairs correctly
+* Fix tauP reference in NPH documentation
+* Fixed ``constrain.rigid`` on compute 5.x.
+* Fixed random seg faults when using sqlite getar archives with LZ4 compression
+* Fixed XZ coupling with ``hoomd.md.integrate.npt`` integration
+* Fixed aspect ratio with non-cubic boxes in ``hoomd.hpmc.update.boxmc``
+
+## v2.1.6
+
+Released 2017/04/12
+
+*Bug fixes*
+
+* Document `hpmc.util.tune_npt`
+* Fix dump.getar.writeJSON usage with MPI execution
+* Fix a bug where integrate.langevin and integrate.brownian correlated RNGs between ranks in multiple CPU execution
+* Bump CUB to version 1.6.4 for improved performance on Pascal architectures. CUB is now embedded using a git submodule. Users upgrading existing git repositories should reinitialize their git submodules with ``git submodule update --init``
+* CMake no longer complains when it finds a partial MKL installation.
+
+## v2.1.5
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a compile error on Mac
+
+## v2.1.4
+
+Released 2017/03/09
+
+*Bug fixes*
+
+* Fixed a bug re-enabling disabled integration methods
+* Fixed a bug where adding particle types to the system failed for anisotropic pair potentials
+* scipy is no longer required to execute DEM component unit tests
+* Issue a warning when a subsequent call to context.initialize is given different arguments
+* DPD now uses the seed from rank 0 to avoid incorrect simulations when users provide different seeds on different ranks
+* Miscellaneous documentation updates
+* Defer initialization message until context.initialize
+* Fixed a problem where a momentary dip in TPS would cause walltime limited jobs to exit prematurely
+* HPMC and DEM components now correctly print citation notices
+
 ## v2.1.3
 
 Released 2017/02/07

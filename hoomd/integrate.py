@@ -254,7 +254,7 @@ class _integration_method(hoomd.meta._metadata):
             return;
 
         self.enabled = True;
-        hoomd.context.integration_methods.append(self);
+        hoomd.context.current.integration_methods.append(self);
 
     ## \internal
     # \brief Override get_metadata() to add 'enabled' field

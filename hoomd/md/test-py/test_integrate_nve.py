@@ -48,6 +48,24 @@ class integrate_nve_tests (unittest.TestCase):
         nve = md.integrate.nve(group=empty)
         run(1);
 
+    # test method can be enabled and disabled
+    def test_disable_enable(self):
+        mode = md.integrate.mode_standard(dt=0.005);
+        nve = md.integrate.nve(group=group.all())
+        self.assertTrue(nve in context.current.integration_methods)
+
+        # disable this integrator, which removes it from the context
+        nve.disable()
+        self.assertFalse(nve in context.current.integration_methods)
+        # second call does nothing
+        nve.disable()
+
+        # reenable the integrator
+        nve.enable()
+        self.assertTrue(nve in context.current.integration_methods)
+        # second call does nothing
+        nve.enable()
+
     def tearDown(self):
         context.initialize();
 
