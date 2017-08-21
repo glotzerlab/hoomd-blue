@@ -1,13 +1,12 @@
 pipeline
     {
+    options { skipDefaultCheckout() }
     agent none
-
 
     stages
         {
         stage('conda-build-mac')
             {
-            options { skipDefaultCheckout() }
             agent { label 'mac' }
 
             environment
