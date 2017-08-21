@@ -7,6 +7,7 @@ pipeline
         {
         stage('conda-build-mac')
             {
+            options { skipDefaultCheckout() }
             agent { label 'mac' }
 
             environment
@@ -17,16 +18,21 @@ pipeline
 
             steps
                 {
-                timeout(time: 2, unit: 'HOURS')
+                dir('code')
                     {
-                    sh 'git submodule update --init'
+                    checkout scm
 
-                    sh '''
-                       conda build --python 2.7 conda-recipe
-                       conda build --python 3.4 conda-recipe
-                       conda build --python 3.5 conda-recipe
-                       conda build --python 3.6 conda-recipe
-                       '''
+                    timeout(time: 2, unit: 'HOURS')
+                        {
+                        sh 'git submodule update --init'
+
+                        sh '''
+                           conda build --python 2.7 conda-recipe
+                           conda build --python 3.4 conda-recipe
+                           conda build --python 3.5 conda-recipe
+                           conda build --python 3.6 conda-recipe
+                           '''
+                        }
                     }
 
                 script
