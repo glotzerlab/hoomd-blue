@@ -35,8 +35,8 @@ cmake ../ \
       -DMPI_CXX_COMPILER=${PREFIX}/bin/mpic++ \
       -DMPI_C_COMPILER=${PREFIX}/bin/mpicc \
        \
-      -DENABLE_CUDA=off \
-      -DENABLE_EMBED_CUDA=off \
+      -DENABLE_CUDA=on \
+      -DENABLE_EMBED_CUDA=on \
        \
       -DBUILD_TESTING=off \
       -DMKL_LIBRARIES=""
