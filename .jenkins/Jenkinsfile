@@ -11,7 +11,7 @@ pipeline
 
             environment
                 {
-                CONDA_BLD_PATH=${WORKSPACE}/conda-bld
+                CONDA_BLD_PATH = '${WORKSPACE}/conda-bld'
                 ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
                 }
 
