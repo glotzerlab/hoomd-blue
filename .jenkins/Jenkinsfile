@@ -5,7 +5,48 @@ pipeline
 
     stages
         {
-        /*stage('unit-gcc49-py27-cd75')
+        stage('conda-build-mac')
+            {
+            agent { label 'mac' }
+
+            environment
+                {
+                CONDA_BLD_PATH=${WORKSPACE}/conda-bld
+                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
+                }
+
+            steps
+                {
+                timeout(time: 2, unit: 'HOURS')
+                    {
+                    sh 'git submodule update --init'
+
+                    sh '''
+                       conda build --python 2.7 conda-recipe
+                       conda build --python 3.4 conda-recipe
+                       conda build --python 3.5 conda-recipe
+                       conda build --python 3.6 conda-recipe
+                       '''
+                    }
+
+                script
+                    {
+                    if (env.BRANCH_NAME == 'release')
+                        {
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2'
+                        }
+                    }
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                }
+            }
+
+        stage('unit-gcc49-py27-cd75')
             {
             agent { label 'gpu' }
 
@@ -169,49 +210,7 @@ pipeline
                     deleteDir()
                     }
                 }
-            }*/
-
-        stage('conda-build-mac')
-            {
-            agent { label 'mac' }
-
-            environment
-                {
-                CONDA_BLD_PATH=${WORKSPACE}/conda-bld
-                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
-                }
-
-            steps
-                {
-                timeout(time: 2, unit: 'HOURS')
-                    {
-                    sh 'git submodule update --init'
-
-                    sh '''
-                       conda build --python 2.7 conda-recipe
-                       conda build --python 3.4 conda-recipe
-                       conda build --python 3.5 conda-recipe
-                       conda build --python 3.6 conda-recipe
-                       '''
-                    }
-
-                script
-                    {
-                    if (env.BRANCH_NAME == 'release')
-                        {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2'
-                        }
-                    }
-                }
-            post
-                {
-                always
-                    {
-                    deleteDir()
-                    }
-                }
             }
-
 
         }
     }
