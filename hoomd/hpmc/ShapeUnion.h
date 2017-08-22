@@ -6,6 +6,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "ShapeSpheropolyhedron.h"
+#include "ShapeConvexPolyhedron.h"
 #include "GPUTree.h"
 
 #include "hoomd/ManagedArray.h"
@@ -43,7 +44,7 @@ struct union_params : param_base
 
     //! Default constructor
     DEVICE union_params()
-        : N(0)
+        : diameter(0.0), N(0), ignore(0)
         { }
 
     //! Load dynamic data members into shared memory and increase pointer

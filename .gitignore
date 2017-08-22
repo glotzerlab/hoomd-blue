@@ -4,6 +4,7 @@
 *.dcd
 *.gsd
 build/*
+build
 __pycache__
 *.pyc
 *.swp

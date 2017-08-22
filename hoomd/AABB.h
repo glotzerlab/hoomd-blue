@@ -25,7 +25,7 @@
 #define DEVICE __attribute__((always_inline))
 #endif
 
-#if !defined(NVCC)
+#if !defined(NVCC) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 

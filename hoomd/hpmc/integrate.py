@@ -472,6 +472,9 @@ class mode_hpmc(_integrator):
         Returns:
             List of tuples. True/false value of the i,j entry indicates overlap/non-overlap of the ith and jth particles (by tag)
 
+        Note:
+            :py:meth:`map_overlaps` does not support MPI parallel simulations.
+
         Example:
             mc = hpmc.integrate.shape(...)
             mc.shape_param.set(...)
@@ -772,7 +775,7 @@ class sphere(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -880,7 +883,7 @@ class convex_polygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
@@ -983,7 +986,7 @@ class convex_spheropolygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set default parameters
@@ -1089,7 +1092,7 @@ class simple_polygon(mode_hpmc):
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoSimplePolygon(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSimplePolygon(hoomd.context.current.system_definition, cl_c, seed);
 
         # set parameters
@@ -1226,7 +1229,7 @@ class polyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1340,7 +1343,7 @@ class convex_polyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if implicit:
                 if depletant_mode_circumsphere(depletant_mode):
                     self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedron(hoomd.context.current.system_definition, cl_c, seed);
@@ -1470,7 +1473,7 @@ class faceted_sphere(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoFacetedSphere(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUFacetedSphere(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1570,7 +1573,7 @@ class sphinx(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphinx(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
 
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphinx(hoomd.context.current.system_definition, cl_c, seed);
@@ -1693,7 +1696,7 @@ class convex_spheropolyhedron(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSpheropolyhedron(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSpheropolyhedron(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1814,7 +1817,7 @@ class ellipsoid(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoEllipsoid(hoomd.context.current.system_definition, seed);
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUEllipsoid(hoomd.context.current.system_definition, cl_c, seed);
             else:
@@ -1920,7 +1923,7 @@ class sphere_union(mode_hpmc):
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoSphereUnion(hoomd.context.current.system_definition, seed)
         else:
             cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
-            hoomd.context.current.system.addCompute(cl_c, "auto_cl2")
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
             if not implicit:
                 self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUSphereUnion(hoomd.context.current.system_definition, cl_c, seed)
             else:
@@ -1964,5 +1967,113 @@ class sphere_union(mode_hpmc):
             shape_def += '{0} {1} {2} '.format(*p);
             shape_def += '{0} '.format(c);
             # No need to use stored value for member sphere orientations
+
+        return shape_def
+
+class convex_polyhedron_union(mode_hpmc):
+    R""" HPMC integration for unions of convex polyhedra (3D).
+
+    Args:
+        seed (int): Random number seed.
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        move_ratio (float): Ratio of translation moves to rotation moves.
+        nselect (int): The number of trial moves to perform in each cell.
+        implicit (bool): Flag to enable implicit depletants.
+        depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
+            (added in version 2.2)
+        max_members (int): Set the maximum number of members in the convex polyhedron union
+        capacity (int): Set to the number of constituent convex polyhedra per leaf node
+
+    .. versionadded:: 2.2
+
+    Convex polyhedron union parameters:
+
+    * *vertices* (**required**) - list of vertex lists of the polyhedra in particle coordinates.
+    * *centers* (**required**) - list of centers of constituent polyhedra in particle coordinates.
+    * *orientations* (**required**) - list of orientations of constituent polyhedra.
+    * *overlap* (**default: 1 for all particles**) - only check overlap between constituent particles for which *overlap [i] & overlap[j]* is !=0, where '&' is the bitwise AND operator.
+    * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking.
+    * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
+
+        * .. deprecated:: 2.1
+             Replaced by :py:class:`interaction_matrix`.
+
+    Example::
+
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27)
+        mc = hpmc.integrate.convex_polyhedron_union(seed=27, d=0.3, a=0.4)
+        cube_verts = [[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1],
+                     [1,-1,-1],[1,-1,1],[1,1,1],[1,1,-1]]
+        mc.shape_param.set('A', vertices=[cube_verts, cube_verts],
+                                centers=[[-1,0,0],[1,0,0]],orientations=[[1,0,0,0],[1,0,0,0]]);
+        print('vertices of the first cube = ', mc.shape_param['A'].members[0].vertices)
+        print('center of the first cube = ', mc.shape_param['A'].centers[0])
+        print('orientation of the first cube = ', mc.shape_param['A'].orientations[0])
+    """
+
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere'):
+        hoomd.util.print_status_line();
+
+        # initialize base class
+        mode_hpmc.__init__(self,implicit, depletant_mode);
+
+        # initialize the reflected c++ class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            if(implicit):
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+            else:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoConvexPolyhedronUnion(hoomd.context.current.system_definition, seed)
+        else:
+            cl_c = _hoomd.CellListGPU(hoomd.context.current.system_definition);
+            hoomd.context.current.system.overwriteCompute(cl_c, "auto_cl2")
+            if not implicit:
+                self.cpp_integrator = _hpmc.IntegratorHPMCMonoGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+            else:
+                if depletant_mode_circumsphere(depletant_mode):
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+                else:
+                    self.cpp_integrator = _hpmc.IntegratorHPMCMonoImplicitNewGPUConvexPolyhedronUnion(hoomd.context.current.system_definition, cl_c, seed)
+
+        # set default parameters
+        setD(self.cpp_integrator,d);
+        setA(self.cpp_integrator,a);
+        self.cpp_integrator.setMoveRatio(move_ratio)
+        self.cpp_integrator.setNSelect(nselect);
+
+        hoomd.context.current.system.setIntegrator(self.cpp_integrator);
+        self.initialize_shape_params();
+
+        # meta data
+        self.metadata_fields = ['capacity']
+
+        if implicit:
+            self.implicit_required_params=['nR', 'depletant_type']
+
+    # \internal
+    # \brief Format shape parameters for pos file output
+    def format_param_pos(self, param):
+        # build up shape_def string in a loop
+        vertices = [m.vertices for m in param.members]
+        orientations = param.orientations
+        centers = param.centers
+        colors = param.colors
+        if param.colors is None:
+            # default
+            colors = ["ff5984ff" for c in centers]
+        N = len(centers);
+        shape_def = 'poly3d_union {0} '.format(N);
+
+
+        for verts,q,p,c in zip(vertices, orientations, centers, colors):
+            shape_def += '{0} '.format(len(verts));
+            for v in verts:
+                shape_def += '{0} {1} {2} '.format(*v);
+            shape_def += '{0} {1} {2} '.format(*p);
+            shape_def += '{0} {1} {2} {3} '.format(*q);
+            shape_def += '{0} '.format(c);
 
         return shape_def

@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
+#include <map>
 
 namespace py = pybind11;
 
@@ -176,7 +177,7 @@ void PPPMForceCompute::compute_gf_denom()
         h_gf_b.data[0] = 4.0 * (h_gf_b.data[0]*(l-m)*(l-m-0.5));
     }
 
-    int ifact = 1;
+    long int ifact = 1; // need long data type for seventh order polynomial
     for (k = 1; k < 2*(int)m_order; k++) ifact *= k;
     Scalar gaminv = 1.0/ifact;
     for (l = 0; l < (int)m_order; l++) h_gf_b.data[l] *= gaminv;
@@ -1395,56 +1396,105 @@ void PPPMForceCompute::computeBodyCorrection()
     {
     if (m_prof) m_prof->push("rigid body correction");
 
-    // do an N^2 search over particles, subtracting the real-space long-range part from the PPPM energy
-    unsigned int nptl = m_pdata->getN();
-    unsigned int nghost = m_pdata->getNGhosts();
+    // do an N^2 search over particles in a body, subtracting the real-space long-range part from the PPPM energy
 
-    // access particle data
-    ArrayHandle<unsigned int> h_body(m_pdata->getBodies(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    // have a global view of all particles on rank 0
+    SnapshotParticleData<Scalar> snap;
+    m_pdata->takeSnapshot(snap);
 
-    const BoxDim& box = m_pdata->getBox();
+    unsigned int nptl = snap.size;
 
     m_body_energy = Scalar(0.0);
 
-    unsigned int group_size = m_group->getNumMembers();
-    for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
+    std::multimap<unsigned int, unsigned int> body_map;
+    std::map<unsigned int, Scalar> body_type;
+    const BoxDim& box = m_pdata->getGlobalBox();
+
+    bool is_rank_zero = true;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
         {
-        unsigned int i = m_group->getMemberIndex(group_idx);
+        is_rank_zero = !m_exec_conf->getRank();
+        }
+    #endif
 
-        unsigned int ibody = h_body.data[i];
-        vec3<Scalar> posi(h_postype.data[i]);
-        Scalar qi(h_charge.data[i]);
+    if (is_rank_zero)
+        {
+        std::multimap<unsigned int, unsigned> body_map;
+        std::map<unsigned int, Scalar> body_type;
 
-        for (unsigned int j = 0; j < nptl + nghost; ++j)
+        if (m_group->getNumMembers() != nptl)
             {
-            // strictly we would have to check if j is member of the group
-            // assuming that rigid bodies are completely included here
+            m_exec_conf->msg->warning() << "charge.pppm: Operating on a group which is not group.all(). Rigid body self-energies may be wrong." << std::endl;
+            }
 
-            unsigned jbody = h_body.data[j];
-            vec3<Scalar> posj(h_postype.data[j]);
-            Scalar qj(h_charge.data[j]);
+        // save references to each body's constituent particles
+        for (unsigned int i = 0; i < nptl; ++i)
+            {
+            unsigned int ibody = snap.body[i];
+            if (ibody != NO_BODY) body_map.insert(std::make_pair(ibody,i));
+            }
 
-            Scalar qiqj = qi*qj;
+        // iterate over unique bodies
+        for (auto it = body_map.begin(); it != body_map.end(); it = body_map.upper_bound(it->first))
+            {
+            auto body_end = body_map.upper_bound(it->first);
 
-            if (qiqj != Scalar(0.0) && i != j && ibody != NO_BODY && ibody == jbody)
+            unsigned int type = snap.type[it->second];
+            auto energy_it = body_type.find(type);
+
+            if (energy_it != body_type.end())
                 {
-                Scalar3 dx = box.minImage(vec_to_scalar3(posi-posj));
-                Scalar rsq = dot(dx,dx);
-
-                Scalar force_divr(0.0);
-                Scalar pair_eng(0.0);
-
-                // compute correction
-                eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
-
-                // subtract
-                m_body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                // use cached result
+                m_body_energy += energy_it->second;
+                continue;
                 }
+
+            Scalar body_energy(0.0);
+            for (auto iti = it; iti != body_end; ++iti)
+                {
+                unsigned int i = iti->second;
+
+                vec3<Scalar> posi(snap.pos[i]);
+                Scalar qi(snap.charge[i]);
+                int3 img_i = snap.image[i];
+
+                for (auto itj = it; itj != body_end; ++itj)
+                    {
+                    unsigned int j = itj->second;
+                    vec3<Scalar> posj(snap.pos[j]);
+                    Scalar qj(snap.charge[j]);
+
+                    Scalar qiqj = qi*qj;
+
+                    if (qiqj != Scalar(0.0) && i != j)
+                        {
+                        // account for self-interactions by shifting into the body reference frame
+                        int3 img_j = snap.image[j];
+                        int3 delta_img = img_j - img_i;
+                        Scalar3 pos_j_shift = box.shift(vec_to_scalar3(posj),delta_img);
+                        Scalar3 dx = pos_j_shift - vec_to_scalar3(posi);
+                        Scalar rsq = dot(dx,dx);
+
+                        Scalar force_divr(0.0);
+                        Scalar pair_eng(0.0);
+
+                        // compute correction
+                        eval_pppm_real_space(m_alpha, m_kappa, rsq, pair_eng, force_divr);
+
+                        // subtract long range self-energy
+                        body_energy -= Scalar(0.5)*qiqj*pair_eng;
+                        }
+                    }
+                }
+
+            m_body_energy += body_energy;
+
+            // store precalculated body type
+            body_type.insert(std::make_pair(type, body_energy));
             }
         }
-    if (m_prof) m_prof->pop();
+        if (m_prof) m_prof->pop();
     }
 
 void PPPMForceCompute::fixExclusions()
