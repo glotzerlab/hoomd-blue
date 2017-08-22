@@ -59,13 +59,17 @@ Not yet released
 
 ## v2.1.9
 
-Not yet released
+Released 2017/08/22
 
 *Bug fixes*
 
 * Fix a bug where the log quantity `momentum` was incorrectly reported in MPI simulations.
 * Raise an error when the user provides inconsistent  `charge` or `diameter` lists to `md.constrain.rigid`.
 * Fix a bug where `pair.compute_energy()` did not report correct results in MPI parallel simulations.
+* Fix a bug where make rigid bodies with anisotropic constituent particles did not work on the GPU.
+* Fix hoomd compilation after the rebase in the cub repository.
+* `deprecated.dump.xml()` now writes correct results when particles have been added or deleted from the simulation.
+* Fix a critical bug where `charge.pppm()` calculated invalid forces on the GPU
 
 ## v2.1.8
 
