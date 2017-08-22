@@ -22,7 +22,9 @@
 #else
 #define DEVICE
 #include <iostream>
+#if defined (__SSE__)
 #include <immintrin.h>
+#endif
 #endif
 
 namespace hpmc

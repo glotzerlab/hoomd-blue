@@ -8,8 +8,6 @@ context.initialize()
 # test the md.constrain.rigid() functionality
 class test_constrain_rigid(unittest.TestCase):
     def setUp(self):
-        # particle radius
-        r_rounding = .5
         self.system = init.read_gsd(os.path.join(os.path.dirname(__file__),'test_data_diblock_copolymer_system.gsd'));
 
         # generate a system of N=8 AB diblocks
@@ -215,6 +213,57 @@ class test_constrain_rigid(unittest.TestCase):
 
     def tearDown(self):
         del self.system, self.nl
+        context.initialize();
+
+def test_self_interaction(system,nlist):
+    # create long cylinders slightly shorter than the box dimension
+    # adding the LJ cut-off should make them longer than the box
+    len_cyl = system.box.Lx-1
+
+    # create constituent particle types
+    system.particles.types.add('const')
+
+    md.integrate.mode_standard(dt=0)
+    nve = md.integrate.nve(group=group.rigid_center())
+
+    lj = md.pair.lj(r_cut=False, nlist = nlist)
+
+    # central particles
+    lj.pair_coeff.set(['A'], system.particles.types, epsilon=0, sigma=0, r_cut=False)
+
+    # constituent particle coefficients
+    lj.pair_coeff.set('const','const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+
+    rigid = md.constrain.rigid()
+    rigid.set_param('A', types=['const','const'], positions=[(0,0,-len_cyl/2),(0,0,len_cyl/2)])
+    rigid.create_bodies()
+
+    # we should get an error from NeighborList
+    run(1)
+
+# test that self-interactions are not possible
+class test_constrain_rigid_self_interactions(unittest.TestCase):
+    def setUp(self):
+        snap = data.make_snapshot(N=1, particle_types=['A'], box=data.boxdim(L=10))
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.orientation[0] = (1,0,0,0)
+        self.system = init.read_snapshot(snap)
+
+    def test_self_interaction_nlist_cell(self):
+        nlist = md.nlist.cell()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def test_self_interaction_nlist_stencil(self):
+        nlist = md.nlist.stencil()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def test_self_interaction_nlist_tree(self):
+        nlist = md.nlist.tree()
+        self.assertRaises(RuntimeError,test_self_interaction,self.system,nlist)
+
+    def tearDown(self):
+        del self.system
         context.initialize();
 
 if __name__ == '__main__':
