@@ -1138,7 +1138,15 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
 template <class Shape>
 std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     {
-    unsigned int N = m_pdata->getMaximumTag() + 1;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "map_overlaps does not support MPI parallel jobs" << std::endl;
+        throw std::runtime_error("map_overlaps does not support MPI parallel jobs");
+        }
+    #endif
+
+    unsigned int N = m_pdata->getN();
 
     std::vector<bool> overlap_map(N*N, false);
 
