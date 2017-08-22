@@ -12,6 +12,8 @@ HOOMD_UP_MAIN();
 
 
 #include <iostream>
+#include <cstdlib>
+#include <cstdio>
 #include <string>
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -470,19 +472,19 @@ UP_TEST( no_overlap_bug )
     {
     // exhibit bug
     vec3<Scalar> r_ij;
-    r_ij.x = 0x1.27978ff361599p+0;
-    r_ij.y = 0x1.b744249169932p-2;
-    r_ij.z = 0x0.0000000000000p+0;
+    r_ij.x = std::strtof("0x1.27978ff361599p+0",NULL);
+    r_ij.y = std::strtof("0x1.b744249169932p-2",NULL);
+    r_ij.z = std::strtof("0x0.0000000000000p+0",NULL);
 
     quat<Scalar> o_i, o_j;
-    o_i.s = 0x1.fd4b3acfae4a6p-1;
-    o_i.v.x = -0x1.7e15bb920cc00p-62;
-    o_i.v.y = 0x1.cfead6fedd6a4p-58;
-    o_i.v.z = -0x1.a4925729b867bp-4;
-    o_j.s = 0x1.fd4b3acfae4a6p-1;
-    o_j.v.x = -0x1.7e15bb920cc00p-62;
-    o_j.v.y = 0x1.cfead6fedd6a4p-58;
-    o_j.v.z = -0x1.a4925729b867bp-4;
+    o_i.s = std::strtof("0x1.fd4b3acfae4a6p-1",NULL);
+    o_i.v.x = std::strtof("-0x1.7e15bb920cc00p-62",NULL);
+    o_i.v.y = std::strtof("0x1.cfead6fedd6a4p-58",NULL);
+    o_i.v.z = std::strtof("-0x1.a4925729b867bp-4",NULL);
+    o_j.s = std::strtof("0x1.fd4b3acfae4a6p-1",NULL);
+    o_j.v.x = std::strtof("-0x1.7e15bb920cc00p-62",NULL);
+    o_j.v.y = std::strtof("0x1.cfead6fedd6a4p-58",NULL);
+    o_j.v.z = std::strtof("-0x1.a4925729b867bp-4",NULL);
 
     std::vector< vec2<OverlapReal> > vlist;
     vlist.push_back(vec2<OverlapReal>());
@@ -490,15 +492,15 @@ UP_TEST( no_overlap_bug )
     vlist.push_back(vec2<OverlapReal>());
     vlist.push_back(vec2<OverlapReal>());
 
-    vlist[0].x = -0x1.7954933782004p+0;
-    vlist[1].x = 0x1.0d56d990fbff8p-1;
-    vlist[2].x = 0x1.7954933782004p+0;
-    vlist[3].x = -0x1.0d56d990fbff8p-1;
+    vlist[0].x = std::strtof("-0x1.7954933782004p+0",NULL);
+    vlist[1].x = std::strtof("0x1.0d56d990fbff8p-1",NULL);
+    vlist[2].x = std::strtof("0x1.7954933782004p+0",NULL);
+    vlist[3].x = std::strtof("-0x1.0d56d990fbff8p-1",NULL);
 
-    vlist[0].y = -0x1.313d7d92ca92fp-2;
-    vlist[1].y = -0x1.313d7d92ca92fp-2;
-    vlist[2].y = 0x1.313d7d92ca92fp-2;
-    vlist[3].y = 0x1.313d7d92ca92fp-2;
+    vlist[0].y = std::strtof("-0x1.313d7d92ca92fp-2",NULL);
+    vlist[1].y = std::strtof("-0x1.313d7d92ca92fp-2",NULL);
+    vlist[2].y = std::strtof("0x1.313d7d92ca92fp-2",NULL);
+    vlist[3].y = std::strtof("0x1.313d7d92ca92fp-2",NULL);
 
     poly2d_verts verts = setup_verts(vlist);
     ShapeSimplePolygon i(o_i, verts);
