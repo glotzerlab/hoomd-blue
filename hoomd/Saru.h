@@ -173,6 +173,19 @@ class Saru
         HOSTDEVICE inline Real s(Real a, Real b);
         //@}
 
+        //! \name Methods for stdlib compatibility.
+        //@{
+        typedef unsigned int result_type;
+        //! Wrapper to u32() call.
+        result_type operator()();
+
+        //! Smallest number that can be returned by u32. Set as 0x00.
+        static constexpr result_type min() { return 0; }
+
+        //! Largest number that can be returned by u32. Set as 0xffffffff.
+        static constexpr result_type max() { return 0xffffffff; } // Max for 32-bit numbers (TODO: use STD limits.h ?)
+        //@}
+
     private:
         uint2 state;    //!< Internal state of the generator
 
