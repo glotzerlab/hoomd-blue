@@ -31,7 +31,7 @@ references:
 
   conda_container_config: &conda_container_config
     docker:
-      - image: joaander/conda-build:20170808-1
+      - image: joaander/conda-build:20170821
     working_directory: /root/project
 
   load_code: &load_code
@@ -247,25 +247,11 @@ workflows:
       - unit-clang38-py35
       - vld-clang38-py35-mpi
       - sphinx-docs
-      - conda-build:
-          filters:
-            tags:
-              only: /.*/
-      - hold:
-          type: approval
-          requires:
-            - conda-build
-          filters:
-            tags:
-              only: /.*/
-            branches:
-              ignore: /.*/
+      - conda-build
       - conda-upload:
           context: org-global
           requires:
-            - hold
+            - conda-build
           filters:
-            tags:
-              only: /.*/
             branches:
-              ignore: /.*/
+              only: release
