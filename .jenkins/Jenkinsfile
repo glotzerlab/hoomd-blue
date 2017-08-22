@@ -1,7 +1,7 @@
 pipeline
     {
+    options { skipDefaultCheckout() }
     agent none
-
 
     stages
         {
@@ -25,29 +25,33 @@ pipeline
                 {
                 sh 'echo ${NODE_NAME}'
 
-                timeout(time: 1, unit: 'HOURS')
+                dir('code')
                     {
+                    checkout scm
                     sh 'git submodule update --init'
-
-                    sh '''
-                        mkdir -p build
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                       '''
-
-                    sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
                     }
 
-
-                timeout(time: 1, unit: 'HOURS')
+                dir('build')
                     {
-                    sh '''
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                       '''
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                           '''
+
+                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        }
+
+
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                           '''
+                        }
                     }
 
-                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
                 }
@@ -81,28 +85,32 @@ pipeline
                 {
                 sh 'echo ${NODE_NAME}'
 
-                timeout(time: 1, unit: 'HOURS')
+                dir('code')
                     {
+                    checkout scm
                     sh 'git submodule update --init'
-
-                    sh '''
-                        mkdir -p build
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                       '''
-
-                    sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
                     }
 
-                timeout(time: 1, unit: 'HOURS')
+                dir('build')
                     {
-                    sh '''
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                       '''
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                           '''
+
+                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        }
+
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                           '''
+                        }
                     }
 
-                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
                 }
@@ -111,6 +119,54 @@ pipeline
                 always
                     {
                     archive 'build/Testing/**/Test.xml'
+                    deleteDir()
+                    }
+                }
+            }
+
+        stage('conda-build-mac')
+            {
+            agent { label 'mac' }
+
+            environment
+                {
+                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
+                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
+                }
+
+            steps
+                {
+                sh 'echo ${CONDA_BLD_PATH}'
+
+                dir('code')
+                    {
+                    checkout scm
+
+                    timeout(time: 2, unit: 'HOURS')
+                        {
+                        sh 'git submodule update --init'
+
+                        sh '''
+                           conda build --python 2.7 conda-recipe
+                           conda build --python 3.4 conda-recipe
+                           conda build --python 3.5 conda-recipe
+                           conda build --python 3.6 conda-recipe
+                           '''
+                        }
+                    }
+
+                script
+                    {
+                    if (env.BRANCH_NAME == 'release')
+                        {
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2'
+                        }
+                    }
+                }
+            post
+                {
+                always
+                    {
                     deleteDir()
                     }
                 }
@@ -136,28 +192,32 @@ pipeline
                 {
                 sh 'echo ${NODE_NAME}'
 
-                timeout(time: 1, unit: 'HOURS')
+                dir('code')
                     {
+                    checkout scm
                     sh 'git submodule update --init'
-
-                    sh '''
-                        mkdir -p build
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../ -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                       '''
-
-                    sh 'singularity exec --nv ${CONTAINER} ninja -C build -j 4'
                     }
 
-                timeout(time: 15, unit: 'HOURS')
+                dir('build')
                     {
-                    sh '''
-                        cd build
-                        singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                       '''
+                    timeout(time: 1, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
+                           '''
+
+                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        }
+
+                    timeout(time: 15, unit: 'HOURS')
+                        {
+                        sh '''
+                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                           '''
+                        }
                     }
 
-                sh 'xsltproc .jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
 
                 junit 'test.xml'
                 }

@@ -1,5 +1,5 @@
 {% set name = "hoomd" %}
-{% set version = "2.1.8" %}
+{% set version = "2.1.9" %}
 
 package:
   name: {{ name }}
