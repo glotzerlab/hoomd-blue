@@ -27,15 +27,22 @@ Not yet released
     * Add Buckingham (exp-6) pair potential.
     * Add Coulomb 1-4 special_pair potential.
     * Check that composite body dimensions are consistent with minimum image convention and generate an error if they are not.
+    * `md.integrate.mode.minimize_fire()` now supports anisotropic particles (i.e. composite bodies)
+    * `md.integrate.mode.minimize_fire()` now supports flexible specification of integration methods
+    * `md.integrate.npt()/md.integrate.nph()` now accept a friction parameter (gamma) for damping out box fluctuations during minimization runs
+    * Add new command `integrate.mode_standard.reset_methods()` to clear NVT and NPT integrator variables
+
 
 * HPMC:
     * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
-    * `hpmc.integrate.sphere_union()` takes new capacity parameter to optimize performance for different shape sizes
+    * `hpmc.integrate.polyhedron()` takes new capacity parameter to optimize performance for different shape sizes
     * `hpmc.integrate.convex_polyhedron` and `convex_spheropolyhedron` now support arbitrary numbers of vertices, subject only to memory limitations (`max_verts` is now ignored).
     * HPMC integrators restore state from a gsd file read by `init.read_gsd` when the option `restore_state` is `True`.
     * Deterministic HPMC integration on the GPU (optional): `mc.set_params(deterministic=True)`.
     * New `hpmc.update.boxmc.ln_volume()` move allows logarithmic volume moves for fast equilibration.
     * New shape: `hpmc.integrate.convex_polyhedron_union` performs simulations of unions of convex polyhedra.
+    * `hpmc.field.callback()` now enables MC energy evaluation in a python function
+    * The option `depletant_mode='overlap_regions'` for `hpmc.integrate.*` allows the selection of a new depletion algorithm that restores the diffusivity of dilute colloids in dense depletant baths
 
 *Deprecated*
 
@@ -49,6 +56,7 @@ Not yet released
     * `hpmc.integrate.sphere_union()` and `hpmc.integrate.polyhedron()` missed overlaps.
     * Fix alignment error when running implicit depletants on GPU with ntrial > 0.
     * HPMC integrators now behave correctly when the user provides different RNG seeds on different ranks.
+    * Fix a bug where overlapping configurations were produced with `hpmc.integrate.faceted_sphere()`
 
 * MD:
     * `charge.pppm()` with `order=7` now gives correct results
@@ -71,6 +79,7 @@ Not yet released
 * `ENABLE_CUDA` and `ENABLE_MPI` CMake options default OFF. User must explicitly choose to enable optional dependencies.
 * HOOMD now builds on powerpc+CUDA platforms (tested on summitdev)
 * Improve performance of GPU PPPM force calculation
+* Use sphere tree to further improve performance of `hpmc.integrate.sphere_union()`
 
 ## v2.1.9
 
