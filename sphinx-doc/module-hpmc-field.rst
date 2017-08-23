@@ -8,6 +8,7 @@ hpmc.field
 .. autosummary::
     :nosignatures:
 
+    hpmc.field.callback
     hpmc.field.external_field_composite
     hpmc.field.frenkel_ladd_energy
     hpmc.field.lattice_field

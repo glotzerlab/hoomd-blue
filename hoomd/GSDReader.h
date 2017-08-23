@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -64,6 +64,21 @@ class GSDReader
             return m_snapshot;
             }
 
+        //! initializes a snapshot with the particle data
+        uint64_t getFrame() const
+            {
+            return m_frame;
+            }
+
+        //! Helper function to read a quantity from the file
+        bool readChunk(void *data, uint64_t frame, const char *name, size_t expected_size, unsigned int cur_n=0);
+
+        //! clears the snapshot object
+        void clearSnapshot()
+            {
+            m_snapshot.reset();
+            }
+
     private:
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< The execution configuration
         uint64_t m_timestep;                                         //!< Timestep at the selected frame
@@ -72,8 +87,6 @@ class GSDReader
         std::shared_ptr< SnapshotSystemData<float> > m_snapshot;   //!< The snapshot to read
         gsd_handle m_handle;                                         //!< Handle to the file
 
-        //! Helper function to read a quantity from the file
-        bool readChunk(void *data, uint64_t frame, const char *name, size_t expected_size, unsigned int cur_n=0);
         //! Helper function to read a type list from the file
         std::vector<std::string> readTypes(uint64_t frame, const char *name);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1074,11 +1074,15 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
             m_nettorque_copybuf(m_exec_conf),
             m_netvirial_copybuf(m_exec_conf),
             m_netvirial_recvbuf(m_exec_conf),
+            m_plan(m_exec_conf),
+            m_plan_reverse(m_exec_conf), 
+            m_tag_reverse(m_exec_conf), 
+            m_netforce_reverse_copybuf(m_exec_conf),
+            m_netforce_reverse_recvbuf(m_exec_conf),
             m_r_ghost_max(Scalar(0.0)),
             m_r_extra_ghost_max(Scalar(0.0)),
             m_ghosts_added(0),
             m_has_ghost_particles(false),
-            m_plan(m_exec_conf),
             m_last_flags(0),
             m_comm_pending(false),
             m_bond_comm(*this, m_sysdef->getBondData()),
@@ -1105,6 +1109,22 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
         m_copy_ghosts[dir].swap(copy_ghosts);
         m_num_copy_ghosts[dir] = 0;
         m_num_recv_ghosts[dir] = 0;
+        }
+
+    // All buffers corresponding to sending ghosts in reverse
+    for (unsigned int dir = 0; dir < 6; dir ++)
+        {
+        GPUVector<unsigned int> copy_ghosts_reverse(m_exec_conf);
+        m_copy_ghosts_reverse[dir].swap(copy_ghosts_reverse);
+        GPUVector<unsigned int> plan_reverse_copybuf(m_exec_conf);
+        m_plan_reverse_copybuf[dir].swap(plan_reverse_copybuf);
+        m_num_copy_local_ghosts_reverse[dir] = 0;
+        m_num_recv_local_ghosts_reverse[dir] = 0;
+
+        GPUVector<unsigned int> forward_ghosts_reverse(m_exec_conf);
+        m_forward_ghosts_reverse[dir].swap(forward_ghosts_reverse);
+        m_num_forward_ghosts_reverse[dir] = 0;
+        m_num_recv_forward_ghosts_reverse[dir] = 0;
         }
 
     // connect to particle sort signal
@@ -1331,10 +1351,10 @@ void Communicator::communicate(unsigned int timestep)
 
         // Construct ghost send lists, exchange ghost atom data
         exchangeGhosts();
- 
+
         // update particle data now that ghosts are available
         m_compute_callbacks.emit(timestep);
-        
+
         m_has_ghost_particles = true;
         }
 
@@ -1437,22 +1457,24 @@ void Communicator::migrateParticles()
         unsigned int n_recv_ptls;
 
         // communicate size of the message that will contain the particle data
-        MPI_Request reqs[2];
-        MPI_Status status[2];
+        m_reqs.resize(2);
+        m_stats.resize(2);
 
         unsigned int n_send_ptls = m_sendbuf.size();
 
-        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & reqs[0]);
-        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & reqs[1]);
-        MPI_Waitall(2, reqs, status);
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, & m_reqs[0]);
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, & m_reqs[1]);
+        MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
         // Resize receive buffer
         m_recvbuf.resize(n_recv_ptls);
 
         // exchange particle data
-        MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & reqs[0]);
-        MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & reqs[1]);
-        MPI_Waitall(2, reqs, status);
+        m_reqs.resize(2);
+        m_stats.resize(2);
+        MPI_Isend(&m_sendbuf.front(), n_send_ptls*sizeof(pdata_element), MPI_BYTE, send_neighbor, 1, m_mpi_comm, & m_reqs[0]);
+        MPI_Irecv(&m_recvbuf.front(), n_recv_ptls*sizeof(pdata_element), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, & m_reqs[1]);
+        MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
         if (m_prof)
             m_prof->pop();
@@ -1524,7 +1546,6 @@ void Communicator::updateGhostWidth()
                                                             }
                                                             ,cur_type);
 
-            // add to the maximum ghost layer width
             h_r_ghost_body.data[cur_type] = r_extra_ghost_i;
             if (r_extra_ghost_i  > r_extra_ghost_max) r_extra_ghost_max = r_extra_ghost_i;
             }
@@ -1594,7 +1615,9 @@ void Communicator::exchangeGhosts()
 
             if (h_body.data[idx] != NO_BODY)
                 {
-                ghost_fraction = m_r_ghost_max/ box_dist + ghost_fractions_body[type];
+                ghost_fraction = make_scalar3(std::max(ghost_fraction.x, ghost_fractions_body[type].x),
+                                              std::max(ghost_fraction.y, ghost_fractions_body[type].y),
+                                              std::max(ghost_fraction.z, ghost_fractions_body[type].z));
                 }
 
             Scalar3 f = box.makeFraction(pos);
@@ -1649,29 +1672,6 @@ void Communicator::exchangeGhosts()
     // ghost particle flags
     CommFlags flags = getFlags();
 
-    // resize buffers
-    m_plan_copybuf.resize(m_pdata->getN());
-    if (flags[comm_flag::position])
-        m_pos_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::charge])
-        m_charge_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::body])
-        m_body_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::image])
-        m_image_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::diameter])
-        m_diameter_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::velocity])
-        m_velocity_copybuf.resize(m_pdata->getN());
-
-    if (flags[comm_flag::orientation])
-        m_orientation_copybuf.resize(m_pdata->getN());
-
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (! isCommunicating(dir) ) continue;
@@ -1716,7 +1716,7 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-            ArrayHandle<unsigned int>  h_plan(m_plan, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int>  h_plan(m_plan, access_location::host, access_mode::readwrite);
 
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::overwrite);
             ArrayHandle<unsigned int> h_plan_copybuf(m_plan_copybuf, access_location::host, access_mode::overwrite);
@@ -1760,9 +1760,9 @@ void Communicator::exchangeGhosts()
         if (m_prof)
             m_prof->push("MPI send/recv");
 
-        // communicate size of the message that will contain the particle data
-        MPI_Request reqs[14];
-        MPI_Status status[14];
+        m_reqs.clear();
+        m_stats.clear();
+        MPI_Request req;
 
         MPI_Isend(&m_num_copy_ghosts[dir],
             sizeof(unsigned int),
@@ -1770,15 +1770,19 @@ void Communicator::exchangeGhosts()
             send_neighbor,
             0,
             m_mpi_comm,
-            &reqs[0]);
+            &req);
+        m_reqs.push_back(req);
         MPI_Irecv(&m_num_recv_ghosts[dir],
             sizeof(unsigned int),
             MPI_BYTE,
             recv_neighbor,
             0,
             m_mpi_comm,
-            &reqs[1]);
-        MPI_Waitall(2, reqs, status);
+            &req);
+        m_reqs.push_back(req);
+
+        m_stats.resize(2);
+        MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
 
         if (m_prof)
             m_prof->pop();
@@ -1817,7 +1821,9 @@ void Communicator::exchangeGhosts()
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::readwrite);
 
-            unsigned int nreq = 0;
+            // Clear out the mpi variables for new statuses and requests
+            m_reqs.clear();
+            m_stats.clear();
 
             MPI_Isend(h_plan_copybuf.data,
                 m_num_copy_ghosts[dir]*sizeof(unsigned int),
@@ -1825,14 +1831,16 @@ void Communicator::exchangeGhosts()
                 send_neighbor,
                 1,
                 m_mpi_comm,
-                &reqs[nreq++]);
+                &req);
+            m_reqs.push_back(req);
             MPI_Irecv(h_plan.data + start_idx,
                 m_num_recv_ghosts[dir]*sizeof(unsigned int),
                 MPI_BYTE,
                 recv_neighbor,
                 1,
                 m_mpi_comm,
-                &reqs[nreq++]);
+                &req);
+            m_reqs.push_back(req);
 
             MPI_Isend(h_copy_ghosts.data,
                 m_num_copy_ghosts[dir]*sizeof(unsigned int),
@@ -1840,14 +1848,16 @@ void Communicator::exchangeGhosts()
                 send_neighbor,
                 2,
                 m_mpi_comm,
-                &reqs[nreq++]);
+                &req);
+            m_reqs.push_back(req);
             MPI_Irecv(h_tag.data + start_idx,
                 m_num_recv_ghosts[dir]*sizeof(unsigned int),
                 MPI_BYTE,
                 recv_neighbor,
                 2,
                 m_mpi_comm,
-                &reqs[nreq++]);
+                &req);
+            m_reqs.push_back(req);
 
             if (flags[comm_flag::position])
                 {
@@ -1857,14 +1867,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     3,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_pos.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(Scalar4),
                     MPI_BYTE,
                     recv_neighbor,
                     3,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
             if (flags[comm_flag::charge])
@@ -1875,14 +1887,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     4,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_charge.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(Scalar),
                     MPI_BYTE,
                     recv_neighbor,
                     4,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
             if (flags[comm_flag::diameter])
@@ -1893,14 +1907,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     5,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_diameter.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(Scalar),
                     MPI_BYTE,
                     recv_neighbor,
                     5,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
             if (flags[comm_flag::velocity])
@@ -1911,14 +1927,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     6,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_vel.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(Scalar4),
                     MPI_BYTE,
                     recv_neighbor,
                     6,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
 
@@ -1930,14 +1948,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     7,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_orientation.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(Scalar4),
                     MPI_BYTE,
                     recv_neighbor,
                     7,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
             if (flags[comm_flag::body])
@@ -1948,14 +1968,16 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     8,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_body.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(unsigned int),
                     MPI_BYTE,
                     recv_neighbor,
                     8,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
             if (flags[comm_flag::image])
@@ -1966,17 +1988,20 @@ void Communicator::exchangeGhosts()
                     send_neighbor,
                     9,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 MPI_Irecv(h_image.data + start_idx,
                     m_num_recv_ghosts[dir]*sizeof(int3),
                     MPI_BYTE,
                     recv_neighbor,
                     9,
                     m_mpi_comm,
-                    &reqs[nreq++]);
+                    &req);
+                m_reqs.push_back(req);
                 }
 
-            MPI_Waitall(nreq, reqs, status);
+            m_stats.resize(m_reqs.size());
+            MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
             }
 
         if (m_prof)
@@ -2021,6 +2046,243 @@ void Communicator::exchangeGhosts()
     m_constraint_comm.exchangeGhostGroups(m_plan, mask);
 
     m_last_flags = flags;
+    
+    /***********************************************************************************************************************************************************
+     * For multi-body force fields we must allow particles to send information back through their ghosts. 
+     * For this purpose, we implement a system for ghosts to be sent back to their original domain with forces on them that can then be added back to the original local particle. 
+     * In exchangeGhosts, this involves the construction of reverse plans and then the sending of ghosts back to the domains in which they originated
+     **********************************************************************************************************************************************************/
+
+    // Need to check the flag that determines whether reverse net forces are set
+    if (flags[comm_flag::reverse_net_force])
+        {
+        // Set some initial constants that won't change and can be used in all scopes
+        unsigned int n_reverse_ghosts_recv = 0;
+        unsigned int n_ghosts_init = m_pdata->getNGhosts();
+        unsigned int n_local = m_pdata->getN();
+
+        // resize and reset plans
+        m_plan_reverse.resize(n_ghosts_init);
+        m_tag_reverse.resize(n_ghosts_init);
+
+            {
+            ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse, access_location::host, access_mode::readwrite);
+
+            for (unsigned int i = 0; i < n_ghosts_init; ++i)
+                {
+                // Unnecessary for tags since those will be overwritten rather than added to
+                h_plan_reverse.data[i] = 0;
+                }
+            }
+
+            // Invert the plans to construct the reverse plans
+            {
+            ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse, access_location::host, access_mode::readwrite);
+            ArrayHandle<unsigned int> h_plan(m_plan, access_location::host, access_mode::read);
+
+            // Determine the plans for each ghost
+            for (unsigned int idx = 0; idx < n_ghosts_init; idx++)
+                {
+                // Invert the plans directly rather than computing anything about ghost layers
+                unsigned int ghost_idx = n_local + idx;
+                if (h_plan.data[ghost_idx] & send_east)
+                    h_plan_reverse.data[idx] |= send_west;
+
+                if (h_plan.data[ghost_idx] & send_west)
+                    h_plan_reverse.data[idx] |= send_east;
+
+                if (h_plan.data[ghost_idx] & send_north)
+                    h_plan_reverse.data[idx] |= send_south;
+
+                if (h_plan.data[ghost_idx] & send_south)
+                    h_plan_reverse.data[idx] |= send_north;
+
+                if (h_plan.data[ghost_idx] & send_up)
+                    h_plan_reverse.data[idx] |= send_down;
+
+                if (h_plan.data[ghost_idx] & send_down)
+                    h_plan_reverse.data[idx] |= send_up;
+                }
+            }
+
+        // Loop over all directions and send ghosts back if that direction is part of their plan
+        for (unsigned int dir = 0; dir < 6; dir++)
+        {
+            if (! isCommunicating(dir) ) continue;
+
+            m_num_copy_local_ghosts_reverse[dir] = 0;
+            m_num_forward_ghosts_reverse[dir] = 0;
+
+            // resize buffers
+            unsigned int max_copy_ghosts = n_ghosts_init + n_reverse_ghosts_recv;
+            m_copy_ghosts_reverse[dir].resize(max_copy_ghosts);
+            m_plan_reverse_copybuf[dir].resize(max_copy_ghosts);
+            m_forward_ghosts_reverse[dir].resize(max_copy_ghosts);
+
+            // Determine which ghosts need to be forwarded
+                {
+                ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse, access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_copy_ghosts_reverse(m_copy_ghosts_reverse[dir], access_location::host, access_mode::overwrite);
+                ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir], access_location::host, access_mode::overwrite);
+
+                // First check the set of local ghost particles to see if any of those need to get sent back
+                for (unsigned int idx = 0; idx < m_pdata->getNGhosts(); idx++)
+                    {
+                    // only send once, namely in the direction with lowest index (by convention)
+                    if ((h_plan_reverse.data[idx] & (1 << dir)))
+                        {
+                        h_plan_reverse_copybuf.data[m_num_copy_local_ghosts_reverse[dir]] = h_plan_reverse.data[idx];
+                        h_copy_ghosts_reverse.data[m_num_copy_local_ghosts_reverse[dir]] = h_tag.data[n_local + idx];
+                        m_num_copy_local_ghosts_reverse[dir]++;
+                        }
+                    }
+
+                // Now check if any particles that were sent as reverse ghosts to this need to be sent back further
+                ArrayHandle<unsigned int> h_forward_ghosts_reverse(m_forward_ghosts_reverse[dir], access_location::host, access_mode::overwrite);
+                ArrayHandle<unsigned int> h_tag_reverse(m_tag_reverse, access_location::host, access_mode::read);
+
+                unsigned int add_idx = m_num_copy_local_ghosts_reverse[dir];
+                unsigned int num_ghosts_local = n_ghosts_init;
+                for (unsigned int idx = 0; idx < n_reverse_ghosts_recv; ++idx)
+                    {
+                    if (h_plan_reverse.data[num_ghosts_local + idx] & (1 << dir))
+                        {
+                        h_plan_reverse_copybuf.data[add_idx + m_num_forward_ghosts_reverse[dir]] = h_plan_reverse.data[num_ghosts_local + idx];
+                        h_copy_ghosts_reverse.data[add_idx + m_num_forward_ghosts_reverse[dir]] = h_tag_reverse.data[idx];
+                        h_forward_ghosts_reverse.data[m_num_forward_ghosts_reverse[dir]] = idx;
+                        m_num_forward_ghosts_reverse[dir]++;
+                        }
+                    }
+                }
+
+            unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+
+            // we receive from the direction opposite to the one we send to
+            unsigned int recv_neighbor;
+            if (dir % 2 == 0)
+                recv_neighbor = m_decomposition->getNeighborRank(dir+1);
+            else
+                recv_neighbor = m_decomposition->getNeighborRank(dir-1);
+
+            if (m_prof)
+                m_prof->push("MPI send/recv");
+
+            // communicate size of the message that will contain the particle data
+            m_reqs.clear();
+            m_stats.clear();
+            MPI_Request req;
+
+            // Communicate the number of ghosts to forward. We keep separate counts of the local ghosts we are forwarding for the first time and the ghosts that were forwarded to this domain that are being forwarded further
+            MPI_Isend(&m_num_forward_ghosts_reverse[dir],
+                    sizeof(unsigned int),
+                    MPI_BYTE,
+                    send_neighbor,
+                    0,
+                    m_mpi_comm,
+                    &req);
+            m_reqs.push_back(req);
+            MPI_Irecv(&m_num_recv_forward_ghosts_reverse[dir],
+                    sizeof(unsigned int),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    0,
+                    m_mpi_comm,
+                    &req);
+            m_reqs.push_back(req);
+            MPI_Isend(&m_num_copy_local_ghosts_reverse[dir],
+                    sizeof(unsigned int),
+                    MPI_BYTE,
+                    send_neighbor,
+                    1,
+                    m_mpi_comm,
+                    &req);
+            m_reqs.push_back(req);
+            MPI_Irecv(&m_num_recv_local_ghosts_reverse[dir],
+                    sizeof(unsigned int),
+                    MPI_BYTE,
+                    recv_neighbor,
+                    1,
+                    m_mpi_comm,
+                    &req);
+            m_reqs.push_back(req);
+
+            m_stats.resize(m_reqs.size());
+            MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
+
+            if (m_prof)
+                m_prof->pop();
+    
+            // append ghosts at the end of particle data array
+            unsigned int start_idx_plan = n_ghosts_init + n_reverse_ghosts_recv;
+            unsigned int start_idx_tag = n_reverse_ghosts_recv;
+
+            // resize arrays
+            unsigned int n_new_ghosts_send = m_num_copy_local_ghosts_reverse[dir]+m_num_forward_ghosts_reverse[dir];
+            unsigned int n_new_ghosts_recv = m_num_recv_local_ghosts_reverse[dir]+m_num_recv_forward_ghosts_reverse[dir];
+            n_reverse_ghosts_recv += n_new_ghosts_recv;
+            m_plan_reverse.resize(n_ghosts_init + n_reverse_ghosts_recv);
+            m_tag_reverse.resize(n_reverse_ghosts_recv);
+
+            // exchange particle data, write directly to the particle data arrays
+            if (m_prof)
+                m_prof->push("MPI send/recv");
+
+            // Now forward the ghosts
+            {
+                ArrayHandle<unsigned int> h_plan_reverse_copybuf(m_plan_reverse_copybuf[dir], access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_plan_reverse(m_plan_reverse, access_location::host, access_mode::read);
+
+                ArrayHandle<unsigned int> h_copy_ghosts_reverse(m_copy_ghosts_reverse[dir], access_location::host, access_mode::read);
+                ArrayHandle<unsigned int> h_tag_reverse(m_tag_reverse, access_location::host, access_mode::readwrite);
+
+                // Clear out the mpi variables for new statuses and requests
+                m_reqs.clear();
+                m_stats.clear();
+
+                MPI_Isend(h_plan_reverse_copybuf.data,
+                        (n_new_ghosts_send )*sizeof(unsigned int),
+                        MPI_BYTE,
+                        send_neighbor,
+                        2,
+                        m_mpi_comm,
+                        &req);
+                m_reqs.push_back(req);
+                MPI_Irecv(h_plan_reverse.data + start_idx_plan,
+                        (n_new_ghosts_recv)*sizeof(unsigned int),
+                        MPI_BYTE,
+                        recv_neighbor,
+                        2,
+                        m_mpi_comm,
+                        &req);
+                m_reqs.push_back(req);
+
+                MPI_Isend(h_copy_ghosts_reverse.data,
+                        (n_new_ghosts_send)*sizeof(unsigned int),
+                        MPI_BYTE,
+                        send_neighbor,
+                        3,
+                        m_mpi_comm,
+                        &req);
+                m_reqs.push_back(req);
+                MPI_Irecv(h_tag_reverse.data + start_idx_tag,
+                        (n_new_ghosts_recv)*sizeof(unsigned int),
+                        MPI_BYTE,
+                        recv_neighbor,
+                        3,
+                        m_mpi_comm,
+                        &req);
+                m_reqs.push_back(req);
+
+                m_stats.resize(m_reqs.size());
+                MPI_Waitall(m_reqs.size(), &m_reqs.front(), &m_stats.front());
+            }
+
+            if (m_prof)
+                m_prof->pop();
+
+        } // end dir loop
+    }
 
     if (m_prof)
         m_prof->pop();
@@ -2128,48 +2390,48 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
         // charge, body, image and diameter are not updated between neighbor list builds
         if (flags[comm_flag::position])
             {
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_pos_copybuf(m_pos_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_pos_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_pos_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_pos.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::velocity])
             {
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_vel_copybuf(m_velocity_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_vel_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_vel.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_vel_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_vel.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += sizeof(Scalar4);
             }
 
         if (flags[comm_flag::orientation])
             {
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_orientation_copybuf(m_orientation_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_orientation_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_orientation.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_orientation_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_orientation.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += sizeof(Scalar4);
             }
@@ -2203,10 +2465,10 @@ void Communicator::beginUpdateGhosts(unsigned int timestep)
 void Communicator::updateNetForce(unsigned int timestep)
     {
     CommFlags flags = getFlags();
-    if (! flags[comm_flag::net_force] && ! flags[comm_flag::net_torque] && ! flags[comm_flag::net_virial])
+    if (! flags[comm_flag::net_force] && ! flags[comm_flag::reverse_net_force] && ! flags[comm_flag::net_torque] && ! flags[comm_flag::net_virial])
         return;
 
-    // we have a current m_copy_ghosts liss which contain the indices of particles
+    // we have a current m_copy_ghosts list which contain the indices of particles
     // to send to neighboring processors
     if (m_prof)
         m_prof->push("comm_ghost_net_force");
@@ -2216,6 +2478,10 @@ void Communicator::updateNetForce(unsigned int timestep)
     if (flags[comm_flag::net_force])
         {
         oss << "force ";
+        }
+    if (flags[comm_flag::reverse_net_force])
+        {
+        oss << "reverse force ";
         }
     if (flags[comm_flag::net_torque])
         {
@@ -2228,11 +2494,18 @@ void Communicator::updateNetForce(unsigned int timestep)
 
     m_exec_conf->msg->notice(7) << oss.str() << std::endl;
 
-    // update data in these arrays
-
+    // Set some global counters
     unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+    unsigned int num_tot_recv_ghosts_reverse = 0; // total number of ghosts received in reverse direction
 
-    m_netforce_copybuf.clear();
+    // clear data in these arrays
+    if (flags[comm_flag::net_force])
+        m_netforce_copybuf.clear();
+
+    if (flags[comm_flag::reverse_net_force])
+        {
+        m_netforce_reverse_copybuf.clear();
+        }
 
     if (flags[comm_flag::net_torque])
         {
@@ -2244,13 +2517,25 @@ void Communicator::updateNetForce(unsigned int timestep)
         m_netvirial_copybuf.clear();
         }
 
+    // update data in these arrays
+
     for (unsigned int dir = 0; dir < 6; dir ++)
         {
         if (! isCommunicating(dir) ) continue;
 
-        // resize send buffer
-        unsigned int old_size = m_netforce_copybuf.size();
-        m_netforce_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+        // resize send buffers as needed
+        unsigned int old_size;
+        if (flags[comm_flag::net_force])
+            { 
+            old_size = m_netforce_copybuf.size();
+            m_netforce_copybuf.resize(old_size+m_num_copy_ghosts[dir]);
+            }
+
+        if (flags[comm_flag::reverse_net_force])
+            {
+            old_size = m_netforce_reverse_copybuf.size();
+            m_netforce_reverse_copybuf.resize(old_size + m_num_forward_ghosts_reverse[dir] + m_num_copy_local_ghosts_reverse[dir]);
+            }
 
         if (flags[comm_flag::net_torque])
             {
@@ -2264,6 +2549,8 @@ void Communicator::updateNetForce(unsigned int timestep)
             m_netvirial_copybuf.resize(old_size+6*m_num_copy_ghosts[dir]);
             }
 
+        // Copy data into send buffers
+        if (flags[comm_flag::net_force])
             {
             ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_netforce_copybuf(m_netforce_copybuf, access_location::host, access_mode::overwrite);
@@ -2280,47 +2567,78 @@ void Communicator::updateNetForce(unsigned int timestep)
                 // copy net force into send buffer
                 h_netforce_copybuf.data[ghost_idx] = h_netforce.data[idx];
                 }
+            }
 
-            if (flags[comm_flag::net_torque])
+        if (flags[comm_flag::reverse_net_force])
+            {
+            ArrayHandle<unsigned int> h_copy_ghosts_reverse(m_copy_ghosts_reverse[dir], access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_netforce_reverse_copybuf(m_netforce_reverse_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_netforce_reverse_recvbuf(m_netforce_reverse_recvbuf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_forward_ghosts_reverse(m_forward_ghosts_reverse[dir], access_location::host, access_mode::overwrite);
+            ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            // copy reverse net force of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_local_ghosts_reverse[dir]; ghost_idx++)
                 {
-                ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::overwrite);
+                unsigned int idx = h_rtag.data[h_copy_ghosts_reverse.data[ghost_idx]];
 
-                // copy net torques of ghost particles
-                for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
-                    {
-                    unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
 
-                    assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
-
-                    // copy net force into send buffer
-                    h_nettorque_copybuf.data[ghost_idx] = h_nettorque.data[idx];
-                    }
-                }
-            if (flags[comm_flag::net_virial])
-                {
-                ArrayHandle<Scalar> h_netvirial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
-                ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::overwrite);
-
-                unsigned int pitch = m_pdata->getNetVirial().getPitch();
-
-                // copy net torques of ghost particles
-                for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
-                    {
-                    unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
-
-                    assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
-
-                    // copy net force into send buffer, transposing
-                    h_netvirial_copybuf.data[6*ghost_idx+0] = h_netvirial.data[0*pitch+idx];
-                    h_netvirial_copybuf.data[6*ghost_idx+1] = h_netvirial.data[1*pitch+idx];
-                    h_netvirial_copybuf.data[6*ghost_idx+2] = h_netvirial.data[2*pitch+idx];
-                    h_netvirial_copybuf.data[6*ghost_idx+3] = h_netvirial.data[3*pitch+idx];
-                    h_netvirial_copybuf.data[6*ghost_idx+4] = h_netvirial.data[4*pitch+idx];
-                    h_netvirial_copybuf.data[6*ghost_idx+5] = h_netvirial.data[5*pitch+idx];
-                    }
+                // copy reverse net force into send buffer
+                h_netforce_reverse_copybuf.data[ghost_idx] = h_netforce.data[idx];
                 }
 
+            // Scan the entire recv buf for additional particles. These are forces corresponding to ghosts forwarded to this domain
+            for (unsigned int i = 0; i < m_num_forward_ghosts_reverse[dir]; ++i)
+                {
+                unsigned int idx = h_forward_ghosts_reverse.data[i];
+                h_netforce_reverse_copybuf.data[m_num_copy_local_ghosts_reverse[dir]+i] = h_netforce_reverse_recvbuf.data[idx];
+                }
+            }
+
+        if (flags[comm_flag::net_torque])
+            {
+            ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            // copy net torques of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy net force into send buffer
+                h_nettorque_copybuf.data[ghost_idx] = h_nettorque.data[idx];
+                }
+            }
+        if (flags[comm_flag::net_virial])
+            {
+            ArrayHandle<Scalar> h_netvirial(m_pdata->getNetVirial(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::overwrite);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            unsigned int pitch = m_pdata->getNetVirial().getPitch();
+
+            // copy net torques of ghost particles
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                // copy net force into send buffer, transposing
+                h_netvirial_copybuf.data[6*ghost_idx+0] = h_netvirial.data[0*pitch+idx];
+                h_netvirial_copybuf.data[6*ghost_idx+1] = h_netvirial.data[1*pitch+idx];
+                h_netvirial_copybuf.data[6*ghost_idx+2] = h_netvirial.data[2*pitch+idx];
+                h_netvirial_copybuf.data[6*ghost_idx+3] = h_netvirial.data[3*pitch+idx];
+                h_netvirial_copybuf.data[6*ghost_idx+4] = h_netvirial.data[4*pitch+idx];
+                h_netvirial_copybuf.data[6*ghost_idx+5] = h_netvirial.data[5*pitch+idx];
+                }
             }
 
         unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
@@ -2342,32 +2660,81 @@ void Communicator::updateNetForce(unsigned int timestep)
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
         size_t sz = 0;
+        if (flags[comm_flag::net_force])
             {
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.clear();
+            m_stats.clear();
 
             ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_netforce_copybuf(m_netforce_copybuf, access_location::host, access_mode::read);
 
             // exchange particle data, write directly to the particle data arrays
-            MPI_Isend(h_netforce_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_netforce.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_netforce_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 1, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_netforce.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 1, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += sizeof(Scalar4);
             }
 
+        // We add new particle data for reverse ghosts after the particle data already received, so save the count and then update it with the new receive count
+        unsigned int start_idx_reverse = num_tot_recv_ghosts_reverse;
+        num_tot_recv_ghosts_reverse += m_num_recv_local_ghosts_reverse[dir] + m_num_recv_forward_ghosts_reverse[dir];
+
+        // Send the net forces from ghosts traveling back and then add them to the original local particles the ghosts corresponded to
+        if (flags[comm_flag::reverse_net_force])
+            {
+            m_netforce_reverse_recvbuf.resize(num_tot_recv_ghosts_reverse);
+                {
+                m_reqs.resize(2);
+                m_stats.resize(2);
+
+                // use separate recv buffer
+                ArrayHandle<Scalar4> h_netforce_reverse_copybuf(m_netforce_reverse_copybuf, access_location::host, access_mode::read);
+                ArrayHandle<Scalar4> h_netforce_reverse_recvbuf(m_netforce_reverse_recvbuf, access_location::host, access_mode::readwrite);
+
+                MPI_Isend(h_netforce_reverse_copybuf.data, (m_num_copy_local_ghosts_reverse[dir] + m_num_forward_ghosts_reverse[dir])*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &m_reqs[0]);
+                MPI_Irecv(h_netforce_reverse_recvbuf.data + start_idx_reverse, (m_num_recv_local_ghosts_reverse[dir] + m_num_recv_forward_ghosts_reverse[dir])*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &m_reqs[1]);
+                MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+
+                sz += sizeof(Scalar4);
+                }
+
+            // Add forces
+            ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(), access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_netforce_reverse_recvbuf(m_netforce_reverse_recvbuf, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_tag_reverse(m_tag_reverse, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(), access_location::host, access_mode::read);
+
+            unsigned int n_local_particles = m_pdata->getN();
+            for(unsigned int i = 0; i < m_num_recv_forward_ghosts_reverse[dir] + m_num_recv_local_ghosts_reverse[dir]; i++)
+                {
+                unsigned int idx = h_rtag.data[h_tag_reverse.data[start_idx_reverse + i]];
+                if (idx < n_local_particles)
+                    {
+                    Scalar4 f = h_netforce_reverse_recvbuf.data[start_idx_reverse + i];
+                    Scalar4 cur_F = h_netforce.data[idx];
+                    
+                    // add net force to particle data
+                    cur_F.x += f.x;
+                    cur_F.y += f.y;
+                    cur_F.z += f.z;
+                    cur_F.w += f.w;
+                    h_netforce.data[idx] = cur_F;
+                    }
+                }
+            }
+
         if (flags[comm_flag::net_torque])
             {
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_nettorque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
             ArrayHandle<Scalar4> h_nettorque_copybuf(m_nettorque_copybuf, access_location::host, access_mode::read);
 
-            MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_nettorque.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_nettorque_copybuf.data, m_num_copy_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, send_neighbor, 2, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_nettorque.data + start_idx, m_num_recv_ghosts[dir]*sizeof(Scalar4), MPI_BYTE, recv_neighbor, 2, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += sizeof(Scalar4);
             }
@@ -2375,15 +2742,15 @@ void Communicator::updateNetForce(unsigned int timestep)
         if (flags[comm_flag::net_virial])
             {
             m_netvirial_recvbuf.resize(6*m_num_recv_ghosts[dir]);
-            MPI_Request reqs[2];
-            MPI_Status status[2];
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar> h_netvirial_recvbuf(m_netvirial_recvbuf, access_location::host, access_mode::overwrite);
             ArrayHandle<Scalar> h_netvirial_copybuf(m_netvirial_copybuf, access_location::host, access_mode::read);
 
-            MPI_Isend(h_netvirial_copybuf.data, 6*m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &reqs[0]);
-            MPI_Irecv(h_netvirial_recvbuf.data, 6*m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &reqs[1]);
-            MPI_Waitall(2, reqs, status);
+            MPI_Isend(h_netvirial_copybuf.data, 6*m_num_copy_ghosts[dir]*sizeof(Scalar), MPI_BYTE, send_neighbor, 3, m_mpi_comm, &m_reqs[0]);
+            MPI_Irecv(h_netvirial_recvbuf.data, 6*m_num_recv_ghosts[dir]*sizeof(Scalar), MPI_BYTE, recv_neighbor, 3, m_mpi_comm, &m_reqs[1]);
+            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
 
             sz += 6*sizeof(Scalar);
             }

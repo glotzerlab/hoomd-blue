@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -20,7 +20,7 @@
 #include "hoomd/md/NeighborListBinned.h"
 #include "hoomd/md/NeighborListTree.h"
 #include "hoomd/Initializers.h"
-#include "hoomd/deprecated/RandomGenerator.h"
+#include "hoomd/SnapshotSystemData.h"
 
 #include <math.h>
 
@@ -69,23 +69,9 @@ std::shared_ptr<TwoStepNVTMTK> gpu_nvt_creator(std::shared_ptr<SystemDefinition>
 
 void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
 {
-    // initialize random particle system
-    Scalar phi_p = 0.2;
-    unsigned int N = 2000;
-    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
-    BoxDim box_g(L);
-    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
-    std::vector<string> types;
-    types.push_back("A");
-    std::vector<unsigned int> bonds;
-    std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
-    rand_init.setSeparationRadius("A", .4);
-
-    rand_init.generate();
-
-    std::shared_ptr< SnapshotSystemData<Scalar> > snap;
-    snap = rand_init.getSnapshot();
+    // initialize a particle system
+    SimpleCubicInitializer cubic_init(12, Scalar(1.2), "A");
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
 
     std::shared_ptr<SystemDefinition> sysdef_1(new SystemDefinition(snap, exec_conf));
     std::shared_ptr<ParticleData> pdata_1 = sysdef_1->getParticleData();
@@ -185,23 +171,8 @@ void test_nvt_mtk_integrator(std::shared_ptr<ExecutionConfiguration> exec_conf, 
 
 void test_nvt_mtk_integrator_aniso(std::shared_ptr<ExecutionConfiguration> exec_conf, twostepnvt_creator nvt_creator)
 {
-    // initialize random particle system
-    Scalar phi_p = 0.2;
-    unsigned int N = 150;
-    Scalar L = pow(M_PI/6.0/phi_p*Scalar(N),1.0/3.0);
-    BoxDim box_g(L);
-    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
-    std::vector<string> types;
-    types.push_back("A");
-    std::vector<unsigned int> bonds;
-    std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
-    rand_init.setSeparationRadius("A", .5);
-
-    rand_init.generate();
-
-    std::shared_ptr<SnapshotSystemData<Scalar> > snap;
-    snap = rand_init.getSnapshot();
+    SimpleCubicInitializer cubic_init(5, Scalar(1.2), "A");
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
 
     // have to set moment of inertia to actually test aniso integration
     for(unsigned int i(0); i < snap->particle_data.size; ++i)

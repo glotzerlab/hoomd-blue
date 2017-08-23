@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PPPMForceCompute.h"
@@ -44,13 +44,11 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
-            m_tuner_bin->setPeriod(period);
             m_tuner_assign->setPeriod(period);
             m_tuner_update->setPeriod(period);
             m_tuner_force->setPeriod(period);
             m_tuner_influence->setPeriod(period);
 
-            m_tuner_bin->setEnabled(enable);
             m_tuner_assign->setEnabled(enable);
             m_tuner_update->setEnabled(enable);
             m_tuner_force->setEnabled(enable);
@@ -97,7 +95,6 @@ class PPPMForceComputeGPU : public PPPMForceCompute
             }
 
     private:
-        std::unique_ptr<Autotuner> m_tuner_bin;  //!< Autotuner for binning particles
         std::unique_ptr<Autotuner> m_tuner_assign;//!< Autotuner for assigning binned charges to mesh
         std::unique_ptr<Autotuner> m_tuner_update;  //!< Autotuner for updating mesh values
         std::unique_ptr<Autotuner> m_tuner_force; //!< Autotuner for populating the force array
@@ -123,14 +120,6 @@ class PPPMForceComputeGPU : public PPPMForceCompute
         GPUArray<cufftComplex> m_inv_fourier_mesh_x;     //!< The inverse-fourier transformed force mesh
         GPUArray<cufftComplex> m_inv_fourier_mesh_y;     //!< The inverse-fourier transformed force mesh
         GPUArray<cufftComplex> m_inv_fourier_mesh_z;     //!< The inverse-fourier transformed force mesh
-
-        Index2D m_bin_idx;                         //!< Total number of bins
-        GPUArray<Scalar4> m_particle_bins;         //!< Cell list for particle positions and modes
-        GPUArray<Scalar> m_mesh_scratch;           //!< Mesh with scratch space for density reduction
-        Index2D m_scratch_idx;                     //!< Indexer for scratch space
-        GPUArray<unsigned int> m_n_cell;           //!< Number of particles per cell
-        unsigned int m_cell_size;                  //!< Current max. number of particles per cell
-        GPUFlags<unsigned int> m_cell_overflowed;  //!< Flag set to 1 if a cell overflows
 
         GPUFlags<Scalar> m_sum;                    //!< Sum over fourier mesh values
         GPUArray<Scalar> m_sum_partial;            //!< Partial sums over fourier mesh values

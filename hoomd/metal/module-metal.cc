@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "EAMForceCompute.h"
@@ -12,8 +12,8 @@
 
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
-    create the hoomd python module and define the exports here.
-*/
+ create the hoomd python module and define the exports here.
+ */
 
 PYBIND11_PLUGIN(_metal)
     {

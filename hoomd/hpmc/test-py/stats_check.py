@@ -34,6 +34,7 @@ class pair_accept_all (unittest.TestCase):
         self.system = create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=True)
         self.mc.overlap_checks.set('A','A', False)
 
@@ -86,6 +87,7 @@ class pair_accept_none (unittest.TestCase):
         self.system = create_empty(N=2, box=data.boxdim(L=10, dimensions=3), particle_types=['A'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', a=0.5,b=0.25,c=0.15,ignore_statistics=False)
         self.mc.set_params(d=0.01,a=0.01)
         context.current.sorter.set_params(grid=8)
@@ -123,6 +125,7 @@ class pair_accept_some(unittest.TestCase):
         self.system  = create_empty(N=1000, box=data.boxdim(L=12, dimensions=3), particle_types=['A','B'])
 
         self.mc = hpmc.integrate.ellipsoid(seed=84,d=1.0);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', a=0.5,b=0.5,c=0.5,ignore_statistics=True)
         self.mc.overlap_checks.set('A','A', False)
         self.mc.shape_param.set('B', a=0.5,b=0.5,c=0.5,ignore_statistics=False)

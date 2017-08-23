@@ -2,7 +2,6 @@ from __future__ import division
 from __future__ import print_function
 
 import hoomd
-import hoomd.deprecated
 from hoomd import context, data, init
 from hoomd import hpmc
 
@@ -187,8 +186,9 @@ class external_field_lattice(unittest.TestCase):
         print("****************************************")
 
         self.system = init.read_snapshot(self.snapshot3d)
-        v = 0.33*np.array([(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)]);
-        f = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)];
+        import math
+        v = 0.33*np.array([(-0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (0,0, 1.0/math.sqrt(2)),(0,0,-1.0/math.sqrt(2))]);
+        f = [(0,4,1),(1,4,2),(2,4,3),(3,4,0),(0,5,1),(1,5,2),(2,5,3),(3,5,0)]
         r = 0.0;
         self.mc = hpmc.integrate.polyhedron(seed=10);
         self.mc.shape_param.set('A', vertices=v, faces =f, sweep_radius=r);
