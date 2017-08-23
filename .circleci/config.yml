@@ -236,7 +236,7 @@ jobs:
           at: .
       - run:
           name: Upload
-          command: anaconda -t ${ANACONDA_TOKEN} upload conda-bld/**/*.tar.bz2
+          command: anaconda -t ${ANACONDA_TOKEN} upload --no-progress --force conda-bld/**/*.tar.bz2
 
 workflows:
   version: 2

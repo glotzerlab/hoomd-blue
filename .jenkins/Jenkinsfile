@@ -159,7 +159,7 @@ pipeline
                     {
                     if (env.BRANCH_NAME == 'release')
                         {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload conda-bld/**/*.tar.bz2'
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress conda-bld/**/*.tar.bz2'
                         }
                     }
                 }
