@@ -36,11 +36,10 @@ cmake ../ \
       -DMPI_C_COMPILER=${PREFIX}/bin/mpicc \
        \
       -DENABLE_CUDA=on \
-      -DENABLE_EMBED_CUDA=on \
+      -DENABLE_EMBED_CUDA=off \
        \
       -DBUILD_TESTING=off \
       -DMKL_LIBRARIES=""
 
 make install -j 4
 fi
-
