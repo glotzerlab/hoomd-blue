@@ -1,5 +1,6 @@
-mkdir build-conda
+mkdir -p build-conda
 cd build-conda
+rm -rf ./*
 
 export GCC_ARCH=core2
 
