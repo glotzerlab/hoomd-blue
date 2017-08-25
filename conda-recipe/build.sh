@@ -42,5 +42,5 @@ cmake ../ \
       -DBUILD_TESTING=off \
       -DMKL_LIBRARIES=""
 
-make install -j 4
+make install -j 2
 fi
