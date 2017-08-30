@@ -149,11 +149,12 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
     else if(quantity == "shape_move_particle_volume")
         {
         ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+        // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+        auto params = m_mc->getParams();
         double volume = 0.0;
         for(size_t i = 0; i < m_pdata->getNTypes(); i++)
             {
-            detail::mass_properties<Shape> mp(h_params.data[i]);
+            detail::mass_properties<Shape> mp(params[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
 		return volume;
@@ -205,7 +206,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
 
     Scalar log_boltz = 0.0;
     m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
-    GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
+    // GPUArray< typename Shape::param_type > param_copy(m_mc->getParams());
+    auto param_copy(m_mc->getParams());
     GPUArray< Scalar > determinant_backup(m_determinant);
     m_move_function->prepare(timestep);
     for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
@@ -217,10 +219,11 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         // access parameters
         typename Shape::param_type param;
             { // need to scope because we set at the end of loop
-            ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
-            param = h_params.data[typ_i];
+            // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+            auto params = m_mc->getParams();
+            param = params[typ_i];
             }
-        ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
+        // ArrayHandle<typename Shape::param_type> h_param_backup(param_copy, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar> h_det_backup(determinant_backup, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -235,7 +238,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
                                                 typ_i,                          // the type id
                                                 param,                          // new shape parameter
                                                 h_det.data[typ_i],              // new determinant
-                                                h_param_backup.data[typ_i],     // old shape parameter
+                                                param_copy[typ_i],              // old shape parameter
                                                 h_det_backup.data[typ_i]        // old determinant
                                             );
         m_mc->setParam(typ_i, param);
@@ -282,10 +285,10 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         {
         m_exec_conf->msg->notice(5) << " UpdaterShape move rejected" << std::endl;
         m_determinant.swap(determinant_backup);
-        ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
+        // ArrayHandle<typename Shape::param_type> h_param_copy(param_copy, access_location::host, access_mode::readwrite);
         for(size_t typ = 0; typ < m_pdata->getNTypes(); typ++)
             {
-            m_mc->setParam(typ, h_param_copy.data[typ]); // set the params.
+            m_mc->setParam(typ, param_copy[typ]); // set the params.
             }
         }
     if (m_prof)
@@ -298,10 +301,11 @@ void UpdaterShape<Shape>::initialize()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+    // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+    auto params = m_mc->getParams();
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
-        detail::mass_properties<Shape> mp(h_params.data[i]);
+        detail::mass_properties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDeterminant();
         }
     m_initialized = true;

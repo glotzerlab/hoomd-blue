@@ -15,7 +15,8 @@ class shape_move_function
 {
 public:
     shape_move_function(unsigned int ntypes) : m_determinantInertiaTensor(0), m_step_size(ntypes) {}
-    shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSize()) {}
+
+    shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSizeArray()) {}
 
     //! prepare is called at the beginning of every update()
     virtual void prepare(unsigned int timestep) = 0;
@@ -33,6 +34,8 @@ public:
     Scalar getDeterminant() const { return m_determinantInertiaTensor; }
 
     Scalar getStepSize(const unsigned int& type_id) const { return m_step_size[type_id]; }
+
+    const std::vector<Scalar>& getStepSizeArray() const { return m_step_size; }
 
     void setStepSize(const unsigned int& type_id, const Scalar& stepsize) { m_step_size[type_id] = stepsize; }
 
@@ -309,12 +312,12 @@ struct scale
     };
 
 
-template <unsigned int max_verts, class RNG>
-struct shear< ShapeConvexPolyhedron<max_verts>, RNG >
+template < class RNG>
+struct shear< ShapeConvexPolyhedron, RNG >
     {
     Scalar shear_max;
     shear(Scalar smax) : shear_max(smax) {}
-    void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
+    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
         {
         Scalar gamma = rng.s(-shear_max, shear_max), gammaxy = 0.0, gammaxz = 0.0, gammayz = 0.0, gammayx = 0.0, gammazx = 0.0, gammazy = 0.0;
         int dim = int(6*rng.s(0.0, 1.0));
@@ -338,8 +341,8 @@ struct shear< ShapeConvexPolyhedron<max_verts>, RNG >
         }
     };
 
-template <unsigned int max_verts, class RNG>
-struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
+template <class RNG>
+struct scale< ShapeConvexPolyhedron, RNG >
     {
     bool isotropic;
     Scalar scale_min;
@@ -355,7 +358,7 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
         }
                  // () name of perator and second (...) are the parameters
                  //  You can overload the () operator to call your object as if it was a function
-    void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
+    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
         {
         Scalar sx, sy, sz;
         Scalar s = rng.s(scale_min, scale_max);
@@ -630,7 +633,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
     public:
         //! Constructor
         shape_move_function_wrap(unsigned int ntypes) : shape_move_function<Shape, RNG>(ntypes) {}
-        void prepare(unsigned int timestep)
+        void prepare(unsigned int timestep) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */
@@ -638,7 +641,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
                                     timestep);                                  /* Argument(s) */
             }
 
-        void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+        void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */
@@ -649,7 +652,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
                                     rng);
             }
 
-        void retreat(unsigned int timestep)
+        void retreat(unsigned int timestep) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */
@@ -658,8 +661,11 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
             }
     };
 
+template<class Shape, class RNG>
+using shape_move_function_python_class = pybind11::class_<shape_move_function<Shape, RNG>, std::shared_ptr< shape_move_function<Shape, RNG> > >;
+
 template<class Shape>
-void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
+std::shared_ptr< shape_move_function_python_class<Shape, Saru> > export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
 
 template<class Shape>
 void export_ScaleShearShapeMove(pybind11::module& m, const std::string& name);
