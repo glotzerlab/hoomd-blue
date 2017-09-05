@@ -22,7 +22,7 @@ build:
 requirements:
   build:
     - gcc                         # [linux]
-    - python
+    - python {{ python }}
     - numpy
     - mpich2                      # [linux]
     - cmake
@@ -35,6 +35,7 @@ requirements:
     - mpich2                      # [linux]
     - sqlite
     - libgcc                      # [linux]
+    - cudatoolkit {{ cuda }}      # [linux]
 
 about:
   home: http://glotzerlab.engin.umich.edu/hoomd-blue
