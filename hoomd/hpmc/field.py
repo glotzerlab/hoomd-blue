@@ -320,6 +320,12 @@ class wall(_external):
     to add a new spherical wall, :py:meth:`add_cylinder_wall` to add a new cylindrical wall, or
     :py:meth:`add_plane_wall` to add a new plane wall.
 
+    Specialized overlap checks have been written for supported combinations of wall types and particle shapes.
+    These combinations are:
+    * Sphere particles: sphere walls, cylinder walls, plane walls
+    * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
+    * Convex spheropolyhedron particles: sphere walls
+
     Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
 
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful

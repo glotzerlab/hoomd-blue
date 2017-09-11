@@ -268,16 +268,6 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhe
             ShapeSpheropolyhedron wall_shape(q, *wall.verts);
             ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
 
-/*
-            vec3<OverlapReal> dr = shifted_pos;
-            OverlapReal DaDb = wall_shape.getCircumsphereDiameter() + part_shape.getCircumsphereDiameter();
-            accept = !xenocollide_3d(detail::SupportFuncSpheropolyhedron(wall_shape.verts),
-                                  detail::SupportFuncSpheropolyhedron(part_shape.verts),
-                                  rotate(conj(quat<OverlapReal>(wall_shape.orientation)),dr),
-                                  conj(quat<OverlapReal>(wall_shape.orientation)) * quat<OverlapReal>(part_shape.orientation),
-                                  DaDb/2.0,
-                                  err);
-*/
             accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
             }
         }
