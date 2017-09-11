@@ -50,16 +50,20 @@ endmacro()
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
 minimize_fire_rigid.py 0 0
+bd_angular.py 0 0
 )
 
 set(TEST_LIST_GPU
 minimize_fire_rigid.py 0 0
+bd_angular.py 0 0
 )
 
 set(EXCLUDE_FROM_GPU_MPI
+bd_angular.py
 )
 
 set(EXCLUDE_FROM_MPI
+bd_angular.py
 )
 
 list(LENGTH TEST_LIST_CPU _max_i)
