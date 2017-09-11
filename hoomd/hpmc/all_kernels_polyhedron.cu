@@ -1,21 +1,12 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "ComputeFreeVolumeGPU.cuh"
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "IntegratorHPMCMonoImplicitGPU.cuh"
+#include "IntegratorHPMCMonoImplicitNewGPU.cuh"
 
-#include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
 #include "ShapePolyhedron.h"
-#include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
-#include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
-#include "ShapeUnion.h"
 
 namespace hpmc
 {
@@ -28,9 +19,13 @@ template cudaError_t gpu_hpmc_free_volume<ShapePolyhedron>(const hpmc_free_volum
                                                        const typename ShapePolyhedron::param_type *d_params);
 template cudaError_t gpu_hpmc_update<ShapePolyhedron>(const hpmc_args_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
-template void gpu_hpmc_implicit_count_overlaps<ShapePolyhedron>(const hpmc_implicit_args_t& args,
+template cudaError_t gpu_hpmc_implicit_count_overlaps<ShapePolyhedron>(const hpmc_implicit_args_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
 template cudaError_t gpu_hpmc_implicit_accept_reject<ShapePolyhedron>(const hpmc_implicit_args_t& args,
+                                                  const typename ShapePolyhedron::param_type *d_params);
+template cudaError_t gpu_hpmc_insert_depletants_queue<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
+                                                  const typename ShapePolyhedron::param_type *d_params);
+template cudaError_t gpu_hpmc_implicit_accept_reject_new<ShapePolyhedron>(const hpmc_implicit_args_new_t& args,
                                                   const typename ShapePolyhedron::param_type *d_params);
 
 }; // end namespace detail

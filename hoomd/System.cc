@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -213,7 +213,12 @@ void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& nam
     {
     // sanity check
     assert(updater);
-    assert(period != 0);
+
+    if (period == 0)
+        {
+        m_exec_conf->msg->error() << "The period cannot be set to 0!" << endl;
+        throw runtime_error("System: cannot add Updater");
+        }
 
     // first check that the name is unique
     vector<updater_item>::iterator i;
@@ -321,6 +326,21 @@ void System::addCompute(std::shared_ptr<Compute> compute, const std::string& nam
         }
     }
 
+/*! \param compute Shared pointer to the Compute to add
+    \param name Unique name to assign to this Compute
+
+    Computes are added to the System only as a convenience for naming,
+    saving to restart files, and to activate profiling. They are never
+    directly called by the system. This method adds a compute, overwriting
+    any existing compute by the same name.
+*/
+void System::overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name)
+    {
+    // sanity check
+    assert(compute);
+
+    m_computes[name] = compute;
+    }
 
 /*! \param name Name of the Compute to remove
 */
@@ -885,6 +905,7 @@ void export_System(py::module& m)
     .def("getUpdaterPeriod", &System::getUpdaterPeriod)
 
     .def("addCompute", &System::addCompute)
+    .def("overwriteCompute", &System::overwriteCompute)
     .def("removeCompute", &System::removeCompute)
     .def("getCompute", &System::getCompute)
 

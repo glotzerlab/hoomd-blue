@@ -204,21 +204,10 @@ jobs:
       - *load_code
       - *update_submodules
       - run:
-          name: Build with python 2.7
+          name: Conda build
           working_directory: code
-          command: conda build --python 2.7 conda-recipe
-      - run:
-          name: Build with python 3.4
-          working_directory: code
-          command: conda build --python 3.4 conda-recipe
-      - run:
-          name: Build with python 3.5
-          working_directory: code
-          command: conda build --python 3.5 conda-recipe
-      - run:
-          name: Build with python 3.6
-          working_directory: code
-          command: conda build --python 3.6 conda-recipe
+          no_output_timeout: 8h
+          command: conda build conda-recipe
       - run: mv /opt/conda/conda-bld .
       - persist_to_workspace:
           root: .
@@ -232,7 +221,7 @@ jobs:
           at: .
       - run:
           name: Upload
-          command: anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2
+          command: anaconda -t ${ANACONDA_TOKEN} upload --no-progress --force conda-bld/**/*.tar.bz2
 
 workflows:
   version: 2

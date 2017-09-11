@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -29,20 +29,22 @@ class ConstForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz);
-        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz, 
+                                                                    Scalar tx=0, Scalar ty=0, Scalar tz=0);
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz, 
+                                                                                                      Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Destructor
         ~ConstForceCompute();
 
         //! Set the force to a new value
-        void setForce(Scalar fx, Scalar fy, Scalar fz);
+        void setForce(Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Set the force for an individual particle
-        void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz);
+        void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Set force for a particle group
-        void setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz);
+        void setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
     protected:
 
@@ -57,6 +59,9 @@ class ConstForceCompute : public ForceCompute
         Scalar m_fx; //!< Constant force in x-direction
         Scalar m_fy; //!< Constant force in y-direction
         Scalar m_fz; //!< Constant force in z-direction
+        Scalar m_tx; //!< x-component of torque vector
+        Scalar m_ty; //!< y-component of torque vector
+        Scalar m_tz; //!< z-component of torque vector
 
         //! Group of particles to apply force to
         std::shared_ptr<ParticleGroup> m_group;

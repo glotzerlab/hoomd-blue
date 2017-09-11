@@ -1,22 +1,14 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
 #include "IntegratorHPMC.h"
 #include "IntegratorHPMCMono.h"
 #include "IntegratorHPMCMonoImplicit.h"
+#include "IntegratorHPMCMonoImplicitNew.h"
 #include "ComputeFreeVolume.h"
 
-#include "ShapeSphere.h"
-#include "ShapeConvexPolygon.h"
-#include "ShapePolyhedron.h"
-#include "ShapeConvexPolyhedron.h"
-#include "ShapeSpheropolyhedron.h"
-#include "ShapeSpheropolygon.h"
-#include "ShapeSimplePolygon.h"
-#include "ShapeEllipsoid.h"
 #include "ShapeFacetedSphere.h"
-#include "ShapeSphinx.h"
 #include "AnalyzerSDF.h"
 #include "ShapeUnion.h"
 
@@ -24,6 +16,7 @@
 #include "ExternalFieldWall.h"
 #include "ExternalFieldLattice.h"
 #include "ExternalFieldComposite.h"
+#include "ExternalCallback.h"
 
 #include "UpdaterExternalFieldWall.h"
 #include "UpdaterRemoveDrift.h"
@@ -33,6 +26,7 @@
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
 #include "IntegratorHPMCMonoImplicitGPU.h"
+#include "IntegratorHPMCMonoImplicitNewGPU.h"
 #include "ComputeFreeVolumeGPU.h"
 #endif
 
@@ -52,6 +46,7 @@ void export_faceted_sphere(py::module& m)
     {
     export_IntegratorHPMCMono< ShapeFacetedSphere >(m, "IntegratorHPMCMonoFacetedSphere");
     export_IntegratorHPMCMonoImplicit< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitFacetedSphere");
+    export_IntegratorHPMCMonoImplicitNew< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitNewFacetedSphere");
     export_ComputeFreeVolume< ShapeFacetedSphere >(m, "ComputeFreeVolumeFacetedSphere");
     export_AnalyzerSDF< ShapeFacetedSphere >(m, "AnalyzerSDFFacetedSphere");
     export_UpdaterMuVT< ShapeFacetedSphere >(m, "UpdaterMuVTFacetedSphere");
@@ -63,10 +58,12 @@ void export_faceted_sphere(py::module& m)
     export_RemoveDriftUpdater<ShapeFacetedSphere>(m, "RemoveDriftUpdaterFacetedSphere");
     export_ExternalFieldWall<ShapeFacetedSphere>(m, "WallFacetedSphere");
     export_UpdaterExternalFieldWall<ShapeFacetedSphere>(m, "UpdaterExternalFieldWallFacetedSphere");
+    export_ExternalCallback<ShapeFacetedSphere>(m, "ExternalCallbackFacetedSphere");
 
     #ifdef ENABLE_CUDA
     export_IntegratorHPMCMonoGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoGPUFacetedSphere");
     export_IntegratorHPMCMonoImplicitGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitGPUFacetedSphere");
+    export_IntegratorHPMCMonoImplicitNewGPU< ShapeFacetedSphere >(m, "IntegratorHPMCMonoImplicitNewGPUFacetedSphere");
     export_ComputeFreeVolumeGPU< ShapeFacetedSphere >(m, "ComputeFreeVolumeGPUFacetedSphere");
     #endif
     }

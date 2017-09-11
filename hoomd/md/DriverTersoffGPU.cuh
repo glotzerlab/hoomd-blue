@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -11,9 +11,14 @@
 
 #include "PotentialTersoffGPU.cuh"
 #include "EvaluatorTersoff.h"
+#include "EvaluatorSquareDensity.h"
 
 //! Compute Tersoff forces on the GPU with EvaluatorTersoff
 cudaError_t gpu_compute_tersoff_forces(const tersoff_args_t& pair_args,
                                        const tersoff_params *d_params);
+
+//! Compute CG vdW liquid forces on the GPU with EvaluatorSquareDensity
+cudaError_t gpu_compute_sq_density_forces(const tersoff_args_t& pair_args,
+                                   const Scalar2 *d_params);
 
 #endif

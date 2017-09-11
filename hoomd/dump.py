@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Write system configurations to files.
@@ -14,6 +14,7 @@ import hoomd;
 import json;
 import os;
 import sys;
+import types;
 
 class dcd(hoomd.analyze._analyzer):
     R""" Writes simulation snapshots in the DCD format
@@ -495,29 +496,30 @@ class gsd(hoomd.analyze._analyzer):
         filename (str): File name to write
         period (int): Number of time steps between file dumps, or None to write a single file immediately.
         group (:py:mod:`hoomd.group`): Particle group to output to the gsd file.
-        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing DCD
+        overwrite (bool): When False (the default), any existing GSD file will be appended to. When True, an existing GSD
                           file *filename* will be overwritten.
         truncate (bool): When False (the default), frames are appended to the GSD file. When True, truncate the file and
                          write a new frame 0 every time.
         phase (int): When -1, start on the current time step. When >= 0, execute on steps where *(step + phase) % period == 0*.
         time_step (int): Time step to write to the file (only used when period is None)
-        static (list): A list of quantity categories that are static.
+        dynamic (list): A list of quantity categories to save every frame. (added in version 2.2)
+        static (list): A list of quantity categories save only in frame 0 (may not be set in conjunction with *dynamic*, deprecated in version 2.2).
 
     Write a simulation snapshot to the specified GSD file at regular intervals.
-    GSD is capable of storing all particle and bond data fields that hoomd stores,
+    GSD is capable of storing all particle and bond data fields in hoomd,
     in every frame of the trajectory. This allows GSD to store simulations where the
     number of particles, number of particle types, particle types, diameter, mass,
     charge, or anything is changing over time.
 
     To save on space, GSD does not write values that are all set at defaults. So if
     all masses are left set at the default of 1.0, mass will not take up any space in
-    the file. To save even more on space, flag fields as static (the default) and
-    :py:class:`gsd` will only write them out to frame 0. When reading data from frame *i*,
-    any data field not present will be read from frame 0. This makes every single frame
-    of a GSD file fully specified and simulations initialized with :py:func:`hoomd.init.read_gsd()` can
-    select any frame of the file.
+    the file. Additionally, only **dynamic** quantities are written to all frames, non-dynamic
+    quantities are only written to frame 0. The GSD schema defines that data not present in frame *i* is to
+    be read from frame 0. This makes every single frame of a GSD file fully specified and simulations
+    initialized with :py:func:`hoomd.init.read_gsd()` can select any frame of the file.
 
-    The **static** option applies to groups of fields:
+    You can control what quantities are dynamic by category. ``property`` is always dynamic.
+    The categories listed in the **dynamic** will also be written out to every frame.
 
     * ``attribute``
 
@@ -559,19 +561,29 @@ class gsd(hoomd.analyze._analyzer):
     To write restart files with gsd, set `truncate=True`. This will cause :py:class:`gsd` to write a new frame 0
     to the file every period steps.
 
-    :py:class:`gsd` writes static quantities from frame 0 only. Even if they change, it will not write them to subsequent
-    frames. Quantity categories **not** listed in *static* are dynamic. :py:class:`gsd` writes dynamic quantities to every frame.
-    The default is only to write particle properties (position, orientation) on each frame, and hold all others fixed.
-    In most simulations, attributes and topology do not vary - remove these from static if they do and you wish to
-    save that information in a trajectory for later access. Particle momentum are always changing, but the default is
-    to not include these quantities to save on file space.
+    .. rubric:: State data
+
+    :py:class:`gsd` can save internal state data for the following hoomd objects:
+
+        * :py:class:`HPMC integrators <hoomd.hpmc.integrate.mode_hpmc>`
+
+    Call :py:meth:`dump_state` with the object as an argument to enable saving its state. State saved in this way
+    can be restored after initializing the system with :py:meth:`hoomd.init.read_gsd`.
 
     Examples::
 
         dump.gsd(filename="trajectory.gsd", period=1000, group=group.all(), phase=0)
         dump.gsd(filename="restart.gsd", truncate=True, period=10000, group=group.all(), phase=0)
         dump.gsd(filename="configuration.gsd", overwrite=True, period=None, group=group.all(), time_step=0)
-        dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), static=[])
+        dump.gsd(filename="momentum_too.gsd", period=1000, group=group.all(), phase=0, dynamic=['momentum'])
+        dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), dynamic=['attribute', 'momentum', 'topology'])
+
+    .. warning::
+
+        **Known issue**: If a non-default quantity is written out to frame 0 and that quantity later becomes default on
+        frame *i*, it will not be written to frame *i*. This results in an invalid configuration because the gsd spec
+        states that quantities not written should be read from frame 0. A reasonable fix for this problem is
+        non-trivial and requires a new version of the gsd spec.
 
     """
     def __init__(self,
@@ -582,22 +594,47 @@ class gsd(hoomd.analyze._analyzer):
                  truncate=False,
                  phase=0,
                  time_step=None,
-                 static=['attribute', 'momentum', 'topology']):
+                 static=None,
+                 dynamic=None):
         hoomd.util.print_status_line();
 
-        for v in static:
-            if v not in ['attribute', 'property', 'momentum', 'topology']:
-                hoomd.context.msg.warning("dump.gsd: static quantity", v, "is not recognized");
+        if static is not None and dynamic is not None:
+            raise ValueError("Cannot specify both static and dynamic arguments");
+
+        categories = ['attribute', 'property', 'momentum', 'topology'];
+        dynamic_quantities = ['property']
+
+        # process inputs and build list of dynamic quantities
+        if static is not None:
+            hoomd.context.msg.warning("The static argument to hoomd.dump.gsd is deprecated, use dynamic instead.\n");
+
+            # notify they user of possible typos
+            for v in static:
+                if v not in categories:
+                    hoomd.context.msg.warning("dump.gsd: static quantity " + v + " is not recognized\n");
+
+            # invert the sense of the static arg
+            dynamic_quantities = []
+            for v in categories:
+                if v not in static:
+                    dynamic_quantities.append(v);
+
+        if dynamic is not None:
+            for v in dynamic:
+                if v not in categories:
+                    hoomd.context.msg.warning("dump.gsd: dynamic quantity " + v + " is not recognized\n");
+
+            dynamic_quantities = ['property'] + dynamic;
 
         # initialize base class
         hoomd.analyze._analyzer.__init__(self);
 
         self.cpp_analyzer = _hoomd.GSDDumpWriter(hoomd.context.current.system_definition, filename, group.cpp_group, overwrite, truncate);
 
-        self.cpp_analyzer.setWriteAttribute('attribute' not in static);
-        self.cpp_analyzer.setWriteProperty('property' not in static);
-        self.cpp_analyzer.setWriteMomentum('momentum' not in static);
-        self.cpp_analyzer.setWriteTopology('topology' not in static);
+        self.cpp_analyzer.setWriteAttribute('attribute' in dynamic_quantities);
+        self.cpp_analyzer.setWriteProperty('property' in dynamic_quantities);
+        self.cpp_analyzer.setWriteMomentum('momentum' in dynamic_quantities);
+        self.cpp_analyzer.setWriteTopology('topology' in dynamic_quantities);
 
         if period is not None:
             self.setupAnalyzer(period, phase);
@@ -623,3 +660,16 @@ class gsd(hoomd.analyze._analyzer):
 
         time_step = hoomd.context.current.system.getCurrentTimeStep()
         self.cpp_analyzer.analyze(time_step);
+
+    def dump_state(self, obj):
+        """Write state information for a hoomd object.
+
+        Call :py:meth:`dump_state` if you want to write the state of a hoomd object
+        to the gsd file.
+
+        .. versionadded:: 2.2
+        """
+        if hasattr(obj, '_connect_gsd') and type(getattr(obj, '_connect_gsd')) == types.MethodType:
+            obj._connect_gsd(self);
+        else:
+            hoomd.context.msg.warning("GSD is not currently support for {name}".format(obj.__name__));
