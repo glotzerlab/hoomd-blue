@@ -771,32 +771,7 @@ class remove_drift(_updater):
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
-            # if isinstance(mc, integrate.sphere):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSphere;
-            # elif isinstance(mc, integrate.convex_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUConvexPolygon;
-            # elif isinstance(mc, integrate.simple_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSimplePolygon;
-            # elif isinstance(mc, integrate.convex_polyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUConvexPolyhedron', mc.max_verts);
-            # elif isinstance(mc, integrate.convex_spheropolyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUSpheropolyhedron',mc.max_verts);
-            # elif isinstance(mc, integrate.ellipsoid):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUEllipsoid;
-            # elif isinstance(mc, integrate.convex_spheropolygon):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSpheropolygon;
-            # elif isinstance(mc, integrate.faceted_sphere):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUFacetedSphere;
-            # elif isinstance(mc, integrate.polyhedron):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUPolyhedron;
-            # elif isinstance(mc, integrate.sphinx):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphinx;
-            # elif isinstance(mc, integrate.sphere_union):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphereUnion;
-            # else:
-            #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
-            #     raise RuntimeError("Error initializing update.remove_drift");
-
+            
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
 
@@ -854,9 +829,9 @@ class shape_update(_updater):
         elif isinstance(mc, integrate.simple_polygon):
             cls = _hpmc.UpdaterShapeSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('UpdaterShapeConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterShapeConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = integrate._get_sized_entry('UpdaterShapeSpheroPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterShapeSpheroPolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.UpdaterShapeEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):
@@ -933,9 +908,9 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             move_cls = _hpmc.PythonShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('PythonShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.PythonShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            move_cls = integrate._get_sized_entry('PythonShapeMoveSpheropolyhedron', self.mc.max_verts);
+            move_cls = _hpmcPythonShapeMoveSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.PythonShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -998,7 +973,7 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             pass;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('GeneralizedShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
             pass;
         elif isinstance(self.mc, integrate.ellipsoid):
@@ -1059,9 +1034,9 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             move_cls = _hpmc.ConstantShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('ConstantShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ConstantShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            move_cls = integrate._get_sized_entry('ConstantShapeMoveSpheropolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ConstantShapeMoveSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.ConstantShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1114,10 +1089,9 @@ class shape_update(_updater):
             pass;
             # move_cls = _hpmc.ScaleShearShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('ScaleShearShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ScaleShearShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
             pass;
-            # move_cls = integrate._get_sized_entry('ScaleShearShapeMoveSpheropolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1348,9 +1322,9 @@ class alchemy(shape_update):
         elif isinstance(self.mc, integrate.simple_polygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannConvexPolyhedron', self.mc.max_verts);
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', self.mc.max_verts);
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheroPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1404,9 +1378,9 @@ class elastic_shape(shape_update):
         self.elastic_shape_move(stepsize);
 
         if isinstance(self.mc, integrate.convex_polyhedron):
-            clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
+            clss = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
-            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape, self.move_cpp);
+            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
