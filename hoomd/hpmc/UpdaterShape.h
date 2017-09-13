@@ -9,6 +9,7 @@
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
+#include "hoomd/GSDState.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
@@ -63,6 +64,16 @@ public:
         }
 
     void countTypes();
+
+    //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    int slotWriteGSD(gsd_handle&, std::string name) const;
+
+    //! Method that is called to connect to the gsd write state signal
+    void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+    //! Method that is called to connect to the gsd write state signal
+    bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
+
 
 protected:
     static std::string getParamName(size_t i)
@@ -357,6 +368,27 @@ void UpdaterShape<Shape>::countTypes()
     #endif
     }
 
+template< typename Shape>
+int UpdaterShape<Shape>::slotWriteGSD(gsd_handle&, std::string name) const
+    {
+    return 0;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name)
+    {
+    _connectGSDSignal(this, writer, name); // call through to the helper function.
+    }
+
+template< typename Shape>
+bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name)
+    {
+    return false;
+    }
+
+
+
+
 template< typename Shape >
 void export_UpdaterShape(pybind11::module& m, const std::string& name)
     {
@@ -374,6 +406,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
     .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
+    .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
     ;
     }
 

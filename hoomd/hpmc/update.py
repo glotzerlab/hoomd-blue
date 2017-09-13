@@ -771,7 +771,7 @@ class remove_drift(_updater):
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
-            
+
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
 
@@ -818,7 +818,8 @@ class shape_update(_updater):
                     pos=None,
                     setup_pos=True,
                     pos_callback=None,
-                    nselect=1):
+                    nselect=1,
+                    gsdid=None):
         _updater.__init__(self);
 
         cls = None;
@@ -858,7 +859,7 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-
+        self._id = gsdid;
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
@@ -1261,6 +1262,15 @@ class shape_update(_updater):
         """
         hoomd.util.print_status_line();
         self.cpp_updater.resetStatistics();
+
+    ## \internal
+    # \brief default pos writer callback.
+    # Declare the GSD state schema.
+    def _gsd_state_name(self):
+        if self._id is None:
+            raise RuntimeError("Must specify unique gsdid for gsd state.");
+
+        return "state/hpmc/"+str(self.__class__.__name__)+str(self._id)+"/";
 
     ## \internal
     # \brief default pos writer callback.

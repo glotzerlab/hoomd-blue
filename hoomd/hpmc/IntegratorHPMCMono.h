@@ -19,6 +19,7 @@
 #include "Moves.h"
 #include "hoomd/AABBTree.h"
 #include "GSDHPMCSchema.h"
+#include "hoomd/GSDState.h"
 #include "hoomd/Index1D.h"
 
 #include "hoomd/managed_allocator.h"
@@ -1297,10 +1298,11 @@ void IntegratorHPMCMono<Shape>::connectGSDSignal(
                                                     std::shared_ptr<GSDDumpWriter> writer,
                                                     std::string name)
     {
-    typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
-    auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
-    std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
-    addSlot(pslot);
+    _connectGSDSignal(this, writer, name);
+    // typedef hoomd::detail::SharedSignalSlot<int(gsd_handle&)> SlotType;
+    // auto func = std::bind(&IntegratorHPMCMono<Shape>::slotWriteGSD, this, std::placeholders::_1, name);
+    // std::shared_ptr<hoomd::detail::SignalSlot> pslot( new SlotType(writer->getWriteSignal(), func));
+    // addSlot(pslot);
     }
 
 template <class Shape>
@@ -1368,8 +1370,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
-          .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
+          .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           ;
     }
 
