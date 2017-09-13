@@ -270,42 +270,9 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryInsertParticle(unsigned int times
             unsigned int n_dep = getNumDepletants(timestep, V, false);
 
             // count depletants overlapping with new config (but ignore overlap in old one)
-            unsigned int n_free = 0;
-            unsigned int n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
-
-            Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-            // fix the maximum number of removed depletants at the average number
-            // of depletants in the excluded volume sphere
-            unsigned int m = (unsigned int)(V*n_R) + 1;
-            hoomd::detail::Saru rng(this->m_seed, timestep,  0x2138af32);
-            unsigned int n_remove = rand_select(rng, m-1);
-
-            if (n_free >= n_remove && n_remove >= n_overlap)
-                {
-                // compute combinatorial factor
-                for (unsigned int np = n_free; np > n_free - n_overlap; np--)
-                    {
-                    lnboltzmann -= log(np);
-                    }
-                for (unsigned int np = n_remove; np > n_remove - n_overlap; np--)
-                    {
-                    lnboltzmann += log(np);
-                    }
-
-                // compute acceptance probability for GC cluster move
-                // according to Vink and Horbach JCP 2004
-                //lnboltzmann -= log((Scalar)m);
-                for (unsigned int np = n_free; np > n_free - n_remove; np--)
-                    {
-                    lnboltzmann += log((Scalar)np/(V*n_R));
-                    }
-                }
-            else
-                {
-                // reject
-                nonzero = false;
-                }
+            unsigned int n_free;
+            n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
+            nonzero = !n_overlap;
             }
         }
 
@@ -485,7 +452,6 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
             }
 
         Scalar delta = d_dep + d_colloid_old;
-        Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
         #ifdef ENABLE_MPI
         if (this->m_gibbs)
@@ -503,43 +469,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
         else
         #endif
             {
-            if (nonzero)
-                {
-                Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-                hoomd::detail::Saru rng(this->m_seed, timestep,  0x123763de);
-
-                // fix the maximum number of inserted depletants at the average number
-                // of depletants in the excluded volume sphere
-                unsigned int m = (unsigned int)(V*n_R)+1;
-                n_insert = rand_select(rng, m-1);
-
-                // getPosition() corrects for grid shift, add it back
-                Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
-                int3 tmp = make_int3(0,0,0);
-                this->m_pdata->getGlobalBox().wrap(p,tmp);
-                vec3<Scalar> pos(p);
-
-                // try inserting depletants in new configuration (where particle is removed)
-
-                // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V, false);
-                unsigned int n_overlap = countDepletantOverlaps(timestep, n_dep, delta, pos);
-                unsigned int n_free = n_dep - n_overlap;
-
-                nonzero = moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag,  1, lnb, false);
-
-                if (nonzero)
-                    {
-                    // compute acceptance probability for GC cluster move
-                    // according to Vink and Horbach JCP 2004
-                    //lnboltzmann += log((Scalar)m);
-                    for (unsigned int np = n_free+n_insert; np > n_free; np--)
-                        {
-                        lnboltzmann += log((V*n_R)/(Scalar)np);
-                        }
-                    }
-                }
+            // just accept
             }
         } // end nglobal
 
