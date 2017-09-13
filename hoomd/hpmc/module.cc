@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -74,6 +74,7 @@ PYBIND11_PLUGIN(_hpmc)
     export_ellipsoid(m);
     export_faceted_sphere(m);
     export_sphinx(m);
+    export_union_convex_polyhedron(m);
     export_union_sphere(m);
     export_convex_polyhedron(m);
     export_convex_spheropolyhedron(m);
@@ -88,6 +89,8 @@ PYBIND11_PLUGIN(_hpmc)
         .def_readwrite("circumsphereDiameter",&sphinx3d_params::circumsphereDiameter);
     py::class_< ShapeUnion<ShapeSphere>::param_type, std::shared_ptr< ShapeUnion<ShapeSphere>::param_type> >(m, "msph_params");
 
+    py::class_< ShapeUnion<ShapeConvexPolyhedron>::param_type, std::shared_ptr< ShapeUnion<ShapeConvexPolyhedron>::param_type> >(m, "mpoly3d_params");
+
     m.def("make_poly2d_verts", &make_poly2d_verts);
     m.def("make_poly3d_data", &make_poly3d_data);
     m.def("make_poly3d_verts", &make_poly3d_verts);
@@ -95,6 +98,7 @@ PYBIND11_PLUGIN(_hpmc)
     m.def("make_sph_params", &make_sph_params);
     m.def("make_faceted_sphere", &make_faceted_sphere);
     m.def("make_sphinx3d_params", &make_sphinx3d_params);
+    m.def("make_convex_polyhedron_union_params", &make_union_params<ShapeConvexPolyhedron>);
     m.def("make_sphere_union_params", &make_union_params<ShapeSphere>);
     m.def("make_overlapreal3", &make_overlapreal3);
     m.def("make_overlapreal4", &make_overlapreal4);

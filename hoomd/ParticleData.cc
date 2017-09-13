@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -59,6 +59,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_nghosts(0),
           m_max_nparticles(0),
           m_nglobal(0),
+          m_accel_set(false),
           m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
@@ -134,6 +135,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_nghosts(0),
       m_max_nparticles(0),
       m_nglobal(0),
+      m_accel_set(false),
       m_resize_factor(9./8.)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
@@ -957,6 +959,9 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         m_type_mapping = snapshot.type_mapping;
         }
 
+    // copy over accel_set flag from snapshot
+    m_accel_set = snapshot.is_accel_set;
+
     // set global number of particles
     setNGlobal(nglobal);
 
@@ -1202,6 +1207,9 @@ std::map<unsigned int, unsigned int> ParticleData::takeSnapshot(SnapshotParticle
         }
 
     snapshot.type_mapping = m_type_mapping;
+
+    // copy over acceleration set flag (this is a copy in case users take a snapshot before running)
+    snapshot.is_accel_set = m_accel_set;
 
     return index;
     }
@@ -1621,6 +1629,31 @@ Scalar4 ParticleData::getNetTorque(unsigned int tag) const
     assert(found);
     return result;
 }
+
+/*! \param tag Global particle tag
+    \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
+    \returns Force of particle referenced by tag
+ */
+Scalar ParticleData::getPNetVirial(unsigned int tag, unsigned int component) const
+    {
+    unsigned int i = getRTag(tag);
+    bool found = (i < getN());
+    Scalar result = Scalar(0.0);
+    if (found)
+        {
+        ArrayHandle<Scalar> h_net_virial(m_net_virial, access_location::host, access_mode::read);
+        result = h_net_virial.data[m_net_virial.getPitch()*component+i];
+        }
+    #ifdef ENABLE_MPI
+    if (m_decomposition)
+        {
+        unsigned int owner_rank = getOwnerRank(tag);
+        MPI_Bcast(&result, sizeof(Scalar), MPI_BYTE, owner_rank, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+    return result;
+    }
+
 
 //! Set the current position of a particle
 /* \post In parallel simulations, the particle is moved to a new domain if necessary.
@@ -2285,6 +2318,7 @@ void export_ParticleData(py::module& m)
     .def("getAngularMomentum", &ParticleData::getAngularMomentum)
     .def("getPNetForce", &ParticleData::getPNetForce)
     .def("getNetTorque", &ParticleData::getNetTorque)
+    .def("getPNetVirial", &ParticleData::getPNetVirial)
     .def("getMomentsOfInertia", &ParticleData::getMomentsOfInertia)
     .def("setPosition", &ParticleData::setPosition)
     .def("setVelocity", &ParticleData::setVelocity)
@@ -3043,6 +3077,7 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
     .def("insert", &SnapshotParticleData<float>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<float>::is_accel_set)
     ;
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
@@ -3063,5 +3098,6 @@ void export_SnapshotParticleData(py::module& m)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)
     .def("insert", &SnapshotParticleData<double>::insert)
+    .def_readonly("is_accel_set", &SnapshotParticleData<double>::is_accel_set)
     ;
     }

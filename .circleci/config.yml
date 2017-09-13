@@ -1,0 +1,246 @@
+version: 2
+
+references:
+  test_container_config: &test_container_config
+    docker:
+      - image: joaander/ci:20170809
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda80: &test_container_config-cuda80
+    docker:
+      - image: joaander/ci:20170809-cuda80
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda75: &test_container_config-cuda75
+    docker:
+      - image: joaander/ci:20170809-cuda75
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-cuda75: &test_container_config-cuda70
+    docker:
+      - image: joaander/ci:20170811-cuda70
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  conda_container_config: &conda_container_config
+    docker:
+      - image: joaander/conda-build:20170821
+    working_directory: /root/project
+
+  load_code: &load_code
+    checkout:
+      path: code
+
+  update_submodules: &update_submodules
+    run:
+      name: Update submodules
+      working_directory: code
+      command: git submodule update --init
+
+  configure: &configure
+    run:
+      name: Configure
+      command: |
+        mkdir build
+        cd build
+        echo cmake_root=${CMAKE_BIN}
+        echo pyver=${PYVER}
+        echo cc=${CC}
+        echo cxx=${CXX}
+        echo enable_cuda=${ENABLE_CUDA}
+        echo enable_mpi=${ENABLE_MPI}
+        echo build_validation=${BUILD_VALIDATION}
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -GNinja
+
+  compile: &compile
+    run:
+      name: Compile
+      working_directory: build
+      command: ninja -j4
+
+  native_build: &native_build
+    steps:
+      - *load_code
+      - *update_submodules
+      - *configure
+      - *compile
+
+  build_and_test: &build_and_test
+    steps:
+      - *load_code
+      - *update_submodules
+      - *configure
+      - *compile
+      - run:
+          name: Test
+          working_directory: build
+          no_output_timeout: 2h
+          command: ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+      - run:
+          name: Copy test results
+          command: mkdir test-results && cp build/Testing/**/Test.xml test-results/
+      - store_artifacts:
+          path: test-results
+          destination: test-results
+      - store_test_results:
+          path: test-results
+
+jobs:
+  unit-gcc48-py27-cm28-mpi:
+    <<: *test_container_config
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "2.7"
+      CMAKE_BIN: /opt/cmake-2.8.12/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+    <<: *build_and_test
+
+  gcc48-py27-cm28-mpi-cd80:
+    <<: *test_container_config-cuda80
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "2.7"
+      CMAKE_BIN: /opt/cmake-2.8.12/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+    <<: *native_build
+
+  gcc49-py34-mpi-cd75:
+    <<: *test_container_config-cuda75
+    environment:
+      CC: /usr/bin/gcc-4.9
+      CXX: /usr/bin/g++-4.9
+      PYVER: "3.4"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+    <<: *native_build
+
+  gcc48-py34-cm28-mpi-cd70:
+    <<: *test_container_config-cuda70
+    environment:
+      CC: /usr/bin/gcc-4.8
+      CXX: /usr/bin/g++-4.8
+      PYVER: "3.4"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+    <<: *native_build
+
+  clang34-py34-cm28-mpi:
+    <<: *test_container_config-cuda70
+    environment:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      PYVER: "3.4"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+    <<: *native_build
+
+  gcc54-py35-mpi-cd80:
+    <<: *test_container_config-cuda80
+    environment:
+      CC: /usr/bin/gcc
+      CXX: /usr/bin/g++
+      PYVER: "3.5"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: ON
+      BUILD_VALIDATION: OFF
+    <<: *native_build
+
+  unit-clang38-py35:
+    <<: *test_container_config
+    environment:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      PYVER: "3.5"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: OFF
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+    <<: *build_and_test
+
+  vld-clang38-py35-mpi:
+    <<: *test_container_config
+    environment:
+      CC: /usr/bin/clang
+      CXX: /usr/bin/clang++
+      PYVER: "3.5"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: ON
+    <<: *build_and_test
+
+  sphinx-docs:
+    <<: *test_container_config
+    steps:
+      - *load_code
+      - run:
+          name: Run Sphinx
+          working_directory: code/sphinx-doc
+          command: sphinx-build -b html -d _build/doctrees -W -n . build/html
+
+  conda-build:
+    <<: *conda_container_config
+    steps:
+      - *load_code
+      - *update_submodules
+      - run:
+          name: Conda build
+          working_directory: code
+          no_output_timeout: 8h
+          command: conda build conda-recipe
+      - run: mv /opt/conda/conda-bld .
+      - persist_to_workspace:
+          root: .
+          paths:
+            - conda-bld/linux-64/hoomd-*.tar.bz2
+
+  conda-upload:
+    <<: *conda_container_config
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Upload
+          command: anaconda -t ${ANACONDA_TOKEN} upload --no-progress --force conda-bld/**/*.tar.bz2
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - unit-gcc48-py27-cm28-mpi
+      - gcc48-py27-cm28-mpi-cd80
+      - gcc49-py34-mpi-cd75
+      - gcc54-py35-mpi-cd80
+      - gcc48-py34-cm28-mpi-cd70
+      - clang34-py34-cm28-mpi
+      - unit-clang38-py35
+      - vld-clang38-py35-mpi
+      - sphinx-docs
+      - conda-build
+      - conda-upload:
+          context: org-global
+          requires:
+            - conda-build
+          filters:
+            branches:
+              only: release

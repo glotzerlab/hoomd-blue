@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -106,7 +106,7 @@ class IntegrationMethodTwoStep
         //! Constructs the integration method and associates it with the system
         IntegrationMethodTwoStep(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<ParticleGroup> group);
-        virtual ~IntegrationMethodTwoStep() {};
+        virtual ~IntegrationMethodTwoStep() {}
 
         //! Abstract method that performs the first step of the integration
         /*! \param timestep Current time step
@@ -213,10 +213,16 @@ class IntegrationMethodTwoStep
             m_aniso = aniso;
             }
 
+        //! Return if we are integrating anisotropically
+        bool getAnisotropic() const { return m_aniso; }
+
         //! Compute rotational degrees of freedom
         /*! \param query_group The group of particles to compute rotational DOF for
          */
         virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
+
+        //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
+        virtual void initializeIntegratorVariables() {}
 
     protected:
         const std::shared_ptr<SystemDefinition> m_sysdef; //!< The system definition this method is associated with
@@ -226,9 +232,6 @@ class IntegrationMethodTwoStep
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
 
-        // OK, the dual exec_conf and m_exe_conf is weird - exec_conf was from legacy code. m_exec_conf is the new
-        // standard. But I don't want to remove the old one until we have fewer branches open in hoomd so as to avoid
-        // merge conflicts.
         Scalar m_deltaT;                                    //!< The time step
 
         //! helper function to get the integrator variables from the particle data
@@ -244,12 +247,11 @@ class IntegrationMethodTwoStep
             }
 
         //! helper function to check if the restart information (if applicable) is useable
-        bool restartInfoTestValid(IntegratorVariables& v, std::string type, unsigned int nvariables);
+        bool restartInfoTestValid(const IntegratorVariables& v, std::string type, unsigned int nvariables);
 
         //! Set whether this restart is valid
         void setValidRestart(bool b) { m_valid_restart = b; }
 
-    protected:
 #ifdef ENABLE_MPI
         std::shared_ptr<Communicator> m_comm;             //!< The communicator to use for MPI
 #endif

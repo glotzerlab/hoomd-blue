@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -62,6 +62,14 @@ namespace detail
         return std::max(a,b);
         #endif
         }
+
+    template<class T> HOSTDEVICE inline void swap(T& a, T&b)
+        {
+        T c;
+        c = a;
+        a = b;
+        b = c;
+        }
     }
 
 //! Base class for parameter structure data types
@@ -107,10 +115,9 @@ struct param_base
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr,unsigned int &available_bytes) const
         {
         // default implementation does nothing
         }

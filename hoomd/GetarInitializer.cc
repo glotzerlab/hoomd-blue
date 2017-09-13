@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "GetarInitializer.h"
@@ -439,7 +439,7 @@ namespace getardump{
 
         vector<string> foundFrames(availableFrames.begin(), availableFrames.end());
         string selectedFrame;
-        if(foundFrames.size() && ("latest" == frame || "any" == frame))
+        if(foundFrames.size() && ("latest" == frame || "any" == frame || "" == foundFrames.back()))
             selectedFrame = foundFrames.back();
         else if(foundFrames.size() && "earliest" == frame)
             selectedFrame = foundFrames.front();

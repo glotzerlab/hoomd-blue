@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,7 +7,6 @@
 #include "hoomd/ForceCompute.h"
 #include "hoomd/ParticleGroup.h"
 #include <memory>
-#include "hoomd/extern/saruprng.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
@@ -15,7 +14,7 @@
 
 
 /*! \file ActiveForceCompute.h
-    \brief Declares a class for computing active forces
+    \brief Declares a class for computing active forces and torques
 */
 
 #ifdef NVCC
@@ -36,7 +35,7 @@ class ActiveForceCompute : public ForceCompute
         //! Constructs the compute
         ActiveForceCompute(std::shared_ptr<SystemDefinition> sysdef,
                              std::shared_ptr<ParticleGroup> group,
-                             int seed, pybind11::list f_lst,
+                             int seed, pybind11::list f_lst, pybind11::list t_lst,
                              bool orientation_link, bool orientation_reverse_link,
                              Scalar rotation_diff,
                              Scalar3 P,
@@ -70,8 +69,12 @@ class ActiveForceCompute : public ForceCompute
         Scalar m_ry;          //!< Radius in Y direction of the Ellipsoid
         Scalar m_rz;          //!< Radius in Z direction of the Ellipsoid
         int m_seed;           //!< Random number seed
-        GPUArray<Scalar3> m_activeVec; //! active force unit vectors for each particle
-        GPUArray<Scalar> m_activeMag; //! active force magnitude for each particle
+        GPUArray<Scalar3> m_f_activeVec; //! active force unit vectors for each particle
+        GPUArray<Scalar> m_f_activeMag; //! active force magnitude for each particle
+
+        GPUArray<Scalar3> m_t_activeVec; //! active torque unit vectors for each particle
+        GPUArray<Scalar> m_t_activeMag; //! active torque magnitude for each particle
+
         unsigned int last_computed;
     };
 

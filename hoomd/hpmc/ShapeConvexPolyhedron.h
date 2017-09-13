@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -22,7 +22,9 @@
 #else
 #define DEVICE
 #include <iostream>
+#if defined (__SSE__)
 #include <immintrin.h>
+#endif
 #endif
 
 namespace hpmc
@@ -51,7 +53,7 @@ struct poly3d_verts : param_base
     #ifndef NVCC
     //! Shape constructor
     poly3d_verts(unsigned int _N, bool _managed)
-        : N(_N)
+        : N(_N), diameter(0.0), sweep_radius(0.0), ignore(0)
         {
         unsigned int align_size = 8; //for AVX
         unsigned int N_align =((N + align_size - 1)/align_size)*align_size;
@@ -67,14 +69,13 @@ struct poly3d_verts : param_base
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        x.load_shared(ptr,load,ptr_max);
-        y.load_shared(ptr,load,ptr_max);
-        z.load_shared(ptr,load,ptr_max);
+        x.load_shared(ptr,available_bytes);
+        y.load_shared(ptr,available_bytes);
+        z.load_shared(ptr,available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -232,10 +233,13 @@ class SupportFuncConvexPolyhedron
 
                 for (unsigned int i = 4; i < verts.N; i+=4)
                     {
-                    OverlapReal d0 = dot(n, vec3<OverlapReal>(verts.x[i], verts.y[i], verts.z[i]));
-                    OverlapReal d1 = dot(n, vec3<OverlapReal>(verts.x[i+1], verts.y[i+1], verts.z[i+1]));
-                    OverlapReal d2 = dot(n, vec3<OverlapReal>(verts.x[i+2], verts.y[i+2], verts.z[i+2]));
-                    OverlapReal d3 = dot(n, vec3<OverlapReal>(verts.x[i+3], verts.y[i+3], verts.z[i+3]));
+                    const OverlapReal *verts_x = verts.x.get() + i;
+                    const OverlapReal *verts_y = verts.y.get() + i;
+                    const OverlapReal *verts_z = verts.z.get() + i;
+                    OverlapReal d0 = dot(n, vec3<OverlapReal>(verts_x[0], verts_y[0], verts_z[0]));
+                    OverlapReal d1 = dot(n, vec3<OverlapReal>(verts_x[1], verts_y[1], verts_z[1]));
+                    OverlapReal d2 = dot(n, vec3<OverlapReal>(verts_x[2], verts_y[2], verts_z[2]));
+                    OverlapReal d3 = dot(n, vec3<OverlapReal>(verts_x[3], verts_y[3], verts_z[3]));
 
                     if (d0 > max_dot0)
                         {

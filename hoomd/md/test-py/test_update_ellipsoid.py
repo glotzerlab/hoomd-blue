@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 import unittest
 import os
 context.initialize();
@@ -11,7 +10,7 @@ context.initialize();
 class update_constraint_ellipsoid_tests (unittest.TestCase):
     def setUp(self):
         print
-        deprecated.init.create_random(N=100, phi_p=0.05);
+        init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
 
         context.current.sorter.set_params(grid=8)
 

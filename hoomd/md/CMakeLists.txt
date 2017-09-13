@@ -7,6 +7,7 @@ set(_md_sources module-md.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
+                   CosineSqAngleForceCompute.cc
                    OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
@@ -46,6 +47,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
                 AllTripletPotentials.h
+                AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
                 BondTablePotentialGPU.h
@@ -57,16 +59,20 @@ set(_md_headers ActiveForceComputeGPU.h
                 ConstraintEllipsoid.h
                 ConstraintSphereGPU.h
                 ConstraintSphere.h
+                CosineSqAngleForceComputeGPU.h
+                CosineSqAngleForceCompute.h
                 Enforce2DUpdaterGPU.h
                 Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
+                EvaluatorSpecialPairCoulomb.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
                 EvaluatorConstraintSphere.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
+                EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
@@ -75,6 +81,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGauss.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
+                EvaluatorPairLJ1208.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
@@ -110,12 +117,16 @@ set(_md_headers ActiveForceComputeGPU.h
                 OPLSDihedralForceComputeGPU.h
                 OPLSDihedralForceCompute.h
                 PotentialBondGPU.h
+		PotentialBondGPU.cuh
                 PotentialBond.h
                 PotentialExternalGPU.h
+                PotentialExternalGPU.cuh
                 PotentialExternal.h
                 PotentialPairDPDThermoGPU.h
+		PotentialPairDPDThermoGPU.cuh
                 PotentialPairDPDThermo.h
                 PotentialPairGPU.h
+		PotentialPairGPU.cuh
                 PotentialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
@@ -176,6 +187,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
 			   MuellerPlatheFlowGPU.cc
+               CosineSqAngleForceComputeGPU.cc
                            )
 endif()
 
@@ -214,6 +226,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepNVTMTKGPU.cu
 		      MuellerPlatheFlowGPU.cu
+              CosineSqAngleForceGPU.cu
                       )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
@@ -226,7 +239,16 @@ endif (ENABLE_CUDA)
 add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
 
 # link the library to its dependencies
-target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
+if (CUSOLVER_AVAILABLE)
+    if(${CUDA_VERSION} VERSION_LESS 8.0)
+        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
+    else()
+        # CUDA 8.0 requires that we link in gomp
+        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+    endif()
+else()
+    target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
+endif()
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -323,4 +345,8 @@ endif()
 if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
+endif()
+
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
 endif()

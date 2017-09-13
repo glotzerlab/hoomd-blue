@@ -1,7 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 
 context.initialize()
@@ -17,7 +16,7 @@ dt = 0.005
 class update_mueller_plathe_flow (unittest.TestCase):
     def setUp(self):
         print
-        self.system = deprecated.init.create_random(N=200, phi_p=0.3,name='A');
+        self.system = init.create_lattice(lattice.sc(a=1.2039980656902276),n=[5,5,8]); #target a packing fraction of 0.3
 
     # tests basic creation of the updater
     def test(self):

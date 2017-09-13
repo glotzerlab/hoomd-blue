@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -6,6 +6,7 @@
 #include "hoomd/VectorMath.h"
 #include "ShapeSphere.h"    //< For the base template of test_overlap
 #include "ShapeSpheropolyhedron.h"
+#include "ShapeConvexPolyhedron.h"
 #include "GPUTree.h"
 
 #include "hoomd/ManagedArray.h"
@@ -26,6 +27,7 @@
 #include <iostream>
 #endif
 
+//#define SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
 
 namespace hpmc
 {
@@ -42,21 +44,20 @@ struct union_params : param_base
 
     //! Default constructor
     DEVICE union_params()
-        : N(0)
+        : diameter(0.0), N(0), ignore(0)
         { }
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        tree.load_shared(ptr, load, ptr_max);
-        mpos.load_shared(ptr, load, ptr_max);
-        mparams.load_shared(ptr, load, ptr_max);
-        moverlap.load_shared(ptr, load, ptr_max);
-        morientation.load_shared(ptr, load, ptr_max);
+        tree.load_shared(ptr, available_bytes);
+        mpos.load_shared(ptr, available_bytes);
+        mparams.load_shared(ptr, available_bytes);
+        moverlap.load_shared(ptr, available_bytes);
+        morientation.load_shared(ptr, available_bytes);
         }
 
     #ifdef ENABLE_CUDA
@@ -89,7 +90,7 @@ struct union_params : param_base
     ManagedArray<vec3<OverlapReal> > mpos;         //!< Position vectors of member shapes
     ManagedArray<quat<OverlapReal> > morientation; //!< Orientation of member shapes
     ManagedArray<mparam_type> mparams;        //!< Parameters of member shapes
-    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j] 
+    ManagedArray<unsigned int> moverlap;      //!< only check overlaps for which moverlap[i] & moverlap[j]
     OverlapReal diameter;                    //!< Precalculated overall circumsphere diameter
     unsigned int N;                           //!< Number of member shapes
     unsigned int ignore;                     //!<  Bitwise ignore flag for stats. 1 will ignore, 0 will not ignore
@@ -160,7 +161,13 @@ struct ShapeUnion
         }
 
     //! Returns true if this shape splits the overlap check over several threads of a warp using threadIdx.x
-    HOSTDEVICE static bool isParallel() { return true; }
+    HOSTDEVICE static bool isParallel() {
+        #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
+        return true;
+        #else
+        return false;
+        #endif
+        }
 
     quat<Scalar> orientation;    //!< Orientation of the particle
 
@@ -246,6 +253,10 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                                 const ShapeUnion<Shape>& b,
                                 unsigned int& err)
     {
+    const detail::GPUTree& tree_a = a.members.tree;
+    const detail::GPUTree& tree_b = b.members.tree;
+
+    #ifdef SHAPE_UNION_LEAVES_AGAINST_TREE_TRAVERSAL
     #ifdef NVCC
     // Parallel tree traversal
     unsigned int offset = threadIdx.x;
@@ -254,9 +265,6 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     unsigned int offset = 0;
     unsigned int stride = 1;
     #endif
-
-    const detail::GPUTree& tree_a = a.members.tree;
-    const detail::GPUTree& tree_b = b.members.tree;
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
@@ -295,6 +303,29 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
                 }
             }
         }
+    #else
+    // perform a tandem tree traversal
+    unsigned long int stack = 0;
+    unsigned int cur_node_a = 0;
+    unsigned int cur_node_b = 0;
+
+    vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+    quat<OverlapReal> q(conj(b.orientation)*a.orientation);
+
+    detail::OBB obb_a = tree_a.getOBB(cur_node_a);
+    obb_a.affineTransform(q, dr_rot);
+
+    detail::OBB obb_b = tree_b.getOBB(cur_node_b);
+
+    while (cur_node_a != tree_a.getNumNodes() && cur_node_b != tree_b.getNumNodes())
+        {
+        unsigned int query_node_a = cur_node_a;
+        unsigned int query_node_b = cur_node_b;
+
+        if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q, dr_rot)
+            && test_narrow_phase_overlap(r_ab, a, b, query_node_a, query_node_b)) return true;
+        }
+    #endif
 
     return false;
     }

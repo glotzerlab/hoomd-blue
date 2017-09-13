@@ -1,11 +1,13 @@
-[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/joaander/hoomd-examples)
-
 # HOOMD-blue
 
 HOOMD-blue is a general purpose particle simulation toolkit. It performs hard particle Monte Carlo simulations
 of a variety of shape classes, and molecular dynamics simulations of particles with a range of pair, bond, angle,
 and other potentials. HOOMD-blue runs fast on NVIDIA GPUs, and can scale across
 many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab.engin.umich.edu/hoomd-blue).
+
+# Tutorial
+
+[Read the HOOMD-blue tutorial online](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
 
 ## Installing HOOMD-blue
 
@@ -19,15 +21,6 @@ Then add the `glotzer` channel and install HOOMD-blue:
 $ conda config --add channels glotzer
 $ conda install hoomd
 ```
-
-## Tutorials and examples
-
-The [hoomd-examples git repository](https://bitbucket.org/glotzer/hoomd-examples) demonstrates how to use hoomd
-with jupyter notebooks.
-
-* View a [static version of hoomd-examples at nbviewer.org](http://nbviewer.jupyter.org/github/joaander/hoomd-examples/blob/master/index.ipynb).
-* Launch an [executable version of hoomd-examples at mybinder.org](http://mybinder.org:/repo/joaander/hoomd-examples) (CPU only).
-* Or, clone the hoomd-examples repository and run on your local system.
 
 ## Compiling HOOMD-blue
 
@@ -54,7 +47,7 @@ For more detailed instructions, [see the documentation](http://hoomd-blue.readth
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc >= 4.8.5, clang 3.5)
+     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, clang 3.4 (*no cuda*), clang 3.8)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
      * MPI (tested with OpenMPI, MVAPICH)
@@ -81,16 +74,16 @@ lj.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
 # integrate at constant temperature
 all = hoomd.group.all();
 md.integrate.mode_standard(dt=0.005)
-md.integrate.nvt(group=all, kT=1.2, tau=0.5)
+hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
 # run 10,000 time steps
 hoomd.run(10e3)
 ```
 
 Save this as `lj.py` and run with `python lj.py`.
 
-## Documentation
+## Reference Documentation
 
-Documentation for current and previous releases is available at [readthedocs](http://hoomd-blue.readthedocs.io).
+Read the [reference documentation on readthedocs](http://hoomd-blue.readthedocs.io).
 
 ## Change log
 
@@ -98,5 +91,5 @@ See [ChangeLog.md](ChangeLog.md).
 
 ## Contributing to HOOMD-blue.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md)
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 

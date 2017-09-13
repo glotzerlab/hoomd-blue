@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -12,7 +12,6 @@
 
 #include "hoomd/Integrator.h"
 #include "hoomd/CellList.h"
-#include "hoomd/extern/saruprng.h"
 
 #include "HPMCCounters.h"
 #include "ExternalField.h"
@@ -252,6 +251,9 @@ class IntegratorHPMC : public Integrator
 
         ExternalField* getExternalField() { return m_external_base; }
 
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic) {};
+
     protected:
         unsigned int m_seed;                        //!< Random number seed
         unsigned int m_move_ratio;                  //!< Ratio of translation to rotation move attempts (*65535)
@@ -318,7 +320,7 @@ class IntegratorHPMC : public Integrator
     private:
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
- 
+
         bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
         bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
     };

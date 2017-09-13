@@ -15,21 +15,19 @@ seed_list = [123]
 phi_c_list=[0.1]
 #eta_p_r_list=[0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
 eta_p_r_list=[0.4]
-#ntrial_list=[0,5,10,50]
-ntrial_list=[0,10]
 
 import itertools
 params = []
-params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list, ntrial_list))
+params = list(itertools.product(seed_list, phi_c_list, eta_p_r_list))
 
 context.msg.notice(1,"{} parameters\n".format(len(params)))
 
 # choose a random state point
 import random
 p = int(option.get_user()[0])
-(seed, phi_c, eta_p_r, ntrial) = params[p]
+(seed, phi_c, eta_p_r) = params[p]
 
-context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f} ntrial {}\n".format(p,seed, phi_c, eta_p_r, ntrial))
+context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
 # see M. Dijkstra et al. Phys. Rev. E 73, p. 41404, 2006, Fig. 2 and
 # J. Glaser et al., JCP 143 18, p. 184110, 2015.
@@ -94,93 +92,147 @@ eta_p_ref[(0.3,1.8)] = (0.0283405,0.000133873)
 eta_p_ref[(0.3,2.)] = (0.0387704,0.000167702)
 
 # number of spheres
-N = 128
+n = 5
+N = n**3
 d_sphere = 1.0
 V_sphere = math.pi/6.0*math.pow(d_sphere,3.0)
 
 # depletant-colloid size ratio
 q=1.0
 
-# initial volume fraction
-phi_c_ini = 0.01
-
-L_ini= math.pow(N*V_sphere/phi_c_ini,1.0/3.0)
 L_target= math.pow(N*V_sphere/phi_c,1.0/3.0)
-
 
 class implicit_test (unittest.TestCase):
     def setUp(self):
         # initialize random configuration
-        from hoomd import deprecated
-        self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=1.0)
-
-        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True)
-        self.mc.set_params(d=0.1,a=0.1)
+        a = L_target/n
+        self.system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
         self.system.particles.types.add('B')
-        self.mc.set_params(depletant_type='B')
 
+    def test_measure_etap(self):
+        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='circumsphere')
+        self.mc.set_params(d=0.1,a=0.1)
+        self.mc.set_params(depletant_type='B')
         self.mc.shape_param.set('A', diameter=d_sphere)
         self.mc.shape_param.set('B', diameter=d_sphere*q)
 
-        # number of test depletant to throw for measuring free volume
-        nsample = 10000
-
-        # no depletants during compression
+        # no depletants during tuning
         self.mc.set_params(nR=0)
 
-        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d','a'],max_val=[4*d_sphere,0.5],gamma=1,target=0.3)
+        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
+        for i in range(10):
+            run(100, quiet=True)
+            self.mc_tune.update()
+        # warm up
+        run(2000);
 
-        # run for a bit to randomize
-        run(1000);
 
-        # shrink the box to the target size (if needed)
-        scale = 0.99;
-        L = L_ini;
-        while L_target < L:
-            # shrink the box
-            L = max(L*scale, L_target);
-
-            update.box_resize(Lx=L, Ly=L, Lz=L, period=None);
-            overlaps = self.mc.count_overlaps();
-            context.msg.notice(1,"phi =%f: overlaps = %d " % (((N*V_sphere) / (L*L*L)), overlaps));
-
-            # run until all overlaps are removed
-            while overlaps > 0:
-                self.mc_tune.update()
-                run(100, quiet=True);
-                overlaps = self.mc.count_overlaps();
-                context.msg.notice(1,"%d\n" % overlaps)
-
-            context.msg.notice(1,"\n");
-
-        # set the target L (this expands to the final L if it is larger than the start)
-        update.box_resize(Lx=L_target, Ly=L_target, Lz=L_target, period=None);
-
-    def test_measure_etap(self):
         # set depletant fugacity
         nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
-        self.mc.set_params(nR=nR, ntrial=ntrial)
+        self.mc.set_params(nR=nR)
 
         free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
         log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
 
         eta_p_measure = []
         def log_callback(timestep):
-            eta_p_measure.append(math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity'))
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            eta_p_measure.append(v)
+            if comm.get_rank() == 0:
+                print('eta_p =', v);
 
-        run(1e6,callback=log_callback,callback_period=1000)
+        run(4e5,callback=log_callback,callback_period=100)
 
         import BlockAverage
         block = BlockAverage.BlockAverage(eta_p_measure)
         eta_p_avg = np.mean(np.array(eta_p_measure))
-        _, eta_p_err = block.get_error_estimate()
+        i, eta_p_err = block.get_error_estimate()
+
+        if comm.get_rank() == 0:
+            print(i)
+            (n, num, err, err_err) = block.get_hierarchical_errors()
+
+            print('Hierarchical error analysis:')
+            for (i, num_samples, e, ee) in zip(n, num, err, err_err):
+                print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
+
+        if comm.get_rank() == 0:
+            print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
+            print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
 
         # max error 0.5%
         self.assertLessEqual(eta_p_err/eta_p_avg,0.005)
 
+        # confidence interval, 0.95 quantile of the normal distribution
+        ci = 1.96
+
         # check against reference value within reference error + measurement error
-        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err)
+        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
+
+    def test_measure_etap_new(self):
+        self.mc = hpmc.integrate.sphere(seed=seed,implicit=True, depletant_mode='overlap_regions')
+        self.mc.set_params(d=0.1,a=0.1)
+        self.mc.set_params(depletant_type='B')
+        self.mc.shape_param.set('A', diameter=d_sphere)
+        self.mc.shape_param.set('B', diameter=d_sphere*q)
+
+        # no depletants during tuning
+        self.mc.set_params(nR=0)
+
+        self.mc_tune = hpmc.util.tune(self.mc, tunables=['d'],max_val=[d_sphere],gamma=1,target=0.2)
+        for i in range(10):
+            run(100, quiet=True)
+            self.mc_tune.update()
+        # warm up
+        run(2000);
+
+        # set depletant fugacity
+        nR = eta_p_r/(math.pi/6.0*math.pow(d_sphere*q,3.0))
+        self.mc.set_params(nR=nR)
+
+        free_volume = hpmc.compute.free_volume(mc=self.mc, seed=seed, nsample=10000, test_type='B')
+        log=analyze.log(filename=None, quantities=['hpmc_overlap_count','volume','hpmc_free_volume','hpmc_fugacity'], overwrite=True,period=1000)
+
+        eta_p_measure = []
+        def log_callback(timestep):
+            v = math.pi/6.0*log.query('hpmc_free_volume')/log.query('volume')*log.query('hpmc_fugacity')
+            eta_p_measure.append(v)
+            if comm.get_rank() == 0:
+                print('eta_p =', v);
+
+        run(4e5,callback=log_callback,callback_period=100)
+
+        import BlockAverage
+        block = BlockAverage.BlockAverage(eta_p_measure)
+        eta_p_avg = np.mean(np.array(eta_p_measure))
+        i, eta_p_err = block.get_error_estimate()
+
+        if comm.get_rank() == 0:
+            print(i)
+            (n, num, err, err_err) = block.get_hierarchical_errors()
+
+            print('Hierarchical error analysis:')
+            for (i, num_samples, e, ee) in zip(n, num, err, err_err):
+                print('{0} {1} {2} {3}'.format(i,num_samples,e,ee))
+
+        if comm.get_rank() == 0:
+            print('avg: {:.6f} +- {:.6f}'.format(eta_p_avg, eta_p_err))
+            print('tgt: {:.6f} +- {:.6f}'.format(eta_p_ref[(phi_c,eta_p_r)][0], eta_p_ref[(phi_c,eta_p_r)][1]))
+
+        # max error 0.5%
+        self.assertLessEqual(eta_p_err/eta_p_avg,0.005)
+
+        # confidence interval, 0.95 quantile of the normal distribution
+        ci = 1.96
+
+        # check against reference value within reference error + measurement error
+        self.assertLessEqual(math.fabs(eta_p_avg-eta_p_ref[(phi_c,eta_p_r)][0]),ci*(eta_p_ref[(phi_c,eta_p_r)][1]+eta_p_err))
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        context.initialize();
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

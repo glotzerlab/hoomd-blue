@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -12,7 +11,7 @@ import os
 class pair_lj_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
@@ -82,6 +81,16 @@ class pair_lj_tests (unittest.TestCase):
         self.assertRaises(RuntimeError, lj.update_coeffs);
         lj.pair_coeff.set('A', 'B', epsilon=1.0, sigma=1.0)
         lj.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0)
+        lj.update_coeffs();
+
+    # test that pair coefficients can be added and set using unicode strings
+    def test_unicode_type(self):
+        lj = md.pair.lj(r_cut=3.0, nlist = self.nl);
+        lj.pair_coeff.set(u'A', u'A', epsilon=1.0, sigma=1.0);
+        self.s.particles.types.add(u'Bb')
+        self.assertRaises(RuntimeError, lj.update_coeffs);
+        lj.pair_coeff.set(u'A', u'Bb', epsilon=1.0, sigma=1.0)
+        lj.pair_coeff.set(u'Bb', u'Bb', epsilon=1.0, sigma=1.0)
         lj.update_coeffs();
 
     def tearDown(self):

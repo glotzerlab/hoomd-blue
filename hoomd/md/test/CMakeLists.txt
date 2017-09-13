@@ -14,6 +14,7 @@ set(TEST_LIST
     test_force_shifted_lj
     test_gaussian_force
     test_gayberne_force
+    test_cosinesq_angle_force
     test_harmonic_angle_force
     test_harmonic_bond_force
     test_harmonic_dihedral_force
@@ -60,16 +61,16 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-    cuda_add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc
-            ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu OPTIONS
-            ${CUDA_ADDITIONAL_OPTIONS})
-    else(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
-    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc)
-    endif(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+        CUDA_COMPILE(_CUDA_GENERATED_FILES ${CUR_TEST}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})
+    else()
+        set(_CUDA_GENERATED_FILES "")
+    endif()
+
+    add_executable(${CUR_TEST} EXCLUDE_FROM_ALL ${CUR_TEST}.cc ${_CUDA_GENERATED_FILES})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _hoomd _md _deprecated ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hoomd _md ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)

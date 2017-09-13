@@ -75,32 +75,38 @@ if (ENABLE_EMBED_CUDA)
     install(PROGRAMS ${_cuda_libs} DESTINATION ${PYTHON_MODULE_BASE_DIR})
 endif ()
 
-    if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-        # clang does not seem to work with host flag passing
-        set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
-    endif()
-
 endif (ENABLE_CUDA)
 
 # set CUSOLVER_AVAILABLE depending on CUDA Toolkit version
 if (ENABLE_CUDA)
     if(${CUDA_VERSION} VERSION_LESS 7.5)
-        set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
-    elseif(${CUDA_VERSION} VERSION_GREATER 7.5)
-        set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
+        set(CUSOLVER_AVAILABLE FALSE)
+    elseif(${CUDA_VERSION} VERSION_LESS 8.0)
+        # CUDA 7.5 has a functioning cusolver, if cmake found it
+        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "")
+            set(CUSOLVER_AVAILABLE TRUE)
+        else()
+            set(CUSOLVER_AVAILABLE FALSE)
+        endif()
     else()
-        if (NOT CUSOLVER_AVAILABLE)
-            # message at first time
-            message(STATUS "CUDA version >= 7.5, looking for cusolver library")
-            if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "")
-                set(CUSOLVER_AVAILABLE TRUE CACHE BOOL "TRUE if cusolver library is available")
-                message(STATUS "cuSolver library found.")
-            else()
-                set(CUSOLVER_AVAILABLE FALSE CACHE BOOL "TRUE if cusolver library is available")
-                message(STATUS "Could not find cusolver library, constraints will be slower, perhaps old CMake?")
-            endif()
+        # CUDA 8.0 requires that libgomp be linked in - see if we can link it
+        try_compile(_can_link_gomp
+                    ${CMAKE_CURRENT_BINARY_DIR}/tmp
+                    ${CMAKE_CURRENT_LIST_DIR}/test.cc
+                    LINK_LIBRARIES gomp
+                   )
+
+        if (NOT ${CUDA_cusolver_LIBRARY} STREQUAL "" AND _can_link_gomp)
+            set(CUSOLVER_AVAILABLE TRUE)
+        else()
+            set(CUSOLVER_AVAILABLE FALSE)
         endif()
     endif()
-    mark_as_advanced(CUSOLVER_AVAILABLE)
+
+if (NOT CUSOLVER_AVAILABLE)
+    message(STATUS "Could not find cusolver library, constraints will be slower. Perhaps old CMake or missing gomp library.")
+else()
+    message(STATUS "Found cusolver: ${CUDA_cusolver_LIBRARY}")
+endif()
+
 endif()

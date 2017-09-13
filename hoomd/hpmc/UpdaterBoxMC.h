@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -11,7 +11,7 @@
 
 #include <hoomd/Updater.h>
 #include <hoomd/Variant.h>
-#include <hoomd/extern/saruprng.h>
+#include "hoomd/Saru.h"
 #include <cmath>
 
 // Need Moves.h for rand_select
@@ -64,6 +64,20 @@ class UpdaterBoxMC : public Updater
             // Calculate aspect ratio
             computeAspectRatios();
             };
+
+        //! Sets parameters for box volume moves
+        /*! \param delta_lnV log of maximum relative size of volume change
+            \param weight relative likelihood of volume move
+        */
+        void ln_volume(const Scalar delta_lnV,
+                       const float weight)
+            {
+            m_lnVolume_delta = delta_lnV;
+            m_lnVolume_weight = weight;
+            // Calculate aspect ratio
+            computeAspectRatios();
+            };
+
 
         //! Sets parameters for box length moves
         /*! \param dLx Extent of length change distribution in first lattice vector for box resize moves
@@ -157,6 +171,10 @@ class UpdaterBoxMC : public Updater
                 {
                 m_exec_conf->msg->notice(2) << "Average volume acceptance: " << counters.getVolumeAcceptance() << std::endl;
                 }
+            if (counters.ln_volume_accept_count + counters.ln_volume_reject_count > 0)
+                {
+                m_exec_conf->msg->notice(2) << "Average ln_V acceptance: " << counters.getLogVolumeAcceptance() << std::endl;
+                }
             if (counters.aspect_accept_count + counters.aspect_reject_count > 0)
                 {
                 m_exec_conf->msg->notice(2) << "Average aspect acceptance: " << counters.getAspectAcceptance() << std::endl;
@@ -198,31 +216,45 @@ class UpdaterBoxMC : public Updater
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_L(unsigned int timestep, Saru& rng);
+        void update_L(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_V(unsigned int timestep, Saru& rng);
+        void update_V(unsigned int timestep, hoomd::detail::Saru& rng);
+
+        //! Perform box update in NpT ln(V) distribution
+        /*! \param timestep timestep at which update is being evaluated
+            \param rng psueudo random number generator instance
+        */
+        void update_lnV(unsigned int timestep, hoomd::detail::Saru& rng);
+
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_shear(unsigned int timestep, Saru& rng);
+        void update_shear(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
             \param rng psueudo random number generator instance
         */
-        void update_aspect(unsigned int timestep, Saru& rng);
+        void update_aspect(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Get volume change parameter
         const Scalar get_volume_delta() const
             {
             return m_Volume_delta;
             }
+
+        //! Get delta_lnV
+        const Scalar get_ln_volume_delta() const
+            {
+            return m_lnVolume_delta;
+            }
+
 
         //! Get aspect ratio trial parameter
         const Scalar get_aspect_delta() const
@@ -250,6 +282,8 @@ class UpdaterBoxMC : public Updater
 
         Scalar m_Volume_delta;                      //!< Amount by which to change parameter during box-change
         float m_Volume_weight;                     //!< relative weight of volume moves
+        Scalar m_lnVolume_delta;                      //!< Amount by which to change parameter during box-change
+        float m_lnVolume_weight;                   //!< relative weight of volume moves
         Scalar m_Volume_A1;                         //!< Ratio of Lx to Ly to use in isotropic volume changes
         Scalar m_Volume_A2;                         //!< Ratio of Lx to Lz to use in isotropic volume changes
 
@@ -289,7 +323,7 @@ class UpdaterBoxMC : public Updater
                                      Scalar yz,
                                      unsigned int timestep,
                                      Scalar boltzmann,
-                                     Saru& rng
+                                     hoomd::detail::Saru& rng
                                      );
                                      //!< attempt specified box change and undo if overlaps generated
         inline bool safe_box(const Scalar newL[3], const unsigned int& Ndim);

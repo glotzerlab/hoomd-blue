@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _UPDATER_EXTERNAL_FIELD_H_
@@ -8,7 +8,7 @@
     \brief Updates ExternalField base class
 */
 #include "hoomd/Updater.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 
 #include "IntegratorHPMCMono.h"
@@ -40,6 +40,12 @@ class UpdaterExternalFieldWall : public Updater
                       Scalar move_ratio,
                       unsigned int seed) : Updater(sysdef), m_mc(mc), m_external(external), m_py_updater(py_updater), m_move_ratio(move_ratio), m_seed(seed)
                       {
+                      // broadcast the seed from rank 0 to all other ranks.
+                      #ifdef ENABLE_MPI
+                          if(this->m_pdata->getDomainDecomposition())
+                              bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+                      #endif
+
                       // set m_count_total, m_count_accepted equal to zero
                       m_count_total_rel = 0;
                       m_count_total_tot = 0;
@@ -130,7 +136,7 @@ class UpdaterExternalFieldWall : public Updater
         virtual void update(unsigned int timestep)
             {
             // Choose whether or not to update the external field
-            Saru rng(m_seed, timestep, 0xf6a510ab);
+            hoomd::detail::Saru rng(m_seed, timestep, 0xba015a6f);
             unsigned int move_type_select = rng.u32() & 0xffff;
             unsigned int move_ratio = m_move_ratio * 65536;
             // Attempt and evaluate a move

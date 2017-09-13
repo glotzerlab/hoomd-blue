@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,6 +27,9 @@
 #include "GetarDumpWriter.h"
 #include "GSDDumpWriter.h"
 #include "Logger.h"
+#include "LogPlainTXT.h"
+#include "LogMatrix.h"
+#include "LogHDF5.h"
 #include "CallbackAnalyzer.h"
 #include "Updater.h"
 #include "Integrator.h"
@@ -80,6 +83,10 @@ using namespace std;
 lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
 The following #defines help get around this
 */
+
+#if (PYBIND11_VERSION_MAJOR) != 1 || (PYBIND11_VERSION_MINOR) != 8
+#error HOOMD-blue requires pybind11 1.8.x
+#endif
 
 #if PY_VERSION_HEX >= 0x03000000
 #define MY_PY_VER_3x
@@ -266,6 +273,18 @@ void abort_mpi(std::shared_ptr<ExecutionConfiguration> exec_conf)
     #endif
     }
 
+//! broadcast string from root rank to all other ranks
+std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfiguration> exec_conf)
+    {
+    #ifdef ENABLE_MPI
+    std::string result = s;
+    bcast(result, 0, exec_conf->getMPICommunicator());
+    return result;
+    #else
+    return s;
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -288,6 +307,7 @@ PYBIND11_PLUGIN(_hoomd)
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
+    m.def("mpi_bcast_str", mpi_bcast_str);
 
     m.def("hoomd_compile_flags", &hoomd_compile_flags);
     m.def("output_version_info", &output_version_info);
@@ -358,6 +378,9 @@ PYBIND11_PLUGIN(_hoomd)
     getardump::export_GetarDumpWriter(m);
     export_GSDDumpWriter(m);
     export_Logger(m);
+    export_LogPlainTXT(m);
+    export_LogMatrix(m);
+    export_LogHDF5(m);
     export_CallbackAnalyzer(m);
     export_ParticleGroup(m);
 
