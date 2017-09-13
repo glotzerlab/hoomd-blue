@@ -52,7 +52,8 @@ void export_convex_polyhedron(py::module& m)
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
     export_UpdaterMuVTImplicit< ShapeConvexPolyhedron >(m, "UpdaterMuVTImplicitConvexPolyhedron");
-    export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterClusters< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterClusters< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterClustersNewConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron >(m, "ExternalFieldConvexPolyhedron");
     export_LatticeField<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedron");

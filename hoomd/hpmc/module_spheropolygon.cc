@@ -49,7 +49,8 @@ void export_spheropolygon(py::module& m)
     export_AnalyzerSDF< ShapeSpheropolygon >(m, "AnalyzerSDFSpheropolygon");
     export_UpdaterMuVT< ShapeSpheropolygon >(m, "UpdaterMuVTSpheropolygon");
     export_UpdaterMuVTImplicit< ShapeSpheropolygon >(m, "UpdaterMuVTImplicitSpheropolygon");
-    export_UpdaterClusters< ShapeSpheropolygon >(m, "UpdaterClustersSpheropolygon");
+    export_UpdaterClusters< ShapeSpheropolygon, IntegratorHPMCMonoImplicit<ShapeSpheropolygon> >(m, "UpdaterClustersSpheropolygon");
+    export_UpdaterClusters< ShapeSpheropolygon, IntegratorHPMCMonoImplicitNew<ShapeSpheropolygon> >(m, "UpdaterClustersNewSpheropolygon");
 
     export_ExternalFieldInterface<ShapeSpheropolygon>(m, "ExternalFieldSpheropolygon");
     export_LatticeField<ShapeSpheropolygon>(m, "ExternalFieldLatticeSpheropolygon");

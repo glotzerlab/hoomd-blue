@@ -7,13 +7,12 @@
 */
 
 #include "hoomd/Updater.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 
 #include <list>
 
 #include "Moves.h"
 #include "HPMCCounters.h"
-#include "IntegratorHPMCMonoImplicit.h"
 
 namespace hpmc
 {
@@ -93,7 +92,7 @@ void Graph::addEdge(int v, int w)
     }
 } // end namespace detail
 
-template< class Shape >
+template< class Shape, class Integrator >
 class UpdaterClusters : public Updater
     {
     public:
@@ -103,7 +102,7 @@ class UpdaterClusters : public Updater
             \param seed PRNG seed
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+                        std::shared_ptr<Integrator> mc_implicit,
                         unsigned int seed);
 
         //! Destructor
@@ -202,7 +201,7 @@ class UpdaterClusters : public Updater
 
 
     protected:
-        std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit; //!< Implicit depletants integrator object
+        std::shared_ptr< Integrator> m_mc_implicit; //!< Implicit depletants integrator object
         unsigned int m_seed;                        //!< RNG seed
 
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
@@ -238,9 +237,9 @@ class UpdaterClusters : public Updater
         void generateClusters(unsigned int timestep, const SnapshotParticleData<Scalar>& snap, vec3<Scalar> pivot, quat<Scalar> q, bool line);
     };
 
-template< class Shape >
-UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+template< class Shape, class Integrator >
+UpdaterClusters<Shape,Integrator>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<Integrator> mc_implicit,
                                  unsigned int seed)
         : Updater(sysdef), m_mc_implicit(mc_implicit), m_seed(seed), m_extra_range(0.0)
     {
@@ -256,8 +255,8 @@ UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef
     resetStats();
     }
 
-template< class Shape >
-UpdaterClusters<Shape>::~UpdaterClusters()
+template< class Shape, class Integrator >
+UpdaterClusters<Shape,Integrator>::~UpdaterClusters()
     {
     m_exec_conf->msg->notice(5) << "Destroying UpdaterClusters" << std::endl;
 
@@ -266,8 +265,8 @@ UpdaterClusters<Shape>::~UpdaterClusters()
     }
 
 //! Calculate a list of global box images within interaction range of the simulation box, innermost first
-template <class Shape>
-void UpdaterClusters<Shape>::updateImageList()
+template <class Shape, class Integrator>
+void UpdaterClusters<Shape,Integrator>::updateImageList()
     {
     if (m_prof) m_prof->push(m_exec_conf, "HPMC clusters image list");
 
@@ -402,8 +401,8 @@ void UpdaterClusters<Shape>::updateImageList()
 /*! UpdaterClusters uses its own AABB tree since it needs to handle circumsphere
     radii extended by the depletant size
 */
-template <class Shape>
-void UpdaterClusters<Shape>::buildAABBTree(const SnapshotParticleData<Scalar>& snap)
+template <class Shape, class Integrator>
+void UpdaterClusters<Shape,Integrator>::buildAABBTree(const SnapshotParticleData<Scalar>& snap)
     {
     m_exec_conf->msg->notice(8) << "UpdaterClusters building AABB tree: " << m_pdata->getNGlobal() << " ptls " << std::endl;
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "AABB tree build");
@@ -443,8 +442,8 @@ void UpdaterClusters<Shape>::buildAABBTree(const SnapshotParticleData<Scalar>& s
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
     }
 
-template <class Shape>
-void UpdaterClusters<Shape>::growAABBList(unsigned int N)
+template <class Shape, class Integrator>
+void UpdaterClusters<Shape,Integrator>::growAABBList(unsigned int N)
     {
     if (N > m_aabbs_capacity)
         {
@@ -462,8 +461,8 @@ void UpdaterClusters<Shape>::growAABBList(unsigned int N)
     }
 
 
-template< class Shape >
-void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const SnapshotParticleData<Scalar>& snap, vec3<Scalar> pivot,
+template< class Shape, class Integrator >
+void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, const SnapshotParticleData<Scalar>& snap, vec3<Scalar> pivot,
     quat<Scalar> q, bool line)
     {
     if (m_prof) m_prof->push("Generate clusters");
@@ -672,8 +671,8 @@ void UpdaterClusters<Shape>::generateClusters(unsigned int timestep, const Snaps
 /*! Perform a cluster move
     \param timestep Current time step of the simulation
 */
-template< class Shape >
-void UpdaterClusters<Shape>::update(unsigned int timestep)
+template< class Shape, class Integrator >
+void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
     //hpmc_counters_t& counters = m_count_total;
@@ -691,7 +690,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (master)
         {
         // initialize RNG
-        Saru rng(timestep, this->m_seed, 0x12f40ab9);
+        hoomd::detail::Saru rng(timestep, this->m_seed, 0x12f40ab9);
 
         // select a pivot
         Scalar3 f;
@@ -794,13 +793,13 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     }
 
 
-template < class Shape > void export_UpdaterClusters(pybind11::module& m, const std::string& name)
+template < class Shape, class Integrator > void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterClusters<Shape>, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
+    pybind11::class_< UpdaterClusters<Shape,Integrator>, std::shared_ptr< UpdaterClusters<Shape,Integrator> > >(m, name.c_str(), pybind11::base<Updater>())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
-                         std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >,
+                         std::shared_ptr< Integrator >,
                          unsigned int >())
-        .def("getCounters", &UpdaterClusters<Shape>::getCounters)
+        .def("getCounters", &UpdaterClusters<Shape,Integrator>::getCounters)
     ;
     }
 

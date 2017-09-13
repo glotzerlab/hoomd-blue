@@ -49,7 +49,8 @@ void export_sphinx(py::module& m)
     export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
     export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
     export_UpdaterMuVTImplicit< ShapeSphinx >(m, "UpdaterMuVTImplicitSphinx");
-    export_UpdaterClusters< ShapeSphinx >(m, "UpdaterClustersSphinx");
+    export_UpdaterClusters< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterClustersSphinx");
+    export_UpdaterClusters< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterClustersNewSphinx");
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");

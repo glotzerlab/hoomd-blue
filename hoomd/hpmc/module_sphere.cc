@@ -49,7 +49,8 @@ void export_sphere(py::module& m)
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
     export_UpdaterMuVTImplicit< ShapeSphere >(m, "UpdaterMuVTImplicitSphere");
-    export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
+    export_UpdaterClusters< ShapeSphere,IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterClustersSphere");
+    export_UpdaterClusters< ShapeSphere,IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterClustersNewSphere");
 
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
