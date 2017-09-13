@@ -269,7 +269,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::initializePoissonDistribution()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
     {
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
 
     if (m_n_R > Scalar(0.0))
         {

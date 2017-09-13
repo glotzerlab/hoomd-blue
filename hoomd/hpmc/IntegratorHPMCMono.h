@@ -142,7 +142,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void update(unsigned int timestep);
 
         //! Get the maximum particle diameter
-        virtual Scalar getMaxDiameter();
+        virtual Scalar getMaxCoreDiameter();
 
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
@@ -810,7 +810,7 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     }
 
 template <class Shape>
-Scalar IntegratorHPMCMono<Shape>::getMaxDiameter()
+Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     {
     // for each type, create a temporary shape and return the maximum diameter
     OverlapReal maxD = OverlapReal(0.0);
@@ -879,7 +879,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
     // triclinic boxes have 4 linearly independent body diagonals
     // box_circumsphere = max(body_diagonals)
-    // range = getMaxDiameter() + box_circumsphere
+    // range = getMaxCoreDiameter() + box_circumsphere
     // while still adding images, examine successively larger blocks of images, checking the outermost against range
 
     if (m_prof) m_prof->push(m_exec_conf, "HPMC image list");
@@ -1022,7 +1022,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 template <class Shape>
 void IntegratorHPMCMono<Shape>::updateCellWidth()
     {
-    m_nominal_width = getMaxDiameter();
+    m_nominal_width = getMaxCoreDiameter();
 
     // changing the cell width means that the particle shapes have changed, assume this invalidates the
     // image list and aabb tree

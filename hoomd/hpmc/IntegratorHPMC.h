@@ -182,7 +182,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Get the diameter of the largest circumscribing sphere for objects handled by this integrator
-        virtual Scalar getMaxDiameter()
+        virtual Scalar getMaxCoreDiameter()
             {
             return 1.0;
             }

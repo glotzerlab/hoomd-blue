@@ -455,7 +455,7 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
 
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
     // attach the parameters to the kernel stream so that they are visible
