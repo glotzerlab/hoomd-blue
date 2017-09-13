@@ -24,7 +24,7 @@ class user(object):
     *f(type_i, orientation_i, pos_j, type_j, orientation_j)*. The patch energy is evaluated in a coordinate system where
     particle *i* is at the origin.
 
-    The :py:class:`llvm` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
+    The :py:class:`user` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
     in the MC loop at with full performance. It enables researchers to quickly and easily implement custom energetic
     interactions without the need to modify and recompile HOOMD.
 
@@ -42,6 +42,8 @@ class user(object):
     Your code *must* return a value.
 
     Example:
+
+    .. code::
 
         square_well = \"\"\"float rsq = dot(pos_j, pos_j);
                             if (rsq < 1.21f)
