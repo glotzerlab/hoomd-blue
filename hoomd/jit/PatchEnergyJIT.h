@@ -13,12 +13,14 @@ class PatchEnergyJIT
             {
             return m_r_cut;
             }
-        float energy(float x, float y, float z)
+
+        float energy(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j)
             {
-            return m_eval(vec3<float>(x, y, z));
+            return m_eval(type_i, orientation_i, pos_j, type_j, orientation_j);
             }
+
     private:
-        typedef float (*EvalFnPtr)(const vec3<float>& v);
+        typedef float (*EvalFnPtr)(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j);
 
         Scalar m_r_cut;
         std::shared_ptr<llvm::OrcLazyJIT> m_JIT;
