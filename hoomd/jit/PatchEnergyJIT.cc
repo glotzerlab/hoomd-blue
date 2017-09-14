@@ -12,6 +12,12 @@
 
 #include <sstream>
 
+/*! \param exec_conf The execution configuration (used for messages and MPI communication)
+    \param fname File name of the LLVM IR to load
+    \param r_cut Center to center distance beyond which the patch energy is 0
+
+    After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
+*/
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut)
     {
     // initialize LLVM
@@ -38,7 +44,7 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
         {
         // if the module didn't load, report an error
         exec_conf->msg->error() << "could not load LLVM IR" << std::endl;
-        Err.print("llvm-test", llvm_err);
+        Err.print("PatchEnergyJIT", llvm_err);
         llvm_err.flush();
         exec_conf->msg->errorStr(sstream.str());
         throw std::runtime_error("could not load LLVM IR");

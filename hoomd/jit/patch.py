@@ -11,7 +11,7 @@ import subprocess
 import os
 
 class user(object):
-    R""" Define an arbitrary patch energy.
+    R''' Define an arbitrary patch energy.
 
     Args:
         r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
@@ -19,10 +19,8 @@ class user(object):
         llvm_ir_fname (str): File name of the llvm IR file to load.
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
-    Shapes within a cutoff distance of r_cut are potentially interacting and the energy of interaction is a function
-    the type and orientation of the particles and the position of the *j* particle:
-    *f(type_i, orientation_i, pos_j, type_j, orientation_j)*. The patch energy is evaluated in a coordinate system where
-    particle *i* is at the origin.
+    Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
+    the type and orientation of the particles and the vector pointing from the *i* particle to the *j* particle center.
 
     The :py:class:`user` patch energy takes C++ code, JIT compiles it at run time and executes the code natively
     in the MC loop at with full performance. It enables researchers to quickly and easily implement custom energetic
@@ -37,32 +35,56 @@ class user(object):
     and provided via the *llvm_ir_file* input (see below).
 
     The text provided in *code* is the body of a function with the following signature:
-    ``float eval(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j)``
-    ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-    Your code *must* return a value.
-
-    Example:
 
     .. code::
 
-        square_well = \"\"\"float rsq = dot(pos_j, pos_j);
+        float eval(const vec3<float>& r_ij,
+                   unsigned int type_i,
+                   const quat<float>& q_i,
+                   unsigned int type_j,
+                   const quat<float>& q_j)
+
+    * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
+    * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
+    * *type_i* is the integer type of particle *i*
+    * *q_i* is the quaternion orientation of particle *i*
+    * *type_j* is the integer type of particle *j*
+    * *q_j* is the quaternion orientation of particle *j*
+    * Your code *must* return a value.
+    * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
+      the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
+      interaction that you implement.
+
+    Example:
+
+    .. code-block:: python
+
+        square_well = """float rsq = dot(r_ij, r_ij);
                             if (rsq < 1.21f)
                                 return -1.0f;
                             else
                                 return 0.0f;
-                      \"\"\"
+                      """
         patch = hoomd.jit.patch.user(r_cut=1.1, code=square_well)
 
     .. rubric:: LLVM IR code
 
     You can compile outside of HOOMD and provide a direct link
     to the LLVM IR file in *llvm_ir_file*. A compatible file contains an extern "C" eval function with this signature:
-    ``float eval(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j)``
+
+    .. code::
+
+        float eval(const vec3<float>& r_ij,
+                   unsigned int type_i,
+                   const quat<float>& q_i,
+                   unsigned int type_j,
+                   const quat<float>& q_j)
+
     ``vec3`` and ``quat`` are defined in HOOMDMath.h.
 
-    Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I ~/devel/hoomd -S -emit-llvm code.cc`` to produce
+    Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
-    """
+    '''
     def __init__(self, r_cut, code=None, llvm_ir_file=None):
         hoomd.util.print_status_line();
 
@@ -88,7 +110,7 @@ class user(object):
 
 extern "C"
 {
-float eval(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j)
+float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
    {
 """);
                     f.write(code)

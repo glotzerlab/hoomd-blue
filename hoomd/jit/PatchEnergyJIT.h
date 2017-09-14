@@ -4,27 +4,61 @@
 
 #include "OrcLazyJIT.h"
 
+//! Evaluate patch energies via runtime generated code
+/*! This class enables the widest possible use-cases of patch energies in HPMC with low energy barriers for users to add
+    custom interactions that execute with high performance. It provides a generic interface for returning the energy of
+    interaction between a pair of particles. The actual computation is performed by code that is loaded and compiled at
+    run time using LLVM.
+
+    The user provides LLVM IR code containing a function 'eval' with the defined function signature. On construction,
+    this class uses the LLVM library to compile that IR down to machine code and obtain a function pointer to call.
+
+    This is the first use of LLVM in HOOMD and it is experimental. As additional areas are identified as
+    useful applications of LLVM, we will want to factor out some of the comment elements of this code
+    into a generic LLVM module class. (i.e. handle broadcasting the string and compiling it in one place,
+    with specific implementations requesting the function pointers they need).
+
+    LLVM execution is managed with the OrcLazyJIT class in m_JIT. On construction, the LLVM module is loaded and
+    compiled. OrcLazyJIT handles construction of C++ static members, etc.... When m_JIT is deleted, all of the compiled
+    code and memory used in the module is deleted. OrcLazyJIT takes care of destructing C++ static members inside the
+    module.
+
+    LLVM JIT is capable of calling any function in the hosts address space. PatchEnergyJIT does not take advantage of
+    that, limiting the user to a very specific API for computing the energy between a pair of particles.
+*/
 class PatchEnergyJIT
     {
     public:
+        //! Constructor
         PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut);
 
+        //! Get the maximum r_ij radius beyond which energies are always 0
         Scalar getRCut()
             {
             return m_r_cut;
             }
 
-        float energy(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j)
+        //! evaluate the energy of the patch interaction
+        /*! \param r_ij Vector pointing from particle i to j
+            \param type_i Integer type index of particle i
+            \param q_i Orientation quaternion of particle i
+            \param type_j Integer type index of particle j
+            \param q_j Orientation quaternion of particle j
+
+            \returns Energy of the patch interaction.
+        */
+        float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
             {
-            return m_eval(type_i, orientation_i, pos_j, type_j, orientation_j);
+            return m_eval(r_ij, type_i, q_i, type_j, q_j);
             }
 
     private:
-        typedef float (*EvalFnPtr)(unsigned int type_i, const quat<float>& orientation_i, const vec3<float>& pos_j, unsigned int type_j, const quat<float>& orientation_j);
+        //! function pointer signature
+        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
 
-        Scalar m_r_cut;
-        std::shared_ptr<llvm::OrcLazyJIT> m_JIT;
-        EvalFnPtr m_eval;
+        Scalar m_r_cut;                             //!< Cutoff radius
+        std::shared_ptr<llvm::OrcLazyJIT> m_JIT;    //!< JIT execution engine
+        EvalFnPtr m_eval;                           //!< Pointer to evaluator function inside the JIT module
     };
 
 //! Exports the PatchEnergyJIT class to python
