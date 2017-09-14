@@ -299,6 +299,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         bool m_past_first_run;                      //!< Flag to test if the first run() has started
 
+        Scalar m_extra_image_width;                 //! Extra width to extend the image list
+
         Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
 
         //! Set the nominal width appropriate for looped moves
@@ -335,7 +337,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
               m_hasOrientation(true),
-              m_past_first_run(false)
+              m_past_first_run(false),
+              m_extra_image_width(0.0)
     {
     // allocate the parameter storage
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
@@ -930,6 +933,9 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
             }
         }
     range += max_trans_d_and_diam;
+
+    // add any extra requested width
+    range += m_extra_image_width;
 
     Scalar range_sq = range*range;
 

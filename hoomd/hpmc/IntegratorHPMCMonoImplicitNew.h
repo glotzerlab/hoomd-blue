@@ -154,11 +154,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         template<class RNG>
         inline void generateDepletant(RNG& rng, vec3<Scalar> pos_sphere, Scalar delta, Scalar d_min,
             vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletants);
-
-        //! Generate a random position in the spherical cap
-        template<class RNG>
-        inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
-             Scalar R, Scalar h, const vec3<Scalar>& d);
     };
 
 /*! \param sysdef System definition
@@ -277,6 +272,10 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
+
+        // extend the image list by the depletant diameter, since we're querying
+        // AABBs that are larger than the shape diameters themselves
+        this->m_extra_image_width = tmp.getCircumsphereDiameter();
         }
 
     this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicitNew: updating nominal width to " << this->m_nominal_width << std::endl;
@@ -868,64 +867,6 @@ inline void IntegratorHPMCMonoImplicitNew<Shape>::generateDepletant(RNG& rng, ve
         orientation = generateRandomOrientation(rng);
         }
     pos = pos_depletant;
-    }
-
-/* Generate a uniformly distributed random position in a spherical cap
- *
- * \param rng The random number generator
- * \param pos_sphere Center of sphere
- * \param R radius of sphere
- * \param h height of spherical cap
- * \param d Vector normal to the cap
- */
-template<class Shape>
-template<class RNG>
-inline vec3<Scalar> IntegratorHPMCMonoImplicitNew<Shape>::generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
-     Scalar R, Scalar h, const vec3<Scalar>& d)
-    {
-    // draw a radial coordinate uniformly distributed in the spherical cap
-    Scalar u = rng.template s<Scalar>();
-    Scalar Rmh = R-h;
-    Scalar arg = 2*u*h*h*(3*R-h)/(Rmh*Rmh*Rmh)-1;
-    Scalar r;
-    if (arg > 1.0)
-        {
-        r = Scalar(0.5)*Rmh*(1+2*cosh(log(arg+sqrt(arg*arg-1))/3));
-        }
-    else
-        {
-        // principal branch of acos
-        r = Scalar(0.5)*Rmh*(1+2*cos(acos(arg)/3));
-        }
-
-    // draw a random unit vector in a zone of height h_prime in the spherical cap
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar h_prime = r-R+h;
-    Scalar z = (R-h)+h_prime*rng.template s<Scalar>();
-
-    // unit vector in cap direction
-    vec3<Scalar> n = d/sqrt(dot(d,d));
-
-    // find two unit vectors normal to n
-    vec3<Scalar> ez(0,0,1);
-    vec3<Scalar> n1, n2;
-    vec3<Scalar> c = cross(n,ez);
-    if (dot(c,c)==0.0)
-        {
-        n1 = vec3<Scalar>(1,0,0);
-        n2 = vec3<Scalar>(0,1,0);
-        }
-    else
-        {
-        n1 = c/sqrt(dot(c,c));
-        c = cross(n,n1);
-        n2 = c/sqrt(dot(c,c));
-        }
-
-    vec3<Scalar> r_cone = n1*sqrt(r*r-z*z)*cos(theta)+n2*sqrt(r*r-z*z)*sin(theta)+n*z;
-
-    // test depletant position
-    return pos_sphere+r_cone;
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step

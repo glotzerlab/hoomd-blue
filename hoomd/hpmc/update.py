@@ -906,21 +906,13 @@ class cluster(_updater):
         self.setupUpdater(period)
 
     ## Update parameters
-    # \param d (If set) Update cluster translation move size
+    # \param move_ratio (If set) Update ratio of pivot to reflection moves
     #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # cluster = hpmc.cluster.update(mc = mc)
-    # cluster.set_param(d=1.0)
-    # ~~~~~~~~~~~~
-    #
-    def set_params(self, d = None, a = None):
-        util.print_status_line();
+    def set_params(self, move_ratio):
+        hoomd.util.print_status_line();
 
-        if d is not None:
-            self.cpp_updater.setClusterD(float(d))
-        if a is not None:
-            self.cpp_updater.setClusterA(float(a))
+        if move_ratio is not None:
+            self.cpp_updater.setMoveRatio(float(move_ratio))
 
     ## Get the average acceptance ratio for translate moves
     #
