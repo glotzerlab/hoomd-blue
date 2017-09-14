@@ -1,4 +1,5 @@
-#! /usr/bin/env hoomd
+from __future__ import division
+
 from hoomd import *
 from hoomd import hpmc
 
@@ -25,7 +26,10 @@ context.msg.notice(1,"{} parameters\n".format(len(params)))
 # choose a random state point
 import random
 p = int(option.get_user()[0])
-(seed, phi_c, eta_p_r) = params[p]
+(seed, phi_c, eta_p_r) = params[p % len(params)]
+
+# are we using update.cluster?
+use_clusters = p//len(params)
 
 context.msg.notice(1,"parameter {} seed {} phi_c {:.3f} eta_p_r {:.3f}\n".format(p,seed, phi_c, eta_p_r))
 # test the equation of state of spheres with penetrable depletant spheres
@@ -142,6 +146,9 @@ class implicit_test (unittest.TestCase):
             if comm.get_rank() == 0:
                 print('eta_p =', v);
 
+        if use_clusters:
+            hpmc.update.cluster(self.mc,period=1)
+
         run(4e5,callback=log_callback,callback_period=100)
 
         import BlockAverage
@@ -200,6 +207,9 @@ class implicit_test (unittest.TestCase):
             eta_p_measure.append(v)
             if comm.get_rank() == 0:
                 print('eta_p =', v);
+
+        if use_clusters:
+            hpmc.update.cluster(self.mc,period=1)
 
         run(4e5,callback=log_callback,callback_period=100)
 
