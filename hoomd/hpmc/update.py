@@ -831,7 +831,7 @@ class cluster(_updater):
     #     run(1e4)
     #     tuner.update()
     # ~~~~~~~~~~~~
-    def __init__(self, mc, period=1, seed=18293):
+    def __init__(self, mc, seed, period=1):
         hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
