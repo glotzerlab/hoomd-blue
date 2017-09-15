@@ -1019,13 +1019,31 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         // initialize RNG
         hoomd::detail::Saru rng(timestep, this->m_seed, 0x12f40ab9);
 
+        // apply a random box shift to compensate for the uncrossable periodic boundaries
+        const BoxDim& box = m_pdata->getGlobalBox();
+        vec3<Scalar> shift_f(0,0,0);
+        shift_f.x = rng.template s<Scalar>();
+        shift_f.y = rng.template s<Scalar>();
+        if (this->m_sysdef->getNDimensions() == 3)
+            {
+            shift_f.z = rng.template s<Scalar>();
+            }
+        vec3<Scalar> shift = vec3<Scalar>(box.getLatticeVector(0))*shift_f.x;
+        shift += vec3<Scalar>(box.getLatticeVector(1))*shift_f.y;
+        shift += vec3<Scalar>(box.getLatticeVector(2))*shift_f.z;
+
+        // apply shift
+        for (unsigned int i = 0; i < snap.size; i++)
+            {
+            snap.pos[i] += vec3<Scalar>(shift);
+            box.wrap(snap.pos[i], snap.image[i]);
+            }
+
         // select a pivot
         Scalar3 f;
         f.x = rng.template s<Scalar>();
         f.y = rng.template s<Scalar>();
         f.z = rng.template s<Scalar>();
-
-        const BoxDim& box = this->m_pdata->getGlobalBox();
 
         vec3<Scalar> pivot(box.makeCoordinates(f));
 
@@ -1126,9 +1144,19 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 // wrap particle j back into box
                 int3 img_i = box.getImage(snap.pos[i]);
                 snap.pos[i] = box.shift(snap.pos[i], -img_i);
+                snap.image[i] += img_i;
                 }
             }
+
+        // reverse shift
+        for (unsigned int i = 0; i < snap.size; i++)
+            {
+            snap.pos[i] -= vec3<Scalar>(shift);
+            box.wrap(snap.pos[i], snap.image[i]);
+            }
+
         }
+
     // reload particle data
     m_pdata->initializeFromSnapshot(snap);
 
