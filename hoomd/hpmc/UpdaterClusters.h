@@ -85,6 +85,28 @@ void Graph::addEdge(int v, int w)
     }
 } // end namespace detail
 
+/*! A generic cluster move for implicit depletant integrators.
+
+    The cluster move set employed consists of pivot (point mirroring) and
+    line reflection (pi rotation) moves. The algorithm therefore implements
+    a simplified version of the Geometric Cluster algorithm, cf. Liu and Luijten
+    PRL 2004 and Sinkovits, Barr and Luijten JCP 2012.
+
+    The algorithm has been simplified to not perform any detailed overlap
+    checks, only circumsphere overlap checks. This choice does not affect
+    correctness, it only affects ergodicity. Therefore the cluster move should
+    be combined with a local move, that is, IntegratorHPMCMonoImplicit(New).
+
+    It should be straight forward to generalize the updater to general
+    enthalpic potentials.
+
+    In order to support anisotropic particles, we have to reject moves that
+    cross the PBC, as described in Sinkovits et al. Furthermore, the class
+    doesn't support any parallelization - it will work in MPI, but only in serial.
+    The reason is that GCA-like algorithm's are not easily parallelizable
+    because of the non-local nature of the move set.
+*/
+
 template< class Shape, class Integrator >
 class UpdaterClusters : public Updater
     {
@@ -535,12 +557,6 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
     m_ptl_reject.clear();
     m_ptl_reject.resize(snap.size,false);
 
-    // List of particles whose circumspheres intersect particle i's excluded-volume circumsphere
-    std::vector<unsigned int> intersect_i;
-
-    // List of particle images that intersect
-    std::vector<unsigned int> image_i;
-
     const BoxDim& global_box = m_pdata->getGlobalBox();
 
     // cluster according to overlap of excluded volume shells
@@ -619,8 +635,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                             unsigned int err = 0;
                             if (rsq_ij <= RaRb*RaRb)
                                 {
-                                if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])]
-                                    && test_overlap(r_ij, shape_i, shape_j, err))
+                                if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])])
+//                                    && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
                                     m_G.addEdge(i,j);
@@ -699,8 +715,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 unsigned int err = 0;
                                 if (rsq_ij <= RaRb*RaRb)
                                     {
-                                    if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])]
-                                        && test_overlap(r_ij, shape_i, shape_j_new, err))
+                                    if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])])
+//                                        && test_overlap(r_ij, shape_i, shape_j_new, err))
                                         {
                                         int3 delta_img = m_image_hkl[cur_image]+img_j-img_i;
                                         if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
