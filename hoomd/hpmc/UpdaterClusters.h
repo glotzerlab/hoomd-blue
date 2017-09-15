@@ -638,8 +638,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                             unsigned int err = 0;
                             if (rsq_ij <= RaRb*RaRb)
                                 {
-                                if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])])
-//                                    && test_overlap(r_ij, shape_i, shape_j, err))
+                                if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])]
+                                    && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
                                     m_G.addEdge(i,j);
@@ -718,8 +718,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 unsigned int err = 0;
                                 if (rsq_ij <= RaRb*RaRb)
                                     {
-                                    if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])])
-//                                        && test_overlap(r_ij, shape_i, shape_j_new, err))
+                                    if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])]
+                                        && test_overlap(r_ij, shape_i, shape_j_new, err))
                                         {
                                         int3 delta_img = m_image_hkl[cur_image]+img_j-img_i;
                                         if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
