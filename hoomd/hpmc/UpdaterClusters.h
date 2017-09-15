@@ -463,7 +463,7 @@ void UpdaterClusters<Shape,Integrator>::buildAABBTrees(const SnapshotParticleDat
                 else
                     {
                     // line reflection
-                    pos_new = rotate(q, snap.pos[cur_particle]);
+                    pos_new = lineReflection(snap.pos[cur_particle], pivot, q);
 
                     if (shape_new.hasOrientation())
                         {
@@ -581,7 +581,7 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
         else
             {
             // line reflection
-            pos_i_new = rotate(q, pos_i_new);
+            pos_i_new = lineReflection(pos_i_new, pivot, q);
             orientation_i_new = q*orientation_i_new;
             }
 
@@ -696,7 +696,7 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 // load the position and orientation of the j particle
 
                                 // transform coordinates of ptl j for a line reflection
-                                vec3<Scalar> pos_j_new = rotate(q, snap.pos[j]);
+                                vec3<Scalar> pos_j_new = lineReflection(snap.pos[j], pivot, q);
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
                                 if (shape_j_new.hasOrientation())
                                     {
@@ -812,7 +812,7 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 vec3<Scalar> pos_j_new;
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
                                 // line reflection
-                                pos_j_new = rotate(q, pos_j);
+                                pos_j_new = lineReflection(pos_j, pivot, q);
 
                                 if (shape_j_new.hasOrientation())
                                     {
@@ -880,7 +880,7 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 if (i == j) continue;
 
                                 // transform coordinates of ptl j for a line reflection
-                                vec3<Scalar> pos_j_new = rotate(q, snap.pos[j]);
+                                vec3<Scalar> pos_j_new = lineReflection(snap.pos[j], pivot, q);
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
 
                                 // wrap particle j back into box
@@ -1090,7 +1090,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                         else
                             {
                             // line reflection
-                            pos_i = rotate(q, pos_i);
+                            pos_i = lineReflection(pos_i, pivot, q);
                             orientation_i = q*orientation_i;
                             }
 
