@@ -1,5 +1,6 @@
-mkdir build-conda
+mkdir -p build-conda
 cd build-conda
+rm -rf ./*
 
 export GCC_ARCH=core2
 
@@ -36,11 +37,10 @@ cmake ../ \
       -DMPI_C_COMPILER=${PREFIX}/bin/mpicc \
        \
       -DENABLE_CUDA=on \
-      -DENABLE_EMBED_CUDA=on \
+      -DENABLE_EMBED_CUDA=off \
        \
       -DBUILD_TESTING=off \
       -DMKL_LIBRARIES=""
 
-make install -j 4
+make install -j 2
 fi
-
