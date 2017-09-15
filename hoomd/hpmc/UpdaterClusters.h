@@ -288,8 +288,7 @@ void UpdaterClusters<Shape,Integrator>::updateImageList()
     if (ndim == 3)
         e3 = vec3<Scalar>(box.getLatticeVector(2));
 
-    // Maximum interaction range is the sum of *twice* system box circumsphere diameter and the max particle circumsphere diameter
-    // twice, because of reflection and pivot
+    // Maximum interaction range is the sum of system box circumsphere diameter and the max particle circumsphere diameter
     Scalar range = 0.0f;
     // Try four linearly independent body diagonals and find the longest
     vec3<Scalar> body_diagonal;
@@ -301,7 +300,7 @@ void UpdaterClusters<Shape,Integrator>::updateImageList()
     range = std::max(range, dot(body_diagonal, body_diagonal));
     body_diagonal = e1 + e2 + e3;
     range = std::max(range, dot(body_diagonal, body_diagonal));
-    range = 2*fast::sqrt(range);
+    range = fast::sqrt(range);
 
     // add extra range
     range += m_extra_range;
@@ -411,6 +410,8 @@ void UpdaterClusters<Shape,Integrator>::buildAABBTrees(const SnapshotParticleDat
     m_exec_conf->msg->notice(8) << "UpdaterClusters building AABB tree: " << m_pdata->getNGlobal() << " ptls " << std::endl;
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "AABB tree build");
 
+    const BoxDim& global_box = m_pdata->getGlobalBox();
+
     // build the AABB trees
         {
         const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
@@ -444,6 +445,11 @@ void UpdaterClusters<Shape,Integrator>::buildAABBTrees(const SnapshotParticleDat
                         shape_new.orientation = q*shape_new.orientation;
                         }
                     }
+
+                // wrap particle back into box
+                int3 img = make_int3(0,0,0);
+                global_box.wrap(pos_new, img);
+
                 m_aabbs_new[cur_particle] = shape_new.getAABB(pos_new);
                 }
             m_aabb_tree.buildTree(m_aabbs, n_aabb);
@@ -560,6 +566,10 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
             orientation_i_new = q*orientation_i_new;
             }
 
+        // wrap particle i back into box
+        int3 img_i = make_int3(0,0,0);
+        global_box.wrap(pos_i_new, img_i);
+
         Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
@@ -618,56 +628,12 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     // no need to check PBC for isometries
                                     if (! line) continue;
 
-                                    if (cur_image != 0)
+                                    int3 delta_img = m_image_hkl[cur_image]-img_i;
+                                    if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
                                         {
-                                        // ptl interacts via PBC, do no transform its cluster
+                                        // ptls interact via PBC, do not transform the cluster
                                         reject = true;
                                         }
-
-                                    // transform coordinates of ptl j
-                                    vec3<Scalar> pos_j_new;
-                                    Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
-
-                                    // line reflection
-                                    pos_j_new = rotate(q, pos_j);
-
-                                    if (shape_j_new.hasOrientation())
-                                        {
-                                        shape_j_new.orientation = q*shape_j_new.orientation;
-                                        }
-
-                                    // does i overlap with j in the new configuration in any other image?
-                                    for (unsigned int cur_image_j = 0; cur_image_j < n_images; cur_image_j++)
-                                        {
-                                        vec3<Scalar> pos_j_image = pos_j_new + m_image_list[cur_image_j];
-                                        vec3<Scalar> r_ij_new = pos_j_image - pos_i_new;
-                                        Scalar rsq_ij_new = dot(r_ij_new,r_ij_new);
-
-                                        if (rsq_ij_new <= RaRb*RaRb && test_overlap(r_ij_new, shape_i, shape_j, err))
-                                            {
-                                            // do not transform
-                                            reject = true;
-                                            break;
-                                            }
-                                        }
-
-                                    if (reject) continue;
-
-                                    // does i overlap with j via PBC with both particles being in the old configuration?
-                                    for (unsigned int cur_image_j = 0; cur_image_j < n_images; cur_image_j++)
-                                        {
-                                        vec3<Scalar> pos_j_image = pos_j + m_image_list[cur_image_j];
-                                        vec3<Scalar> r_ij_old = pos_j_image - pos_i_old;
-                                        Scalar rsq_ij_old = dot(r_ij_old,r_ij_old);
-
-                                        if (rsq_ij_old <= RaRb*RaRb && test_overlap(r_ij_old, shape_i, shape_j, err))
-                                            {
-                                            // do not transform
-                                            reject = true;
-                                            break;
-                                            }
-                                        }
-
                                     } // end if overlap
                                 }
 
@@ -713,6 +679,14 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 // transform coordinates of ptl j for a line reflection
                                 vec3<Scalar> pos_j_new = rotate(q, snap.pos[j]);
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
+                                if (shape_j_new.hasOrientation())
+                                    {
+                                    shape_j_new.orientation = q*shape_j_new.orientation;
+                                    }
+
+                                // wrap particle j back into box
+                                int3 img_j = make_int3(0,0,0);
+                                global_box.wrap(pos_j_new, img_j);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_new - pos_i_image;
@@ -728,7 +702,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     if (h_overlaps.data[overlap_idx(typ_i,snap.type[j])]
                                         && test_overlap(r_ij, shape_i, shape_j_new, err))
                                         {
-                                        if (cur_image != 0)
+                                        int3 delta_img = m_image_hkl[cur_image]+img_j-img_i;
+                                        if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
                                             {
                                             // ptl interacts via PBC, do not transform its cluster
                                             m_G.addEdge(i,j);
@@ -801,9 +776,11 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
 
                                 // does i in the new conf overlap with j in the old conf in the same image?
                                 vec3<Scalar> r_ij_new = pos_j - pos_i_new;
-                                Scalar rsq_ij_new = dot(r_ij_new,r_ij_new);
 
-                                if (! (rsq_ij_new <= RaRb*RaRb))
+                                // shift i back into original image
+                                global_box.shift(r_ij_new,-img_i);
+
+                                if (! (dot(r_ij_new,r_ij_new) <= RaRb*RaRb))
                                     {
                                     // no, the particles are transformed as part of the same cluster
                                     m_G.addEdge(i,j);
@@ -823,6 +800,10 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     shape_j_new.orientation = q*shape_j_new.orientation;
                                     }
 
+                                // wrap particle j back into box
+                                int3 img_j = make_int3(0,0,0);
+                                global_box.wrap(pos_j_new, img_j);
+
                                 // does i interact with j in the new configuration in any other image?
                                 for (unsigned int cur_image_j = 0; cur_image_j < n_images; cur_image_j++)
                                     {
@@ -830,7 +811,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     vec3<Scalar> r_ij_new = pos_j_image - pos_i_new;
                                     Scalar rsq_ij_new = dot(r_ij_new,r_ij_new);
 
-                                    if (rsq_ij_new <= RaRb*RaRb && cur_image_j != 0)
+                                    int3 delta_img = m_image_hkl[cur_image_j]-img_j+img_i;
+                                    if (rsq_ij_new <= RaRb*RaRb && (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
                                         {
                                         m_G.addEdge(i,j);
 
@@ -881,10 +863,10 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 // transform coordinates of ptl j for a line reflection
                                 vec3<Scalar> pos_j_new = rotate(q, snap.pos[j]);
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
-                                if (shape_j_new.hasOrientation())
-                                    {
-                                    shape_j_new.orientation = q*shape_j_new.orientation;
-                                    }
+
+                                // wrap particle j back into box
+                                int3 img_j = make_int3(0,0,0);
+                                global_box.wrap(pos_j_new, img_j);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_new - pos_i_image;
@@ -894,8 +876,9 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                // are they interacting via PBC, when both i and j are both in the new conf?
-                                if (rsq_ij <= RaRb*RaRb && cur_image != 0)
+                                // are they interacting via PBC, when i and j are both in the new conf?
+                                int3 delta_img = m_image_hkl[cur_image]+img_j-img_i;
+                                if (rsq_ij <= RaRb*RaRb && (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
                                     {
                                     // ptl interacts via PBC, do no transform its cluster
                                     m_G.addEdge(i,j);
@@ -947,8 +930,9 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                // are they interacting via PBC, when both i and j are both in the new conf?
-                                if (rsq_ij <= RaRb*RaRb && cur_image != 0)
+                                // are they interacting via PBC?
+                                int3 delta_img = m_image_hkl[cur_image]-img_i;
+                                if (rsq_ij <= RaRb*RaRb && (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
                                     {
                                     // ptl interacts via PBC, do no transform its cluster
                                     m_G.addEdge(i,j);
@@ -1000,7 +984,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     m_count_step_start = m_count_total;
     //hpmc_counters_t& counters = m_count_total;
 
-    if (m_prof) m_prof->push("Move Clusters");
+    if (m_prof) m_prof->push("HPMC Clusters");
+    if (m_prof) m_prof->push("Move");
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
@@ -1041,8 +1026,12 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             q = quat<Scalar>(0,n);
             }
 
+        if (m_prof) m_prof->pop();
+
         // generate the cluster definitions
         generateClusters(timestep, snap, pivot, q, line);
+
+        if (m_prof) m_prof->push("Move");
 
             {
             // access parameters
@@ -1122,6 +1111,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // reload particle data
     m_pdata->initializeFromSnapshot(snap);
 
+    if (m_prof) m_prof->pop();
     if (m_prof) m_prof->pop();
 
     m_mc_implicit->communicate(true);
