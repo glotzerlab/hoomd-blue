@@ -182,7 +182,10 @@ class UpdaterClusters : public Updater
             {
             hpmc_counters_t counters = getCounters(1);
             m_exec_conf->msg->notice(2) << "-- HPMC cluster move stats:" << std::endl;
-            m_exec_conf->msg->notice(2) << "Average pivot acceptance: " << counters.getTranslateAcceptance() << std::endl;
+            if (counters.translate_accept_count + counters.translate_reject_count != 0)
+                {
+                m_exec_conf->msg->notice(2) << "Average pivot acceptance: " << counters.getTranslateAcceptance() << std::endl;
+                }
             if (counters.rotate_accept_count + counters.rotate_reject_count != 0)
                 {
                 m_exec_conf->msg->notice(2) << "Average reflection acceptance:    " << counters.getRotateAcceptance() << std::endl;
