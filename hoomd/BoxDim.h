@@ -472,6 +472,10 @@ struct BoxDim
             return img;
             }
 
+        HOSTDEVICE int3 getImage(const vec3<Scalar>& v) const
+            {
+            return getImage(vec_to_scalar3(v));
+            }
 
         //! Shift a vector by a multiple of the lattice vectors
         /*! \param v The vector to shift

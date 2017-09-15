@@ -472,8 +472,8 @@ void UpdaterClusters<Shape,Integrator>::buildAABBTrees(const SnapshotParticleDat
                     }
 
                 // wrap particle back into box
-                int3 img = make_int3(0,0,0);
-                global_box.wrap(pos_new, img);
+                int3 img = global_box.getImage(pos_new);
+                pos_new = global_box.shift(pos_new, -img);
 
                 m_aabbs_new[cur_particle] = shape_new.getAABB(pos_new);
                 }
@@ -586,8 +586,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
             }
 
         // wrap particle i back into box
-        int3 img_i = make_int3(0,0,0);
-        global_box.wrap(pos_i_new, img_i);
+        int3 img_i = global_box.getImage(pos_i_new);
+        pos_i_new = global_box.shift(pos_i_new, -img_i);
 
         Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
@@ -704,8 +704,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     }
 
                                 // wrap particle j back into box
-                                int3 img_j = make_int3(0,0,0);
-                                global_box.wrap(pos_j_new, img_j);
+                                int3 img_j = global_box.getImage(pos_j_new);
+                                pos_j_new = global_box.shift(pos_j_new, -img_j);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_new - pos_i_image;
@@ -797,7 +797,7 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 vec3<Scalar> r_ij_new = pos_j - pos_i_new;
 
                                 // shift i back into original image
-                                global_box.shift(r_ij_new,-img_i);
+                                r_ij_new = global_box.shift(r_ij_new,-img_i);
 
                                 if (! (dot(r_ij_new,r_ij_new) <= RaRb*RaRb))
                                     {
@@ -820,8 +820,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                     }
 
                                 // wrap particle j back into box
-                                int3 img_j = make_int3(0,0,0);
-                                global_box.wrap(pos_j_new, img_j);
+                                int3 img_j = global_box.getImage(pos_j_new);
+                                pos_j_new = global_box.shift(pos_j_new, -img_j);
 
                                 // does i interact with j in the new configuration in any other image?
                                 for (unsigned int cur_image_j = 0; cur_image_j < n_images; cur_image_j++)
@@ -884,8 +884,8 @@ void UpdaterClusters<Shape,Integrator>::generateClusters(unsigned int timestep, 
                                 Shape shape_j_new(snap.orientation[j], params[snap.type[j]]);
 
                                 // wrap particle j back into box
-                                int3 img_j = make_int3(0,0,0);
-                                global_box.wrap(pos_j_new, img_j);
+                                int3 img_j = global_box.getImage(pos_j_new);
+                                pos_j_new = global_box.shift(pos_j_new, -img_j);
 
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_new - pos_i_image;
@@ -1123,7 +1123,9 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             // wrap particles back into box
             for (unsigned int i = 0; i < snap.size; i++)
                 {
-                box.wrap(snap.pos[i], snap.image[i]);
+                // wrap particle j back into box
+                int3 img_i = box.getImage(snap.pos[i]);
+                snap.pos[i] = box.shift(snap.pos[i], -img_i);
                 }
             }
         }
