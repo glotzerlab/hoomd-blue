@@ -282,7 +282,7 @@ template< class Shape, class Integrator >
 void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
     std::map<unsigned int, unsigned int> map)
     {
-    if (m_prof) m_prof->push("Interactions");
+    if (m_prof) m_prof->push(m_exec_conf,"Interactions");
 
     // access parameters
     auto& params = m_mc_implicit->getParams();
@@ -535,7 +535,7 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
         } // end loop over local particles
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
     }
 
 /*! Perform a cluster move
@@ -546,7 +546,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
 
-    if (m_prof) m_prof->push("HPMC Clusters");
+    if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // save a copy of the old configuration
     m_n_particles_old = m_pdata->getN();
@@ -569,7 +569,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             }
         }
 
-    if (m_prof) m_prof->push("Transform");
+    if (m_prof) m_prof->push(m_exec_conf,"Transform");
 
     // generate the move, select a pivot
     hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
@@ -685,24 +685,25 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             }
         }
 
+    if (m_prof) m_prof->pop(m_exec_conf);
+
     // store old locality data
     m_aabb_tree_old = m_mc_implicit->buildAABBTree();
 
     // reload particle data
     m_pdata->initializeFromSnapshot(snap);
 
-    if (m_prof) m_prof->pop();
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // update ghosts & signal that AABB tree is invalid
     m_mc_implicit->communicate(true);
 
-    if (m_prof) m_prof->push("HPMC Clusters");
+    if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // determine which particles interact
     findInteractions(timestep, pivot, q, line, map);
 
-    if (m_prof) m_prof->push("Move");
+    if (m_prof) m_prof->push(m_exec_conf,"Move");
 
     // collect interactions on rank 0
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
@@ -824,6 +825,16 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                     m_count_total.translate_accept_count++;
                 }
             } // end loop over clusters
+
+        for (unsigned int i = 0; i < snap.size; i++)
+            {
+            // add back origin shift
+            snap.pos[i] += vec3<Scalar>(origin);
+
+            // wrap back into box
+            box.wrap(snap.pos[i],snap.image[i]);
+            }
+
         } // if master
 
     // finally re-initialize particle data
@@ -832,7 +843,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // restore orgin
     m_pdata->translateOrigin(origin);
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     // in MPI and GPU simulations the integrator takes care of the grid shift
     bool grid_shift = true;
@@ -848,7 +859,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     if (grid_shift)
         {
-        if (m_prof) m_prof->push("Grid shift");
+        if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
 
         // perform the grid shift to compensate for the uncrossable boundaries
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
@@ -872,10 +883,10 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             }
         this->m_pdata->translateOrigin(shift);
 
-        if (m_prof) m_prof->pop();
+        if (m_prof) m_prof->pop(m_exec_conf);
         }
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     m_mc_implicit->communicate(true);
     }
