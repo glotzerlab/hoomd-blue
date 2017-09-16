@@ -765,6 +765,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
                 bool reject = false;
                 // if it forms a bond with a rejected particle, reject this one, too
+                // note: this condition is OK with distance-based clustering, it may have to be
+                // revisited for enthalpic potentials
                 if (m_ptl_reject.find(j) != m_ptl_reject.end())
                     reject = true;
 
