@@ -199,9 +199,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
             flags[comm_flag::tag] = 1;
+            flags[comm_flag::image] = 1;
 
             std::ostringstream o;
-            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag image ";
             if (m_hasOrientation)
                 {
                 flags[comm_flag::orientation] = 1;
@@ -265,6 +266,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Make list of image indices for boxes to check in small-box mode
         const std::vector<vec3<Scalar> >& updateImageList();
 
+        //! Return list of integer shift vectors for periodic images
+        const std::vector<int3>& getImageHKL()
+            {
+            updateImageList();
+            return m_image_hkl;
+            }
+
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
@@ -286,6 +294,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
         std::vector<vec3<Scalar> > m_image_list;             //!< List of potentially interacting simulation box images
+        std::vector<int3> m_image_hkl;               //!< List of potentially interacting simulation box images (integer shifts)
         unsigned int m_image_list_rebuilds;                  //!< Number of times the image list has been rebuilt
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
@@ -895,6 +904,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     m_image_list_valid = true;
     m_image_list_is_initialized = true;
     m_image_list.clear();
+    m_image_hkl.clear();
     m_image_list_rebuilds++;
 
     // Get box vectors
@@ -984,6 +994,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                             {
                             vec3<Scalar> img = (Scalar)hkl.x*e1+(Scalar)hkl.y*e2+(Scalar)hkl.z*e3;
                             m_image_list.push_back(img);
+                            m_image_hkl.push_back(make_int3(hkl.x, hkl.y, hkl.z));
                             added_images = true;
                             }
                         }
