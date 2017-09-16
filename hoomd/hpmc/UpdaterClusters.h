@@ -446,7 +446,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (h_tag.data[i] == m_tag_backup[j]) continue;
+                            auto it = map.find(m_tag_backup[j]);
+                            assert(it != map.end());
+                            unsigned int new_tag_j = it->second;
+
+                            if (h_tag.data[i] == new_tag_j) continue;
 
                             // load the position and orientation of the j particle
                             vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
@@ -468,10 +472,9 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
-                                    unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
                                     m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                    if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
+                                    if (line && (cur_image != 0 || img_i.x != 0 || img_i.y != 0 || img_i.z != 0))
                                         {
                                         m_ptl_reject.insert(h_tag.data[i]);
                                         m_ptl_reject.insert(new_tag_j);
@@ -520,9 +523,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                 unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
                                 Shape shape_j_new(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
 
-                                // get j's periodic image
-                                int3 img_j = h_image.data[j];
-
                                 // put particles in coordinate system of particle i
                                 vec3<Scalar> r_ij = pos_j_new - pos_i_image;
 
@@ -537,13 +537,13 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                         && test_overlap(r_ij, shape_i, shape_j_new, err))
                                         {
-                                        int3 delta_img = img_j-img_i;
-                                        if (cur_image !=0 || (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
-                                            {
-                                            // ptls interact via PBC, do not transform
-                                            m_ptl_reject.insert(h_tag.data[i]);
-                                            m_ptl_reject.insert(h_tag.data[j]);
-                                            }
+                                        // ptls overlap in the new configuration, do not transform
+
+                                        // this is either because they were overlapping initially,
+                                        // or the transformation wraps them across PBC
+
+                                        m_ptl_reject.insert(h_tag.data[i]);
+                                        m_ptl_reject.insert(h_tag.data[j]);
                                         } // end if overlap
                                     } // end if circumsphere overlap
                                 } // end loop over AABB tree leaf
@@ -606,13 +606,15 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
                                 // are they interacting via PBC, when i and j are both in the new conf?
-                                int3 delta_img = img_j-img_i;
-                                if (rsq_ij <= RaRb*RaRb &&
-                                    (cur_image !=0 || (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)))
+                                if (rsq_ij <= RaRb*RaRb)
                                     {
-                                    // ptls interacts via PBC, do no transform their clusters
-                                    m_ptl_reject.insert(h_tag.data[i]);
-                                    m_ptl_reject.insert(h_tag.data[j]);
+                                    if (img_i.x !=0 || img_i.y != 0 || img_i.z != 0
+                                        || img_j.x != 0 || img_j.y != 0 || img_j.z != 0)
+                                        {
+                                        // ptls interacts via PBC, do no transform their clusters
+                                        m_ptl_reject.insert(h_tag.data[i]);
+                                        m_ptl_reject.insert(h_tag.data[j]);
+                                        }
                                     }
                                 } // end loop over AABB tree leaf
                             } // end is leaf
@@ -648,7 +650,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (h_tag.data[i] == m_tag_backup[j]) continue;
+                            auto it = map.find(m_tag_backup[j]);
+                            assert(it != map.end());
+                            unsigned int new_tag_j = it->second;
+
+                            if (h_tag.data[i] == new_tag_j) continue;
 
                             vec3<Scalar> pos_j(m_postype_backup[j]);
                             unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
@@ -665,7 +671,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
                                 // are they interacting via PBC?
-                                unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
                                 if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
                                     {
                                     // ptls interact via PBC, do not transform
@@ -761,7 +766,20 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
     // obtain particle data from all ranks
+
+    // save origin information
+    Scalar3 origin = m_pdata->getOrigin();
+    m_pdata->resetOrigin();
+
     auto map = m_pdata->takeSnapshot(snap);
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // we need the particle tag -> snapshot idx map on all ranks
+        bcast(map, 0, m_exec_conf->getMPICommunicator());
+        }
+    #endif
 
     // keep a backup copy
     auto snap_old = snap;
@@ -938,8 +956,11 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             } // end loop over clusters
         } // if master
 
-    // finally re-intialize particle data
+    // finally re-initialize particle data
     m_pdata->initializeFromSnapshot(snap);
+
+    // restore orgin
+    m_pdata->translateOrigin(origin);
 
     if (m_prof) m_prof->pop();
 
