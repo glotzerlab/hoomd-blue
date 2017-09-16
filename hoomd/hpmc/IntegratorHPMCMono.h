@@ -199,10 +199,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
             flags[comm_flag::tag] = 1;
-            flags[comm_flag::image] = 1;
 
             std::ostringstream o;
-            o << "IntegratorHPMCMono: Requesting communication flags for pos tag image ";
+            o << "IntegratorHPMCMono: Requesting communication flags for pos tag ";
             if (m_hasOrientation)
                 {
                 flags[comm_flag::orientation] = 1;

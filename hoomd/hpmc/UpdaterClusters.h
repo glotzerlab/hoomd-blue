@@ -297,9 +297,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
         d_dep = tmp.getCircumsphereDiameter();
         }
 
-    // update the aabb tree in the current configuration
-    auto& aabb_tree_new = m_mc_implicit->buildAABBTree();
-
     // update the image list
     auto image_list = m_mc_implicit->updateImageList();
     auto image_hkl = m_mc_implicit->getImageHKL();
@@ -320,7 +317,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
-    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     // test old configuration against itself
     for (unsigned int i = 0; i < m_n_particles_old; ++i)
@@ -380,14 +376,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                 assert(it!=map.end());
                                 unsigned int new_tag_j = it->second;
                                 m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
-
-                                // are they interacting via PBC, when both i and j are in the old conf?
-                                if (line && cur_image != 0)
-                                    {
-                                    // ptls interact via PBC, do no transform their clusters
-                                    m_ptl_reject.insert(new_tag_i);
-                                    m_ptl_reject.insert(new_tag_j);
-                                    }
                                 } // end if overlap
 
                             } // end loop over AABB tree leaf
@@ -412,9 +400,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
         vec3<Scalar> pos_i_new(h_postype.data[i]);
         quat<Scalar> orientation_i_new(h_orientation.data[i]);
-
-        // image of particle i
-        int3 img_i = h_image.data[i];
 
         Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
@@ -472,12 +457,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     {
                                     // add connection
                                     m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
-
-                                    if (line && (cur_image != 0 || img_i.x != 0 || img_i.y != 0 || img_i.z != 0))
-                                        {
-                                        m_ptl_reject.insert(h_tag.data[i]);
-                                        m_ptl_reject.insert(new_tag_j);
-                                        }
                                     } // end if overlap
                                 }
 
@@ -493,141 +472,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                 } // end loop over nodes
             } // end loop over images
 
-        if (line)
-            {
-            // check new against new (line reflections are not isometries)
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
-
-                detail::AABB aabb_i_image = aabb_i;
-                aabb_i_image.translate(image_list[cur_image]);
-
-                // stackless search in the transformed particle tree
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree_new.getNumNodes(); cur_node_idx++)
-                    {
-                    if (detail::overlap(aabb_tree_new.getNodeAABB(cur_node_idx), aabb_i_image))
-                        {
-                        if (aabb_tree_new.isNodeLeaf(cur_node_idx))
-                            {
-                            for (unsigned int cur_p = 0; cur_p < aabb_tree_new.getNodeNumParticles(cur_node_idx); cur_p++)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree_new.getNodeParticle(cur_node_idx, cur_p);
-
-                                if (i == j) continue;
-
-                                // load the transformed position and orientation of the j particle
-                                vec3<Scalar> pos_j_new(h_postype.data[j]);
-                                unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
-                                Shape shape_j_new(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = pos_j_new - pos_i_image;
-
-                                // check for circumsphere overlap
-                                Scalar r_excl_j = shape_j_new.getCircumsphereDiameter()/Scalar(2.0);
-                                Scalar RaRb = r_excl_i + r_excl_j;
-                                Scalar rsq_ij = dot(r_ij, r_ij);
-
-                                unsigned int err = 0;
-                                if (rsq_ij <= RaRb*RaRb)
-                                    {
-                                    if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
-                                        && test_overlap(r_ij, shape_i, shape_j_new, err))
-                                        {
-                                        // ptls overlap in the new configuration, do not transform
-
-                                        // this is either because they were overlapping initially,
-                                        // or the transformation wraps them across PBC
-
-                                        m_ptl_reject.insert(h_tag.data[i]);
-                                        m_ptl_reject.insert(h_tag.data[j]);
-                                        } // end if overlap
-                                    } // end if circumsphere overlap
-                                } // end loop over AABB tree leaf
-                            } // end is leaf
-                        } // end if overlap
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree_new.getNodeSkip(cur_node_idx);
-                        }
-
-                    } // end loop over nodes
-                } // end loop over images
-            } // end if transformed && line transformation
-
         // check overlap of depletant-excluded volumes
 
         // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
         // Here, circumsphere refers to the sphere around the depletant-excluded volume
         detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-        if (line)
-            {
-            // check new against new for non-isometries
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
-
-                detail::AABB aabb_i_image = aabb_local;
-                aabb_i_image.translate(pos_i_image);
-
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree_new.getNumNodes(); cur_node_idx++)
-                    {
-                    if (detail::overlap(aabb_tree_new.getNodeAABB(cur_node_idx), aabb_i_image))
-                        {
-                        if (aabb_tree_new.isNodeLeaf(cur_node_idx))
-                            {
-                            for (unsigned int cur_p = 0; cur_p < aabb_tree_new.getNodeNumParticles(cur_node_idx); cur_p++)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = aabb_tree_new.getNodeParticle(cur_node_idx, cur_p);
-
-                                if (i == j) continue;
-
-                                // transform coordinates of ptl j for a line reflection
-                                vec3<Scalar> pos_j_new(h_postype.data[j]);
-                                unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
-                                Shape shape_j_new(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
-
-                                // image of particle j
-                                int3 img_j = h_image.data[j];
-
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = pos_j_new - pos_i_image;
-
-                                // check for excluded volume sphere overlap
-                                Scalar r_excl_j = shape_j_new.getCircumsphereDiameter()/Scalar(2.0);
-                                Scalar RaRb = r_excl_i + r_excl_j + d_dep;
-                                Scalar rsq_ij = dot(r_ij, r_ij);
-
-                                // are they interacting via PBC, when i and j are both in the new conf?
-                                if (rsq_ij <= RaRb*RaRb)
-                                    {
-                                    if (img_i.x !=0 || img_i.y != 0 || img_i.z != 0
-                                        || img_j.x != 0 || img_j.y != 0 || img_j.z != 0)
-                                        {
-                                        // ptls interacts via PBC, do not transform their clusters
-                                        m_ptl_reject.insert(h_tag.data[i]);
-                                        m_ptl_reject.insert(h_tag.data[j]);
-                                        }
-                                    }
-                                } // end loop over AABB tree leaf
-                            } // end is leaf
-                        } // end if overlap
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += aabb_tree_new.getNodeSkip(cur_node_idx);
-                        }
-
-                    } // end loop over nodes
-
-                } // end loop over images
-            } // end if line
 
         // query new against old
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -670,14 +519,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
                                 m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
-
-                                // are they interacting via PBC?
-                                if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
-                                    {
-                                    // ptls interact via PBC, do not transform
-                                    m_ptl_reject.insert(h_tag.data[i]);
-                                    m_ptl_reject.insert(new_tag_j);
-                                    }
                                 }
                             } // end loop over AABB tree leaf
                         } // end is leaf
@@ -794,18 +635,16 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // transform all particles on rank zero
     bool master = !m_exec_conf->getRank();
 
-    #ifdef ENABLE_MPI
     // compute the width of the active region
     Scalar3 npd = box.getNearestPlaneDistance();
-    Scalar3 ghost_fraction = nominal_width / npd;
-    #endif
+    Scalar3 range = nominal_width / npd;
 
     // reset list of rejected particles
     m_ptl_reject.clear();
 
-    // create a copy of the box with the periodicity flags of the local box
+    // create a copy of the box without periodic boundaries
     BoxDim global_box_nonperiodic = box;
-    global_box_nonperiodic.setPeriodic(m_pdata->getBox().getPeriodic());
+    global_box_nonperiodic.setPeriodic(make_uchar3(0,0,0));
 
     if (master)
         {
@@ -814,14 +653,11 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; ++i)
             {
-            #ifdef ENABLE_MPI
-            // if the particle falls in a slab along the global boundary where
-            // it would interact across PBC, reject
-            if (! isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, ghost_fraction))
+            // if the particle falls outside the active volume of the box, reject
+            if (!isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
                 }
-            #endif
 
             if (!line)
                 {
@@ -837,21 +673,15 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                     snap.orientation[i] = q*snap.orientation[i];
                 }
 
-            // wrap particle back into box
-            int3 img_i = box.getImage(snap.pos[i]);
-            snap.pos[i] = box.shift(snap.pos[i], -img_i);
-
-            // Note this wipes out the existing image flag
-            // but images don't really have a meaning with non-local moves
-            snap.image[i] = img_i;
-
-            #ifdef ENABLE_MPI
-            // reject if inactive in new position
-            if (! isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, ghost_fraction))
+            // reject if outside active region at new position
+            if (!isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
                 }
-            #endif
+
+            // wrap particle back into box
+            int3 img_i = box.getImage(snap.pos[i]);
+            snap.pos[i] = box.shift(snap.pos[i], -img_i);
             }
         }
 
@@ -878,7 +708,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
-    std::vector< std::set<unsigned int> > all_reject;
 
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -886,7 +715,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         gather_v(m_overlap, all_overlap, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_old_old, all_interact_old_old, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_new_old, all_interact_new_old, 0, m_exec_conf->getMPICommunicator());
-        gather_v(m_ptl_reject, all_reject, 0, m_exec_conf->getMPICommunicator());
         }
     else
     #endif
@@ -894,7 +722,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         all_overlap.push_back(m_overlap);
         all_interact_old_old.push_back(m_interact_old_old);
         all_interact_new_old.push_back(m_interact_new_old);
-        all_reject.push_back(m_ptl_reject);
         }
 
     if (master)
@@ -936,7 +763,12 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                         }
                     }
 
-                if (!interact_new)
+                bool reject = false;
+                // if it forms a bond with a rejected particle, reject this one, too
+                if (m_ptl_reject.find(j) != m_ptl_reject.end())
+                    reject = true;
+
+                if (!interact_new || reject)
                     m_G.addEdge(i, j);
                 }
             }
@@ -956,19 +788,12 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         // move every cluster independently
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
             {
-            // loop over cluster members
+            // if any particle in the cluster is rejected, the cluster is not transformed
             bool reject = false;
             for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                 {
-                // if any of the ptls in this cluster connects across PBC, reject move
-                for (auto it_j = all_reject.begin(); it_j != all_reject.end(); ++it_j)
-                    {
-                    if (it_j->find(*it) != it_j->end())
-                        {
-                        reject = true;
-                        break;
-                        }
-                    }
+                if (m_ptl_reject.find(*it) != m_ptl_reject.end())
+                    reject = true;
                 }
 
             if (reject)
@@ -1007,7 +832,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     if (m_prof) m_prof->pop();
 
-    // in MPI and GPU simulations the grid shift is performed by the HPMC integrator already
+    // in MPI and GPU simulations the integrator takes care of the grid shift
     bool grid_shift = true;
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
