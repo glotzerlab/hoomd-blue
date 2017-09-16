@@ -707,7 +707,6 @@ template< class Shape, class Integrator >
 void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
-    //hpmc_counters_t& counters = m_count_total;
 
     if (m_prof) m_prof->push("HPMC Clusters");
 
