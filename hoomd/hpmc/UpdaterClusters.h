@@ -153,9 +153,9 @@ class UpdaterClusters : public Updater
             // start with the integrator provided quantities
             std::vector< std::string > result;
             // then add ours
-            result.push_back("hpmc_cluster_sweep");
-            result.push_back("hpmc_cluster_translate_acceptance");
-            result.push_back("hpmc_cluster_rotate_acceptance");
+            result.push_back("hpmc_cluster_moves");
+            result.push_back("hpmc_cluster_pivot_acceptance");
+            result.push_back("hpmc_cluster_reflection_acceptance");
             return result;
             }
 
@@ -821,10 +821,13 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // reload particle data
     m_pdata->initializeFromSnapshot(snap);
 
+    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->pop();
+
     // update ghosts & signal that AABB tree is invalid
     m_mc_implicit->communicate(true);
 
-    if (m_prof) m_prof->pop();
+    if (m_prof) m_prof->push("HPMC Clusters");
 
     // determine which particles interact
     findInteractions(timestep, pivot, q, line, map);
