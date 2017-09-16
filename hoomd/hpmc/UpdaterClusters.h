@@ -311,7 +311,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
     m_overlap.clear();
     m_interact_old_old.clear();
     m_interact_new_old.clear();
-    m_ptl_reject.clear();
 
     // cluster according to overlap of excluded volume shells
     // loop over local particles
@@ -611,7 +610,7 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     if (img_i.x !=0 || img_i.y != 0 || img_i.z != 0
                                         || img_j.x != 0 || img_j.y != 0 || img_j.z != 0)
                                         {
-                                        // ptls interacts via PBC, do no transform their clusters
+                                        // ptls interacts via PBC, do not transform their clusters
                                         m_ptl_reject.insert(h_tag.data[i]);
                                         m_ptl_reject.insert(h_tag.data[j]);
                                         }
@@ -670,16 +669,14 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
+                                m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
+
                                 // are they interacting via PBC?
                                 if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
                                     {
                                     // ptls interact via PBC, do not transform
                                     m_ptl_reject.insert(h_tag.data[i]);
                                     m_ptl_reject.insert(new_tag_j);
-                                    }
-                                else
-                                    {
-                                    m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
                                     }
                                 }
                             } // end loop over AABB tree leaf
@@ -759,9 +756,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         q = quat<Scalar>(0,n);
         }
 
-    // transform all particles on rank zero
-    bool master = !m_exec_conf->getRank();
-
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
     // obtain particle data from all ranks
@@ -783,6 +777,36 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // keep a backup copy
     auto snap_old = snap;
 
+    // precalculate the grid shift
+    Scalar nominal_width = m_mc_implicit->getMaxDiameter();
+
+    // access parameters
+    auto& params = m_mc_implicit->getParams();
+
+    if (m_mc_implicit->getDepletantDensity() > Scalar(0.0))
+        {
+        // add range of depletion interaction
+        quat<Scalar> o;
+        Shape tmp(o, params[m_mc_implicit->getDepletantType()]);
+        nominal_width += tmp.getCircumsphereDiameter();
+        }
+
+    // transform all particles on rank zero
+    bool master = !m_exec_conf->getRank();
+
+    #ifdef ENABLE_MPI
+    // compute the width of the active region
+    Scalar3 npd = box.getNearestPlaneDistance();
+    Scalar3 ghost_fraction = nominal_width / npd;
+    #endif
+
+    // reset list of rejected particles
+    m_ptl_reject.clear();
+
+    // create a copy of the box with the periodicity flags of the local box
+    BoxDim global_box_nonperiodic = box;
+    global_box_nonperiodic.setPeriodic(m_pdata->getBox().getPeriodic());
+
     if (master)
         {
         // access parameters
@@ -790,6 +814,15 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; ++i)
             {
+            #ifdef ENABLE_MPI
+            // if the particle falls in a slab along the global boundary where
+            // it would interact across PBC, reject
+            if (! isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, ghost_fraction))
+                {
+                m_ptl_reject.insert(i);
+                }
+            #endif
+
             if (!line)
                 {
                 // point reflection
@@ -811,6 +844,14 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             // Note this wipes out the existing image flag
             // but images don't really have a meaning with non-local moves
             snap.image[i] = img_i;
+
+            #ifdef ENABLE_MPI
+            // reject if inactive in new position
+            if (! isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, ghost_fraction))
+                {
+                m_ptl_reject.insert(i);
+                }
+            #endif
             }
         }
 
@@ -985,20 +1026,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         // perform the grid shift to compensate for the uncrossable boundaries
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-        // precalculate the grid shift
-        Scalar nominal_width = m_mc_implicit->getMaxDiameter();
-
-        // access parameters
-        auto& params = m_mc_implicit->getParams();
-
-        if (m_mc_implicit->getDepletantDensity() > Scalar(0.0))
-            {
-            // add range of depletion interaction
-            quat<Scalar> o;
-            Shape tmp(o, params[m_mc_implicit->getDepletantType()]);
-            nominal_width += tmp.getCircumsphereDiameter();
-            }
 
         Scalar3 shift = make_scalar3(0,0,0);
         shift.x = rng.s(-nominal_width/Scalar(2.0),nominal_width/Scalar(2.0));
