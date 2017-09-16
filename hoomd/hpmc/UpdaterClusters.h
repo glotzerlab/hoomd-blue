@@ -233,14 +233,15 @@ class UpdaterClusters : public Updater
         detail::Graph m_G; //!< The graph
 
         unsigned int m_n_particles_old;                //!< Number of local particles in the old configuration
-        detail::AABBTree m_aabb_tree_old;                      //!< Locality lookup for old configuration
+        detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
         std::vector<Scalar4> m_postype_backup;         //!< Old local positions
         std::vector<Scalar4> m_orientation_backup;     //!< Old local orientations
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
-        std::set<std::pair<unsigned int, unsigned int> > m_interact_old;  //!< Pairs of particles interacting in the old configuration
-        std::set<std::pair<unsigned int, unsigned int> > m_interact_new;  //!< Pairs of particles interacting with one ptl in new conf
+        std::set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+        std::set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
+
         std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         hpmc_counters_t m_count_total;                 //!< Total count since initialization
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
@@ -284,7 +285,7 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
     if (m_prof) m_prof->push("Interactions");
 
     // access parameters
-    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
+    auto& params = m_mc_implicit->getParams();
 
     // Depletant diameter
     Scalar d_dep;
@@ -297,7 +298,7 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
         }
 
     // update the aabb tree in the current configuration
-    auto aabb_tree_new = m_mc_implicit->buildAABBTree();
+    auto& aabb_tree_new = m_mc_implicit->buildAABBTree();
 
     // update the image list
     auto image_list = m_mc_implicit->updateImageList();
@@ -308,8 +309,8 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
     // clear the local bond and rejection lists
     m_overlap.clear();
-    m_interact_old.clear();
-    m_interact_new.clear();
+    m_interact_old_old.clear();
+    m_interact_new_old.clear();
     m_ptl_reject.clear();
 
     // cluster according to overlap of excluded volume shells
@@ -336,9 +337,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
         detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
 
         const unsigned int n_images = image_list.size();
-
-        // if this cluster transformation is rejected
-        bool reject = false;
 
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
@@ -376,17 +374,20 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
-                                unsigned int new_tag_i = map.find(m_tag_backup[i])->second;
-                                assert(new_tag_i != map.end());
-                                unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
-                                assert(new_tag_j != map.end());
-                                m_interact_old.insert(std::make_pair(new_tag_i,new_tag_j));
+                                auto it = map.find(m_tag_backup[i]);
+                                assert(it != map.end());
+                                unsigned int new_tag_i = it->second;
+                                it = map.find(m_tag_backup[j]);
+                                assert(it!=map.end());
+                                unsigned int new_tag_j = it->second;
+                                m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
 
                                 // are they interacting via PBC, when both i and j are in the old conf?
                                 if (line && cur_image != 0)
                                     {
-                                    // ptl interacts via PBC, do no transform its cluster
-                                    reject = true;
+                                    // ptls interact via PBC, do no transform their clusters
+                                    m_ptl_reject.insert(new_tag_i);
+                                    m_ptl_reject.insert(new_tag_j);
                                     }
                                 } // end if overlap
 
@@ -403,12 +404,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
             } // end loop over images
 
-        // store vertex color
-        if (reject)
-            {
-            unsigned int new_tag_i = map.find(m_tag_backup[i])->second;
-            m_ptl_reject.insert(new_tag_i);
-            }
         } // end loop over old configuration
 
     // loop over new configuration
@@ -424,9 +419,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
         Shape shape_i(orientation_i_new, params[typ_i]);
         Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
-
-        // if this cluster transformation is rejected
-        bool reject = false;
 
         // check for overlap at mirrored position, with other particles in old configuration
         detail::AABB aabb_i = shape_i.getAABB(pos_i_new);
@@ -454,7 +446,7 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (i == j) continue;
+                            if (h_tag.data[i] == m_tag_backup[j]) continue;
 
                             // load the position and orientation of the j particle
                             vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
@@ -479,14 +471,10 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
                                     m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                    // no need to check PBC for isometries
-                                    if (! line) continue;
-
-                                    int3 delta_img = image_hkl[cur_image]-img_i;
-                                    if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
+                                    if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
                                         {
-                                        // ptls interact via PBC, do not transform the cluster
-                                        reject = true;
+                                        m_ptl_reject.insert(h_tag.data[i]);
+                                        m_ptl_reject.insert(new_tag_j);
                                         }
                                     } // end if overlap
                                 }
@@ -549,12 +537,12 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                         && test_overlap(r_ij, shape_i, shape_j_new, err))
                                         {
-                                        int3 delta_img = image_hkl[cur_image]+img_j-img_i;
-                                        if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
+                                        int3 delta_img = img_j-img_i;
+                                        if (cur_image !=0 || (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
                                             {
-                                            // ptl interacts via PBC, do not transform its cluster
-                                            m_overlap.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
-                                            reject = true;
+                                            // ptls interact via PBC, do not transform
+                                            m_ptl_reject.insert(h_tag.data[i]);
+                                            m_ptl_reject.insert(h_tag.data[j]);
                                             }
                                         } // end if overlap
                                     } // end if circumsphere overlap
@@ -618,12 +606,13 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
                                 // are they interacting via PBC, when i and j are both in the new conf?
-                                int3 delta_img = image_hkl[cur_image]+img_j-img_i;
-                                if (rsq_ij <= RaRb*RaRb && (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0))
+                                int3 delta_img = img_j-img_i;
+                                if (rsq_ij <= RaRb*RaRb &&
+                                    (cur_image !=0 || (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)))
                                     {
-                                    // ptl interacts via PBC, do no transform its cluster
-                                    m_interact_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
-                                    reject = true;
+                                    // ptls interacts via PBC, do no transform their clusters
+                                    m_ptl_reject.insert(h_tag.data[i]);
+                                    m_ptl_reject.insert(h_tag.data[j]);
                                     }
                                 } // end loop over AABB tree leaf
                             } // end is leaf
@@ -659,11 +648,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (i == j) continue;
+                            if (h_tag.data[i] == m_tag_backup[j]) continue;
 
                             vec3<Scalar> pos_j(m_postype_backup[j]);
                             unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
+                            Shape shape_j(quat<Scalar>(m_orientation_backup[j]), params[typ_j]);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = pos_j - pos_i_image;
@@ -675,15 +664,17 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
-                                unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
-                                m_interact_new.insert(std::make_pair(h_tag.data[i],new_tag_j));
-
                                 // are they interacting via PBC?
-                                int3 delta_img = image_hkl[cur_image]-img_i;
-                                if (delta_img.x != 0 || delta_img.y != 0 || delta_img.z != 0)
+                                unsigned int new_tag_j = map.find(m_tag_backup[j])->second;
+                                if (line && (cur_image != 0 || (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)))
                                     {
-                                    // ptls interacts via PBC, do not transform
-                                    reject = true;
+                                    // ptls interact via PBC, do not transform
+                                    m_ptl_reject.insert(h_tag.data[i]);
+                                    m_ptl_reject.insert(new_tag_j);
+                                    }
+                                else
+                                    {
+                                    m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
                                     }
                                 }
                             } // end loop over AABB tree leaf
@@ -698,12 +689,6 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                 } // end loop over nodes
 
             } // end loop over images
-
-        // store vertex color
-        if (reject)
-            {
-            m_ptl_reject.insert(h_tag.data[i]);
-            }
 
         } // end loop over local particles
 
@@ -775,11 +760,11 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
-    // store a global backup copy
-    auto snap_old = snap;
-
     // obtain particle data from all ranks
     auto map = m_pdata->takeSnapshot(snap);
+
+    // keep a backup copy
+    auto snap_old = snap;
 
     if (master)
         {
@@ -812,7 +797,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             }
         }
 
-    // store old locality data structure
+    // store old locality data
     m_aabb_tree_old = m_mc_implicit->buildAABBTree();
 
     // reload particle data
@@ -830,24 +815,24 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     // collect interactions on rank 0
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new;
+    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
+    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
     std::vector< std::set<unsigned int> > all_reject;
 
     #ifdef ENABLE_MPI
     if (m_comm)
         {
         gather_v(m_overlap, all_overlap, 0, m_exec_conf->getMPICommunicator());
-        gather_v(m_interact_old, all_interact_old, 0, m_exec_conf->getMPICommunicator());
-        gather_v(m_interact_new, all_interact_new, 0, m_exec_conf->getMPICommunicator());
+        gather_v(m_interact_old_old, all_interact_old_old, 0, m_exec_conf->getMPICommunicator());
+        gather_v(m_interact_new_old, all_interact_new_old, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_ptl_reject, all_reject, 0, m_exec_conf->getMPICommunicator());
         }
     else
     #endif
         {
         all_overlap.push_back(m_overlap);
-        all_interact_old.push_back(m_interact_old);
-        all_interact_new.push_back(m_interact_new);
+        all_interact_old_old.push_back(m_interact_old_old);
+        all_interact_new_old.push_back(m_interact_new_old);
         all_reject.push_back(m_ptl_reject);
         }
 
@@ -865,7 +850,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 }
             }
 
-        for (auto it_i = all_interact_old.begin(); it_i != all_interact_old.end(); ++it_i)
+        for (auto it_i = all_interact_old_old.begin(); it_i != all_interact_old_old.end(); ++it_i)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
@@ -873,8 +858,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 unsigned int i = it_j->first;
                 unsigned int j = it_j->second;
 
-                // particles interact_olding in the old but not the new configuration are part of the same cluster
-                for (auto it_k = all_interact_new.begin(); it_k != all_interact_new.end(); ++it_k)
+                // particles interacting in the old but not the new configuration are part of the same cluster
+                for (auto it_k = all_interact_new_old.begin(); it_k != all_interact_new_old.end(); ++it_k)
                     {
                     auto it = it_k->find(std::make_pair(i,j));
                     if (it != it_k->end())
@@ -890,26 +875,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                         }
                     }
 
-                // is either of the particles' transformation rejected?
-                bool reject = false;
-
-                for (auto it_k = all_reject.begin(); it_k != all_reject.end(); ++it_k)
-                    {
-                    auto it = it_k->find(i);
-                    if (it != it_k->end())
-                        {
-                        reject = true;
-                        break;
-                        }
-                    it = it_k->find(j);
-                    if (it != it_k->end())
-                        {
-                        reject = true;
-                        break;
-                        }
-                    }
-
-                if (!interact_new || reject)
+                if (!interact_new)
                     m_G.addEdge(i, j);
                 }
             }
@@ -937,7 +903,10 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 for (auto it_j = all_reject.begin(); it_j != all_reject.end(); ++it_j)
                     {
                     if (it_j->find(*it) != it_j->end())
+                        {
                         reject = true;
+                        break;
+                        }
                     }
                 }
 
@@ -966,8 +935,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 else
                     m_count_total.translate_accept_count++;
                 }
-            }
-        } // end loop over clusters
+            } // end loop over clusters
+        } // if master
 
     // finally re-intialize particle data
     m_pdata->initializeFromSnapshot(snap);
@@ -998,7 +967,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         Scalar nominal_width = m_mc_implicit->getMaxDiameter();
 
         // access parameters
-        auto params = m_mc_implicit->getParams();
+        auto& params = m_mc_implicit->getParams();
 
         if (m_mc_implicit->getDepletantDensity() > Scalar(0.0))
             {
