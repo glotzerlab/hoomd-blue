@@ -167,6 +167,14 @@ inline void Profiler::push(std::shared_ptr<const ExecutionConfiguration> exec_co
     if(exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
+
+#ifdef ENABLE_MPI
+    if (exec_conf->getNRanks() > 0)
+        {
+        MPI_Barrier(exec_conf->getMPICommunicator());
+        }
+#endif
+
     push(name);
    }
 
@@ -177,6 +185,14 @@ inline void Profiler::pop(std::shared_ptr<const ExecutionConfiguration> exec_con
     if(exec_conf->isCUDAEnabled())
         cudaThreadSynchronize();
 #endif
+
+#ifdef ENABLE_MPI
+    if (exec_conf->getNRanks() > 0)
+        {
+        MPI_Barrier(exec_conf->getMPICommunicator());
+        }
+#endif
+
     pop(flop_count, byte_count);
     }
 
