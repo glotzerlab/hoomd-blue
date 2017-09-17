@@ -573,13 +573,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     // generate the move, select a pivot
     hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
-    Scalar3 f;
-    f.x = rng.template s<Scalar>();
-    f.y = rng.template s<Scalar>();
-    f.z = rng.template s<Scalar>();
-
     const BoxDim& box = m_pdata->getGlobalBox();
-    vec3<Scalar> pivot(box.makeCoordinates(f));
+    vec3<Scalar> pivot(make_scalar3(0,0,0));
 
     // is this a line reflection?
     bool line = m_mc_implicit->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
@@ -595,6 +590,15 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
         // line reflection
         q = quat<Scalar>(0,n);
+        }
+    else
+        {
+        Scalar3 f;
+        f.x = rng.template s<Scalar>();
+        f.y = rng.template s<Scalar>();
+        f.z = rng.template s<Scalar>();
+
+        pivot = vec3<Scalar>(box.makeCoordinates(f));
         }
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
