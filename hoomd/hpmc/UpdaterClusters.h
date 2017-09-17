@@ -658,7 +658,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         for (unsigned int i = 0; i < snap.size; ++i)
             {
             // if the particle falls outside the active volume of the box, reject
-            if (!isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
+            if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
                 }
@@ -678,7 +678,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 }
 
             // reject if outside active region at new position
-            if (!isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
+            if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
                 }
