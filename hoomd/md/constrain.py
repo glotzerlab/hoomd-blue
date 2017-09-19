@@ -149,7 +149,7 @@ class _constraint_force(hoomd.meta._metadata):
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         if self.name is not "":
             data['name'] = self.name
