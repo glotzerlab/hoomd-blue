@@ -453,6 +453,8 @@ class wall(_updater):
             cls = _hpmc.UpdaterExternalFieldWallSphere;
         elif isinstance(mc, integrate.convex_polyhedron):
             cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron;
+        elif isinstance(mc, integrate.convex_spheropolyhedron):
+            cls = _hpmc.UpdaterExternalFieldWallSpheropolyhedron;
         else:
             hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
