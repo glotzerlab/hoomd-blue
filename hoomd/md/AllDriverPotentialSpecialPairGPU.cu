@@ -10,6 +10,7 @@
 */
 
 #include "EvaluatorSpecialPairLJ.h"
+#include "EvaluatorSpecialPairCoulomb.h"
 #include "AllDriverPotentialSpecialPairGPU.cuh"
 
 //! LJ special pair potential, internal
@@ -18,6 +19,16 @@ cudaError_t gpu_compute_lj_forces(const bond_args_t& bond_args,
                                    unsigned int *d_flags)
     {
     return gpu_compute_bond_forces<EvaluatorSpecialPairLJ>(bond_args,
+                                                     d_params,
+                                                     d_flags);
+    }
+
+//! Coulomb special pair potential, internal
+cudaError_t gpu_compute_coulomb_forces(const bond_args_t& bond_args,
+                                   const Scalar2 *d_params,
+                                   unsigned int *d_flags)
+    {
+    return gpu_compute_bond_forces<EvaluatorSpecialPairCoulomb>(bond_args,
                                                      d_params,
                                                      d_flags);
     }

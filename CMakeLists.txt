@@ -53,6 +53,8 @@ if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
     # only attempt to update submodules if this is a git repository and we have a git executable
     if (UPDATE_SUBMODULES)
       message(STATUS "Updating git submodules")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
       execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     endif()

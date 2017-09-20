@@ -388,7 +388,6 @@ void export_TwoStepNPTMTKGPU(py::module& m)
                        pybind11::list,
                        TwoStepNPTMTKGPU::couplingMode,
                        unsigned int,
-                       const bool>())
-        ;
+                       const bool>());
 
     }

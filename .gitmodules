@@ -3,19 +3,19 @@
 	url = https://bitbucket.org/glotzer/libgetar
 [submodule "hoomd/extern/pybind"]
 	path = hoomd/extern/pybind
-	url = https://github.com/pybind/pybind11.git
+	url = https://github.com/glotzerlab/pybind11.git
 [submodule "hoomd/extern/upp11"]
 	path = hoomd/extern/upp11
-	url = https://github.com/joaander/upp11.git
+	url = https://github.com/glotzerlab/upp11.git
 [submodule "hoomd/extern/nano-signal-slot"]
 	path = hoomd/extern/nano-signal-slot
-	url = https://github.com/NoAvailableAlias/nano-signal-slot.git
+	url = https://github.com/glotzerlab/nano-signal-slot.git
 [submodule "hoomd/extern/cereal"]
 	path = hoomd/extern/cereal
-	url = https://github.com/USCiLab/cereal.git
+	url = https://github.com/glotzerlab/cereal.git
 [submodule "hoomd/extern/cub"]
 	path = hoomd/extern/cub
-	url = https://github.com/NVlabs/cub.git
+	url = https://github.com/glotzerlab/cub.git
 [submodule "hoomd/extern/quickhull"]
 	path = hoomd/extern/quickhull
-	url = https://github.com/akuukka/quickhull.git
+	url = https://github.com/glotzerlab/quickhull

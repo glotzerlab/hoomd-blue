@@ -501,22 +501,13 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
-            // move could be rejected by the external potential or the overlap.
-            // check the external porential first because it will most likely be
-            // faster
-            bool reject_external = false;
-            if(m_external && !m_external->accept(i, pos_old, shape_old, pos_i, shape_i, rng_i))
-                {
-                reject_external = true;
-                }
-
             // check for overlaps with neighboring particle's positions
             bool overlap=false;
             detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images && !reject_external; cur_image++) // only do the loop if the external is accepted. allows to track statistics better
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
                 vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
                 detail::AABB aabb = aabb_i_local;
@@ -589,6 +580,13 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 if (overlap)
                     break;
                 } // end loop over images
+
+            // move could be rejected by the external potential or the overlap.
+            bool reject_external = false;
+            if(m_external && !overlap && !m_external->accept(i, pos_old, shape_old, pos_i, shape_i, rng_i))
+                {
+                reject_external = true;
+                }
 
             // if the move is accepted
             if (!overlap && !reject_external)
@@ -1140,7 +1138,15 @@ void IntegratorHPMCMono<Shape>::limitMoveDistances()
 template <class Shape>
 std::vector<bool> IntegratorHPMCMono<Shape>::mapOverlaps()
     {
-    unsigned int N = m_pdata->getMaximumTag() + 1;
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        m_exec_conf->msg->error() << "map_overlaps does not support MPI parallel jobs" << std::endl;
+        throw std::runtime_error("map_overlaps does not support MPI parallel jobs");
+        }
+    #endif
+
+    unsigned int N = m_pdata->getN();
 
     std::vector<bool> overlap_map(N*N, false);
 

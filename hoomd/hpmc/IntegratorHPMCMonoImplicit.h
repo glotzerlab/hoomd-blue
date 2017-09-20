@@ -151,7 +151,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         void slotNumTypesChange();
 
     protected:
-        Scalar m_n_R;                                            //!< Averge depletant number density in free volume
+        Scalar m_n_R;                                            //!< Average depletant number density in free volume
         unsigned int m_type;                                     //!< Type of depletant particle to generate
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
@@ -227,11 +227,6 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     m_d_max.swap(d_max);
 
     m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
-
-    if (this->m_sysdef->getNDimensions() == 2)
-        {
-        throw std::runtime_error("2D runs not supported for this integrator.");
-        }
     }
 
 //! Destructor
