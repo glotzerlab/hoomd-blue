@@ -1,8 +1,6 @@
 mpcd
 ====
 
-.. rubric:: Details
-
 .. automodule:: hoomd.mpcd
     :synopsis: Multiparticle collision dynamics.
     :members:
