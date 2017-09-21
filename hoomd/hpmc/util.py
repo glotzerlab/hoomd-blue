@@ -871,6 +871,12 @@ class tune_npt(tune):
                           'maximum': 1.0,
                           'set': lambda x: obj.shear(delta=(obj.shear()['delta'][0], obj.shear()['delta'][1], x))
                           },
+                    'aspect': {
+                          'get': lambda: obj.aspect()['delta'],
+                          'acceptance': obj.get_aspect_acceptance,
+                          'maximum': 1.0,
+                          'set': lambda x: obj.aspect(delta=x)
+                          },
                     }
         hoomd.util.unquiet_status()
         super(tune_npt,self).__init__(obj, tunables, max_val, target, max_scale, gamma, type, tunable_map, *args, **kwargs)
