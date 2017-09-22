@@ -15,13 +15,13 @@
 #include "ExternalField.h"
 
 #include <tuple>
-#include <limits>
+//#include <limits>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
-#define INFINITY std::numeric_limits<double>::infinity()
+//#define INFINITY std::numeric_limits<double>::infinity()
 
 namespace hpmc
 {
