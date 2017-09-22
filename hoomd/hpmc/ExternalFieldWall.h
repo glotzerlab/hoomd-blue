@@ -15,10 +15,13 @@
 #include "ExternalField.h"
 
 #include <tuple>
+#include <limits>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
+
+#define INFINITY std::numeric_limits<double>::infinity()
 
 namespace hpmc
 {
@@ -355,10 +358,10 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
 
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru&)
             {
-            return fabs(boltzmann(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0)) < SMALL;
+            return fabs(fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0))) < SMALL;
             }
 
-        Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
+        double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
             const BoxDim& box = this->m_pdata->getGlobalBox();
             vec3<Scalar> origin(m_pdata->getOrigin());
@@ -367,7 +370,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Spheres[i], shape_new, position_new, origin, box))
                     {
-                    return Scalar(0.0);
+                    return INFINITY;
                     }
                 }
 
@@ -376,7 +379,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 set_cylinder_wall_verts(m_Cylinders[i], shape_new);
                 if(!test_confined(m_Cylinders[i], shape_new, position_new, origin, box))
                     {
-                    return Scalar(0.0);
+                    return INFINITY;
                     }
                 }
 
@@ -384,11 +387,11 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Planes[i], shape_new, position_new, origin, box))
                     {
-                    return Scalar(0.0);
+                    return INFINITY;
                     }
                 }
 
-            return Scalar(1.0);
+            return double(0.0);
             }
 
         Scalar calculateBoltzmannWeight(unsigned int timestep)
@@ -404,7 +407,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 }
             }
 
-        Scalar calculateBoltzmannFactor(const Scalar4* const position_old,
+        double calculateDeltaE(const Scalar4* const position_old,
                                         const Scalar4* const orientation_old,
                                         const BoxDim* const box_old
                                         )
@@ -412,11 +415,11 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             unsigned int numOverlaps = countOverlaps(0, false);
             if(numOverlaps > 0)
                 {
-                return Scalar(0.0);
+                return INFINITY;
                 }
             else
                 {
-                return Scalar(1.0);
+                return double(0.0);
                 }
             }
 
@@ -657,7 +660,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
                 int typ_i = __scalar_as_int(postype_i.w);
                 Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
-                numOverlaps += (unsigned int) (1 - int(boltzmann(i, pos_i, shape_i, pos_i, shape_i)));
+                numOverlaps += (unsigned int) (1 - int(fast::exp(energydiff(i, pos_i, shape_i, pos_i, shape_i))));
                 if(early_exit && numOverlaps > 0)
                     {
                     numOverlaps = 1;

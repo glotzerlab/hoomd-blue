@@ -32,18 +32,18 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
 
-        Scalar calculateBoltzmannFactor(const Scalar4 * const  position_old,
+        double calculateDeltaE(const Scalar4 * const  position_old,
                                         const Scalar4 * const  orientation_old,
                                         const BoxDim * const  box_old
                                         )
             {
-                throw(std::runtime_error("ExternalFieldMonoComposite::calculateBoltzmannFactor is not implemented"));
-                return Scalar(0.0);
+                throw(std::runtime_error("ExternalFieldMonoComposite::calculateDeltaE is not implemented"));
+                return double(0.0);
             }
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
             {
             // calc boltzmann factor from springs
-            Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);
+            double boltz = fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new));
             bool reject = false;
             if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
                 reject = false;
@@ -53,12 +53,12 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
             return !reject;
             }
 
-        Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
+        double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
-            Scalar boltz(1.0);
+            double boltz(1.0);
             for(size_t i = 0; i < m_externals.size(); i++)
                 {
-                boltz *= m_externals[i]->boltzmann(index, position_old, shape_old, position_new, shape_new);
+                boltz *= m_externals[i]->energydiff(index, position_old, shape_old, position_new, shape_new);
                 }
             return boltz;
             }
