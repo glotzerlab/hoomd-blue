@@ -2,6 +2,21 @@
 
 [TOC]
 
+## v2.3.0
+
+Not yet released
+
+*New features*
+
+* General:
+
+* MD:
+
+* HPMC:
+    * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
+
+*Deprecated*
+
 ## v2.2.1
 
 Not yet released
