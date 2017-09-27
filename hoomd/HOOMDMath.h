@@ -206,37 +206,6 @@ HOSTDEVICE inline bool operator== (const Scalar4 &a, const Scalar4 &b)
     }
 
 //! Vector addition
-HOSTDEVICE inline int3 operator+ (const int3 &a, const int3 &b)
-    {
-    return make_int3(a.x + b.x,
-                    a.y + b.y,
-                    a.z + b.z);
-    }
-
-HOSTDEVICE inline int3 operator- (const int3 &a, const int3 &b)
-    {
-    return make_int3(a.x - b.x,
-                    a.y - b.y,
-                    a.z - b.z);
-    }
-
-//! Comparison
-HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
-    {
-    return (a.x == b.x &&
-            a.y == b.y &&
-            a.z == b.z );
-    }
-
-//! Comparison
-HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
-    {
-    return (a.x != b.x ||
-            a.y != b.y ||
-            a.z != b.z );
-    }
-
-//! Vector addition
 HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
     {
     return make_scalar3(a.x + b.x,
@@ -374,6 +343,16 @@ HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
     {
     a.x -= b.x; a.y -= b.y; a.z -= b.z;
     return a;
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
+    {
+    return (a.x == b.x && a.y == b.y && a.z == b.z );
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
+    {
+    return (a.x != b.x || a.y != b.y || a.z != b.z );
     }
 
 //! Export relevant hoomd math functions to python
