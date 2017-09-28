@@ -139,6 +139,7 @@ set(files
     data.py
     init.py
     integrate.py
+    stream.py
     update.py
     )
 

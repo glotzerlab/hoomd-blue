@@ -35,27 +35,25 @@ class _collision_method(hoomd.meta._metadata):
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision rule\n')
+            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._collide is not None:
-            hoomd.context.msg.error('mpcd.collide: only one collision method can be set, use disable() first.\n')
+            hoomd.context.msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift','enabled']
+        self.metadata_fields = ['period','seed','group','shift']
 
         self.period = period
         self.seed = seed
         self.group = None
         self.shift = True
-        self.enabled = True
         self._cpp = None
 
-        hoomd.util.quiet_status()
-        self.enable()
-        hoomd.util.unquiet_status()
+        # attach collision method to the system
+        hoomd.context.current.mpcd._collide = self
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
@@ -90,41 +88,6 @@ class _collision_method(hoomd.meta._metadata):
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
-
-    def enable(self):
-        """ Enable the collision method
-
-        Examples::
-
-            method.enable()
-
-        Enabling the collision method adds it to the current MPCD system definition.
-        Only one collision method can be attached to the system at any time.
-        If another method is already set, :py:meth:`disable()` must be called
-        first before switching.
-
-        """
-        hoomd.util.print_status_line()
-
-        self.enabled = True
-        hoomd.context.current.mpcd._collide = self
-
-    def disable(self):
-        """ Disable the collision method
-
-        Examples::
-
-            method.disable()
-
-        Disabling the collision method removes it from the current MPCD system definition.
-        Only one collision method can be attached to the system at any time, so
-        use this method to remove the current collision method before adding another.
-
-        """
-        hoomd.util.print_status_line()
-
-        self.enabled = False
-        hoomd.context.current.mpcd._collide = None
 
 class at(_collision_method):
     """ Andersen thermostat method
@@ -195,7 +158,7 @@ class at(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  -1,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo,
                                   hoomd.context.current.mpcd._at_thermo,
@@ -305,7 +268,7 @@ class srd(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  -1,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
