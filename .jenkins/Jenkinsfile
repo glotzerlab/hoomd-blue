@@ -5,7 +5,6 @@ pipeline
 
     stages
         {
-        stage('parallel') { parallel {
         stage('unit-gcc49-py27-cd75')
             {
             agent { label 'gpu' }
@@ -229,5 +228,5 @@ pipeline
                 }
             }
 
-        } } }
+        }
     }
