@@ -29,9 +29,9 @@ class integrator(hoomd.integrate._integrator):
     Examples::
 
         mpcd.integrate.integrator(dt=0.1)
-        mpcd.integrate.integrator(dt=0.01, period=10)
+        mpcd.integrate.integrator(dt=0.01)
     """
-    def __init__(self, dt, period=1, aniso=None):
+    def __init__(self, dt, aniso=None):
         # check system is initialized
         if hoomd.context.current.mpcd is None:
             hoomd.context.msg.error('mpcd.integrate: an MPCD system must be initialized before the integrator\n')
@@ -42,8 +42,7 @@ class integrator(hoomd.integrate._integrator):
         self.supports_methods = True
         self.dt = dt
         self.aniso = aniso
-        self.period = period
-        self.metadata_fields = ['dt','aniso','period']
+        self.metadata_fields = ['dt','aniso']
 
         # configure C++ integrator
         self.cpp_integrator = _mpcd.Integrator(hoomd.context.current.mpcd.data, self.dt)
@@ -55,16 +54,6 @@ class integrator(hoomd.integrate._integrator):
             hoomd.util.quiet_status()
             self.set_params(aniso=aniso)
             hoomd.util.unquiet_status()
-
-        # create the base streaming class
-        if not hoomd.context.exec_conf.isCUDAEnabled():
-            stream_class = _mpcd.StreamingMethod
-        else:
-            stream_class = _mpcd.StreamingMethodGPU
-        self._stream = stream_class(hoomd.context.current.mpcd.data,
-                                    hoomd.context.current.system.getCurrentTimeStep(),
-                                    self.period,
-                                    -1)
 
     _aniso_modes = {
         None: _md.IntegratorAnisotropicMode.Automatic,
@@ -110,15 +99,16 @@ class integrator(hoomd.integrate._integrator):
             self.cpp_integrator.addIntegrationMethod(m.cpp_method)
 
         # ensure that the streaming and collision methods are up to date
-        if self._stream is not None:
-            self.cpp_integrator.setStreamingMethod(self._stream)
+        stream = hoomd.context.current.mpcd._stream
+        if stream is not None:
+            self.cpp_integrator.setStreamingMethod(stream._cpp)
         else:
             hoomd.context.msg.warning("Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()
 
         collide = hoomd.context.current.mpcd._collide
         if collide is not None:
-            if collide.period % self.period != 0:
+            if stream is not None and collide.period % stream.period != 0:
                 hoomd.context.msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
                 raise ValueError('Collision period must be multiple of integration period')
 
