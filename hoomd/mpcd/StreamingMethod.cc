@@ -100,7 +100,7 @@ bool mpcd::StreamingMethod::peekStream(unsigned int timestep) const
  */
 bool mpcd::StreamingMethod::shouldStream(unsigned int timestep)
     {
-    if (timestep == m_next_timestep)
+    if (peekStream(timestep))
         {
         m_next_timestep += m_period;
         return true;
