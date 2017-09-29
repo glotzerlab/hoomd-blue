@@ -256,6 +256,18 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #endif
             }
 
+        //! Calculate Boltzmann factor
+        bool accept(double total_energy, hoomd::detail::Saru& rng)
+        {
+          double boltz = fast::exp(-total_energy);
+          bool reject = false;
+          if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
+              reject = false;
+          else
+              reject = true;
+          return !reject;
+        }
+
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
 
@@ -581,15 +593,33 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     break;
                 } // end loop over images
 
-            // move could be rejected by the external potential or the overlap.
-            bool reject_external = false;
-            if(m_external && !overlap && !m_external->accept(i, pos_old, shape_old, pos_i, shape_i, rng_i))
+            // total energy derived from patchy calculation (placeholder)
+            double patch_energy = 0;
+            double field_energy = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+            double total_energy = patch_energy + field_energy;
+            bool isEnergy = false;
+            bool reject_energy = false;
+
+            if (isEnergy && !overlap)
+              {
+                // boltzmann check
+                if (accept(total_energy, rng_i) == true)
                 {
-                reject_external = true;
+                  reject_energy = false;
                 }
+                else
+                {
+                  reject_energy = true;
+                }
+              }
+
+            else if (!isEnergy && !overlap)
+              {
+                reject_energy = false;
+              }
 
             // if the move is accepted
-            if (!overlap && !reject_external)
+            if (!overlap && !reject_energy)
                 {
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
