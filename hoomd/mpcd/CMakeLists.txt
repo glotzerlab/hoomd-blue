@@ -27,6 +27,7 @@ set(_mpcd_headers
     CellThermoCompute.h
     CellList.h
     CollisionMethod.h
+    ConfinedStreamingMethod.h
     Communicator.h
     CommunicatorUtilities.h
     Integrator.h
@@ -35,6 +36,7 @@ set(_mpcd_headers
     ParticleDataUtilities.h
     Sorter.h
     SRDCollisionMethod.h
+    StreamingGeometry.h
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h

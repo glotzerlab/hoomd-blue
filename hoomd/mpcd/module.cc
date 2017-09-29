@@ -23,6 +23,8 @@
 
 // integration
 #include "Integrator.h"
+
+// Collision methods
 #include "CollisionMethod.h"
 #include "ATCollisionMethod.h"
 #include "SRDCollisionMethod.h"
@@ -30,7 +32,11 @@
 #include "ATCollisionMethodGPU.h"
 #include "SRDCollisionMethodGPU.h"
 #endif // ENABLE_CUDA
+
+// Streaming methods
 #include "StreamingMethod.h"
+#include "ConfinedStreamingMethod.h"
+#include "StreamingGeometry.h"
 #ifdef ENABLE_CUDA
 #include "StreamingMethodGPU.h"
 #endif // ENABLE_CUDA
@@ -105,6 +111,7 @@ PYBIND11_MODULE(_mpcd, m)
     #endif // ENABLE_CUDA
 
     mpcd::detail::export_Integrator(m);
+
     mpcd::detail::export_CollisionMethod(m);
     mpcd::detail::export_ATCollisionMethod(m);
     mpcd::detail::export_SRDCollisionMethod(m);
@@ -112,7 +119,9 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_ATCollisionMethodGPU(m);
     mpcd::detail::export_SRDCollisionMethodGPU(m);
     #endif // ENABLE_CUDA
+
     mpcd::detail::export_StreamingMethod(m);
+    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_StreamingMethodGPU(m);
     #endif // ENABLE_CUDA
