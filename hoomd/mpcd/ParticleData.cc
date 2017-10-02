@@ -637,6 +637,9 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         GPUArray<unsigned int> comm_flags_alt(N_max, m_exec_conf);
         m_comm_flags_alt.swap(comm_flags_alt);
 
+        GPUArray<unsigned int> remove_ids(N_max, m_exec_conf);
+        m_remove_ids.swap(remove_ids);
+
         #ifdef ENABLE_CUDA
         GPUFlags<unsigned int> num_remove(m_exec_conf);
         m_num_remove.swap(num_remove);
@@ -644,9 +647,6 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         // this array is used for particle migration
         GPUArray<unsigned char> remove_flags(N_max, m_exec_conf);
         m_remove_flags.swap(remove_flags);
-
-        GPUArray<unsigned int> remove_ids(N_max, m_exec_conf);
-        m_remove_ids.swap(remove_ids);
         #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
@@ -682,9 +682,10 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
     if (m_decomposition)
         {
         m_comm_flags_alt.resize(N_max);
+        m_remove_ids.resize(N_max);
+
         #ifdef ENABLE_CUDA
         m_remove_flags.resize(N_max);
-        m_remove_ids.resize(N_max);
         #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
@@ -848,99 +849,72 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
  * into a buffer and removes them from the particle data arrays. The output buffer
  * is automatically resized to accommodate the data.
  *
- * \post The particle data arrays remain compact.
+ * \post The particle data arrays remain compact, but is not guaranteed to retain its current order.
  */
 void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
                                          unsigned int mask)
     {
-    // the number of particles to remove
-    const unsigned int old_nparticles = m_N;
-
-    // resize output buffers to the max size they can currently hold
-    const unsigned int max_capacity = out.getNumElements();
-    out.resize(max_capacity);
-
-    // pack the output buffer
-    unsigned int n_keep(0), n_remove(0);
+    // partition the remove / keep particle indexes
+    // this makes it so that all particles we remove are at the front in the order they were in the arrays
+    // and all particles to be removed are at the end of the array in reverse order of their original sorting
+    unsigned int n_remove(0);
         {
-        // access particle data arrays
-        ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::read);
-
-        ArrayHandle<Scalar4> h_pos_alt(m_pos_alt, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar4> h_vel_alt(m_vel_alt, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
-        ArrayHandle<unsigned int> h_comm_flags_alt(m_comm_flags_alt, access_location::host, access_mode::overwrite);
-
-        /*
-         * Here we pack the particles into the output array using amortized growth
-         * of the buffer. Instead of counting the number of particles to remove,
-         * we just attempt to pack the buffer and "ask for forgiveness" when the
-         * buffer overflows by resizing and picking back up where we left off.
-         * This should be faster for large numbers of particles since the growth
-         * of the buffer capacity happens only the first few times, and then should
-         * be big enough for all subsequent calls. It skips an unnecessary loop
-         * over all particles to count the number sent.
-         */
-        unsigned int idx(0);
-        bool first_loop = true;
-        while(idx < old_nparticles)
+        ArrayHandle<unsigned int> h_remove_ids(m_remove_ids, access_location::host, access_mode::overwrite);
+        unsigned int keep_addr = m_N;
+        for (unsigned int idx = 0; idx < m_N; ++idx)
             {
-            // if this isn't the first time through, expand the size of the array by one
-            // this growth is amortized, so it should lead to quick growth of the vector
-            unsigned int cur_capacity = out.getNumElements();
-            if (!first_loop)
+            if (h_comm_flags.data[idx] & mask)
                 {
-                out.resize(cur_capacity+1);
-                cur_capacity = out.getNumElements();
+                h_remove_ids.data[n_remove++] = idx;
                 }
             else
                 {
-                first_loop = false;
-                }
-
-            // while there are still particles to remove, and capacity is not exceeded, try to pack
-            ArrayHandle<mpcd::detail::pdata_element> h_out(out, access_location::host, access_mode::overwrite);
-            while (idx < old_nparticles && n_remove < cur_capacity)
-                {
-                if (h_comm_flags.data[idx] & mask)
-                    {
-                    // write to packed array
-                    mpcd::detail::pdata_element p;
-                    p.pos = h_pos.data[idx];
-                    p.vel = h_vel.data[idx];
-                    p.tag = h_tag.data[idx];
-                    p.comm_flag = h_comm_flags.data[idx];
-                    h_out.data[n_remove++] = p;
-                    }
-                else
-                    {
-                    // copy over to alternate pdata arrays
-                    h_pos_alt.data[n_keep] = h_pos.data[idx];
-                    h_vel_alt.data[n_keep] = h_vel.data[idx];
-                    h_tag_alt.data[n_keep] = h_tag.data[idx];
-                    h_comm_flags_alt.data[n_keep] = h_comm_flags.data[idx];
-                    ++n_keep;
-                    }
-                ++idx;
+                h_remove_ids.data[--keep_addr] = idx;
                 }
             }
         }
-    out.resize(n_remove);
 
-    // swap particle data arrays to update local particle data
-    swapPositions();
-    swapVelocities();
-    swapTags();
-    swapCommFlags();
+    // resize buffer and remove the particles, using backfilling of holes popped off end of arrays
+    out.resize(n_remove);
+        {
+        ArrayHandle<mpcd::detail::pdata_element> h_out(out, access_location::host, access_mode::overwrite);
+        ArrayHandle<unsigned int> h_remove_idx(m_remove_ids, access_location::host, access_mode::read);
+
+        ArrayHandle<Scalar4> h_pos(m_pos, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_vel(m_vel, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::readwrite);
+        ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
+
+        for (unsigned int idx = 0; idx < n_remove; ++idx)
+            {
+            // pack the current particle
+            const unsigned int remove_pid = h_remove_idx.data[idx];
+            mpcd::detail::pdata_element p;
+            p.pos = h_pos.data[remove_pid];
+            p.vel = h_vel.data[remove_pid];
+            p.tag = h_tag.data[remove_pid];
+            p.comm_flag = h_comm_flags.data[remove_pid];
+            h_out.data[idx] = p;
+
+            // backfill with a keep particle from the end of the array
+            const unsigned int fill_idx = idx + n_remove;
+            if (fill_idx < m_N)
+                {
+                const unsigned int fill_pid = h_remove_idx.data[fill_idx];
+                h_pos.data[remove_pid] = h_pos.data[fill_pid];
+                h_vel.data[remove_pid] = h_vel.data[fill_pid];
+                h_tag.data[remove_pid] = h_tag.data[fill_pid];
+                h_comm_flags.data[remove_pid] = h_comm_flags.data[fill_pid];
+                }
+            }
+        }
 
     // resize self down (just changes value of m_N since removing)
+    const unsigned int n_keep = m_N - n_remove;
     resize(n_keep);
 
-    // TODO: signal particle data has changed
-    invalidateCellCache();
+    // TODO: signal particle data has been reordered
     }
 
 /*!
@@ -979,7 +953,7 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
             }
         }
 
-    // TODO: signal particle data has changed
+    // TODO: signal particle data has been reordered
     invalidateCellCache();
     }
 
@@ -1076,6 +1050,8 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
     resize(n_keep);
+
+    // TODO: signal particle data has been reordered
     }
 
 /*!
@@ -1116,7 +1092,7 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
-    // TODO: notify particle data has changed
+    // TODO: signal particle data has been reordered
     invalidateCellCache();
     }
 #endif // ENABLE_CUDA
