@@ -23,7 +23,6 @@ namespace gpu
 {
 //! Marks the particles which are being removed
 cudaError_t mark_removed_particles(unsigned char *d_remove_flags,
-                                   unsigned int *d_tmp_ids,
                                    const unsigned int *d_comm_flags,
                                    const unsigned int mask,
                                    const unsigned int N,
@@ -32,7 +31,6 @@ cudaError_t mark_removed_particles(unsigned char *d_remove_flags,
 //! Partition the indexes of particles to keep or remove
 cudaError_t partition_particles(void *d_tmp,
                                 size_t& tmp_bytes,
-                                const unsigned int *d_tmp_ids,
                                 const unsigned char *d_remove_flags,
                                 unsigned int *d_remove_ids,
                                 unsigned int *d_num_remove,

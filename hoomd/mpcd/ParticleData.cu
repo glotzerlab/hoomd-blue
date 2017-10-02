@@ -12,6 +12,7 @@
 
 #include "ParticleData.cuh"
 #include "hoomd/extern/cub/cub/device/device_partition.cuh"
+#include "hoomd/extern/cub/cub/iterator/counting_input_iterator.cuh"
 
 namespace mpcd
 {
@@ -69,17 +70,14 @@ __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
 //! Kernel to transform communication flags for prefix sum
 /*!
  * \param d_remove_flags Flag to remove (1) or keep (0) a particle (output)
- * \param d_tmp_ids Particle indexes that will later be partitioned (0 to \a N-1)
  * \param d_comm_flags Communication flags
  * \param mask Bitwise mask for \a d_comm_flags
  * \param N Number of local particles
  *
  * Any communication flags that are bitwise AND with \a mask are transformed to
- * a 1 and stored in \a d_remove_flags, otherwise a 0 is set. The particle indexes
- * are also filled into \a d_tmp_ids.
+ * a 1 and stored in \a d_remove_flags, otherwise a 0 is set.
  */
 __global__ void mark_removed_particles(unsigned char *d_remove_flags,
-                                       unsigned int *d_tmp_ids,
                                        const unsigned int *d_comm_flags,
                                        const unsigned int mask,
                                        const unsigned int N)
@@ -88,7 +86,6 @@ __global__ void mark_removed_particles(unsigned char *d_remove_flags,
     const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx >= N) return;
 
-    d_tmp_ids[idx] = idx;
     d_remove_flags[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
     }
 } // end namespace kernel
@@ -97,7 +94,6 @@ __global__ void mark_removed_particles(unsigned char *d_remove_flags,
 
 /*!
  * \param d_remove_flags Flag to remove (1) or keep (0) a particle (output)
- * \param d_tmp_ids Particle indexes that will later be partitioned (0 to \a N-1)
  * \param d_comm_flags Communication flags
  * \param mask Bitwise mask for \a d_comm_flags
  * \param N Number of local particles
@@ -106,7 +102,6 @@ __global__ void mark_removed_particles(unsigned char *d_remove_flags,
  * \sa mpcd::gpu::kernel::mark_removed_particles
  */
 cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
-                                              unsigned int *d_tmp_ids,
                                               const unsigned int *d_comm_flags,
                                               const unsigned int mask,
                                               const unsigned int N,
@@ -123,7 +118,6 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
     mpcd::gpu::kernel::mark_removed_particles<<<grid, run_block_size>>>(d_remove_flags,
-                                                                        d_tmp_ids,
                                                                         d_comm_flags,
                                                                         mask,
                                                                         N);
@@ -133,7 +127,6 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
 /*!
  * \param d_tmp Temporary storage
  * \param tmp_bytes Number of bytes in temporary storage
- * \param d_tmp_ids Temporary particle indexes to partition
  * \param d_remove_flags Flags to remove (1) or keep (0) particles
  * \param d_remove_ids Partitioned indexes of particles to remove (first) or keep (last)
  * \param d_num_remove Number of particles to remove
@@ -146,20 +139,21 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
  * two calls in order for the partitioning to take effect. In the first call,
  * temporary storage is sized and returned in \a tmp_bytes. The caller must then
  * allocate this memory into \a d_tmp, and call the method a second time. The
- * particle indexes in \a d_tmp_ids are then partitioned into \a d_remove_ids, with
+ * particle indexes are then partitioned into \a d_remove_ids, with
  * the particles to remove first in the array (in their original order), while
  * the kept particles are put into a reverse order at the end of the array.
  * The number of particles to keep is stored into \a d_num_remove.
  */
 cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
                                            size_t& tmp_bytes,
-                                           const unsigned int *d_tmp_ids,
                                            const unsigned char *d_remove_flags,
                                            unsigned int *d_remove_ids,
                                            unsigned int *d_num_remove,
                                            const unsigned int N)
     {
-    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, d_tmp_ids, d_remove_flags, d_remove_ids, d_num_remove, N);
+
+    cub::CountingInputIterator<unsigned int> ids(0);
+    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, ids, d_remove_flags, d_remove_ids, d_num_remove, N);
     return cudaSuccess;
     }
 

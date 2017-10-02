@@ -1004,24 +1004,20 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         return;
         }
 
-    // flag particles that have left and count the total number to remove
+    // flag particles that have left
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags, access_location::device, access_mode::overwrite);
-        // hijack the alt comm flags (which will be swapped out anyway) to hold the temporary particle ids
-        ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
-        // first mark particles that have left and count them
         m_mark_tuner->begin();
-        mpcd::gpu::mark_removed_particles(d_remove_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
+        mpcd::gpu::mark_removed_particles(d_remove_flags.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
         m_mark_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
-    // use cub to partition the particle indexes
+    // use cub to partition the particle indexes and count the number to remove
         {
         ArrayHandle<unsigned char> d_remove_flags(m_remove_flags, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_remove_ids(m_remove_ids, access_location::device, access_mode::overwrite);
 
         // size temporary storage
@@ -1029,7 +1025,6 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         size_t tmp_bytes = 0;
         mpcd::gpu::partition_particles(d_tmp,
                                        tmp_bytes,
-                                       d_tmp_ids.data,
                                        d_remove_flags.data,
                                        d_remove_ids.data,
                                        m_num_remove.getDeviceFlags(),
@@ -1040,7 +1035,6 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         d_tmp = (void*)d_tmp_alloc();
         mpcd::gpu::partition_particles(d_tmp,
                                        tmp_bytes,
-                                       d_tmp_ids.data,
                                        d_remove_flags.data,
                                        d_remove_ids.data,
                                        m_num_remove.getDeviceFlags(),
@@ -1054,6 +1048,8 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
     const unsigned int n_remove = m_num_remove.readFlags();
     const unsigned int n_keep = m_N - n_remove;
     out.resize(n_remove);
+
+    // remove the particles and compact down the current array
         {
         // access output array
         ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
