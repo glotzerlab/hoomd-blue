@@ -352,9 +352,9 @@ class ParticleData
         #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags_alt;    //!< Alternate communication flags
         #ifdef ENABLE_CUDA
-        GPUArray<unsigned char> m_keep_flags;   //!< Temporary flag to mark keeping particle
-        GPUArray<unsigned int> m_keep_ids;      //!< Partitioned indexes of particles to keep
-        GPUFlags<unsigned int> m_num_keep;      //!< Number of particles to keep
+        GPUArray<unsigned char> m_remove_flags;   //!< Temporary flag to mark keeping particle
+        GPUArray<unsigned int> m_remove_ids;      //!< Partitioned indexes of particles to keep
+        GPUFlags<unsigned int> m_num_remove;      //!< Number of particles to remove
 
         std::unique_ptr<Autotuner> m_mark_tuner;    //!< Tuner for marking particles
         std::unique_ptr<Autotuner> m_remove_tuner;  //!< Tuner for removing particles

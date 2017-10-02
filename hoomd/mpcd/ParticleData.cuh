@@ -22,7 +22,7 @@ namespace mpcd
 namespace gpu
 {
 //! Marks the particles which are being removed
-cudaError_t mark_removed_particles(unsigned char *d_keep_flags,
+cudaError_t mark_removed_particles(unsigned char *d_remove_flags,
                                    unsigned int *d_tmp_ids,
                                    const unsigned int *d_comm_flags,
                                    const unsigned int mask,
@@ -33,23 +33,19 @@ cudaError_t mark_removed_particles(unsigned char *d_keep_flags,
 cudaError_t partition_particles(void *d_tmp,
                                 size_t& tmp_bytes,
                                 const unsigned int *d_tmp_ids,
-                                const unsigned char *d_keep_flags,
-                                unsigned int *d_keep_ids,
-                                unsigned int *d_num_keep,
+                                const unsigned char *d_remove_flags,
+                                unsigned int *d_remove_ids,
+                                unsigned int *d_num_remove,
                                 const unsigned int N);
 
 //! Pack particle data into output buffer and remove marked particles
 cudaError_t remove_particles(mpcd::detail::pdata_element *d_out,
-                             const Scalar4 *d_pos,
-                             const Scalar4 *d_vel,
-                             const unsigned int *d_tag,
-                             const unsigned int *d_comm_flags,
-                             Scalar4 *d_pos_alt,
-                             Scalar4 *d_vel_alt,
-                             unsigned int *d_tag_alt,
-                             unsigned int *d_comm_flags_alt,
-                             unsigned int *d_keep_ids,
-                             const unsigned int n_keep,
+                             Scalar4 *d_pos,
+                             Scalar4 *d_vel,
+                             unsigned int *d_tag,
+                             unsigned int *d_comm_flags,
+                             unsigned int *d_remove_ids,
+                             const unsigned int n_remove,
                              const unsigned int N,
                              const unsigned int block_size);
 

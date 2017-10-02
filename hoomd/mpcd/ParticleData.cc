@@ -638,15 +638,15 @@ void mpcd::ParticleData::allocate(unsigned int N_max)
         m_comm_flags_alt.swap(comm_flags_alt);
 
         #ifdef ENABLE_CUDA
-        GPUFlags<unsigned int> num_keep(m_exec_conf);
-        m_num_keep.swap(num_keep);
+        GPUFlags<unsigned int> num_remove(m_exec_conf);
+        m_num_remove.swap(num_remove);
 
         // this array is used for particle migration
-        GPUArray<unsigned char> keep_flags(N_max, m_exec_conf);
-        m_keep_flags.swap(keep_flags);
+        GPUArray<unsigned char> remove_flags(N_max, m_exec_conf);
+        m_remove_flags.swap(remove_flags);
 
-        GPUArray<unsigned int> keep_ids(N_max, m_exec_conf);
-        m_keep_ids.swap(keep_ids);
+        GPUArray<unsigned int> remove_ids(N_max, m_exec_conf);
+        m_remove_ids.swap(remove_ids);
         #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
@@ -683,8 +683,8 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
         {
         m_comm_flags_alt.resize(N_max);
         #ifdef ENABLE_CUDA
-        m_keep_flags.resize(N_max);
-        m_keep_ids.resize(N_max);
+        m_remove_flags.resize(N_max);
+        m_remove_ids.resize(N_max);
         #endif // ENABLE_CUDA
         }
     #endif // ENABLE_MPI
@@ -1006,23 +1006,23 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
 
     // flag particles that have left and count the total number to remove
         {
-        ArrayHandle<unsigned char> d_keep_flags(m_keep_flags, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned char> d_remove_flags(m_remove_flags, access_location::device, access_mode::overwrite);
         // hijack the alt comm flags (which will be swapped out anyway) to hold the temporary particle ids
         ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
 
         // first mark particles that have left and count them
         m_mark_tuner->begin();
-        mpcd::gpu::mark_removed_particles(d_keep_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
+        mpcd::gpu::mark_removed_particles(d_remove_flags.data, d_tmp_ids.data, d_comm_flags.data, mask, m_N, m_mark_tuner->getParam());
         m_mark_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
     // use cub to partition the particle indexes
         {
-        ArrayHandle<unsigned char> d_keep_flags(m_keep_flags, access_location::device, access_mode::read);
+        ArrayHandle<unsigned char> d_remove_flags(m_remove_flags, access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tmp_ids(m_comm_flags_alt, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_keep_ids(m_keep_ids, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_remove_ids(m_remove_ids, access_location::device, access_mode::overwrite);
 
         // size temporary storage
         void *d_tmp = NULL;
@@ -1030,9 +1030,9 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         mpcd::gpu::partition_particles(d_tmp,
                                        tmp_bytes,
                                        d_tmp_ids.data,
-                                       d_keep_flags.data,
-                                       d_keep_ids.data,
-                                       m_num_keep.getDeviceFlags(),
+                                       d_remove_flags.data,
+                                       d_remove_ids.data,
+                                       m_num_remove.getDeviceFlags(),
                                        m_N);
 
         // partition particles to keep
@@ -1041,9 +1041,9 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         mpcd::gpu::partition_particles(d_tmp,
                                        tmp_bytes,
                                        d_tmp_ids.data,
-                                       d_keep_flags.data,
-                                       d_keep_ids.data,
-                                       m_num_keep.getDeviceFlags(),
+                                       d_remove_flags.data,
+                                       d_remove_ids.data,
+                                       m_num_remove.getDeviceFlags(),
                                        m_N);
 
         // check for errors after the partitioning is completed
@@ -1051,26 +1051,20 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         }
 
     // resize the output buffer large enough to hold the returned result
-    const unsigned int n_keep = m_num_keep.readFlags();
-    const unsigned int n_out = m_N - n_keep;
-    out.resize(n_out);
+    const unsigned int n_remove = m_num_remove.readFlags();
+    const unsigned int n_keep = m_N - n_remove;
+    out.resize(n_remove);
         {
         // access output array
         ArrayHandle<mpcd::detail::pdata_element> d_out(out, access_location::device, access_mode::overwrite);
 
         // access particle data arrays to read from
-        ArrayHandle<Scalar4> d_pos(m_pos, access_location::device, access_mode::read);
-        ArrayHandle<Scalar4> d_vel(m_vel, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_tag(m_tag, access_location::device, access_mode::read);
-        ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_pos(m_pos, access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_vel, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_tag(m_tag, access_location::device, access_mode::readwrite);
+        ArrayHandle<unsigned int> d_comm_flags(m_comm_flags, access_location::device, access_mode::readwrite);
 
-        // access alternate particle data arrays to write to
-        ArrayHandle<Scalar4> d_pos_alt(m_pos_alt, access_location::device, access_mode::overwrite);
-        ArrayHandle<Scalar4> d_vel_alt(m_vel_alt, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
-        ArrayHandle<unsigned int> d_comm_flags_alt(m_comm_flags_alt, access_location::device, access_mode::overwrite);
-
-        ArrayHandle<unsigned int> d_keep_ids(m_keep_ids, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_remove_ids(m_remove_ids, access_location::device, access_mode::read);
 
         m_remove_tuner->begin();
         mpcd::gpu::remove_particles(d_out.data,
@@ -1078,27 +1072,14 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                     d_vel.data,
                                     d_tag.data,
                                     d_comm_flags.data,
-                                    d_pos_alt.data,
-                                    d_vel_alt.data,
-                                    d_tag_alt.data,
-                                    d_comm_flags_alt.data,
-                                    d_keep_ids.data,
-                                    n_keep,
+                                    d_remove_ids.data,
+                                    n_remove,
                                     m_N,
                                     m_remove_tuner->getParam());
         m_remove_tuner->end();
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
     resize(n_keep);
-
-    // swap particle data arrays
-    swapPositions();
-    swapVelocities();
-    swapTags();
-    swapCommFlags();
-
-    // TODO: notify particle data has changed
-    invalidateCellCache();
     }
 
 /*!
