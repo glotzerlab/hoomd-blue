@@ -287,6 +287,19 @@ class ParticleData
             {
             m_sort_signal.emit(timestep, order, rorder);
             }
+
+        //! Notify subscribers of a particle sort
+        /*!
+         * \param timestep Timestep that the sorting occurred
+         *
+         * This method notifies the subscribers of the sort occurring at \a timestep.
+         * Subscribers are not given the updated particle order.
+         */
+        void notifySort(unsigned int timestep)
+            {
+            GPUArray<unsigned int> order, rorder;
+            m_sort_signal.emit(timestep, order, rorder);
+            }
         //@}
 
         #ifdef ENABLE_MPI
@@ -294,17 +307,17 @@ class ParticleData
         //@{
 
         //! Pack particle data into a buffer
-        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask);
+        void removeParticles(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
 
         //! Add new local particles
-        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask);
+        void addParticles(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
 
         #ifdef ENABLE_CUDA
         //! Pack particle data into a buffer (GPU version)
-        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask);
+        void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out, unsigned int mask, unsigned int timestep);
 
         //! Add new local particles (GPU version)
-        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask);
+        void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in, unsigned int mask, unsigned int timestep);
         #endif // ENABLE_CUDA
 
         //! Get the MPCD particle communication flags

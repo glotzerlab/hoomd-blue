@@ -844,6 +844,7 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
 /*!
  * \param out Buffer into which particle data is packed
  * \param mask Mask for \a m_comm_flags to determine if communication is necessary
+ * \param timestep Current timestep
  *
  * Packs all particles where the communication flags are bitwise AND against \a mask
  * into a buffer and removes them from the particle data arrays. The output buffer
@@ -852,7 +853,8 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
  * \post The particle data arrays remain compact, but is not guaranteed to retain its current order.
  */
 void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>& out,
-                                         unsigned int mask)
+                                         unsigned int mask,
+                                         unsigned int timestep)
     {
     // partition the remove / keep particle indexes
     // this makes it so that all particles we remove are at the front in the order they were in the arrays
@@ -914,15 +916,17 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
     const unsigned int n_keep = m_N - n_remove;
     resize(n_keep);
 
-    // TODO: signal particle data has been reordered
+    notifySort(timestep);
     }
 
 /*!
  * \param in List of particle data elements to fill the particle data with
  * \param mask Bitmask for direction send occurred
+ * \param timestep Current timestep
  */
 void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_element>& in,
-                                      unsigned int mask)
+                                      unsigned int mask,
+                                      unsigned int timestep)
     {
     unsigned int num_add_ptls = in.size();
 
@@ -953,14 +957,16 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
             }
         }
 
-    // TODO: signal particle data has been reordered
+    // cache is invalid because particles migrated, sort signal is tripped because adding particles is like reordering
     invalidateCellCache();
+    notifySort(timestep);
     }
 
 #ifdef ENABLE_CUDA
 /*!
  * \param out Buffer into which particle data is packed
  * \param mask Mask for \a m_comm_flags to determine if communication is necessary
+ * \param timestep Current timestep
  *
  * Packs all particles where the communication flags are bitwise AND against \a mask
  * into a buffer and removes them from the particle data arrays using the GPU.
@@ -969,7 +975,8 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
  * \post The particle data arrays remain compact.
  */
 void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
-                                            unsigned int mask)
+                                            unsigned int mask,
+                                            unsigned int timestep)
     {
     // quit early if there are no particles to remove
     if (m_N == 0)
@@ -1051,14 +1058,17 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
         }
     resize(n_keep);
 
-    // TODO: signal particle data has been reordered
+    notifySort(timestep);
     }
 
 /*!
  * \param in List of particle data elements to fill the particle data with
+ * \param mask Bitmask for direction send occurred
+ * \param timestep Current timestep
  */
 void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
-                                         unsigned int mask)
+                                         unsigned int mask,
+                                         unsigned int timestep)
     {
     unsigned int old_nparticles = m_N;
     unsigned int num_add_ptls = in.size();
@@ -1092,8 +1102,9 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         }
 
-    // TODO: signal particle data has been reordered
+    // cache is invalid because particles migrated, sort signal is tripped because adding particles is like reordering
     invalidateCellCache();
+    notifySort(timestep);
     }
 #endif // ENABLE_CUDA
 

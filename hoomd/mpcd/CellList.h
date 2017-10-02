@@ -310,7 +310,7 @@ class CellList : public Compute
             m_dim_signal.emit();
             }
 
-        bool m_particles_sorted;    //!< True if any particles (MPCD or embedded) have been sorted
+        bool m_particles_sorted;    //!< True if any embedded particles have been sorted
         //! Slot for particle sorting
         void slotSorted()
             {

@@ -189,7 +189,7 @@ void mpcd::Communicator::communicate(unsigned int timestep)
         m_check_decomposition = false;
         }
 
-    migrateParticles();
+    migrateParticles(timestep);
 
     if (m_prof) m_prof->pop();
 
@@ -228,7 +228,7 @@ class MigratePartitionOp
 }
 }
 
-void mpcd::Communicator::migrateParticles()
+void mpcd::Communicator::migrateParticles(unsigned int timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
@@ -238,7 +238,7 @@ void mpcd::Communicator::migrateParticles()
 
     // fill send buffer once
     if (m_prof) m_prof->push("pack");
-    m_mpcd_pdata->removeParticles(m_sendbuf, 0xffffffff);
+    m_mpcd_pdata->removeParticles(m_sendbuf, 0xffffffff, timestep);
     if (m_prof) m_prof->pop();
 
     // fill the buffers and send in each direction
@@ -368,7 +368,7 @@ void mpcd::Communicator::migrateParticles()
         }
 
     // this mask will totally unset any bits that could still be set (there should be none)
-    m_mpcd_pdata->addParticles(m_recvbuf, 0xffffffff);
+    m_mpcd_pdata->addParticles(m_recvbuf, 0xffffffff, timestep);
     if (m_prof) m_prof->pop();
 
     if (m_prof) m_prof->pop();
