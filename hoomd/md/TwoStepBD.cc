@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,9 +6,11 @@
 
 #include "TwoStepBD.h"
 #include "hoomd/VectorMath.h"
-#include "hoomd/extern/saruprng.h"
 #include "QuaternionMath.h"
 #include "hoomd/HOOMDMath.h"
+
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 
 #ifdef ENABLE_MPI
@@ -73,6 +75,7 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
     ArrayHandle<Scalar4> h_net_force(net_force, access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_gamma(m_gamma, access_location::host, access_mode::read);
@@ -87,15 +90,16 @@ void TwoStepBD::integrateStepOne(unsigned int timestep)
 
     const BoxDim& box = m_pdata->getBox();
 
-    // initialize the RNG
-    Saru saru(m_seed, timestep, 0xffaabb);
-
     // perform the first half step
     // r(t+deltaT) = r(t) + (Fc(t) + Fr)*deltaT/gamma
     // v(t+deltaT) = random distribution consistent with T
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
+        unsigned int ptag = h_tag.data[j];
+
+        // Initialize the RNG
+        detail::Saru saru(ptag, timestep, m_seed);
 
         // compute the random force
         Scalar rx = saru.s<Scalar>(-1,1);

@@ -13,7 +13,7 @@ HOOMD_UP_MAIN();
 
 
 #include "hoomd/VectorMath.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 
 using namespace hpmc;
 using namespace hpmc::detail;
@@ -61,7 +61,7 @@ UP_TEST( basic )
 UP_TEST( bigger )
     {
     const unsigned int N = 1000;
-    Saru rng(1);
+    hoomd::detail::Saru rng(1);
 
     // build a test AABB tree big enough to exercise the node splitting
     std::vector< vec3<Scalar> > points(N);

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Pair potentials.
@@ -163,10 +163,8 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the inputs
-        if isinstance(a, str):
-            a = [a];
-        if isinstance(b, str):
-            b = [b];
+        a = hoomd.util.listify(a)
+        b = hoomd.util.listify(b)
 
         for ai in a:
             for bi in b:
@@ -1331,6 +1329,8 @@ class dpd(pair):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     `C. L. Phillips et. al. 2011 <http://dx.doi.org/10.1016/j.jcp.2011.05.021>`_ describes the DPD implementation
     details in HOOMD-blue. Cite it if you utilize the DPD functionality in your work.
 
@@ -2341,7 +2341,7 @@ class dipole(ai_pair):
 
         return params
 
-    def set_params(self, coeff):
+    def set_params(self, *args, **kwargs):
         """ :py:class:`dipole` has no energy shift modes """
 
         raise RuntimeError('Not implemented for dipole');
@@ -2437,3 +2437,345 @@ class reaction_field(pair):
         use_charge = coeff['use_charge']
 
         return _hoomd.make_scalar3(epsilon, eps_rf, _hoomd.int_as_scalar(int(use_charge)));
+
+class DLVO(pair):
+    R""" DLVO colloidal interaction
+
+    :py:class:`DLVO` specifies that a DLVO dispersion and electrostatic interaction should be
+    applied between every non-excluded particle pair in the simulation.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+        d_max (float): Maximum diameter particles in the simulation will have (in distance units)
+
+    :py:class:`DLVO` evaluates the forces for the pair potential
+    .. math::
+
+        V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[
+            \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
+            + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right]
+            + \frac{a_1 a_2}{a_1+a_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta)
+            = & 0 & r \ge (r_{\mathrm{cut}} + \Delta)
+
+     where math:`a_i` is the radius of particle :math:`i`, :math:`\Delta = (d_i + d_j)/2` and
+     :math:`d_i` is the diameter of particle :math:`i`.
+
+    The first term corresponds to the attractive van der Waals interaction with A being the Hamaker constant,
+    the second term to the repulsive double-layer interaction between two spherical surfaces with Z proportional
+    to the surface electric potential.
+
+    See Israelachvili 2011, pp. 317.
+
+    The DLVO potential does not need charge, but does need diameter. See :py:class:`slj` for an explanation
+    on how diameters are handled in the neighbor lists.
+
+    Due to the way that DLVO modifies the cutoff condition, it will not function properly with the
+    xplor shifting mode. See :py:class:`pair` for details on how forces are calculated and the available energy
+    shifting and smoothing modes.
+
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in units of energy*distance)
+    - :math:`\kappa` - *kappa* (in units of 1/distance)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}` - *r_on* (in units of distance)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+
+    Example::
+
+        nl = nlist.cell()
+        DLVO.pair_coeff.set('A', 'A', epsilon=1.0, kappa=1.0)
+        DLVO.pair_coeff.set('A', 'B', epsilon=2.0, kappa=0.5, r_cut=3.0, r_on=2.0);
+        DLVO.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=0.5, kappa=3.0)
+    """
+    def __init__(self, r_cut, nlist, d_max=None, name=None):
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # update the neighbor list
+        if d_max is None :
+            sysdef = hoomd.context.current.system_definition;
+            d_max = sysdef.getParticleData().getMaxDiameter()
+            hoomd.context.msg.notice(2, "Notice: DLVO set d_max=" + str(d_max) + "\n");
+
+        # SLJ requires diameter shifting to be on
+        self.nlist.cpp_nlist.setDiameterShift(True);
+        self.nlist.cpp_nlist.setMaximumDiameter(d_max);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairDLVO(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairDLVO;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairDLVOGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairDLVOGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficent options
+        self.required_coeffs = ['kappa', 'Z', 'A'];
+
+    def process_coeff(self, coeff):
+        Z = coeff['Z'];
+        kappa = coeff['kappa'];
+        A = coeff['A'];
+
+        return _hoomd.make_scalar3(kappa, Z, A);
+
+class square_density(pair):
+    R""" Soft potential for simulating a van-der-Waals liquid
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`square_density` specifies that the three-body potential should be applied to every
+    non-bonded particle pair in the simulation, that is harmonic in the local density.
+
+    The self energy per particle takes the form
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        \Psi^{ex} = B (\rho - A)^2
+        \end{equation}
+
+    which gives a pair-wise additive, three-body force
+
+    .. math::
+        \begin{equation}
+        \vec f_{ij} = \left\{B (n_i - A) + B (n_j - A)\right\} w'_{ij} \vec e_{ij}
+        \end{equation}
+
+    Here, :math:`w_{ij}` is a quadratic, normalized weighting function,
+
+    .. math::
+        :nowrap:
+
+        \begin{equation}
+        w(x) = \frac{15}{2 \pi r_{c,\mathrm{weight}}^3} (1-r/r_{c,\mathrm{weight}})^2
+        \end{equation}
+
+    The local density at the location of particle $i$ is defined as
+
+    .. math::
+        \begin{equation}
+        n_i = \sum\limits_{j\neq i} w_{ij}\left(\big| \vec r_i - \vec r_j \big|\right)
+        \end{equation}
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in units of volume^-1) - mean density (*default*: 0)
+    - :math:`B` - *B* (in units of energy*volume^2) - coefficient of the harmonic density term
+
+    Example::
+
+        nl = nlist.cell()
+        sqd = pair.van_der_waals(r_cut=3.0, nlist=nl)
+        sqd.pair_coeff.set('A', 'A', A=0.1)
+        sqd.pair_coeff.set('A', 'A', B=1.0)
+
+    For further details regarding this multibody potential, see
+
+    Warning:
+        Currently HOOMD does not support reverse force communication between MPI domains on the GPU. 
+        Since reverse force communication is required for the calculation of multi-body potentials, attempting to use the
+        square_density potential on the GPU with MPI will result in an error.
+
+    [1] P. B. Warren, "Vapor-liquid coexistence in many-body dissipative particle dynamics"
+    Phys. Rev. E. Stat. Nonlin. Soft Matter Phys., vol. 68, no. 6 Pt 2, p. 066702, 2003.
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # this potential cannot handle a half neighbor list
+        self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialSquareDensity(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensity;
+        else:
+            self.cpp_force = _md.PotentialSquareDensityGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialSquareDensityGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficients
+        self.required_coeffs = ['A','B']
+        self.pair_coeff.set_default_coeff('A', 0.0)
+
+    def process_coeff(self, coeff):
+        return _hoomd.make_scalar2(coeff['A'],coeff['B'])
+
+
+class buckingham(pair):
+    R""" Buckingham pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`buckingham` specifies that a Buckingham pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Buckingham}}(r)  = & A \exp\left(-\frac{r}{\rho}\right) -
+                          \frac{C}{r} & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`A` - *A* (in energy units)
+    - :math:`\rho` - *rho* (in distance units)
+    - :math:`\C` - *C* (in energy/distance units )
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
+
+    Example::
+
+        nl = nlist.cell()
+        buck = pair.buckingham(r_cut=3.0, nlist=nl)
+        buck.pair_coeff.set('A', 'A', A=1.0, rho=1.0, C=1.0)
+        buck.pair_coeff.set('A', 'B', A=2.0, rho=1.0, C=1.0, r_cut=3.0, r_on=2.0);
+        buck.pair_coeff.set('B', 'B', A=1.0, rho=1.0, C=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+        buck.pair_coeff.set(['A', 'B'], ['C', 'D'], A=1.5, rho=2.0, C=1.0)
+
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairBuckingham(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairBuckingham;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairBuckinghamGPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairBuckinghamGPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['A', 'rho', 'C'];
+
+    def process_coeff(self, coeff):
+        A = coeff['A'];
+        rho = coeff['rho'];
+        C = coeff['C'];
+
+        return _hoomd.make_scalar4(A, rho, C, 0.0);
+
+
+class lj1208(pair):
+    R""" Lennard-Jones 12-8 pair potential.
+
+    Args:
+        r_cut (float): Default cutoff radius (in distance units).
+        nlist (:py:mod:`hoomd.md.nlist`): Neighbor list
+        name (str): Name of the force instance.
+
+    :py:class:`lj1208` specifies that a Lennard-Jones pair potential should be applied between every
+    non-excluded particle pair in the simulation.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{LJ}}(r)  = & 4 \varepsilon \left[ \left( \frac{\sigma}{r} \right)^{12} -
+                          \alpha \left( \frac{\sigma}{r} \right)^{8} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    See :py:class:`pair` for details on how forces are calculated and the available energy shifting and smoothing modes.
+    Use :py:meth:`pair_coeff.set <coeff.set>` to set potential coefficients.
+
+    The following coefficients must be set per unique pair of particle types:
+
+    - :math:`\varepsilon` - *epsilon* (in energy units)
+    - :math:`\sigma` - *sigma* (in distance units)
+    - :math:`\alpha` - *alpha* (unitless) - *optional*: defaults to 1.0
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+    - :math:`r_{\mathrm{on}}`- *r_on* (in distance units)
+      - *optional*: defaults to the global r_cut specified in the pair command
+
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
+
+    Example::
+
+        nl = nlist.cell()
+        lj1208 = pair.lj1208(r_cut=3.0, nlist=nl)
+        lj1208.pair_coeff.set('A', 'A', epsilon=1.0, sigma=1.0)
+        lj1208.pair_coeff.set('A', 'B', epsilon=2.0, sigma=1.0, alpha=0.5, r_cut=3.0, r_on=2.0);
+        lj1208.pair_coeff.set('B', 'B', epsilon=1.0, sigma=1.0, r_cut=2**(1.0/6.0), r_on=2.0);
+        lj1208.pair_coeff.set(['A', 'B'], ['C', 'D'], epsilon=1.5, sigma=2.0)
+
+    """
+    def __init__(self, r_cut, nlist, name=None):
+        hoomd.util.print_status_line();
+
+        # tell the base class how we operate
+
+        # initialize the base class
+        pair.__init__(self, r_cut, nlist, name);
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialPairLJ1208(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairLJ1208;
+        else:
+            self.nlist.cpp_nlist.setStorageMode(_md.NeighborList.storageMode.full);
+            self.cpp_force = _md.PotentialPairLJ1208GPU(hoomd.context.current.system_definition, self.nlist.cpp_nlist, self.name);
+            self.cpp_class = _md.PotentialPairLJ1208GPU;
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['epsilon', 'sigma', 'alpha'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        epsilon = coeff['epsilon'];
+        sigma = coeff['sigma'];
+        alpha = coeff['alpha'];
+
+        lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
+        lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 8.0);
+        return _hoomd.make_scalar2(lj1, lj2);

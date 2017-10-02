@@ -1,5 +1,4 @@
 from hoomd import *
-from hoomd import deprecated
 from hoomd import hpmc
 
 import unittest
@@ -13,7 +12,7 @@ context.initialize()
 
 class muvt_updater_test(unittest.TestCase):
     def setUp(self):
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.001,min_dist=4.0,seed=12345)
+        self.system = init.create_lattice(lattice.sc(a=8.059959770082347),n=[10,10,10]);
 
     def tearDown(self):
         del self.muvt
@@ -23,6 +22,7 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_spheres(self):
         self.mc = hpmc.integrate.sphere(seed=123)
+        self.mc.set_params(deterministic=True)
         self.mc.set_params(d=0.1)
 
         self.mc.shape_param.set('A', diameter=1.0)
@@ -33,7 +33,8 @@ class muvt_updater_test(unittest.TestCase):
         run(100)
 
     def test_convex_polyhedron(self):
-        self.mc = hpmc.integrate.convex_polyhedron(seed=10,max_verts=8);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -50,6 +51,7 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_sphere_union(self):
         self.mc = hpmc.integrate.sphere_union(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", diameters=[1.0, 1.0], centers=[(-0.25, 0, 0), (0.25, 0, 0)]);
 
         self.muvt=hpmc.update.muvt(mc=self.mc,seed=456,transfer_types=['A'])
@@ -59,9 +61,11 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_polyhedron(self):
         self.mc = hpmc.integrate.polyhedron(seed=10);
-        self.mc.shape_param.set('A', vertices=[(-0.5, -0.5, -0.5), (-0.5, -0.5, 0.5), (-0.5, 0.5, -0.5), (-0.5, 0.5, 0.5), \
-                                (0.5, -0.5, -0.5), (0.5, -0.5, 0.5), (0.5, 0.5, -0.5), (0.5, 0.5, 0.5)],\
-                                faces = [(7, 3, 1, 5), (7, 5, 4, 6), (7, 6, 2, 3), (3, 2, 0, 1), (0, 2, 6, 4), (1, 0, 4, 5)]);
+        self.mc.set_params(deterministic=True)
+        import math
+        v = [(-0.5, -0.5, 0), (-0.5, 0.5, 0), (0.5, -0.5, 0), (0.5, 0.5, 0), (0,0, 1.0/math.sqrt(2)),(0,0,-1.0/math.sqrt(2))];
+        f = [(0,4,1),(1,4,2),(2,4,3),(3,4,0),(0,5,1),(1,5,2),(2,5,3),(3,5,0)]
+        self.mc.shape_param.set('A', vertices=v, faces=f)
 
         self.muvt=hpmc.update.muvt(mc=self.mc,seed=456,transfer_types=['A'])
         self.muvt.set_fugacity('A', 100)
@@ -70,6 +74,7 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_faceted_sphere(self):
         self.mc = hpmc.integrate.faceted_sphere(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", normals=[(-1,0,0),
                                               (1,0,0),
                                               (0,1,0,),
@@ -88,6 +93,7 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_spheropolyhedron(self):
         self.mc = hpmc.integrate.convex_spheropolyhedron(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set("A", vertices=[(-2,-1,-1),
                                                (-2,1,-1),
                                                (-2,-1,1),
@@ -104,6 +110,7 @@ class muvt_updater_test(unittest.TestCase):
 
     def test_ellipsoid(self):
         self.mc = hpmc.integrate.ellipsoid(seed=10);
+        self.mc.set_params(deterministic=True)
         self.mc.shape_param.set('A', a=0.5, b=0.25, c=0.125);
 
         self.muvt=hpmc.update.muvt(mc=self.mc,seed=456,transfer_types=['A'])

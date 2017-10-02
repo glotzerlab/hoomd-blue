@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -46,13 +46,21 @@ namespace hpmc
 
     \ingroup shape
 */
-struct ell_params : aligned_struct
+struct ell_params : param_base
     {
     OverlapReal x;                      //!< x semiaxis of the ellipsoid
     OverlapReal y;                      //!< y semiaxis of the ellipsoid
     OverlapReal z;                      //!< z semiaxis of the ellipsoid
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
+
+    #ifdef ENABLE_CUDA
+    //! Attach managed memory to CUDA stream
+    void attach_to_stream(cudaStream_t stream) const
+        {
+        // default implementation does nothing
+        }
+    #endif
     } __attribute__((aligned(32)));
 
 struct ShapeEllipsoid

@@ -7,6 +7,7 @@ set(_md_sources module-md.cc
                    ConstExternalFieldDipoleForceCompute.cc
                    ConstraintEllipsoid.cc
                    ConstraintSphere.cc
+                   CosineSqAngleForceCompute.cc
                    OneDConstraint.cc
                    Enforce2DUpdater.cc
                    FIREEnergyMinimizer.cc
@@ -45,7 +46,9 @@ set(_md_headers ActiveForceComputeGPU.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
+                AllSpecialPairPotentials.h
                 AllTripletPotentials.h
+                AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
                 AnisoPotentialPair.h
                 BondTablePotentialGPU.h
@@ -57,16 +60,20 @@ set(_md_headers ActiveForceComputeGPU.h
                 ConstraintEllipsoid.h
                 ConstraintSphereGPU.h
                 ConstraintSphere.h
+                CosineSqAngleForceComputeGPU.h
+                CosineSqAngleForceCompute.h
                 Enforce2DUpdaterGPU.h
                 Enforce2DUpdater.h
                 EvaluatorBondFENE.h
                 EvaluatorBondHarmonic.h
                 EvaluatorSpecialPairLJ.h
+                EvaluatorSpecialPairCoulomb.h
                 EvaluatorConstraintEllipsoid.h
                 EvaluatorConstraint.h
                 EvaluatorConstraintSphere.h
                 EvaluatorExternalElectricField.h
                 EvaluatorExternalPeriodic.h
+                EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
                 EvaluatorPairDPDLJThermo.h
                 EvaluatorPairDPDThermo.h
@@ -75,6 +82,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairGauss.h
                 EvaluatorPairGB.h
                 EvaluatorPairLJ.h
+                EvaluatorPairLJ1208.h
                 EvaluatorPairMie.h
                 EvaluatorPairMoliere.h
                 EvaluatorPairMorse.h
@@ -121,6 +129,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialPairGPU.h
 		PotentialPairGPU.cuh
                 PotentialPair.h
+                PotentialSpecialPairGPU.h
+                PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
@@ -180,6 +190,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            TwoStepNVEGPU.cc
                            TwoStepNVTMTKGPU.cc
 			   MuellerPlatheFlowGPU.cc
+               CosineSqAngleForceComputeGPU.cc
                            )
 endif()
 
@@ -218,6 +229,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       TwoStepNVEGPU.cu
                       TwoStepNVTMTKGPU.cu
 		      MuellerPlatheFlowGPU.cu
+              CosineSqAngleForceGPU.cu
                       )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
@@ -336,4 +348,8 @@ endif()
 if (BUILD_TESTING)
     add_subdirectory(test-py)
     add_subdirectory(test)
+endif()
+
+if (BUILD_VALIDATION)
+    add_subdirectory(validation)
 endif()

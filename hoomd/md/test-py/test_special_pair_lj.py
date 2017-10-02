@@ -71,6 +71,23 @@ class special_pair_lj_tests (unittest.TestCase):
             #self.assertRaises(RuntimeError, run, 100);
             pass
 
+    # check that cutoff is correctly enforced
+    def test_special_pair_lj_cutoff(self):
+        lj = md.special_pair.lj();
+        lj.pair_coeff.set('pairtype_1', sigma=1.0, epsilon=1.0, r_cut=1.49)
+        lj.pair_coeff.set('pairtype_2', sigma=1.5, epsilon=2.5, r_cut=1.7)
+        all = group.all();
+        md.integrate.mode_standard(dt=0);
+        md.integrate.nve(all);
+        run(1)
+
+        # Should be 0.0 due to being outside cutoff
+        self.assertAlmostEqual(lj.forces[0].energy, 0.0,3)
+
+        # Should only have contribution from [1,2] as [0,1] is outside cutoff
+        self.assertAlmostEqual(lj.forces[1].energy, -0.5*1.9756,3)
+        self.assertAlmostEqual(lj.forces[2].energy, -0.5*1.9756,3)
+
     # check the value of the pair potential
     def test_special_pair_lj_value(self):
         lj = md.special_pair.lj();

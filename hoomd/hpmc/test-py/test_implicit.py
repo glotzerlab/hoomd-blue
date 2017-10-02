@@ -1,7 +1,6 @@
 from __future__ import print_function
 from __future__ import division
 from hoomd import *
-from hoomd import deprecated
 from hoomd import hpmc
 import math
 import unittest
@@ -17,8 +16,7 @@ context.initialize()
 class implicit_test_sphere (unittest.TestCase):
     def setUp(self):
         # setup the MC integration
-        self.system = deprecated.init.create_random(N=1000,phi_p=0.2,min_dist=1.0)
-
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
         self.long = False
         self.num_samples = 0
         self.steps = 10
@@ -28,7 +26,7 @@ class implicit_test_sphere (unittest.TestCase):
             self.num_samples = 10
             self.steps = 1000
 
-        self.mc = hpmc.integrate.sphere(seed=123,implicit=True)
+        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='circumsphere')
         self.mc.set_params(d=0.1)
 
         q=1.0
@@ -108,7 +106,8 @@ class implicit_test_cube(unittest.TestCase):
         phi_c_ini = 0.01
         phi_c = 0.1
         self.V_cube = 1.0
-        N=1000
+        n = [10] * 3
+        N = math.pow(10,3)
 
         self.long = False
         self.num_samples = 0
@@ -121,9 +120,9 @@ class implicit_test_cube(unittest.TestCase):
         L_ini= math.pow(N*self.V_cube/phi_c_ini,1.0/3.0)
         L_target= math.pow(N*self.V_cube/phi_c,1.0/3.0)
 
-        self.system = deprecated.init.create_random(N=N,box=data.boxdim(L=L_ini), min_dist=math.sqrt(2.0))
+        self.system = init.create_lattice(lattice.sc(a=L_ini/float(n[0])),n=n)
 
-        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True)
+        self.mc = hpmc.integrate.convex_polyhedron(seed=123,implicit=True,depletant_mode='circumsphere')
         self.mc.set_params(d=0.1,a=0.15)
 
         etap=1.0
@@ -218,6 +217,62 @@ class implicit_test_cube(unittest.TestCase):
         if self.long:
             self.assertAlmostEqual(avg_eta_p,0.4,delta=0.1)
 
+
+    def tearDown(self):
+        if comm.get_rank() == 0:
+            os.remove(self.tmp_file);
+
+        del self.free_volume
+        del self.log
+        del self.mc
+        del self.system
+        context.initialize();
+
+class implicit_test_sphere_new (unittest.TestCase):
+    def setUp(self):
+        # setup the MC integration
+        self.system = init.create_lattice(lattice.sc(a=1.3782337338022654),n=[10,10,10]) #target a packing fraction of 0.2
+
+        self.num_samples = 0
+        self.steps = 10
+
+        self.mc = hpmc.integrate.sphere(seed=123,implicit=True, depletant_mode='overlap_regions')
+        self.mc.set_params(d=0.1)
+
+        q=1.0
+        etap=1.0
+        self.nR = etap/(math.pi/6.0*math.pow(q,3.0))
+
+        self.system.particles.types.add('B')
+        self.mc.set_params(nR=self.nR,depletant_type='B')
+
+        self.mc.shape_param.set('A', diameter=1.0)
+        self.mc.shape_param.set('B', diameter=q)
+
+        import tempfile
+        tmp = tempfile.mkstemp(suffix='.hpmc-test-implicit');
+        self.tmp_file = tmp[1];
+
+        nsample = 10000
+        self.free_volume = hpmc.compute.free_volume(mc=self.mc, seed=987, nsample=nsample, test_type='B')
+        self.log=analyze.log(filename=self.tmp_file, quantities=['volume','hpmc_free_volume'], overwrite=True,period=100)
+
+    def test_implicit(self):
+        # warm up
+        run(self.steps)
+
+        avg_eta_p = 0
+
+        for i in range(self.num_samples):
+            run(self.steps)
+            n_overlap = self.mc.count_overlaps()
+            self.assertEqual(n_overlap,0)
+            vol = self.log.query('volume')
+            free_vol = self.log.query('hpmc_free_volume')
+            eta_p = math.pi/6.0*free_vol/vol*self.nR
+            avg_eta_p += eta_p/self.num_samples
+
+        context.msg.notice(1,'eta_p = {0}\n'.format(avg_eta_p))
 
     def tearDown(self):
         if comm.get_rank() == 0:

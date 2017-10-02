@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -60,7 +60,8 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
                             m_couple(couple),
                             m_flags(flags),
                             m_nph(nph),
-                            m_rescale_all(false)
+                            m_rescale_all(false),
+                            m_gamma(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing TwoStepNPTMTK" << endl;
 
@@ -83,20 +84,15 @@ TwoStepNPTMTK::TwoStepNPTMTK(std::shared_ptr<SystemDefinition> sysdef,
     m_V = m_pdata->getGlobalBox().getVolume(twod);  // volume
 
     // set initial state
-    IntegratorVariables v = getIntegratorVariables();
-
-    if (!restartInfoTestValid(v, "npt_mtk", 10))
+    if (!restartInfoTestValid(getIntegratorVariables(), "npt_mtk", 10))
         {
-        v.type = "npt_mtk";
-        v.variable.resize(10,Scalar(0.0));
+        initializeIntegratorVariables();
         setValidRestart(false);
         }
     else
         {
         setValidRestart(true);
         }
-
-    setIntegratorVariables(v);
 
     m_log_names.resize(2);
     m_log_names[0] = "npt_thermostat_energy";
@@ -187,6 +183,11 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
         throw std::runtime_error("Error during NPT integration.");
         }
 
+    // update box dimensions
+    bool twod = m_sysdef->getNDimensions()==2;
+
+    m_V = m_pdata->getGlobalBox().getVolume(twod);  // current volume
+
     unsigned int group_size = m_group->getNumMembers();
 
     // profile this step
@@ -227,9 +228,6 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
     c.x = m_mat_exp_r[0] * c.x + m_mat_exp_r[1] * c.y + m_mat_exp_r[2] * c.z;
     c.y = m_mat_exp_r[3] * c.y + m_mat_exp_r[4] * c.z;
     c.z = m_mat_exp_r[5] * c.z;
-
-    // update box dimensions
-    bool twod = m_sysdef->getNDimensions()==2;
 
     global_box.setL(make_scalar3(a.x,b.y,c.z));
     Scalar xy = b.x/b.y;
@@ -871,37 +869,41 @@ void TwoStepNPTMTK::advanceBarostat(unsigned int timestep)
     Scalar& nuyz = v.variable[6];  // Barostat tensor, yz component
     Scalar& nuzz = v.variable[7];  // Barostat tensor, zz component
 
-
     if (m_flags & baro_x)
         {
         nuxx += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.x - m_S[0]->getValue(timestep)) + mtk_term;
+        nuxx -= m_gamma*nuxx;
         }
 
     if (m_flags & baro_xy)
         {
         nuxy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xy - m_S[5]->getValue(timestep));
+        nuxy -= m_gamma*nuxy;
         }
 
     if (m_flags & baro_xz)
         {
         nuxz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.xz- m_S[4]->getValue(timestep));
+        nuxz -= m_gamma*nuxz;
         }
 
     if (m_flags & baro_y)
         {
         nuyy += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.y - m_S[1]->getValue(timestep)) + mtk_term;
+        nuyy -= m_gamma*nuyy;
         }
 
     if (m_flags & baro_yz)
         {
         nuyz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P.yz- m_S[3]->getValue(timestep));
+        nuyz -= m_gamma*nuyz;
         }
 
     if (m_flags & baro_z)
         {
         nuzz += Scalar(1.0/2.0)*m_deltaT*m_V/W*(P_diag.z - m_S[2]->getValue(timestep)) + mtk_term;
+        nuzz -= m_gamma*nuzz;
         }
-
 
     // store integrator variables
     setIntegratorVariables(v);
@@ -961,12 +963,13 @@ void export_TwoStepNPTMTK(py::module& m)
         .def("setTau", &TwoStepNPTMTK::setTau)
         .def("setTauP", &TwoStepNPTMTK::setTauP)
         .def("setRescaleAll", &TwoStepNPTMTK::setRescaleAll)
+        .def("setGamma", &TwoStepNPTMTK::setGamma)
         ;
 
     py::enum_<TwoStepNPTMTK::couplingMode>(twostepnptmtk,"couplingMode")
     .value("couple_none", TwoStepNPTMTK::couplingMode::couple_none)
     .value("couple_xy", TwoStepNPTMTK::couplingMode::couple_xy)
-    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_none)
+    .value("couple_xz", TwoStepNPTMTK::couplingMode::couple_xz)
     .value("couple_yz", TwoStepNPTMTK::couplingMode::couple_yz)
     .value("couple_xyz", TwoStepNPTMTK::couplingMode::couple_xyz)
     .export_values()

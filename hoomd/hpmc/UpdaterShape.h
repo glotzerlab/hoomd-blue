@@ -9,6 +9,7 @@
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
+#include "hoomd/GSDState.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
@@ -64,6 +65,16 @@ public:
         }
 
     void countTypes();
+
+    //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    int slotWriteGSD(gsd_handle&, std::string name) const;
+
+    //! Method that is called to connect to the gsd write state signal
+    void connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name);
+
+    //! Method that is called to connect to the gsd write state signal
+    bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
+
 
 protected:
     static std::string getParamName(size_t i)
@@ -155,11 +166,12 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
     else if(quantity == "shape_move_particle_volume")
         {
         ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+        // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+        auto params = m_mc->getParams();
         double volume = 0.0;
         for(size_t i = 0; i < m_pdata->getNTypes(); i++)
             {
-            detail::mass_properties<Shape> mp(h_params.data[i]);
+            detail::mass_properties<Shape> mp(params[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
 		return volume;
@@ -213,20 +225,20 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
     if (!move)
         return;
     if (this->m_prof)
-        this->m_prof->push(this->m_exec_conf, "ElasticShape update");
+        this->m_prof->push(this->m_exec_conf, "UpdaterShape update");
 
     m_update_order.resize(m_pdata->getNTypes());
     for(unsigned int sweep=0; sweep < m_nsweeps; sweep++)
         {
         if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "ElasticShape setup");
+            this->m_prof->push(this->m_exec_conf, "UpdaterShape setup");
         // Shuffle the order of particles for this sweep
         m_update_order.choose(timestep+40591, m_nselect, sweep+91193); // order of the list doesn't matter the probability of each combination is the same.
 
         Scalar log_boltz = 0.0;
         m_exec_conf->msg->notice(6) << "UpdaterShape copying data" << std::endl;
         if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "ElasticShape copy param");
+            this->m_prof->push(this->m_exec_conf, "UpdaterShape copy param");
         GPUArray< typename Shape::param_type > param_copy(m_nselect, m_exec_conf);
         {
         ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
@@ -239,13 +251,11 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         if (this->m_prof)
             this->m_prof->pop();
 
+        if (this->m_prof)
+            this->m_prof->push(this->m_exec_conf, "UpdaterShape move");
         GPUArray< Scalar > determinant_backup(m_determinant);
         m_move_function->prepare(timestep);
 
-        if (this->m_prof)
-            this->m_prof->pop();
-        if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "ElasticShape move");
         for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
             {
             // make a trial move for i
@@ -283,7 +293,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             this->m_prof->pop();
 
         if (this->m_prof)
-            this->m_prof->push(this->m_exec_conf, "ElasticShape cleanup");
+            this->m_prof->push(this->m_exec_conf, "UpdaterShape cleanup");
         // calculate boltzmann factor.
         bool accept = false, reject=true; // looks redundant but it is not because of the pretend mode.
         Scalar p = rng.s(Scalar(0.0),Scalar(1.0)), Z = fast::exp(log_boltz);
@@ -367,10 +377,11 @@ void UpdaterShape<Shape>::initialize()
     {
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
-    ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+    // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
+    auto params = m_mc->getParams();
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
         {
-        detail::mass_properties<Shape> mp(h_params.data[i]);
+        detail::mass_properties<Shape> mp(params[i]);
         h_det.data[i] = mp.getDeterminant();
         }
     m_initialized = true;
@@ -422,6 +433,27 @@ void UpdaterShape<Shape>::countTypes()
     #endif
     }
 
+template< typename Shape>
+int UpdaterShape<Shape>::slotWriteGSD(gsd_handle&, std::string name) const
+    {
+    return 0;
+    }
+
+template< typename Shape>
+void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer, std::string name)
+    {
+    _connectGSDSignal(this, writer, name); // call through to the helper function.
+    }
+
+template< typename Shape>
+bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name)
+    {
+    return false;
+    }
+
+
+
+
 template< typename Shape >
 void export_UpdaterShape(pybind11::module& m, const std::string& name)
     {
@@ -440,6 +472,7 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("resetStatistics", &UpdaterShape<Shape>::resetStatistics)
     .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
+    .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
     ;
     }
 

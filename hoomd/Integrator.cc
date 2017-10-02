@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -221,19 +221,7 @@ Scalar Integrator::getLogValue(const std::string& quantity, unsigned int timeste
 */
 void Integrator::computeAccelerations(unsigned int timestep)
     {
-#ifdef ENABLE_MPI
-    if (m_comm)
-        {
-        // Move particles between domains. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if additionally ghosts are updated every timestep
-        m_comm->forceMigrate();
-        m_comm->communicate(timestep);
-        }
-#endif
-
-    // compute the net forces
-    computeNetForce(timestep);
+    m_exec_conf->msg->notice(5) << "integrate.*: pre-computing missing acceleration data" << endl;
 
     if (m_prof)
         {
@@ -284,7 +272,16 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
         p_tot_z += mass*(double)h_vel.data[i].z;
         }
 
-    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getNGlobal());
 
     // done!
     return Scalar(p_tot);
@@ -329,7 +326,8 @@ void Integrator::computeNetForce(unsigned int timestep)
         external_energy = Scalar(0.0);
 
         // now, add up the net forces
-        unsigned int nparticles = m_pdata->getN();
+        // also sum up forces for ghosts, in case they are needed by the communicator
+        unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
         unsigned int net_virial_pitch = net_virial.getPitch();
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
@@ -384,10 +382,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
-        return;
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -395,6 +389,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->updateNetForce(timestep);
         }
     #endif
+
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque
@@ -508,7 +506,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         ArrayHandle<Scalar>  d_net_virial(net_virial, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_net_torque(net_torque, access_location::device, access_mode::overwrite);
 
-        unsigned int nparticles = m_pdata->getN();
+        // also sum up forces for ghosts, in case they are needed by the communicator
+        unsigned int nparticles = m_pdata->getN() + m_pdata->getNGhosts();
         assert(nparticles <= net_force.getNumElements());
         assert(nparticles*6 <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());

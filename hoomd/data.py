@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
@@ -1158,6 +1158,7 @@ class particle_data_proxy(object):
         net_force (tuple): Net force on particle (x, y, z) (float, in force units).
         net_energy (float): Net contribution of particle to the potential energy (in energy units).
         net_torque (tuple): Net torque on the particle (x, y, z) (float, in torque units).
+        net_virial (tuple): Net virial for the particle (xx,yy,zz, xy, xz, yz)
     """
 
     ## \internal
@@ -1190,6 +1191,7 @@ class particle_data_proxy(object):
         result += "net_force   : " + str(self.net_force) + "\n";
         result += "net_energy  : " + str(self.net_energy) + "\n";
         result += "net_torque  : " + str(self.net_torque) + "\n";
+        result += "net_virial  : " + str(self.net_virial) + "\n";
         return result;
 
     @property
@@ -1339,6 +1341,16 @@ class particle_data_proxy(object):
     def net_force(self):
         f = self.pdata.getPNetForce(self.tag);
         return (f.x, f.y, f.z);
+
+    @property
+    def net_virial(self):
+        v = (self.pdata.getPNetVirial(self.tag,0),
+             self.pdata.getPNetVirial(self.tag,1),
+             self.pdata.getPNetVirial(self.tag,2),
+             self.pdata.getPNetVirial(self.tag,3),
+             self.pdata.getPNetVirial(self.tag,4),
+             self.pdata.getPNetVirial(self.tag,5));
+        return v
 
     @property
     def net_energy(self):

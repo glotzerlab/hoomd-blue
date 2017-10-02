@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -7,6 +7,10 @@
 
 
 #include "TwoStepLangevinBase.h"
+
+#ifdef ENABLE_MPI
+#include "hoomd/HOOMDMPI.h"
+#endif
 
 namespace py = pybind11;
 using namespace std;
@@ -21,6 +25,7 @@ using namespace std;
     \param seed Random seed to use in generating random numbers
     \param use_lambda If true, gamma=lambda*diameter, otherwise use a per-type gamma via setGamma()
     \param lambda Scale factor to convert diameter to gamma
+    \note All ranks other than 0 ignore the seed input and use the value of rank 0.
 */
 TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysdef,
                            std::shared_ptr<ParticleGroup> group,
@@ -36,6 +41,14 @@ TwoStepLangevinBase::TwoStepLangevinBase(std::shared_ptr<SystemDefinition> sysde
         m_exec_conf->msg->notice(2) << "integrate.langevin/bd is determining gamma from particle diameters" << endl;
     else
         m_exec_conf->msg->notice(2) << "integrate.langevin/bd is using specified gamma values" << endl;
+
+    // In case of MPI run, every rank should be initialized with the same seed.
+    // For simplicity we broadcast the seed of rank 0 to all ranks.
+
+    #ifdef ENABLE_MPI
+    if( this->m_pdata->getDomainDecomposition() )
+        bcast(m_seed,0,this->m_exec_conf->getMPICommunicator());
+    #endif
 
     // Hash the User's Seed to make it less likely to be a low positive integer
     m_seed = m_seed*0x12345677 + 0x12345 ; m_seed^=(m_seed>>16); m_seed*= 0x45679;

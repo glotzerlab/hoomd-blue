@@ -54,6 +54,9 @@ def sortFaces(verts, faces):
 class mass_properties_convex_polyhedron_test(unittest.TestCase):
     def setUp(self):
         np.random.seed(1001248987);
+        hoomd.context.initialize();
+        hoomd.init.create_lattice(unitcell=hoomd.lattice.sc(a=1.0),n=[1,1,1]);
+
 
     def test_convex_polyhedron(self):
         print("")
@@ -61,8 +64,8 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
         py_time = 0.0;
         for _ in range(100):
             nverts = np.random.randint(10, 128);
-            make_verts = hpmc.integrate._get_sized_entry("make_poly3d_verts", nverts);
-            mass_class = hpmc.integrate._get_sized_entry("MassPropertiesConvexPolyhedron", nverts);
+            make_verts = hpmc._hpmc.make_poly3d_verts;
+            mass_class = hpmc._hpmc.MassPropertiesConvexPolyhedron;
             verts = 5.0*np.random.rand(nverts, 3);
 
             start = time.time();
@@ -77,7 +80,7 @@ class mass_properties_convex_polyhedron_test(unittest.TestCase):
                 py_ids.update(f);
 
             start = time.time();
-            mp = mass_class(make_verts(verts.tolist(), 0, False));
+            mp = mass_class(make_verts(verts.tolist(), 0, False, hoomd.context.current.system_definition.getParticleData().getExecConf()));
             end = time.time();
             cpp_time += end-start;
 

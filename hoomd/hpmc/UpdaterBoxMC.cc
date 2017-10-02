@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
@@ -23,6 +23,8 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_frequency(frequency),
           m_Volume_delta(0.0),
           m_Volume_weight(0.0),
+          m_lnVolume_delta(0.0),
+          m_lnVolume_weight(0.0),
           m_Volume_A1(0.0),
           m_Volume_A2(0.0),
           m_Length_delta {0.0, 0.0, 0.0},
@@ -35,6 +37,12 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
           m_seed(seed)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterBoxMC" << std::endl;
+
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
 
     // initialize logger and stats
     resetStats();
@@ -98,6 +106,13 @@ Scalar UpdaterBoxMC::getLogValue(const std::string& quantity, unsigned int times
             return 0;
         else
             return counters.getVolumeAcceptance();
+        }
+    else if (quantity == "hpmc_boxmc_ln_volume_acceptance")
+        {
+        if (counters.ln_volume_reject_count + counters.ln_volume_accept_count == 0)
+            return 0;
+        else
+            return counters.getLogVolumeAcceptance();
         }
     else if (quantity == "hpmc_boxmc_shear_acceptance")
         {
@@ -296,7 +311,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar yz,
                                           unsigned int timestep,
                                           Scalar boltzmann,
-                                          Saru& rng
+                                          hoomd::detail::Saru& rng
                                           )
     {
     // Make a backup copy of position data
@@ -316,7 +331,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     newBox.setTiltFactors(xy, xz, yz);
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
-    if (m_mc->getExternalField())
+    if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
         Scalar ext_boltzmann = m_mc->getExternalField()->calculateBoltzmannFactor(h_pos_backup.data, NULL, &curBox);
@@ -381,12 +396,12 @@ void UpdaterBoxMC::update(unsigned int timestep)
     m_exec_conf->msg->notice(10) << "UpdaterBoxMC: " << timestep << std::endl;
 
     // Create a prng instance for this timestep
-    Saru rng(m_seed, timestep, 0xf6a510ab);
+    hoomd::detail::Saru rng(m_seed, timestep, 0xf6a510ab);
 
     // Choose a move type
     // This seems messy and can hopefully be simplified and generalized.
     // This line will need to be rewritten or updated when move types are added to the updater.
-    float range = m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
+    float range = m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight;
     if (range == 0.0)
         {
         // Attempt to execute with no move types set.
@@ -404,19 +419,25 @@ void UpdaterBoxMC::update(unsigned int timestep)
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_Length_weight)
+    if (move_type_select <= m_Volume_weight + m_lnVolume_weight)
+        {
+        // Isotropic volume change in logarithmic steps
+        m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
+        update_lnV(timestep, rng);
+        }
+    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight)
+    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -441,7 +462,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_L");
     // Get updater parameters for current timestep
@@ -515,7 +536,93 @@ void UpdaterBoxMC::update_L(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
+//! Update the box volume in logarithmic steps
+void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
+    {
+    if (m_prof) m_prof->push("UpdaterBoxMC: update_lnV");
+    // Get updater parameters for current timestep
+    Scalar P = m_P->getValue(timestep);
+
+    // Get current particle data and box lattice parameters
+    assert(m_pdata);
+    unsigned int Ndim = m_sysdef->getNDimensions();
+    unsigned int Nglobal = m_pdata->getNGlobal();
+    BoxDim curBox = m_pdata->getGlobalBox();
+    Scalar curL[3];
+    Scalar newL[3]; // Lx, Ly, Lz
+    newL[0] = curL[0] = curBox.getLatticeVector(0).x;
+    newL[1] = curL[1] = curBox.getLatticeVector(1).y;
+    newL[2] = curL[2] = curBox.getLatticeVector(2).z;
+    Scalar newShear[3]; // xy, xz, yz
+    newShear[0] = curBox.getTiltFactorXY();
+    newShear[1] = curBox.getTiltFactorXZ();
+    newShear[2] = curBox.getTiltFactorYZ();
+
+    // original volume
+    double V = curL[0] * curL[1];
+    if (Ndim == 3)
+        {
+        V *= curL[2];
+        }
+    // Aspect ratios
+    Scalar A1 = m_Volume_A1;
+    Scalar A2 = m_Volume_A2;
+
+    // Volume change
+    Scalar dlnV_max(m_lnVolume_delta);
+
+    // Choose a volume change
+    Scalar dlnV = rng.s(-dlnV_max, dlnV_max);
+    Scalar new_V = V*exp(dlnV);
+
+    // perform isotropic volume change
+    if (Ndim == 3)
+        {
+        newL[0] = pow(A1 * A2 * new_V,(1./3.));
+        newL[1] = newL[0]/A1;
+        newL[2] = newL[0]/A2;
+        }
+    else // Ndim ==2
+        {
+        newL[0] = pow(A1*new_V,(1./2.));
+        newL[1] = newL[0]/A1;
+        // newL[2] is already assigned to curL[2]
+        }
+
+    if (!safe_box(newL, Ndim))
+        {
+        m_count_total.ln_volume_reject_count++;
+        }
+    else
+        {
+        // Calculate Boltzmann factor
+        double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
+        double Boltzmann = exp(dBetaH);
+
+        // attempt box change
+        bool accept = box_resize_trial(newL[0],
+                                      newL[1],
+                                      newL[2],
+                                      newShear[0],
+                                      newShear[1],
+                                      newShear[2],
+                                      timestep,
+                                      Boltzmann,
+                                      rng);
+
+        if (accept)
+            {
+            m_count_total.ln_volume_accept_count++;
+            }
+        else
+            {
+            m_count_total.ln_volume_reject_count++;
+            }
+        }
+    if (m_prof) m_prof->pop();
+    }
+
+void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_V");
     // Get updater parameters for current timestep
@@ -556,13 +663,13 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     if (Ndim == 3)
         {
         newL[0] = pow((A1 * A2 * (V + dV)),(1./3.));
-        newL[1] = A1 * newL[0];
-        newL[2] = A2 * newL[0];
+        newL[1] = newL[0]/A1;
+        newL[2] = newL[0]/A2;
         }
     else // Ndim ==2
         {
         newL[0] = pow((A1*(V+dV)),(1./2.));
-        newL[1] = A1 * newL[0];
+        newL[1] = newL[0]/A1;
         // newL[2] is already assigned to curL[2]
         }
 
@@ -605,7 +712,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_shear(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     if (m_prof) m_prof->push("UpdaterBoxMC: update_shear");
     // Get updater parameters for current timestep
@@ -656,7 +763,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, Saru& rng)
     if (m_prof) m_prof->pop();
     }
 
-void UpdaterBoxMC::update_aspect(unsigned int timestep, Saru& rng)
+void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng)
     {
     // We have not established what ensemble this samples:
     // This is not a thermodynamic updater.
@@ -752,6 +859,7 @@ void export_UpdaterBoxMC(py::module& m)
                          Scalar,
                          const unsigned int >())
     .def("volume", &UpdaterBoxMC::volume)
+    .def("ln_volume", &UpdaterBoxMC::ln_volume)
     .def("length", &UpdaterBoxMC::length)
     .def("shear", &UpdaterBoxMC::shear)
     .def("aspect", &UpdaterBoxMC::aspect)
@@ -760,6 +868,7 @@ void export_UpdaterBoxMC(py::module& m)
     .def("getP", &UpdaterBoxMC::getP)
     .def("setP", &UpdaterBoxMC::setP)
     .def("get_volume_delta", &UpdaterBoxMC::get_volume_delta)
+    .def("get_ln_volume_delta", &UpdaterBoxMC::get_ln_volume_delta)
     .def("get_length_delta", &UpdaterBoxMC::get_length_delta)
     .def("get_shear_delta", &UpdaterBoxMC::get_shear_delta)
     .def("get_aspect_delta", &UpdaterBoxMC::get_aspect_delta)
@@ -773,11 +882,14 @@ void export_UpdaterBoxMC(py::module& m)
    py::class_< hpmc_boxmc_counters_t >(m, "hpmc_boxmc_counters_t")
     .def_readwrite("volume_accept_count", &hpmc_boxmc_counters_t::volume_accept_count)
     .def_readwrite("volume_reject_count", &hpmc_boxmc_counters_t::volume_reject_count)
+    .def_readwrite("ln_volume_accept_count", &hpmc_boxmc_counters_t::ln_volume_accept_count)
+    .def_readwrite("ln_volume_reject_count", &hpmc_boxmc_counters_t::ln_volume_reject_count)
     .def_readwrite("shear_accept_count", &hpmc_boxmc_counters_t::shear_accept_count)
     .def_readwrite("shear_reject_count", &hpmc_boxmc_counters_t::shear_reject_count)
     .def_readwrite("aspect_accept_count", &hpmc_boxmc_counters_t::aspect_accept_count)
     .def_readwrite("aspect_reject_count", &hpmc_boxmc_counters_t::aspect_reject_count)
     .def("getVolumeAcceptance", &hpmc_boxmc_counters_t::getVolumeAcceptance)
+    .def("getLogVolumeAcceptance", &hpmc_boxmc_counters_t::getLogVolumeAcceptance)
     .def("getShearAcceptance", &hpmc_boxmc_counters_t::getShearAcceptance)
     .def("getAspectAcceptance", &hpmc_boxmc_counters_t::getAspectAcceptance)
     .def("getNMoves", &hpmc_boxmc_counters_t::getNMoves)

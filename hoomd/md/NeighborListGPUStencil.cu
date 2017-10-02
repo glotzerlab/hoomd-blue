@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,7 @@
 
 #include "NeighborListGPUStencil.cuh"
 #include "hoomd/TextureTools.h"
-#include "hoomd/extern/cub/cub.cuh"
+#include "hoomd/extern/cub/cub/cub.cuh"
 
 /*! \file NeighborListGPUStencil.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin stencils

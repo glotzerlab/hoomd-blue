@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -79,7 +79,29 @@ PotentialTersoffGPU< evaluator, gpu_cgpf >::PotentialTersoffGPU(std::shared_ptr<
         throw std::runtime_error("Error initializing PotentialTersoffGPU");
         }
 
-    m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "pair_tersoff", this->m_exec_conf));
+    // initialize autotuner
+    // the full block size and threads_per_particle matrix is searched,
+    // encoded as block_size*10000 + threads_per_particle
+    unsigned int max_tpp = 1;
+    if (this->m_exec_conf->getComputeCapability() >= 300)
+        {
+        // Kepler, use multiple threads per particle
+        max_tpp = this->m_exec_conf->dev_prop.warpSize;
+        }
+
+    std::vector<unsigned int> valid_params;
+    for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+        {
+        unsigned int s=1;
+
+        while (s <= max_tpp)
+            {
+            valid_params.push_back(block_size*10000 + s);
+            s = s * 2;
+            }
+        }
+
+    m_tuner.reset(new Autotuner(valid_params, 5, 100000, "pair_tersoff", this->m_exec_conf));
     }
 
 template< class evaluator, cudaError_t gpu_cgpf(const tersoff_args_t& pair_args,
@@ -126,9 +148,20 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
     ArrayHandle<Scalar4> d_force(this->m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(this->m_virial, access_location::device, access_mode::overwrite);
 
+    PDataFlags flags = this->m_pdata->getFlags();
+    bool compute_virial = flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial];
+
     this->m_tuner->begin();
+    unsigned int param =  this->m_tuner->getParam();
+    unsigned int block_size = param / 10000;
+    unsigned int threads_per_particle = param % 10000;
+
     gpu_cgpf(tersoff_args_t(d_force.data,
                             this->m_pdata->getN(),
+                            this->m_pdata->getNGhosts(),
+                            d_virial.data,
+                            this->m_virial_pitch,
+                            compute_virial,
                             d_pos.data,
                             box,
                             d_n_neigh.data,
@@ -138,9 +171,10 @@ void PotentialTersoffGPU< evaluator, gpu_cgpf >::computeForces(unsigned int time
                             d_ronsq.data,
                             this->m_nlist->getNListArray().getPitch(),
                             this->m_pdata->getNTypes(),
-                            this->m_tuner->getParam(),
+                            block_size,
+                            threads_per_particle,
                             this->m_exec_conf->getComputeCapability()/10,
-                            this->m_exec_conf->dev_prop.maxTexture1DLinear),
+                            this->m_exec_conf->dev_prop),
                             d_params.data);
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())

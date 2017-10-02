@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 R""" HPMC updaters.
 
@@ -34,6 +34,7 @@ class boxmc(_updater):
     - :py:meth:`length` - change box lengths independently
     - :py:meth:`shear` - shear the box
     - :py:meth:`volume` - scale the box lengths uniformly
+    - :py:meth:`ln_volume` - scale the box lengths uniformly with logarithmic increments
 
     Pressure inputs to update.boxmc are defined as :math:`\beta P`. Conversions from a specific definition of reduced
     pressure :math:`P^*` are left for the user to perform.
@@ -46,7 +47,7 @@ class boxmc(_updater):
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         boxMC = hpmc.update.boxmc(mc, betaP=1.0, seed=9876)
         boxMC.set_betap(2.0)
-        boxMC.volume(delta=0.01, weight=2.0)
+        boxMC.ln_volume(delta=0.01, weight=2.0)
         boxMC.length(delta=(0.1,0.1,0.1), weight=4.0)
         run(30) # perform approximately 10 volume moves and 20 length moves
 
@@ -79,6 +80,8 @@ class boxmc(_updater):
 
         self.volume_delta = 0.0;
         self.volume_weight = 0.0;
+        self.ln_volume_delta = 0.0;
+        self.ln_volume_weight = 0.0;
         self.length_delta = [0.0, 0.0, 0.0];
         self.length_weight = 0.0;
         self.shear_delta = [0.0, 0.0, 0.0];
@@ -91,6 +94,8 @@ class boxmc(_updater):
                                  'seed',
                                  'volume_delta',
                                  'volume_weight',
+                                 'ln_volume_delta',
+                                 'ln_volume_weight',
                                  'length_delta',
                                  'length_weight',
                                  'shear_delta',
@@ -143,6 +148,40 @@ class boxmc(_updater):
 
         self.cpp_updater.volume(self.volume_delta, self.volume_weight);
         return {'delta': self.volume_delta, 'weight': self.volume_weight};
+
+    def ln_volume(self, delta=None, weight=None):
+        R""" Enable/disable isobaric volume move and set parameters.
+
+        Args:
+            delta (float): maximum change of **ln(V)** (where V is box area (2D) or volume (3D)).
+            weight (float): relative weight of this box move type relative to other box move types. 0 disables this move type.
+
+        Sample the isobaric distribution of box volumes by rescaling the box.
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
+
+        Example::
+
+            box_update.ln_volume(delta=0.001)
+            box_update.ln_volume(delta=0.001, weight=2)
+            box_update.ln_volume(delta=0.001, weight=0.15)
+
+        Returns:
+            A :py:class:`dict` with the current values of *delta* and *weight*.
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if weight is not None:
+            self.ln_volume_weight = float(weight)
+
+        if delta is not None:
+            self.ln_volume_delta = float(delta)
+
+        self.cpp_updater.ln_volume(self.ln_volume_delta, self.ln_volume_weight);
+        return {'delta': self.ln_volume_delta, 'weight': self.ln_volume_weight};
 
     def length(self, delta=None, weight=None):
         R""" Enable/disable isobaric box dimension move and set parameters.
@@ -289,6 +328,24 @@ class boxmc(_updater):
         counters = self.cpp_updater.getCounters(1);
         return counters.getVolumeAcceptance();
 
+    def get_ln_volume_acceptance(self):
+        R""" Get the average acceptance ratio for log(V) changing moves.
+
+        Returns:
+            The average volume change acceptance for the last run
+
+        Example::
+
+            mc = hpmc.integrate.shape(..);
+            mc.shape_param[name].set(....);
+            box_update = hpmc.update.boxmc(mc, betaP=10, seed=1)
+            run(100)
+            v_accept = box_update.get_ln_volume_acceptance()
+
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getLogVolumeAcceptance();
+
     def get_shear_acceptance(self):
         R"""  Get the average acceptance ratio for shear changing moves.
 
@@ -397,7 +454,7 @@ class wall(_updater):
         if isinstance(mc, integrate.sphere):
             cls = _hpmc.UpdaterExternalFieldWallSphere;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('UpdaterExternalFieldWallConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron;
         else:
             hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
@@ -516,9 +573,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.UpdaterMuVTImplicitSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTImplicitSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.UpdaterMuVTImplicitEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -526,7 +583,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTImplicitSphereUnion', mc.max_members);
+                cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -540,9 +599,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.UpdaterMuVTSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('UpdaterMuVTSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.UpdaterMuVTSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.UpdaterMuVTEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -550,7 +609,9 @@ class muvt(_updater):
             elif isinstance(mc, integrate.faceted_sphere):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('UpdaterMuVTSphereUnion', mc.max_members);
+                cls = _hpmc.UpdaterMuVTSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -688,9 +749,9 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.simple_polygon):
                 cls = _hpmc.RemoveDriftUpdaterSimplePolygon;
             elif isinstance(mc, integrate.convex_polyhedron):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterConvexPolyhedron', mc.max_verts);
+                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedron;
             elif isinstance(mc, integrate.convex_spheropolyhedron):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSpheropolyhedron', mc.max_verts);
+                cls = _hpmc.RemoveDriftUpdaterSpheropolyhedron;
             elif isinstance(mc, integrate.ellipsoid):
                 cls = _hpmc.RemoveDriftUpdaterEllipsoid;
             elif isinstance(mc, integrate.convex_spheropolygon):
@@ -702,37 +763,14 @@ class remove_drift(_updater):
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
-                cls = integrate._get_sized_entry('RemoveDriftUpdaterSphereUnion', mc.max_members);
+                cls = _hpmc.RemoveDriftUpdaterSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");
         else:
             raise RuntimeError("update.remove_drift: Error! GPU not implemented.");
-            # if isinstance(mc, integrate.sphere):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSphere;
-            # elif isinstance(mc, integrate.convex_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUConvexPolygon;
-            # elif isinstance(mc, integrate.simple_polygon):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUSimplePolygon;
-            # elif isinstance(mc, integrate.convex_polyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUConvexPolyhedron', mc.max_verts);
-            # elif isinstance(mc, integrate.convex_spheropolyhedron):
-            #     cls = integrate._get_sized_entry('RemoveDriftUpdaterGPUSpheropolyhedron',mc.max_verts);
-            # elif isinstance(mc, integrate.ellipsoid):
-            #     cls = _hpmc.RemoveDriftUpdaterGPUEllipsoid;
-            # elif isinstance(mc, integrate.convex_spheropolygon):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSpheropolygon;
-            # elif isinstance(mc, integrate.faceted_sphere):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUFacetedSphere;
-            # elif isinstance(mc, integrate.polyhedron):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUPolyhedron;
-            # elif isinstance(mc, integrate.sphinx):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphinx;
-            # elif isinstance(mc, integrate.sphere_union):
-            #     cls =_hpmc.RemoveDriftUpdaterGPUSphereUnion;
-            # else:
-            #     hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
-            #     raise RuntimeError("Error initializing update.remove_drift");
 
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
@@ -792,9 +830,9 @@ class shape_update(_updater):
         elif isinstance(mc, integrate.simple_polygon):
             cls = _hpmc.UpdaterShapeSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('UpdaterShapeConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterShapeConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = integrate._get_sized_entry('UpdaterShapeSpheroPolyhedron', mc.max_verts);
+            cls = _hpmc.UpdaterShapeSpheroPolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.UpdaterShapeEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):
@@ -822,7 +860,7 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-
+        self._id = gsdid;
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
@@ -872,9 +910,9 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             move_cls = _hpmc.PythonShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('PythonShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.PythonShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            move_cls = integrate._get_sized_entry('PythonShapeMoveSpheropolyhedron', self.mc.max_verts);
+            move_cls = _hpmcPythonShapeMoveSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.PythonShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -937,7 +975,7 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             pass;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('GeneralizedShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.GeneralizedShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
             pass;
         elif isinstance(self.mc, integrate.ellipsoid):
@@ -998,9 +1036,9 @@ class shape_update(_updater):
         elif isinstance(self.mc, integrate.simple_polygon):
             move_cls = _hpmc.ConstantShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('ConstantShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ConstantShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            move_cls = integrate._get_sized_entry('ConstantShapeMoveSpheropolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ConstantShapeMoveSpheropolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.ConstantShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1053,10 +1091,9 @@ class shape_update(_updater):
             pass;
             # move_cls = _hpmc.ScaleShearShapeMoveSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            move_cls = integrate._get_sized_entry('ScaleShearShapeMoveConvexPolyhedron', self.mc.max_verts);
+            move_cls = _hpmc.ScaleShearShapeMoveConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
             pass;
-            # move_cls = integrate._get_sized_entry('ScaleShearShapeMoveSpheropolyhedron', self.mc.max_verts);
         elif isinstance(self.mc, integrate.ellipsoid):
             move_cls = _hpmc.ScaleShearShapeMoveEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1093,10 +1130,11 @@ class shape_update(_updater):
 
             shape_up = hpmc.update.elastic_shape(mc=mc, move_ratio=0.1, seed=3832765, stiffness=100.0, reference=dict(vertices=v), nselect=3)
             shape_up.scale_shear_shape_move(stepsize=0.1);
-            tuner = shape_up.get_tuner(average=True);
+            tuner = shape_up.get_tuner(average=True); # average stats over all particle types.
             for _ in range(100):
                 hoomd.run(1000, quiet=True);
                 tuner.update();
+                shape_up.reset_statistics(); # reset the shape stats
 
         """
         from . import util
@@ -1228,6 +1266,15 @@ class shape_update(_updater):
 
     ## \internal
     # \brief default pos writer callback.
+    # Declare the GSD state schema.
+    def _gsd_state_name(self):
+        if self._id is None:
+            raise RuntimeError("Must specify unique gsdid for gsd state.");
+
+        return "state/hpmc/"+str(self.__class__.__name__)+str(self._id)+"/";
+
+    ## \internal
+    # \brief default pos writer callback.
     def pos_callback(self, timestep):
         if self.pos:
             self.mc.setup_pos_writer(pos=self.pos);
@@ -1286,9 +1333,9 @@ class alchemy(shape_update):
         elif isinstance(self.mc, integrate.simple_polygon):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannSimplePolygon;
         elif isinstance(self.mc, integrate.convex_polyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannConvexPolyhedron', self.mc.max_verts);
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.convex_spheropolyhedron):
-            boltzmann_cls = integrate._get_sized_entry('AlchemyLogBoltzmannSpheroPolyhedron', self.mc.max_verts);
+            boltzmann_cls = _hpmc.AlchemyLogBoltzmannSpheroPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
             boltzmann_cls = _hpmc.AlchemyLogBoltzmannEllipsoid;
         elif isinstance(self.mc, integrate.convex_spheropolygon):
@@ -1343,9 +1390,9 @@ class elastic_shape(shape_update):
         self.elastic_shape_move(stepsize, param_ratio);
 
         if isinstance(self.mc, integrate.convex_polyhedron):
-            clss = integrate._get_sized_entry('ShapeSpringLogBoltzmannConvexPolyhedron', self.mc.max_verts);
+            clss = _hpmc.ShapeSpringLogBoltzmannConvexPolyhedron;
         elif isinstance(self.mc, integrate.ellipsoid):
-            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid(stiffness, ref_shape, self.move_cpp);
+            clss = _hpmc.ShapeSpringLogBoltzmannEllipsoid
         else:
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");

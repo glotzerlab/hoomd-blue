@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_LATTICE_H_
@@ -9,7 +9,7 @@
 */
 
 #include "hoomd/Compute.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
+#include "hoomd/Saru.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/HOOMDMPI.h"
 
@@ -285,7 +285,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_num_samples++;
             }
 
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, Saru& rng)
+        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
             {
             // calc boltzmann factor from springs
             Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);

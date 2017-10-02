@@ -7,37 +7,7 @@ HPMC performs hard particle Monte Carlo simulations of a variety of classes of s
 
 .. rubric:: Overview
 
-HPMC implements hard particle Monte Carlo in HOOMD-blue. It supports:
-
-- Dimensions: 2D and 3D
-- Box shape: triclinic
-- Ensembles:
-    - NVT
-    - NPT (:py:class:`update.boxmc`)
-    - Implicit depletants
-    - Grand canonical ensemble (:py:class:`update.muvt`)
-    - Gibbs ensemble (:py:class:`update.muvt`)
-- Shapes:
-    - Spheres / disks (:py:class:`integrate.sphere`)
-    - Union of spheres (:py:class:`integrate.sphere_union`)
-    - Convex polygons (:py:class:`integrate.convex_polygon`)
-    - Convex spheropolygons (:py:class:`integrate.convex_spheropolygon`)
-    - Simple polygons (:py:class:`integrate.simple_polygon`)
-    - Ellipsoids / ellipses (:py:class:`integrate.ellipsoid`)
-    - Convex polyhedra (:py:class:`integrate.convex_polyhedron`)
-    - Convex spheropolyhedra (:py:class:`integrate.convex_spheropolyhedron`)
-    - Faceted spheres (:py:class:`integrate.faceted_sphere`)
-    - General polyhedra (:py:class:`integrate.polyhedron`)
-- Execution:
-    - Canonical hard particle MC on a single CPU core
-    - Parallel update scheme on a single GPU
-    - Parallel updates on many CPU cores / GPUs using MPI
-    - Frenkel-Ladd free energy determination
-- Analysis:
-    - Scale distribution function for pressure determination in NVT (:py:class:`analyze.sdf`)
-    - Free volume (:py:class:`compute.free_volume`)
-- File I/O:
-    - Loose integration with pos_writer
+HPMC implements hard particle Monte Carlo in HOOMD-blue.
 
 .. rubric:: Logging
 
@@ -118,3 +88,21 @@ from hoomd.hpmc import analyze
 from hoomd.hpmc import compute
 from hoomd.hpmc import util
 from hoomd.hpmc import field
+
+# add HPMC article citation notice
+import hoomd
+_citation = hoomd.cite.article(cite_key='anderson2016',
+                               author=['J A Anderson', 'M E Irrgang', 'S C Glotzer'],
+                               title='Scalable Metropolis Monte Carlo for simulation of hard shapes',
+                               journal='Computer Physics Communications',
+                               volume=204,
+                               pages='21--30',
+                               month='July',
+                               year='2016',
+                               doi='10.1016/j.cpc.2016.02.024',
+                               feature='HPMC')
+
+if hoomd.context.bib is None:
+    hoomd.cite._extra_default_entries.append(_citation)
+else:
+    hoomd.context.bib.add(_citation)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,7 +6,8 @@
 
 #include "TwoStepLangevinGPU.cuh"
 
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 #include <assert.h>
 
@@ -124,7 +125,7 @@ void gpu_langevin_step_two_kernel(const Scalar4 *d_pos,
             coeff = Scalar(0.0);
 
         //Initialize the Random Number Generator and generate the 3 random numbers
-        SaruGPU s(ptag, timestep + seed); // 2 dimensional seeding
+        detail::Saru s(ptag, timestep, seed); // 3 dimensional seeding
 
         Scalar randomx=s.s<Scalar>(-1.0, 1.0);
         Scalar randomy=s.s<Scalar>(-1.0, 1.0);
@@ -306,7 +307,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(
             Scalar sigma_r = fast::sqrt(Scalar(2.0)*gamma_r*T/deltaT);
             if (noiseless_r) sigma_r = Scalar(0.0);
 
-            SaruGPU saru(ptag, timestep + seed); // 2 dimensional seeding
+            detail::Saru saru(ptag, timestep, seed); // 3 dimensional seeding
             Scalar rand_x = gaussian_rng(saru, sigma_r);
             Scalar rand_y = gaussian_rng(saru, sigma_r);
             Scalar rand_z = gaussian_rng(saru, sigma_r);

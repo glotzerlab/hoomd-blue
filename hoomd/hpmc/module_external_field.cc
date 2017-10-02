@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -6,7 +6,6 @@
 
 
 #include "hoomd/Compute.h"
-#include "hoomd/extern/saruprng.h" // not sure if we need this for the accept method
 #include "hoomd/VectorMath.h"
 
 #include "HPMCCounters.h"   // do we need this to keep track of the statistics?

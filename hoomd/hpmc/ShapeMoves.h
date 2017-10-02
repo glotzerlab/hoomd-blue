@@ -10,21 +10,27 @@
 
 namespace hpmc {
 
+
+class not_implemented_error : std::exception {
+  const char* what() const noexcept {return "Error: Function called that has not been implemented.\n";}
+};
+
 template < typename Shape, typename RNG>
 class shape_move_function
 {
 public:
     shape_move_function(unsigned int ntypes) : m_determinantInertiaTensor(0), m_step_size(ntypes) {}
-    shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSize()) {}
+
+    shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSizeArray()) {}
 
     //! prepare is called at the beginning of every update()
-    virtual void prepare(unsigned int timestep) = 0;
+    virtual void prepare(unsigned int timestep) { throw not_implemented_error(); }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&) = 0;
+    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&) { throw not_implemented_error(); }
 
     //! retreat whenever the proposed move is rejected.
-    virtual void retreat(const unsigned int) = 0;
+    virtual void retreat(const unsigned int) { throw not_implemented_error(); }
 
     virtual Scalar getParam(size_t i ) { return 0.0; }
 
@@ -33,6 +39,8 @@ public:
     Scalar getDeterminant() const { return m_determinantInertiaTensor; }
 
     Scalar getStepSize(const unsigned int& type_id) const { return m_step_size[type_id]; }
+
+    const std::vector<Scalar>& getStepSizeArray() const { return m_step_size; }
 
     void setStepSize(const unsigned int& type_id, const Scalar& stepsize) { m_step_size[type_id] = stepsize; }
 
@@ -71,55 +79,21 @@ public:
 
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
         {
-        // gonna make the move.
-        // Saru rng(m_select_ratio, m_seed, timestep);
-        // type_id = type_id;
         for(size_t i = 0; i < m_params[type_id].size(); i++)
             {
             Scalar x = ((rng.u32() & 0xffff) < m_select_ratio) ? rng.s(fmax(-m_step_size[type_id], -(m_params[type_id][i])), fmin(m_step_size[type_id], (1.0-m_params[type_id][i]))) : 0.0;
             m_params[type_id][i] += x;
             }
-
-        // if(m_normalized)
-        //     {
-        //     }
-        // else
-        //     {
-        //     // could gut this part becuase of the other functions.
-        //     for(size_t i = 0; i < m_params[type_id].size() && (m_params[type_id].size()%3 == 0); i+=3)
-        //         {
-        //         if( (rng.u32()& 0xffff) < m_select_ratio )
-        //             {
-        //             Scalar x = rng.s(-1.0, 1.0);
-        //             Scalar y = rng.s(-1.0, 1.0);
-        //             Scalar z = rng.s(-1.0, 1.0);
-        //             Scalar mag = rng.s(0.0, m_step_size[type_id])/sqrt(x*x + y*y + z*z);
-        //             m_params[type_id][i] += x*mag;
-        //             m_params[type_id][i+1] += y*mag;
-        //             m_params[type_id][i+2] += z*mag;
-        //             }
-        //         }
-        //     }
-
         pybind11::object shape_data = m_python_callback(m_params[type_id]);
         shape = pybind11::cast< typename Shape::param_type >(shape_data);
         detail::mass_properties<Shape> mp(shape);
         m_determinantInertiaTensor = mp.getDeterminant();
-        // m_scale = Scalar(1.0);
-        // if(!m_normalized)
-        //     {
-        //     m_scale = pybind11::cast< Scalar >(shape_data[2]); // only extract if we have to.
-        //     detail::shape_param_to_vector<Shape> converter;
-        //     converter(shape, m_params[type_id]);
-        //     }
-        // m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
     void retreat(unsigned int timestep)
         {
         // move has been rejected.
         std::swap(m_params, m_params_backup);
-        // std::swap(m_step_size, m_step_size_backup);
         }
 
     Scalar getParam(size_t k)
@@ -132,8 +106,8 @@ public:
                 return m_params[i][k - n];
             n = next;
             }
-
-        return 0.0; // out of range.
+        throw std::out_of_range("Error: Could not get parameter, index out of range.\n");// out of range.
+        return Scalar(0.0);
         }
 
     size_t getNumParam()
@@ -309,12 +283,12 @@ struct scale
     };
 
 
-template <unsigned int max_verts, class RNG>
-struct shear< ShapeConvexPolyhedron<max_verts>, RNG >
+template < class RNG>
+struct shear< ShapeConvexPolyhedron, RNG >
     {
     Scalar shear_max;
     shear(Scalar smax) : shear_max(smax) {}
-    void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
+    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
         {
         Scalar gamma = rng.s(-shear_max, shear_max), gammaxy = 0.0, gammaxz = 0.0, gammayz = 0.0, gammayx = 0.0, gammazx = 0.0, gammazy = 0.0;
         int dim = int(6*rng.s(0.0, 1.0));
@@ -338,8 +312,8 @@ struct shear< ShapeConvexPolyhedron<max_verts>, RNG >
         }
     };
 
-template <unsigned int max_verts, class RNG>
-struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
+template <class RNG>
+struct scale< ShapeConvexPolyhedron, RNG >
     {
     bool isotropic;
     Scalar scale_min;
@@ -355,7 +329,7 @@ struct scale< ShapeConvexPolyhedron<max_verts>, RNG >
         }
                  // () name of perator and second (...) are the parameters
                  //  You can overload the () operator to call your object as if it was a function
-    void operator() (typename ShapeConvexPolyhedron<max_verts>::param_type& param, RNG& rng)
+    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
         {
         Scalar sx, sy, sz;
         Scalar s = rng.s(scale_min, scale_max);
@@ -648,7 +622,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
     public:
         //! Constructor
         shape_move_function_wrap(unsigned int ntypes) : shape_move_function<Shape, RNG>(ntypes) {}
-        void prepare(unsigned int timestep)
+        void prepare(unsigned int timestep) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */
@@ -656,7 +630,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
                                     timestep);                                  /* Argument(s) */
             }
 
-        void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng)
+        void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */
@@ -667,7 +641,7 @@ class shape_move_function_wrap : public shape_move_function<Shape, RNG>
                                     rng);
             }
 
-        void retreat(unsigned int timestep)
+        void retreat(unsigned int timestep) override
             {
             PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
                                     shape_move_function<Shape, RNG>,            /* Parent class */

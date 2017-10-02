@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -556,6 +556,24 @@ inline void PotentialPair< evaluator >::computeEnergyBetweenSets(   InputIterato
 
     if( first1 == last1 || first2 == last2 )
         return;
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        {
+        // temporarily add tag comm flag
+        CommFlags old_flags = m_comm->getFlags();
+        CommFlags new_flags = old_flags;
+        new_flags[comm_flag::tag] = 1;
+        m_comm->setFlags(new_flags);
+
+        // force communication
+        m_comm->migrateParticles();
+        m_comm->exchangeGhosts();
+
+        // reset the old flags
+        m_comm->setFlags(old_flags);
+        }
+    #endif
 
     energy = Scalar(0.0);
 

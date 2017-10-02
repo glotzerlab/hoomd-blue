@@ -4,6 +4,12 @@
 class sphere_param_proxy(object):
     pass
 
+class convex_polyhedron_param_proxy(object):
+    pass
+
+class convex_spheropolyhedron_param_proxy(object):
+    pass
+
 class convex_polygon_param_proxy(object):
     pass
 
@@ -26,4 +32,7 @@ class ell_param_proxy(object):
     pass
 
 class sphere_union_param_proxy(object):
+    pass
+
+class convex_polyhedron_union_param_proxy(object):
     pass

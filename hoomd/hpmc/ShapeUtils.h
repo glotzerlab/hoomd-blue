@@ -30,48 +30,13 @@ template<class ShapeParam>
 inline void print_param(const ShapeParam& param){ std::cout << "not implemented" << std::endl;}
 
 template< >
-inline void print_param< ShapeConvexPolyhedron<16>::param_type >(const ShapeConvexPolyhedron<16>::param_type& param)
+inline void print_param< ShapeConvexPolyhedron::param_type >(const ShapeConvexPolyhedron::param_type& param)
     {
         for(size_t i = 0; i < param.N; i++)
             {
             std::cout << "vert " << i << ": [" << param.x[i] << ", " << param.y[i] << ", " << param.z[i] << "]" << std::endl;
             }
 
-    }
-
-template < unsigned int old_max_verts, unsigned int new_max_verts >
-detail::poly3d_verts<new_max_verts> cast_poly3d_verts(const detail::poly3d_verts<old_max_verts>& old_verts)
-    {
-    // restricting this cast from small arrays to larger ones ok because it can not invalidate
-    // any of the data. The otherway is not true and I don't want to worry about that
-    // right now.
-    #if  old_max_verts > new_max_verts
-        #error "must cast to a larger number of vertices"
-    #endif
-
-    // All data guaranteed to be valid because of static_assert above
-    detail::poly3d_verts<new_max_verts> verts;
-    verts.N = old_verts.N;
-    verts.diameter = old_verts.diameter;
-    verts.sweep_radius = old_verts.sweep_radius;
-    verts.ignore = old_verts.ignore;
-
-    // initialize because we have observed strange behaviour if we don't.
-    for (unsigned int i = 0; i < new_max_verts; i++)
-        {
-        if( i < old_verts.N )
-            {
-                verts.x[i] = old_verts.x[i];
-                verts.y[i] = old_verts.y[i];
-                verts.z[i] = old_verts.z[i];
-            }
-        else
-            {
-            verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-            }
-        }
-
-    return verts;
     }
 
 
@@ -186,8 +151,8 @@ class ConvexHull
     static const Scalar       zero;
 public:
     ConvexHull() { m_ravg = vec3<Scalar>(0.0,0.0,0.0); }
-    template<unsigned int _max_verts>
-    ConvexHull(const poly3d_verts<_max_verts>& param)
+
+    ConvexHull(const poly3d_verts& param)
         {
         m_points.reserve(param.N);
         m_ravg = vec3<Scalar>(0.0,0.0,0.0);
@@ -727,17 +692,17 @@ protected:
     std::vector<bool>                           m_deleted;
 };
 
-template<unsigned int max_verts>
-class mass_properties< ShapeConvexPolyhedron<max_verts> > : public mass_properties_base< ShapeConvexPolyhedron<max_verts> >
+template< >
+class mass_properties< ShapeConvexPolyhedron > : public mass_properties_base< ShapeConvexPolyhedron >
 {
-using mass_properties_base< ShapeConvexPolyhedron<max_verts> >::m_volume;
-using mass_properties_base< ShapeConvexPolyhedron<max_verts> >::m_center_of_mass;
-using mass_properties_base< ShapeConvexPolyhedron<max_verts> >::m_inertia;
+using mass_properties_base< ShapeConvexPolyhedron >::m_volume;
+using mass_properties_base< ShapeConvexPolyhedron >::m_center_of_mass;
+using mass_properties_base< ShapeConvexPolyhedron >::m_inertia;
 
 public:
     mass_properties() {}
 
-    mass_properties(const typename ShapeConvexPolyhedron<max_verts>::param_type& param)
+    mass_properties(const typename ShapeConvexPolyhedron::param_type& param)
         {
         ConvexHull hull(param);
         hull.compute();
@@ -754,7 +719,7 @@ public:
 
     unsigned int getNumFaces() { return faces.size(); }
 
-    void updateParam(const typename ShapeConvexPolyhedron<max_verts>::param_type& param, bool force = true)
+    void updateParam(const typename ShapeConvexPolyhedron::param_type& param, bool force = true)
         {
         if(force || param.N != points.size())
             {

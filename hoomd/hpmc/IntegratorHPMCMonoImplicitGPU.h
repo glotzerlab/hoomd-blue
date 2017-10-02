@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT_GPU_H__
@@ -12,6 +12,8 @@
 #include "hoomd/Autotuner.h"
 
 #include "hoomd/GPUVector.h"
+
+#include <cuda_runtime.h>
 
 /*! \file IntegratorHPMCMonoImplicitGPU.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent on the GPU
@@ -118,6 +120,8 @@ class IntegratorHPMCMonoImplicitGPU : public IntegratorHPMCMonoImplicit<Shape>
         GPUVector<unsigned int> m_n_overlap_shape_reverse;          //!< Forward-insertions
         GPUVector<float> m_depletant_lnb;                           //!< Configurational bias weights
 
+        cudaStream_t m_stream;                                  //! GPU kernel stream
+
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
@@ -194,7 +198,13 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
     // initialize the autotuners
     // the full block size, stride and group size matrix is searched,
     // encoded as block_size*1000000 + stride*100 + group_size.
+
+    // parameters for count_overlaps kernel
     std::vector<unsigned int> valid_params;
+
+    // parameters for HPMC update kernel
+    std::vector<unsigned int> valid_params_update;
+
     cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
 
     unsigned int max_tpp = this->m_exec_conf->dev_prop.warpSize;
@@ -202,6 +212,43 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
         {
         // no wide parallelism on Fermi
         max_tpp = 1;
+        }
+
+    if (Shape::isParallel())
+        {
+        for (unsigned int block_size =dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size +=dev_prop.warpSize)
+            {
+            unsigned int s=1;
+            while (s <= (unsigned int)dev_prop.warpSize)
+                {
+                unsigned int stride = 1;
+                while (stride <= block_size)
+                    {
+                    // for parallel overlap checks, use 3d-layout where blockDim.z is limited
+                    if (block_size % (s*stride) == 0 && block_size/(s*stride) <= (unsigned int) dev_prop.maxThreadsDim[2])
+                        valid_params_update.push_back(block_size*1000000 + stride*100 + s);
+
+                    // increment stride in powers of two
+                    stride *= 2;
+                    }
+                s++;
+                }
+            }
+        }
+    else
+        {
+        // for serial overlap checks, force stride=1. And groups no longer need to evenly divide into warps: only into
+        // blocks
+        unsigned int stride = 1;
+
+        for (unsigned int block_size = dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += dev_prop.warpSize)
+            {
+            for (unsigned int group_size=1; group_size <= (unsigned int)dev_prop.warpSize; group_size++)
+                {
+                if ((block_size % group_size) == 0)
+                    valid_params_update.push_back(block_size*1000000 + stride*100 + group_size);
+                }
+            }
         }
 
     if (Shape::isParallel())
@@ -227,8 +274,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
         }
     else
         {
-        // for serial overlap checks, force stride=1. And groups no longer need to evenly divide into warps: only into
-        // blocks
+        // for serial overlap checks, force stride=1. A group needs to be smaller than a warp and a power of two
         unsigned int stride = 1;
 
         for (unsigned int block_size = (unsigned int) dev_prop.warpSize; block_size <= (unsigned int) dev_prop.maxThreadsPerBlock; block_size += (unsigned int) dev_prop.warpSize)
@@ -241,7 +287,7 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
             }
         }
 
-    m_tuner_update.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_update", this->m_exec_conf));
+    m_tuner_update.reset(new Autotuner(valid_params_update, 5, 1000000, "hpmc_update", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
     m_tuner_implicit.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_count_overlaps", this->m_exec_conf));
     m_tuner_reinsert.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_implicit_reinsert", this->m_exec_conf));
@@ -254,8 +300,12 @@ IntegratorHPMCMonoImplicitGPU< Shape >::IntegratorHPMCMonoImplicitGPU(std::share
 
     m_poisson_dist_created.resize(this->m_pdata->getNTypes(), false);
 
+    // create a CUDA stream for kernel execution
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+
     // create at ModernGPU context
-    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
+    m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(m_stream);
     }
 
 //! Destructor
@@ -271,6 +321,9 @@ IntegratorHPMCMonoImplicitGPU< Shape >::~IntegratorHPMCMonoImplicitGPU()
             curandDestroyDistribution(h_poisson_dist.data[type]);
             }
         }
+
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 template< class Shape >
@@ -318,7 +371,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
@@ -392,7 +445,7 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         ArrayHandle< unsigned int > d_excell_size(this->m_excell_size, access_location::device, access_mode::readwrite);
 
         // access the parameters and interaction matrix
-        ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->getParams();
         ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
         // access the move sizes by type
@@ -454,6 +507,9 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
         unsigned int groups_per_cell = ((unsigned int) lambda_max)+1;
 
         unsigned int n_reinsert = 0;
+
+        // on first iteration, synchronize GPU execution stream and update shape parameters
+        bool first = true;
 
         for (unsigned int i = 0; i < this->m_nselect*particles_per_cell; i++)
             {
@@ -520,10 +576,12 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                         this->m_hasOrientation,
                         this->m_pdata->getMaxN(),
                         this->m_exec_conf->dev_prop,
+                        first,
+                        m_stream,
                         (lambda_max > 0.0) ? d_active_cell_ptl_idx.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_accept.data : 0,
                         (lambda_max > 0.0) ? d_active_cell_move_type_translate.data : 0),
-                    d_params.data);
+                    params.data());
 
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -619,8 +677,10 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 0, 0, 0, 0, 0,
                                 d_d_min.data,
                                 d_d_max.data,
-                                m_mgpu_context),
-                            d_params.data);
+                                first,
+                                m_mgpu_context,
+                                m_stream),
+                            params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
@@ -714,8 +774,10 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
                                 d_depletant_lnb.data,
                                 d_d_min.data,
                                 d_d_max.data,
-                                m_mgpu_context),
-                            d_params.data);
+                                first,
+                                m_mgpu_context,
+                                m_stream),
+                            params.data());
 
                         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                             CHECK_CUDA_ERROR();
@@ -728,6 +790,8 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::update(unsigned int timestep)
 
                     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
                     }
+
+                first = false;
                 } // end loop over cell sets
             } // end loop nselect*particles_per_cell
 
@@ -880,6 +944,21 @@ void IntegratorHPMCMonoImplicitGPU< Shape >::updateCellWidth()
     IntegratorHPMCMonoImplicit<Shape>::updateCellWidth();
 
     this->m_cl->setNominalWidth(this->m_nominal_width);
+
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
+    #if (CUDART_VERSION >= 8000)
+    cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
+    CHECK_CUDA_ERROR();
+    #endif
+
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        // attach nested memory regions
+        this->m_params[i].attach_to_stream(m_stream);
+        }
     }
 
 

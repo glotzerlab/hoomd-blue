@@ -2,7 +2,6 @@
 # Maintainer: mspells
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 context.initialize()
 import unittest
@@ -12,10 +11,10 @@ import os
 class pair_dipole_tests (unittest.TestCase):
     def setUp(self):
         print
-        system = deprecated.init.create_random(N=100, phi_p=0.05);
-        snap = system.take_snapshot(all=True)
+        self.system = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]);
+        snap = self.system.take_snapshot(all=True)
         snap.particles.angmom[:] = 1
-        system.restore_snapshot(snap)
+        self.system.restore_snapshot(snap)
 
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
@@ -43,6 +42,13 @@ class pair_dipole_tests (unittest.TestCase):
         dipole = md.pair.dipole(r_cut=3.0, nlist = self.nl);
         self.assertRaises(RuntimeError, dipole.update_coeffs);
 
+    # test set params
+    def test_set_params(self):
+        dipole = md.pair.dipole(r_cut=3.0, nlist = self.nl);
+        dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+        # set_params is not implemented for anisotropic pair potentials
+        self.assertRaises(RuntimeError, dipole.set_params, mode="blah");
+
     # test nlist subscribe
     def test_nlist_subscribe(self):
         dipole = md.pair.dipole(r_cut=2.5, nlist = self.nl);
@@ -54,8 +60,17 @@ class pair_dipole_tests (unittest.TestCase):
         self.nl.update_rcut();
         self.assertAlmostEqual(2.0, self.nl.r_cut.get_pair('A','A'));
 
+    # test adding types
+    def test_type_add(self):
+        dipole = md.pair.dipole(r_cut=2.5, nlist = self.nl);
+        dipole.pair_coeff.set('A', 'A', mu=1.0, A=1.0, kappa=1.0)
+        self.system.particles.types.add('B')
+        self.assertRaises(RuntimeError, dipole.update_coeffs);
+        dipole.pair_coeff.set(['A','B'], 'B', mu=1.0, A=1.0, kappa=1.0)
+        dipole.update_coeffs();
+
     def tearDown(self):
-        del self.nl
+        del self.system,self.nl
         context.initialize();
 
 

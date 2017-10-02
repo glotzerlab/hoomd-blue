@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -28,7 +28,7 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
     for (unsigned int i = 0; i < 5; ++i)
         {
         bodies_per_block = 1 << i;
-        unsigned int cur_block_size = 1;
+        unsigned int cur_block_size = 32;
         while (cur_block_size <= (unsigned int) dev_prop.maxThreadsPerBlock)
             {
             if (cur_block_size >= bodies_per_block)
@@ -228,6 +228,7 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         d_molecule_idx.data,
         d_image.data,
         m_pdata->getBox(),
+        m_pdata->getGlobalBox(),
         block_size,
         m_flag.getDeviceFlags());
 
