@@ -28,28 +28,45 @@ class mpcd_collide_srd_test(unittest.TestCase):
     # test basic creation
     def test_create(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
+        self.assertEqual(srd.enabled, True)
+        self.assertEqual(srd.phase, 0)
         self.assertEqual(hoomd.context.current.mpcd._collide, srd)
 
-    # test for setting of embedded group with constructor
+        srd.disable()
+        self.assertEqual(srd.enabled, False)
+        self.assertEqual(hoomd.context.current.mpcd._collide, None)
+
+        srd.enable()
+        self.assertEqual(srd.enabled, True)
+        self.assertEqual(hoomd.context.current.mpcd._collide, srd)
+
+    # test phase gets set internally correctly
+    def test_phase(self):
+        srd = mpcd.collide.srd(seed=42, period=5, angle=90., phase=-1)
+        self.assertEqual(srd.phase, -1)
+
+    # test for setting of embedded group
     def test_embed(self):
         group = hoomd.group.all()
         srd = mpcd.collide.srd(seed=42, period=5, angle=90., group=group)
         self.assertEqual(srd.group, group)
+        srd.disable()
 
-    # test for setting of embedded group with method
-    def test_set_embed(self):
-        group = hoomd.group.all()
-        srd = mpcd.collide.srd(seed=7, period=10, angle=130.)
-        self.assertTrue(srd.group is None)
-        srd.embed(group)
-        self.assertEqual(srd.group, group)
+        srd2 = mpcd.collide.srd(seed=7, period=10, angle=130.)
+        srd2.embed(group)
+        self.assertEqual(srd2.group, group)
 
     # test creation of multiple collision rules
     def test_multiple(self):
-        # after a collision rule has been set, another cannot be created
+        # after a collision rule has been set, another cannot be created without
+        # removing the first one
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
         with self.assertRaises(RuntimeError):
             mpcd.collide.srd(seed=7, period=10, angle=130.)
+
+        # okay, now it should work
+        srd.disable()
+        mpcd.collide.srd(seed=7, period=10, angle=130.)
 
     def test_set_params(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
@@ -92,28 +109,29 @@ class mpcd_collide_srd_test(unittest.TestCase):
         srd = mpcd.collide.srd(seed=42, period=1, angle=130.)
         with self.assertRaises(ValueError):
             self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
+        srd.disable()
 
         # being equal is OK
         srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
         self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
+        srd.disable()
 
         # period being greater but not a multiple is also an error
         srd = mpcd.collide.srd(seed=42, period=7, angle=130.)
         with self.assertRaises(ValueError):
             self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
+        srd.disable()
 
         # being greater and a multiple is OK
         srd = mpcd.collide.srd(seed=42, period=10, angle=130.)
         self.ig.update_methods()
+        srd.disable()
 
     # test thermostat
     def test_thermostat(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90., kT=1.0)
         self.assertTrue(srd.kT is not False)
-        hoomd.context.current.mpcd._collide = None
+        srd.disable()
 
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
         self.assertTrue(srd.kT is False)

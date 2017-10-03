@@ -27,7 +27,7 @@ class _collision_method(hoomd.meta._metadata):
     to supply signatures for common methods.
 
     """
-    def __init__(self, seed, period):
+    def __init__(self, seed, period, phase):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("mpcd.collide: system must be initialized before collision method\n")
@@ -44,16 +44,19 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift']
+        self.metadata_fields = ['period','phase','seed','group','shift','enabled']
 
         self.period = period
+        self.phase = phase
         self.seed = seed
         self.group = None
         self.shift = True
+        self.enabled = True
         self._cpp = None
 
-        # attach collision method to the system
-        hoomd.context.current.mpcd._collide = self
+        hoomd.util.quiet_status()
+        self.enable()
+        hoomd.util.unquiet_status()
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
@@ -88,6 +91,42 @@ class _collision_method(hoomd.meta._metadata):
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
+
+    def enable(self):
+        """ Enable the collision method
+
+        Examples::
+
+            method.enable()
+
+        Enabling the collision method adds it to the current MPCD system definition.
+        Only one collision method can be attached to the system at any time.
+        If another method is already set, :py:meth:`disable()` must be called
+        first before switching.
+
+        """
+        hoomd.util.print_status_line()
+
+        self.enabled = True
+        hoomd.context.current.mpcd._collide = self
+
+    def disable(self):
+        """ Disable the collision method
+
+        Examples::
+
+            method.disable()
+
+        Disabling the collision method removes it from the current MPCD system definition.
+        Only one collision method can be attached to the system at any time, so
+        use this method to remove the current collision method before adding another.
+
+        """
+        hoomd.util.print_status_line()
+
+        self.enabled = False
+        hoomd.context.current.mpcd._collide = None
+
 
 class at(_collision_method):
     """ Andersen thermostat method
@@ -134,10 +173,10 @@ class at(_collision_method):
         collide.at(seed=77, period=50, kT=1.5, group=hoomd.group.all())
 
     """
-    def __init__(self, seed, period, group=None, kT=False):
+    def __init__(self, seed, period, group=None, kT=False, phase=0):
         hoomd.util.print_status_line()
 
-        _collision_method.__init__(self, seed, period)
+        _collision_method.__init__(self, seed, period, phase)
         self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
@@ -158,7 +197,7 @@ class at(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  0,
+                                  self.phase,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo,
                                   hoomd.context.current.mpcd._at_thermo,
@@ -255,10 +294,10 @@ class srd(_collision_method):
         collide.srd(seed=1991, period=10, angle=90., kT=1.5)
 
     """
-    def __init__(self, seed, period, angle, group=None, kT=False):
+    def __init__(self, seed, period, angle, group=None, kT=False, phase=0):
         hoomd.util.print_status_line()
 
-        _collision_method.__init__(self, seed, period)
+        _collision_method.__init__(self, seed, period, phase)
         self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -268,7 +307,7 @@ class srd(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  0,
+                                  self.phase,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
