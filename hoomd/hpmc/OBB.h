@@ -90,6 +90,30 @@ struct OBB
         is_sphere = 0;
         }
 
+    DEVICE OBB(const OBB& obb)
+        {
+        lengths = obb.lengths;
+        center = obb.center;
+        rotation = obb.rotation;
+        mask = obb.mask;
+        is_sphere = obb.is_sphere;
+        }
+
+    DEVICE void swap(OBB& obb)
+        {
+        lengths.swap(obb.lengths);
+        center.swap(obb.center);
+        rotation.swap(obb.rotation);
+        std::swap(mask, obb.mask);
+        std::swap(is_sphere, obb.is_sphere);
+        }
+
+    DEVICE OBB& operator=(OBB obb)
+        {
+        swap(obb);
+        return *this;
+        }
+
     //! Construct an OBB from an AABB
     //! Get the OBB's position
     DEVICE vec3<OverlapReal> getPosition() const
