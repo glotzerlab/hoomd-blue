@@ -51,25 +51,31 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is equal to the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
+ *
+ * Using a multiple allows the collision method to be disabled and then reenabled later if the \a timestep has already
+ * exceeded the \a m_next_timestep.
  */
 bool mpcd::CollisionMethod::peekCollide(unsigned int timestep) const
     {
-    return (timestep == m_next_timestep);
+    if (timestep < m_next_timestep)
+        return false;
+    else
+        return ((timestep - m_next_timestep) % m_period == 0);
     }
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is equal to the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
  *
- * \post The next timestep is also advanced. If this behavior is not desired, then
- *       use peekCollide() instead.
+ * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
+ *       If this behavior is not desired, then use peekCollide() instead.
  */
 bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
     {
-    if (timestep == m_next_timestep)
+    if (peekCollide(timestep))
         {
-        m_next_timestep += m_period;
+        m_next_timestep = timestep + m_period;
         return true;
         }
     else
