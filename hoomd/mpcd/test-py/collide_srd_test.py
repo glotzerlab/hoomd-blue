@@ -29,7 +29,6 @@ class mpcd_collide_srd_test(unittest.TestCase):
     def test_create(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
         self.assertEqual(srd.enabled, True)
-        self.assertEqual(srd.phase, 0)
         self.assertEqual(hoomd.context.current.mpcd._collide, srd)
 
         srd.disable()
@@ -39,11 +38,6 @@ class mpcd_collide_srd_test(unittest.TestCase):
         srd.enable()
         self.assertEqual(srd.enabled, True)
         self.assertEqual(hoomd.context.current.mpcd._collide, srd)
-
-    # test phase gets set internally correctly
-    def test_phase(self):
-        srd = mpcd.collide.srd(seed=42, period=5, angle=90., phase=-1)
-        self.assertEqual(srd.phase, -1)
 
     # test for setting of embedded group
     def test_embed(self):

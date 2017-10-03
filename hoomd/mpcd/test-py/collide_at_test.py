@@ -29,7 +29,6 @@ class mpcd_collide_at_test(unittest.TestCase):
     def test_create(self):
         at = mpcd.collide.at(seed=42, period=5, kT=1.0)
         self.assertEqual(at.enabled, True)
-        self.assertEqual(at.phase, 0)
         self.assertEqual(hoomd.context.current.mpcd._collide, at)
 
         at.disable()
@@ -42,11 +41,6 @@ class mpcd_collide_at_test(unittest.TestCase):
 
         at.disable()
         mpcd.collide.at(seed=42, period=5, kT=hoomd.variant.linear_interp([[0,1.5],[10,2.0]]))
-
-    # test phase gets set internally correctly
-    def test_phase(self):
-        at = mpcd.collide.at(seed=42, period=5, kT=1.0, phase=-1)
-        self.assertEqual(at.phase, -1)
 
     # test for setting of embedded group
     def test_embed(self):

@@ -27,7 +27,7 @@ class _collision_method(hoomd.meta._metadata):
     to supply signatures for common methods.
 
     """
-    def __init__(self, seed, period, phase):
+    def __init__(self, seed, period):
         # check for hoomd initialization
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("mpcd.collide: system must be initialized before collision method\n")
@@ -44,10 +44,9 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','phase','seed','group','shift','enabled']
+        self.metadata_fields = ['period','seed','group','shift','enabled']
 
         self.period = period
-        self.phase = phase
         self.seed = seed
         self.group = None
         self.shift = True
@@ -173,10 +172,10 @@ class at(_collision_method):
         collide.at(seed=77, period=50, kT=1.5, group=hoomd.group.all())
 
     """
-    def __init__(self, seed, period, group=None, kT=False, phase=0):
+    def __init__(self, seed, period, group=None, kT=False):
         hoomd.util.print_status_line()
 
-        _collision_method.__init__(self, seed, period, phase)
+        _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['kT']
         self.kT = hoomd.variant._setup_variant_input(kT)
 
@@ -197,7 +196,7 @@ class at(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  self.phase,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo,
                                   hoomd.context.current.mpcd._at_thermo,
@@ -262,7 +261,7 @@ class srd(_collision_method):
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
-        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
+        :py:mod:`~hoomd.mpcd.stream` period. Other values will
         result in an error when :py:meth:`hoomd.run()` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
@@ -294,10 +293,10 @@ class srd(_collision_method):
         collide.srd(seed=1991, period=10, angle=90., kT=1.5)
 
     """
-    def __init__(self, seed, period, angle, group=None, kT=False, phase=0):
+    def __init__(self, seed, period, angle, group=None, kT=False):
         hoomd.util.print_status_line()
 
-        _collision_method.__init__(self, seed, period, phase)
+        _collision_method.__init__(self, seed, period)
         self.metadata_fields += ['angle','kT']
 
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -307,7 +306,7 @@ class srd(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  self.phase,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 
