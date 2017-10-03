@@ -190,7 +190,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void setParam(unsigned int typ, const param_type& param, bool update=true);
 
         //! Set the pair parameters for a single type
-        virtual void swapParams(GPUArray<param_type>& swp) { m_params.swap(swp); updateCellWidth(); }
+        // virtual void swapParams(GPUArray<param_type>& swp) { m_params.swap(swp); updateCellWidth(); }
 
         //! Set elements of the interaction matrix
         virtual void setOverlapChecks(unsigned int typi, unsigned int typj, bool check_overlaps);
@@ -820,7 +820,7 @@ inline unsigned int IntegratorHPMCMono<Shape>::countOverlapsEx(unsigned int time
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                             unsigned int typ_j = __scalar_as_int(postype_j.w);
-                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                            Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
                             if ( (!membership[h_tag.data[j]] || h_tag.data[i] <= h_tag.data[j])
                                 && h_overlaps.data[m_overlap_idx(typ_i,typ_j)]
                                 && check_circumsphere_overlap(r_ij, shape_i, shape_j)

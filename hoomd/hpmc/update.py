@@ -808,6 +808,7 @@ class shape_update(_updater):
         See the documentation for the individual moves for more usage information.
 
     """
+    _ids = [];
     def __init__(   self,
                     mc,
                     move_ratio,
@@ -819,7 +820,8 @@ class shape_update(_updater):
                     setup_pos=True,
                     pos_callback=None,
                     nselect=1,
-                    nsweeps=1):
+                    nsweeps=1,
+                    gsdid = None):
         _updater.__init__(self);
 
         cls = None;
@@ -860,7 +862,13 @@ class shape_update(_updater):
         self.seed = seed;
         self.mc = mc;
         self.pos = pos;
-        self._id = gsdid;
+        self._gsdid = None;
+        if gsdid in shape_update._ids:
+            raise RuntimeError("gsdid already exists")
+        elif gsdid is not None:
+            self._gsdid = gsdid;
+            shape_update._ids.append(gsdid);
+
         if pos and setup_pos:
             if pos_callback is None:
                 pos.set_info(self.pos_callback);
