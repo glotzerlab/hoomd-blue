@@ -2,6 +2,15 @@
 
 [TOC]
 
+## v2.2.1
+
+Released 2017/10/04
+
+*Bug fixes*
+
+* Add special pair headers to install target
+* Fix a bug where `hpmc.integrate.convex_polyhedron`, `hpmc.integrate.convex_spheropolyhedron`, `hpmc.integrate.polyedron`, `hpmc.integrate.faceted_sphere`, `hpmc.integrate.sphere_union` and `hpmc.integrate.convex_polyhedron_union` produced spurious overlaps on the GPU
+
 ## v2.2.0
 
 Released 2017/09/08
