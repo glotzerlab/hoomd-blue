@@ -126,6 +126,27 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
 
+    def set_period(self, period):
+        """ Set the collision period.
+
+        Args:
+            period (int): New collision period.
+
+        The MPCD collision period can only be changed to a new value on a
+        simulation timestep that is a multiple of both the previous *period*
+        and the new *period*. An error will be raised if it is not.
+
+        """
+        hoomd.util.print_status_line()
+
+        cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
+        if cur_tstep % self.period != 0 or cur_tstep % period != 0:
+            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            raise RuntimeError('collision period can only be changed on multiple of current and new period')
+
+        self._cpp.setPeriod(cur_tstep, period)
+        self.period = period
+
 
 class at(_collision_method):
     """ Andersen thermostat method

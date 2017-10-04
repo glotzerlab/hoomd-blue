@@ -111,6 +111,26 @@ class mpcd_collide_srd_test(unittest.TestCase):
         srd.set_params(kT=False)
         self.assertTrue(srd.kT is False)
 
+    # test methods for setting the collision period
+    def test_set_period(self):
+        srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
+        # can change period right away
+        srd.set_period(2)
+
+        # running one step forbids changing period until we advance to a multiple
+        hoomd.run(1)
+        with self.assertRaises(RuntimeError):
+            srd.set_period(3)
+        hoomd.run(1)
+        srd.set_period(2)
+
+        # skip ahead to timestep 10, where setting period of 9 is invalid
+        hoomd.run(8)
+        with self.assertRaises(RuntimeError):
+            srd.set_period(9)
+        # period of 5 is OK because 10 is a multiple of 5
+        srd.set_period(5)
+
     def tearDown(self):
         pass
 

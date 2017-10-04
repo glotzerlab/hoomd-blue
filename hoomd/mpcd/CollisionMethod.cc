@@ -65,6 +65,34 @@ bool mpcd::CollisionMethod::peekCollide(unsigned int timestep) const
     }
 
 /*!
+ * \param cur_timestep Current simulation timestep
+ * \param period New period
+ *
+ * The collision method period is updated to \a period only if collision would occur at \a cur_timestep.
+ * It is the caller's responsibility to ensure this condition is valid.
+ */
+void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int period)
+    {
+    if (!peekCollide(cur_timestep))
+        {
+        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of original period" << std::endl;
+        throw std::runtime_error("Collision period can only be changed on multiple of original period");
+        }
+
+    // try to update the period
+    const unsigned int old_period = m_period;
+    m_period = period;
+
+    // validate the new period, resetting to the old one before erroring out if it doesn't match
+    if (!peekCollide(cur_timestep))
+        {
+        m_period = old_period;
+        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of original period" << std::endl;
+        throw std::runtime_error("Collision period can only be changed on multiple of original period");
+        }
+    }
+
+/*!
  * \param timestep Current timestep
  * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
  *
@@ -126,5 +154,6 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod> >(m, "CollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, unsigned int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
-        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup);
+        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
+        .def("setPeriod", &mpcd::CollisionMethod::setPeriod);
     }
