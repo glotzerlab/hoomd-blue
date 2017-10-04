@@ -8,6 +8,7 @@ set(TEST_LIST
     init_make_random
     integrate_integrator
     stream_bulk
+    stream_slit
     update_sort
     )
 SET(EXCLUDE_FROM_MPI

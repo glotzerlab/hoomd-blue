@@ -131,6 +131,29 @@ class _streaming_method(hoomd.meta._metadata):
         self._cpp.setPeriod(cur_tstep, period)
         self.period = period
 
+    def _process_boundary(self, bc):
+        """ Process boundary condition string into enum
+
+        Args:
+            bc (str): Boundary condition, either "no_slip" or "slip"
+
+        Returns:
+            A valid boundary condition enum.
+
+        The enum interface is still fairly clunky for the user since the boundary
+        condition is buried too deep in the package structure. This is a convenience
+        method for interpreting.
+
+        """
+        if bc == "no_slip":
+            return _mpcd.boundary.no_slip
+        elif bc == "slip":
+            return _mpcd.boundary.slip
+        else:
+            hoomd.context.msg.error("mpcd.stream: boundary condition " + bc + " not recognized.\n")
+            raise ValueError("Unrecognized streaming boundary condition")
+            return None
+
 class bulk(_streaming_method):
     """ Streaming method for bulk geometry.
 
@@ -161,7 +184,7 @@ class bulk(_streaming_method):
         mpcd.stream.bulk(period=10)
 
     """
-    def __init__(self, period):
+    def __init__(self, period=1):
         hoomd.util.print_status_line()
 
         _streaming_method.__init__(self, period)
@@ -175,3 +198,56 @@ class bulk(_streaming_method):
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
                                  0)
+
+class slit(_streaming_method):
+    """ Streaming method for slit geometry.
+
+    Args:
+        H (float): channel half-width
+        V (float): wall speed (default: 0)
+        boundary : boundary condition at wall (default: no slip)
+        period (int): Number of integration steps between collisions
+
+    Examples::
+
+        stream.slit(period=10, H=30.)
+        stream.slit(period=1, H=25., V=0.1)
+
+    """
+    def __init__(self, H, V=0.0, boundary="no_slip", period=1):
+        hoomd.util.print_status_line()
+
+        _streaming_method.__init__(self, period)
+
+        self.metadata_fields += ['H','V','boundary']
+        self.H = H
+        self.V = V
+        self.boundary = boundary
+
+        bc = self._process_boundary(boundary)
+        self._geometry = _mpcd.SlitGeometry(H,V,bc)
+
+        # create the base streaming class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            stream_class = _mpcd.ConfinedStreamingMethodSlit
+        else:
+            stream_class = _mpcd.ConfinedStreamingMethodSlit
+        self._cpp = stream_class(hoomd.context.current.mpcd.data,
+                                 hoomd.context.current.system.getCurrentTimeStep(),
+                                 self.period,
+                                 0,
+                                 self._geometry)
+
+    def set_params(self, H=None, V=None, boundary=None):
+        if H is not None:
+            self.H = H
+            self._geometry.H = self.H
+
+        if V is not None:
+            self.V = V
+            self._geometry.V = V
+
+        if boundary is not None:
+            self.boundary = boundary
+            bc = self._process_boundary(boundary)
+            self._geometry.boundary = bc

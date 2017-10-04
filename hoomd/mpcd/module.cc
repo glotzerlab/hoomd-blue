@@ -121,10 +121,14 @@ PYBIND11_MODULE(_mpcd, m)
     #endif // ENABLE_CUDA
 
     mpcd::detail::export_StreamingMethod(m);
-    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_StreamingMethodGPU(m);
     #endif // ENABLE_CUDA
+    mpcd::detail::export_boundary(m);
+    mpcd::detail::export_BulkGeometry(m);
+    mpcd::detail::export_SlitGeometry(m);
+    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
+    mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
 
     #ifdef ENABLE_MPI
     mpcd::detail::export_Communicator(m);

@@ -16,6 +16,7 @@ set(_mpcd_sources
     ParticleDataSnapshot.cc
     Sorter.cc
     SRDCollisionMethod.cc
+    StreamingGeometry.cc
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc

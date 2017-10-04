@@ -11,7 +11,10 @@
 #ifndef MPCD_STREAMING_GEOMETRY_H_
 #define MPCD_STREAMING_GEOMETRY_H_
 
+#include "hoomd/HOOMDMath.h"
+
 #ifndef NVCC
+#include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 #include <string>
 #endif // NVCC
 
@@ -96,18 +99,6 @@ class SlitGeometry
             : m_H(H), m_V(V), m_bc(bc)
             { }
 
-        //! Get maximum extent of the geometry
-        Scalar3 getMax() const
-            {
-            return make_scalar3(0,0,m_H);
-            }
-
-        //! Get minimum extent of the geometry
-        Scalar3 getMin() const
-            {
-            return make_scalar3(0,0,-m_H);
-            }
-
         //! Detect collision between the particle and the boundary
         /*!
          * \param pos Proposed particle position
@@ -176,11 +167,76 @@ class SlitGeometry
             }
         #endif // NVCC
 
+        //! Get channel half width
+        /*!
+         * \returns Channel half width
+         */
+        Scalar getH() const
+            {
+            return m_H;
+            }
+
+        //! Set channel half width
+        /*!
+         * \param H Channel half-width
+         */
+        void setH(Scalar H)
+            {
+            m_H = H;
+            }
+
+        //! Get the wall velocity
+        /*!
+         * \returns Wall velocity
+         */
+        Scalar getVelocity() const
+            {
+            return m_V;
+            }
+
+        //! Set the wall velocity
+        /*!
+         * \param V Wall velocity
+         */
+        void setVelocity(Scalar V)
+            {
+            m_V = V;
+            }
+
+        //! Get the wall boundary condition
+        /*!
+         * \returns Boundary condition at wall
+         */
+        boundary getBoundaryCondition() const
+            {
+            return m_bc;
+            }
+
+        //! Set the wall boundary condition
+        /*!
+         * \param bc Boundary condition
+         */
+        void setBoundaryCondition(boundary bc)
+            {
+            m_bc = bc;
+            }
+
     private:
         Scalar m_H; //!< Half of the channel width
         Scalar m_V; //!< Velocity of the wall
         boundary m_bc;  //!< Boundary condition
     };
+
+#ifndef NVCC
+//! Export boundary enum to python
+void export_boundary(pybind11::module& m);
+
+//! Export BulkGeometry to python
+void export_BulkGeometry(pybind11::module& m);
+
+//! Export SlitGeometry to python
+void export_SlitGeometry(pybind11::module& m);
+#endif // NVCC
 
 } // end namespace detail
 } // end namespace mpcd
