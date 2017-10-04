@@ -19,7 +19,7 @@ Not yet released
 
 ## v2.2.1
 
-Not yet released
+Released 2017/10/04
 
 *Bug fixes*
 
