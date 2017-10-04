@@ -16,6 +16,7 @@ mpcd
     module-mpcd-data
     module-mpcd-init
     module-mpcd-integrate
+    module-mpcd-stream
     module-mpcd-update
 
 .. rubric:: Overview
