@@ -22,8 +22,7 @@ class mpcd_collide_srd_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
 
         # create an integrator
-        self.ig = mpcd.integrator(dt=0.02)
-        mpcd.stream.bulk(period=5)
+        mpcd.integrator(dt=0.02)
 
     # test basic creation
     def test_create(self):
@@ -97,30 +96,6 @@ class mpcd_collide_srd_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
         mpcd.collide.srd(seed=42, period=5, angle=90.)
 
-    # test possible errors with the SRD period with the integrator
-    def test_bad_period(self):
-        # period cannot be less than integrator's period
-        srd = mpcd.collide.srd(seed=42, period=1, angle=130.)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        srd.disable()
-
-        # being equal is OK
-        srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
-        self.ig.update_methods()
-        srd.disable()
-
-        # period being greater but not a multiple is also an error
-        srd = mpcd.collide.srd(seed=42, period=7, angle=130.)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        srd.disable()
-
-        # being greater and a multiple is OK
-        srd = mpcd.collide.srd(seed=42, period=10, angle=130.)
-        self.ig.update_methods()
-        srd.disable()
-
     # test thermostat
     def test_thermostat(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90., kT=1.0)
@@ -137,7 +112,7 @@ class mpcd_collide_srd_test(unittest.TestCase):
         self.assertTrue(srd.kT is False)
 
     def tearDown(self):
-        del self.ig
+        pass
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

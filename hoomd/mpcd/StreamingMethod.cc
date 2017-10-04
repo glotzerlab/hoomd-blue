@@ -92,6 +92,24 @@ bool mpcd::StreamingMethod::peekStream(unsigned int timestep) const
     }
 
 /*!
+ * \param cur_timestep Current simulation timestep
+ * \param period New period
+ *
+ * The streaming method period is updated to \a period only if streaming would occur at \a cur_timestep.
+ * It is the caller's responsibility to ensure this condition is valid.
+ */
+void mpcd::StreamingMethod::setPeriod(unsigned int cur_timestep, unsigned int period)
+    {
+    if (!peekStream(cur_timestep))
+        {
+        m_exec_conf->msg->error() << "MPCD StreamingMethod period can only be changed on multiple of original period" << std::endl;
+        throw std::runtime_error("Streaming period can only be changed on multiple of original period");
+        }
+
+    m_period = period;
+    }
+
+/*!
  * \param timestep Current timestep
  * \returns True when \a timestep is equal to the next timestep the streaming should occur
  *
@@ -118,5 +136,6 @@ void mpcd::detail::export_StreamingMethod(pybind11::module& m)
     {
     namespace py = pybind11;
     py::class_<mpcd::StreamingMethod, std::shared_ptr<mpcd::StreamingMethod> >(m, "StreamingMethod")
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>());
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int>())
+        .def("setPeriod", &mpcd::StreamingMethod::setPeriod);
     }

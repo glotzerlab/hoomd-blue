@@ -60,6 +60,27 @@ class _streaming_method(hoomd.meta._metadata):
         # attach the streaming method to the system
         hoomd.context.current.mpcd._stream = self
 
+    def set_period(self, period):
+        """ Set the streaming period.
+
+        Args:
+            period (int): New streaming period.
+
+        The MPCD streaming period can only be changed to a new value on a
+        simulation timestep that is a multiple of the previous *period*.
+        An error will be raised if it is not.
+
+        """
+        hoomd.util.print_status_line()
+
+        cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
+        if cur_tstep % self.period != 0:
+            hoomd.context.msg.error('mpcd.stream: streaming period can only be changed on multiple of current period\n')
+            raise RuntimeError('Streaming period can only be changed on multiple of current period')
+
+        self._cpp.setPeriod(cur_tstep, period)
+        self.period = period
+
 class bulk(_streaming_method):
     """ Streaming method for bulk geometry.
 

@@ -63,6 +63,37 @@ class mpcd_integrator_test(unittest.TestCase):
         md.integrate.nve(group=hoomd.group.all())
         ig.update_methods()
 
+    # test possible errors with the collision period and streaming period with the integrator
+    def test_bad_period(self):
+        ig = mpcd.integrator(dt=0.001)
+        bulk = mpcd.stream.bulk(period=5)
+
+        # period cannot be less than integrator's period
+        srd = mpcd.collide.srd(seed=42, period=1, angle=130.)
+        with self.assertRaises(ValueError):
+            ig.update_methods()
+        srd.disable()
+
+        # being equal is OK
+        srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
+        ig.update_methods()
+        srd.disable()
+
+        # period being greater but not a multiple is also an error
+        srd = mpcd.collide.srd(seed=42, period=7, angle=130.)
+        with self.assertRaises(ValueError):
+            ig.update_methods()
+        srd.disable()
+
+        # being greater and a multiple is OK
+        srd = mpcd.collide.srd(seed=42, period=10, angle=130.)
+        ig.update_methods()
+
+        # using set_period interface should also cause a problem now though
+        bulk.set_period(7)
+        with self.assertRaises(ValueError):
+            ig.update_methods()
+
     # test a simple run command
     def test_run(self):
         mpcd.integrator(dt=0.001)

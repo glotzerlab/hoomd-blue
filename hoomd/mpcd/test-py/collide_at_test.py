@@ -22,8 +22,7 @@ class mpcd_collide_at_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
 
         # create an integrator
-        self.ig = mpcd.integrator(dt=0.02)
-        mpcd.stream.bulk(period=5)
+        mpcd.integrator(dt=0.02)
 
     # test basic creation
     def test_create(self):
@@ -93,32 +92,8 @@ class mpcd_collide_at_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
         mpcd.collide.at(seed=42, period=5, kT=1.0)
 
-    # test possible errors with the AT period with the integrator
-    def test_bad_period(self):
-        # period cannot be less than integrator's period
-        at = mpcd.collide.at(seed=42, period=1, kT=1.0)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        at.disable()
-
-        # being equal is OK
-        at = mpcd.collide.at(seed=42, period=5, kT=1.0)
-        self.ig.update_methods()
-        at.disable()
-
-        # period being greater but not a multiple is also an error
-        at = mpcd.collide.at(seed=42, period=7, kT=1.0)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        at.disable()
-
-        # being greater and a multiple is OK
-        at = mpcd.collide.at(seed=42, period=10, kT=1.0)
-        self.ig.update_methods()
-        at.disable()
-
     def tearDown(self):
-        del self.ig
+        pass
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

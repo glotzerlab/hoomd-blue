@@ -22,14 +22,13 @@ class integrator(hoomd.integrate._integrator):
     Args:
         dt (float): Each time step of the simulation :py:func:`hoomd.run()` will
                     advance the real time of the system forward by *dt* (in time units).
-        period (int): Period for advancing MPCD particle positions, default 1.
         aniso (bool): Whether to integrate rotational degrees of freedom (bool),
                       default None (autodetect).
 
     Examples::
 
         mpcd.integrate.integrator(dt=0.1)
-        mpcd.integrate.integrator(dt=0.01)
+        mpcd.integrate.integrator(dt=0.01, aniso=True)
     """
     def __init__(self, dt, aniso=None):
         # check system is initialized
