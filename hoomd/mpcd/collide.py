@@ -184,8 +184,8 @@ class at(_collision_method):
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
-        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
-        result in an error when :py:meth:`hoomd.run()` is called.
+        :py:mod:`~hoomd.mpcd.stream` period. Other values will result in an
+        error when :py:meth:`hoomd.run()` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
     MPCD cell list must be randomly shifted in order to ensure Galilean

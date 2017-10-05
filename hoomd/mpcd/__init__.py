@@ -54,13 +54,35 @@ MPCD is intended to be used as an add-on to the standard MD methods in
     2. Initialize the MPCD solvent particles using one of the methods in
        :py:mod:`.mpcd.init`. Additional details on how to manipulate the solvent
        particle data can be found in :py:mod:`.mpcd.data`.
-    3. Setup an MD integrator and any interactions between solute particles.
-    4. Setup an :py:obj:`~hoomd.mpcd.integrate.integrator` for the MPCD particles.
+    3. Create an MPCD :py:obj:`~hoomd.mpcd.integrator`.
+    4. Choose the appropriate streaming method from :py:mod:`.mpcd.stream`.
     5. Choose the appropriate collision rule from :py:mod:`.mpcd.collide`, and set
        the collision rule parameters. If necessary, adjust the MPCD cell size.
-    6. Optionally, configure the sorting frequency to improve performance (see
+    6. Setup an MD integrator and any interactions between solute particles.
+    7. Optionally, configure the sorting frequency to improve performance (see
        :py:obj:`update.sort`).
-    7. Run your simulation!
+    8. Run your simulation!
+
+Example script for a pure bulk SRD fluid::
+
+    import hoomd
+    hoomd.context.initialize()
+    from hoomd import mpcd
+
+    # Initialize (empty) solute in box.
+    box = hoomd.data.boxdim(L=100.)
+    hoomd.init.read_snapshot(hoomd.data.make_snapshot(N=0, box=box))
+
+    # Initialize MPCD particles and set sorting period.
+    s = mpcd.init.make_random(N=int(10*box.get_volume()), kT=1.0, seed=7)
+    s.sorter.set_period(period=25)
+
+    # Create MPCD integrator with streaming and collision methods.
+    mpcd.integrator(dt=0.1)
+    mpcd.stream.bulk(period=1)
+    mpcd.collide.srd(seed=42, period=1, angle=130., kT=1.0)
+
+    hoomd.run(2000)
 
 .. rubric:: Stability
 
@@ -116,8 +138,8 @@ class integrator(hoomd.integrate._integrator):
 
     Examples::
 
-        mpcd.integrate.integrator(dt=0.1)
-        mpcd.integrate.integrator(dt=0.01, aniso=True)
+        mpcd.integrator(dt=0.1)
+        mpcd.integrator(dt=0.01, aniso=True)
 
     """
     def __init__(self, dt, aniso=None):
