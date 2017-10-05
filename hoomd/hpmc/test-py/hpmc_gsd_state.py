@@ -313,6 +313,52 @@ class hpmc_gsd_state(unittest.TestCase):
         # self.mc.shape_param.set('A', diameters=diams, centers=cent);
         # self.run_test(latticep=lattice3d, latticeq=latticeq, k=k, kalt=kalt, q=k*10.0, qalt=kalt*10.0, uein=None, snapshot_s=self.snapshot3d_s, eng_check=(eng_check3d+eng_checkq));
         # self.tear_down()
+class hpmc_gsd_state(unittest.TestCase):
+    def setUp(self):
+        self._name = None;
+        context.initialize();
+        bccuc = hoomd.lattice.bcc(a=4.0);
+        system = init.read_snapshot(bccuc.get_snapshot());
+        system.replicate(nx=3, ny=3, nz=3);
+        self.snapshot3d = system.take_snapshot(particles=True);
+        # self.snapshot3d = data.make_snapshot(N=20, box=system.box, particle_types=['A']);
+        context.initialize();
+        self.v3d = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
+        self.params = dict(
+            base=dict(stepsize=[0.01, 0.02, 0.03]),
+        )
+
+    def tearDown(self):
+        for name in self.params:
+            filename = "{}.gsd".format(name)
+            if hoomd.comm.get_rank() == 0 and os.path.exists(filename):
+                os.remove(filename);
+
+    def test(self):
+        self.system = init.read_snapshot(self.snapshot3d)
+        v = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
+        filename = "{}.gsd".format("base")
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.0, a=0.0)
+        self.mc.shape_param.set(['A'], vertices=v)
+
+        self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1, gsdid='0');
+        self.updater.vertex_shape_move(stepsize=0.01, param_ratio=0.2, volume=1.0);
+        self.gsd = hoomd.dump.gsd(filename, group=hoomd.group.all(), period=1, overwrite=True);
+        self.gsd.dump_state(self.updater)
+        hoomd.run(9, quiet=True);
+        self.updater.set_params('A', stepsize=0.2)
+        hoomd.run(1, quiet=True);
+        context.initialize();
+        mc_cls = hoomd.hpmc.integrate.convex_polyhedron
+        self.system = init.read_gsd(filename=filename, frame = 9);
+        self.mc = mc_cls(seed=2398, d=0.0, a = 0.0)
+        self.mc.shape_param.set('A', vertices=v)
+        self.updater = hpmc.update.alchemy(mc=self.mc, move_ratio=1.0, seed=3832765, period=1, nselect=1, gsdid='0');
+        self.updater.vertex_shape_move(stepsize=0.03, param_ratio=0.2, volume=1.0);
+        self.updater.restore_state();
+
+        self.assertAlmostEqual(self.updater.get_step_size(0), 0.2);
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

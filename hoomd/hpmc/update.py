@@ -863,9 +863,9 @@ class shape_update(_updater):
         self.mc = mc;
         self.pos = pos;
         self._gsdid = None;
-        if gsdid in shape_update._ids:
-            raise RuntimeError("gsdid already exists")
-        elif gsdid is not None:
+        # if gsdid in shape_update._ids:
+        #     raise RuntimeError("gsdid already exists")
+        if gsdid is not None:
             self._gsdid = gsdid;
             shape_update._ids.append(gsdid);
 
@@ -1276,10 +1276,10 @@ class shape_update(_updater):
     # \brief default pos writer callback.
     # Declare the GSD state schema.
     def _gsd_state_name(self):
-        if self._id is None:
+        if self._gsdid is None:
             raise RuntimeError("Must specify unique gsdid for gsd state.");
 
-        return "state/hpmc/"+str(self.__class__.__name__)+str(self._id)+"/";
+        return "state/hpmc/"+str(self.__class__.__name__)+str(self._gsdid)+"/";
 
     ## \internal
     # \brief default pos writer callback.

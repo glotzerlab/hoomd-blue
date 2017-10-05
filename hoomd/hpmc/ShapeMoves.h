@@ -2,11 +2,11 @@
 #define _SHAPE_MOVES_H
 
 #include <hoomd/extern/saruprng.h>
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include "ShapeUtils.h"
 #include "Moves.h"
-#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include "hoomd/GSDState.h"
 #include <hoomd/extern/Eigen/Dense>
+#include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc {
 
@@ -43,6 +43,55 @@ public:
     const std::vector<Scalar>& getStepSizeArray() const { return m_step_size; }
 
     void setStepSize(const unsigned int& type_id, const Scalar& stepsize) { m_step_size[type_id] = stepsize; }
+
+    //! Method that is called whenever the GSD file is written if connected to a GSD file.
+    virtual int writeGSD(gsd_handle& handle, std::string name, const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) const
+        {
+        if(!exec_conf->isRoot())
+            return 0;
+        int retval = 0;
+        std::string path = name + "stepsize";
+        exec_conf->msg->notice(2) << "shape_move writint to GSD File to name: "<< name << std::endl;
+        std::vector<float> d;
+        d.resize(m_step_size.size());
+        std::transform(m_step_size.begin(), m_step_size.end(), d.begin(), [](const Scalar& s)->float{ return s; });
+        retval |= gsd_write_chunk(&handle, path.c_str(), GSD_TYPE_FLOAT, d.size(), 1, 0, (void *)&d[0]);
+        return retval;
+        }
+
+    //! Method that is called to connect to the gsd write state signal
+    virtual bool restoreStateGSD(   std::shared_ptr<GSDReader> reader,
+                                    uint64_t frame,
+                                    std::string name,
+                                    unsigned int Ntypes,
+                                    const std::shared_ptr<const ExecutionConfiguration> exec_conf,
+                                    bool mpi)
+        {
+        bool success = true;
+        std::string path = name + "stepsize";
+        std::vector<float> d;
+        if(exec_conf->isRoot())
+            {
+            d.resize(Ntypes, 0.0);
+            exec_conf->msg->notice(2) << "shape_move reading from GSD File from name: "<< name << std::endl;
+            exec_conf->msg->notice(2) << "stepsize: "<< d[0] << " success: " << std::boolalpha << success << std::endl;
+
+            success = reader->readChunk((void *)&d[0], frame, path.c_str(), Ntypes*gsd_sizeof_type(GSD_TYPE_FLOAT), Ntypes) && success;
+            exec_conf->msg->notice(2) << "stepsize: "<< d[0] << " success: " << std::boolalpha << success << std::endl;
+            }
+
+        #ifdef ENABLE_MPI
+        if(mpi)
+            {
+            bcast(d, 0, exec_conf->getMPICommunicator()); // broadcast the data
+            }
+        #endif
+        if(!d.size() || d.size() != m_step_size.size()) // adding this sanity check but can remove.
+            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+        for(unsigned int i = 0; i < d.size(); i++)
+            m_step_size[i] = d[i];
+        return success;
+        }
 
 protected:
     Scalar                          m_determinantInertiaTensor;     // TODO: REMOVE?
@@ -261,120 +310,121 @@ private:
     std::vector<bool>       m_calculated;
 };
 
-template <class Shape, class RNG>
-struct shear
-    {
-    shear(Scalar) {}
-    void operator() (typename Shape::param_type& param, RNG& rng)
-        {
-        throw std::runtime_error("shear is not implemented for this shape.");
-        }
-    };
+// template <class Shape, class RNG>
+// struct shear
+//     {
+//     shear(Scalar) {}
+//     void operator() (typename Shape::param_type& param, RNG& rng)
+//         {
+//         throw std::runtime_error("shear is not implemented for this shape.");
+//         }
+//     };
+//
+// template <class Shape, class RNG>
+// struct scale
+//     {
+//     bool isotropic;
+//     scale(bool iso = true) : isotropic(iso) {}
+//     void operator() (typename Shape::param_type& param, RNG& rng)
+//         {
+//         throw std::runtime_error("scale is not implemented for this shape.");
+//         }
+//     };
+//
+//
+// template < class RNG>
+// struct shear< ShapeConvexPolyhedron, RNG >
+//     {
+//     Scalar shear_max;
+//     shear(Scalar smax) : shear_max(smax) {}
+//     void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
+//         {
+//         Scalar gamma = rng.s(-shear_max, shear_max), gammaxy = 0.0, gammaxz = 0.0, gammayz = 0.0, gammayx = 0.0, gammazx = 0.0, gammazy = 0.0;
+//         int dim = int(6*rng.s(0.0, 1.0));
+//         if(dim == 0) gammaxy = gamma;
+//         else if(dim == 1) gammaxz = gamma;
+//         else if(dim == 2) gammayz = gamma;
+//         else if(dim == 3) gammayx = gamma;
+//         else if(dim == 4) gammazx = gamma;
+//         else if(dim == 5) gammazy = gamma;
+//         Scalar dsq = 0.0;
+//         for(unsigned int i = 0; i < param.N; i++)
+//             {
+//             param.x[i] = param.x[i] + param.y[i]*gammaxy + param.z[i]*gammaxz;
+//             param.y[i] = param.x[i]*gammayx + param.y[i] + param.z[i]*gammayz;
+//             param.z[i] = param.x[i]*gammazx + param.y[i]*gammazy + param.z[i];
+//             vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
+//             dsq = fmax(dsq, dot(vert, vert));
+//             }
+//         param.diameter = 2.0*sqrt(dsq);
+//         // std::cout << "shearing by " << gamma << std::endl;
+//         }
+//     };
+//
+// template <class RNG>
+// struct scale< ShapeConvexPolyhedron, RNG >
+//     {
+//     bool isotropic;
+//     Scalar scale_min;
+//     Scalar scale_max;
+//     scale(Scalar movesize, bool iso = true) : isotropic(iso)
+//         {
+//         if(movesize < 0.0 || movesize > 1.0)
+//             {
+//             movesize = 0.0;
+//             }
+//         scale_max = (1.0+movesize);
+//         scale_min = 1.0/scale_max;
+//         }
+//                  // () name of perator and second (...) are the parameters
+//                  //  You can overload the () operator to call your object as if it was a function
+//     void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
+//         {
+//         Scalar sx, sy, sz;
+//         Scalar s = rng.s(scale_min, scale_max);
+//         sx = sy = sz = s;
+//         if(!isotropic)
+//             {
+//             sx = sy = sz = 1.0;
+//             Scalar dim = rng.s(0.0, 1.0);
+//             if (dim < 1.0/3.0) sx = s;
+//             else if (dim < 2.0/3.0) sy = s;
+//             else sz = s;
+//             }
+//         for(unsigned int i = 0; i < param.N; i++)
+//             {
+//             param.x[i] *= sx;
+//             param.y[i] *= sy;
+//             param.z[i] *= sz;
+//             }
+//         param.diameter *= s;
+//         // std::cout << "scaling by " << s << std::endl;
+//         }
+//     };
+//
+// template < class RNG >
+// class scale< ShapeEllipsoid, RNG >
+// {
+//     const Scalar m_v;
+//     const Scalar m_v1;
+//     const Scalar m_min;
+//     const Scalar m_max;
+// public:
+//     scale(Scalar movesize, bool) : m_v(1.0), m_v1(M_PI*4.0/3.0), m_min(-movesize), m_max(movesize) {}
+//     void operator ()(ShapeEllipsoid::param_type& param, RNG& rng)
+//         {
+//         Scalar lnx = log(param.x/param.y);
+//         Scalar dx = rng.s(m_min, m_max);
+//         Scalar x = fast::exp(lnx+dx);
+//         Scalar b = pow(m_v/m_v1/x, 1.0/3.0);
+//
+//         param.x = x*b;
+//         param.y = b;
+//         param.z = b;
+//         }
+// };
 
-template <class Shape, class RNG>
-struct scale
-    {
-    bool isotropic;
-    scale(bool iso = true) : isotropic(iso) {}
-    void operator() (typename Shape::param_type& param, RNG& rng)
-        {
-        throw std::runtime_error("scale is not implemented for this shape.");
-        }
-    };
-
-
-template < class RNG>
-struct shear< ShapeConvexPolyhedron, RNG >
-    {
-    Scalar shear_max;
-    shear(Scalar smax) : shear_max(smax) {}
-    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
-        {
-        Scalar gamma = rng.s(-shear_max, shear_max), gammaxy = 0.0, gammaxz = 0.0, gammayz = 0.0, gammayx = 0.0, gammazx = 0.0, gammazy = 0.0;
-        int dim = int(6*rng.s(0.0, 1.0));
-        if(dim == 0) gammaxy = gamma;
-        else if(dim == 1) gammaxz = gamma;
-        else if(dim == 2) gammayz = gamma;
-        else if(dim == 3) gammayx = gamma;
-        else if(dim == 4) gammazx = gamma;
-        else if(dim == 5) gammazy = gamma;
-        Scalar dsq = 0.0;
-        for(unsigned int i = 0; i < param.N; i++)
-            {
-            param.x[i] = param.x[i] + param.y[i]*gammaxy + param.z[i]*gammaxz;
-            param.y[i] = param.x[i]*gammayx + param.y[i] + param.z[i]*gammayz;
-            param.z[i] = param.x[i]*gammazx + param.y[i]*gammazy + param.z[i];
-            vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
-            dsq = fmax(dsq, dot(vert, vert));
-            }
-        param.diameter = 2.0*sqrt(dsq);
-        // std::cout << "shearing by " << gamma << std::endl;
-        }
-    };
-
-template <class RNG>
-struct scale< ShapeConvexPolyhedron, RNG >
-    {
-    bool isotropic;
-    Scalar scale_min;
-    Scalar scale_max;
-    scale(Scalar movesize, bool iso = true) : isotropic(iso)
-        {
-        if(movesize < 0.0 || movesize > 1.0)
-            {
-            movesize = 0.0;
-            }
-        scale_max = (1.0+movesize);
-        scale_min = 1.0/scale_max;
-        }
-                 // () name of perator and second (...) are the parameters
-                 //  You can overload the () operator to call your object as if it was a function
-    void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
-        {
-        Scalar sx, sy, sz;
-        Scalar s = rng.s(scale_min, scale_max);
-        sx = sy = sz = s;
-        if(!isotropic)
-            {
-            sx = sy = sz = 1.0;
-            Scalar dim = rng.s(0.0, 1.0);
-            if (dim < 1.0/3.0) sx = s;
-            else if (dim < 2.0/3.0) sy = s;
-            else sz = s;
-            }
-        for(unsigned int i = 0; i < param.N; i++)
-            {
-            param.x[i] *= sx;
-            param.y[i] *= sy;
-            param.z[i] *= sz;
-            }
-        param.diameter *= s;
-        // std::cout << "scaling by " << s << std::endl;
-        }
-    };
-
-template < class RNG >
-class scale< ShapeEllipsoid, RNG >
-{
-    const Scalar m_v;
-    const Scalar m_v1;
-    const Scalar m_min;
-    const Scalar m_max;
-public:
-    scale(Scalar movesize, bool) : m_v(1.0), m_v1(M_PI*4.0/3.0), m_min(-movesize), m_max(movesize) {}
-    void operator ()(ShapeEllipsoid::param_type& param, RNG& rng)
-        {
-        Scalar lnx = log(param.x/param.y);
-        Scalar dx = rng.s(m_min, m_max);
-        Scalar x = fast::exp(lnx+dx);
-        Scalar b = pow(m_v/m_v1/x, 1.0/3.0);
-
-        param.x = x*b;
-        param.y = b;
-        param.z = b;
-        }
-};
-
+//TODO: put the following functions in a class
 inline bool isIn(Scalar x, Scalar y, Scalar alpha)
     {
     const Scalar one = 1.0;
@@ -420,14 +470,10 @@ inline void generate_scale(Eigen::Matrix3d& S, RNG& rng, Scalar alpha)
 template<class Shape, class RNG>
 class elastic_shape_move_function : public shape_move_function<Shape, RNG>
 {  // Derived class from shape_move_function base class
-    //using shape_move_function<Shape, RNG>::m_shape;
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
-    // using shape_move_function<Shape, RNG>::m_scale;
-    // using shape_move_function<Shape, RNG>::m_select_ratio;
     std::vector <Eigen::Matrix3d> m_Fbar_last;
     std::vector <Eigen::Matrix3d> m_Fbar;
-    //Scalar a_max= 0.01;
 public:
     elastic_shape_move_function(
                                     unsigned int ntypes,
@@ -440,15 +486,14 @@ public:
         m_Fbar.resize(ntypes, Eigen::Matrix3d::Identity());
         m_Fbar_last.resize(ntypes, Eigen::Matrix3d::Identity());
         std::fill(m_step_size.begin(), m_step_size.end(), stepsize);
-        //m_Fbar = Eigen::Matrix3d::Identity();
         m_determinantInertiaTensor = 1.0;
         }
 
     void prepare(unsigned int timestep)
         {
-        // make a backup for the Fbar.
-        m_Fbar_last = m_Fbar;// is there a faster way to copy the data?
+        m_Fbar_last = m_Fbar;
         }
+
     //! construct is called at the beginning of every update()                                            # param was shape - Luis
     void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& param, RNG& rng)
         {
@@ -501,9 +546,6 @@ public:
         {
         return 0.5*((m_Fbar_last[type_id].transpose()*m_Fbar_last[type_id]) - Eigen::Matrix3d::Identity());
         }
-
-    //! advance whenever the proposed move is accepted.
-    // void advance(unsigned int timestep){ /* Nothing to do. */ }
 
     //! retreat whenever the proposed move is rejected.
     void retreat(unsigned int timestep)

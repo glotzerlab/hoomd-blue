@@ -434,9 +434,20 @@ void UpdaterShape<Shape>::countTypes()
     }
 
 template< typename Shape>
-int UpdaterShape<Shape>::slotWriteGSD(gsd_handle&, std::string name) const
+int UpdaterShape<Shape>::slotWriteGSD(gsd_handle& handle, std::string name) const
     {
-    return 0;
+    m_exec_conf->msg->notice(2) << "UpdaterShape writing to GSD File to name: "<< name << std::endl;
+    int retval = 0;
+    // create schema helpers
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+
+    retval |= m_move_function->writeGSD(handle, name+"move/", m_exec_conf, mpi);
+
+    return retval;
     }
 
 template< typename Shape>
@@ -448,11 +459,18 @@ void UpdaterShape<Shape>::connectGSDSignal(std::shared_ptr<GSDDumpWriter> writer
 template< typename Shape>
 bool UpdaterShape<Shape>::restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name)
     {
-    return false;
+    bool success = true;
+    m_exec_conf->msg->notice(2) << "UpdaterShape from GSD File to name: "<< name << std::endl;
+    uint64_t frame = reader->getFrame();
+    // create schemas
+    #ifdef ENABLE_MPI
+    bool mpi=(bool)m_pdata->getDomainDecomposition();
+    #else
+    bool mpi=false;
+    #endif
+    success = m_move_function->restoreStateGSD(reader, frame, name+"move/", m_pdata->getNTypes(), m_exec_conf, mpi) && success;
+    return success;
     }
-
-
-
 
 template< typename Shape >
 void export_UpdaterShape(pybind11::module& m, const std::string& name)
@@ -473,9 +491,9 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("getStepSize", &UpdaterShape<Shape>::getStepSize)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
     .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
+    .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
     ;
     }
-
 
 
 } // namespace
