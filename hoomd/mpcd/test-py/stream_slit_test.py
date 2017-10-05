@@ -103,6 +103,30 @@ class mpcd_stream_slit_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.1,-0.1,-3.9])
             np.testing.assert_array_almost_equal(snap.particles.velocity[1], [1.,1.,1.])
 
+    def test_step_moving_wall(self):
+        mpcd.stream.slit(H=4., boundary="no_slip", V=1.0, period=3)
+
+        # change velocity of lower particle so it is translating relative to wall
+        snap = self.s.take_snapshot()
+        if hoomd.comm.get_rank() == 0:
+            snap.particles.velocity[1] = [-2.,-1.,-1.]
+        self.s.restore_snapshot(snap)
+
+        # run one step and check bounce back of particles
+        hoomd.run(1)
+        snap = self.s.take_snapshot()
+        if hoomd.comm.get_rank() == 0:
+            # the first particle is matched exactly to the wall speed, and so it will translate at
+            # same velocity along +x for 3 steps. It will bounce back in y and z to where it started.
+            # (vx stays the same, and vy and vz flip.)
+            np.testing.assert_array_almost_equal(snap.particles.position[0], [-4.75,-4.95,3.85])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[0], [1.,1.,-1.])
+
+            # the second particle has y and z velocities flip again, and since it started closer,
+            # it moves relative to original position.
+            np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.4,-0.1,-3.9])
+            np.testing.assert_array_almost_equal(snap.particles.velocity[1], [0.,1.,1.])
+
     # test basic stepping behavior with slip boundary conditions
     def test_step_slip(self):
         mpcd.stream.slit(H=4., boundary="slip")
