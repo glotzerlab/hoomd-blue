@@ -43,10 +43,22 @@ public:
 
     unsigned int getTotalCount(unsigned int ndx) { return m_count_total[ndx]; }
 
+    unsigned int getAcceptedB1(unsigned int ndx) { return m_b1_accepted[ndx]; }
+
+    unsigned int getAcceptedB2(unsigned int ndx) { return m_b2_accepted[ndx]; }
+
+    unsigned int getTotalB1(unsigned int ndx) { return m_b1_total[ndx]; }
+
+    unsigned int getTotalB2(unsigned int ndx) { return m_b2_total[ndx]; }
+
     void resetStatistics()
         {
         std::fill(m_count_accepted.begin(), m_count_accepted.end(), 0);
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
+        std::fill(m_b1_accepted.begin(), m_b1_accepted.end(), 0);
+        std::fill(m_b2_accepted.begin(), m_b2_accepted.end(), 0);
+        std::fill(m_b1_total.begin(), m_b1_total.end(), 0);
+        std::fill(m_b2_total.begin(), m_b2_total.end(), 0);
         }
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
@@ -83,6 +95,10 @@ private:
     unsigned int                m_nselect;
     std::vector<unsigned int>   m_count_accepted;
     std::vector<unsigned int>   m_count_total;
+    std::vector<unsigned int>   m_b1_accepted;
+    std::vector<unsigned int>   m_b2_accepted;
+    std::vector<unsigned int>   m_b1_total;
+    std::vector<unsigned int>   m_b2_total;
     unsigned int                m_move_ratio;
 
     std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
@@ -116,9 +132,15 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
+    m_b1_accepted.resize(m_pdata->getNTypes(), 0);
+    m_b2_accepted.resize(m_pdata->getNTypes(), 0);
+    m_b1_total.resize(m_pdata->getNTypes(), 0);
+    m_b2_total.resize(m_pdata->getNTypes(), 0);
     m_nselect = (m_pdata->getNTypes() < m_nselect) ? m_pdata->getNTypes() : m_nselect;
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
+    m_ProvidedQuantities.push_back("shape_move_two_phase_box1");
+    m_ProvidedQuantities.push_back("shape_move_two_phase_box2");
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -172,6 +194,21 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
 		return volume;
 		}
+    else if(quantity == "shape_move_two_phase_box1")
+        {
+        unsigned int b1Accepted = 0, b1Total = 0;
+        b1Accepted = std::accumulate(m_b1_accepted.begin(), m_b1_accepted.end(), 0);
+        b1Total = std::accumulate(m_b1_total.begin(), m_b1_total.end(), 0);
+        //std::cout << "it got here";
+        return b1Total ? Scalar(b1Accepted)/Scalar(b1Total) : 0;
+        }
+    else if(quantity == "shape_move_two_phase_box2")
+        {
+        unsigned int b2Accepted = 0, b2Total = 0;
+        b2Accepted = std::accumulate(m_b2_accepted.begin(), m_b2_accepted.end(), 0);
+        b2Total = std::accumulate(m_b2_total.begin(), m_b2_total.end(), 0);
+        return b2Total ? Scalar(b2Accepted)/Scalar(b2Total) : 0;
+        }
 	    else
 		{
 		for(size_t i = 0; i < m_num_params; i++)
@@ -228,6 +265,8 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         int typ_i = m_update_order[cur_type];
         m_exec_conf->msg->notice(5) << " UpdaterShape making trial move for typeid=" << typ_i << ", " << cur_type << std::endl;
         m_count_total[typ_i]++;
+        m_b1_total[typ_i]++;
+        m_b2_total[typ_i]++;
         // access parameters
         typename Shape::param_type param;
             { // need to scope because we set at the end of loop
@@ -330,7 +369,23 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             //m_exec_conf->msg->notice(8) << " a_1 is " << a_1 << std::endl;
             accept = a_0 && a_1;
             m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
-
+            if ( a_0 )
+                {
+                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                    {
+                    int typ_i = m_update_order[cur_type];
+                    m_b1_accepted[typ_i]++;
+                    }
+                }
+            if ( a_1 )
+                {
+                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                    {
+                    int typ_i = m_update_order[cur_type];
+                    m_b2_accepted[typ_i]++;
+                    }
+                }
+         
             #endif
             }
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
