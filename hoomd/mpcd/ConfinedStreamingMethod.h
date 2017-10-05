@@ -44,7 +44,7 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
                                 int phase,
                                 std::shared_ptr<Geometry> geom)
         : mpcd::StreamingMethod(sysdata, cur_timestep, period, phase),
-          m_geom(geom)
+          m_geom(geom), m_validate_geom(true)
           {
           }
 
@@ -53,6 +53,13 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
 
     protected:
         std::shared_ptr<Geometry> m_geom;   //!< Streaming geometry
+        bool m_validate_geom;               //!< If true, run a validation check on the geometry
+
+        //! Validate the system with the streaming geometry
+        void validate();
+
+        //! Check that particles lie inside the geometry
+        virtual void validateParticles();
     };
 
 /*!
@@ -62,6 +69,12 @@ template<class Geometry>
 void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
     {
     if (!shouldStream(timestep)) return;
+
+    if (m_validate_geom)
+        {
+        validate();
+        m_validate_geom = false;
+        }
 
     if (m_prof) m_prof->push("MPCD stream");
 
@@ -105,6 +118,44 @@ void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
     // particles have moved, so the cell cache is no longer valid
     m_mpcd_pdata->invalidateCellCache();
     if (m_prof) m_prof->pop();
+    }
+
+template<class Geometry>
+void ConfinedStreamingMethod<Geometry>::validate()
+    {
+    // ensure that the global box is padded enough for periodic boundaries
+    const BoxDim& box = m_pdata->getGlobalBox();
+    const Scalar cell_width = m_mpcd_sys->getCellList()->getCellSize();
+    if (!m_geom->validateBox(box, cell_width))
+        {
+        m_exec_conf->msg->error() << "ConfinedStreamingMethod: box too small for " << Geometry::getName() << " geometry. Increase box size." << std::endl;
+        throw std::runtime_error("Simulation box too small for confined streaming method");
+        }
+
+    // check that no particles are out of bounds
+    validateParticles();
+    }
+
+/*!
+ * Checks each MPCD particle position to determine if it lies within the geometry. If any particle is
+ * out of bounds, an error is raised.
+ */
+template<class Geometry>
+void ConfinedStreamingMethod<Geometry>::validateParticles()
+    {
+    ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
+    for (unsigned int idx = 0; idx < m_mpcd_pdata->getN(); ++idx)
+        {
+        const Scalar4 postype = h_pos.data[idx];
+        const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        if (m_geom->isOutside(pos))
+            {
+            m_exec_conf->msg->error() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
+                                      << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
+            throw std::runtime_error("MPCD particle out of bounds in confined geometry");
+            }
+        }
     }
 
 namespace detail

@@ -158,6 +158,24 @@ class mpcd_stream_slit_test(unittest.TestCase):
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-0.3,-0.3,-3.9])
             np.testing.assert_array_almost_equal(snap.particles.velocity[1], [-1.,-1.,1.])
 
+    # test that setting the slit size too large raises an error
+    def test_validate_box(self):
+        slit = mpcd.stream.slit(H=10.)
+        with self.assertRaises(RuntimeError):
+            hoomd.run(1)
+
+        slit.set_params(H=2.)
+        hoomd.run(1)
+
+    # test that particles out of bounds can be caught
+    def test_out_of_bounds(self):
+        slit = mpcd.stream.slit(H=3.8)
+        with self.assertRaises(RuntimeError):
+            hoomd.run(1)
+
+        slit.set_params(H=3.85)
+        hoomd.run(1)
+
     def tearDown(self):
         del self.s
 

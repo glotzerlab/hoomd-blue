@@ -12,6 +12,7 @@
 #define MPCD_STREAMING_GEOMETRY_H_
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/BoxDim.h"
 
 #ifndef NVCC
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
@@ -49,6 +50,20 @@ class BulkGeometry
         bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
             {
             dt = Scalar(0);
+            return false;
+            }
+
+        //! Validate the simulation box
+        /*!
+         * \returns True because the simulation box is always big enough to hold a bulk geometry.
+         */
+        bool validateBox(const BoxDim box, const Scalar cell_size) const
+            {
+            return true;
+            }
+
+        bool isOutside(const Scalar3& pos) const
+            {
             return false;
             }
 
@@ -157,6 +172,32 @@ class SlitGeometry
             vel.z = -vel.z;
 
             return true;
+            }
+
+        //! Check if a particle is out of bounds
+        /*!
+         * \param pos Current particle position
+         * \returns True if particle is out of bounds, and false otherwise
+         */
+        bool isOutside(const Scalar3& pos) const
+            {
+            return (pos.z > m_H || pos.z < -m_H);
+            }
+
+        //! Validate that the simulation box is large enough for the geometry
+        /*!
+         * \param box Global simulation box
+         * \param cell_size Size of MPCD cell
+         *
+         * The box is large enough for the slit if it is padded along the z direction so that
+         * the cells just outside the slit would not interact with each other through the boundary.
+         */
+        bool validateBox(const BoxDim box, Scalar cell_size) const
+            {
+            const Scalar hi = box.getHi().z;
+            const Scalar lo = box.getLo().z;
+
+            return ((hi-m_H) >= cell_size && ((-m_H-lo) >= cell_size));
             }
 
         #ifndef NVCC
