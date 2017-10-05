@@ -120,8 +120,8 @@ void mpcd::StreamingMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
     if (!peekStream(cur_timestep))
         {
         m_period = old_period;
-        m_exec_conf->msg->error() << "MPCD StreamingMethod period can only be changed on multiple of original period" << std::endl;
-        throw std::runtime_error("Streaming period can only be changed on multiple of original period");
+        m_exec_conf->msg->error() << "MPCD StreamingMethod period can only be changed on multiple of new period" << std::endl;
+        throw std::runtime_error("Streaming period can only be changed on multiple of new period");
         }
     }
 

@@ -136,6 +136,17 @@ class _collision_method(hoomd.meta._metadata):
         simulation timestep that is a multiple of both the previous *period*
         and the new *period*. An error will be raised if it is not.
 
+        Examples::
+
+            # The initial period is 5.
+            # The period can be updated to 2 on step 10.
+            hoomd.run_upto(10)
+            method.set_period(period=2)
+
+            # The period can be updated to 4 on step 12.
+            hoomd.run_upto(12)
+            hoomd.set_period(period=4)
+
         """
         hoomd.util.print_status_line()
 

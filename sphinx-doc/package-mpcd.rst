@@ -1,6 +1,13 @@
 mpcd
 ====
 
+.. rubric:: Overview
+
+.. autosummary::
+    :nosignatures:
+
+    hoomd.mpcd.integrator
+
 .. rubric:: Details
 
 .. automodule:: hoomd.mpcd
@@ -15,13 +22,5 @@ mpcd
     module-mpcd-collide
     module-mpcd-data
     module-mpcd-init
-    module-mpcd-integrate
     module-mpcd-stream
     module-mpcd-update
-
-.. rubric:: Overview
-
-.. autosummary::
-    :nosignatures:
-
-    ~integrate.integrator

@@ -87,8 +87,8 @@ void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int pe
     if (!peekCollide(cur_timestep))
         {
         m_period = old_period;
-        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of original period" << std::endl;
-        throw std::runtime_error("Collision period can only be changed on multiple of original period");
+        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of new period" << std::endl;
+        throw std::runtime_error("Collision period can only be changed on multiple of new period");
         }
     }
 

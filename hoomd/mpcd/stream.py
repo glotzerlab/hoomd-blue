@@ -109,6 +109,17 @@ class _streaming_method(hoomd.meta._metadata):
         simulation timestep that is a multiple of both the previous *period*
         and the new *period*. An error will be raised if it is not.
 
+        Examples::
+
+            # The initial period is 5.
+            # The period can be updated to 2 on step 10.
+            hoomd.run_upto(10)
+            method.set_period(period=2)
+
+            # The period can be updated to 4 on step 12.
+            hoomd.run_upto(12)
+            hoomd.set_period(period=4)
+
         """
         hoomd.util.print_status_line()
 
@@ -139,15 +150,15 @@ class bulk(_streaming_method):
 
     Example for pure MPCD fluid::
 
-        integrate.integrator(dt=0.1)
-        collide.srd(seed=42, period=1, angle=130.)
-        stream.bulk(period=1)
+        mpcd.integrator(dt=0.1)
+        mpcd.collide.srd(seed=42, period=1, angle=130.)
+        mpcd.stream.bulk(period=1)
 
     Example for embedded particles::
 
-        integrate.integrator(dt=0.01)
-        collide.srd(seed=42, period=10, angle=130., group=hoomd.group.all())
-        stream.bulk(period=10)
+        mpcd.integrator(dt=0.01)
+        mpcd.collide.srd(seed=42, period=10, angle=130., group=hoomd.group.all())
+        mpcd.stream.bulk(period=10)
 
     """
     def __init__(self, period):
