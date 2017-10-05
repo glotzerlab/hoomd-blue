@@ -22,34 +22,47 @@ class mpcd_collide_at_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
 
         # create an integrator
-        self.ig = mpcd.integrator(dt=0.02)
-        mpcd.stream.bulk(period=5)
+        mpcd.integrator(dt=0.02)
 
     # test basic creation
     def test_create(self):
         at = mpcd.collide.at(seed=42, period=5, kT=1.0)
+        self.assertEqual(at.enabled, True)
         self.assertEqual(hoomd.context.current.mpcd._collide, at)
 
-    # test for setting of embedded group with constructor
+        at.disable()
+        self.assertEqual(at.enabled, False)
+        self.assertEqual(hoomd.context.current.mpcd._collide, None)
+
+        at.enable()
+        self.assertEqual(at.enabled, True)
+        self.assertEqual(hoomd.context.current.mpcd._collide, at)
+
+        at.disable()
+        mpcd.collide.at(seed=42, period=5, kT=hoomd.variant.linear_interp([[0,1.5],[10,2.0]]))
+
+    # test for setting of embedded group
     def test_embed(self):
         group = hoomd.group.all()
         at = mpcd.collide.at(seed=42, period=5, kT=1.0, group=group)
         self.assertEqual(at.group, group)
+        at.disable()
 
-    # test for setting of embedded group with method
-    def test_set_embed(self):
-        group = hoomd.group.all()
-        at = mpcd.collide.at(seed=7, period=10, kT=1.0)
-        self.assertTrue(at.group is None)
-        at.embed(group)
-        self.assertEqual(at.group, group)
+        at2 = mpcd.collide.at(seed=7, period=10, kT=1.0)
+        at2.embed(group)
+        self.assertEqual(at2.group, group)
 
     # test creation of multiple collision rules
     def test_multiple(self):
-        # after a collision rule has been set, another cannot be created
+        # after a collision rule has been set, another cannot be created without
+        # removing the first one
         at = mpcd.collide.at(seed=42, period=5, kT=1.0)
         with self.assertRaises(RuntimeError):
             mpcd.collide.at(seed=7, period=10, kT=1.0)
+
+        # okay, now it should work
+        at.disable()
+        mpcd.collide.at(seed=7, period=10, kT=1.0)
 
     def test_set_params(self):
         at = mpcd.collide.at(seed=42, period=5, kT=1.0)
@@ -79,31 +92,8 @@ class mpcd_collide_at_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
         mpcd.collide.at(seed=42, period=5, kT=1.0)
 
-    # test possible errors with the AT period with the integrator
-    def test_bad_period(self):
-        # period cannot be less than integrator's period
-        at = mpcd.collide.at(seed=42, period=1, kT=1.0)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
-
-        # being equal is OK
-        at = mpcd.collide.at(seed=42, period=5, kT=1.0)
-        self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
-
-        # period being greater but not a multiple is also an error
-        at = mpcd.collide.at(seed=42, period=7, kT=1.0)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        hoomd.context.current.mpcd._collide = None
-
-        # being greater and a multiple is OK
-        at = mpcd.collide.at(seed=42, period=10, kT=1.0)
-        self.ig.update_methods()
-
     def tearDown(self):
-        del self.ig
+        pass
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

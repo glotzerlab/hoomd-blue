@@ -138,7 +138,6 @@ set(files
     collide.py
     data.py
     init.py
-    integrate.py
     stream.py
     update.py
     )

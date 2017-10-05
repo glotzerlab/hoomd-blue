@@ -44,16 +44,18 @@ class _collision_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','seed','group','shift']
+        self.metadata_fields = ['period','seed','group','shift','enabled']
 
         self.period = period
         self.seed = seed
         self.group = None
         self.shift = True
+        self.enabled = True
         self._cpp = None
 
-        # attach collision method to the system
-        hoomd.context.current.mpcd._collide = self
+        hoomd.util.quiet_status()
+        self.enable()
+        hoomd.util.unquiet_status()
 
     def embed(self, group):
         """ Embed a particle group into the MPCD collision
@@ -88,6 +90,74 @@ class _collision_method(hoomd.meta._metadata):
 
         self.group = group
         self._cpp.setEmbeddedGroup(group.cpp_group)
+
+    def enable(self):
+        """ Enable the collision method
+
+        Examples::
+
+            method.enable()
+
+        Enabling the collision method adds it to the current MPCD system definition.
+        Only one collision method can be attached to the system at any time.
+        If another method is already set, :py:meth:`disable()` must be called
+        first before switching.
+
+        """
+        hoomd.util.print_status_line()
+
+        self.enabled = True
+        hoomd.context.current.mpcd._collide = self
+
+    def disable(self):
+        """ Disable the collision method
+
+        Examples::
+
+            method.disable()
+
+        Disabling the collision method removes it from the current MPCD system definition.
+        Only one collision method can be attached to the system at any time, so
+        use this method to remove the current collision method before adding another.
+
+        """
+        hoomd.util.print_status_line()
+
+        self.enabled = False
+        hoomd.context.current.mpcd._collide = None
+
+    def set_period(self, period):
+        """ Set the collision period.
+
+        Args:
+            period (int): New collision period.
+
+        The MPCD collision period can only be changed to a new value on a
+        simulation timestep that is a multiple of both the previous *period*
+        and the new *period*. An error will be raised if it is not.
+
+        Examples::
+
+            # The initial period is 5.
+            # The period can be updated to 2 on step 10.
+            hoomd.run_upto(10)
+            method.set_period(period=2)
+
+            # The period can be updated to 4 on step 12.
+            hoomd.run_upto(12)
+            hoomd.set_period(period=4)
+
+        """
+        hoomd.util.print_status_line()
+
+        cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
+        if cur_tstep % self.period != 0 or cur_tstep % period != 0:
+            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            raise RuntimeError('collision period can only be changed on multiple of current and new period')
+
+        self._cpp.setPeriod(cur_tstep, period)
+        self.period = period
+
 
 class at(_collision_method):
     """ Andersen thermostat method
@@ -223,7 +293,7 @@ class srd(_collision_method):
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
-        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
+        :py:mod:`~hoomd.mpcd.stream` period. Other values will
         result in an error when :py:meth:`hoomd.run()` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying

@@ -63,7 +63,7 @@ class mpcd_stream_bulk_test(unittest.TestCase):
         self.s.restore_snapshot(snap)
 
         mpcd.integrator(dt=0.05)
-        mpcd.stream.bulk(period=4)
+        bulk = mpcd.stream.bulk(period=4)
 
         # first step should go
         hoomd.run(1)
@@ -85,6 +85,46 @@ class mpcd_stream_bulk_test(unittest.TestCase):
         if hoomd.comm.get_rank() == 0:
             np.testing.assert_array_almost_equal(snap.particles.position[0], [1.7,-4.45,3.7])
             np.testing.assert_array_almost_equal(snap.particles.position[1], [-3.7,4.55,-1.7])
+
+        # trying to change the period on the wrong step should throw an error
+        with self.assertRaises(RuntimeError):
+            bulk.set_period(period=2)
+
+        # running up to the next period should be allowed
+        hoomd.run(3)
+        bulk.set_period(period=2)
+
+        # running once should now move half as far
+        hoomd.run(1)
+        snap = self.s.take_snapshot()
+        if hoomd.comm.get_rank() == 0:
+            np.testing.assert_array_almost_equal(snap.particles.position[0], [1.8,-4.35,3.8])
+            np.testing.assert_array_almost_equal(snap.particles.position[1], [-3.8,4.45,-1.8])
+
+        # changing in between runs should fail
+        with self.assertRaises(RuntimeError):
+            bulk.set_period(1)
+        hoomd.run(1)
+        # cannot set period to a not equal multiple
+        with self.assertRaises(RuntimeError):
+            bulk.set_period(9)
+        # but this should work since the timestep is 10
+        bulk.set_period(5)
+
+    def test_enable(self):
+        mpcd.integrator(dt=0.1)
+        bulk = mpcd.stream.bulk(period=1)
+        self.assertTrue(bulk.enabled)
+        self.assertEqual(hoomd.context.current.mpcd._stream, bulk)
+
+        # ensure this is disabled
+        bulk.disable()
+        self.assertEqual(bulk.enabled, False)
+        self.assertEqual(hoomd.context.current.mpcd._stream, None)
+
+        bulk.enable()
+        self.assertTrue(bulk.enabled)
+        self.assertEqual(hoomd.context.current.mpcd._stream, bulk)
 
     def tearDown(self):
         del self.s
