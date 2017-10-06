@@ -15,13 +15,13 @@
 #include "ExternalField.h"
 
 #include <tuple>
-//#include <limits>
+#include <limits>
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
-//#define INFINITY std::numeric_limits<double>::infinity()
+#define INFINITY std::numeric_limits<double>::infinity()
 
 namespace hpmc
 {
@@ -409,10 +409,10 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
 
         double calculateDeltaE(const Scalar4* const position_old,
                                         const Scalar4* const orientation_old,
-                                        const BoxDim* const box_old
-                                        )
+                                        const BoxDim* const box_old, 
+					unsigned int timestep)
             {
-            unsigned int numOverlaps = countOverlaps(0, false);
+            unsigned int numOverlaps = countOverlaps(timestep, false);
             if(numOverlaps > 0)
                 {
                 return INFINITY;
