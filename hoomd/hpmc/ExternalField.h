@@ -41,7 +41,8 @@ class ExternalField : public Compute
         //! calculate deltaE for the whole system
         virtual double calculateDeltaE(const Scalar4 * const  position_old,
                                                 const Scalar4 * const  orientation_old,
-                                                const BoxDim * const  box_old){return 0;}
+                                                const BoxDim * const  box_old
+                                            ){return 0;}
 
         virtual bool hasVolume() {return false;}
 
