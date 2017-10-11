@@ -55,12 +55,12 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
 
         double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
-            double boltz(1.0);
+            double Energy = 0.0;
             for(size_t i = 0; i < m_externals.size(); i++)
                 {
-                boltz *= m_externals[i]->energydiff(index, position_old, shape_old, position_new, shape_new);
+                Energy += m_externals[i]->energydiff(index, position_old, shape_old, position_new, shape_new);
                 }
-            return boltz;
+            return Energy;
             }
 
         void addExternal(std::shared_ptr< ExternalFieldMono<Shape> > ext) { m_externals.push_back(ext); }
