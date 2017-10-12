@@ -44,7 +44,7 @@ mpcd::ParticleData::ParticleData(unsigned int N,
                                  unsigned int ndimensions,
                                  std::shared_ptr<ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
+    : m_N(0), m_N_virtual(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -72,7 +72,7 @@ mpcd::ParticleData::ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> sna
                                  const BoxDim& global_box,
                                  std::shared_ptr<const ExecutionConfiguration> exec_conf,
                                  std::shared_ptr<DomainDecomposition> decomposition)
-    : m_N(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
+    : m_N(0), m_N_virtual(0), m_N_global(0), m_N_max(0), m_exec_conf(exec_conf), m_mass(1.0), m_valid_cell_cache(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD ParticleData" << endl;
 
@@ -669,7 +669,7 @@ void mpcd::ParticleData::reallocate(unsigned int N_max)
     {
     m_N_max = N_max;
 
-    //! Reallocate the particle data
+    // Reallocate the particle data
     m_pos.resize(N_max);
     m_vel.resize(N_max);
     m_tag.resize(N_max);
@@ -845,6 +845,28 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
         }
     ArrayHandle<unsigned int> h_tag(m_tag, access_location::host, access_mode::read);
     return h_tag.data[idx];
+    }
+
+/*!
+ * \param N_virtual Allocate space for \a N_virtual particles in the particle data arrays
+ */
+void mpcd::ParticleData::allocateVirtualParticles(unsigned int N_virtual)
+    {
+    // minimum size of new arrays must accommodate current particles plus virtual
+    const unsigned int min_size = m_N + N_virtual;
+
+    // compute the new size of the array using amortized growth
+    unsigned int N_max = m_N_max;
+    if (min_size > N_max)
+        {
+        while (min_size > N_max)
+            {
+            N_max = ((unsigned int) (((float) N_max) * resize_factor)) + 1;
+            }
+        reallocate(N_max);
+        }
+
+    m_N_virtual = N_virtual;
     }
 
 #ifdef ENABLE_MPI

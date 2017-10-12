@@ -107,6 +107,12 @@ class PYBIND11_EXPORT ParticleData
             return m_N;
             }
 
+        //! Get the number of MPCD virtual particles on this rank
+        unsigned int getNVirtual() const
+            {
+            return m_N_virtual;
+            }
+
         //! Get global number of MPCD particles
         unsigned int getNGlobal() const
             {
@@ -302,6 +308,21 @@ class PYBIND11_EXPORT ParticleData
             }
         //@}
 
+        //! Allocate memory for virtual particles
+        void allocateVirtualParticles(unsigned int N_virtual);
+
+        //! Remove all virtual particles
+        /*!
+         * \post The virtual particle counter is reset to zero.
+         *
+         * The memory associated with the previous virtual particle allocation is not freed
+         * since the array growth is amortized in allocateVirtualParticles.
+         */
+        void removeVirtualParticles()
+            {
+            m_N_virtual = 0;
+            }
+
         #ifdef ENABLE_MPI
         //! \name communication methods
         //@{
@@ -343,6 +364,7 @@ class PYBIND11_EXPORT ParticleData
 
     private:
         unsigned int m_N;           //!< Number of MPCD particles
+        unsigned int m_N_virtual;   //!< Number of virtual MPCD particles
         unsigned int m_N_global;    //!< Total number of MPCD particles
         unsigned int m_N_max;       //!< Maximum number of MPCD particles arrays can hold
 
