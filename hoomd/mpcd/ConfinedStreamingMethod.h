@@ -112,7 +112,7 @@ void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
         h_pos.data[cur_p] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
         // write velocities when they change
         if (any_collide)
-            h_vel.data[cur_p] = make_scalar4(vel.x, vel.y, vel.z, mpcd::detail::NO_CELL);
+            h_vel.data[cur_p] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
         }
 
     // particles have moved, so the cell cache is no longer valid
@@ -145,6 +145,8 @@ void ConfinedStreamingMethod<Geometry>::validateParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
+
+    unsigned char error = 0;
     for (unsigned int idx = 0; idx < m_mpcd_pdata->getN(); ++idx)
         {
         const Scalar4 postype = h_pos.data[idx];
@@ -152,9 +154,20 @@ void ConfinedStreamingMethod<Geometry>::validateParticles()
         if (m_geom->isOutside(pos))
             {
             m_exec_conf->msg->error() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
-                                      << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
-            throw std::runtime_error("MPCD particle out of bounds in confined geometry");
+                          << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
+            error = 1;
+            break;
             }
+        }
+
+    #ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_UNSIGNED_CHAR, MPI_LOR, m_exec_conf->getMPICommunicator());
+    #endif // ENABLE_MPI
+
+    if (error)
+        {
+        throw std::runtime_error("MPCD particle out of bounds in confined geometry");
         }
     }
 
