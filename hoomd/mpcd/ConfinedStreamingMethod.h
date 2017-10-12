@@ -45,8 +45,7 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
                                 std::shared_ptr<Geometry> geom)
         : mpcd::StreamingMethod(sysdata, cur_timestep, period, phase),
           m_geom(geom), m_validate_geom(true)
-          {
-          }
+          { }
 
         //! Implementation of the streaming rule
         virtual void stream(unsigned int timestep);
@@ -59,7 +58,7 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
         void validate();
 
         //! Check that particles lie inside the geometry
-        virtual void validateParticles();
+        virtual bool validateParticles();
     };
 
 /*!
@@ -133,7 +132,13 @@ void ConfinedStreamingMethod<Geometry>::validate()
         }
 
     // check that no particles are out of bounds
-    validateParticles();
+    unsigned char error = !validateParticles();
+    #ifdef ENABLE_MPI
+    if (m_exec_conf->getNRanks() > 1)
+        MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_UNSIGNED_CHAR, MPI_LOR, m_exec_conf->getMPICommunicator());
+    #endif // ENABLE_MPI
+    if (error)
+        throw std::runtime_error("Invalid MPCD particle configuration for confined geometry");
     }
 
 /*!
@@ -141,12 +146,11 @@ void ConfinedStreamingMethod<Geometry>::validate()
  * out of bounds, an error is raised.
  */
 template<class Geometry>
-void ConfinedStreamingMethod<Geometry>::validateParticles()
+bool ConfinedStreamingMethod<Geometry>::validateParticles()
     {
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
 
-    unsigned char error = 0;
     for (unsigned int idx = 0; idx < m_mpcd_pdata->getN(); ++idx)
         {
         const Scalar4 postype = h_pos.data[idx];
@@ -155,20 +159,11 @@ void ConfinedStreamingMethod<Geometry>::validateParticles()
             {
             m_exec_conf->msg->error() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
                           << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
-            error = 1;
-            break;
+            return false;
             }
         }
 
-    #ifdef ENABLE_MPI
-    if (m_exec_conf->getNRanks() > 1)
-        MPI_Allreduce(MPI_IN_PLACE, &error, 1, MPI_UNSIGNED_CHAR, MPI_LOR, m_exec_conf->getMPICommunicator());
-    #endif // ENABLE_MPI
-
-    if (error)
-        {
-        throw std::runtime_error("MPCD particle out of bounds in confined geometry");
-        }
+    return true;
     }
 
 namespace detail
@@ -180,15 +175,11 @@ namespace detail
 template<class Geometry>
 void export_ConfinedStreamingMethod(pybind11::module& m)
     {
-    {
     namespace py = pybind11;
-
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
-
     py::class_<mpcd::ConfinedStreamingMethod<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>
         (m, name.c_str(), py::base<mpcd::StreamingMethod>())
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<Geometry>>());
-    }
     }
 } // end namespace detail
 } // end namespace mpcd

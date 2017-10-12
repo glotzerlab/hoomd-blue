@@ -63,6 +63,8 @@ list(APPEND _mpcd_headers
     CellListGPU.h
     CommunicatorGPU.cuh
     CommunicatorGPU.h
+    ConfinedStreamingMethodGPU.cuh
+    ConfinedStreamingMethodGPU.h
     ParticleData.cuh
     SorterGPU.cuh
     SorterGPU.h
@@ -77,6 +79,7 @@ set(_mpcd_cu_sources
     ATCollisionMethodGPU.cu
     CellThermoComputeGPU.cu
     CellListGPU.cu
+    ConfinedStreamingMethodGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
     SorterGPU.cu

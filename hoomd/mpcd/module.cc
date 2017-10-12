@@ -39,6 +39,7 @@
 #include "StreamingGeometry.h"
 #ifdef ENABLE_CUDA
 #include "StreamingMethodGPU.h"
+#include "ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_CUDA
 
 // communicator
@@ -129,6 +130,10 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_SlitGeometry(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::BulkGeometry>(m);
+    mpcd::detail::export_ConfinedStreamingMethodGPU<mpcd::detail::SlitGeometry>(m);
+    #endif // ENABLE_CUDA
 
     #ifdef ENABLE_MPI
     mpcd::detail::export_Communicator(m);

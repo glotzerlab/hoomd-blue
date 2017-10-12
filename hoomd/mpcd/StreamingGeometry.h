@@ -14,7 +14,10 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/BoxDim.h"
 
-#ifndef NVCC
+#ifdef NVCC
+#define HOSTDEVICE __host__ __device__ inline
+#else
+#define HOSTDEVICE inline __attribute__((always_inline))
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 #include <string>
 #endif // NVCC
@@ -47,7 +50,7 @@ class BulkGeometry
          *       according to the appropriate bounce back rule, and the integration time \a dt is decreased to the
          *       amount of time remaining.
          */
-        bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
+        HOSTDEVICE bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
             {
             dt = Scalar(0);
             return false;
@@ -57,12 +60,12 @@ class BulkGeometry
         /*!
          * \returns True because the simulation box is always big enough to hold a bulk geometry.
          */
-        bool validateBox(const BoxDim box, const Scalar cell_size) const
+        HOSTDEVICE bool validateBox(const BoxDim box, const Scalar cell_size) const
             {
             return true;
             }
 
-        bool isOutside(const Scalar3& pos) const
+        HOSTDEVICE bool isOutside(const Scalar3& pos) const
             {
             return false;
             }
@@ -110,7 +113,7 @@ class SlitGeometry
          * \param V Velocity of the wall
          * \param bc Boundary condition at the wall (slip or no-slip)
          */
-        SlitGeometry(Scalar H, Scalar V, boundary bc)
+        HOSTDEVICE SlitGeometry(Scalar H, Scalar V, boundary bc)
             : m_H(H), m_V(V), m_bc(bc)
             { }
 
@@ -126,7 +129,7 @@ class SlitGeometry
          *       according to the appropriate bounce back rule, and the integration time \a dt is decreased to the
          *       amount of time remaining.
          */
-        bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
+        HOSTDEVICE bool detectCollision(Scalar3& pos, Scalar3& vel, Scalar& dt) const
             {
             /*
              * Detect if particle has left the box, and try to avoid branching or absolute value calls. The sign used
@@ -179,7 +182,7 @@ class SlitGeometry
          * \param pos Current particle position
          * \returns True if particle is out of bounds, and false otherwise
          */
-        bool isOutside(const Scalar3& pos) const
+        HOSTDEVICE bool isOutside(const Scalar3& pos) const
             {
             return (pos.z > m_H || pos.z < -m_H);
             }
@@ -192,7 +195,7 @@ class SlitGeometry
          * The box is large enough for the slit if it is padded along the z direction so that
          * the cells just outside the slit would not interact with each other through the boundary.
          */
-        bool validateBox(const BoxDim box, Scalar cell_size) const
+        HOSTDEVICE bool validateBox(const BoxDim box, Scalar cell_size) const
             {
             const Scalar hi = box.getHi().z;
             const Scalar lo = box.getLo().z;
@@ -212,7 +215,7 @@ class SlitGeometry
         /*!
          * \returns Channel half width
          */
-        Scalar getH() const
+        HOSTDEVICE Scalar getH() const
             {
             return m_H;
             }
@@ -221,7 +224,7 @@ class SlitGeometry
         /*!
          * \param H Channel half-width
          */
-        void setH(Scalar H)
+        HOSTDEVICE void setH(Scalar H)
             {
             m_H = H;
             }
@@ -230,7 +233,7 @@ class SlitGeometry
         /*!
          * \returns Wall velocity
          */
-        Scalar getVelocity() const
+        HOSTDEVICE Scalar getVelocity() const
             {
             return m_V;
             }
@@ -239,7 +242,7 @@ class SlitGeometry
         /*!
          * \param V Wall velocity
          */
-        void setVelocity(Scalar V)
+        HOSTDEVICE void setVelocity(Scalar V)
             {
             m_V = V;
             }
@@ -248,7 +251,7 @@ class SlitGeometry
         /*!
          * \returns Boundary condition at wall
          */
-        boundary getBoundaryCondition() const
+        HOSTDEVICE boundary getBoundaryCondition() const
             {
             return m_bc;
             }
@@ -257,7 +260,7 @@ class SlitGeometry
         /*!
          * \param bc Boundary condition
          */
-        void setBoundaryCondition(boundary bc)
+        HOSTDEVICE void setBoundaryCondition(boundary bc)
             {
             m_bc = bc;
             }
@@ -281,5 +284,7 @@ void export_SlitGeometry(pybind11::module& m);
 
 } // end namespace detail
 } // end namespace mpcd
+
+#undef HOSTDEVICE
 
 #endif // MPCD_STREAMING_GEOMETRY_H_

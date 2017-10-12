@@ -231,7 +231,7 @@ class slit(_streaming_method):
         if not hoomd.context.exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodSlit
         else:
-            stream_class = _mpcd.ConfinedStreamingMethodSlit
+            stream_class = _mpcd.ConfinedStreamingMethodGPUSlit
         self._cpp = stream_class(hoomd.context.current.mpcd.data,
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
