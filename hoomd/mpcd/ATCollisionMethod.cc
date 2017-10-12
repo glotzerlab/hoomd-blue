@@ -36,17 +36,8 @@ mpcd::ATCollisionMethod::~ATCollisionMethod()
     m_thermo->getCallbackSignal().disconnect<mpcd::ATCollisionMethod, &mpcd::ATCollisionMethod::drawVelocities>(this);
     }
 
-void mpcd::ATCollisionMethod::collide(unsigned int timestep)
+void mpcd::ATCollisionMethod::rule(unsigned int timestep)
     {
-    if (!shouldCollide(timestep)) return;
-
-    if (m_prof) m_prof->push("MPCD collide");
-    // set random grid shift
-    drawGridShift(timestep);
-    if (m_prof) m_prof->pop();
-
-    // update cell list and thermo
-    m_cl->compute(timestep);
     m_thermo->compute(timestep);
 
     if (m_prof) m_prof->push("MPCD collide");
@@ -59,6 +50,7 @@ void mpcd::ATCollisionMethod::collide(unsigned int timestep)
     // apply random velocities
     applyVelocities();
     if (m_prof) m_prof->pop(m_exec_conf);
+
     if (m_prof) m_prof->pop();
     }
 

@@ -35,7 +35,6 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
             m_mpi_comm(m_exec_conf->getMPICommunicator()),
             m_decomposition(m_pdata->getDomainDecomposition()),
             m_is_communicating(false),
-            m_force_migrate(false),
             m_check_decomposition(true),
             m_nneigh(0),
             m_n_unique_neigh(0),

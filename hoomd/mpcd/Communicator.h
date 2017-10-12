@@ -162,7 +162,6 @@ class PYBIND11_EXPORT Communicator
         std::shared_ptr<Profiler> m_prof;                           //!< Profiler
 
         bool m_is_communicating;               //!< Whether we are currently communicating
-        bool m_force_migrate;                  //!< True if particle migration is forced
         bool m_check_decomposition; //!< Flag to check the simulation box decomposition
 
         const static unsigned int neigh_max;           //!< Maximum number of neighbor ranks

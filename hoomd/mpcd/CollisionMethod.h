@@ -35,7 +35,7 @@ class PYBIND11_EXPORT CollisionMethod
         virtual ~CollisionMethod() { }
 
         //! Implementation of the collision rule
-        virtual void collide(unsigned int timestep) { }
+        void collide(unsigned int timestep);
 
         //! Peek if a collision will occur on this timestep
         virtual bool peekCollide(unsigned int timestep) const;
@@ -97,6 +97,9 @@ class PYBIND11_EXPORT CollisionMethod
 
         //! Check if a collision should occur and advance the timestep counter
         virtual bool shouldCollide(unsigned int timestep);
+
+        //! Call the collision rule
+        virtual void rule(unsigned int timestep) {}
 
         bool m_enable_grid_shift;   //!< Flag to enable grid shifting
     };
