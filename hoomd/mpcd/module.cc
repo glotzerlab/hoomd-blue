@@ -34,11 +34,10 @@
 #endif // ENABLE_CUDA
 
 // Streaming methods
+#include "StreamingGeometry.h"
 #include "StreamingMethod.h"
 #include "ConfinedStreamingMethod.h"
-#include "StreamingGeometry.h"
 #ifdef ENABLE_CUDA
-#include "StreamingMethodGPU.h"
 #include "ConfinedStreamingMethodGPU.h"
 #endif // ENABLE_CUDA
 
@@ -121,13 +120,11 @@ PYBIND11_MODULE(_mpcd, m)
     mpcd::detail::export_SRDCollisionMethodGPU(m);
     #endif // ENABLE_CUDA
 
-    mpcd::detail::export_StreamingMethod(m);
-    #ifdef ENABLE_CUDA
-    mpcd::detail::export_StreamingMethodGPU(m);
-    #endif // ENABLE_CUDA
     mpcd::detail::export_boundary(m);
     mpcd::detail::export_BulkGeometry(m);
     mpcd::detail::export_SlitGeometry(m);
+
+    mpcd::detail::export_StreamingMethod(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::BulkGeometry>(m);
     mpcd::detail::export_ConfinedStreamingMethod<mpcd::detail::SlitGeometry>(m);
     #ifdef ENABLE_CUDA

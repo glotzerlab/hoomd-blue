@@ -51,7 +51,6 @@ list(APPEND _mpcd_sources
     CommunicatorGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
-    StreamingMethodGPU.cc
     )
 list(APPEND _mpcd_headers
     ATCollisionMethodGPU.cuh
@@ -70,8 +69,6 @@ list(APPEND _mpcd_headers
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
     SRDCollisionMethodGPU.h
-    StreamingMethodGPU.cuh
-    StreamingMethodGPU.h
     )
 endif()
 
@@ -84,7 +81,6 @@ set(_mpcd_cu_sources
     ParticleData.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
-    StreamingMethodGPU.cu
     )
 
 if (ENABLE_CUDA)

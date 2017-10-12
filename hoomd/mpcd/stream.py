@@ -189,15 +189,18 @@ class bulk(_streaming_method):
 
         _streaming_method.__init__(self, period)
 
+        self._geometry = _mpcd.BulkGeometry()
+
         # create the base streaming class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            stream_class = _mpcd.StreamingMethod
+            stream_class = _mpcd.ConfinedStreamingMethodBulk
         else:
-            stream_class = _mpcd.StreamingMethodGPU
+            stream_class = _mpcd.ConfinedStreamingMethodGPUBulk
         self._cpp = stream_class(hoomd.context.current.mpcd.data,
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
-                                 0)
+                                 0,
+                                 self._geometry)
 
 class slit(_streaming_method):
     """ Streaming method for slit geometry.
