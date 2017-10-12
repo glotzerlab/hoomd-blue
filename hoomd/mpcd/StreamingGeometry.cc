@@ -5,24 +5,21 @@ namespace mpcd
 namespace detail
 {
 
-//! Export boundary enum to python
 void export_boundary(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::enum_<mpcd::detail::boundary>(m, "boundary")
-        .value("no_slip", mpcd::detail::boundary::no_slip)
-        .value("slip", mpcd::detail::boundary::slip);
+    py::enum_<boundary>(m, "boundary")
+        .value("no_slip", boundary::no_slip)
+        .value("slip", boundary::slip);
     }
 
-//! Export BulkGeometry to python
 void export_BulkGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::detail::BulkGeometry, std::shared_ptr<mpcd::detail::BulkGeometry> >(m, "BulkGeometry")
+    py::class_<BulkGeometry, std::shared_ptr<BulkGeometry> >(m, "BulkGeometry")
         .def(py::init<>());
     }
 
-//! Export SlitGeometry to python
 void export_SlitGeometry(pybind11::module& m)
     {
     namespace py = pybind11;

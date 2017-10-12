@@ -24,6 +24,8 @@ set(_mpcd_sources
 
 set(_mpcd_headers
     ATCollisionMethod.h
+    BoundaryCondition.h
+    BulkGeometry.h
     CellCommunicator.h
     CellThermoCompute.h
     CellList.h
@@ -35,6 +37,7 @@ set(_mpcd_headers
     ParticleData.h
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
+    SlitGeometry.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingGeometry.h

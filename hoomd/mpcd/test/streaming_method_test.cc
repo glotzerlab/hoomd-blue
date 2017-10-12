@@ -38,7 +38,7 @@ void streaming_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec_co
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
 
     // setup a streaming method at timestep 2 with period 2 and phase 1
-    auto geom = std::make_shared<mpcd::detail::BulkGeometry>();
+    mpcd::detail::BulkGeometry geom;
     std::shared_ptr<mpcd::StreamingMethod> stream = std::make_shared<SM>(mpcd_sys, 2, 2, 1, geom);
 
     // set timestep to 0.05, so the MPCD step is 2 x 0.05 = 0.1

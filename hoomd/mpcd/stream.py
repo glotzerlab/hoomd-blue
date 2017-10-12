@@ -228,7 +228,7 @@ class slit(_streaming_method):
         self.boundary = boundary
 
         bc = self._process_boundary(boundary)
-        self._geometry = _mpcd.SlitGeometry(H,V,bc)
+        geometry = _mpcd.SlitGeometry(H,V,bc)
 
         # create the base streaming class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -239,18 +239,17 @@ class slit(_streaming_method):
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
                                  0,
-                                 self._geometry)
+                                 geometry)
 
     def set_params(self, H=None, V=None, boundary=None):
         if H is not None:
             self.H = H
-            self._geometry.H = self.H
 
         if V is not None:
             self.V = V
-            self._geometry.V = V
 
         if boundary is not None:
             self.boundary = boundary
-            bc = self._process_boundary(boundary)
-            self._geometry.boundary = bc
+
+        bc = self._process_boundary(self.boundary)
+        self._cpp.geometry = _mpcd.SlitGeometry(self.H,self.V,bc)
