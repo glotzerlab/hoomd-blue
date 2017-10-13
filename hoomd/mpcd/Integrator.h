@@ -19,6 +19,7 @@
 #include "CollisionMethod.h"
 #include "StreamingMethod.h"
 #include "SystemData.h"
+#include "Sorter.h"
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif // ENABLE_MPI
@@ -110,10 +111,35 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
             m_stream.reset();
             }
 
+        //! Set the sorting method
+        /*!
+         * \param sorter Sorting method to use
+         */
+        void setSorter(std::shared_ptr<mpcd::Sorter> sorter)
+            {
+            m_sorter = sorter;
+            }
+
+        //! Get the current sorting method
+        std::shared_ptr<mpcd::Sorter> getSorter() const
+            {
+            return m_sorter;
+            }
+
+        //! Remove the current sorting method
+        /*!
+         * \post The sorting method is set to a null shared pointer.
+         */
+        void removeSorter()
+            {
+            m_sorter.reset();
+            }
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;   //!< MPCD system
         std::shared_ptr<mpcd::CollisionMethod> m_collide;   //!< MPCD collision rule
         std::shared_ptr<mpcd::StreamingMethod> m_stream;    //!< MPCD streaming rule
+        std::shared_ptr<mpcd::Sorter> m_sorter;         //!< MPCD sorter
 
         #ifdef ENABLE_MPI
         std::shared_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD communicator

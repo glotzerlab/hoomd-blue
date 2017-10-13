@@ -235,7 +235,7 @@ class integrator(hoomd.integrate._integrator):
 
         collide = hoomd.context.current.mpcd._collide
         if collide is not None:
-            if stream is not None and collide.period % stream.period != 0:
+            if stream is not None and (collide.period < stream.period or collide.period % stream.period != 0):
                 hoomd.context.msg.error('mpcd.integrate: collision period must be multiple of integration period\n')
                 raise ValueError('Collision period must be multiple of integration period')
 
@@ -243,3 +243,12 @@ class integrator(hoomd.integrate._integrator):
         else:
             hoomd.context.msg.warning("Running mpcd without a collision method!\n")
             self.cpp_integrator.removeCollisionMethod()
+
+        sorter = hoomd.context.current.mpcd.sorter
+        if sorter is not None and sorter.enabled:
+            if collide is not None and (sorter.period < collide.period or sorter.period % collide.period != 0):
+                hoomd.context.msg.error('mpcd.integrate: sorting period should be a multiple of collision period\n')
+                raise ValueError('Sorting period must be multiple of collision period')
+            self.cpp_integrator.setSorter(sorter._cpp)
+        else:
+            self.cpp_integrator.removeSorter()

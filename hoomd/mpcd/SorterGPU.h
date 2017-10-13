@@ -30,7 +30,9 @@ class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
         //! Constructor
-        SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata);
+        SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                  unsigned int cur_timestep,
+                  unsigned int period);
 
         //! Set autotuner parameters
         /*!

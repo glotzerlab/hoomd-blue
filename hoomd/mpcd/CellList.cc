@@ -78,7 +78,7 @@ void mpcd::CellList::compute(unsigned int timestep)
         m_force_compute = true;
         }
 
-    if (shouldCompute(timestep))
+    if (peekCompute(timestep))
         {
         #ifdef ENABLE_MPI
         if (m_prof) m_prof->pop(m_exec_conf);
@@ -119,6 +119,8 @@ void mpcd::CellList::compute(unsigned int timestep)
             } while (overflowed);
 
         // we are finished building, explicitly mark everything (rather than using shouldCompute)
+        m_first_compute = false;
+        m_force_compute = false;
         m_last_computed = timestep;
 
         // signal to the ParticleData that the cell list cache is now valid

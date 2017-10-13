@@ -14,8 +14,10 @@
 /*!
  * \param sysdata MPCD system data
  */
-mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata)
-    : mpcd::Sorter(sysdata), m_tmp_storage(m_exec_conf), m_compact_flag(m_exec_conf)
+mpcd::SorterGPU::SorterGPU(std::shared_ptr<mpcd::SystemData> sysdata,
+                           unsigned int cur_timestep,
+                           unsigned int period)
+    : mpcd::Sorter(sysdata,cur_timestep,period), m_tmp_storage(m_exec_conf), m_compact_flag(m_exec_conf)
     {
     m_sentinel_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_sentinel", m_exec_conf));
     m_reverse_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_sort_reverse", m_exec_conf));
@@ -145,6 +147,6 @@ void mpcd::detail::export_SorterGPU(pybind11::module& m)
     {
     namespace py = pybind11;
     py::class_<mpcd::SorterGPU, std::shared_ptr<mpcd::SorterGPU> >(m, "SorterGPU", py::base<mpcd::Sorter>())
-        .def(py::init< std::shared_ptr<mpcd::SystemData> >())
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int>())
         ;
     }

@@ -42,6 +42,8 @@ void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
         m_collide->setProfiler(prof);
     if (m_stream)
         m_stream->setProfiler(prof);
+    if (m_sorter)
+        m_sorter->setProfiler(prof);
     #ifdef ENABLE_MPI
     if (m_mpcd_comm)
         m_mpcd_comm->setProfiler(prof);
@@ -63,12 +65,27 @@ void mpcd::Integrator::update(unsigned int timestep)
         m_gave_warning = true;
         }
 
-    // call the MPCD collision rule before the first MD step so that any embedded
-    // velocities are updated first
-    if (m_collide)
+    #ifdef ENABLE_MPI
+    // a round of communication is always requested (usually by the collision method) and only performed if needed
+    // TODO: communication does not support having virtual particles, so an error should be raised
+    if (m_mpcd_comm)
         {
-        m_collide->collide(timestep);
+        m_mpcd_comm->communicate(timestep);
         }
+    #endif // ENABLE_MPI
+
+    // fill in any virtual particles
+    if (m_collide && m_collide->peekCollide(timestep))
+        {
+        }
+
+    // optionally sort
+    if (m_sorter)
+        m_sorter->update(timestep);
+
+    // call the MPCD collision rule before the first MD step so that any embedded velocities are updated first
+    if (m_collide)
+        m_collide->collide(timestep);
 
     // perform the first MD integration step
     if (m_prof) m_prof->push("Integrate");
@@ -76,16 +93,10 @@ void mpcd::Integrator::update(unsigned int timestep)
         (*method)->integrateStepOne(timestep);
     if (m_prof) m_prof->pop();
 
-    // this handles the MD communication
-    // TODO: should the MPCD communication step also be called (and typically go unused?)
+    // MD communication / rigid body updates
     #ifdef ENABLE_MPI
     if (m_comm)
         {
-        // perform all necessary communication steps. This ensures
-        // a) that particles have migrated to the correct domains
-        // b) that forces are calculated correctly, if ghost atom positions are updated every time step
-
-        // also updates rigid bodies after ghost updating
         m_comm->communicate(timestep+1);
         }
     else
@@ -113,13 +124,6 @@ void mpcd::Integrator::update(unsigned int timestep)
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         (*method)->integrateStepTwo(timestep);
     if (m_prof) m_prof->pop();
-
-    // draw the MPCD grid shift at the next timestep in case analyzers are called in between
-    // (note: this is usually a **bad** idea)
-    if (m_collide)
-        {
-        m_collide->drawGridShift(timestep+1);
-        }
     }
 
 /*!
@@ -168,6 +172,8 @@ void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
         m_collide->setAutotunerParams(enable,period);
     if (m_stream)
         m_stream->setAutotunerParams(enable,period);
+    if (m_sorter)
+        m_sorter->setAutotunerParams(enable,period);
     }
 
 /*!
@@ -182,6 +188,8 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def("removeCollisionMethod", &mpcd::Integrator::removeCollisionMethod)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
         .def("removeStreamingMethod", &mpcd::Integrator::removeStreamingMethod)
+        .def("setSorter", &mpcd::Integrator::setSorter)
+        .def("getSorter", &mpcd::Integrator::getSorter)
         #ifdef ENABLE_MPI
         .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator)
         #endif // ENABLE_MPI

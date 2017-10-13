@@ -78,7 +78,7 @@ void sorter_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     mpcd_sys->getCellList()->setEmbeddedGroup(group);
 
     // run the sorter
-    std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys);
+    std::shared_ptr<T> sorter = std::make_shared<T>(mpcd_sys,0,1);
     sorter->update(0);
 
     // check that all particles are properly ordered
