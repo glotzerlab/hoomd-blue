@@ -1,6 +1,10 @@
+#ifndef _PATCH_ENERGY_JIT_H_
+#define _PATCH_ENERGY_JIT_H_
+
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/ExecutionConfiguration.h"
+#include "hoomd/hpmc/IntegratorHPMC.h"
 
 #include "OrcLazyJIT.h"
 
@@ -26,7 +30,7 @@
     LLVM JIT is capable of calling any function in the hosts address space. PatchEnergyJIT does not take advantage of
     that, limiting the user to a very specific API for computing the energy between a pair of particles.
 */
-class PatchEnergyJIT
+class PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
         //! Constructor
@@ -63,3 +67,4 @@ class PatchEnergyJIT
 
 //! Exports the PatchEnergyJIT class to python
 void export_PatchEnergyJIT(pybind11::module &m);
+#endif // _PATCH_ENERGY_JIT_H_

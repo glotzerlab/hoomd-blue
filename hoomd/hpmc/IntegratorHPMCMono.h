@@ -157,6 +157,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
             this->m_external_base = (ExternalField*)external.get();
             }
 
+        //! Set the patch energy
+        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+            {
+            m_patch = patch;
+            //this->m_patch_base = (PatchEnergy*)patch.get();
+            }
+
         //! Get the particle parameters
         virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
             {
@@ -301,6 +308,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
         std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
+        std::shared_ptr< PatchEnergy > m_patch;//!< Patchy Energy
         detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
@@ -513,9 +521,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
-            // check for overlaps with neighboring particle's positions
+            // check for overlaps with neighboring particle's positions (also calculate the new energy)
             bool overlap=false;
             detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            double e_new = 0;
+            double e_old = 0;
 
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
@@ -576,6 +586,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
+
+                                // here we calculate the new energy
+                                e_new = m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
+                                e_new += e_new;
                                 }
                             }
                         }
@@ -593,30 +607,102 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     break;
                 } // end loop over images
 
-            // total energy derived from patchy calculation (placeholder)
-            double patch_energy = 0;
-            double field_energy = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-            double total_energy = patch_energy + field_energy;
-            bool isEnergy = false;
+            // All image boxes (including the primary) (calculate the old energy)
+            // const unsignedmake  int n_images = m_image_list.size();
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                {
+                vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+                detail::AABB aabb = aabb_i_local;
+                aabb.translate(pos_i_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                    {
+                    if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                        {
+                        if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                            {
+                            for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                {
+                                // read in its position and orientation
+                                unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                Scalar4 postype_j;
+                                Scalar4 orientation_j;
+
+                                // handle j==i situations
+                                if ( j != i )
+                                    {
+                                    // load the position and orientation of the j particle
+                                    postype_j = h_postype.data[j];
+                                    orientation_j = h_orientation.data[j];
+                                    }
+                                else
+                                    {
+                                    if (cur_image == 0)
+                                        {
+                                        // in the first image, skip i == j
+                                        continue;
+                                        }
+                                    else
+                                        {
+                                        // If this is particle i and we are in an outside image, use the translated position and orientation
+                                        postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                        orientation_j = quat_to_scalar4(shape_old.orientation);
+                                        }
+                                    }
+
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+
+                                // here we calculate the new energy
+                                e_old = m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
+                                e_old += e_old;
+                                }
+                            }
+                        }
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                        }
+
+                    if (overlap)
+                        break;
+                    }  // end loop over AABB nodes
+
+                if (overlap)
+                    break;
+                } // end loop over images
+
+            // calculate the total energy
+            double patch_energy_diff = e_new - e_old;
+
+            // move could be rejected by the energy difference or the overlap
+            double field_energy_diff = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+            double total_energy = patch_energy_diff + field_energy_diff;
+            bool isEnergy = true;
             bool reject_energy = false;
 
-            if (isEnergy && !overlap)
-              {
-                // boltzmann check
-                if (accept(total_energy, rng_i) == true)
-                {
-                  reject_energy = false;
-                }
-                else
-                {
-                  reject_energy = true;
-                }
-              }
-
-            else if (!isEnergy && !overlap)
-              {
-                reject_energy = false;
-              }
+             if (isEnergy && !overlap)
+             {
+               // boltzmann check
+               if (accept(total_energy, rng_i) == true)
+                 {
+                   reject_energy = false;
+                 }
+                 else
+                 {
+                   reject_energy = true;
+                 }
+               }
+               else if (!isEnergy && !overlap)
+               {
+                 reject_energy = false;
+               }
 
             // if the move is accepted
             if (!overlap && !reject_energy)
@@ -1352,6 +1438,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
+          .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)

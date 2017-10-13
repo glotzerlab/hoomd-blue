@@ -33,6 +33,17 @@ namespace hpmc
 
     \ingroup hpmc_integrators
 */
+
+class PatchEnergy
+{
+  public:
+  PatchEnergy(){};
+  virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+  {
+    return 0;
+  }
+};
+
 class IntegratorHPMC : public Integrator
     {
     public:
