@@ -201,10 +201,6 @@ class system(hoomd.meta._metadata):
                 self.comm = _mpcd.Communicator(self.data)
             else:
                 self.comm = _mpcd.CommunicatorGPU(self.data)
-
-            # ensure system data members get their communicators set now
-            # (why bother deferring until runtime?)
-            self.cell.setMPCDCommunicator(self.comm)
         else:
             self.comm = None
 

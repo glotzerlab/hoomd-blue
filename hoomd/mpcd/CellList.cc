@@ -83,12 +83,6 @@ void mpcd::CellList::compute(unsigned int timestep)
         #ifdef ENABLE_MPI
         if (m_prof) m_prof->pop(m_exec_conf);
 
-        // perform mpcd communication before building the cell list so particles are safely on rank now
-        if (auto mpcd_comm = m_mpcd_comm.lock())
-            {
-            mpcd_comm->communicate(timestep);
-            }
-
         // exchange embedded particles if necessary
         if (m_comm && needsEmbedMigrate(timestep))
             {
@@ -858,9 +852,8 @@ void mpcd::detail::export_CellList(pybind11::module& m)
 
     py::class_<mpcd::CellList, std::shared_ptr<mpcd::CellList> >(m, "CellList", py::base<Compute>())
         .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<mpcd::ParticleData> >())
-        .def("setCellSize", &mpcd::CellList::setCellSize)
-        #ifdef ENABLE_MPI
-        .def("setMPCDCommunicator", &mpcd::CellList::setMPCDCommunicator)
-        #endif // ENABLE_MPI
+        .def_property("cell_size", &mpcd::CellList::setCellSize, &mpcd::CellList::getCellSize)
+        .def("setEmbeddedGroup", &mpcd::CellList::setEmbeddedGroup)
+        .def("removeEmbeddedGroup", &mpcd::CellList::removeEmbeddedGroup)
         ;
     }
