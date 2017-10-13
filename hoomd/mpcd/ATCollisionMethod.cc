@@ -59,7 +59,7 @@ void mpcd::ATCollisionMethod::drawVelocities(unsigned int timestep)
     // mpcd particle data
     ArrayHandle<unsigned int> h_tag(m_mpcd_pdata->getTags(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::overwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // embedded particle data
@@ -116,7 +116,7 @@ void mpcd::ATCollisionMethod::applyVelocities()
     // mpcd particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel_alt(m_mpcd_pdata->getAltVelocities(), access_location::host, access_mode::read);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // embedded particle data

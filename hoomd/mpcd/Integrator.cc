@@ -23,11 +23,20 @@ mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar d
     {
     assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
+
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->getMigrateRequestSignal().connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
+    #endif // ENABLE_MPI
     }
 
 mpcd::Integrator::~Integrator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Integrator" << std::endl;
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->getMigrateRequestSignal().disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
+    #endif // ENABLE_MPI
     }
 
 /*!
@@ -75,7 +84,7 @@ void mpcd::Integrator::update(unsigned int timestep)
     #endif // ENABLE_MPI
 
     // fill in any virtual particles
-    if (m_collide && m_collide->peekCollide(timestep))
+    if (checkCollide(timestep))
         {
         }
 

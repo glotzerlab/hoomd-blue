@@ -508,7 +508,7 @@ void mpcd::CellList::buildCellList()
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    unsigned int N_mpcd = m_mpcd_pdata->getN();
+    unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
 
     // we can't modify the velocity of embedded particles, so we only read their position
@@ -662,7 +662,7 @@ void mpcd::CellList::sort(unsigned int timestep,
             {
             const unsigned int cl_idx = m_cell_list_indexer(offset,idx);
             const unsigned int pid = h_cell_list.data[cl_idx];
-            // only update indexes of MPCD particles, not embedded particles
+            // only update indexes of MPCD particles, not virtual or embedded particles
             if (pid < N_mpcd)
                 {
                 h_cell_list.data[cl_idx] = h_rorder.data[pid];
@@ -730,10 +730,12 @@ bool mpcd::CellList::checkConditions()
         unsigned int n = conditions.y - 1;
         if (n < m_mpcd_pdata->getN())
             m_exec_conf->msg->error() << "MPCD particle " << n << " has position NaN" << std::endl;
+        else if (n < m_mpcd_pdata->getNVirtual())
+            m_exec_conf->msg->error() << "MPCD virtual particle " << n << " has position NaN" << std::endl;
         else
             {
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            m_exec_conf->msg->error() << "Embedded particle " << h_embed_member_idx.data[n - m_mpcd_pdata->getN()] << " has position NaN" << std::endl;
+            m_exec_conf->msg->error() << "Embedded particle " << h_embed_member_idx.data[n - (m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())] << " has position NaN" << std::endl;
             }
         throw std::runtime_error("Error computing cell list");
         }
@@ -741,17 +743,20 @@ bool mpcd::CellList::checkConditions()
         {
         unsigned int n = conditions.z - 1;
         Scalar4 pos_empty_i;
-        if (n < m_mpcd_pdata->getN())
+        if (n < m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual())
             {
             ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::read);
             pos_empty_i = h_pos.data[n];
-            m_exec_conf->msg->error() << "MPCD particle is no longer in the simulation box"<<std::endl;
+            if (n < m_mpcd_pdata->getN())
+                m_exec_conf->msg->error() << "MPCD particle is no longer in the simulation box"<<std::endl;
+            else
+                m_exec_conf->msg->error() << "MPCD virtual particle is no longer in the simulation box"<<std::endl;
             }
         else
             {
             ArrayHandle<Scalar4> h_pos_embed(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<unsigned int> h_embed_member_idx(m_embed_group->getIndexArray(), access_location::host, access_mode::read);
-            pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - m_mpcd_pdata->getN()]];
+            pos_empty_i = h_pos_embed.data[h_embed_member_idx.data[n - (m_mpcd_pdata->getN()+m_mpcd_pdata->getNVirtual())]];
             m_exec_conf->msg->error() << "Embedded particle is no longer in the simulation box"<<std::endl;
             }
 

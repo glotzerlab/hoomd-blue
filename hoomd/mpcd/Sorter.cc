@@ -132,6 +132,16 @@ void mpcd::Sorter::applyOrder() const
             h_vel_alt.data[idx] = h_vel.data[old_idx];
             h_tag_alt.data[idx] = h_tag.data[old_idx];
             }
+
+        // copy virtual particle data if it exists
+        if (m_mpcd_pdata->getNVirtual() > 0)
+            {
+            const unsigned int N = m_mpcd_pdata->getN();
+            const unsigned int Ntot = N + m_mpcd_pdata->getNVirtual();
+            std::copy(h_pos.data + N, h_pos.data + Ntot, h_pos_alt.data + N);
+            std::copy(h_vel.data + N, h_vel.data + Ntot, h_vel_alt.data + N);
+            std::copy(h_tag.data + N, h_tag.data + Ntot, h_tag_alt.data + N);
+            }
         }
 
     // swap out sorted data

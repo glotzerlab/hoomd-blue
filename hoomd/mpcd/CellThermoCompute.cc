@@ -272,7 +272,7 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
     // MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::read);
     const Scalar mpcd_mass = m_mpcd_pdata->getMass();
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
 
     // Embedded particle data
     std::unique_ptr< ArrayHandle<Scalar4> > h_embed_vel;
@@ -362,7 +362,7 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
     ArrayHandle<unsigned int> h_cell_np(m_cl->getCellSizeArray(), access_location::host, access_mode::read);
 
     // MPCD particle data
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     const Scalar mpcd_mass = m_mpcd_pdata->getMass();
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::read);
 

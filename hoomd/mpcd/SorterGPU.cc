@@ -132,6 +132,17 @@ void mpcd::SorterGPU::applyOrder() const
                               m_apply_tuner->getParam());
         if (m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
         m_apply_tuner->end();
+
+        // copy virtual particle data if it exists
+        if (m_mpcd_pdata->getNVirtual() > 0)
+            {
+            const unsigned int N = m_mpcd_pdata->getN();
+            const unsigned int Nvirtual = m_mpcd_pdata->getNVirtual();
+            cudaMemcpyAsync(d_pos_alt.data + N, d_pos.data + N, Nvirtual*sizeof(Scalar4), cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_vel_alt.data + N, d_vel.data + N, Nvirtual*sizeof(Scalar4), cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_tag_alt.data + N, d_tag.data + N, Nvirtual*sizeof(unsigned int), cudaMemcpyDeviceToDevice);
+            cudaDeviceSynchronize();
+            }
         }
 
     // swap out sorted data

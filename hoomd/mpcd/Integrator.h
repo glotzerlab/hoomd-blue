@@ -144,6 +144,13 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
         #ifdef ENABLE_MPI
         std::shared_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD communicator
         #endif // ENABLE_MPI
+
+    private:
+        //! Check if a collision will occur at the current timestep
+        bool checkCollide(unsigned int timestep)
+            {
+            return (m_collide && m_collide->peekCollide(timestep));
+            }
     };
 
 namespace detail

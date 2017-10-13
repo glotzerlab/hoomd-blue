@@ -123,7 +123,7 @@ void mpcd::SRDCollisionMethod::rotate(unsigned int timestep)
     {
     // acquire MPCD particle data
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
-    const unsigned int N_mpcd = m_mpcd_pdata->getN();
+    const unsigned int N_mpcd = m_mpcd_pdata->getN() + m_mpcd_pdata->getNVirtual();
     unsigned int N_tot = N_mpcd;
     // acquire additionally embedded particle data
     std::unique_ptr< ArrayHandle<unsigned int> > h_embed_cell_ids;

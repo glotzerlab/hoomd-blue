@@ -122,6 +122,24 @@ class PYBIND11_EXPORT Communicator
          */
         virtual void migrateParticles(unsigned int timestep);
 
+        //! Migration signal type
+        typedef Nano::Signal<bool (unsigned int)> MigrateSignal;
+
+        //! Get the migrate request signal
+        /*!
+         * \returns A signal that subscribers can attach a callback to request particle migration
+         *          at the current timestep.
+         */
+        MigrateSignal& getMigrateRequestSignal()
+            {
+            return m_migrate_requests;
+            }
+
+        //! Force a particle migration to occur on the next call to communicate()
+        void forceMigrate()
+            {
+            m_force_migrate = true;
+            }
         //@}
 
     protected:
@@ -185,6 +203,9 @@ class PYBIND11_EXPORT Communicator
             {
             m_check_decomposition = true;
             }
+
+        MigrateSignal m_migrate_requests;   //!< Signal to request migration
+        bool m_force_migrate;               //!< If true, force particle migration
     };
 
 
