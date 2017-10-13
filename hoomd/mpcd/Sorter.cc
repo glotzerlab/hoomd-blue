@@ -39,6 +39,9 @@ void mpcd::Sorter::update(unsigned int timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "MPCD sort");
 
+    // remove any virtual particles before sorting happens
+    m_mpcd_pdata->removeVirtualParticles();
+
     // resize the sorted order vector to the current number of particles
     m_order.resize(m_mpcd_pdata->getN());
     m_rorder.resize(m_mpcd_pdata->getN());

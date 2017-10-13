@@ -49,16 +49,22 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
     m_logname_list.push_back(std::string("mpcd_momentum_z") + suffix);
     m_logname_list.push_back(std::string("mpcd_energy") + suffix);
     m_logname_list.push_back(std::string("mpcd_temperature") + suffix);
+
+    // the thermo properties need to be recomputed if the virtual particles change
+    m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellThermoCompute, &mpcd::CellThermoCompute::slotNumVirtual>(this);
     }
 
 mpcd::CellThermoCompute::~CellThermoCompute()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD CellThermoCompute" << std::endl;
+    m_mpcd_pdata->getNumVirtualSignal().disconnect<mpcd::CellThermoCompute, &mpcd::CellThermoCompute::slotNumVirtual>(this);
     }
 
 void mpcd::CellThermoCompute::compute(unsigned int timestep)
     {
+    // check if computation should proceed, and always mark the calculation as occurring at this timestep, even if forced
     if (!shouldCompute(timestep)) return;
+    m_last_computed = timestep;
 
     // cell list needs to be up to date first
     m_cl->compute(timestep);

@@ -192,6 +192,18 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     private:
         //! Allocate memory per cell
         void reallocate(unsigned int ncells);
+
+        //! Slot for the number of virtual particles changing
+        /*!
+         * All thermo properties should be recomputed if the number of virtual particles changes.
+         * This is because we cannot distinguish times when the thermo is used for logging vs.
+         * in a collision method. The cases where the thermo is first used without virtual particles
+         * followed by with virtual particles are small, and so it is easiest to just recompute.
+         */
+        void slotNumVirtual()
+            {
+            m_force_compute = true;
+            }
     };
 
 namespace detail

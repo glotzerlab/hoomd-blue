@@ -308,6 +308,24 @@ class PYBIND11_EXPORT ParticleData
             }
         //@}
 
+        //! \name virtual particle methods
+        //@{
+        //! Get the signal for the number of virtual particles changing
+        /*!
+         * \returns A signal that notifies subscribers when the number of virtual
+         *          particles changes. This includes addition and removal of particles.
+         */
+        Nano::Signal<void ()>& getNumVirtualSignal()
+            {
+            return m_virtual_signal;
+            }
+
+        //! Notify subscribers that the number of virtual particles has changed
+        void notifyNumVirtual()
+            {
+            m_virtual_signal.emit();
+            }
+
         //! Allocate memory for virtual particles
         void allocateVirtualParticles(unsigned int N_virtual);
 
@@ -320,8 +338,14 @@ class PYBIND11_EXPORT ParticleData
          */
         void removeVirtualParticles()
             {
+            const unsigned int old_N_virtual = m_N_virtual;
             m_N_virtual = 0;
+
+            // only notify of a change if there were virtual particles that have now been removed
+            if (old_N_virtual != 0)
+                notifyNumVirtual();
             }
+        //@}
 
         #ifdef ENABLE_MPI
         //! \name communication methods
@@ -399,6 +423,7 @@ class PYBIND11_EXPORT ParticleData
 
         bool m_valid_cell_cache;    //!< Flag for validity of cell cache
         SortSignal m_sort_signal;   //!< Signal triggered when particles are sorted
+        Nano::Signal<void ()> m_virtual_signal; //!< Signal for number of virtual particles changing
 
         //! Check for a valid snapshot
         bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);

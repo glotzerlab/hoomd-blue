@@ -317,6 +317,13 @@ class PYBIND11_EXPORT CellList : public Compute
             m_particles_sorted = true;
             }
 
+        bool m_virtual_change;  //!< True if the number of virtual particles has changed
+        //! Slot for the number of virtual particles changing
+        void slotNumVirtual()
+            {
+            m_virtual_change = true;
+            }
+
         //! Update global simulation box and check that cell list is compatible with it
         void updateGlobalBox();
 

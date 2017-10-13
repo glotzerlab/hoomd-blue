@@ -867,6 +867,8 @@ void mpcd::ParticleData::allocateVirtualParticles(unsigned int N_virtual)
         }
 
     m_N_virtual = N_virtual;
+    if (m_N_virtual != 0)
+        notifyNumVirtual();
     }
 
 #ifdef ENABLE_MPI
