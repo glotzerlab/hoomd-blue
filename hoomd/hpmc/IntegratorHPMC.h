@@ -38,6 +38,12 @@ class PatchEnergy
 {
   public:
   PatchEnergy(){};
+
+  virtual Scalar getRCut()
+  {
+    return 0;
+  }
+
   virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
   {
     return 0;
@@ -280,7 +286,7 @@ class IntegratorHPMC : public Integrator
         ClockSource m_clock;                           //!< Timer for self-benchmarking
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
-
+        PatchEnergy* m_patch_base;
         //! Update the nominal width of the cells
         /*! This method is virtual so that derived classes can set appropriate widths
             (for example, some may want max diameter while others may want a buffer distance).

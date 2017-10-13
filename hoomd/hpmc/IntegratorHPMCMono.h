@@ -161,7 +161,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
             {
             m_patch = patch;
-            //this->m_patch_base = (PatchEnergy*)patch.get();
+            this->m_patch_base = (PatchEnergy*)patch.get();
             }
 
         //! Get the particle parameters
@@ -266,7 +266,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Calculate Boltzmann factor
         bool accept(double total_energy, hoomd::detail::Saru& rng)
         {
-          double boltz = fast::exp(-total_energy);
+          double boltz = fast::exp(total_energy);
           bool reject = false;
           if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
               reject = false;
@@ -524,6 +524,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // check for overlaps with neighboring particle's positions (also calculate the new energy)
             bool overlap=false;
             detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            double external_energy = 0;
+            double patch_energy = 0;
             double e_new = 0;
             double e_old = 0;
 
@@ -588,8 +590,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     }
 
                                 // here we calculate the new energy
-                                e_new = m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
-                                e_new += e_new;
+                                e_new += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
                                 }
                             }
                         }
@@ -659,8 +660,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                 Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
                                 // here we calculate the new energy
-                                e_old = m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
-                                e_old += e_old;
+                                e_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
                                 }
                             }
                         }
@@ -669,25 +669,23 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                         // skip ahead
                         cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
                         }
-
-                    if (overlap)
-                        break;
                     }  // end loop over AABB nodes
-
-                if (overlap)
-                    break;
                 } // end loop over images
 
-            // calculate the total energy
-            double patch_energy_diff = e_new - e_old;
+            // calculate energetic contributions
+            if (m_external)
+            {
+              external_energy = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+            }
+            if (m_patch)
+            {
+              patch_energy = e_new - e_old;
+            }
 
-            // move could be rejected by the energy difference or the overlap
-            double field_energy_diff = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-            double total_energy = patch_energy_diff + field_energy_diff;
-            bool isEnergy = true;
+            double total_energy = patch_energy + external_energy;
             bool reject_energy = false;
 
-             if (isEnergy && !overlap)
+             if (!overlap)
              {
                // boltzmann check
                if (accept(total_energy, rng_i) == true)
@@ -698,10 +696,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                  {
                    reject_energy = true;
                  }
-               }
-               else if (!isEnergy && !overlap)
-               {
-                 reject_energy = false;
                }
 
             // if the move is accepted
