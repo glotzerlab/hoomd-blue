@@ -23,11 +23,6 @@ mpcd::Integrator::Integrator(std::shared_ptr<mpcd::SystemData> sysdata, Scalar d
     {
     assert(m_mpcd_sys);
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
-
-    #ifdef ENABLE_MPI
-    if (m_mpcd_comm)
-        m_mpcd_comm->getMigrateRequestSignal().connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-    #endif // ENABLE_MPI
     }
 
 mpcd::Integrator::~Integrator()
@@ -74,13 +69,14 @@ void mpcd::Integrator::update(unsigned int timestep)
         m_gave_warning = true;
         }
 
-    #ifdef ENABLE_MPI
-    // a round of communication is always requested (usually by the collision method) and only performed if needed
-    // TODO: communication does not support having virtual particles, so an error should be raised
-    if (m_mpcd_comm)
+    // remove any leftover virtual particles
+    if (checkCollide(timestep))
         {
-        m_mpcd_comm->communicate(timestep);
         }
+
+    #ifdef ENABLE_MPI
+    if (m_mpcd_comm)
+        m_mpcd_comm->communicate(timestep);
     #endif // ENABLE_MPI
 
     // fill in any virtual particles

@@ -55,7 +55,13 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
         //! Set the MPCD communicator to use
         virtual void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
             {
+            // if the current communicator is set, first disable the migrate signal request
+            if (m_mpcd_comm)
+                m_mpcd_comm->getMigrateRequestSignal().disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
+
+            // then set the new communicator with the migrate signal request
             m_mpcd_comm = comm;
+            m_mpcd_comm->getMigrateRequestSignal().connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
             }
 #endif
 

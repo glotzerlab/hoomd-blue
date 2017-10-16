@@ -39,7 +39,8 @@ mpcd::Communicator::Communicator(std::shared_ptr<mpcd::SystemData> system_data)
             m_nneigh(0),
             m_n_unique_neigh(0),
             m_sendbuf(m_exec_conf),
-            m_recvbuf(m_exec_conf)
+            m_recvbuf(m_exec_conf),
+            m_force_migrate(false)
     {
     // initialize array of neighbor processor ids
     assert(m_mpi_comm);
@@ -188,7 +189,22 @@ void mpcd::Communicator::communicate(unsigned int timestep)
         m_check_decomposition = false;
         }
 
-    migrateParticles(timestep);
+    // check for and attempt particle migration
+    bool migrate = m_force_migrate;
+    if (!migrate)
+        {
+        m_migrate_requests.emit_accumulate([&](bool r){ migrate = migrate || r; }, timestep);
+        }
+    if (migrate)
+        {
+        if (m_mpcd_pdata->getNVirtual() > 0)
+            {
+            m_exec_conf->msg->warning() << "MPCD communication with virtual particles set is not supported, removing them." << std::endl;
+            m_mpcd_pdata->removeVirtualParticles();
+            }
+        migrateParticles(timestep);
+        m_force_migrate = false;
+        }
 
     if (m_prof) m_prof->pop();
 

@@ -852,6 +852,8 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
  */
 void mpcd::ParticleData::allocateVirtualParticles(unsigned int N_virtual)
     {
+    if (N_virtual == m_N_virtual) return;
+
     // minimum size of new arrays must accommodate current particles plus virtual
     const unsigned int min_size = m_N + N_virtual;
 
@@ -867,8 +869,7 @@ void mpcd::ParticleData::allocateVirtualParticles(unsigned int N_virtual)
         }
 
     m_N_virtual = N_virtual;
-    if (m_N_virtual != 0)
-        notifyNumVirtual();
+    notifyNumVirtual();
     }
 
 #ifdef ENABLE_MPI
