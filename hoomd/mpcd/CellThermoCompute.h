@@ -75,6 +75,12 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Get the net energy of the particles from the last call to compute
         Scalar getNetEnergy()
             {
+            if (!m_flags[mpcd::detail::thermo_options::energy])
+                {
+                m_exec_conf->msg->error() << "Energy requested from CellThermoCompute, but was not computed." << std::endl;
+                throw std::runtime_error("Net cell energy not available");
+                }
+
             if (m_needs_net_reduce) computeNetProperties();
 
             ArrayHandle<double> h_net_properties(m_net_properties, access_location::host, access_mode::read);
@@ -84,17 +90,16 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         //! Get the average cell temperature from the last call to compute
         Scalar getTemperature()
             {
+            if (!m_flags[mpcd::detail::thermo_options::energy])
+                {
+                m_exec_conf->msg->error() << "Temperature requested from CellThermoCompute, but was not computed." << std::endl;
+                throw std::runtime_error("Net cell temperature not available");
+                }
             if (m_needs_net_reduce) computeNetProperties();
 
             ArrayHandle<double> h_net_properties(m_net_properties, access_location::host, access_mode::read);
             return h_net_properties.data[mpcd::detail::thermo_index::temperature];
             }
-
-        //! Returns a list of log quantities this compute calculates
-        virtual std::vector<std::string> getProvidedLogQuantities();
-
-        //! Calculates the requested log value and returns it
-        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
         //! Set autotuner parameters
         /*!
@@ -109,18 +114,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
             if (m_energy_comm)
                 m_energy_comm->setAutotunerParams(enable, period);
             #endif // ENABLE_MPI
-            }
-
-        //! Enable / disable logging
-        /*!
-         * \param enable If True, expose quantities to the logger
-         *
-         * Internal CellThermoCompute instances should not provide any quantities
-         * to the logger.
-         */
-        void enableLogging(bool enable)
-            {
-            m_enable_log = enable;
             }
 
         //! Get the signal for requested thermo flags
@@ -178,9 +171,6 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         GPUVector<double4> m_cell_vel;      //!< Average velocity of a cell + cell mass
         GPUVector<double3> m_cell_energy;   //!< Kinetic energy, unscaled temperature, dof in each cell
         unsigned int m_ncells_alloc;        //!< Number of cells allocated for
-
-        bool m_enable_log;                          //!< Flag to enable logging
-        std::vector<std::string> m_logname_list;    //!< Cache all generated logged quantities names
 
         Nano::Signal<mpcd::detail::ThermoFlags ()> m_flag_signal; //!< Signal for requested flags
         mpcd::detail::ThermoFlags m_flags;  //!< Requested thermo flags

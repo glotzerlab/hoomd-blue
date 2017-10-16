@@ -16,8 +16,6 @@
 #endif
 
 #include "SystemData.h"
-
-#include "hoomd/Updater.h"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 namespace mpcd

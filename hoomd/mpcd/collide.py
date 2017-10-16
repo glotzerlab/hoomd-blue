@@ -222,7 +222,6 @@ class at(_collision_method):
         # create an auxiliary thermo compute and disable logging on it
         if hoomd.context.current.mpcd._at_thermo is None:
             rand_thermo = thermo_class(hoomd.context.current.mpcd.data)
-            rand_thermo.enableLogging(False)
             hoomd.context.current.system.addCompute(rand_thermo, "mpcd_at_thermo")
             hoomd.context.current.mpcd._at_thermo = rand_thermo
 

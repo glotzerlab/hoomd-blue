@@ -21,7 +21,7 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
           m_mpcd_pdata(sysdata->getParticleData()),
           m_cl(sysdata->getCellList()),
           m_needs_net_reduce(true), m_cell_vel(m_exec_conf), m_cell_energy(m_exec_conf),
-          m_ncells_alloc(0), m_enable_log(true)
+          m_ncells_alloc(0)
     {
     assert(m_mpcd_pdata);
     assert(m_cl);
@@ -42,13 +42,6 @@ mpcd::CellThermoCompute::CellThermoCompute(std::shared_ptr<mpcd::SystemData> sys
         m_use_mpi = false;
         }
     #endif // ENABLE_MPI
-
-    // quantities supplied to the logger
-    m_logname_list.push_back(std::string("mpcd_momentum_x") + suffix);
-    m_logname_list.push_back(std::string("mpcd_momentum_y") + suffix);
-    m_logname_list.push_back(std::string("mpcd_momentum_z") + suffix);
-    m_logname_list.push_back(std::string("mpcd_energy") + suffix);
-    m_logname_list.push_back(std::string("mpcd_temperature") + suffix);
 
     // the thermo properties need to be recomputed if the virtual particles change
     m_mpcd_pdata->getNumVirtualSignal().connect<mpcd::CellThermoCompute, &mpcd::CellThermoCompute::slotNumVirtual>(this);
@@ -82,44 +75,6 @@ void mpcd::CellThermoCompute::compute(unsigned int timestep)
     computeCellProperties(timestep);
     m_needs_net_reduce = true;
     if (m_prof) m_prof->pop(m_exec_conf);
-    }
-
-std::vector<std::string> mpcd::CellThermoCompute::getProvidedLogQuantities()
-    {
-    if (m_enable_log)
-        return m_logname_list;
-    else
-        return std::vector<std::string>();
-    }
-
-Scalar mpcd::CellThermoCompute::getLogValue(const std::string& quantity, unsigned int timestep)
-    {
-    compute(timestep);
-    if (quantity == m_logname_list[0])
-        {
-        return getNetMomentum().x;
-        }
-    else if (quantity == m_logname_list[1])
-        {
-        return getNetMomentum().y;
-        }
-    else if (quantity == m_logname_list[2])
-        {
-        return getNetMomentum().z;
-        }
-    else if (quantity == m_logname_list[3])
-        {
-        return getNetEnergy();
-        }
-    else if (quantity == m_logname_list[4])
-        {
-        return getTemperature();
-        }
-    else
-        {
-        m_exec_conf->msg->error() << "mpcd: " << quantity << " is not a valid log quantity" << std::endl;
-        throw std::runtime_error("Error getting MPCD log value");
-        }
     }
 
 void mpcd::CellThermoCompute::computeCellProperties(unsigned int timestep)
@@ -541,8 +496,6 @@ void mpcd::CellThermoCompute::computeNetProperties()
 void mpcd::CellThermoCompute::updateFlags()
     {
     mpcd::detail::ThermoFlags flags;
-    if (m_enable_log)
-        flags[mpcd::detail::thermo_options::energy] = 1;
 
     if (!m_flag_signal.empty())
         {
@@ -574,6 +527,5 @@ void mpcd::detail::export_CellThermoCompute(pybind11::module& m)
     py::class_<mpcd::CellThermoCompute, std::shared_ptr<mpcd::CellThermoCompute> >
         (m, "CellThermoCompute", py::base<Compute>())
         .def(py::init< std::shared_ptr<mpcd::SystemData> >())
-        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >())
-        .def("enableLogging", &mpcd::CellThermoCompute::enableLogging);
+        .def(py::init< std::shared_ptr<mpcd::SystemData>, const std::string& >());
     }
