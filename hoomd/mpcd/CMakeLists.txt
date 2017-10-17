@@ -20,6 +20,7 @@ set(_mpcd_sources
     StreamingMethod.cc
     SystemData.cc
     SystemDataSnapshot.cc
+    VirtualParticleFiller.cc
     )
 
 set(_mpcd_headers
@@ -44,6 +45,7 @@ set(_mpcd_headers
     StreamingMethod.h
     SystemData.h
     SystemDataSnapshot.h
+    VirtualParticleFiller.h
     )
 
 if (ENABLE_CUDA)

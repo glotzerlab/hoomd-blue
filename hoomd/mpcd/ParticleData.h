@@ -119,6 +119,27 @@ class PYBIND11_EXPORT ParticleData
             return m_N_global;
             }
 
+        //! Get the global number of virtual MPCD particles
+        /*!
+         * This method requires a collective reduction in MPI simulations. The caller is responsible for caching
+         * the returned value for performance if necessary.
+         */
+        unsigned int getNVirtualGlobal() const
+            {
+            #ifdef ENABLE_MPI
+            if (m_exec_conf->getNRanks() > 1)
+                {
+                unsigned int N_virtual_global = m_N_virtual;
+                MPI_Allreduce(MPI_IN_PLACE, &N_virtual_global, 1, MPI_UNSIGNED, MPI_SUM, m_exec_conf->getMPICommunicator());
+                return N_virtual_global;
+                }
+            else
+            #endif // ENABLE_MPI
+                {
+                return m_N_virtual;
+                }
+            }
+
         //! Get number of MPCD particle types
         unsigned int getNTypes() const
             {
@@ -327,7 +348,7 @@ class PYBIND11_EXPORT ParticleData
             }
 
         //! Allocate memory for virtual particles
-        void allocateVirtualParticles(unsigned int N_virtual);
+        void addVirtualParticles(unsigned int N);
 
         //! Remove all virtual particles
         /*!

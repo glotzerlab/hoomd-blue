@@ -848,27 +848,29 @@ unsigned int mpcd::ParticleData::getTag(unsigned int idx) const
     }
 
 /*!
- * \param N_virtual Allocate space for \a N_virtual particles in the particle data arrays
+ * \param N Allocate space for \a N additional virtualq particles in the particle data arrays
  */
-void mpcd::ParticleData::allocateVirtualParticles(unsigned int N_virtual)
+void mpcd::ParticleData::addVirtualParticles(unsigned int N)
     {
-    if (N_virtual == m_N_virtual) return;
+    if (N == 0) return;
+
+    // increase number of virtual particles
+    m_N_virtual += N;
 
     // minimum size of new arrays must accommodate current particles plus virtual
-    const unsigned int min_size = m_N + N_virtual;
+    const unsigned int N_min = m_N + m_N_virtual;
 
     // compute the new size of the array using amortized growth
     unsigned int N_max = m_N_max;
-    if (min_size > N_max)
+    if (N_min > N_max)
         {
-        while (min_size > N_max)
+        while (N_min > N_max)
             {
             N_max = ((unsigned int) (((float) N_max) * resize_factor)) + 1;
             }
         reallocate(N_max);
         }
 
-    m_N_virtual = N_virtual;
     notifyNumVirtual();
     }
 
