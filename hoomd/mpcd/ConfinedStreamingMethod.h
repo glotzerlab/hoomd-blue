@@ -42,7 +42,7 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
                                 unsigned int cur_timestep,
                                 unsigned int period,
                                 int phase,
-                                const Geometry& geom)
+                                std::shared_ptr<const Geometry> geom)
         : mpcd::StreamingMethod(sysdata, cur_timestep, period, phase),
           m_geom(geom), m_validate_geom(true)
           { }
@@ -51,20 +51,20 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
         virtual void stream(unsigned int timestep);
 
         //! Get the streaming geometry
-        const Geometry& getGeometry() const
+        std::shared_ptr<const Geometry> getGeometry() const
             {
             return m_geom;
             }
 
         //! Set the streaming geometry
-        void setGeometry(const Geometry& geom)
+        void setGeometry(std::shared_ptr<const Geometry> geom)
             {
             m_validate_geom = true;
             m_geom = geom;
             }
 
     protected:
-        Geometry m_geom;        //!< Streaming geometry
+        std::shared_ptr<const Geometry> m_geom; //!< Streaming geometry
         bool m_validate_geom;   //!< If true, run a validation check on the geometry
 
         //! Validate the system with the streaming geometry
@@ -111,7 +111,7 @@ void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
         do
             {
             pos += dt * vel;
-            collide = m_geom.detectCollision(pos, vel, dt);
+            collide = m_geom->detectCollision(pos, vel, dt);
             // track if a collision ever occurs to redirect particle velocity
             any_collide |= collide;
             }
@@ -138,7 +138,7 @@ void ConfinedStreamingMethod<Geometry>::validate()
     // ensure that the global box is padded enough for periodic boundaries
     const BoxDim& box = m_pdata->getGlobalBox();
     const Scalar cell_width = m_mpcd_sys->getCellList()->getCellSize();
-    if (!m_geom.validateBox(box, cell_width))
+    if (!m_geom->validateBox(box, cell_width))
         {
         m_exec_conf->msg->error() << "ConfinedStreamingMethod: box too small for " << Geometry::getName() << " geometry. Increase box size." << std::endl;
         throw std::runtime_error("Simulation box too small for confined streaming method");
@@ -168,7 +168,7 @@ bool ConfinedStreamingMethod<Geometry>::validateParticles()
         {
         const Scalar4 postype = h_pos.data[idx];
         const Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-        if (m_geom.isOutside(pos))
+        if (m_geom->isOutside(pos))
             {
             m_exec_conf->msg->error() << "MPCD particle with tag " << h_tag.data[idx] << " at (" << pos.x << "," << pos.y << "," << pos.z
                           << ") lies outside the " << Geometry::getName() << " geometry. Fix configuration." << std::endl;
@@ -192,7 +192,7 @@ void export_ConfinedStreamingMethod(pybind11::module& m)
     const std::string name = "ConfinedStreamingMethod" + Geometry::getName();
     py::class_<mpcd::ConfinedStreamingMethod<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>
         (m, name.c_str(), py::base<mpcd::StreamingMethod>())
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, const Geometry&>())
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<const Geometry>>())
         .def_property("geometry", &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,&mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);
     }
 } // end namespace detail

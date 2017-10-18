@@ -144,7 +144,7 @@ class SlitGeometry
          * The box is large enough for the slit if it is padded along the z direction so that
          * the cells just outside the slit would not interact with each other through the boundary.
          */
-        HOSTDEVICE bool validateBox(const BoxDim box, Scalar cell_size) const
+        HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
             {
             const Scalar hi = box.getHi().z;
             const Scalar lo = box.getLo().z;
@@ -161,15 +161,6 @@ class SlitGeometry
             return m_H;
             }
 
-        //! Set channel half width
-        /*!
-         * \param H Channel half-width
-         */
-        HOSTDEVICE void setH(Scalar H)
-            {
-            m_H = H;
-            }
-
         //! Get the wall velocity
         /*!
          * \returns Wall velocity
@@ -177,15 +168,6 @@ class SlitGeometry
         HOSTDEVICE Scalar getVelocity() const
             {
             return m_V;
-            }
-
-        //! Set the wall velocity
-        /*!
-         * \param V Wall velocity
-         */
-        HOSTDEVICE void setVelocity(Scalar V)
-            {
-            m_V = V;
             }
 
         //! Get the wall boundary condition
@@ -197,15 +179,6 @@ class SlitGeometry
             return m_bc;
             }
 
-        //! Set the wall boundary condition
-        /*!
-         * \param bc Boundary condition
-         */
-        HOSTDEVICE void setBoundaryCondition(boundary bc)
-            {
-            m_bc = bc;
-            }
-
         #ifndef NVCC
         //! Get the unique name of this geometry
         static std::string getName()
@@ -215,9 +188,9 @@ class SlitGeometry
         #endif // NVCC
 
     private:
-        Scalar m_H; //!< Half of the channel width
-        Scalar m_V; //!< Velocity of the wall
-        boundary m_bc;  //!< Boundary condition
+        const Scalar m_H;       //!< Half of the channel width
+        const Scalar m_V;       //!< Velocity of the wall
+        const boundary m_bc;    //!< Boundary condition
     };
 
 } // end namespace detail

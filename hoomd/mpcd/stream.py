@@ -189,8 +189,6 @@ class bulk(_streaming_method):
 
         _streaming_method.__init__(self, period)
 
-        self._geometry = _mpcd.BulkGeometry()
-
         # create the base streaming class
         if not hoomd.context.exec_conf.isCUDAEnabled():
             stream_class = _mpcd.ConfinedStreamingMethodBulk
@@ -200,7 +198,7 @@ class bulk(_streaming_method):
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
                                  0,
-                                 self._geometry)
+                                 _mpcd.BulkGeometry())
 
 class slit(_streaming_method):
     """ Streaming method for slit geometry.
@@ -228,7 +226,6 @@ class slit(_streaming_method):
         self.boundary = boundary
 
         bc = self._process_boundary(boundary)
-        geometry = _mpcd.SlitGeometry(H,V,bc)
 
         # create the base streaming class
         if not hoomd.context.exec_conf.isCUDAEnabled():
@@ -239,7 +236,7 @@ class slit(_streaming_method):
                                  hoomd.context.current.system.getCurrentTimeStep(),
                                  self.period,
                                  0,
-                                 geometry)
+                                 _mpcd.SlitGeometry(H,V,bc))
 
     def set_params(self, H=None, V=None, boundary=None):
         if H is not None:

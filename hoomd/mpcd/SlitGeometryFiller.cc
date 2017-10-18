@@ -17,7 +17,7 @@ mpcd::SlitGeometryFiller::SlitGeometryFiller(std::shared_ptr<mpcd::SystemData> s
                                              unsigned int type,
                                              std::shared_ptr<::Variant> T,
                                              unsigned int seed,
-                                             std::shared_ptr<mpcd::detail::SlitGeometry> geom)
+                                             std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
     : mpcd::VirtualParticleFiller(sysdata, density, type, T, seed), m_geom(geom)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD SlitGeometryFiller" << std::endl;
@@ -125,13 +125,13 @@ void mpcd::SlitGeometryFiller::drawParticles(unsigned int timestep)
 void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<mpcd::SlitGeometryFiller, std::shared_ptr<mpcd::SlitGeometryFiller>>
+    py::class_<mpcd::SlitGeometryFiller, std::shared_ptr<const mpcd::SlitGeometryFiller>>
         (m, "SlitGeometryFiller", py::base<mpcd::VirtualParticleFiller>())
         .def(py::init<std::shared_ptr<mpcd::SystemData>,
                       Scalar,
                       unsigned int,
                       std::shared_ptr<::Variant>,
                       unsigned int,
-                      std::shared_ptr<mpcd::detail::SlitGeometry>>())
+                      std::shared_ptr<const mpcd::detail::SlitGeometry>>())
         ;
     }

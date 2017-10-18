@@ -40,28 +40,28 @@ class mpcd_stream_slit_test(unittest.TestCase):
         self.assertAlmostEqual(slit.H, 4.)
         self.assertAlmostEqual(slit.V, 0.)
         self.assertEqual(slit.boundary, "no_slip")
-        self.assertAlmostEqual(slit._cpp.geometry.H, 4.)
-        self.assertAlmostEqual(slit._cpp.geometry.V, 0.)
-        self.assertEqual(slit._cpp.geometry.boundary, mpcd._mpcd.boundary.no_slip)
+        self.assertAlmostEqual(slit._cpp.geometry.getH(), 4.)
+        self.assertAlmostEqual(slit._cpp.geometry.getVelocity(), 0.)
+        self.assertEqual(slit._cpp.geometry.getBoundaryCondition(), mpcd._mpcd.boundary.no_slip)
 
         # change H and also ensure other parameters stay the same
         slit.set_params(H=2.)
         self.assertAlmostEqual(slit.H, 2.)
         self.assertAlmostEqual(slit.V, 0.)
         self.assertEqual(slit.boundary, "no_slip")
-        self.assertAlmostEqual(slit._cpp.geometry.H, 2.)
-        self.assertAlmostEqual(slit._cpp.geometry.V, 0.)
-        self.assertEqual(slit._cpp.geometry.boundary, mpcd._mpcd.boundary.no_slip)
+        self.assertAlmostEqual(slit._cpp.geometry.getH(), 2.)
+        self.assertAlmostEqual(slit._cpp.geometry.getVelocity(), 0.)
+        self.assertEqual(slit._cpp.geometry.getBoundaryCondition(), mpcd._mpcd.boundary.no_slip)
 
         # change V
         slit.set_params(V=0.1)
         self.assertAlmostEqual(slit.V, 0.1)
-        self.assertAlmostEqual(slit._cpp.geometry.V, 0.1)
+        self.assertAlmostEqual(slit._cpp.geometry.getVelocity(), 0.1)
 
         # change BCs
         slit.set_params(boundary="slip")
         self.assertEqual(slit.boundary, "slip")
-        self.assertEqual(slit._cpp.geometry.boundary, mpcd._mpcd.boundary.slip)
+        self.assertEqual(slit._cpp.geometry.getBoundaryCondition(), mpcd._mpcd.boundary.slip)
 
     # test for invalid boundary conditions being set
     def test_bad_boundary(self):

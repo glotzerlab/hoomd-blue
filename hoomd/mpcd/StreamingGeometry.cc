@@ -16,18 +16,18 @@ void export_boundary(pybind11::module& m)
 void export_BulkGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<BulkGeometry, std::shared_ptr<BulkGeometry> >(m, "BulkGeometry")
+    py::class_<BulkGeometry, std::shared_ptr<const BulkGeometry> >(m, "BulkGeometry")
         .def(py::init<>());
     }
 
 void export_SlitGeometry(pybind11::module& m)
     {
     namespace py = pybind11;
-    py::class_<SlitGeometry, std::shared_ptr<SlitGeometry> >(m, "SlitGeometry")
+    py::class_<SlitGeometry, std::shared_ptr<const SlitGeometry> >(m, "SlitGeometry")
         .def(py::init<Scalar, Scalar, boundary>())
-        .def_property("H", &SlitGeometry::getH, &SlitGeometry::setH)
-        .def_property("V", &SlitGeometry::getVelocity, &SlitGeometry::setVelocity)
-        .def_property("boundary", &SlitGeometry::getBoundaryCondition, &SlitGeometry::setBoundaryCondition);
+        .def("getH", &SlitGeometry::getH)
+        .def("getVelocity", &SlitGeometry::getVelocity)
+        .def("getBoundaryCondition", &SlitGeometry::getBoundaryCondition);
     }
 
 } // end namespace detail

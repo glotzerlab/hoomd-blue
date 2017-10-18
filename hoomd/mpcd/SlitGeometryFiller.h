@@ -32,12 +32,12 @@ class SlitGeometryFiller : public mpcd::VirtualParticleFiller
                            unsigned int type,
                            std::shared_ptr<::Variant> T,
                            unsigned int seed,
-                           std::shared_ptr<mpcd::detail::SlitGeometry> geom);
+                           std::shared_ptr<const mpcd::detail::SlitGeometry> geom);
 
         virtual ~SlitGeometryFiller();
 
     protected:
-        std::shared_ptr<mpcd::detail::SlitGeometry> m_geom;
+        std::shared_ptr<const mpcd::detail::SlitGeometry> m_geom;
         Scalar m_z_min; //!< Min z coordinate for filling
         Scalar m_z_max; //!< Max z coordinate for filling
         unsigned int m_N_lo;    //!< Number of particles to fill below channel

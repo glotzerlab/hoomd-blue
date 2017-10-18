@@ -47,18 +47,23 @@ class BulkGeometry
             return false;
             }
 
+        //! Check if a particle is out of bounds
+        /*!
+         * \param pos Current particle position
+         * \returns True because particles are always in bounds in the bulk geometry.
+         */
+        HOSTDEVICE bool isOutside(const Scalar3& pos) const
+            {
+            return false;
+            }
+
         //! Validate the simulation box
         /*!
          * \returns True because the simulation box is always big enough to hold a bulk geometry.
          */
-        HOSTDEVICE bool validateBox(const BoxDim box, const Scalar cell_size) const
+        HOSTDEVICE bool validateBox(const BoxDim& box, Scalar cell_size) const
             {
             return true;
-            }
-
-        HOSTDEVICE bool isOutside(const Scalar3& pos) const
-            {
-            return false;
             }
 
         #ifndef NVCC

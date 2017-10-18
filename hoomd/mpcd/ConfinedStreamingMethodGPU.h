@@ -43,7 +43,7 @@ class ConfinedStreamingMethodGPU : public mpcd::ConfinedStreamingMethod<Geometry
                                    unsigned int cur_timestep,
                                    unsigned int period,
                                    int phase,
-                                   const Geometry& geom)
+                                   std::shared_ptr<const Geometry> geom)
             : mpcd::ConfinedStreamingMethod<Geometry>(sysdata, cur_timestep, period, phase, geom)
             {
             m_tuner.reset(new Autotuner(32, 1024, 32, 5, 100000, "mpcd_stream", this->m_exec_conf));
@@ -96,7 +96,7 @@ void ConfinedStreamingMethodGPU<Geometry>::stream(unsigned int timestep)
                                   m_tuner->getParam());
 
     m_tuner->begin();
-    mpcd::gpu::confined_stream<Geometry>(args, this->m_geom);
+    mpcd::gpu::confined_stream<Geometry>(args, *(this->m_geom));
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     m_tuner->end();
 
@@ -118,7 +118,7 @@ void export_ConfinedStreamingMethodGPU(pybind11::module& m)
     const std::string name = "ConfinedStreamingMethodGPU" + Geometry::getName();
     py::class_<mpcd::ConfinedStreamingMethodGPU<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethodGPU<Geometry>>>
         (m, name.c_str(), py::base<mpcd::ConfinedStreamingMethod<Geometry>>())
-        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, const Geometry&>());
+        .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<const Geometry>>());
     }
 } // end namespace detail
 } // end namespace mpcd
