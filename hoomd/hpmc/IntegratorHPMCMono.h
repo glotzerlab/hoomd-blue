@@ -590,8 +590,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     }
 
                                 // here we calculate the new energy
+                                if (m_patch)
+                                {
                                 e_new += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
                                 }
+                              }
                             }
                         }
                     else
@@ -660,8 +663,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                 Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
                                 // here we calculate the new energy
+                                if (m_patch)
+                                {
                                 e_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
                                 }
+                              }
                             }
                         }
                     else
