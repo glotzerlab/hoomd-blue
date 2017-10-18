@@ -39,15 +39,15 @@ void mpcd::SlitGeometryFiller::computeNumFill()
         throw std::runtime_error("Invalid slit geometry for global box");
         }
 
-    // if the slit boundary does not overlap this box, no filling is required
-    const Scalar H = m_geom->getH();
+    // box and slit geometry
     const BoxDim& box = m_pdata->getBox();
-    if (box.getHi().z < H || box.getLo().z > H)
-        {
-        m_z_min = -H; m_z_max = H;
-        m_N_hi = m_N_lo = m_N_fill = 0;
-        return;
-        }
+    const Scalar3 L = box.getL();
+    const Scalar A = L.x * L.y;
+    const Scalar H = m_geom->getH();
+
+    // default is not to fill anything
+    m_z_min = -H; m_z_max = H;
+    m_N_hi = m_N_lo = 0;
 
     /*
      * Determine the lowest / highest extent of a cell containing a particle within the channel.
@@ -56,15 +56,19 @@ void mpcd::SlitGeometryFiller::computeNumFill()
      */
     const Scalar max_shift = m_cl->getMaxGridShift();
     const Scalar global_lo = global_box.getLo().z;
-    m_z_max = cell_size * std::ceil((H-global_lo)/cell_size) + global_lo + max_shift;
-    m_z_min = cell_size * std::floor((-H-global_lo)/cell_size) + global_lo - max_shift;
-    assert(m_z_max >= H && m_z_min <= -H);
+    if (box.getHi().z >= H)
+        {
+        m_z_max = cell_size * std::ceil((H-global_lo)/cell_size) + global_lo + max_shift;
+        m_N_hi = std::round((m_z_max - H) * A * m_density);
+        }
 
-    // compute number of particles to fill from the volume of the fill areas
-    const Scalar3 L = box.getL();
-    const Scalar A = L.x * L.y;
-    m_N_hi = std::round((m_z_max - H) * A * m_density);
-    m_N_lo = std::round((-H-m_z_min) * A * m_density);
+    if (box.getLo().z <= -H)
+        {
+        m_z_min = cell_size * std::floor((-H-global_lo)/cell_size) + global_lo - max_shift;
+        m_N_lo = std::round((-H-m_z_min) * A * m_density);
+        }
+
+    // total number of fill particles
     m_N_fill = m_N_hi + m_N_lo;
     }
 

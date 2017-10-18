@@ -37,16 +37,6 @@ class VirtualParticleFiller
         //! Fill up virtual particles
         void fill(unsigned int timestep);
 
-        unsigned int getNFill() const
-            {
-            return m_N_fill;
-            }
-
-        unsigned int getNFillGlobal() const
-            {
-            return m_N_fill_global;
-            }
-
         //! Sets the profiler for the integration method to use
         virtual void setProfiler(std::shared_ptr<Profiler> prof)
             {
@@ -78,7 +68,6 @@ class VirtualParticleFiller
 
         unsigned int m_N_fill;      //!< Number of particles to fill locally
         unsigned int m_first_tag;   //!< First tag of locally held particles
-        unsigned int m_N_fill_global;   //!< Global number of fill particles
 
         //! Compute the total number of particles to fill
         virtual void computeNumFill() {}

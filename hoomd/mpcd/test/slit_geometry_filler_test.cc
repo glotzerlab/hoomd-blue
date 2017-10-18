@@ -34,7 +34,7 @@ void slit_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     // create slit channel with half width 5
     auto slit = std::make_shared<mpcd::detail::SlitGeometry>(5.0, 1.0, mpcd::detail::boundary::no_slip);
     std::shared_ptr<::Variant> kT = std::make_shared<::VariantConst>(1.5);
-    std::shared_ptr<mpcd::SlitGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 0, kT, 42, slit);
+    std::shared_ptr<mpcd::SlitGeometryFiller> filler = std::make_shared<F>(mpcd_sys, 2.0, 1, kT, 42, slit);
 
     /*
      * Test basic filling up for this cell list
@@ -62,6 +62,8 @@ void slit_fill_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
             {
             // tag should equal index on one rank with one filler
             UP_ASSERT_EQUAL(h_tag.data[i], i);
+            // type should be set
+            UP_ASSERT_EQUAL(__scalar_as_int(h_pos.data[i].w), 1);
 
             const Scalar z = h_pos.data[i].z;
             if (z < Scalar(-5.0))
