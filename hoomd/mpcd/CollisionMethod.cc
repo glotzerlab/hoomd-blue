@@ -54,8 +54,6 @@ void mpcd::CollisionMethod::collide(unsigned int timestep)
     if (!shouldCollide(timestep)) return;
 
     if (m_prof) m_prof->push("MPCD collide");
-    // draw any virtual particles
-
     // set random grid shift
     drawGridShift(timestep);
     if (m_prof) m_prof->pop();

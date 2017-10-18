@@ -16,6 +16,7 @@
 #endif
 
 #include "SystemData.h"
+#include "hoomd/Variant.h"
 #include "hoomd/extern/pybind/include/pybind11/pybind11.h"
 
 namespace mpcd
@@ -27,7 +28,9 @@ class VirtualParticleFiller
     public:
         VirtualParticleFiller(std::shared_ptr<mpcd::SystemData> sysdata,
                               Scalar density,
-                              unsigned int type);
+                              unsigned int type,
+                              std::shared_ptr<::Variant> T,
+                              unsigned int seed);
 
         virtual ~VirtualParticleFiller() {}
 
@@ -37,6 +40,11 @@ class VirtualParticleFiller
         unsigned int getNFill() const
             {
             return m_N_fill;
+            }
+
+        unsigned int getNFillGlobal() const
+            {
+            return m_N_fill_global;
             }
 
         //! Sets the profiler for the integration method to use
@@ -63,11 +71,14 @@ class VirtualParticleFiller
         std::shared_ptr<mpcd::CellList> m_cl;                           //!< MPCD cell list
         std::shared_ptr<Profiler> m_prof;                               //!< System profiler;
 
-        Scalar m_density;       //!< Fill density
-        unsigned int m_type;    //!< Fill type
+        Scalar m_density;               //!< Fill density
+        unsigned int m_type;            //!< Fill type
+        std::shared_ptr<::Variant> m_T; //!< Temperature for filled particles
+        unsigned int m_seed;            //!< Seed for PRNG
 
         unsigned int m_N_fill;      //!< Number of particles to fill locally
         unsigned int m_first_tag;   //!< First tag of locally held particles
+        unsigned int m_N_fill_global;   //!< Global number of fill particles
 
         //! Compute the total number of particles to fill
         virtual void computeNumFill() {}

@@ -14,6 +14,7 @@ set(_mpcd_sources
     Integrator.cc
     ParticleData.cc
     ParticleDataSnapshot.cc
+    SlitGeometryFiller.cc
     Sorter.cc
     SRDCollisionMethod.cc
     StreamingGeometry.cc
@@ -39,6 +40,7 @@ set(_mpcd_headers
     ParticleDataSnapshot.h
     ParticleDataUtilities.h
     SlitGeometry.h
+    SlitGeometryFiller.h
     Sorter.h
     SRDCollisionMethod.h
     StreamingGeometry.h
