@@ -53,6 +53,24 @@ class VirtualParticleFiller
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {}
 
+        //! Set the fill particle density
+        void setDensity(Scalar density);
+
+        //! Set the fill particle type
+        void setType(unsigned int type);
+
+        //! Set the fill particle temperature
+        void setTemperature(std::shared_ptr<::Variant> T)
+            {
+            m_T = T;
+            }
+
+        //! Set the fill seed
+        void setSeed(unsigned int seed)
+            {
+            m_seed = seed;
+            }
+
     protected:
         std::shared_ptr<::SystemDefinition> m_sysdef;                   //!< HOOMD system definition
         std::shared_ptr<::ParticleData> m_pdata;                        //!< HOOMD particle data

@@ -20,6 +20,7 @@
 #include "StreamingMethod.h"
 #include "SystemData.h"
 #include "Sorter.h"
+#include "VirtualParticleFiller.h"
 #ifdef ENABLE_MPI
 #include "Communicator.h"
 #endif // ENABLE_MPI
@@ -141,6 +142,15 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
             m_sorter.reset();
             }
 
+        //! Add a virtual particle filling method
+        void addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler);
+
+        //! Remove all virtual particle fillers
+        void removeAllFillers()
+            {
+            m_fillers.clear();
+            }
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;   //!< MPCD system
         std::shared_ptr<mpcd::CollisionMethod> m_collide;   //!< MPCD collision rule
@@ -151,6 +161,7 @@ class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
         std::shared_ptr<mpcd::Communicator> m_mpcd_comm;    //!< MPCD communicator
         #endif // ENABLE_MPI
 
+        std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>> m_fillers; //!< MPCD virtual particle fillers
     private:
         //! Check if a collision will occur at the current timestep
         bool checkCollide(unsigned int timestep)

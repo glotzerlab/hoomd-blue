@@ -166,8 +166,8 @@ class mpcd_stream_slit_test(unittest.TestCase):
             hoomd.run(1)
 
         # now it should be valid
-        slit.set_params(H=2.)
-        hoomd.run(1)
+        slit.set_params(H=4.)
+        hoomd.run(2)
 
         # make sure we can invalidate it again
         slit.set_params(H=10.)
@@ -181,6 +181,38 @@ class mpcd_stream_slit_test(unittest.TestCase):
             hoomd.run(1)
 
         slit.set_params(H=3.85)
+        hoomd.run(1)
+
+    # test that virtual particle filler can be attached, removed, and updated
+    def test_filler(self):
+        # initialization of a filler
+        slit = mpcd.stream.slit(H=4.)
+        slit.set_filler(density=5., kT=1.0, seed=42, type='A')
+        self.assertTrue(slit._filler is not None)
+
+        # run should be able to setup the filler, although this all happens silently
+        hoomd.run(1)
+
+        # changing the geometry should still be OK with a run
+        slit.set_params(V=1.0)
+        hoomd.run(1)
+
+        # changing filler should be allowed
+        slit.set_filler(density=10., kT=1.5, seed=7)
+        self.assertTrue(slit._filler is not None)
+        hoomd.run(1)
+
+        # assert an error is raised if we set a bad particle type
+        with self.assertRaises(RuntimeError):
+            slit.set_filler(density=5., kT=1.0, seed=42, type='B')
+
+        # assert an error is raised if we set a bad density
+        with self.assertRaises(RuntimeError):
+            slit.set_filler(density=-1.0, kT=1.0, seed=42)
+
+        # removing the filler should still allow a run
+        slit.remove_filler()
+        self.assertTrue(slit._filler is None)
         hoomd.run(1)
 
     def tearDown(self):

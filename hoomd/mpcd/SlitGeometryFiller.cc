@@ -133,5 +133,6 @@ void mpcd::detail::export_SlitGeometryFiller(pybind11::module& m)
                       std::shared_ptr<::Variant>,
                       unsigned int,
                       std::shared_ptr<const mpcd::detail::SlitGeometry>>())
+        .def("setGeometry", &mpcd::SlitGeometryFiller::setGeometry)
         ;
     }

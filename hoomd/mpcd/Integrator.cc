@@ -72,6 +72,7 @@ void mpcd::Integrator::update(unsigned int timestep)
     // remove any leftover virtual particles
     if (checkCollide(timestep))
         {
+        m_mpcd_sys->getParticleData()->removeVirtualParticles();
         }
 
     #ifdef ENABLE_MPI
@@ -80,8 +81,12 @@ void mpcd::Integrator::update(unsigned int timestep)
     #endif // ENABLE_MPI
 
     // fill in any virtual particles
-    if (checkCollide(timestep))
+    if (checkCollide(timestep) && !m_fillers.empty())
         {
+        for (auto filler = m_fillers.begin(); filler != m_fillers.end(); ++filler)
+            {
+            (*filler)->fill(timestep);
+            }
         }
 
     // optionally sort
@@ -182,6 +187,24 @@ void mpcd::Integrator::setAutotunerParams(bool enable, unsigned int period)
     }
 
 /*!
+ * \param filler Virtual particle filler to add to the integrator
+ *
+ * The \a filler is attached to the integrator exactly once. An error is raised if this filler has
+ * already been added.
+ */
+void mpcd::Integrator::addFiller(std::shared_ptr<mpcd::VirtualParticleFiller> filler)
+    {
+    auto it = std::find(m_fillers.begin(), m_fillers.end(), filler);
+    if (it != m_fillers.end())
+        {
+        m_exec_conf->msg->error() << "Trying to add same MPCD virtual particle filler twice! Please report this bug." << std::endl;
+        throw std::runtime_error("Duplicate attachment of MPCD virtual particle filler");
+        }
+
+    m_fillers.push_back(filler);
+    }
+
+/*!
  * \param m Python module to export to
  */
 void mpcd::detail::export_Integrator(pybind11::module& m)
@@ -195,6 +218,8 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def("removeStreamingMethod", &mpcd::Integrator::removeStreamingMethod)
         .def("setSorter", &mpcd::Integrator::setSorter)
         .def("getSorter", &mpcd::Integrator::getSorter)
+        .def("addFiller", &mpcd::Integrator::addFiller)
+        .def("removeAllFillers", &mpcd::Integrator::removeAllFillers)
         #ifdef ENABLE_MPI
         .def("setMPCDCommunicator", &mpcd::Integrator::setMPCDCommunicator)
         #endif // ENABLE_MPI

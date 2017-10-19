@@ -225,10 +225,15 @@ class integrator(hoomd.integrate._integrator):
         for m in hoomd.context.current.integration_methods:
             self.cpp_integrator.addIntegrationMethod(m.cpp_method)
 
+        # remove all virtual particle fillers before readding them
+        self.cpp_integrator.removeAllFillers()
+
         # ensure that the streaming and collision methods are up to date
         stream = hoomd.context.current.mpcd._stream
         if stream is not None:
             self.cpp_integrator.setStreamingMethod(stream._cpp)
+            if stream._filler is not None:
+                self.cpp_integrator.addFiller(stream._filler)
         else:
             hoomd.context.msg.warning("Running mpcd without a streaming method!\n")
             self.cpp_integrator.removeStreamingMethod()

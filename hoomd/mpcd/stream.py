@@ -57,6 +57,7 @@ class _streaming_method(hoomd.meta._metadata):
         self.period = period
         self.enabled = True
         self._cpp = None
+        self._filler = None
 
         # attach the streaming method to the system
         hoomd.util.quiet_status()
@@ -238,7 +239,37 @@ class slit(_streaming_method):
                                  0,
                                  _mpcd.SlitGeometry(H,V,bc))
 
+    def set_filler(self, density, kT, seed, type='A'):
+        hoomd.util.print_status_line()
+
+        type_id = hoomd.context.current.mpcd.particles.getTypeByName(type)
+        T = hoomd.variant._setup_variant_input(kT)
+
+        if self._filler is None:
+            if not hoomd.context.exec_conf.isCUDAEnabled():
+                fill_class = _mpcd.SlitGeometryFiller
+            else:
+                fill_class = _mpcd.SlitGeometryFillerGPU
+            self._filler = fill_class(hoomd.context.current.mpcd.data,
+                                      density,
+                                      type_id,
+                                      T.cpp_variant,
+                                      seed,
+                                      self._cpp.geometry)
+        else:
+            self._filler.setDensity(density)
+            self._filler.setType(type_id)
+            self._filler.setTemperature(T.cpp_variant)
+            self._filler.setSeed(seed)
+
+    def remove_filler(self):
+        hoomd.util.print_status_line()
+
+        self._filler = None
+
     def set_params(self, H=None, V=None, boundary=None):
+        hoomd.util.print_status_line()
+
         if H is not None:
             self.H = H
 
@@ -250,3 +281,5 @@ class slit(_streaming_method):
 
         bc = self._process_boundary(self.boundary)
         self._cpp.geometry = _mpcd.SlitGeometry(self.H,self.V,bc)
+        if self._filler is not None:
+            self._filler.setGeometry(self._cpp.geometry)

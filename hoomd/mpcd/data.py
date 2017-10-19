@@ -215,9 +215,6 @@ class system(hoomd.meta._metadata):
         # no collision rule by default
         self._collide = None
 
-        # no fillup rules by default
-        self._fillers = []
-
     @property
     def particles(self):
         return self.data.getParticleData()

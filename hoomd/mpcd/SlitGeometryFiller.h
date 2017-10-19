@@ -36,6 +36,11 @@ class SlitGeometryFiller : public mpcd::VirtualParticleFiller
 
         virtual ~SlitGeometryFiller();
 
+        void setGeometry(std::shared_ptr<const mpcd::detail::SlitGeometry> geom)
+            {
+            m_geom = geom;
+            }
+
     protected:
         std::shared_ptr<const mpcd::detail::SlitGeometry> m_geom;
         Scalar m_z_min; //!< Min z coordinate for filling
