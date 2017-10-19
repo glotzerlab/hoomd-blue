@@ -85,7 +85,7 @@ class user(object):
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
     '''
-    def __init__(self, r_cut, code=None, llvm_ir_file=None):
+    def __init__(self, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
 
         # check if initialization has occurred
@@ -122,7 +122,11 @@ float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i,
                 include_path = os.path.dirname(hoomd.__file__) + '/include';
                 print(include_path)
 
-                ret = subprocess.call(['clang', '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-S', '-emit-llvm', dirpath+'/code.cc', '-o', dirpath+'/code.ll'])
+                if clang_exec is not None:
+                    clang = clang_exec;
+                else: clang = 'clang';
+                
+                ret = subprocess.call([clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-S', '-emit-llvm', dirpath+'/code.cc', '-o', dirpath+'/code.ll'])
                 if ret != 0:
                     hoomd.context.msg.error("Error compiling provided code\n");
                     shutil.rmtree(dirpath)
