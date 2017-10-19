@@ -4,6 +4,9 @@
 // Maintainer: mphoward
 
 #include "hoomd/mpcd/SlitGeometryFiller.h"
+#ifdef ENABLE_CUDA
+#include "hoomd/mpcd/SlitGeometryFillerGPU.h"
+#endif // ENABLE_CUDA
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -77,3 +80,9 @@ UP_TEST( slit_fill_mpi )
     {
     slit_fill_mpi_test<mpcd::SlitGeometryFiller>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
+#ifdef ENABLE_CUDA
+UP_TEST( slit_fill_mpi_gpu )
+    {
+    slit_fill_mpi_test<mpcd::SlitGeometryFillerGPU>(std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
+    }
+#endif // ENABLE_CUDA

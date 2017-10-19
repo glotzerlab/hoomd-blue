@@ -56,6 +56,7 @@ list(APPEND _mpcd_sources
     CellThermoComputeGPU.cc
     CellListGPU.cc
     CommunicatorGPU.cc
+    SlitGeometryFillerGPU.cc
     SorterGPU.cc
     SRDCollisionMethodGPU.cc
     )
@@ -72,6 +73,8 @@ list(APPEND _mpcd_headers
     ConfinedStreamingMethodGPU.cuh
     ConfinedStreamingMethodGPU.h
     ParticleData.cuh
+    SlitGeometryFillerGPU.cuh
+    SlitGeometryFillerGPU.h
     SorterGPU.cuh
     SorterGPU.h
     SRDCollisionMethodGPU.cuh
@@ -86,6 +89,7 @@ set(_mpcd_cu_sources
     ConfinedStreamingMethodGPU.cu
     CommunicatorGPU.cu
     ParticleData.cu
+    SlitGeometryFillerGPU.cu
     SorterGPU.cu
     SRDCollisionMethodGPU.cu
     )

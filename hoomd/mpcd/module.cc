@@ -44,6 +44,9 @@
 // virtual particle fillers
 #include "VirtualParticleFiller.h"
 #include "SlitGeometryFiller.h"
+#ifdef ENABLE_CUDA
+#include "SlitGeometryFillerGPU.h"
+#endif // ENABLE_CUDA
 
 // communicator
 #ifdef ENABLE_MPI
@@ -138,6 +141,9 @@ PYBIND11_MODULE(_mpcd, m)
 
     mpcd::detail::export_VirtualParticleFiller(m);
     mpcd::detail::export_SlitGeometryFiller(m);
+    #ifdef ENABLE_CUDA
+    mpcd::detail::export_SlitGeometryFillerGPU(m);
+    #endif // ENABLE_CUDA
 
     #ifdef ENABLE_MPI
     mpcd::detail::export_Communicator(m);
