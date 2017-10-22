@@ -6,6 +6,13 @@
 
 #include "MolecularForceCompute.h"
 
+#include "hoomd/CachedAllocator.h"
+#include "hoomd/Autotuner.h"
+
+#ifdef ENABLE_CUDA
+#include "MolecularForceCompute.cuh"
+#endif
+
 #include <string.h>
 #include <map>
 
@@ -24,6 +31,18 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
     {
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // initialize autotuner
+        std::vector<unsigned int> valid_params;
+        for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
+            valid_params.push_back(block_size);
+
+        m_tuner_fill.reset(new Autotuner(valid_params, 5, 100000, "fill_molecule_table", this->m_exec_conf));
+        }
+    #endif
     }
 
 //! Destructor
@@ -32,14 +51,109 @@ MolecularForceCompute::~MolecularForceCompute()
     m_pdata->getParticleSortSignal().disconnect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
     }
 
+#ifdef ENABLE_CUDA
+void MolecularForceCompute::initMoleculesGPU()
+    {
+    if (m_prof) m_prof->push(m_exec_conf,"init molecules");
+
+    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
+
+    unsigned int n_local_molecules = 0;
+
+    // maximum molecule length
+    unsigned int nmax = 0;
+
+    // number of local particles that are part of molecules
+    unsigned int n_local_ptls_in_molecules = 0;
+
+    // resize to maximum possible number of local molecules
+    m_molecule_length.resize(nptl_local);
+    m_molecule_idx.resize(nptl_local);
+
+    ScopedAllocation<unsigned int> d_idx_sorted_by_tag(m_exec_conf->getCachedAllocator(), nptl_local);
+    ScopedAllocation<unsigned int> d_local_molecule_tags(m_exec_conf->getCachedAllocator(), nptl_local);
+
+        {
+        ArrayHandle<unsigned int> d_molecule_tag(m_molecule_tag, access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+        ArrayHandle<unsigned int> d_molecule_length(m_molecule_length, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_molecule_idx(m_molecule_idx, access_location::device, access_mode::overwrite);
+
+        // temporary buffers
+        ScopedAllocation<unsigned int> d_local_unique_molecule_tags(m_exec_conf->getCachedAllocator(), m_n_molecules_global);
+        ScopedAllocation<unsigned int> d_sorted_by_tag(m_exec_conf->getCachedAllocator(), nptl_local);
+
+        gpu_sort_by_molecule(nptl_local,
+            d_tag.data,
+            d_molecule_tag.data,
+            d_local_molecule_tags.data,
+            d_local_unique_molecule_tags.data,
+            d_molecule_idx.data,
+            d_sorted_by_tag.data,
+            d_idx_sorted_by_tag.data,
+            d_molecule_length.data,
+            n_local_molecules,
+            nmax,
+            n_local_ptls_in_molecules);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    // set up indexer
+    m_molecule_indexer = Index2D(n_local_molecules, nmax);
+
+    // resize molecule list
+    m_molecule_list.resize(m_molecule_indexer.getNumElements());
+
+    // resize molecule lookup to size of local particle data
+    m_molecule_order.resize(m_pdata->getMaxN());
+
+        {
+        // write out molecule list and order
+        ArrayHandle<unsigned int> d_molecule_list(m_molecule_list, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_molecule_order(m_molecule_order, access_location::device, access_mode::overwrite);
+        ArrayHandle<unsigned int> d_molecule_idx(m_molecule_idx, access_location::device, access_mode::read);
+
+        m_tuner_fill->begin();
+        unsigned int block_size = m_tuner_fill->getParam();
+
+        gpu_fill_molecule_table(nptl_local,
+            n_local_ptls_in_molecules,
+            m_molecule_indexer,
+            d_molecule_idx.data,
+            d_local_molecule_tags.data,
+            d_idx_sorted_by_tag.data,
+            d_molecule_list.data,
+            d_molecule_order.data,
+            block_size);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+
+        m_tuner_fill->end();
+        }
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+    }
+#endif
+
 void MolecularForceCompute::initMolecules()
     {
     // return early if no molecules are defined
     if (!m_n_molecules_global) return;
 
-    if (m_prof) m_prof->push("init molecules");
-
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        initMoleculesGPU();
+        return;
+        }
+    #endif
+
+    if (m_prof) m_prof->push("init molecules");
 
     // construct local molecule table
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
