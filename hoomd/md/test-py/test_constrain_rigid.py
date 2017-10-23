@@ -275,7 +275,7 @@ class test_constrain_rigid_nonrigid(unittest.TestCase):
         self.s.particles.types.add('B')
         for i,p in enumerate(self.s.particles):
             if i % 2:
-                p.type == 'B'
+                p.type = 'B'
 
     def test_rigid_nonrigid(self):
         self.s.particles.types.add('A_const')
@@ -293,7 +293,8 @@ class test_constrain_rigid_nonrigid(unittest.TestCase):
         lj.pair_coeff.set('A_const','A_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
 
         center = group.rigid_center()
-        g = group.union(a=center,b=group.nonrigid(), name='intgroup')
+        nonrigid = group.nonrigid()
+        g = group.union(a=center,b=nonrigid, name='intgroup')
 
         md.integrate.mode_standard(dt=0.005)
         langevin = md.integrate.langevin(group=g,kT=1.0,seed=1234)
