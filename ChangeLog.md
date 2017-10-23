@@ -4,6 +4,14 @@
 
 ## v2.2.1
 
+Not yet released
+
+*Bug fixes*
+
+* `md.dihedral.table.set_from_file` now works.
+
+## v2.2.1
+
 Released 2017/10/04
 
 *Bug fixes*
