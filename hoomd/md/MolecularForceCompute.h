@@ -105,6 +105,7 @@ class MolecularForceCompute : public ForceConstraint
             return m_molecule_idx;
             }
 
+        #ifdef ENABLE_CUDA
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
             \param period period (approximate) in time steps when returning occurs
@@ -119,6 +120,7 @@ class MolecularForceCompute : public ForceConstraint
                 m_tuner_fill->setEnabled(enable);
                 }
             }
+        #endif
 
     protected:
         GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
