@@ -7,6 +7,10 @@
 #include "hoomd/ForceConstraint.h"
 #include "NeighborList.h"
 
+#ifdef ENABLE_CUDA
+#include "hoomd/Autotuner.h"
+#endif
+
 /*! \file MolecularForceCompute.h
     \brief Base class for ForceConstraints that depend on a molecular topology
 
