@@ -13,7 +13,7 @@
 using namespace std;
 using namespace std::placeholders;
 
-/*! \file lj_force_test.cc
+/*! \file test_MolecularForceCompute.cc
     \brief Implements unit tests for MolecularForceCompute on CPU and GPU
     \ingroup unit_tests
 */
@@ -53,7 +53,7 @@ class MyMolecularForceCompute : public MolecularForceCompute
     };
 
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test if basic sorting of particles into molecules works
 void basic_molecule_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_5(new SystemDefinition(5, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
@@ -131,7 +131,7 @@ void basic_molecule_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
         }
     }
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test if the CPU and the GPU implementation give consistent results
 void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std::shared_ptr<ExecutionConfiguration> exec_conf_gpu)
     {
     unsigned int nptl = 100;
@@ -206,7 +206,7 @@ void comparison_test(std::shared_ptr<ExecutionConfiguration> exec_conf_cpu, std:
 
 
 //! test case for particle test on CPU
-UP_TEST( MoleculeForceCompute_basic )
+UP_TEST( MolecularForceCompute_basic )
     {
     basic_molecule_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
@@ -219,7 +219,7 @@ UP_TEST( MolecularForceCompute_basic_GPU)
     }
 
 //! test case for comparing GPU output to base class output
-UP_TEST( MoleculeForceCompute_compare )
+UP_TEST( MolecularForceCompute_compare )
     {
     comparison_test(std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::CPU)),
         std::shared_ptr<ExecutionConfiguration>(new ExecutionConfiguration(ExecutionConfiguration::GPU)));
