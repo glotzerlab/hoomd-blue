@@ -94,7 +94,8 @@ void MolecularForceCompute::initMoleculesGPU()
             d_molecule_length.data,
             n_local_molecules,
             nmax,
-            n_local_ptls_in_molecules);
+            n_local_ptls_in_molecules,
+            m_exec_conf->getCachedAllocator());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -126,7 +127,8 @@ void MolecularForceCompute::initMoleculesGPU()
             d_idx_sorted_by_tag.data,
             d_molecule_list.data,
             d_molecule_order.data,
-            block_size);
+            block_size,
+            m_exec_conf->getCachedAllocator());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();

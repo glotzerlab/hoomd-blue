@@ -11,6 +11,7 @@
 #define __MOLECULAR_FORCE_COMPUTE_CUH__
 
 #include "hoomd/Index1D.h"
+#include "hoomd/CachedAllocator.h"
 
 #ifdef NVCC
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
@@ -27,7 +28,8 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_molecule_length,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
-    unsigned int &n_local_ptls_in_molecules);
+    unsigned int &n_local_ptls_in_molecules,
+    const CachedAllocator& alloc);
 
 cudaError_t gpu_fill_molecule_table(
     unsigned int nptl,
@@ -38,6 +40,7 @@ cudaError_t gpu_fill_molecule_table(
     const unsigned int *d_idx_sorted_by_tag,
     unsigned int *d_molecule_list,
     unsigned int *d_molecule_order,
-    unsigned int block_size);
+    unsigned int block_size,
+    const CachedAllocator& alloc);
 
 #endif

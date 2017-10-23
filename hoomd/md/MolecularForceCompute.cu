@@ -15,6 +15,7 @@
 #include <thrust/reduce.h>
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
+#include <thrust/execution_policy.h>
 
 /*! \file MolecularForceCompute.cu
     \brief Contains GPU kernel code used by MolecularForceCompute
@@ -32,7 +33,8 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int *d_molecule_length,
     unsigned int &n_local_molecules,
     unsigned int &max_len,
-    unsigned int &n_local_ptls_in_molecules)
+    unsigned int &n_local_ptls_in_molecules,
+    const CachedAllocator& alloc)
     {
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<const unsigned int> molecule_tag(d_molecule_tag);
@@ -47,8 +49,14 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     thrust::copy(tag,tag+nptl,sorted_by_tag);
 
     auto iter = thrust::counting_iterator<unsigned int>(0);
-    thrust::copy(iter,iter+nptl,idx_sorted_by_tag);
-    thrust::sort_by_key(sorted_by_tag, sorted_by_tag+nptl, idx_sorted_by_tag );
+    thrust::copy(iter,
+        iter+nptl,
+        idx_sorted_by_tag);
+
+    thrust::sort_by_key(thrust::cuda::par(alloc),
+        sorted_by_tag,
+        sorted_by_tag+nptl,
+        idx_sorted_by_tag);
 
     auto molecule_tag_lookup = thrust::make_permutation_iterator(molecule_tag, tag);
     auto molecule_tag_lookup_sorted_by_tag = thrust::make_permutation_iterator(molecule_tag_lookup, idx_sorted_by_tag);
@@ -58,12 +66,14 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
         local_molecule_tags);
 
     // sort local particle indices by global molecule tag, keeping tag order
-    thrust::stable_sort_by_key(local_molecule_tags,
+    thrust::stable_sort_by_key(thrust::cuda::par(alloc),
+        local_molecule_tags,
         local_molecule_tags + nptl,
         idx_sorted_by_tag);
 
     // find the end of the molecule list
-    auto end = thrust::lower_bound(local_molecule_tags,
+    auto end = thrust::lower_bound(thrust::cuda::par,
+        local_molecule_tags,
         local_molecule_tags + nptl,
         NO_MOLECULE);
 
@@ -78,18 +88,21 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
 
     // allocate a temporary vector
     thrust::device_vector<unsigned int> local_molecule_tags_vec(nptl);
-    thrust::copy(local_molecule_tags,
+    thrust::copy(thrust::cuda::par(alloc),
+        local_molecule_tags,
         local_molecule_tags + nptl,
         local_molecule_tags_vec.begin());
 
-    auto new_end = thrust::reduce_by_key(local_molecule_tags_vec.begin(),
+    auto new_end = thrust::reduce_by_key(thrust::cuda::par(alloc),
+        local_molecule_tags_vec.begin(),
         local_molecule_tags_vec.begin() + n_local_ptls_in_molecules,
         one,
         local_unique_molecule_tags,
         molecule_length
         );
     #else
-    auto new_end = thrust::reduce_by_key(local_molecule_tags,
+    auto new_end = thrust::reduce_by_key(thrust::cuda::par(alloc),
+        local_molecule_tags,
         end,
         one,
         local_unique_molecule_tags,
@@ -103,9 +116,11 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     cudaMemcpy(&max_len, max_ptr.get(), sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
     // assign local molecule tags to particles
-    thrust::fill(local_molecule_idx, local_molecule_idx+nptl,NO_MOLECULE);
+    thrust::fill(thrust::cuda::par(alloc),
+        local_molecule_idx, local_molecule_idx+nptl,NO_MOLECULE);
     auto idx_lookup = thrust::make_permutation_iterator(local_molecule_idx, idx_sorted_by_tag);
-    thrust::lower_bound(local_unique_molecule_tags,
+    thrust::lower_bound(thrust::cuda::par(alloc),
+        local_unique_molecule_tags,
         local_unique_molecule_tags + n_local_molecules,
         local_molecule_tags,
         end,
@@ -139,7 +154,8 @@ cudaError_t gpu_fill_molecule_table(
     const unsigned int *d_idx_sorted_by_tag,
     unsigned int *d_molecule_list,
     unsigned int *d_molecule_order,
-    unsigned int block_size
+    unsigned int block_size,
+    const CachedAllocator& alloc
     )
     {
     thrust::device_ptr<unsigned int> molecule_order(d_molecule_order);
@@ -150,7 +166,8 @@ cudaError_t gpu_fill_molecule_table(
 
     // generate ascending index for every molecule
     thrust::constant_iterator<unsigned int> one(1);
-    thrust::exclusive_scan_by_key(local_molecule_tags,
+    thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+        local_molecule_tags,
         local_molecule_tags+n_local_ptls_in_molecules,
         one,
         idx_lookup);
