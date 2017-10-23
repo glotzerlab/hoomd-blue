@@ -161,7 +161,7 @@ void MolecularForceCompute::initMolecules()
     ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    std::map<unsigned int,unsigned int> local_molecule_tags;
+    std::set<unsigned int> local_molecule_tags;
 
     unsigned int n_local_molecules = 0;
 
@@ -170,24 +170,29 @@ void MolecularForceCompute::initMolecules()
     // resize molecule lookup to size of local particle data
     m_molecule_order.resize(m_pdata->getMaxN());
 
-    // identify local molecules and assign local indices to global molecule tags
-    for (unsigned int i = 0; i < nptl_local; ++i)
+    // sort local molecules lexicographically by molecule and by ptl tag
+    std::map<unsigned int, std::set<unsigned int> > local_molecules_sorted;
+
+    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
         {
-        unsigned int tag = h_tag.data[i];
+        unsigned int tag = h_tag.data[iptl];
         assert(tag < m_molecule_tag.getNumElements());
 
         unsigned int mol_tag = h_molecule_tag.data[tag];
         if (mol_tag == NO_MOLECULE) continue;
 
-        std::map<unsigned int,unsigned int>::iterator it = local_molecule_tags.find(mol_tag);
-        if (it == local_molecule_tags.end())
+        auto it = local_molecules_sorted.find(mol_tag);
+        if (it == local_molecules_sorted.end())
             {
-            // insert element
-            it = local_molecule_tags.insert(std::make_pair(mol_tag,n_local_molecules++)).first;
+            auto res = local_molecules_sorted.insert(std::make_pair(mol_tag,std::set<unsigned int>()));
+            assert(res.second);
+            it = res.first;
             }
 
-        local_molecule_idx[i] = it->second;
+        it->second.insert(tag);
         }
+
+    n_local_molecules = local_molecules_sorted.size();
 
     m_molecule_length.resize(n_local_molecules);
 
@@ -200,13 +205,10 @@ void MolecularForceCompute::initMolecules()
         }
 
     // count molecule lengths
-    for (unsigned int i = 0; i < nptl_local; ++i)
+    unsigned int i = 0;
+    for (auto it = local_molecules_sorted.begin(); it != local_molecules_sorted.end(); ++it)
         {
-        unsigned int molecule_i = local_molecule_idx[i];
-        if (molecule_i != NO_MOLECULE)
-            {
-            h_molecule_length.data[molecule_i]++;
-            }
+        h_molecule_length.data[i++] = it->second.size();
         }
 
     // find maximum length
@@ -231,19 +233,6 @@ void MolecularForceCompute::initMolecules()
         h_molecule_length.data[imol] = 0;
         }
 
-    // sort local molecules by ptl tag
-    std::vector< std::set<unsigned int> > local_molecules_sorted_by_tag(n_local_molecules);
-
-    for (unsigned int iptl = 0; iptl < nptl_local; ++iptl)
-        {
-        unsigned int i_mol = local_molecule_idx[iptl];
-
-        if (i_mol != NO_MOLECULE)
-            {
-            local_molecules_sorted_by_tag[i_mol].insert(h_tag.data[iptl]);
-            }
-        }
-
     // reset molecule order
     ArrayHandle<unsigned int> h_molecule_order(m_molecule_order, access_location::host, access_mode::overwrite);
     memset(h_molecule_order.data, 0, sizeof(unsigned int)*(m_pdata->getN() + m_pdata->getNGhosts()));
@@ -260,10 +249,9 @@ void MolecularForceCompute::initMolecules()
     memset(h_molecule_idx.data, 0, sizeof(unsigned int)*nptl_local);
 
     unsigned int i_mol = 0;
-    for (std::vector< std::set<unsigned int> >::iterator it_mol = local_molecules_sorted_by_tag.begin();
-        it_mol != local_molecules_sorted_by_tag.end(); ++it_mol)
+    for (auto it_mol = local_molecules_sorted.begin(); it_mol != local_molecules_sorted.end(); ++it_mol)
         {
-        for (std::set<unsigned int>::iterator it_tag = it_mol->begin(); it_tag != it_mol->end(); ++it_tag)
+        for (std::set<unsigned int>::iterator it_tag = it_mol->second.begin(); it_tag != it_mol->second.end(); ++it_tag)
             {
             unsigned int n = h_molecule_length.data[i_mol]++;
             unsigned int ptl_idx = h_rtag.data[*it_tag];
