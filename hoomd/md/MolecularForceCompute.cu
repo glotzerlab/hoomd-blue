@@ -8,6 +8,7 @@
 
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
+#include <thrust/device_vector.h>
 #include <thrust/binary_search.h>
 #include <thrust/scan.h>
 #include <thrust/extrema.h>
@@ -70,13 +71,31 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
 
     // gather unique molecule tags, and reduce their lengths by key
     thrust::constant_iterator<unsigned int> one(1);
+
+    #if (CUDART_VERSION < 8000)
+    // work around CUDA 7.5 bug
+    // https://devtalk.nvidia.com/default/topic/900103/thrust-reduce_by_key-issues-with-maxwell-devices/
+
+    // allocate a temporary vector
+    thrust::device_vector<unsigned int> local_molecule_tags_vec(nptl);
+    thrust::copy(local_molecule_tags,
+        local_molecule_tags + nptl,
+        local_molecule_tags_vec.begin());
+
+    auto new_end = thrust::reduce_by_key(local_molecule_tags_vec.begin(),
+        local_molecule_tags_vec.begin() + n_local_ptls_in_molecules,
+        one,
+        local_unique_molecule_tags,
+        molecule_length
+        );
+    #else
     auto new_end = thrust::reduce_by_key(local_molecule_tags,
         end,
         one,
         local_unique_molecule_tags,
         molecule_length
         );
-
+    #endif
     n_local_molecules = new_end.first - local_unique_molecule_tags;
 
     // compute maximum molecule length
