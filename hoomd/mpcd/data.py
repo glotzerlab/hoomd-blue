@@ -246,6 +246,24 @@ class system(hoomd.meta._metadata):
 
         self.data.initializeFromSnapshot(snapshot.sys_snap)
 
+    def set_params(self, cell=None):
+        R""" Set parameters of the MPCD system
+
+        Args:
+            cell (float): Edge length of an MPCD cell.
+
+        Every MPCD system is given a cell list for binning particles (see
+        :py:mod:`.mpcd.collide`). The size of the cell list sets the length
+        scale over which hydrodynamic interactions are resolved. By default,
+        the system is given a cell size of 1.0, i.e., the cell sets the unit
+        of length, which is typical for most use cases. If your simulation
+        has a different fundamental unit of length, you can adjust the
+        cell size, but be aware that this will also change the fluid properties.
+
+        """
+        if cell is not None:
+            self.cell.setCellSize(cell)
+
     def take_snapshot(self, particles=True):
         R""" Takes a snapshot of the current state of the MPCD system
 

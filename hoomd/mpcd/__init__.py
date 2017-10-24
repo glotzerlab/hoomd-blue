@@ -57,7 +57,7 @@ MPCD is intended to be used as an add-on to the standard MD methods in
     3. Create an MPCD :py:obj:`~hoomd.mpcd.integrator`.
     4. Choose the appropriate streaming method from :py:mod:`.mpcd.stream`.
     5. Choose the appropriate collision rule from :py:mod:`.mpcd.collide`, and set
-       the collision rule parameters. If necessary, adjust the MPCD cell size.
+       the collision rule parameters.
     6. Setup an MD integrator and any interactions between solute particles.
     7. Optionally, configure the sorting frequency to improve performance (see
        :py:obj:`update.sort`).

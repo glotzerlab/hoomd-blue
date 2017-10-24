@@ -5,7 +5,14 @@
 
 R""" MPCD collision methods
 
-MPCD collision rules.
+An MPCD collision method is required to update the particle velocities over time.
+It is meant to be used in conjunction with an :py:class:`~hoomd.mpcd.integrator`
+and streaming method (see :py:mod:`~hoomd.mpcd.stream`). Particles are binned into
+cells based on their positions, and all particles in a cell undergo a stochastic
+collision that updates their velocities while conserving linear momentum. Collision
+rules can optionally be extended to also enforce angular-momentum conservation.
+The stochastic collision lead to a build up of hydrodynamic interactions, and the
+choice of collision rule and solvent properties determine the transport coefficients.
 
 """
 
@@ -71,13 +78,9 @@ class _collision_method(hoomd.meta._metadata):
         No integrator is generated for *group*. Usually, you will need to create
         a separate method to integrate the embedded particles. The recommended
         (and most common) integrator to use is :py:class:`~hoomd.md.integrate.nve`.
-        It is generally **not** a good idea to use thermostatting integrator for
+        It is generally **not** a good idea to use a thermostatting integrator for
         the embedded particles, since the MPCD particles themselves already act
         as a heat bath that will thermalize the embedded particles.
-
-        Note:
-            The group momentum is included in any net properties reported to the
-            logger. Be aware of this when computing the energy of the system.
 
         Examples::
 
@@ -169,18 +172,16 @@ class at(_collision_method):
         kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature set
             point for the thermostat (in energy units).
 
-    This class implements the Andersen thermostat collision rule for MPCD.
-    Every *period* steps, the particles are binned into cells (see XX). New
-    particle velocities are then randomly drawn from a Gaussian distribution
+    This class implements the Andersen thermostat collision rule for MPCD, as described
+    by `Allahyarov and Gompper <https://doi.org/10.1103/PhysRevE.66.036702>`_.
+    Every *period* steps, the particles are binned into cells. The size of the cell
+    can be selected as a property of the MPCD system (see :py:meth:`.data.system.set_params`).
+    New particle velocities are then randomly drawn from a Gaussian distribution
     (using *seed*) relative to the center-of-mass velocity for the cell. The random
     velocities are given zero-mean so that the cell momentum is conserved. This
     collision rule naturally imparts the canonical (NVT) ensemble consistent
-    with *kT*.
-
-    The properties of the AT fluid are tuned using *period*, *kT*, the
-    underlying size of the MPCD cell list (see XX), and the particle density.
-    These parameters combine in a nontrivial way to set specific fluid properties.
-    See XX for a discussion of how to choose these values.
+    with *kT*. The properties of the AT fluid are tuned using *period*, *kT*, the
+    underlying size of the MPCD cell list, and the particle density.
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
@@ -193,8 +194,8 @@ class at(_collision_method):
     shifting is enabled by default in all simulations. Disable it using
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
-    HOOMD particles in *group* can be embedded into the collision step. See
-    :py:meth:`embed()`. A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    HOOMD particles in *group* can be embedded into the collision step (see
+    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
     must be specified in order to integrate the positions of particles in *group*.
     The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
 
@@ -239,23 +240,19 @@ class at(_collision_method):
             self.embed(group)
         hoomd.util.unquiet_status()
 
-    def set_params(self, angle=None, shift=None, kT=None):
+    def set_params(self, shift=None, kT=None):
         """ Set parameters for the SRD collision method
 
         Args:
-            angle (float): SRD rotation angle (degrees)
-            shift (bool): If True, perform a random shift of the underlying cell list
-            kT (:py:mod:`hoomd.variant` or :py:obj:`float` or bool): Temperature
-                set point for the thermostat (in energy units). If False, any
-                set thermostat is removed and an NVE simulation is run.
+            shift (bool): If True, perform a random shift of the underlying cell list.
+            kT (:py:mod:`hoomd.variant` or :py:obj:`float`): Temperature
+                set point for the thermostat (in energy units).
 
         Examples::
 
-            srd.set_params(angle=90.)
             srd.set_params(shift=False)
-            srd.set_params(angle=130., shift=True, kT=1.0)
+            srd.set_params(shift=True, kT=1.0)
             srd.set_params(kT=hoomd.data.variant.linear_interp([[0,1.0],[100,5.0]]))
-            srd.set_params(kT=False)
 
         """
         hoomd.util.print_status_line()
@@ -280,16 +277,15 @@ class srd(_collision_method):
             thermostat is applied and an NVE simulation is run.
 
     This class implements the classic stochastic rotation dynamics collision
-    rule for MPCD. Every *period* steps, the particles are binned into cells
-    (see XX). The particle velocities are then rotated by *angle* around an
+    rule for MPCD as first proposed by `Malevanets and Kapral <http://dx.doi.org/10.1063/1.478857>`_.
+    Every *period* steps, the particles are binned into cells. The size of the cell
+    can be selected as a property of the MPCD system (see :py:meth:`.data.system.set_params`).
+    The particle velocities are then rotated by *angle* around an
     axis randomly drawn from the unit sphere. The rotation is done relative to
     the average velocity, so this rotation rule conserves momentum and energy
-    within each cell, and so also globally.
-
-    The properties of the SRD fluid are tuned using *period*, *angle*, the
-    underlying size of the MPCD cell list (see XX), and the particle density.
-    These parameters combine in a nontrivial way to set specific fluid properties.
-    See XX for a discussion of how to choose these values.
+    within each cell, and so also globally. The properties of the SRD fluid
+    are tuned using *period*, *angle*, *kT*, the underlying size of the MPCD
+    cell list, and the particle density.
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
@@ -302,8 +298,8 @@ class srd(_collision_method):
     shifting is enabled by default in all simulations. Disable it using
     :py:meth:`set_params()` if you are sure that you do not want to use it.
 
-    HOOMD particles in *group* can be embedded into the collision step. See
-    :py:meth:`embed()`. A separate integration method (:py:mod:`~hoomd.md.integrate`)
+    HOOMD particles in *group* can be embedded into the collision step (see
+    :py:meth:`embed()`). A separate integration method (:py:mod:`~hoomd.md.integrate`)
     must be specified in order to integrate the positions of particles in *group*.
     The recommended integrator is :py:class:`~hoomd.md.integrate.nve`.
 
@@ -312,11 +308,11 @@ class srd(_collision_method):
     initialized to the correct temperature. (SRD has an H theorem, and so
     particles exchange momentum to reach an equilibrium temperature.) A thermostat
     can be applied in conjunction with the SRD method through the *kT* parameter.
-    SRD employs a Maxwell-Boltzmann thermostat on the cell level, which generates
-    the (correct) isothermal ensemble. The temperature is defined relative to the
-    cell-average velocity, and so can be used to dissipate heat in nonequilibrium
-    simulations. Under this thermostat, the SRD algorithm still conserves momentum,
-    but energy is of course no longer conserved.
+    SRD employs a `Maxwell-Boltzmann thermostat <https://doi.org/10.1016/j.jcp.2009.09.024>`_
+    on the cell level, which generates the (correct) isothermal ensemble. The
+    temperature is defined relative to the cell-average velocity, and so can be
+    used to dissipate heat in nonequilibrium simulations. Under this thermostat, the
+    SRD algorithm still conserves momentum, but energy is of course no longer conserved.
 
     Examples::
 
