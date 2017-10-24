@@ -120,7 +120,7 @@ class Communicator
          *
          * \post Every particle on every processor can be found inside the local domain boundaries.
          */
-        virtual void migrateParticles();
+        virtual void migrateParticles(unsigned int timestep);
 
         //@}
 

@@ -57,21 +57,19 @@ void mpcd::CellList::compute(unsigned int timestep)
     {
     if (m_prof) m_prof->push(m_exec_conf, "MPCD cell list");
 
-    bool force = false;
-
     if (m_particles_sorted)
         {
         m_particles_sorted = false;
-        force = true;
+        m_force_compute = true;
         }
 
     if (m_needs_compute_dim)
         {
         computeDimensions();
-        force = true;
+        m_force_compute = true;
         }
 
-    if (shouldCompute(timestep) || force)
+    if (peekCompute(timestep))
         {
         #ifdef ENABLE_MPI
         if (m_prof) m_prof->pop(m_exec_conf);
@@ -110,6 +108,11 @@ void mpcd::CellList::compute(unsigned int timestep)
                 resetConditions();
                 }
             } while (overflowed);
+
+        // we are finished building, explicitly mark everything (rather than using shouldCompute)
+        m_first_compute = false;
+        m_force_compute = false;
+        m_last_computed = timestep;
         }
 
     // signal to the ParticleData that the cell list cache is now valid
@@ -632,6 +635,15 @@ void mpcd::CellList::sort(unsigned int timestep,
     {
     // no need to do any sorting if we can still be called at the current timestep
     if (peekCompute(timestep)) return;
+
+    // if mapping is not valid, signal that we need to force a recompute next time
+    // that the cell list is needed. We don't call forceCompute() directly because this always
+    // runs compute(), and we just want to defer to the next compute() call.
+    if (rorder.isNull())
+        {
+        m_force_compute = true;
+        return;
+        }
 
     // iterate through particles in cell list, and update their indexes using reverse mapping
     ArrayHandle<unsigned int> h_rorder(rorder, access_location::host, access_mode::read);

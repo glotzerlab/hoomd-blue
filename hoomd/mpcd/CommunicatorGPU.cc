@@ -158,7 +158,7 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
         << " communication stage(s)." << std::endl;
     }
 
-void mpcd::CommunicatorGPU::migrateParticles()
+void mpcd::CommunicatorGPU::migrateParticles(unsigned int timestep)
     {
     if (m_prof) m_prof->push("migrate");
 
@@ -177,7 +177,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
 
         // fill send buffer
         if (m_prof) m_prof->push(m_exec_conf,"pack");
-        m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask);
+        m_mpcd_pdata->removeParticlesGPU(m_sendbuf, comm_mask, timestep);
         if (m_prof) m_prof->pop(m_exec_conf);
 
         if (m_prof) m_prof->push("sort");
@@ -313,7 +313,7 @@ void mpcd::CommunicatorGPU::migrateParticles()
 
         // fill particle data with received particles
         if (m_prof) m_prof->push(m_exec_conf, "unpack");
-        m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask);
+        m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask, timestep);
         if (m_prof) m_prof->pop(m_exec_conf);
 
         } // end communication stage

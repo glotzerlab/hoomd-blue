@@ -120,6 +120,13 @@ void mpcd::CellListGPU::sort(unsigned int timestep,
     // no need to do any sorting if we can still be called at the current timestep
     if (peekCompute(timestep)) return;
 
+    // force a recompute if mapping is invalid
+    if (rorder.isNull())
+        {
+        m_force_compute = true;
+        return;
+        }
+
     // iterate through particles in cell list, and update their indexes using reverse mapping
     ArrayHandle<unsigned int> d_cell_list(m_cell_list, access_location::device, access_mode::readwrite);
     ArrayHandle<unsigned int> d_rorder(rorder, access_location::device, access_mode::read);
