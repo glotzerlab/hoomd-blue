@@ -104,6 +104,9 @@ void MolecularForceCompute::initMoleculesGPU()
     // set up indexer
     m_molecule_indexer = Index2D(n_local_molecules, nmax);
 
+    m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules, "
+        << n_local_ptls_in_molecules << " particles in molceules " << std::endl;
+
     // resize molecule list
     m_molecule_list.resize(m_molecule_indexer.getNumElements());
 
@@ -195,6 +198,8 @@ void MolecularForceCompute::initMolecules()
         }
 
     n_local_molecules = local_molecules_sorted.size();
+
+    m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules" << std::endl;
 
     m_molecule_length.resize(n_local_molecules);
 
