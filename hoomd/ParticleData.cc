@@ -2748,6 +2748,7 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_net_force.data,
                            d_net_torque.data,
                            d_net_virial.data,
+                           getNetVirial().getPitch(),
                            d_tag.data,
                            d_rtag.data,
                            d_pos_alt.data,
@@ -2835,7 +2836,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<Scalar3> d_inertia(getMomentsOfInertiaArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_net_force(getNetForce(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_net_torque(getNetTorqueArray(), access_location::device, access_mode::readwrite);
-        ArrayHandle<Scalar4> d_net_virial(getNetVirial(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(getNetVirial(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2860,6 +2861,7 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_net_force.data,
             d_net_torque.data,
             d_net_virial.data,
+            getNetVirial().getPitch(),
             d_tag.data,
             d_rtag.data,
             d_in.data,
