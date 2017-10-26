@@ -140,7 +140,8 @@ void LoadBalancer::update(unsigned int timestep)
         // force a particle migration if one is needed
         if (m_needs_migrate)
             {
-            m_comm->migrateParticles();
+            m_comm->forceMigrate();
+            m_comm->communicate(timestep);
             resetNOwn(m_pdata->getN());
             m_needs_migrate = false;
 
