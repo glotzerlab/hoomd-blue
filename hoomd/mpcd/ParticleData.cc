@@ -890,6 +890,12 @@ void mpcd::ParticleData::removeParticles(GPUVector<mpcd::detail::pdata_element>&
                                          unsigned int mask,
                                          unsigned int timestep)
     {
+    if (m_N_virtual > 0)
+        {
+        m_exec_conf->msg->error() << "MPCD particles cannot be removed with virtual particles set." << std::endl;
+        throw std::runtime_error("MPCD particles cannot be removed with virtual particles set");
+        }
+
     // partition the remove / keep particle indexes
     // this makes it so that all particles we remove are at the front in the order they were in the arrays
     // and all particles to be removed are at the end of the array in reverse order of their original sorting
@@ -962,6 +968,12 @@ void mpcd::ParticleData::addParticles(const GPUVector<mpcd::detail::pdata_elemen
                                       unsigned int mask,
                                       unsigned int timestep)
     {
+    if (m_N_virtual > 0)
+        {
+        m_exec_conf->msg->error() << "MPCD particles cannot be added with virtual particles set." << std::endl;
+        throw std::runtime_error("MPCD particles cannot be added with virtual particles set");
+        }
+
     unsigned int num_add_ptls = in.size();
 
     unsigned int old_nparticles = m_N;
@@ -1012,6 +1024,12 @@ void mpcd::ParticleData::removeParticlesGPU(GPUVector<mpcd::detail::pdata_elemen
                                             unsigned int mask,
                                             unsigned int timestep)
     {
+    if (m_N_virtual > 0)
+        {
+        m_exec_conf->msg->error() << "MPCD particles cannot be removed with virtual particles set." << std::endl;
+        throw std::runtime_error("MPCD particles cannot be removed with virtual particles set");
+        }
+
     // quit early if there are no particles to remove
     if (m_N == 0)
         {
@@ -1104,6 +1122,12 @@ void mpcd::ParticleData::addParticlesGPU(const GPUVector<mpcd::detail::pdata_ele
                                          unsigned int mask,
                                          unsigned int timestep)
     {
+    if (m_N_virtual > 0)
+        {
+        m_exec_conf->msg->error() << "MPCD particles cannot be added with virtual particles set." << std::endl;
+        throw std::runtime_error("MPCD particles cannot be added with virtual particles set");
+        }
+
     unsigned int old_nparticles = m_N;
     unsigned int num_add_ptls = in.size();
     unsigned int new_nparticles = old_nparticles + num_add_ptls;

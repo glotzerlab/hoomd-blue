@@ -197,11 +197,6 @@ void mpcd::Communicator::communicate(unsigned int timestep)
         }
     if (migrate)
         {
-        if (m_mpcd_pdata->getNVirtual() > 0)
-            {
-            m_exec_conf->msg->warning() << "MPCD communication with virtual particles set is not supported, removing them." << std::endl;
-            m_mpcd_pdata->removeVirtualParticles();
-            }
         migrateParticles(timestep);
         m_force_migrate = false;
         }
@@ -246,6 +241,12 @@ class MigratePartitionOp
 void mpcd::Communicator::migrateParticles(unsigned int timestep)
     {
     if (m_prof) m_prof->push("migrate");
+
+    if (m_mpcd_pdata->getNVirtual() > 0)
+        {
+        m_exec_conf->msg->warning() << "MPCD communication with virtual particles set is not supported, removing them." << std::endl;
+        m_mpcd_pdata->removeVirtualParticles();
+        }
 
     // determine local particles that are to be sent to neighboring processors
     const BoxDim& box = m_mpcd_sys->getCellList()->getCoverageBox();
