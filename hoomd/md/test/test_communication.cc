@@ -409,6 +409,28 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
 
     pdata->initializeFromSnapshot(snap);
 
+        // store some test data
+        {
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(pdata->getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(pdata->getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(pdata->getNetVirial(), access_location::host, access_mode::readwrite);
+
+        unsigned int net_virial_pitch = pdata->getNetVirial().getPitch();
+
+        for (unsigned int i = 0; i < 8; ++i)
+            {
+            unsigned int idx = h_rtag.data[i];
+            if (idx != NOT_LOCAL)
+                {
+                h_net_force.data[idx] = make_scalar4(i*1.1,i*2.2,i*3.3,i*4.4);
+                h_net_torque.data[idx] = make_scalar4(i*9.9,i*8.8,i*7.7,i*6.6);
+                for (unsigned int j = 0; j < 6; ++j)
+                    h_net_virial.data[j*net_virial_pitch+idx] = i*1.23+j;
+                }
+            }
+        }
+
     // migrate atoms
     comm->migrateParticles();
 
@@ -524,6 +546,35 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     pdata->setPosition(6, TO_TRICLINIC(make_scalar3(1.3, 0.1, 1.05)),false);
     // particle 7 crosses the global boundary in the - z direction
     pdata->setPosition(7, TO_TRICLINIC(make_scalar3(-0.6, -0.1,- 1.5)),false);
+
+    // check that the particle data is still there
+        {
+        ArrayHandle<unsigned int> h_rtag(pdata->getRTags(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_net_force(pdata->getNetForce(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_net_torque(pdata->getNetTorqueArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_net_virial(pdata->getNetVirial(), access_location::host, access_mode::read);
+
+        unsigned int net_virial_pitch = pdata->getNetVirial().getPitch();
+
+        for (unsigned int i = 0; i < 8; ++i)
+            {
+            unsigned int idx = h_rtag.data[i];
+            if (idx != NOT_LOCAL)
+                {
+                CHECK_CLOSE(h_net_force.data[idx].x,i*1.1,tol);
+                CHECK_CLOSE(h_net_force.data[idx].y,i*2.2,tol);
+                CHECK_CLOSE(h_net_force.data[idx].z,i*3.3,tol);
+                CHECK_CLOSE(h_net_force.data[idx].w,i*4.4,tol);
+                CHECK_CLOSE(h_net_torque.data[idx].x,i*9.9,tol);
+                CHECK_CLOSE(h_net_torque.data[idx].y,i*8.8,tol);
+                CHECK_CLOSE(h_net_torque.data[idx].z,i*7.7,tol);
+                CHECK_CLOSE(h_net_torque.data[idx].w,i*6.6,tol);
+                for (unsigned int j = 0; j < 6; ++j)
+                    CHECK_CLOSE(h_net_virial.data[j*net_virial_pitch+idx], i*1.23+j,tol);
+                }
+            }
+        }
+
 
     // migrate particles
     comm->migrateParticles();
