@@ -218,6 +218,9 @@ struct pdata_element
     Scalar4 angmom;            //!< Angular momentum
     Scalar3 inertia;           //!< Principal moments of inertia
     unsigned int tag;          //!< global tag
+    Scalar4 net_force;         //!< net force
+    Scalar4 net_torque;        //!< net torque
+    Scalar net_virial[6];      //!< net virial
     };
 
 //! Manages all of the data arrays for the particles
