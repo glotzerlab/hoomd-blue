@@ -144,6 +144,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Get the maximum particle diameter
         virtual Scalar getMaxCoreDiameter();
 
+        //! Get the minimum particle diameter
+        virtual OverlapReal getMinCoreDiameter();
+
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
 
@@ -523,7 +526,14 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // check for overlaps with neighboring particle's positions (also calculate the new energy)
             bool overlap=false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            OverlapReal r_patch = 0;
+            if (m_patch)
+            {
+              r_patch = m_patch->getRCut();
+            }
+
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_patch - getMinCoreDiameter()/OverlapReal(2.0)));
+            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
             double external_energy = 0;
             double patch_energy = 0;
             double e_new = 0;
@@ -685,7 +695,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             }
             if (m_patch)
             {
-              patch_energy = e_new - e_old;
+              patch_energy = e_old - e_new;
             }
 
             double total_energy = patch_energy + external_energy;
@@ -938,6 +948,20 @@ Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
 
     return maxD;
     }
+
+template <class Shape>
+OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
+    {
+    // for each type, create a temporary shape and return the minimum diameter
+    OverlapReal minD = OverlapReal(0.0);
+    for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+        {
+        Shape temp(quat<Scalar>(), m_params[typ]);
+        minD = std::min(minD, temp.getCircumsphereDiameter());
+        }
+
+        return minD;
+        }
 
 template <class Shape>
 void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param)

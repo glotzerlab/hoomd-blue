@@ -21,8 +21,6 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
 
-#define INFINITY std::numeric_limits<double>::infinity()
-
 namespace hpmc
 {
 struct SphereWall
@@ -643,9 +641,9 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             this->m_exec_conf->msg->error() << "compute.wall: " << quantity << " is not a valid log quantity." << std::endl;
             throw std::runtime_error("Error getting log value");
             }
-        
-        bool wall_overlap(const unsigned int& index, const vec3<Scalar>& position_old, 
-			  const Shape& shape_old, const vec3<Scalar>& position_new, 
+
+        bool wall_overlap(const unsigned int& index, const vec3<Scalar>& position_old,
+			  const Shape& shape_old, const vec3<Scalar>& position_new,
 			  const Shape& shape_new)
 	  {
 	      double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
@@ -673,7 +671,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
                 int typ_i = __scalar_as_int(postype_i.w);
                 Shape shape_i(quat<Scalar>(orientation_i), params[typ_i]);
-                
+
                 //numOverlaps += (unsigned int) (1 - int(fast::exp(energydiff(i, pos_i, shape_i, pos_i, shape_i))));
                 if (wall_overlap(i, pos_i, shape_i, pos_i, shape_i)) { numOverlaps++; } ;
 
