@@ -151,6 +151,13 @@ void NeighborListTree::updateImageVectors()
     if (m_diameter_shift)
         rmax += m_d_max - Scalar(1.0);
 
+    if (m_filter_body)
+        {
+        // add the maximum diameter of all composite particles
+        Scalar max_d_comp = m_pdata->getMaxCompositeParticleDiameter();
+        rmax += 0.5*max_d_comp;
+        }
+
     if ((periodic.x && nearest_plane_distance.x <= rmax * 2.0) ||
         (periodic.y && nearest_plane_distance.y <= rmax * 2.0) ||
         (sys3d && periodic.z && nearest_plane_distance.z <= rmax * 2.0))
@@ -213,11 +220,44 @@ void NeighborListTree::buildTree()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<AABB> h_aabbs(m_aabbs, access_location::host, access_mode::readwrite);
 
+    const BoxDim& box = m_pdata->getBox();
+    Scalar ghost_layer_width(0.0);
+    #ifdef ENABLE_MPI
+    if (m_comm) ghost_layer_width = m_comm->getGhostLayerMaxWidth();
+    #endif
+
+    Scalar3 ghost_width = make_scalar3(0.0, 0.0, 0.0);
+    if (!box.getPeriodic().x) ghost_width.x = ghost_layer_width;
+    if (!box.getPeriodic().y) ghost_width.y = ghost_layer_width;
+    if (this->m_sysdef->getNDimensions() == 3 && !box.getPeriodic().z)
+        {
+        ghost_width.z = ghost_layer_width;
+        }
+
     // construct a point AABB for each particle owned by this rank, and push it into the right spot in the AABB list
     for (unsigned int i=0; i < m_pdata->getN()+m_pdata->getNGhosts(); ++i)
         {
         // make a point particle AABB
         vec3<Scalar> my_pos(h_postype.data[i]);
+
+        /* check if the particle is inside the unit cell + ghost layer in all dimensions
+         *
+         * This is not strictly necessary for building the tree, but the tree traversal
+         * may get stuck when particles are far outside the box
+         */
+        Scalar3 f = box.makeFraction(vec_to_scalar3(my_pos),ghost_width);
+        if (((f.x < Scalar(-0.00001) || f.x >= Scalar(1.00001)) ||
+            (f.y < Scalar(-0.00001) || f.y >= Scalar(1.00001)) ||
+            (f.z < Scalar(-0.00001) || f.z >= Scalar(1.00001))) && i < m_pdata->getN())
+            {
+            ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+            m_exec_conf->msg->error() << "nlist.tree(): Particle " << h_tag.data[i] << " is out of bounds "
+                                      << "(x: " << my_pos.x << ", y: " << my_pos.y << ", z: " << my_pos.z
+                                      << ", fx: "<< f.x <<", fy: "<<f.y<<", fz:"<<f.z<<")"<<endl;
+            throw runtime_error("Error updating neighborlist");
+            return;
+            }
+
         unsigned int my_type = __scalar_as_int(h_postype.data[i].w);
         unsigned int my_aabb_idx = m_type_head[my_type] + m_map_pid_tree[i];
         h_aabbs.data[my_aabb_idx] = AABB(my_pos,i);

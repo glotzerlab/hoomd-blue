@@ -110,6 +110,9 @@ class System
         //! Adds a Compute
         void addCompute(std::shared_ptr<Compute> compute, const std::string& name);
 
+        //! Overwrites a Compute
+        void overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name);
+
         //! Removes a Compute
         void removeCompute(const std::string& name);
 

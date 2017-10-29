@@ -453,6 +453,8 @@ class wall(_updater):
             cls = _hpmc.UpdaterExternalFieldWallSphere;
         elif isinstance(mc, integrate.convex_polyhedron):
             cls = _hpmc.UpdaterExternalFieldWallConvexPolyhedron;
+        elif isinstance(mc, integrate.convex_spheropolyhedron):
+            cls = _hpmc.UpdaterExternalFieldWallSpheropolyhedron;
         else:
             hoomd.context.msg.error("update.wall: Unsupported integrator.\n");
             raise RuntimeError("Error initializing update.wall");
@@ -582,6 +584,8 @@ class muvt(_updater):
                 cls =_hpmc.UpdaterMuVTImplicitFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.UpdaterMuVTImplicitSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.UpdaterMuVTImplicitConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTImplicitPolyhedron;
             else:
@@ -606,6 +610,8 @@ class muvt(_updater):
                 cls =_hpmc.UpdaterMuVTFacetedSphere;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.UpdaterMuVTSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.UpdaterMuVTConvexPolyhedronUnion;
             elif isinstance(mc, integrate.polyhedron):
                 cls =_hpmc.UpdaterMuVTPolyhedron;
             else:
@@ -758,6 +764,8 @@ class remove_drift(_updater):
                 cls =_hpmc.RemoveDriftUpdaterSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.RemoveDriftUpdaterSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.RemoveDriftUpdaterConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("update.remove_drift: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing update.remove_drift");

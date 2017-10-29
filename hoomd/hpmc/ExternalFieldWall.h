@@ -216,6 +216,64 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
     return accept;
     }
 
+// Spherical Walls and Convex Spheropolyhedra
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+    {
+    bool accept = true;
+    Scalar3 t = vec_to_scalar3(position - box_origin);
+    t.x  = t.x - wall.origin.x;
+    t.y  = t.y - wall.origin.y;
+    t.z  = t.z - wall.origin.z;
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
+
+    OverlapReal rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
+    OverlapReal max_dist = (sqrt(rxyz_sq) + shape.getCircumsphereDiameter()/OverlapReal(2.0));
+    if (!wall.inside)
+      {
+      // if we must be outside the wall, subtract particle radius from min_dist
+      max_dist = sqrt(rxyz_sq) - (shape.getCircumsphereDiameter()/OverlapReal(2.0));
+      // if the particle radius is larger than the distance between the particle
+      // and the container, however, then ALWAYS check verts. this is equivalent
+      // to two particle circumspheres overlapping.
+      if (max_dist < 0)
+        {
+        max_dist = OverlapReal(0);
+        }
+      }
+
+    bool check_verts = wall.inside ? (wall.rsq <= max_dist*max_dist) : (wall.rsq >= max_dist*max_dist); // condition to check vertices, dependent on inside or outside container
+
+
+    if (check_verts)
+        {
+        if(wall.inside)
+            {
+            for(size_t v = 0; v < shape.verts.N && accept; v++)
+                {
+                vec3<OverlapReal> pos(shape.verts.x[v], shape.verts.y[v], shape.verts.z[v]);
+                vec3<OverlapReal> rotated_pos = rotate(quat<OverlapReal>(shape.orientation), pos);
+                rotated_pos += shifted_pos;
+                rxyz_sq = rotated_pos.x*rotated_pos.x + rotated_pos.y*rotated_pos.y + rotated_pos.z*rotated_pos.z;
+                OverlapReal tot_rxyz = sqrt(rxyz_sq) + shape.verts.sweep_radius;
+                OverlapReal tot_rxyz_sq = tot_rxyz*tot_rxyz;
+                accept = wall.inside ? (wall.rsq > tot_rxyz_sq) : (wall.rsq < tot_rxyz_sq);
+                }
+            }
+        else
+            {
+            // build a sphero-polyhedron and for the wall and the convex polyhedron
+
+            quat<OverlapReal> q; // default is (1, 0, 0, 0)
+            unsigned int err = 0;
+            ShapeSpheropolyhedron wall_shape(q, *wall.verts);
+            ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
+
+            accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
+            }
+        }
+    return accept;
+    }
+
 // Cylindrical Walls and Spheres
 template < >
 DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& wall, const ShapeSphere& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
@@ -740,7 +798,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
         Scalar                      m_Volume;
     private:
         std::shared_ptr<IntegratorHPMCMono<Shape> > m_mc; //!< integrator
-        BoxDim                                        m_box; //!< the current box
+        BoxDim                                      m_box; //!< the current box
     };
 
 

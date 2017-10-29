@@ -71,6 +71,8 @@ class free_volume(_compute):
                 cls =_hpmc.ComputeFreeVolumePolyhedron;
             elif isinstance(mc, integrate.sphinx):
                 cls =_hpmc.ComputeFreeVolumeSphinx;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.ComputeFreeVolumeConvexPolyhedronUnion
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeSphereUnion;
             else:
@@ -99,6 +101,8 @@ class free_volume(_compute):
                 cls =_hpmc.ComputeFreeVolumeGPUSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ComputeFreeVolumeGPUSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.ComputeFreeVolumeGPUConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.free_volume: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.free_volume");

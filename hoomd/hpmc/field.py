@@ -101,6 +101,8 @@ class lattice_field(_external):
                 cls =_hpmc.ExternalFieldLatticeSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ExternalFieldLatticeSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.ExternalFieldLatticeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
@@ -266,6 +268,8 @@ class external_field_composite(_external):
                 cls =_hpmc.ExternalFieldCompositeSphinx;
             elif isinstance(mc, integrate.sphere_union):
                 cls = _hpmc.ExternalFieldCompositeSphereUnion;
+            elif isinstance(mc, integrate.convex_polyhedron_union):
+                cls = _hpmc.ExternalFieldCompositeConvexPolyhedronUnion;
             else:
                 hoomd.context.msg.error("compute.position_lattice_field: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.position_lattice_field");
@@ -316,6 +320,12 @@ class wall(_external):
     to add a new spherical wall, :py:meth:`add_cylinder_wall` to add a new cylindrical wall, or
     :py:meth:`add_plane_wall` to add a new plane wall.
 
+    Specialized overlap checks have been written for supported combinations of wall types and particle shapes.
+    These combinations are:
+    * Sphere particles: sphere walls, cylinder walls, plane walls
+    * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
+    * Convex spheropolyhedron particles: sphere walls
+
     Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
 
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
@@ -350,6 +360,8 @@ class wall(_external):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
                 cls = _hpmc.WallConvexPolyhedron;
+            elif isinstance(mc, integrate.convex_spheropolyhedron):
+                cls = _hpmc.WallSpheropolyhedron;
             else:
                 hoomd.context.msg.error("compute.wall: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.wall");

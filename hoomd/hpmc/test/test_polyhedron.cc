@@ -374,6 +374,11 @@ UP_TEST( overlap_octahedron_sphere )
 
     // build an octahedron
     poly3d_data data_a(6,8,24,6,false);
+
+    memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*6);
+    memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*9);
+    memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int)*24);
+
     data_a.sweep_radius=data_a.convex_hull_verts.sweep_radius=0.0f;
 
     data_a.verts[0] = vec3<OverlapReal>(-0.5,-0.5,0);
@@ -404,6 +409,11 @@ UP_TEST( overlap_octahedron_sphere )
     initialize_convex_hull(data_a);
 
     poly3d_data data_b(1,1,1,1,false);
+
+    memset((void *)&data_a.verts[0], 0, sizeof(vec3<OverlapReal>)*1);
+    memset((void*)&data_a.face_offs[0], 0, sizeof(unsigned int)*1);
+    memset((void*)&data_a.face_verts[0], 0, sizeof(unsigned int)*1);
+
     data_b.sweep_radius=data_b.convex_hull_verts.sweep_radius=0.5f;
     data_b.verts[0] = vec3<OverlapReal>(0,0,0);
     data_b.face_offs[0] = 0;

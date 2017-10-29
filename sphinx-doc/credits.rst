@@ -274,6 +274,9 @@ Paul Dodd, Erin Teich, University of Michigan
  * Wall overlap checks
  * Lattice external potential
 
+ Erin Teich, University of Michigan
+ * Convex polyhedron union particle type
+
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
