@@ -2455,6 +2455,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(getNetVirial(), access_location::host, access_mode::readwrite);
+
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
 
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::read);
@@ -2471,10 +2475,14 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
         ArrayHandle<Scalar4> h_orientation_alt(m_orientation_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar4> h_angmom_alt(m_angmom_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<Scalar3> h_inertia_alt(m_inertia_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_force_alt(m_net_force_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_net_torque_alt(m_net_torque_alt, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_net_virial_alt(m_net_virial_alt, access_location::host, access_mode::overwrite);
         ArrayHandle<unsigned int> h_tag_alt(m_tag_alt, access_location::host, access_mode::overwrite);
 
         unsigned int n =0;
         unsigned int m = 0;
+        unsigned int net_virial_pitch = m_net_virial.getPitch();
         for (unsigned int i = 0; i < old_nparticles; ++i)
             {
             unsigned int tag = h_tag.data[i];
@@ -2491,6 +2499,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
                 h_orientation_alt.data[n] = h_orientation.data[i];
                 h_angmom_alt.data[n] = h_angmom.data[i];
                 h_inertia_alt.data[n] = h_inertia.data[i];
+                h_net_force_alt.data[n] = h_net_force.data[i];
+                h_net_torque_alt.data[n] = h_net_torque.data[i];
+                for (unsigned int j = 0; j < 6; ++j)
+                    h_net_virial_alt.data[net_virial_pitch*j+n] = h_net_virial.data[net_virial_pitch*j+i];
                 h_tag_alt.data[n] = h_tag.data[i];
                 ++n;
                 }
@@ -2508,6 +2520,10 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
                 p.orientation = h_orientation.data[i];
                 p.angmom = h_angmom.data[i];
                 p.inertia = h_inertia.data[i];
+                p.net_force = h_net_force.data[i];
+                p.net_torque = h_net_torque.data[i];
+                for (unsigned int j = 0; j < 6; ++j)
+                    p.net_virial[j] = h_net_virial.data[net_virial_pitch*j+i];
                 p.tag = h_tag.data[i];
                 out[m++] = p;
                 }
@@ -2532,6 +2548,9 @@ void ParticleData::removeParticles(std::vector<pdata_element>& out, std::vector<
     swapOrientations();
     swapAngularMomenta();
     swapMomentsOfInertia();
+    swapNetForce();
+    swapNetTorque();
+    swapNetVirial();
     swapTags();
 
         {
@@ -2579,10 +2598,14 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
         ArrayHandle<Scalar4> h_orientation(getOrientationArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_angmom(getAngularMomentumArray(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar3> h_inertia(getMomentsOfInertiaArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_force(getNetForce(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_net_torque(getNetTorqueArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_net_virial(getNetVirial(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_tag(getTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_rtag(getRTags(), access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_comm_flags(m_comm_flags, access_location::host, access_mode::readwrite);
 
+        unsigned int net_virial_pitch = m_net_virial.getPitch();
         // add new particles at the end
         unsigned int n = old_nparticles;
         for (std::vector<pdata_element>::const_iterator it = in.begin(); it != in.end(); ++it)
@@ -2598,6 +2621,10 @@ void ParticleData::addParticles(const std::vector<pdata_element>& in)
             h_orientation.data[n] = p.orientation;
             h_angmom.data[n] = p.angmom;
             h_inertia.data[n] = p.inertia;
+            h_net_force.data[n] = p.net_force;
+            h_net_torque.data[n] = p.net_torque;
+            for (unsigned int j = 0; j < 6; ++j)
+                h_net_virial.data[net_virial_pitch*j+n] = p.net_virial[j];
             h_tag.data[n] = p.tag;
             n++;
             }
@@ -2664,6 +2691,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_inertia(getMomentsOfInertiaArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_force(getNetForce(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar4> d_net_torque(getNetTorqueArray(), access_location::device, access_mode::read);
+        ArrayHandle<Scalar> d_net_virial(getNetVirial(), access_location::device, access_mode::read);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::read);
 
         // access alternate particle data arrays to write to
@@ -2677,6 +2707,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
         ArrayHandle<Scalar4> d_orientation_alt(m_orientation_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_angmom_alt(m_angmom_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar3> d_inertia_alt(m_inertia_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_force_alt(m_net_force_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar4> d_net_torque_alt(m_net_torque_alt, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_net_virial_alt(m_net_virial_alt, access_location::device, access_mode::overwrite);
         ArrayHandle<unsigned int> d_tag_alt(m_tag_alt, access_location::device, access_mode::overwrite);
 
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2703,6 +2736,10 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_orientation.data,
                            d_angmom.data,
                            d_inertia.data,
+                           d_net_force.data,
+                           d_net_torque.data,
+                           d_net_virial.data,
+                           getNetVirial().getPitch(),
                            d_tag.data,
                            d_rtag.data,
                            d_pos_alt.data,
@@ -2715,6 +2752,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
                            d_orientation_alt.data,
                            d_angmom_alt.data,
                            d_inertia_alt.data,
+                           d_net_force_alt.data,
+                           d_net_torque_alt.data,
+                           d_net_virial_alt.data,
                            d_tag_alt.data,
                            d_out.data,
                            d_comm_flags.data,
@@ -2750,6 +2790,9 @@ void ParticleData::removeParticlesGPU(GPUVector<pdata_element>& out, GPUVector<u
     swapOrientations();
     swapAngularMomenta();
     swapMomentsOfInertia();
+    swapNetForce();
+    swapNetTorque();
+    swapNetVirial();
     swapTags();
 
     // notify subscribers
@@ -2782,6 +2825,9 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
         ArrayHandle<Scalar4> d_orientation(getOrientationArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar4> d_angmom(getAngularMomentumArray(), access_location::device, access_mode::readwrite);
         ArrayHandle<Scalar3> d_inertia(getMomentsOfInertiaArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_force(getNetForce(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar4> d_net_torque(getNetTorqueArray(), access_location::device, access_mode::readwrite);
+        ArrayHandle<Scalar> d_net_virial(getNetVirial(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_tag(getTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_rtag(getRTags(), access_location::device, access_mode::readwrite);
         ArrayHandle<unsigned int> d_comm_flags(getCommFlags(), access_location::device, access_mode::readwrite);
@@ -2803,6 +2849,10 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
             d_orientation.data,
             d_angmom.data,
             d_inertia.data,
+            d_net_force.data,
+            d_net_torque.data,
+            d_net_virial.data,
+            getNetVirial().getPitch(),
             d_tag.data,
             d_rtag.data,
             d_in.data,

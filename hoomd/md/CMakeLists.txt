@@ -46,6 +46,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
+                AllSpecialPairPotentials.h
                 AllTripletPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
@@ -128,6 +129,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialPairGPU.h
 		PotentialPairGPU.cuh
                 PotentialPair.h
+                PotentialSpecialPairGPU.h
+                PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
