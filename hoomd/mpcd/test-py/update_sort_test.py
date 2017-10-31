@@ -53,6 +53,10 @@ class mpcd_update_sort_test(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             mpcd.update.sort(self.s)
 
+    def test_tune(self):
+        self.s.sorter.tune(start=5, stop=10, step=2, tsteps=1)
+        self.s.sorter.tune(start=5, stop=7, step=5, tsteps=2, quiet=True)
+
     def tearDown(self):
         del self.s
 
