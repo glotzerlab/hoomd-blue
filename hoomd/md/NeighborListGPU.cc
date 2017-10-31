@@ -105,8 +105,6 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    if (m_prof) m_prof->pop(m_exec_conf);
-
     bool result = m_flags.readFlags() == m_checkn;
 
     #ifdef ENABLE_MPI
@@ -126,6 +124,8 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
         if (m_prof) m_prof->pop();
         }
     #endif
+
+    if (m_prof) m_prof->pop(m_exec_conf);
 
     return result;
     }
