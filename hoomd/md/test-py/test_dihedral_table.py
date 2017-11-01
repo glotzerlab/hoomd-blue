@@ -96,6 +96,17 @@ class dihedral_table_tests (unittest.TestCase):
         md.integrate.nve(all);
         run(100);
 
+        v = harmonic.cpp_force.getEntry(0,0)
+        numpy.testing.assert_allclose([2.0, -1.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,1)
+        numpy.testing.assert_allclose([3.0, -2.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,2)
+        numpy.testing.assert_allclose([4.0, -3.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,3)
+        numpy.testing.assert_allclose([5.0, -4.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,4)
+        numpy.testing.assert_allclose([6.0, -5.0], [v.x, v.y])
+
     def tearDown(self):
         del self.sys
         context.initialize();
