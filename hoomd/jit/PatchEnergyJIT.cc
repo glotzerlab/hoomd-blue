@@ -12,14 +12,20 @@
 
 #include <sstream>
 
+#define PATCH_ENERGY_LOG_NAME           "patch_energy"
+#define PATCH_ENERGY_RCUT               "patch_energy_rcut"
 /*! \param exec_conf The execution configuration (used for messages and MPI communication)
     \param fname File name of the LLVM IR to load
     \param r_cut Center to center distance beyond which the patch energy is 0
 
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
-PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut)
+PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut), m_PatchEnergy(0.0)
     {
+
+    m_PatchProvidedQuantities.push_back(PATCH_ENERGY_LOG_NAME);
+    m_PatchProvidedQuantities.push_back(PATCH_ENERGY_RCUT);
+
     // initialize LLVM
     std::ostringstream sstream;
     llvm::raw_os_ostream llvm_err(sstream);
@@ -92,7 +98,11 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
 
     m_eval = llvm::fromTargetAddress<EvalFnPtr>(eval.getAddress());
     llvm_err.flush();
+
     }
+
+
+
 
 void export_PatchEnergyJIT(pybind11::module &m)
     {

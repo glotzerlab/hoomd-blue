@@ -120,6 +120,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
     {
     public:
         //! Param type from the shape
+        //! Each shape has a param_type member that contain
+        //! shape-specific descriptors(radius, vertices, etc)
         typedef typename Shape::param_type param_type;
 
         //! Constructor
@@ -462,6 +464,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         m_external->compute(timestep);
         }
+    if( m_patch )
+        {
+        m_patch->compute(timestep);
+        }
 
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
@@ -483,9 +489,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             unsigned int i = m_update_order[cur_particle];
 
             // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
+            Scalar4 postype_i = h_postype.data[i]; // first 3 scalars are the x,y,z coordinates, 4th is the type(w)
             Scalar4 orientation_i = h_orientation.data[i];
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i); // convert position to vector, drops w component
 
             #ifdef ENABLE_MPI
             if (m_comm)
@@ -498,11 +504,12 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // make a trial move for i
             hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
-            int typ_i = __scalar_as_int(postype_i.w);
+            int typ_i = __scalar_as_int(postype_i.w); // get type as int
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
+            // m_params is a vector of param_type types
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
 
@@ -526,13 +533,14 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // check for overlaps with neighboring particle's positions (also calculate the new energy)
             bool overlap=false;
-            OverlapReal r_patch = 0;
+            OverlapReal r_cut_patch = 0;
+
             if (m_patch)
             {
-              r_patch = m_patch->getRCut();
+              r_cut_patch = m_patch->getRCut();
             }
 
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_patch - getMinCoreDiameter()/OverlapReal(2.0)));
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_cut_patch - getMinCoreDiameter()/OverlapReal(2.0)));
             detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
             double external_energy = 0;
             double patch_energy = 0;
@@ -598,12 +606,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-
-                                // here we calculate the new energy
-                                if (m_patch)
-                                {
-                                e_new += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
-                                }
+                                else if (m_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                    {
+                                    e_new += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+                                    }
                               }
                             }
                         }
@@ -623,71 +629,69 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // All image boxes (including the primary) (calculate the old energy)
             // const unsignedmake  int n_images = m_image_list.size();
-            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                {
-                vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
-                detail::AABB aabb = aabb_i_local;
-                aabb.translate(pos_i_image);
+            if (m_patch)
+            {
+              for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                  {
+                  vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
+                  detail::AABB aabb = aabb_i_local;
+                  aabb.translate(pos_i_image);
 
-                // stackless search
-                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
-                    {
-                    if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                        {
-                        if (m_aabb_tree.isNodeLeaf(cur_node_idx))
-                            {
-                            for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                                {
-                                // read in its position and orientation
-                                unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+                  // stackless search
+                  for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                      {
+                      if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                          {
+                          if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                              {
+                              for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                  {
+                                  // read in its position and orientation
+                                  unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
-                                Scalar4 postype_j;
-                                Scalar4 orientation_j;
+                                  Scalar4 postype_j;
+                                  Scalar4 orientation_j;
 
-                                // handle j==i situations
-                                if ( j != i )
-                                    {
-                                    // load the position and orientation of the j particle
-                                    postype_j = h_postype.data[j];
-                                    orientation_j = h_orientation.data[j];
-                                    }
-                                else
-                                    {
-                                    if (cur_image == 0)
-                                        {
-                                        // in the first image, skip i == j
-                                        continue;
-                                        }
-                                    else
-                                        {
-                                        // If this is particle i and we are in an outside image, use the translated position and orientation
-                                        postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
-                                        orientation_j = quat_to_scalar4(shape_old.orientation);
-                                        }
-                                    }
+                                  // handle j==i situations
+                                  if ( j != i )
+                                      {
+                                      // load the position and orientation of the j particle
+                                      postype_j = h_postype.data[j];
+                                      orientation_j = h_orientation.data[j];
+                                      }
+                                  else
+                                      {
+                                      if (cur_image == 0)
+                                          {
+                                          // in the first image, skip i == j
+                                          continue;
+                                          }
+                                      else
+                                          {
+                                          // If this is particle i and we are in an outside image, use the translated position and orientation
+                                          postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                          orientation_j = quat_to_scalar4(shape_old.orientation);
+                                          }
+                                      }
 
-                                // put particles in coordinate system of particle i
-                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                  // put particles in coordinate system of particle i
+                                  vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
-                                unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                                  unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                  Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                                // here we calculate the old energy
-                                if (m_patch)
-                                {
-                                e_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
+                                  e_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
                                 }
                               }
-                            }
-                        }
-                    else
-                        {
-                        // skip ahead
-                        cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
-                        }
-                    }  // end loop over AABB nodes
-                } // end loop over images
-
+                          }
+                      else
+                          {
+                          // skip ahead
+                          cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                          }
+                      }  // end loop over AABB nodes
+                  } // end loop over images
+            }
             // calculate energetic contributions
             if (m_external)
             {

@@ -136,8 +136,10 @@ float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i,
 
         # TODO: add MPI support - read code.ll on the root rank and broadcast to all others, modify the C++ code
         # to take LLVM IR in a string rather than a file
-
+        #cls = _hpmc.ExternalFieldLatticeSphere;
+        self.compute_name = "patch"
         self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir_file, r_cut);
+        #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
 
         if dirpath is not None:

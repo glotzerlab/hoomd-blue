@@ -8,6 +8,9 @@
 
 #include "OrcLazyJIT.h"
 
+#define PATCH_ENERGY_LOG_NAME           "patch_energy"
+#define PATCH_ENERGY_RCUT               "patch_energy_rcut"
+
 //! Evaluate patch energies via runtime generated code
 /*! This class enables the widest possible use-cases of patch energies in HPMC with low energy barriers for users to add
     custom interactions that execute with high performance. It provides a generic interface for returning the energy of
@@ -56,13 +59,36 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, type_j, q_j);
             }
 
+        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        {
+          if ( quantity == PATCH_ENERGY_LOG_NAME )
+              {
+                return m_PatchEnergy;
+              }
+          else if ( quantity == PATCH_ENERGY_RCUT )
+              {
+              return m_r_cut;
+              }
+          else
+              {
+              //exec_conf->msg->error() << "patch: " << quantity << " is not a valid log quantity" << std::endl;
+              throw std::runtime_error("Error getting log value");
+              }
+        }
+
+      std::vector< std::string > getProvidedLogQuantities()
+      {
+        return m_PatchProvidedQuantities;
+      }
+
     private:
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
-
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<llvm::OrcLazyJIT> m_JIT;    //!< JIT execution engine
         EvalFnPtr m_eval;                           //!< Pointer to evaluator function inside the JIT module
+        Scalar m_PatchEnergy;                       //!< patch energy
+        std::vector<std::string>  m_PatchProvidedQuantities; //!< available 
     };
 
 //! Exports the PatchEnergyJIT class to python
