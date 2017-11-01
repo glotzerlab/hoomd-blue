@@ -464,7 +464,6 @@ class table(force._force):
             if math.fabs(theta - theta_table[i]) > 1e-3:
                 hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi\n");
                 hoomd.context.msg.error("row: " + str(i) + " expected: " + str(theta) + " got: " + str(theta_table[i]) + "\n");
-                raise RuntimeError("Error reading table file");
 
         hoomd.util.quiet_status();
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))
