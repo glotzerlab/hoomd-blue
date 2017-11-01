@@ -286,8 +286,8 @@ class harmonic(force._force):
         return data
 
 def _table_eval(theta, V, T, width):
-      dth = (math.pi) / float(width-1);
-      i = int(round((theta)/dth))
+      dth = (2*math.pi) / float(width-1);
+      i = int(round((theta+math.pi)/dth))
       return (V[i], T[i])
 
 class table(force._force):
