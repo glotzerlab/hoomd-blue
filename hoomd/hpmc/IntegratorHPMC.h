@@ -37,7 +37,7 @@ namespace hpmc
 class PatchEnergy
 {
   public:
-  PatchEnergy(){};
+  PatchEnergy(){this->m_PatchEnergy=0.0;};
 
   virtual Scalar getRCut()
   {
@@ -51,11 +51,12 @@ class PatchEnergy
 
   virtual std::vector< std::string > getProvidedLogQuantities(){}
 
-  virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep){}
+  virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
 
   //! needed for Compute. currently not used.
-  virtual void compute(unsigned int timestep) {}
+  virtual void compute(unsigned int timestep){}
 
+  double m_PatchEnergy;
   //private:
   //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
 

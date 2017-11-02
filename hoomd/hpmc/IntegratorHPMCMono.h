@@ -538,6 +538,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             if (m_patch)
             {
               r_cut_patch = m_patch->getRCut();
+              m_patch->m_PatchEnergy = 0.0;
             }
 
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_cut_patch - getMinCoreDiameter()/OverlapReal(2.0)));
@@ -721,6 +722,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // if the move is accepted
             if (!overlap && !reject_energy)
                 {
+                if (m_patch) {m_patch->m_PatchEnergy+=e_new;};
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
                   {
@@ -745,6 +747,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             else
                 {
+                if (m_patch) {m_patch->m_PatchEnergy+=e_old;};
+
                 if (!shape_i.ignoreStatistics())
                     {
                     // increment reject counter
@@ -797,6 +801,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         }
     #endif
 
+    if (m_patch) {std::cout << m_patch->m_PatchEnergy << std::endl;};
+    
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     // migrate and exchange particles
