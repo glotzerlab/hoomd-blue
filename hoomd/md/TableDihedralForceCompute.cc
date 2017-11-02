@@ -358,5 +358,6 @@ void export_TableDihedralForceCompute(py::module& m)
     py::class_<TableDihedralForceCompute, std::shared_ptr<TableDihedralForceCompute> >(m, "TableDihedralForceCompute", py::base<ForceCompute>())
     .def(py::init< std::shared_ptr<SystemDefinition>, unsigned int, const std::string& >())
     .def("setTable", &TableDihedralForceCompute::setTable)
+    .def("getEntry", &TableDihedralForceCompute::getEntry)
     ;
     }
