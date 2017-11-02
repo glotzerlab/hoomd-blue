@@ -150,7 +150,7 @@ class ManagedArray
 
             // align ptr to size of data type
             unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
-            char *ptr_align = (char *)((unsigned long int)(ptr + max_align_bytes) & ~((unsigned long int) max_align_bytes));
+            char *ptr_align = (char *)(((unsigned long int)ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
                 return;
@@ -174,7 +174,7 @@ class ManagedArray
             // redirect data ptr
             if (tidx == 0)
                 {
-                data = (T *) ptr;
+                data = (T *) ptr_align;
                 }
 
             __syncthreads();
