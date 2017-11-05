@@ -197,7 +197,7 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=10))
+        snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=20))
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.orientation[0] = (1,0,0,0)
