@@ -895,11 +895,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
     #endif
 
     // compare values
-    if (m_patch)
-    {
-      //std::cout << m_patch->m_PatchEnergy << std::endl;
-      std::cout << computePatchEnergy() << std::endl;
-    };
+    // if (m_patch)
+    // {
+    //   //std::cout << m_patch->m_PatchEnergy << std::endl;
+    //   std::cout << computePatchEnergy() << std::endl;
+    // };
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
