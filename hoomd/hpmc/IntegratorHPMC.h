@@ -56,6 +56,11 @@ class PatchEnergy
   //! needed for Compute. currently not used.
   virtual void compute(unsigned int timestep){}
 
+  // virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientation)
+  // {
+  //   return 0.0;
+  // }
+
   double m_PatchEnergy;
   //private:
   //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
@@ -279,6 +284,8 @@ class IntegratorHPMC : public Integrator
         virtual void slotNumTypesChange();
 
         ExternalField* getExternalField() { return m_external_base; }
+
+        PatchEnergy* getPatchInteraction() { return m_patch_base; }
 
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};

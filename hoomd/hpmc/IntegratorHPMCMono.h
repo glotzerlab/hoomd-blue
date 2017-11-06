@@ -28,7 +28,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include "ShapeSphere.h"
+//#include "ShapeSphere.h"
 
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
@@ -168,6 +168,15 @@ class IntegratorHPMCMono : public IntegratorHPMC
             m_patch = patch;
             this->m_patch_base = (PatchEnergy*)patch.get();
             }
+
+        //! Compute potential energy when there is a patch interaction
+        double computePatchEnergy();
+
+        //! Get a list of logged quantities
+        virtual std::vector< std::string > getProvidedLogQuantities();
+
+        //! Get the value of a logged quantity
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
         //! Get the particle parameters
         virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
@@ -379,6 +388,92 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_aabb_tree_invalid = true;
     }
 
+template<class Shape>
+double IntegratorHPMCMono<Shape>::computePatchEnergy()
+{
+
+  //const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const float &r_cut
+  ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
+  ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+
+  double patch_energy = 0.0;
+  float r_cut = m_patch->getRCut();
+  float r_cut_sq = r_cut*r_cut;
+  const BoxDim& box = m_pdata->getGlobalBox();
+  // read in the current position and orientation
+  for (unsigned int i = 0; i<m_pdata->getN()-1;i++)
+  {
+    Scalar4 postype_i = positions.data[i];
+    Scalar4 orientation_i = orientations.data[i];
+    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+    int typ_i = __scalar_as_int(postype_i.w);
+    for (auto j = i+1; j<m_pdata->getN();j++)
+    {
+      Scalar4 postype_j = positions.data[j];
+      Scalar4 orientation_j = orientations.data[j];
+      vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
+      vec3<Scalar> dr_ij = pos_i - pos_j;
+      dr_ij = box.minImage(dr_ij);
+      int typ_j = __scalar_as_int(postype_j.w);
+      if (dot(dr_ij,dr_ij) <= r_cut_sq)
+      {
+        patch_energy+=m_patch->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+      }
+    }
+  }
+  return patch_energy;
+}
+
+template<class Shape>
+std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
+    {
+    // start with the integrator provided quantities
+    std::vector< std::string > result = IntegratorHPMC::getProvidedLogQuantities();
+    // then add ours
+    if(m_patch)
+    {
+      //result.push_back("");
+      result.push_back("hpmc_patch_energy");
+      result.push_back("hpmc_patch_rcut");
+    }
+    return result;
+    }
+
+template<class Shape>
+Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+{
+    if (quantity == "hpmc_patch_energy")
+        {
+          if (m_patch)
+          {
+            return (Scalar)computePatchEnergy();
+          }
+          else
+          {
+            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+            throw std::runtime_error("Error getting log value");
+          }
+
+        }
+    else if (quantity == "hpmc_patch_rcut")
+        {
+          if (m_patch)
+          {
+            return (Scalar)m_patch->getRCut();
+          }
+          else
+          {
+            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+            throw std::runtime_error("Error getting log value");
+          }
+        }
+    else
+        {
+        //nothing found -> pass on to integrator
+        return IntegratorHPMC::getLogValue(quantity, timestep);
+        }
+}
+
 template <class Shape>
 void IntegratorHPMCMono<Shape>::printStats()
     {
@@ -538,7 +633,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             if (m_patch)
             {
               r_cut_patch = m_patch->getRCut();
-              m_patch->m_PatchEnergy = 0.0;
+              //m_patch->m_PatchEnergy = 0.0;
             }
 
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_cut_patch - getMinCoreDiameter()/OverlapReal(2.0)));
@@ -698,11 +793,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             {
               external_energy = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
             }
-            if (m_patch)
-            {
-              patch_energy = e_old - e_new;
-            }
-
+            // if (m_patch)
+            // {
+            //   patch_energy = e_old - e_new;
+            // }
+            patch_energy = e_old - e_new;
             double total_energy = patch_energy + external_energy;
             bool reject_energy = false;
 
@@ -722,7 +817,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             // if the move is accepted
             if (!overlap && !reject_energy)
                 {
-                if (m_patch) {m_patch->m_PatchEnergy+=e_new;};
+                //if (m_patch) {m_patch->m_PatchEnergy+=e_new;};
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
                   {
@@ -744,10 +839,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     h_orientation.data[i] = quat_to_scalar4(shape_i.orientation);
                     }
                 }
-
             else
                 {
-                if (m_patch) {m_patch->m_PatchEnergy+=e_old;};
+                //if (m_patch) {m_patch->m_PatchEnergy+=e_old;};
 
                 if (!shape_i.ignoreStatistics())
                     {
@@ -764,7 +858,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
         // wrap particles back into box
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
@@ -801,8 +894,13 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         }
     #endif
 
-    if (m_patch) {std::cout << m_patch->m_PatchEnergy << std::endl;};
-    
+    // compare values
+    if (m_patch)
+    {
+      //std::cout << m_patch->m_PatchEnergy << std::endl;
+      std::cout << computePatchEnergy() << std::endl;
+    };
+
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
 
     // migrate and exchange particles
@@ -834,7 +932,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     buildAABBTree();
     // update the image list
     updateImageList();
-
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
 
