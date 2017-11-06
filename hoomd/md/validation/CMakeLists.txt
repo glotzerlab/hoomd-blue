@@ -51,11 +51,13 @@ endmacro()
 set(TEST_LIST_CPU
 minimize_fire_rigid.py 0 0
 bd_angular.py 0 0
+npt_dimers.py 0 2
 )
 
 set(TEST_LIST_GPU
 minimize_fire_rigid.py 0 0
 bd_angular.py 0 0
+npt_dimers.py 0 2
 )
 
 set(EXCLUDE_FROM_GPU_MPI
