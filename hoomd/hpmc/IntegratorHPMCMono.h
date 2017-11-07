@@ -170,7 +170,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Compute potential energy when there is a patch interaction
-        double computePatchEnergy();
+        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations);
 
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -389,12 +389,12 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     }
 
 template<class Shape>
-double IntegratorHPMCMono<Shape>::computePatchEnergy()
+double IntegratorHPMCMono<Shape>::computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
 {
 
   //const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const float &r_cut
-  ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
-  ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+  //ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
+  //ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
   double patch_energy = 0.0;
   float r_cut = m_patch->getRCut();
@@ -446,7 +446,9 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
         {
           if (m_patch)
           {
-            return (Scalar)computePatchEnergy();
+            ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            return (Scalar)computePatchEnergy(positions,orientations);
           }
           else
           {
@@ -559,10 +561,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         m_external->compute(timestep);
         }
-    if( m_patch )
-        {
-        m_patch->compute(timestep);
-        }
+    // if( m_patch )
+    //     {
+    //     m_patch->compute(timestep);
+    //     }
 
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
