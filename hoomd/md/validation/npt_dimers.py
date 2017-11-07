@@ -16,7 +16,7 @@ rho = rho_list[p]
 n = 10
 a = (1/rho)**(1./3.)
 
-nsteps = 1e6
+nsteps = 1e5
 
 class npt_rigid_validation(unittest.TestCase):
     def setUp(self):
@@ -67,7 +67,7 @@ class npt_rigid_validation(unittest.TestCase):
 
         # run system in NVT
         nvt = md.integrate.nvt(group=self.center,kT=1.0,tau=1.0)
-        log = analyze.log(filename='npt_nvt.log',quantities=['volume','pressure'],period=10,overwrite=True)
+        log = analyze.log(filename=None,quantities=['volume','pressure'],period=10,overwrite=True)
 
         Pval = []
         def accumulate_P(timestep):
