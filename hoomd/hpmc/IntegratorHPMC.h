@@ -49,17 +49,17 @@ class PatchEnergy
     return 0;
   }
 
-  virtual std::vector< std::string > getProvidedLogQuantities(){}
+  //virtual std::vector< std::string > getProvidedLogQuantities(){}
 
-  virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
+  //virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
 
   //! needed for Compute. currently not used.
-  virtual void compute(unsigned int timestep){}
+  //virtual void compute(unsigned int timestep){}
 
-  // virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientation)
-  // {
-  //   return 0.0;
-  // }
+  virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
+  {
+    return 0.0;
+  }
 
   double m_PatchEnergy;
   //private:
@@ -286,6 +286,11 @@ class IntegratorHPMC : public Integrator
         ExternalField* getExternalField() { return m_external_base; }
 
         PatchEnergy* getPatchInteraction() { return m_patch_base; }
+
+        virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
+        {
+          return 0.0;
+        }
 
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};

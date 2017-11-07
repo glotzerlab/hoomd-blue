@@ -310,7 +310,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar xz,
                                           Scalar yz,
                                           unsigned int timestep,
-                                          Scalar boltzmann,
+                                          Scalar deltaE,
                                           hoomd::detail::Saru& rng
                                           )
     {
@@ -334,14 +334,27 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
-        Scalar ext_boltzmann = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
+        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
-        boltzmann *= ext_boltzmann;
+        deltaE += ext_energy;
+        }
+
+    if (m_mc->getPatchInteraction())
+        {
+        ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        const BoxDim& box = m_pdata->getBox();
+        unsigned int N = m_pdata->getN();
+        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,box,N);
+        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,box,N);
+        // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
+        deltaE += e_new-e_old;
         }
 
     double p = rng.d();
 
-    if (allowed && p < boltzmann)
+    if (allowed && p < fast::exp(-deltaE))
         {
         return true;
         }
@@ -509,8 +522,9 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
-        double Boltzmann = exp(dBetaH);
+        //double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
+        double dBetaH = P * dV + Nglobal * log(Vnew/Vold);
+        //double Boltzmann = exp(dBetaH);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -520,7 +534,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
                                   newShear[1],
                                   newShear[2],
                                   timestep,
-                                  Boltzmann,
+                                  dBetaH,
                                   rng
                                   );
 
@@ -596,8 +610,9 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
     else
         {
         // Calculate Boltzmann factor
-        double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
-        double Boltzmann = exp(dBetaH);
+        //double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
+        double dBetaH = P * (new_V-V) - (Nglobal+1) * log(new_V/V);
+        //double Boltzmann = exp(dBetaH);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -607,7 +622,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
                                       newShear[1],
                                       newShear[2],
                                       timestep,
-                                      Boltzmann,
+                                      dBetaH,
                                       rng);
 
         if (accept)
@@ -750,7 +765,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
                                           newShear[1],
                                           newShear[2],
                                           timestep,
-                                          Scalar(1.0),
+                                          Scalar(0.0),
                                           rng);
     if (trial_success)
         {
@@ -814,7 +829,7 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng
                                           newShear[1],
                                           newShear[2],
                                           timestep,
-                                          Scalar(1.0),
+                                          Scalar(0.0),
                                           rng);
     if (trial_success)
         {

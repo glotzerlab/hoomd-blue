@@ -170,7 +170,35 @@ class IntegratorHPMCMono : public IntegratorHPMC
             }
 
         //! Compute potential energy when there is a patch interaction
-        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations);
+        // double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
+        // {
+        //   double patch_energy = 0.0;
+        //   float r_cut = m_patch->getRCut();
+        //   float r_cut_sq = r_cut*r_cut;
+        //   const BoxDim& box = m_pdata->getGlobalBox();
+        //   // read in the current position and orientation
+        //   for (unsigned int i = 0; i<m_pdata->getN()-1;i++)
+        //   {
+        //     Scalar4 postype_i = positions.data[i];
+        //     Scalar4 orientation_i = orientations.data[i];
+        //     vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+        //     int typ_i = __scalar_as_int(postype_i.w);
+        //     for (auto j = i+1; j<m_pdata->getN();j++)
+        //     {
+        //       Scalar4 postype_j = positions.data[j];
+        //       Scalar4 orientation_j = orientations.data[j];
+        //       vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
+        //       vec3<Scalar> dr_ij = pos_i - pos_j;
+        //       dr_ij = box.minImage(dr_ij);
+        //       int typ_j = __scalar_as_int(postype_j.w);
+        //       if (dot(dr_ij,dr_ij) <= r_cut_sq)
+        //       {
+        //         patch_energy+=m_patch->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+        //       }
+        //     }
+        //   }
+        //   return patch_energy;
+        // }
 
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities();
@@ -388,41 +416,6 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_aabb_tree_invalid = true;
     }
 
-template<class Shape>
-double IntegratorHPMCMono<Shape>::computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
-{
-
-  //const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const float &r_cut
-  //ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
-  //ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-
-  double patch_energy = 0.0;
-  float r_cut = m_patch->getRCut();
-  float r_cut_sq = r_cut*r_cut;
-  const BoxDim& box = m_pdata->getGlobalBox();
-  // read in the current position and orientation
-  for (unsigned int i = 0; i<m_pdata->getN()-1;i++)
-  {
-    Scalar4 postype_i = positions.data[i];
-    Scalar4 orientation_i = orientations.data[i];
-    vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-    int typ_i = __scalar_as_int(postype_i.w);
-    for (auto j = i+1; j<m_pdata->getN();j++)
-    {
-      Scalar4 postype_j = positions.data[j];
-      Scalar4 orientation_j = orientations.data[j];
-      vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
-      vec3<Scalar> dr_ij = pos_i - pos_j;
-      dr_ij = box.minImage(dr_ij);
-      int typ_j = __scalar_as_int(postype_j.w);
-      if (dot(dr_ij,dr_ij) <= r_cut_sq)
-      {
-        patch_energy+=m_patch->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
-      }
-    }
-  }
-  return patch_energy;
-}
 
 template<class Shape>
 std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
@@ -448,7 +441,9 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
           {
             ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-            return (Scalar)computePatchEnergy(positions,orientations);
+            const BoxDim& box = m_pdata->getBox();
+            unsigned int N = m_pdata->getN();
+            return (Scalar) m_patch->computePatchEnergy(positions,orientations,box,N);
           }
           else
           {

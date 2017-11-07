@@ -23,8 +23,8 @@
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut), m_PatchEnergy(0.0)
     {
 
-    m_PatchProvidedQuantities.push_back(PATCH_ENERGY_LOG_NAME);
-    m_PatchProvidedQuantities.push_back(PATCH_ENERGY_RCUT);
+    //m_PatchProvidedQuantities.push_back(PATCH_ENERGY_LOG_NAME);
+    //m_PatchProvidedQuantities.push_back(PATCH_ENERGY_RCUT);
 
     // initialize LLVM
     std::ostringstream sstream;

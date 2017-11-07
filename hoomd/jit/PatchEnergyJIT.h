@@ -59,27 +59,57 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, type_j, q_j);
             }
 
-        Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
         {
-          if ( quantity == PATCH_ENERGY_LOG_NAME )
+          double patch_energy = 0.0;
+          float r_cut = this->getRCut();
+          float r_cut_sq = r_cut*r_cut;
+          //const BoxDim& box = m_pdata->getGlobalBox();
+          // read in the current position and orientation
+          for (unsigned int i = 0; i<N-1;i++)
+          {
+            Scalar4 postype_i = positions.data[i];
+            Scalar4 orientation_i = orientations.data[i];
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+            int typ_i = __scalar_as_int(postype_i.w);
+            for (auto j = i+1; j<N;j++)
+            {
+              Scalar4 postype_j = positions.data[j];
+              Scalar4 orientation_j = orientations.data[j];
+              vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
+              vec3<Scalar> dr_ij = pos_i - pos_j;
+              dr_ij = box.minImage(dr_ij);
+              int typ_j = __scalar_as_int(postype_j.w);
+              if (dot(dr_ij,dr_ij) <= r_cut_sq)
               {
-                return m_PatchEnergy;
+                patch_energy+=this->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
               }
-          else if ( quantity == PATCH_ENERGY_RCUT )
-              {
-              return m_r_cut;
-              }
-          else
-              {
-              //exec_conf->msg->error() << "patch: " << quantity << " is not a valid log quantity" << std::endl;
-              throw std::runtime_error("Error getting log value");
-              }
+            }
+          }
+          return patch_energy;
         }
 
-      std::vector< std::string > getProvidedLogQuantities()
-      {
-        return m_PatchProvidedQuantities;
-      }
+      //   Scalar getLogValue(const std::string& quantity, unsigned int timestep)
+      //   {
+      //     if ( quantity == PATCH_ENERGY_LOG_NAME )
+      //         {
+      //           return m_PatchEnergy;
+      //         }
+      //     else if ( quantity == PATCH_ENERGY_RCUT )
+      //         {
+      //         return m_r_cut;
+      //         }
+      //     else
+      //         {
+      //         //exec_conf->msg->error() << "patch: " << quantity << " is not a valid log quantity" << std::endl;
+      //         throw std::runtime_error("Error getting log value");
+      //         }
+      //   }
+      //
+      // std::vector< std::string > getProvidedLogQuantities()
+      // {
+      //   return m_PatchProvidedQuantities;
+      // }
 
     private:
         //! function pointer signature
@@ -88,7 +118,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         std::shared_ptr<llvm::OrcLazyJIT> m_JIT;    //!< JIT execution engine
         EvalFnPtr m_eval;                           //!< Pointer to evaluator function inside the JIT module
         Scalar m_PatchEnergy;                       //!< patch energy
-        std::vector<std::string>  m_PatchProvidedQuantities; //!< available
+        //std::vector<std::string>  m_PatchProvidedQuantities; //!< available
     };
 
 //! Exports the PatchEnergyJIT class to python
