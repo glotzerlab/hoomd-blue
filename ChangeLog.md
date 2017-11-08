@@ -17,13 +17,16 @@ Not yet released
 
 *Deprecated*
 
-## v2.2.1
+## v2.2.2
 
 Not yet released
 
 *Bug fixes*
 
 * `md.dihedral.table.set_from_file` now works.
+* Fix a critical bug where forces in MPI simulations with rigid bodies or anisotropic particles were incorrectly calculated
+* Ensure that ghost particles are updated after load balancing.
+* `meta.dump_metadata` no longer reports an error when used with `md.constrain.rigid`
 
 ## v2.2.1
 

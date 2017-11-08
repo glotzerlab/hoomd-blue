@@ -87,6 +87,26 @@ class dihedral_table_tests (unittest.TestCase):
             self.assertAlmostEqual(f_1.force[1], f_2.force[1],1)
             self.assertAlmostEqual(f_1.force[2], f_2.force[2],1)
 
+    # test set from file
+    def test_set_from_file(self):
+        harmonic = md.dihedral.table(width=5)
+        harmonic.set_from_file('dihedralA', os.path.join(os.path.dirname(__file__),'dihedral.dat'))
+        all = group.all();
+        md.integrate.mode_standard(dt=0.005);
+        md.integrate.nve(all);
+        run(100);
+
+        v = harmonic.cpp_force.getEntry(0,0)
+        numpy.testing.assert_allclose([2.0, -1.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,1)
+        numpy.testing.assert_allclose([3.0, -2.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,2)
+        numpy.testing.assert_allclose([4.0, -3.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,3)
+        numpy.testing.assert_allclose([5.0, -4.0], [v.x, v.y])
+        v = harmonic.cpp_force.getEntry(0,4)
+        numpy.testing.assert_allclose([6.0, -5.0], [v.x, v.y])
+
     def tearDown(self):
         del self.sys
         context.initialize();

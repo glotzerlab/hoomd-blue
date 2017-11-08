@@ -86,6 +86,19 @@ class TableDihedralForceCompute : public ForceCompute
             }
         #endif
 
+        //! Get table entry
+        /*! \param type type index
+            \param i index to access
+            \returns the table entries at the index
+
+            For unit testing
+        */
+        Scalar2 getEntry(unsigned int type, unsigned int i)
+            {
+            ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+            return h_tables.data[m_table_value(i, type)];
+            }
+
     protected:
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Bond data to use in computing dihedrals
         unsigned int m_table_width;                 //!< Width of the tables in memory
