@@ -88,7 +88,7 @@ def read_snapshot(snapshot):
     Examples::
 
         snap = mpcd.data.make_snapshot(N=10)
-        snap.particles.position[:] = L * np.random((10,3))
+        snap.particles.position[:] = L * np.random.random((10,3))
         mpcd.init.read_snapshot(snap)
 
     Notes:
