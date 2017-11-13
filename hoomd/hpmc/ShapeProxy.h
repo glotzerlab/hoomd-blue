@@ -110,11 +110,12 @@ ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ign
     }
 //
 //! Helper function to build sph_params from python
-sph_params make_sph_params(OverlapReal radius, bool ignore_stats)
+sph_params make_sph_params(OverlapReal radius, bool ignore_stats, bool orientable)
     {
     sph_params result;
     result.ignore = ignore_stats;
     result.radius=radius;
+    result.isOriented = orientable;
     return result;
     }
 

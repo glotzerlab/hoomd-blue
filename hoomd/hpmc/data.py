@@ -121,16 +121,15 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['diameter'];
+        self._keys += ['diameter','orientable'];
         self.make_fn = _hpmc.make_sph_params;
 
     def __str__(self):
         # should we put this in the c++ side?
         return "sphere(diameter = {})".format(self.diameter)
 
-    def make_param(self, diameter, ignore_statistics=False):
-        return self.make_fn(float(diameter)/2.0,
-                            ignore_statistics);
+    def make_param(self, diameter, ignore_statistics=False,orientable=False):
+        return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):

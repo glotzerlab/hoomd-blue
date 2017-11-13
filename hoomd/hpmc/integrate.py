@@ -762,7 +762,7 @@ class sphere(mode_hpmc):
         mc.shape_param.set('B', diameter=.1)
     """
 
-    def __init__(self, seed, d=0.1, nselect=4, implicit=False, depletant_mode='circumsphere',restore_state=False):
+    def __init__(self, seed, d=0.1, a=0.1, move_ratio=0.5, nselect=4, implicit=False, depletant_mode='circumsphere',restore_state=False):
         hoomd.util.print_status_line();
 
         # initialize base class
@@ -790,7 +790,9 @@ class sphere(mode_hpmc):
 
         # set the default parameters
         setD(self.cpp_integrator,d);
-        self.cpp_integrator.setMoveRatio(1.0)
+        setA(self.cpp_integrator,a);
+
+        self.cpp_integrator.setMoveRatio(move_ratio)
         self.cpp_integrator.setNSelect(nselect);
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
@@ -824,11 +826,11 @@ class sphere(mode_hpmc):
             shape = self.shape_param.get(typename)
             # Need to add logic to figure out whether this is 2D or not
             if dim == 3:
-                result.append(dict(type='Sphere',
-                                   diameter=shape.diameter))
+                result.append(dict(type='Sphere',diameter=shape.diameter,
+                                   orientable=shape.orientable));
             else:
-                result.append(dict(type='Disk',
-                                   diameter=shape.diameter))
+                result.append(dict(type='Disk',diameter=shape.diameter,
+                                   orientable=shape.orientable));
 
         return result
 

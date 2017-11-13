@@ -621,6 +621,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             else
                 {
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
+                //std::cout << orientation_i.x << orientation_i.y << orientation_i.z << orientation_i.w << std::endl;
                 }
 
             // check for overlaps with neighboring particle's positions (also calculate the new energy)
