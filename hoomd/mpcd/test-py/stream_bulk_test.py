@@ -126,6 +126,36 @@ class mpcd_stream_bulk_test(unittest.TestCase):
         self.assertTrue(bulk.enabled)
         self.assertEqual(hoomd.context.current.mpcd._stream, bulk)
 
+    # test for setting external field on particles
+    def test_field(self):
+        mpcd.integrator(dt=0.1)
+        bulk = mpcd.stream.bulk(period=1)
+        np.testing.assert_array_almost_equal(bulk.field, (0,0,0))
+
+        # tuple
+        bulk.set_field(field=(1.,2.1,-0.3))
+        np.testing.assert_array_almost_equal(bulk.field, (1,2.1,-0.3))
+
+        # list
+        bulk.set_field(field=[-0.7,0,1])
+        np.testing.assert_array_almost_equal(bulk.field, (-0.7,0,1))
+
+        # numpy array
+        bulk.set_field(field=np.array([1,2,3]))
+        np.testing.assert_array_almost_equal(bulk.field, (1,2,3))
+
+        # scalar is an error
+        with self.assertRaises(ValueError):
+            bulk.set_field(4.)
+
+        # too short is an error
+        with self.assertRaises(ValueError):
+            bulk.set_field([1,2])
+
+        # too long is an error
+        with self.assertRaises(ValueError):
+            bulk.set_field([1,2,3,4])
+
     # test for initialization order errors
     def test_init_errors(self):
         hoomd.context.initialize()

@@ -20,7 +20,7 @@ where **r** and **v** are the particle position and velocity, respectively.
 """
 
 import hoomd
-from hoomd.md import _md
+from hoomd import _hoomd
 
 from . import _mpcd
 
@@ -52,10 +52,11 @@ class _streaming_method(hoomd.meta._metadata):
             raise RuntimeError('Multiple initialization of streaming method')
 
         hoomd.meta._metadata.__init__(self)
-        self.metadata_fields = ['period','enabled']
+        self.metadata_fields = ['period','enabled','field']
 
         self.period = period
         self.enabled = True
+        self.field = (0,0,0)
         self._cpp = None
         self._filler = None
 
@@ -131,6 +132,35 @@ class _streaming_method(hoomd.meta._metadata):
 
         self._cpp.setPeriod(cur_tstep, period)
         self.period = period
+
+    def set_field(self, field):
+        """ Set the external field for streaming.
+
+        Args:
+            field (tuple): External force to apply to MPCD particles.
+
+        Setting an external *field* on a streaming method applies a constant
+        force on all MPCD particles. This can be used, for example, in conjunction
+        with no-slip boundary conditions to generate flows in confined geometries.
+
+        Warning:
+            The *field* applies only to the MPCD particles. If you have embedded
+            particles, you should usually additionally specify a :py:class:`.md.force.constant`
+            for that particle group with the appropriate forces.
+
+        """
+        hoomd.util.print_status_line()
+
+        try:
+            if len(field) != 3:
+                hoomd.context.msg.error('mpcd.stream: external field for streaming method must be a 3-component vector.\n')
+                raise ValueError('External field must be a 3-component vector')
+        except TypeError:
+            hoomd.context.msg.error('mpcd.stream: external field for streaming method must be a 3-component vector.\n')
+            raise ValueError('External field must be a 3-component vector')
+
+        self.field = field
+        self._cpp.setField(_hoomd.make_scalar3(self.field[0], self.field[1], self.field[2]))
 
     def _process_boundary(self, bc):
         """ Process boundary condition string into enum

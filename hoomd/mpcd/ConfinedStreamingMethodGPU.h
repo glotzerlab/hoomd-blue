@@ -90,6 +90,8 @@ void ConfinedStreamingMethodGPU<Geometry>::stream(unsigned int timestep)
     ArrayHandle<Scalar4> d_vel(this->m_mpcd_pdata->getVelocities(), access_location::device, access_mode::readwrite);
     mpcd::gpu::stream_args_t args(d_pos.data,
                                   d_vel.data,
+                                  this->m_mpcd_pdata->getMass(),
+                                  this->m_field,
                                   this->m_mpcd_sys->getCellList()->getCoverageBox(),
                                   this->m_mpcd_dt,
                                   this->m_mpcd_pdata->getN(),

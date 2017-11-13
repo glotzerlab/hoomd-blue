@@ -45,7 +45,9 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
                                 std::shared_ptr<const Geometry> geom)
         : mpcd::StreamingMethod(sysdata, cur_timestep, period, phase),
           m_geom(geom), m_validate_geom(true)
-          { }
+          {
+          m_field = make_scalar3(0,0,0);
+          }
 
         //! Implementation of the streaming rule
         virtual void stream(unsigned int timestep);
@@ -63,8 +65,15 @@ class ConfinedStreamingMethod : public mpcd::StreamingMethod
             m_geom = geom;
             }
 
+        //! Set the (constant) external vector field
+        void setField(const Scalar3& field)
+            {
+            m_field = field;
+            }
+
     protected:
         std::shared_ptr<const Geometry> m_geom; //!< Streaming geometry
+        Scalar3 m_field;        //!< Constant external field
         bool m_validate_geom;   //!< If true, run a validation check on the geometry
 
         //! Validate the system with the streaming geometry
@@ -94,6 +103,7 @@ void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
 
     ArrayHandle<Scalar4> h_pos(m_mpcd_pdata->getPositions(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar4> h_vel(m_mpcd_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    const Scalar mass = m_mpcd_pdata->getMass();
 
     for (unsigned int cur_p = 0; cur_p < m_mpcd_pdata->getN(); ++cur_p)
         {
@@ -103,28 +113,27 @@ void ConfinedStreamingMethod<Geometry>::stream(unsigned int timestep)
 
         const Scalar4 vel_cell = h_vel.data[cur_p];
         Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
+        // estimate next velocity based on current acceleration
+        vel += Scalar(0.5) * m_mpcd_dt * m_field / mass;
 
         // propagate the particle to its new position ballistically
-        Scalar dt = m_mpcd_dt;
+        Scalar dt_remain = m_mpcd_dt;
         bool collide = true;
-        bool any_collide = false;
         do
             {
-            pos += dt * vel;
-            collide = m_geom->detectCollision(pos, vel, dt);
-            // track if a collision ever occurs to redirect particle velocity
-            any_collide |= collide;
+            pos += dt_remain * vel;
+            collide = m_geom->detectCollision(pos, vel, dt_remain);
             }
-        while (dt > 0 && collide);
+        while (dt_remain > 0 && collide);
+        // finalize velocity update
+        vel += Scalar(0.5) * m_mpcd_dt * m_field / mass;
 
         // wrap and update the position
         int3 image = make_int3(0,0,0);
         box.wrap(pos, image);
 
         h_pos.data[cur_p] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
-        // write velocities when they change
-        if (any_collide)
-            h_vel.data[cur_p] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
+        h_vel.data[cur_p] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
         }
 
     // particles have moved, so the cell cache is no longer valid
@@ -193,7 +202,8 @@ void export_ConfinedStreamingMethod(pybind11::module& m)
     py::class_<mpcd::ConfinedStreamingMethod<Geometry>, std::shared_ptr<mpcd::ConfinedStreamingMethod<Geometry>>>
         (m, name.c_str(), py::base<mpcd::StreamingMethod>())
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, std::shared_ptr<const Geometry>>())
-        .def_property("geometry", &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,&mpcd::ConfinedStreamingMethod<Geometry>::setGeometry);
+        .def_property("geometry", &mpcd::ConfinedStreamingMethod<Geometry>::getGeometry,&mpcd::ConfinedStreamingMethod<Geometry>::setGeometry)
+        .def("setField", &mpcd::ConfinedStreamingMethod<Geometry>::setField);
     }
 } // end namespace detail
 } // end namespace mpcd

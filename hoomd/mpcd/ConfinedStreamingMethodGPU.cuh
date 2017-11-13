@@ -28,15 +28,19 @@ struct stream_args_t
     //! Constructor
     stream_args_t(Scalar4 *_d_pos,
                   Scalar4 *_d_vel,
+                  const Scalar _mass,
+                  const Scalar3 _field,
                   const BoxDim& _box,
                   const Scalar _dt,
                   const unsigned int _N,
                   const unsigned int _block_size)
-        : d_pos(_d_pos), d_vel(_d_vel), box(_box), dt(_dt), N(_N), block_size(_block_size)
+        : d_pos(_d_pos), d_vel(_d_vel), mass(_mass), field(_field), box(_box), dt(_dt), N(_N), block_size(_block_size)
         { }
 
     Scalar4 *d_pos;                 //!< Particle positions
     Scalar4 *d_vel;                 //!< Particle velocities
+    const Scalar mass;              //!< Particle mass
+    const Scalar3 field;            //!< Applied external field on particles
     const BoxDim& box;              //!< Simulation box
     const Scalar dt;                //!< Timestep
     const unsigned int N;           //!< Number of particles
@@ -55,8 +59,10 @@ namespace kernel
 /*!
  * \param d_pos Particle positions
  * \param d_vel Particle velocities
+ * \param mass Particle mass
  * \param box Simulation box
  * \param dt Timestep to stream
+ * \param field Applied external field
  * \param N Number of particles
  * \param geom Confined geometry
  *
@@ -64,17 +70,21 @@ namespace kernel
  *
  * \b Implementation
  * Using one thread per particle, the particle position and velocity is loaded.
- * The particles are propagated forward ballistically:
+ * The particles are propagated forward ballistically subject to an external force \a f:
  * \f[
- *      r(t + \Delta t) = r(t) + v(t) \Delta t
+ *      v(t + \Delta t/2) = v(t) + (f/m) \Delta t / 2
+ *      r(t + \Delta t) = r(t) + v(t+\Delta t/2) \Delta t
+ *      v(t + \Delta t) = v(t + \Delta t/2) + (f/m) \Delta t / 2
  * \f]
  * Particles crossing a periodic global boundary are wrapped back into the simulation box.
- * Particles are appropriately reflected from the boundaries defined by \a geom.
- * The particle positions and velocities are updated accordingly.
+ * Particles are appropriately reflected from the boundaries defined by \a geom during the
+ * position update step. The particle positions and velocities are updated accordingly.
  */
 template<class Geometry>
 __global__ void confined_stream(Scalar4 *d_pos,
                                 Scalar4 *d_vel,
+                                const Scalar mass,
+                                const Scalar3 field,
                                 const BoxDim box,
                                 const Scalar dt,
                                 const unsigned int N,
@@ -91,29 +101,27 @@ __global__ void confined_stream(Scalar4 *d_pos,
 
     const Scalar4 vel_cell = d_vel[idx];
     Scalar3 vel = make_scalar3(vel_cell.x, vel_cell.y, vel_cell.z);
+    // estimate next velocity based on current acceleration
+    vel += Scalar(0.5) * dt * field / mass;
 
     // propagate the particle to its new position ballistically
     Scalar dt_remain = dt;
     bool collide = true;
-    bool any_collide = false;
     do
         {
         pos += dt_remain * vel;
         collide = geom.detectCollision(pos, vel, dt_remain);
-        // track if a collision ever occurs to redirect particle velocity
-        any_collide |= collide;
         }
     while (dt_remain > 0 && collide);
+    // finalize velocity update
+    vel += Scalar(0.5) * dt * field / mass;
 
     // wrap and update the position
     int3 image = make_int3(0,0,0);
     box.wrap(pos, image);
 
     d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
-
-    // write velocities when they change
-    if (any_collide)
-        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
+    d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, __int_as_scalar(mpcd::detail::NO_CELL));
     }
 
 } // end namespace kernel
@@ -139,7 +147,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom)
 
     unsigned int run_block_size = min(args.block_size, max_block_size);
     dim3 grid(args.N / run_block_size + 1);
-    mpcd::gpu::kernel::confined_stream<Geometry><<<grid, run_block_size>>>(args.d_pos, args.d_vel, args.box, args.dt, args.N, geom);
+    mpcd::gpu::kernel::confined_stream<Geometry><<<grid, run_block_size>>>(args.d_pos, args.d_vel, args.mass, args.field, args.box, args.dt, args.N, geom);
 
     return cudaSuccess;
     }
