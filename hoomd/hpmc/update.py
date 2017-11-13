@@ -781,7 +781,8 @@ class shape_update(_updater):
                     setup_pos=True,
                     pos_callback=None,
                     nselect=1,
-                    multi_phase = False):
+                    multi_phase = False,
+                    num_phase = 2):
         _updater.__init__(self);
 
         cls = None;
@@ -816,7 +817,8 @@ class shape_update(_updater):
                                 seed,
                                 nselect,
                                 pretend,
-                                multi_phase);
+                                multi_phase,
+                                num_phase);
         self.move_cpp = None;
         self.boltzmann_function = None;
         self.seed = seed;

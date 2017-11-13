@@ -26,7 +26,8 @@ public:
                     unsigned int seed,
                     unsigned int nselect,
                     bool pretend,
-                    bool multiphase);
+                    bool multiphase,
+                    unsigned int numphase);
 
     ~UpdaterShape();
 
@@ -47,9 +48,13 @@ public:
 
     unsigned int getAcceptedB2(unsigned int ndx) { return m_b2_accepted[ndx]; }
 
+    unsigned int getAcceptedB3(unsigned int ndx) { return m_b3_accepted[ndx]; }
+
     unsigned int getTotalB1(unsigned int ndx) { return m_b1_total[ndx]; }
 
     unsigned int getTotalB2(unsigned int ndx) { return m_b2_total[ndx]; }
+
+    unsigned int getTotalB3(unsigned int ndx) { return m_b3_total[ndx]; }
 
     void resetStatistics()
         {
@@ -57,8 +62,10 @@ public:
         std::fill(m_count_total.begin(), m_count_total.end(), 0);
         std::fill(m_b1_accepted.begin(), m_b1_accepted.end(), 0);
         std::fill(m_b2_accepted.begin(), m_b2_accepted.end(), 0);
+        std::fill(m_b3_accepted.begin(), m_b3_accepted.end(), 0);
         std::fill(m_b1_total.begin(), m_b1_total.end(), 0);
         std::fill(m_b2_total.begin(), m_b2_total.end(), 0);
+        std::fill(m_b3_total.begin(), m_b3_total.end(), 0);
         }
 
     void registerLogBoltzmannFunction(std::shared_ptr< ShapeLogBoltzmannFunction<Shape> >  lbf);
@@ -97,8 +104,10 @@ private:
     std::vector<unsigned int>   m_count_total;
     std::vector<unsigned int>   m_b1_accepted;
     std::vector<unsigned int>   m_b2_accepted;
+    std::vector<unsigned int>   m_b3_accepted;
     std::vector<unsigned int>   m_b1_total;
     std::vector<unsigned int>   m_b2_total;
+    std::vector<unsigned int>   m_b3_total;
     unsigned int                m_move_ratio;
 
     std::shared_ptr< shape_move_function<Shape, Saru> >   m_move_function;
@@ -113,6 +122,7 @@ private:
     bool                        m_pretend;
     bool                        m_initialized;
     bool                        m_multi_phase;
+    unsigned int                m_num_phase;
     detail::UpdateOrder         m_update_order;         //!< Update order
 };
 
@@ -123,24 +133,28 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
                                  unsigned int seed,
                                  unsigned int nselect,
                                  bool pretend,
-                                 bool multiphase)
+                                 bool multiphase,
+                                 unsigned int numphase)
     : Updater(sysdef), m_seed(seed), m_global_partition(0), m_nselect(nselect),
       m_move_ratio(move_ratio*65535), m_mc(mc),
       m_determinant(m_pdata->getNTypes(), m_exec_conf),
       m_ntypes(m_pdata->getNTypes(), m_exec_conf), m_num_params(0),
-      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_update_order(seed)
+      m_pretend(pretend), m_initialized(false), m_multi_phase(multiphase), m_num_phase(numphase), m_update_order(seed)
     {
     m_count_accepted.resize(m_pdata->getNTypes(), 0);
     m_count_total.resize(m_pdata->getNTypes(), 0);
     m_b1_accepted.resize(m_pdata->getNTypes(), 0);
     m_b2_accepted.resize(m_pdata->getNTypes(), 0);
+    m_b3_accepted.resize(m_pdata->getNTypes(), 0);
     m_b1_total.resize(m_pdata->getNTypes(), 0);
     m_b2_total.resize(m_pdata->getNTypes(), 0);
+    m_b3_total.resize(m_pdata->getNTypes(), 0);
     m_nselect = (m_pdata->getNTypes() < m_nselect) ? m_pdata->getNTypes() : m_nselect;
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_two_phase_box1");
     m_ProvidedQuantities.push_back("shape_move_two_phase_box2");
+    m_ProvidedQuantities.push_back("shape_move_two_phase_box3");
     ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
     ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
     for(size_t i = 0; i < m_pdata->getNTypes(); i++)
@@ -209,6 +223,13 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         b2Total = std::accumulate(m_b2_total.begin(), m_b2_total.end(), 0);
         return b2Total ? Scalar(b2Accepted)/Scalar(b2Total) : 0;
         }
+	else if(quantity == "shape_move_two_phase_box3")
+        {
+        unsigned int b3Accepted = 0, b3Total = 0;
+        b3Accepted = std::accumulate(m_b3_accepted.begin(), m_b3_accepted.end(), 0);
+        b3Total = std::accumulate(m_b3_total.begin(), m_b3_total.end(), 0);
+        return b3Total ? Scalar(b3Accepted)/Scalar(b3Total) : 0;
+        }
 	    else
 		{
 		for(size_t i = 0; i < m_num_params; i++)
@@ -267,6 +288,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         m_count_total[typ_i]++;
         m_b1_total[typ_i]++;
         m_b2_total[typ_i]++;
+        m_b3_total[typ_i]++;
         // access parameters
         typename Shape::param_type param;
             { // need to scope because we set at the end of loop
@@ -303,8 +325,10 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
         #ifdef ENABLE_MPI
         // make sure random seeds are equal
         //m_exec_conf->msg->notice(8) << " Random seed is " << p << std::endl;
-        Scalar Z_0 = Z;
-        Scalar Z_1 = Z;
+        if(m_num_phase == 2)
+            {
+            Scalar Z_0 = Z;
+            Scalar Z_1 = Z;
         //Scalar Z_0 = 1.0, Z_1 = 1.0;
 /*        if(m_global_partition == 0)
             {
@@ -325,11 +349,22 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             //MPI_Recv( &Z_other, 1, MPI_HOOMD_SCALAR, 0, 0, MPI_COMM_WORLD, &stat);
             }
 */
-        MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
-        MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
-        Z = Z_0*Z_1;
-        m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", z=" << Z << std::endl;
-
+            MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
+            MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
+            Z = Z_0*Z_1;
+            m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", z=" << Z << std::endl;
+            }
+        if(m_num_phase == 3)
+            {
+            Scalar Z_0 = Z;
+            Scalar Z_1 = Z;
+            Scalar Z_2 = Z;
+            MPI_Bcast( &Z_0, 1, MPI_HOOMD_SCALAR, 0, MPI_COMM_WORLD );
+            MPI_Bcast( &Z_1, 1, MPI_HOOMD_SCALAR, 1, MPI_COMM_WORLD );
+            MPI_Bcast( &Z_2, 1, MPI_HOOMD_SCALAR, 2, MPI_COMM_WORLD );
+            Z = Z_0*Z_1*Z_2;
+            m_exec_conf->msg->notice(8) << " UpdaterShape Z0=" << Z_0 << ", Z1 = "<< Z_1 << ", Z2 = "<< Z_2 << ", z=" << Z << std::endl;
+            }
         #endif
         }
 
@@ -342,7 +377,9 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             {
             #ifdef ENABLE_MPI
             // make sure random seeds are equal
-            bool a_0 = accept, a_1 = accept;
+            if(m_num_phase == 2)
+                {
+                bool a_0 = accept, a_1 = accept;
             //Scalar a_other;
 /*            if(m_global_partition == 0)
                 {
@@ -363,29 +400,64 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             //    MPI_Recv( &a_0, 1, MPI_C_BOOL, 0, 0, MPI_COMM_WORLD, &stat);
             //    MPI_Send( &a_1, 1, MPI_C_BOOL, 0, 0, MPI_COMM_WORLD);
                 }*/
-            MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
-            MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
+                MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
+                MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
             //m_exec_conf->msg->notice(8) << " a_0 is " << a_0 << std::endl;
             //m_exec_conf->msg->notice(8) << " a_1 is " << a_1 << std::endl;
-            accept = a_0 && a_1;
-            m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
-            if ( a_0 )
-                {
-                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                accept = a_0 && a_1;
+                m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a=" << accept << std::endl;
+                if ( a_0 )
                     {
-                    int typ_i = m_update_order[cur_type];
-                    m_b1_accepted[typ_i]++;
+                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                        {
+                        int typ_i = m_update_order[cur_type];
+                        m_b1_accepted[typ_i]++;
+                        }
+                    }
+                if ( a_1 )
+                    {
+                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                        {
+                        int typ_i = m_update_order[cur_type];
+                        m_b2_accepted[typ_i]++;
+                        }
                     }
                 }
-            if ( a_1 )
+            if(m_num_phase == 3)
                 {
-                for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                bool a_0 = accept, a_1 = accept, a_2 = accept;
+                MPI_Bcast( &a_0, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD );
+                MPI_Bcast( &a_1, 1, MPI_C_BOOL, 1, MPI_COMM_WORLD );
+                MPI_Bcast( &a_2, 1, MPI_C_BOOL, 2, MPI_COMM_WORLD );
+                accept = a_0 && a_1 && a_2;
+                m_exec_conf->msg->notice(8) << timestep <<" UpdaterShape a0=" << a_0 << ", a1 = "<< a_1 << ", a2 = " << a_2 << ", a=" << accept << std::endl;
+                
+                if ( a_0 )
                     {
-                    int typ_i = m_update_order[cur_type];
-                    m_b2_accepted[typ_i]++;
+                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                        {
+                        int typ_i = m_update_order[cur_type];
+                        m_b1_accepted[typ_i]++;
+                        }
+                    }
+                if ( a_1 )
+                    {
+                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                        {
+                        int typ_i = m_update_order[cur_type];
+                        m_b2_accepted[typ_i]++;
+                        }
+                    }
+                if ( a_2 )
+                    {
+                    for (unsigned int cur_type = 0; cur_type < m_nselect; cur_type++)
+                        {
+                        int typ_i = m_update_order[cur_type];
+                        m_b3_accepted[typ_i]++;
+                        }
                     }
                 }
-         
+             
             #endif
             }
         m_exec_conf->msg->notice(5) << " UpdaterShape p=" << p << ", z=" << Z << std::endl;
@@ -503,7 +575,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
                             unsigned int,
                             unsigned int,
                             bool,
-                            bool >())
+                            bool,
+                            unsigned int>())
     .def("getAcceptedCount", &UpdaterShape<Shape>::getAcceptedCount)
     .def("getTotalCount", &UpdaterShape<Shape>::getTotalCount)
     .def("registerShapeMove", &UpdaterShape<Shape>::registerShapeMove)
