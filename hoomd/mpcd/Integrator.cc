@@ -73,6 +73,7 @@ void mpcd::Integrator::update(unsigned int timestep)
     if (checkCollide(timestep))
         {
         m_mpcd_sys->getParticleData()->removeVirtualParticles();
+        m_collide->drawGridShift(timestep);
         }
 
     #ifdef ENABLE_MPI
@@ -217,7 +218,7 @@ void mpcd::detail::export_Integrator(pybind11::module& m)
         .def("setStreamingMethod", &mpcd::Integrator::setStreamingMethod)
         .def("removeStreamingMethod", &mpcd::Integrator::removeStreamingMethod)
         .def("setSorter", &mpcd::Integrator::setSorter)
-        .def("getSorter", &mpcd::Integrator::getSorter)
+        .def("removeSorter", &mpcd::Integrator::removeSorter)
         .def("addFiller", &mpcd::Integrator::addFiller)
         .def("removeAllFillers", &mpcd::Integrator::removeAllFillers)
         #ifdef ENABLE_MPI
