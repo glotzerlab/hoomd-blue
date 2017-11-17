@@ -169,37 +169,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             this->m_patch_base = (PatchEnergy*)patch.get();
             }
 
-        //! Compute potential energy when there is a patch interaction
-        // double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
-        // {
-        //   double patch_energy = 0.0;
-        //   float r_cut = m_patch->getRCut();
-        //   float r_cut_sq = r_cut*r_cut;
-        //   const BoxDim& box = m_pdata->getGlobalBox();
-        //   // read in the current position and orientation
-        //   for (unsigned int i = 0; i<m_pdata->getN()-1;i++)
-        //   {
-        //     Scalar4 postype_i = positions.data[i];
-        //     Scalar4 orientation_i = orientations.data[i];
-        //     vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-        //     int typ_i = __scalar_as_int(postype_i.w);
-        //     for (auto j = i+1; j<m_pdata->getN();j++)
-        //     {
-        //       Scalar4 postype_j = positions.data[j];
-        //       Scalar4 orientation_j = orientations.data[j];
-        //       vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
-        //       vec3<Scalar> dr_ij = pos_i - pos_j;
-        //       dr_ij = box.minImage(dr_ij);
-        //       int typ_j = __scalar_as_int(postype_j.w);
-        //       if (dot(dr_ij,dr_ij) <= r_cut_sq)
-        //       {
-        //         patch_energy+=m_patch->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
-        //       }
-        //     }
-        //   }
-        //   return patch_energy;
-        // }
-
         //! Get a list of logged quantities
         virtual std::vector< std::string > getProvidedLogQuantities();
 
@@ -307,15 +276,15 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Calculate Boltzmann factor
         bool accept(double total_energy, hoomd::detail::Saru& rng)
-        {
-          double boltz = fast::exp(total_energy);
-          bool reject = false;
-          if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
-              reject = false;
-          else
-              reject = true;
-          return !reject;
-        }
+            {
+            double boltz = fast::exp(total_energy);
+            bool reject = false;
+            if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
+                reject = false;
+            else
+                reject = true;
+            return !reject;
+            }
 
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
@@ -556,10 +525,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         m_external->compute(timestep);
         }
-    // if( m_patch )
-    //     {
-    //     m_patch->compute(timestep);
-    //     }
 
     // access interaction matrix
     ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
@@ -621,7 +586,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             else
                 {
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
-                //std::cout << orientation_i.x << orientation_i.y << orientation_i.z << orientation_i.w << std::endl;
                 }
 
             // check for overlaps with neighboring particle's positions (also calculate the new energy)
@@ -629,17 +593,14 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             OverlapReal r_cut_patch = 0;
 
             if (m_patch)
-            {
-              r_cut_patch = m_patch->getRCut();
-              //m_patch->m_PatchEnergy = 0.0;
-            }
+                {
+                r_cut_patch = m_patch->getRCut();
+                }
 
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_cut_patch - getMinCoreDiameter()/OverlapReal(2.0)));
             detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
-            double external_energy = 0;
-            double patch_energy = 0;
-            double e_new = 0;
-            double e_old = 0;
+            double patch_new = 0;
+            double patch_old = 0;
 
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
@@ -702,9 +663,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     }
                                 else if (m_patch) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
-                                    e_new += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+                                    patch_new += m_patch->energy(r_ij, typ_i, quat<float>(shape_i.orientation),typ_j, quat<float>(orientation_j));
                                     }
-                              }
+                                }
                             }
                         }
                     else
@@ -721,9 +682,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     break;
                 } // end loop over images
 
-            // All image boxes (including the primary) (calculate the old energy)
+            // All image boxes (including the primary) (also calculate the old energy)
             // const unsignedmake  int n_images = m_image_list.size();
-            if (m_patch)
+            if (m_patch && !overlap)
             {
               for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                   {
@@ -774,8 +735,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                   unsigned int typ_j = __scalar_as_int(postype_j.w);
                                   Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
 
-                                  e_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
-                                }
+                                  patch_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
+                                  }
                               }
                           }
                       else
@@ -786,44 +747,47 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                       }  // end loop over AABB nodes
                   } // end loop over images
             }
-            // calculate energetic contributions
+
+            // calculate external energetic contribution
+            double external_energy_diff = 0;
             if (m_external)
-            {
-              external_energy = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-            }
-            // if (m_patch)
-            // {
-            //   patch_energy = e_old - e_new;
-            // }
-            patch_energy = e_old - e_new;
-            double total_energy = patch_energy + external_energy;
+              {
+              external_energy_diff = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+              }
+
+            // calculate patch energetic contribution
+            double patch_energy = 0;
+            patch_energy = patch_old - patch_new;
+
+            // calculate total combined energy
+            double total_energy = patch_energy + external_energy_diff;
             bool reject_energy = false;
 
              if (!overlap)
-             {
-               // boltzmann check
-               if (accept(total_energy, rng_i) == true)
                  {
-                   reject_energy = false;
-                 }
+                 // boltzmann check
+                 if (accept(total_energy, rng_i) == true)
+                     {
+                     reject_energy = false;
+                     }
                  else
-                 {
-                   reject_energy = true;
+                     {
+                     reject_energy = true;
+                     }
                  }
-               }
 
             // if the move is accepted
             if (!overlap && !reject_energy)
                 {
-                //if (m_patch) {m_patch->m_PatchEnergy+=e_new;};
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
-                  {
-                  if (move_type_translate)
-                      counters.translate_accept_count++;
-                  else
-                      counters.rotate_accept_count++;
-                  }
+                    {
+                    if (move_type_translate)
+                        counters.translate_accept_count++;
+                    else
+                        counters.rotate_accept_count++;
+                }
+
                 // update the position of the particle in the tree for future updates
                 detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i);
@@ -839,8 +803,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 }
             else
                 {
-                //if (m_patch) {m_patch->m_PatchEnergy+=e_old;};
-
                 if (!shape_i.ignoreStatistics())
                     {
                     // increment reject counter
