@@ -125,6 +125,9 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
                                                 Scalar *d_net_virial,
                                                 const unsigned int virial_pitch,
                                                 Scalar4 *d_velocity,
+                                                const Scalar4 *d_orientation,
+                                                const Scalar4 *d_angmom,
+                                                const Scalar3 *d_inertia,
                                                 unsigned int *d_group_members,
                                                 unsigned int group_size)
     {
@@ -139,12 +142,37 @@ __global__ void gpu_compute_pressure_tensor_partial_sums(Scalar *d_scratch,
         // compute contribution to pressure tensor and store it in my_element
         Scalar4 vel = d_velocity[idx];
         Scalar mass = vel.w;
+
         my_element[0] = mass*vel.x*vel.x + d_net_virial[0*virial_pitch+idx];   // xx
         my_element[1] = mass*vel.x*vel.y + d_net_virial[1*virial_pitch+idx];   // xy
         my_element[2] = mass*vel.x*vel.z + d_net_virial[2*virial_pitch+idx];   // xz
         my_element[3] = mass*vel.y*vel.y + d_net_virial[3*virial_pitch+idx];   // yy
         my_element[4] = mass*vel.y*vel.z + d_net_virial[4*virial_pitch+idx];   // yz
         my_element[5] = mass*vel.z*vel.z + d_net_virial[5*virial_pitch+idx];   // zz
+
+        // compute rotational virial contribution
+        quat<Scalar> q(d_orientation[idx]);
+        quat<Scalar> p(d_angmom[idx]);
+        vec3<Scalar> I(d_inertia[idx]);
+        quat<Scalar> s(Scalar(0.5)*conj(q)*p);
+
+        if (I.x >= EPSILON)
+            {
+            // Kamberaj et al. 2005, Eq. (24)
+            my_element[0] += s.v.x*s.v.x/I.x;
+            my_element[1] += s.v.x*s.v.y/I.x;
+            my_element[2] += s.v.x*s.v.z/I.x;
+            }
+        if (I.y >= EPSILON)
+            {
+            my_element[3] += s.v.y*s.v.y/I.y;
+            my_element[4] += s.v.y*s.v.z/I.y;
+            }
+        if (I.z >= EPSILON)
+            {
+            my_element[5] += s.v.z*s.v.z/I.z;
+            }
+
         }
     else
         {
@@ -356,7 +384,7 @@ __global__ void gpu_compute_thermo_final_sums(Scalar *d_properties,
             }
 
         // pressure: P = (N * K_B * T + W)/V
-        Scalar pressure =  (Scalar(2.0) * ke_trans_total / Scalar(D) + W) / volume;
+        Scalar pressure =  (Scalar(2.0) * (ke_trans_total + ke_rot_total) / Scalar(D) + W) / volume;
 
         // fill out the GPUArray
         d_properties[thermo_index::translational_kinetic_energy] = Scalar(ke_trans_total);
@@ -515,6 +543,9 @@ cudaError_t gpu_compute_thermo(Scalar *d_properties,
                                                                                   args.d_net_virial,
                                                                                   args.virial_pitch,
                                                                                   d_vel,
+                                                                                  args.d_orientation,
+                                                                                  args.d_angmom,
+                                                                                  args.d_inertia,
                                                                                   d_group_members,
                                                                                   group_size);
         }
