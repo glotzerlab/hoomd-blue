@@ -60,34 +60,35 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             }
 
         double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
-        {
-          double patch_energy = 0.0;
-          float r_cut = this->getRCut();
-          float r_cut_sq = r_cut*r_cut;
-          //const BoxDim& box = m_pdata->getGlobalBox();
-          // read in the current position and orientation
-          for (unsigned int i = 0; i<N-1;i++)
-          {
-            Scalar4 postype_i = positions.data[i];
-            Scalar4 orientation_i = orientations.data[i];
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-            int typ_i = __scalar_as_int(postype_i.w);
-            for (auto j = i+1; j<N;j++)
             {
-              Scalar4 postype_j = positions.data[j];
-              Scalar4 orientation_j = orientations.data[j];
-              vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
-              vec3<Scalar> dr_ij = pos_i - pos_j;
-              dr_ij = box.minImage(dr_ij);
-              int typ_j = __scalar_as_int(postype_j.w);
-              if (dot(dr_ij,dr_ij) <= r_cut_sq)
-              {
-                patch_energy+=this->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
-              }
+            double patch_energy = 0.0;
+            float r_cut = this->getRCut();
+            float r_cut_sq = r_cut*r_cut;
+
+            //const BoxDim& box = m_pdata->getGlobalBox();
+            // read in the current position and orientation
+            for (unsigned int i = 0; i<N;i++)
+                {
+                Scalar4 postype_i = positions.data[i];
+                Scalar4 orientation_i = orientations.data[i];
+                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+                int typ_i = __scalar_as_int(postype_i.w);
+                for (unsigned int j = i+1; j < N; j++)
+                    {
+                    Scalar4 postype_j = positions.data[j];
+                    Scalar4 orientation_j = orientations.data[j];
+                    vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
+                    vec3<Scalar> dr_ij = pos_j - pos_i;
+                    dr_ij = box.minImage(dr_ij);
+                    int typ_j = __scalar_as_int(postype_j.w);
+                    if (dot(dr_ij,dr_ij) <= r_cut_sq)
+                        {
+                        patch_energy+=this->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+                        }
+                    }
+                }
+            return patch_energy;
             }
-          }
-          return patch_energy;
-        }
 
       //   Scalar getLogValue(const std::string& quantity, unsigned int timestep)
       //   {
