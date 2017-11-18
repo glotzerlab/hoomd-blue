@@ -344,10 +344,9 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        const BoxDim& box = m_pdata->getBox();
         unsigned int N = m_pdata->getN();
-        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,box,N);
-        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,box,N);
+        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,newBox,N);
+        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,curBox,N);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
         deltaE += e_new-e_old;
         }
@@ -522,9 +521,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        //double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
-        double dBetaH = P * dV + Nglobal * log(Vnew/Vold);
-        //double Boltzmann = exp(dBetaH);
+        double dBetaH = P * dV - Nglobal * log(Vnew/Vold);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -610,9 +607,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
     else
         {
         // Calculate Boltzmann factor
-        //double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
         double dBetaH = P * (new_V-V) - (Nglobal+1) * log(new_V/V);
-        //double Boltzmann = exp(dBetaH);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -701,8 +696,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/V);
-        double Boltzmann = exp(dBetaH);
+        double dBetaH = P * dV - Nglobal * log(Vnew/V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -712,7 +706,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
                                       newShear[1],
                                       newShear[2],
                                       timestep,
-                                      Boltzmann,
+                                      dBetaH,
                                       rng);
 
         if (accept)
