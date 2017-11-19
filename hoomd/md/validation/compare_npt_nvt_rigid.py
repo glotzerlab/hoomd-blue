@@ -28,7 +28,6 @@ class npt_rigid_validation(unittest.TestCase):
 
         for p in self.system.particles:
             p.moment_inertia = (.5,.5,1)
-            #p.moment_inertia = (0,0,0)
 
         # create rigid spherocylinders out of two particles (not including the central particle)
         len_cyl =0.5
@@ -72,11 +71,6 @@ class npt_rigid_validation(unittest.TestCase):
         Pval = []
         def accumulate_P(timestep):
             Pval.append(log.query('pressure'))
-
-        #from hoomd import deprecated
-        #pos = deprecated.dump.pos(filename='npt.pos',period=10000,unwrap_rigid=True)
-        #pos.set_def('A','sphere 0 00000000')
-        #pos.set_def('const','sphere {} ff00ff00'.format(sigma))
 
         run(nsteps,callback=accumulate_P, callback_period=100)
 
