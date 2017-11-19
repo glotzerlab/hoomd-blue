@@ -222,10 +222,6 @@ void ComputeThermo::computeProperties()
 
     if (flags[pdata_flag::pressure_tensor])
         {
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
-
         // Calculate kinetic part of pressure tensor
         for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
             {
@@ -238,35 +234,6 @@ void ComputeThermo::computeProperties()
             pressure_kinetic_yz += mass*(  (double)h_vel.data[j].y * (double)h_vel.data[j].z );
             pressure_kinetic_zz += mass*(  (double)h_vel.data[j].z * (double)h_vel.data[j].z );
             }
-
-        for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
-            {
-            unsigned int j = m_group->getMemberIndex(group_idx);
-            Scalar3 I = h_inertia.data[j];
-            quat<Scalar> q(h_orientation.data[j]);
-            quat<Scalar> p(h_angmom.data[j]);
-            quat<Scalar> s(Scalar(0.5)*conj(q)*p);
-
-            // only if the moment of inertia along one principal axis is non-zero, that axis carries angular momentum
-
-            // Kamberaj et al 2005 Eq.(24)
-            if (I.x >= EPSILON)
-                {
-                pressure_kinetic_xx += s.v.x*s.v.x/I.x;
-                pressure_kinetic_xy += s.v.x*s.v.y/I.x;
-                pressure_kinetic_xz += s.v.x*s.v.y/I.x;
-                }
-            if (I.y >= EPSILON)
-                {
-                pressure_kinetic_yy += s.v.y*s.v.y/I.y;
-                pressure_kinetic_yz += s.v.y*s.v.z/I.z;
-                }
-            if (I.z >= EPSILON)
-                {
-                pressure_kinetic_zz += s.v.z*s.v.z/I.z;
-                }
-            }
-
         // kinetic energy = 1/2 trace of kinetic part of pressure tensor
         ke_trans_total = Scalar(0.5)*(pressure_kinetic_xx + pressure_kinetic_yy + pressure_kinetic_zz);
         }
@@ -288,7 +255,7 @@ void ComputeThermo::computeProperties()
     // total rotational kinetic energy
     double ke_rot_total = 0.0;
 
-    if (flags[pdata_flag::rotational_kinetic_energy] || flags[pdata_flag::isotropic_virial])
+    if (flags[pdata_flag::rotational_kinetic_energy])
         {
         // Calculate rotational part of kinetic energy
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
@@ -396,7 +363,7 @@ void ComputeThermo::computeProperties()
         }
 
     // pressure: P = (N * K_B * T + W)/V
-    Scalar pressure =  (2.0 * (ke_trans_total + ke_rot_total) / Scalar(D) + W) / volume;
+    Scalar pressure =  (2.0 * ke_trans_total / Scalar(D) + W) / volume;
 
     // pressure tensor = (kinetic part + virial) / V
     Scalar pressure_xx = (pressure_kinetic_xx + virial_xx) / volume;
