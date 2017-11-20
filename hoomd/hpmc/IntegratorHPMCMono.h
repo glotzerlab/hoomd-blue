@@ -597,7 +597,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 r_cut_patch = m_patch->getRCut();
                 }
 
-            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), (2*r_cut_patch - getMinCoreDiameter()/OverlapReal(2.0)));
+            // subtract minimum AABB extent from search radius
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
+
             detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
             double patch_new = 0;
             double patch_old = 0;
@@ -1126,13 +1128,22 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         // access the type parameters
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
 
-        // for each type, create a temporary shape and return the maximum sum of diameter and move size
+        Scalar r_cut_patch(0.0);
+        if (m_patch)
+            {
+            r_cut_patch = (Scalar)m_patch->getRCut();
+            }
+
+       // for each type, create a temporary shape and return the maximum sum of diameter and move size
         for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
             Shape temp(quat<Scalar>(), m_params[typ]);
-            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, temp.getCircumsphereDiameter()+Scalar(m_nselect)*h_d.data[typ]);
+
+            Scalar range_i = detail::max((Scalar)temp.getCircumsphereDiameter(),r_cut_patch);
+            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ]);
             }
         }
+
     range += max_trans_d_and_diam;
 
     Scalar range_sq = range*range;
