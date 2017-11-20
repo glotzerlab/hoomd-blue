@@ -19,7 +19,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_sysdef->getParticleData()->getNumTypesChangeSignal().connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);
 
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-            m_rcut_type.resize(ntypes);
+            m_rcut_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
@@ -72,7 +72,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         virtual void slotNumTypesChange()
             {
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-            m_rcut_type.resize(ntypes);
+            m_rcut_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
