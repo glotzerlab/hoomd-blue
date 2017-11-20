@@ -2,6 +2,7 @@
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "PatchEnergyJIT.h"
+#include "PatchEnergyJITUnion.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
@@ -14,6 +15,7 @@ PYBIND11_PLUGIN(_jit)
     {
     pybind11::module m("_jit");
     export_PatchEnergyJIT(m);
+    export_PatchEnergyJITUnion(m);
 
     return m.ptr();
     }

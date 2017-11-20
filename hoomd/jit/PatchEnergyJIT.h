@@ -40,7 +40,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut);
 
         //! Get the maximum r_ij radius beyond which energies are always 0
-        Scalar getRCut()
+        virtual Scalar getRCut()
             {
             return m_r_cut;
             }
@@ -54,7 +54,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
 
             \returns Energy of the patch interaction.
         */
-        float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+        virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
             {
             return m_eval(r_ij, type_i, q_i, type_j, q_j);
             }
@@ -112,7 +112,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
       //   return m_PatchProvidedQuantities;
       // }
 
-    private:
+    protected:
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
         Scalar m_r_cut;                             //!< Cutoff radius

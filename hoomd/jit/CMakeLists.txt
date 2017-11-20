@@ -13,10 +13,12 @@ llvm_map_components_to_libnames(llvm_libs executionengine support core irreader 
 set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
+     PatchEnergyJITUnion.cc
      OrcLazyJIT.cc
    )
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
+							 PatchEnergyJITUnion.h
                              OrcLazyJIT.h
    )
 
