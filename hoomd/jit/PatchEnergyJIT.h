@@ -118,7 +118,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<llvm::OrcLazyJIT> m_JIT;    //!< JIT execution engine
         EvalFnPtr m_eval;                           //!< Pointer to evaluator function inside the JIT module
-        Scalar m_PatchEnergy;                       //!< patch energy
+        //Scalar m_PatchEnergy;                       //!< patch energy
         //std::vector<std::string>  m_PatchProvidedQuantities; //!< available
     };
 

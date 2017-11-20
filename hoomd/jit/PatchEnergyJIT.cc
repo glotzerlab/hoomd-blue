@@ -20,7 +20,7 @@
 
     After construction, the LLVM IR is loaded, compiled, and the energy() method is ready to be called.
 */
-PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut), m_PatchEnergy(0.0)
+PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut) : m_r_cut(r_cut)
     {
 
     //m_PatchProvidedQuantities.push_back(PATCH_ENERGY_LOG_NAME);

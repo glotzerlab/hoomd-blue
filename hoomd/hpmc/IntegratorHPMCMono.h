@@ -319,7 +319,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_hasOrientation;                               //!< true if there are any orientable particles in the system
 
         std::shared_ptr< ExternalFieldMono<Shape> > m_external;//!< External Field
-        std::shared_ptr< PatchEnergy > m_patch;//!< Patchy Energy
+        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
         detail::AABBTree m_aabb_tree;               //!< Bounding volume hierarchy for overlap checks
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
@@ -406,32 +406,31 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
 {
     if (quantity == "hpmc_patch_energy")
         {
-          if (m_patch)
-          {
+        if (m_patch)
+            {
             ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
             const BoxDim& box = m_pdata->getBox();
             unsigned int N = m_pdata->getN();
             return (Scalar) m_patch->computePatchEnergy(positions,orientations,box,N);
-          }
-          else
-          {
+            }
+        else
+            {
             this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
             throw std::runtime_error("Error getting log value");
-          }
-
+            }
         }
     else if (quantity == "hpmc_patch_rcut")
         {
-          if (m_patch)
-          {
-            return (Scalar)m_patch->getRCut();
-          }
-          else
-          {
-            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
-            throw std::runtime_error("Error getting log value");
-          }
+            if (m_patch)
+                {
+                return (Scalar)m_patch->getRCut();
+                }
+            else
+                {
+                this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+                throw std::runtime_error("Error getting log value");
+                }
         }
     else
         {
@@ -588,7 +587,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
-            // check for overlaps with neighboring particle's positions (also calculate the new energy)
+
             bool overlap=false;
             OverlapReal r_cut_patch = 0;
 
@@ -599,11 +598,12 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // subtract minimum AABB extent from search radius
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
-
             detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
-            double patch_new = 0;
-            double patch_old = 0;
 
+            // patch + field interaction deltaU
+            double patch_field_energy_diff = 0;
+
+            // check for overlaps with neighboring particle's positions (also calculate the new energy)
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -665,7 +665,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     }
                                 else if (m_patch) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
-                                    patch_new += m_patch->energy(r_ij, typ_i, quat<float>(shape_i.orientation),typ_j, quat<float>(orientation_j));
+                                    // deltaU = U_old - U_new: subtract energy of new configuration
+                                    patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               typ_j, quat<float>(orientation_j));
                                     }
                                 }
                             }
@@ -684,102 +687,95 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     break;
                 } // end loop over images
 
-            // All image boxes (including the primary) (also calculate the old energy)
-            // const unsignedmake  int n_images = m_image_list.size();
+            // calculate old patch energy only if m_patch not NULL and no overlaps
             if (m_patch && !overlap)
-            {
-              for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
-                  {
-                  vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
-                  detail::AABB aabb = aabb_i_local;
-                  aabb.translate(pos_i_image);
+                {
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
+                    detail::AABB aabb = aabb_i_local;
+                    aabb.translate(pos_i_image);
 
-                  // stackless search
-                  for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
-                      {
-                      if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
-                          {
-                          if (m_aabb_tree.isNodeLeaf(cur_node_idx))
-                              {
-                              for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
-                                  {
-                                  // read in its position and orientation
-                                  unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        {
+                        if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            {
+                            if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
-                                  Scalar4 postype_j;
-                                  Scalar4 orientation_j;
+                                    Scalar4 postype_j;
+                                    Scalar4 orientation_j;
 
-                                  // handle j==i situations
-                                  if ( j != i )
-                                      {
-                                      // load the position and orientation of the j particle
-                                      postype_j = h_postype.data[j];
-                                      orientation_j = h_orientation.data[j];
-                                      }
-                                  else
-                                      {
-                                      if (cur_image == 0)
-                                          {
-                                          // in the first image, skip i == j
-                                          continue;
-                                          }
-                                      else
-                                          {
-                                          // If this is particle i and we are in an outside image, use the translated position and orientation
-                                          postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
-                                          orientation_j = quat_to_scalar4(shape_old.orientation);
-                                          }
-                                      }
+                                    // handle j==i situations
+                                    if ( j != i )
+                                        {
+                                        // load the position and orientation of the j particle
+                                        postype_j = h_postype.data[j];
+                                        orientation_j = h_orientation.data[j];
+                                        }
+                                    else
+                                        {
+                                        if (cur_image == 0)
+                                            {
+                                            // in the first image, skip i == j
+                                            continue;
+                                            }
+                                        else
+                                            {
+                                            // If this is particle i and we are in an outside image, use the translated position and orientation
+                                            postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            }
+                                        }
 
-                                  // put particles in coordinate system of particle i
-                                  vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                                    // deltaU = U_old - U_new: add energy of old configuration
+                                    patch_field_energy_diff += m_patch->energy(r_ij,
+                                                               typ_i, quat<float>(orientation_i),
+                                                               typ_j, quat<float>(orientation_j));
+                                    }
+                                }
+                            }
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                            }
+                        }  // end loop over AABB nodes
+                    } // end loop over images
+                } // end if (m_patch)
 
-                                  unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                  Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
-
-                                  patch_old += m_patch->energy(r_ij, typ_i, quat<float>(orientation_i), typ_j, quat<float>(orientation_j));
-                                  }
-                              }
-                          }
-                      else
-                          {
-                          // skip ahead
-                          cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
-                          }
-                      }  // end loop over AABB nodes
-                  } // end loop over images
-            }
-
-            // calculate external energetic contribution
-            double external_energy_diff = 0;
+            // Add external energetic contribution
             if (m_external)
-              {
-              external_energy_diff = m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
-              }
+                {
+                patch_field_energy_diff += m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                }
 
-            // calculate patch energetic contribution
-            double patch_energy = 0;
-            patch_energy = patch_old - patch_new;
 
-            // calculate total combined energy
-            double total_energy = patch_energy + external_energy_diff;
-            bool reject_energy = false;
-
-             if (!overlap)
-                 {
+            bool reject_move = false;
+            if (!overlap)
+                {
                  // boltzmann check
-                 if (accept(total_energy, rng_i) == true)
-                     {
-                     reject_energy = false;
-                     }
-                 else
-                     {
-                     reject_energy = true;
-                     }
-                 }
+                if (accept(patch_field_energy_diff, rng_i) == true)
+                    {
+                    reject_move = false;
+                    }
+                else
+                    {
+                    reject_move = true;
+                    }
+                }
 
             // if the move is accepted
-            if (!overlap && !reject_energy)
+            if (!overlap && !reject_move)
                 {
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
