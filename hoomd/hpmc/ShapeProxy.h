@@ -533,11 +533,11 @@ public:
         return OverlapReal(2.0)*m_access(params[m_typeid]).radius;
         }
 
-      bool getOrientable()
-          {
-          std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
-          return m_access(params[m_typeid]).isOriented;
-          }
+    bool getOrientable()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).isOriented;
+        }
 };
 
 template<class Shape, class AccessType = access<Shape> >
