@@ -179,5 +179,6 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
                                  std::shared_ptr<ExecutionConfiguration>,
                                  const std::string&,
                                  Scalar>())
+            .def("setParam",&PatchEnergyJITUnion::setParam)
             ;
     }
