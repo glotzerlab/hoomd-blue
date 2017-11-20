@@ -102,7 +102,7 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
-            if (rsq <= m_r_cut)
+            if (rsq <= m_r_cut*m_r_cut)
                 {
                 // evaluate energy via JIT function
                 energy += m_eval(r_ij, type_i, orientation_i, type_j, orientation_j);
