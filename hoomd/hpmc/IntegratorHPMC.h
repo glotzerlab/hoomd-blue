@@ -35,37 +35,36 @@ namespace hpmc
 */
 
 class PatchEnergy
-{
-  public:
-  PatchEnergy(){this->m_PatchEnergy=0.0;};
+    {
+    public:
+        PatchEnergy(){};
 
-  virtual Scalar getRCut()
-  {
-    return 0;
-  }
+    virtual Scalar getRCut()
+        {
+        return 0;
+        }
 
-  virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
-  {
-    return 0;
-  }
+    virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+        {
+        return 0;
+        }
 
-  //virtual std::vector< std::string > getProvidedLogQuantities(){}
+    //virtual std::vector< std::string > getProvidedLogQuantities(){}
 
-  //virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
+    //virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
 
-  //! needed for Compute. currently not used.
-  //virtual void compute(unsigned int timestep){}
+    //! needed for Compute. currently not used.
+    //virtual void compute(unsigned int timestep){}
 
-  virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
-  {
-    return 0.0;
-  }
+    virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
+        {
+        return 0.0;
+        }
 
-  double m_PatchEnergy;
-  //private:
-  //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
+    //private:
+    //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
 
-};
+    };
 
 class IntegratorHPMC : public Integrator
     {
