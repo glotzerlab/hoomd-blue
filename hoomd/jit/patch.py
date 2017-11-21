@@ -79,8 +79,12 @@ class user(object):
         float eval(const vec3<float>& r_ij,
                    unsigned int type_i,
                    const quat<float>& q_i,
+                   float diameter_i,
+                   float charge_i,
                    unsigned int type_j,
-                   const quat<float>& q_j)
+                   const quat<float>& q_j,
+                   float diameter_j,
+                   float charge_j)
 
     ``vec3`` and ``quat`` are defined in HOOMDMath.h.
 
@@ -131,7 +135,15 @@ class user(object):
 
 extern "C"
 {
-float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+float eval(const vec3<float>& r_ij,
+     unsigned int type_i,
+     const quat<float>& q_i,
+     float d_i,
+     float charge_i,
+     unsigned int type_j,
+     const quat<float>& q_j,
+     float d_j,
+     float charge_j)
    {
 """);
                     f.write(code)
@@ -212,14 +224,24 @@ class user_union(user):
         type (string): The type to set the interactions for
         positions: The positions of the consitutent particles (list of vectors)
         orientations: The orientations of the consituent particles (list of four-vectors)
+        diameters: The diameters of the constituent particles (list of floats)
+        charges: The charges of the constituent particles (list of floats)
         leaf_capacity: The number of particles in a leaf of the internal tree data structure
     '''
-    def set_params(self, type, positions, typeids, orientations=None, leaf_capacity=4):
+    def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
         if orientations is None:
             orientations = [[1,0,0,0]]*len(positions)
 
+        if charges is None:
+            charges = [0]*len(positions)
+
+        if diameters is None:
+            diameters = [1.0]*len(positions)
+
         positions = np.array(positions).tolist()
         orientations = np.array(orientations).tolist()
+        diameters = np.array(diameters).tolist()
+        charges = np.array(charges).tolist()
         typeids = np.array(typeids).tolist()
 
         ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
@@ -229,4 +251,4 @@ class user_union(user):
             raise RuntimeError("Error initializing patch energy."); 
         typeid = type_names.index(type)
 
-        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, leaf_capacity)
+        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)

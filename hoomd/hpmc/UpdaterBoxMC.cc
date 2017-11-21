@@ -344,9 +344,11 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> diameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
         unsigned int N = m_pdata->getN();
-        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,newBox,N);
-        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,curBox,N);
+        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,diameters,charges,newBox,N);
+        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,diameters,charges,curBox,N);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
         deltaE += e_new-e_old;
         }

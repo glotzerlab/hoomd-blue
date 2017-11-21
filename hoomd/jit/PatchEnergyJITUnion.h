@@ -23,6 +23,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
+            m_diameter.resize(ntypes);
+            m_charge.resize(ntypes);
             m_tree.resize(ntypes);
             }
         //! Destructor
@@ -39,7 +41,12 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             \param orientations The orientations
             \param leaf_capacity Number of particles in OBB tree leaf
          */
-        void setParam(unsigned int type, pybind11::list types, pybind11::list positions, pybind11::list orientations,
+        void setParam(unsigned int type,
+            pybind11::list types,
+            pybind11::list positions,
+            pybind11::list orientations,
+            pybind11::list diameters,
+            pybind11::list charges,
             unsigned int leaf_capacity=4);
 
         //! Set the global cutoff distance
@@ -60,13 +67,25 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         //! evaluate the energy of the patch interaction
         /*! \param r_ij Vector pointing from particle i to j
             \param type_i Integer type index of particle i
+            \param d_i Diameter of particle i
+            \param charge_i Charge of particle i
             \param q_i Orientation quaternion of particle i
             \param type_j Integer type index of particle j
             \param q_j Orientation quaternion of particle j
+            \param d_j Diameter of particle j
+            \param charge_j Charge of particle j
 
             \returns Energy of the patch interaction.
         */
-        virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
+        virtual float energy(const vec3<float>& r_ij,
+            unsigned int type_i,
+            const quat<float>& q_i,
+            float diameter_i,
+            float charge_i,
+            unsigned int type_j,
+            const quat<float>& q_j,
+            float d_j,
+            float charge_j);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange()
@@ -76,6 +95,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
+            m_diameter.resize(ntypes);
+            m_charge.resize(ntypes);
             m_tree.resize(ntypes);
             }
 
@@ -85,6 +106,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::vector< float > m_rcut_type;                         // The per-type rcut
         std::vector< std::vector<vec3<float> > > m_position;      // The positions of the constituent particles
         std::vector< std::vector<quat<float> > > m_orientation;   // The orientations of the constituent particles
+        std::vector< std::vector<float> > m_diameter;             // The diameters of the constituent particles
+        std::vector< std::vector<float> > m_charge;               // The charges of the constituent particles
         std::vector< std::vector<unsigned int> > m_type;          // The type identifiers of the constituent particles
 
         //! Compute the energy of two overlapping leaf nodes

@@ -410,9 +410,12 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
             {
             ArrayHandle<Scalar4> positions(m_pdata->getPositions(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> diameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
+            ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
+
             const BoxDim& box = m_pdata->getBox();
             unsigned int N = m_pdata->getN();
-            return (Scalar) m_patch->computePatchEnergy(positions,orientations,box,N);
+            return (Scalar) m_patch->computePatchEnergy(positions,orientations,diameters,charges,box,N);
             }
         else
             {
@@ -534,6 +537,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
         //access move sizes
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
@@ -668,7 +673,13 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
                                                                quat<float>(shape_i.orientation),
-                                                               typ_j, quat<float>(orientation_j));
+                                                               h_diameter.data[i],
+                                                               h_charge.data[i],
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               h_diameter.data[j],
+                                                               h_charge.data[j]
+                                                               );
                                     }
                                 }
                             }
@@ -740,8 +751,14 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     // deltaU = U_old - U_new: add energy of old configuration
                                     if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                                         patch_field_energy_diff += m_patch->energy(r_ij,
-                                                                   typ_i, quat<float>(orientation_i),
-                                                                   typ_j, quat<float>(orientation_j));
+                                                                   typ_i,
+                                                                   quat<float>(orientation_i),
+                                                                   h_diameter.data[i],
+                                                                   h_charge.data[i],
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   h_diameter.data[j],
+                                                                   h_charge.data[j]);
                                     }
                                 }
                             }

@@ -48,18 +48,34 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         //! evaluate the energy of the patch interaction
         /*! \param r_ij Vector pointing from particle i to j
             \param type_i Integer type index of particle i
+            \param d_i Diameter of particle i
+            \param charge_i Charge of particle i
             \param q_i Orientation quaternion of particle i
             \param type_j Integer type index of particle j
             \param q_j Orientation quaternion of particle j
-
+            \param d_j Diameter of particle j
+            \param charge_j Charge of particle j
             \returns Energy of the patch interaction.
         */
-        virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+        virtual float energy(const vec3<float>& r_ij,
+            unsigned int type_i,
+            const quat<float>& q_i,
+            float d_i,
+            float charge_i,
+            unsigned int type_j,
+            const quat<float>& q_j,
+            float d_j,
+            float charge_j)
             {
-            return m_eval(r_ij, type_i, q_i, type_j, q_j);
+            return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
-        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
+        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,
+            const ArrayHandle<Scalar4> &orientations,
+            const ArrayHandle<Scalar> &diameters,
+            const ArrayHandle<Scalar> &charges,
+            const BoxDim& box,
+            unsigned int &N)
             {
             double patch_energy = 0.0;
             float r_cut = this->getRCut();
@@ -83,7 +99,16 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
                     int typ_j = __scalar_as_int(postype_j.w);
                     if (dot(dr_ij,dr_ij) <= r_cut_sq)
                         {
-                        patch_energy+=this->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
+                        patch_energy+=this->energy(dr_ij,
+                            typ_i,
+                            quat<float>(orientation_i),
+                            diameters.data[i],
+                            charges.data[i],
+                            typ_j,
+                            quat<float>(orientation_j),
+                            diameters.data[j],
+                            charges.data[j]
+                            );
                         }
                     }
                 }
@@ -114,7 +139,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
 
     protected:
         //! function pointer signature
-        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
+        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<llvm::OrcLazyJIT> m_JIT;    //!< JIT execution engine
         EvalFnPtr m_eval;                           //!< Pointer to evaluator function inside the JIT module
