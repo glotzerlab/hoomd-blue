@@ -7,7 +7,13 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object transformutils lto)
+llvm_map_components_to_libnames(_llvm_libs executionengine support core irreader native runtimedyld orcjit object transformutils lto)
+
+# add library directory as necessary
+foreach(llvm_file ${_llvm_libs})
+    find_library(_lib ${llvm_file} ${LLVM_LIBRARY_DIRS})
+    list(APPEND llvm_libs ${_lib})
+endforeach()
 
 # set files to compile
 set(_${PACKAGE_NAME}_sources
