@@ -124,12 +124,12 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
                 energy += m_eval(r_ij,
                     type_i,
                     orientation_i,
-                    m_diameter[type_i][ileaf],
-                    m_charge[type_i][ileaf],
+                    m_diameter[type_a][ileaf],
+                    m_charge[type_a][ileaf],
                     type_j,
                     orientation_j,
-                    m_diameter[type_j][jleaf],
-                    m_charge[type_j][jleaf]);
+                    m_diameter[type_b][jleaf],
+                    m_charge[type_b][jleaf]);
                 }
             }
         }
