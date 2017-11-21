@@ -44,7 +44,15 @@ class PatchEnergy
         return 0;
         }
 
-    virtual float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+    virtual float energy(const vec3<float>& r_ij,
+        unsigned int type_i,
+        const quat<float>& q_i,
+        float d_i,
+        float charge_i,
+        unsigned int type_j,
+        const quat<float>& q_j,
+        float d_j,
+        float charge_j)
         {
         return 0;
         }
@@ -56,7 +64,11 @@ class PatchEnergy
     //! needed for Compute. currently not used.
     //virtual void compute(unsigned int timestep){}
 
-    virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
+    virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,
+        const ArrayHandle<Scalar4> &orientations,
+        const ArrayHandle<Scalar> &diameters,
+        const ArrayHandle<Scalar> &charges,
+        const BoxDim& box, unsigned int &N)
         {
         return 0.0;
         }

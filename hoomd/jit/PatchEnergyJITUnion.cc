@@ -7,6 +7,8 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     pybind11::list types,
     pybind11::list positions,
     pybind11::list orientations,
+    pybind11::list diameters,
+    pybind11::list charges,
     unsigned int leaf_capacity)
     {
     if (type >= m_sysdef->getParticleData()->getNTypes())
@@ -21,6 +23,14 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         {
         throw std::runtime_error("Number of member orientations not equal to number of types");
         }
+    if (len(charges) != len(types))
+        {
+        throw std::runtime_error("Number of member charges not equal to number of types");
+        }
+    if (len(diameters) != len(types))
+        {
+        throw std::runtime_error("Number of member diameters not equal to number of types");
+        }
 
     unsigned int N = len(positions);
 
@@ -33,6 +43,8 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     m_position[type].resize(N);
     m_orientation[type].resize(N);
     m_type[type].resize(N);
+    m_diameter[type].resize(N);
+    m_charge[type].resize(N);
 
     for (unsigned int i = 0; i < N; i++)
         {
@@ -45,9 +57,13 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         float z = pybind11::cast<float>(orientations_i[3]);
         quat<float> orientation(s, vec3<float>(x,y,z));
 
+        float diameter = pybind11::cast<float>(diameters[i]);
+        float charge = pybind11::cast<float>(charges[i]);
         m_type[type][i] = pybind11::cast<unsigned int>(types[i]);
         m_position[type][i] = pos;
         m_orientation[type][i] = orientation;
+        m_diameter[type][i] = diameter;
+        m_charge[type][i] = charge;
 
         // use a point-sized OBB
         obbs[i] = hpmc::detail::OBB(pos,0.0);
@@ -105,7 +121,15 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             if (rsq <= m_r_cut*m_r_cut)
                 {
                 // evaluate energy via JIT function
-                energy += m_eval(r_ij, type_i, orientation_i, type_j, orientation_j);
+                energy += m_eval(r_ij,
+                    type_i,
+                    orientation_i,
+                    m_diameter[type_i][ileaf],
+                    m_charge[type_i][ileaf],
+                    type_j,
+                    orientation_j,
+                    m_diameter[type_j][jleaf],
+                    m_charge[type_j][jleaf]);
                 }
             }
         }
@@ -113,7 +137,15 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
     }
 
 
-float PatchEnergyJITUnion::energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
+    unsigned int type_i,
+    const quat<float>& q_i,
+    float d_i,
+    float charge_i,
+    unsigned int type_j,
+    const quat<float>& q_j,
+    float d_j,
+    float charge_j)
     {
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
