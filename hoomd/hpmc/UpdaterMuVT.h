@@ -1289,12 +1289,18 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         // check for overlaps
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
         // type
         unsigned int type = this->m_pdata->getType(tag);
 
         // read in the current position and orientation
         quat<Scalar> orientation(m_pdata->getOrientation(tag));
+
+        // charge and diameter
+        Scalar diameter = m_pdata->getDiameter(tag);
+        Scalar charge = m_pdata->getCharge(tag);
 
         // getPosition() takes into account grid shift, correct for that
         Scalar3 p = m_pdata->getPosition(tag)+m_pdata->getOrigin();
@@ -1318,7 +1324,15 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                 // self-energy
                 if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                     {
-                    lnboltzmann += patch->energy(r_ij, type, quat<float>(orientation), type, quat<float>(orientation));
+                    lnboltzmann += patch->energy(r_ij,
+                        type,
+                        quat<float>(orientation),
+                        diameter,
+                        charge,
+                        type,
+                        quat<float>(orientation),
+                        diameter,
+                        charge);
                     }
                 }
 
@@ -1347,7 +1361,15 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
 
                             if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                                 {
-                                lnboltzmann += patch->energy(r_ij, type, quat<float>(orientation), typ_j, quat<float>(orientation_j));
+                                lnboltzmann += patch->energy(r_ij,
+                                    type,
+                                    quat<float>(orientation),
+                                    diameter,
+                                    charge,
+                                    typ_j,
+                                    quat<float>(orientation_j),
+                                    h_diameter.data[j],
+                                    h_charge.data[j]);
                                 }
                             }
                         }
@@ -1403,6 +1425,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         // check for overlaps
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
         const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
 
@@ -1442,7 +1466,16 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                 // self-energy
                 if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                     {
-                    lnboltzmann -= patch->energy(r_ij, type, quat<float>(orientation), type, quat<float>(orientation));
+                    lnboltzmann -= patch->energy(r_ij,
+                        type,
+                        quat<float>(orientation),
+                        1.0, // diameter i
+                        0.0, // charge i
+                        type,
+                        quat<float>(orientation),
+                        1.0, // diameter i
+                        0.0 // charge i
+                        );
                     }
                 }
 
@@ -1479,7 +1512,15 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                                 }
                             else if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                                 {
-                                lnboltzmann -= patch->energy(r_ij, type, quat<float>(orientation), typ_j, quat<float>(orientation_j));
+                                lnboltzmann -= patch->energy(r_ij,
+                                    type,
+                                    quat<float>(orientation),
+                                    1.0, // diameter i
+                                    0.0, // charge i
+                                    typ_j,
+                                    quat<float>(orientation_j),
+                                    h_diameter.data[j],
+                                    h_charge.data[j]);
                                 }
                             }
                         }
