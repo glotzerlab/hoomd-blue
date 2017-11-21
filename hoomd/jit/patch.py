@@ -88,6 +88,11 @@ class user(object):
 
     ``vec3`` and ``quat`` are defined in HOOMDMath.h.
 
+    Warning:
+        Even though the diameter field is passed to the pair potential, the **r_cut** value is **not** shifted by the diameter.
+        To implement e.g. a diameter-shifted LJ potential, **r_cut** needs to be manually set to the maximum possible cut-off
+        for the largest diameter in the system.
+
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
     '''
