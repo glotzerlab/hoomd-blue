@@ -1287,6 +1287,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
 
         // check for overlaps
+        ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
@@ -1322,7 +1323,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                 {
                 vec3<Scalar> r_ij = pos - pos_image;
                 // self-energy
-                if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                     {
                     lnboltzmann += patch->energy(r_ij,
                         type,
@@ -1358,6 +1359,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                             vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
 
                             unsigned int typ_j = __scalar_as_int(postype_j.w);
+
+                            // we computed the self-interaction above
+                            if (h_tag.data[j] == tag) continue;
 
                             if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                                 {
