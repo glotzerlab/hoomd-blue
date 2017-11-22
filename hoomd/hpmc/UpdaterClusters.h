@@ -102,10 +102,7 @@ void Graph::addEdge(int v, int w)
     enthalpic potentials.
 
     In order to support anisotropic particles, we have to reject moves that
-    cross the PBC, as described in Sinkovits et al. Furthermore, the class
-    doesn't support any parallelization - it will work in MPI, but only in serial.
-    The reason is that GCA-like algorithm's are not easily parallelizable
-    because of the non-local nature of the move set.
+    cross the PBC, as described in Sinkovits et al.
 */
 
 template< class Shape, class Integrator >
@@ -456,7 +453,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
-                                    m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
+                                    auto iti = map.find(h_tag.data[i]);
+                                    assert(iti != map.end());
+                                    auto itj = map.find(new_tag_j);
+                                    assert(itj != map.end());
+                                    m_overlap.insert(std::make_pair(iti->second,itj->second));
                                     } // end if overlap
                                 }
 
@@ -518,7 +519,9 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
                             if (rsq_ij <= RaRb*RaRb)
                                 {
-                                m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
+                                auto iti = map.find(h_tag.data[i]);
+                                assert(iti != map.end());
+                                m_interact_new_old.insert(std::make_pair(iti->second,new_tag_j));
                                 }
                             } // end loop over AABB tree leaf
                         } // end is leaf
@@ -607,6 +610,8 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     // save origin information
     Scalar3 origin = m_pdata->getOrigin();
+
+    // reset origin, so that takeSnapshot will not subtract it
     m_pdata->resetOrigin();
 
     auto map = m_pdata->takeSnapshot(snap);
@@ -652,9 +657,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     if (master)
         {
-        // access parameters
-        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc_implicit->getParams();
-
         for (unsigned int i = 0; i < snap.size; ++i)
             {
             // if the particle falls outside the active volume of the box, reject
@@ -738,7 +740,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
-                // particles overlapping the new configuration are transformed as part of the same cluster
+                // particles overlapping in the new configuration are transformed as part of the same cluster
                 m_G.addEdge(it_j->first, it_j->second);
                 }
             }
@@ -769,10 +771,9 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                     }
 
                 bool reject = false;
-                // if it forms a bond with a rejected particle, reject this one, too
-                // note: this condition is OK with distance-based clustering, it may have to be
-                // revisited for enthalpic potentials
-                if (m_ptl_reject.find(j) != m_ptl_reject.end())
+
+                // if any of the particles is rejected, form a bond
+                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
                     reject = true;
 
                 if (!interact_new || reject)
@@ -780,17 +781,22 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 }
             }
 
+         for (auto it_i = all_interact_new_old.begin(); it_i != all_interact_new_old.end(); ++it_i)
+            {
+            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                {
+                unsigned int i = it_j->first;
+                unsigned int j = it_j->second;
+
+                // if any of the particles is rejected, form a bond
+                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
+                    m_G.addEdge(i, j);
+                }
+            }
+
         // compute connected components
         m_clusters.clear();
         m_G.connectedComponents(m_clusters);
-
-        #if 0
-        // do not perform trivial transformations
-        if (m_clusters.size()==1 && m_clusters[0].size() == snap.size && m_clusters[0].size())
-            {
-            m_ptl_reject[m_clusters[0][0]] = true;
-            }
-        #endif
 
         // move every cluster independently
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
@@ -832,9 +838,6 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; i++)
             {
-            // add back origin shift
-            snap.pos[i] += vec3<Scalar>(origin);
-
             // wrap back into box
             box.wrap(snap.pos[i],snap.image[i]);
             }
@@ -844,7 +847,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     // finally re-initialize particle data
     m_pdata->initializeFromSnapshot(snap);
 
-    // restore orgin
+    // restore orgin, after initializing from translated positions
     m_pdata->translateOrigin(origin);
 
     if (m_prof) m_prof->pop(m_exec_conf);
