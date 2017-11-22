@@ -9,7 +9,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
 # grab all available libs
-set(llvm_libs ${LLVM_AVAILABLE_LIBS})
+set(_llvm_libs ${LLVM_AVAILABLE_LIBS})
 
 # add library directory as necessary
 # https://stackoverflow.com/questions/36757842/cmake-use-foreach-and-find-library-to-return-full-path-of-libraries
