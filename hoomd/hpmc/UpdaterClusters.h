@@ -587,6 +587,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
 
+    // if no particles, exit early
+    if (! m_pdata->getNGlobal()) return;
+
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // save a copy of the old configuration
