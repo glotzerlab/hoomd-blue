@@ -23,6 +23,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -52,8 +53,9 @@ void export_convex_polygon(py::module& m)
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
     export_UpdaterMuVTImplicit< ShapeConvexPolygon >(m, "UpdaterMuVTImplicitConvexPolygon");
-    export_UpdaterClusters< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterClustersConvexPolygon");
-    export_UpdaterClusters< ShapeConvexPolygon, IntegratorHPMCMonoImplicitNew<ShapeConvexPolygon> >(m, "UpdaterClustersNewConvexPolygon");
+    export_UpdaterClusters< ShapeConvexPolygon >(m, "UpdaterClustersConvexPolygon");
+    export_UpdaterClustersImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterClustersImplicitConvexPolygon");
+    export_UpdaterClustersImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicitNew<ShapeConvexPolygon> >(m, "UpdaterClustersImplicitNewConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");

@@ -23,6 +23,7 @@
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
 #include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -52,8 +53,9 @@ void export_simple_polygon(py::module& m)
     export_AnalyzerSDF< ShapeSimplePolygon >(m, "AnalyzerSDFSimplePolygon");
     export_UpdaterMuVT< ShapeSimplePolygon >(m, "UpdaterMuVTSimplePolygon");
     export_UpdaterMuVTImplicit< ShapeSimplePolygon >(m, "UpdaterMuVTImplicitSimplePolygon");
-    export_UpdaterClusters< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersSimplePolygon");
-    export_UpdaterClusters< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterClustersNewSimplePolygon");
+    export_UpdaterClusters< ShapeSimplePolygon >(m, "UpdaterClustersSimplePolygon");
+    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicit<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitSimplePolygon");
+    export_UpdaterClustersImplicit< ShapeSimplePolygon, IntegratorHPMCMonoImplicitNew<ShapeSimplePolygon> >(m, "UpdaterClustersImplicitNewSimplePolygon");
 
     export_ExternalFieldInterface<ShapeSimplePolygon>(m, "ExternalFieldSimplePolygon");
     export_LatticeField<ShapeSimplePolygon>(m, "ExternalFieldLatticeSimplePolygon");

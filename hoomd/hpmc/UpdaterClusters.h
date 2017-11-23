@@ -14,6 +14,7 @@
 
 #include "Moves.h"
 #include "HPMCCounters.h"
+#include "IntegratorHPMCMono.h"
 
 namespace hpmc
 {
@@ -86,36 +87,28 @@ void Graph::addEdge(int v, int w)
     }
 } // end namespace detail
 
-/*! A generic cluster move for implicit depletant integrators.
+/*! A generic cluster move for attractive interactions.
 
     The cluster move set employed consists of pivot (point mirroring) and
     line reflection (pi rotation) moves. The algorithm therefore implements
     a simplified version of the Geometric Cluster algorithm, cf. Liu and Luijten
     PRL 2004 and Sinkovits, Barr and Luijten JCP 2012.
 
-    The algorithm has been simplified to not perform any detailed overlap
-    checks, only circumsphere overlap checks. This choice does not affect
-    correctness, it only affects ergodicity. Therefore the cluster move should
-    be combined with a local move, that is, IntegratorHPMCMonoImplicit(New).
-
-    It should be straight forward to generalize the updater to general
-    enthalpic potentials.
-
     In order to support anisotropic particles, we have to reject moves that
     cross the PBC, as described in Sinkovits et al.
 */
 
-template< class Shape, class Integrator >
+template< class Shape >
 class UpdaterClusters : public Updater
     {
     public:
         //! Constructor
         /*! \param sysdef System definition
-            \param mc_implicit Implicit depletants integrator
+            \param mc HPMC integrator
             \param seed PRNG seed
         */
         UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                        std::shared_ptr<Integrator> mc_implicit,
+                        std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                         unsigned int seed);
 
         //! Destructor
@@ -221,7 +214,7 @@ class UpdaterClusters : public Updater
 
 
     protected:
-        std::shared_ptr< Integrator> m_mc_implicit; //!< Implicit depletants integrator object
+        std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_seed;                        //!< RNG seed
         Scalar m_move_ratio;                        //!< Pivot/Reflection move ratio
 
@@ -233,11 +226,17 @@ class UpdaterClusters : public Updater
         detail::AABBTree m_aabb_tree_old;              //!< Locality lookup for old configuration
         std::vector<Scalar4> m_postype_backup;         //!< Old local positions
         std::vector<Scalar4> m_orientation_backup;     //!< Old local orientations
+        std::vector<Scalar> m_diameter_backup;         //!< Old local diameters
+        std::vector<Scalar> m_charge_backup;           //!< Old local charges
+
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
         std::set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
         std::set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
+
+        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
+        std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
 
         std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         hpmc_counters_t m_count_total;                 //!< Total count since initialization
@@ -251,16 +250,25 @@ class UpdaterClusters : public Updater
             \param line True if this is a line reflection
             \param map Map to lookup new tag from old tag
         */
-        void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
-            std::map<unsigned int, unsigned int> map);
+        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
+            const std::map<unsigned int, unsigned int>& map);
 
+        //! Helper function to get interaction range
+        virtual Scalar getNominalWidth()
+            {
+            Scalar nominal_width = m_mc->getMaxCoreDiameter();
+            auto patch = m_mc->getPatchInteraction();
+            if (patch)
+                nominal_width = std::max(nominal_width, patch->getRCut());
+            return nominal_width;
+            }
     };
 
-template< class Shape, class Integrator >
-UpdaterClusters<Shape,Integrator>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
-                                 std::shared_ptr<Integrator> mc_implicit,
+template< class Shape >
+UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
+                                 std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                                  unsigned int seed)
-        : Updater(sysdef), m_mc_implicit(mc_implicit), m_seed(seed), m_move_ratio(0.5),
+        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5),
         m_n_particles_old(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
@@ -269,42 +277,42 @@ UpdaterClusters<Shape,Integrator>::UpdaterClusters(std::shared_ptr<SystemDefinit
     resetStats();
     }
 
-template< class Shape, class Integrator >
-UpdaterClusters<Shape,Integrator>::~UpdaterClusters()
+template< class Shape >
+UpdaterClusters<Shape>::~UpdaterClusters()
     {
     m_exec_conf->msg->notice(5) << "Destroying UpdaterClusters" << std::endl;
     }
 
-template< class Shape, class Integrator >
-void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
-    std::map<unsigned int, unsigned int> map)
+template< class Shape >
+void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
+    const std::map<unsigned int, unsigned int>& map)
     {
     if (m_prof) m_prof->push(m_exec_conf,"Interactions");
 
     // access parameters
-    auto& params = m_mc_implicit->getParams();
-
-    // Depletant diameter
-    Scalar d_dep;
-    unsigned int depletant_type = m_mc_implicit->getDepletantType();
-        {
-        // add range of depletion interaction
-        quat<Scalar> o;
-        Shape tmp(o, params[depletant_type]);
-        d_dep = tmp.getCircumsphereDiameter();
-        }
+    auto& params = m_mc->getParams();
 
     // update the image list
-    auto image_list = m_mc_implicit->updateImageList();
-    auto image_hkl = m_mc_implicit->getImageHKL();
+    auto image_list = m_mc->updateImageList();
+    auto image_hkl = m_mc->getImageHKL();
 
-    Index2D overlap_idx = m_mc_implicit->getOverlapIndexer();
-    ArrayHandle<unsigned int> h_overlaps(m_mc_implicit->getInteractionMatrix(), access_location::host, access_mode::read);
+    Index2D overlap_idx = m_mc->getOverlapIndexer();
+    ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
     // clear the local bond and rejection lists
     m_overlap.clear();
     m_interact_old_old.clear();
     m_interact_new_old.clear();
+
+    auto patch = m_mc->getPatchInteraction();
+
+    Scalar r_cut_patch(0.0);
+    if (patch)
+        {
+        m_energy_old_old.clear();
+        m_energy_new_old.clear();
+        r_cut_patch = patch->getRCut();
+        }
 
     // cluster according to overlap of excluded volume shells
     // loop over local particles
@@ -313,82 +321,101 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
     // access particle data
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
-    // test old configuration against itself
-    for (unsigned int i = 0; i < m_n_particles_old; ++i)
+    if (patch)
         {
-        unsigned int typ_i = __scalar_as_int(m_postype_backup[i].w);
-
-        vec3<Scalar> pos_i(m_postype_backup[i]);
-        quat<Scalar> orientation_i(m_orientation_backup[i]);
-
-        Shape shape_i(orientation_i, params[typ_i]);
-        Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
-
-        detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-        const unsigned int n_images = image_list.size();
-
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+        // test old configuration against itself
+        for (unsigned int i = 0; i < m_n_particles_old; ++i)
             {
-            vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+            unsigned int typ_i = __scalar_as_int(m_postype_backup[i].w);
 
-            detail::AABB aabb_i_image = aabb_local;
-            aabb_i_image.translate(pos_i_image);
+            vec3<Scalar> pos_i(m_postype_backup[i]);
+            quat<Scalar> orientation_i(m_orientation_backup[i]);
 
-            // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
+            Scalar d_i(m_diameter_backup[i]);
+            Scalar charge_i(m_charge_backup[i]);
+
+            // subtract minimum AABB extent from search radius
+            OverlapReal R_query = r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0;
+            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            const unsigned int n_images = image_list.size();
+
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
-                if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                vec3<Scalar> pos_i_image = pos_i + image_list[cur_image];
+
+                detail::AABB aabb_i_image = aabb_local;
+                aabb_i_image.translate(pos_i_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
+                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
                         {
-                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
+                        if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
-                            // read in its position and orientation
-                            unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
-
-                            if (i == j) continue;
-
-                            // load the position and orientation of the j particle
-                            vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
-                            unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(m_orientation_backup[j]), params[typ_j]);
-
-                            // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                            // check for excluded volume sphere overlap
-                            Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
-                            Scalar RaRb = r_excl_i + r_excl_j + d_dep;
-                            Scalar rsq_ij = dot(r_ij, r_ij);
-
-                            if (rsq_ij <= RaRb*RaRb)
+                            for (unsigned int cur_p = 0; cur_p < m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
                                 {
-                                auto it = map.find(m_tag_backup[i]);
-                                assert(it != map.end());
-                                unsigned int new_tag_i = it->second;
-                                it = map.find(m_tag_backup[j]);
-                                assert(it!=map.end());
-                                unsigned int new_tag_j = it->second;
-                                m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
-                                } // end if overlap
+                                // read in its position and orientation
+                                unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            } // end loop over AABB tree leaf
-                        } // end is leaf
-                    } // end if overlap
-                else
-                    {
-                    // skip ahead
-                    cur_node_idx += m_aabb_tree_old.getNodeSkip(cur_node_idx);
-                    }
+                                if (i == j) continue;
 
-                } // end loop over nodes
+                                // load the position and orientation of the j particle
+                                vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
+                                unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
 
-            } // end loop over images
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = pos_j - pos_i_image;
+                                Scalar rsq_ij = dot(r_ij, r_ij);
 
-        } // end loop over old configuration
+                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                    {
+                                    // the particle pair
+                                    auto it = map.find(m_tag_backup[i]);
+                                    assert(it != map.end());
+                                    unsigned int new_tag_i = it->second;
+                                    it = map.find(m_tag_backup[j]);
+                                    assert(it!=map.end());
+                                    unsigned int new_tag_j = it->second;
+                                    auto p = std::make_pair(new_tag_i,new_tag_j);
+
+                                    // if particle interacts in different image already, add to that energy
+                                    float U = 0.0;
+                                    auto it_energy = m_energy_old_old.find(p);
+                                    if (it_energy != m_energy_old_old.end())
+                                        U = it_energy->second;
+
+                                    U += patch->energy(r_ij, typ_i,
+                                                        quat<float>(orientation_i),
+                                                        d_i,
+                                                        charge_i,
+                                                        typ_j,
+                                                        quat<float>(m_orientation_backup[j]),
+                                                        m_diameter_backup[j],
+                                                        m_charge_backup[j]);
+                                    m_energy_old_old.insert(std::make_pair(p,U));
+                                    } // end if overlap
+
+                                } // end loop over AABB tree leaf
+                            } // end is leaf
+                        } // end if overlap
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += m_aabb_tree_old.getNodeSkip(cur_node_idx);
+                        }
+
+                    } // end loop over nodes
+
+                } // end loop over images
+
+            } // end loop over old configuration
+        }
 
     // loop over new configuration
     for (unsigned int i = 0; i < nptl; ++i)
@@ -473,13 +500,11 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
                 } // end loop over nodes
             } // end loop over images
 
-        // check overlap of depletant-excluded volumes
+        // subtract minimum AABB extent from search radius
+        OverlapReal R_query = r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0;
+        detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
-        // find neighbors whose circumspheres overlap particle i's circumsphere in the old configuration
-        // Here, circumsphere refers to the sphere around the depletant-excluded volume
-        detail::AABB aabb_local(vec3<Scalar>(0,0,0), Scalar(0.5)*shape_i.getCircumsphereDiameter()+d_dep);
-
-        // query new against old
+        // compute V(r'-r)
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
             {
             vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
@@ -507,21 +532,34 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 
                             vec3<Scalar> pos_j(m_postype_backup[j]);
                             unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
-                            Shape shape_j(quat<Scalar>(m_orientation_backup[j]), params[typ_j]);
 
                             // put particles in coordinate system of particle i
                             vec3<Scalar> r_ij = pos_j - pos_i_image;
 
                             // check for excluded volume sphere overlap
-                            Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
-                            Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                             Scalar rsq_ij = dot(r_ij, r_ij);
 
-                            if (rsq_ij <= RaRb*RaRb)
+                            if (rsq_ij <= r_cut_patch*r_cut_patch)
                                 {
                                 auto iti = map.find(h_tag.data[i]);
                                 assert(iti != map.end());
-                                m_interact_new_old.insert(std::make_pair(iti->second,new_tag_j));
+                                auto p = std::make_pair(iti->second, new_tag_j);
+
+                                // if particle interacts in different image already, add to that energy
+                                float U = 0.0;
+                                auto it_energy = m_energy_new_old.find(p);
+                                if (it_energy != m_energy_new_old.end())
+                                    U = it_energy->second;
+
+                                U += patch->energy(r_ij, typ_i,
+                                                        quat<float>(shape_i.orientation),
+                                                        h_diameter.data[i],
+                                                        h_charge.data[i],
+                                                        typ_j,
+                                                        quat<float>(m_orientation_backup[j]),
+                                                        m_diameter_backup[j],
+                                                        m_charge_backup[j]);
+                                m_energy_new_old.insert(std::make_pair(p,U));
                                 }
                             } // end loop over AABB tree leaf
                         } // end is leaf
@@ -544,8 +582,8 @@ void UpdaterClusters<Shape,Integrator>::findInteractions(unsigned int timestep, 
 /*! Perform a cluster move
     \param timestep Current time step of the simulation
 */
-template< class Shape, class Integrator >
-void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
+template< class Shape >
+void UpdaterClusters<Shape>::update(unsigned int timestep)
     {
     m_count_step_start = m_count_total;
 
@@ -557,17 +595,23 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     unsigned int nptl = m_pdata->getN()+m_pdata->getNGhosts();
     m_postype_backup.resize(nptl);
     m_orientation_backup.resize(nptl);
+    m_diameter_backup.resize(nptl);
+    m_charge_backup.resize(nptl);
     m_tag_backup.resize(nptl);
 
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getDiameters(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
 
         for (unsigned int i = 0; i < nptl; ++i)
             {
             m_postype_backup[i] = h_postype.data[i];
             m_orientation_backup[i] = h_orientation.data[i];
+            m_diameter_backup[i] = h_diameter.data[i];
+            m_charge_backup[i] = h_charge.data[i];
             m_tag_backup[i] = h_tag.data[i];
             }
         }
@@ -580,7 +624,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     vec3<Scalar> pivot(make_scalar3(0,0,0));
 
     // is this a line reflection?
-    bool line = m_mc_implicit->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
+    bool line = m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
 
     quat<Scalar> q;
 
@@ -628,18 +672,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     auto snap_old = snap;
 
     // precalculate the grid shift
-    Scalar nominal_width = m_mc_implicit->getMaxDiameter();
-
-    // access parameters
-    auto& params = m_mc_implicit->getParams();
-
-    if (m_mc_implicit->getDepletantDensity() > Scalar(0.0))
-        {
-        // add range of depletion interaction
-        quat<Scalar> o;
-        Shape tmp(o, params[m_mc_implicit->getDepletantType()]);
-        nominal_width += tmp.getCircumsphereDiameter();
-        }
+    Scalar nominal_width = this->getNominalWidth();
 
     // transform all particles on rank zero
     bool master = !m_exec_conf->getRank();
@@ -657,6 +690,9 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     if (master)
         {
+        // access parameters
+        auto& params = m_mc->getParams();
+
         for (unsigned int i = 0; i < snap.size; ++i)
             {
             // if the particle falls outside the active volume of the box, reject
@@ -694,7 +730,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
 
     // store old locality data
-    m_aabb_tree_old = m_mc_implicit->buildAABBTree();
+    m_aabb_tree_old = m_mc->buildAABBTree();
 
     // reload particle data
     m_pdata->initializeFromSnapshot(snap);
@@ -702,7 +738,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
 
     // update ghosts & signal that AABB tree is invalid
-    m_mc_implicit->communicate(true);
+    m_mc->communicate(true);
 
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
@@ -715,6 +751,9 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
+
+    std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
+    std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
 
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -731,9 +770,26 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
         all_interact_new_old.push_back(m_interact_new_old);
         }
 
+    if (m_mc->getPatchInteraction())
+        {
+        // collect energies on rank 0
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            gather_v(m_energy_old_old, all_energy_old_old, 0, m_exec_conf->getMPICommunicator());
+            gather_v(m_energy_new_old, all_energy_new_old, 0, m_exec_conf->getMPICommunicator());
+            }
+        else
+        #endif
+            {
+            all_energy_old_old.push_back(m_energy_old_old);
+            all_energy_new_old.push_back(m_energy_new_old);
+            }
+        }
+
     if (master)
         {
-        // fill in the cluster bonds
+        // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
         m_G = detail::Graph(snap.size);
 
         for (auto it_i = all_overlap.begin(); it_i != all_overlap.end(); ++it_i)
@@ -745,6 +801,7 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                 }
             }
 
+        // interactions due to hard depletant-excluded volume overlaps (not used in base class)
         for (auto it_i = all_interact_old_old.begin(); it_i != all_interact_old_old.end(); ++it_i)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
@@ -793,6 +850,82 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
                     m_G.addEdge(i, j);
                 }
             }
+
+        if (m_mc->getPatchInteraction())
+            {
+            // sum up interaction energies
+            std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
+
+            for (auto it_i = all_energy_old_old.begin(); it_i != all_energy_old_old.end(); ++it_i)
+                {
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                    {
+                    float delU = -it_j->second;
+                    unsigned int i = it_j->first.first;
+                    unsigned int j = it_j->first.second;
+
+                    std::pair<unsigned int, unsigned int> p;
+
+                    // consider each pair once
+                    if (i < j)
+                        p = std::make_pair(i,j);
+                    else
+                        p = std::make_pair(j,i);
+
+                    // add to energy
+                    auto it = delta_U.find(p);
+                    if (it != delta_U.end())
+                        delU += it->second;
+
+                    // store new interaction energy
+                    delta_U.insert(std::make_pair(p,delU));
+                    }
+                }
+
+            for (auto it_i = all_energy_new_old.begin(); it_i != all_energy_new_old.end(); ++it_i)
+                {
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                    {
+                    float delU = it_j->second;
+                    unsigned int i = it_j->first.first;
+                    unsigned int j = it_j->first.second;
+
+                    std::pair<unsigned int, unsigned int> p;
+
+                    // consider each pair once
+                    if (i < j)
+                        p = std::make_pair(i,j);
+                    else
+                        p = std::make_pair(j,i);
+
+                    // add to energy
+                    auto it = delta_U.find(p);
+                    if (it != delta_U.end())
+                        delU += it->second;
+
+                    // store new interaction energy
+                    delta_U.insert(std::make_pair(p,delU));
+                    }
+                }
+
+            // apply acceptance rule
+            for (auto it = delta_U.begin(); it != delta_U.end(); ++it)
+                {
+                float delU = it->second;
+                unsigned int i = it->first.first;
+                unsigned int j = it->first.second;
+
+                // if any of the particles is rejected, form a bond
+                bool reject = m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end();
+
+                float pij = 1.0f-expf(-delU);
+                if (rng.f() <= pij || reject) // GCA
+                    {
+                    // add bond
+                    m_G.addEdge(i,j);
+                    }
+                }
+            } // end if (patch)
 
         // compute connected components
         m_clusters.clear();
@@ -895,18 +1028,18 @@ void UpdaterClusters<Shape,Integrator>::update(unsigned int timestep)
 
     if (m_prof) m_prof->pop(m_exec_conf);
 
-    m_mc_implicit->communicate(true);
+    m_mc->communicate(true);
     }
 
 
-template < class Shape, class Integrator > void export_UpdaterClusters(pybind11::module& m, const std::string& name)
+template < class Shape> void export_UpdaterClusters(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterClusters<Shape,Integrator>, std::shared_ptr< UpdaterClusters<Shape,Integrator> > >(m, name.c_str(), pybind11::base<Updater>())
+    pybind11::class_< UpdaterClusters<Shape>, std::shared_ptr< UpdaterClusters<Shape> > >(m, name.c_str(), pybind11::base<Updater>())
           .def( pybind11::init< std::shared_ptr<SystemDefinition>,
-                         std::shared_ptr< Integrator >,
+                         std::shared_ptr< IntegratorHPMCMono<Shape> >,
                          unsigned int >())
-        .def("getCounters", &UpdaterClusters<Shape,Integrator>::getCounters)
-        .def("setMoveRatio", &UpdaterClusters<Shape,Integrator>::setMoveRatio)
+        .def("getCounters", &UpdaterClusters<Shape>::getCounters)
+        .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
     ;
     }
 
