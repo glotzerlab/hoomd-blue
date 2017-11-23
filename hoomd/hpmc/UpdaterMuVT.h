@@ -1214,6 +1214,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
         ndof += extra_ndof;
 
         unsigned int other_result;
+        Scalar other_lnb;
 
         if (is_root)
             {
@@ -1222,12 +1223,14 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 // receive result from other rank
                 MPI_Status stat;
                 MPI_Recv(&other_result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
+                MPI_Recv(&other_lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD, &stat);
                 }
             else
                 {
                 // send result to other rank
                 unsigned int result = has_overlaps;
                 MPI_Send(&result, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
+                MPI_Send(&lnb, 1, MPI_HOOMD_SCALAR, m_gibbs_other, 1, MPI_COMM_WORLD);
                 }
             }
 
@@ -1243,7 +1246,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
 
                 // apply criterium on rank zero
-                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1) + lnb;
+                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1)
+                    + lnb + other_lnb;
 
                 accept = rng.f() < exp(arg);
                 accept &= !(has_overlaps || other_result);
