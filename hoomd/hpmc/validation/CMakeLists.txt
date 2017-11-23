@@ -54,6 +54,12 @@ sphere_eos.py 0 0
 disk_eos.py 0 0
 )
 
+if(BUILD_JIT)
+set(TEST_LIST_CPU ${TEST_LIST_CPU}
+    wca_dumbbell.py 0 2
+)
+endif(BUILD_JIT)
+
 set(TEST_LIST_GPU
 spheres_implicit.py 0 1
 sphere_eos.py 0 0
@@ -62,9 +68,11 @@ disk_eos.py 0 0
 
 set(EXCLUDE_FROM_GPU_MPI
     spheres_implicit.py
+    wca_dumbbell.py
 )
 
 set(EXCLUDE_FROM_MPI
+    wca_dumbbell.py
 )
 
 list(LENGTH TEST_LIST_CPU _max_i)

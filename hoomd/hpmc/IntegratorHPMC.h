@@ -33,6 +33,51 @@ namespace hpmc
 
     \ingroup hpmc_integrators
 */
+
+class PatchEnergy
+    {
+    public:
+        PatchEnergy(){};
+
+    virtual Scalar getRCut()
+        {
+        return 0;
+        }
+
+    virtual float energy(const vec3<float>& r_ij,
+        unsigned int type_i,
+        const quat<float>& q_i,
+        float d_i,
+        float charge_i,
+        unsigned int type_j,
+        const quat<float>& q_j,
+        float d_j,
+        float charge_j)
+        {
+        return 0;
+        }
+
+    //virtual std::vector< std::string > getProvidedLogQuantities(){}
+
+    //virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
+
+    //! needed for Compute. currently not used.
+    //virtual void compute(unsigned int timestep){}
+
+    virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,
+        const ArrayHandle<Scalar4> &orientations,
+        const ArrayHandle<Scalar> &diameters,
+        const ArrayHandle<Scalar> &charges,
+        const BoxDim& box, unsigned int &N)
+        {
+        return 0.0;
+        }
+
+    //private:
+    //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
+
+    };
+
 class IntegratorHPMC : public Integrator
     {
     public:
@@ -182,7 +227,7 @@ class IntegratorHPMC : public Integrator
             }
 
         //! Get the diameter of the largest circumscribing sphere for objects handled by this integrator
-        virtual Scalar getMaxDiameter()
+        virtual Scalar getMaxCoreDiameter()
             {
             return 1.0;
             }
@@ -251,6 +296,13 @@ class IntegratorHPMC : public Integrator
 
         ExternalField* getExternalField() { return m_external_base; }
 
+        PatchEnergy* getPatchInteraction() { return m_patch_base; }
+
+        virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
+        {
+          return 0.0;
+        }
+
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};
 
@@ -269,6 +321,7 @@ class IntegratorHPMC : public Integrator
         ClockSource m_clock;                           //!< Timer for self-benchmarking
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
+        PatchEnergy* m_patch_base;
 
         //! Update the nominal width of the cells
         /*! This method is virtual so that derived classes can set appropriate widths
