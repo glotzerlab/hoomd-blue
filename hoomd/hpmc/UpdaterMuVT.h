@@ -162,6 +162,8 @@ class UpdaterMuVT : public Updater
         std::vector<std::vector<unsigned int> > m_type_map;   //!< Local list of particle tags per type
         std::vector<unsigned int> m_transfer_types;  //!< List of types being insert/removed/transfered between boxes
 
+        GPUVector<Scalar4> m_pos_backup;             //!< Backup of particle positions for volume move
+
         /*! Check for overlaps of a fictituous particle
          * \param timestep Current time step
          * \param type Type of particle to test
@@ -197,10 +199,11 @@ class UpdaterMuVT : public Updater
          * \param new_box the old BoxDim
          * \param new_box the new BoxDim
          * \param extra_ndof (return value) extra degrees of freedom added before box resize
-         * \returns true if box resize could be performed
+         * \param lnboltzmann (return value) exponent of Boltzmann factor (-delta_E)
+         * \returns true if no overlaps
          */
         virtual bool boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-            unsigned int &extra_ndof);
+            unsigned int &extra_ndof, Scalar &lnboltzmann);
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -216,6 +219,16 @@ class UpdaterMuVT : public Updater
 
         //! Get number of particles of a given type
         unsigned int getNumParticlesType(unsigned int type);
+
+    private:
+        //! Handle MaxParticleNumberChange signal
+        /*! Resize the m_pos_backup array
+        */
+        void slotMaxNChange()
+            {
+            unsigned int MaxN = m_pdata->getMaxN();
+            m_pos_backup.resize(MaxN);
+            }
     };
 
 //! Export the UpdaterMuVT class to python
@@ -301,6 +314,13 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
 
     // initialize list of tags per type
     mapTypes();
+
+    // allocate memory for m_pos_backup
+    unsigned int MaxN = m_pdata->getMaxN();
+    GPUVector<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
+
+    // Connect to the MaxParticleNumberChange signal
+    m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotMaxNChange>(this);
     }
 
 //! Destructor
@@ -412,10 +432,23 @@ void UpdaterMuVT<Shape>::slotNumTypesChange()
 */
 template<class Shape>
 bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-    unsigned int &extra_ndof)
+    unsigned int &extra_ndof, Scalar& lnboltzmann)
     {
+    lnboltzmann = Scalar(0.0);
+
     unsigned int N = m_pdata->getN();
     extra_ndof = 0;
+
+    auto patch = m_mc->getPatchInteraction();
+    if (patch)
+        {
+        // Make a backup copy of position data
+        unsigned int N_backup = m_pdata->getN() + m_pdata->getNGhosts();
+
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
+        memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
+        }
 
         {
         // Get particle positions
@@ -443,7 +476,24 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     m_mc->communicate(false);
 
     // check for overlaps
-    return !m_mc->countOverlaps(timestep, true);
+    bool overlap = m_mc->countOverlaps(timestep, true);
+
+    if (!overlap && patch)
+        {
+        // compute energy difference
+        ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> diameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
+
+        unsigned int N = m_pdata->getN()+ m_pdata->getNGhosts();
+        Scalar e_new = patch->computePatchEnergy(newpositions,orientations,diameters,charges,new_box,N);
+        Scalar e_old = patch->computePatchEnergy(oldpositions,orientations,diameters,charges,old_box,N);
+        lnboltzmann -= e_new-e_old;
+        }
+
+    return !overlap;
     }
 
 template<class Shape>
@@ -1159,7 +1209,8 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
         unsigned int extra_ndof = 0;
 
         // set new box and rescale coordinates
-        bool has_overlaps = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof);
+        Scalar lnb(0.0);
+        bool has_overlaps = !boxResizeAndScale(timestep, global_box_old, global_box_new, extra_ndof, lnb);
         ndof += extra_ndof;
 
         unsigned int other_result;
@@ -1192,7 +1243,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 MPI_Recv(&other_ndof, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
 
                 // apply criterium on rank zero
-                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1);
+                Scalar arg = log(V_new/V)*(Scalar)(ndof+1)+log(V_new_other/V_other)*(Scalar)(other_ndof+1) + lnb;
 
                 accept = rng.f() < exp(arg);
                 accept &= !(has_overlaps || other_result);

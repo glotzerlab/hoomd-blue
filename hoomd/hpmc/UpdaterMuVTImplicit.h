@@ -74,10 +74,11 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
          * \param old_box the old BoxDim
          * \param new_box the new BoxDim
          * \param extra_ndof Extra degrees of freedom added (depletants)
+         * \param lnboltzmann Exponent of Boltzmann factor (-deltaE)
          * \returns true if box resize could be performed
          */
         virtual bool boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-            unsigned int &extra_ndof);
+            unsigned int &extra_ndof, Scalar &lnboltzmann);
 
         /*! Try inserting depletants into space created by changing a particle type
          * \param timestep  time step
@@ -1457,10 +1458,11 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
 
 template<class Shape>
 bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
-    unsigned int &extra_ndof)
+    unsigned int &extra_ndof, Scalar &lnboltzmann)
     {
     // call parent class method
-    bool result = UpdaterMuVT<Shape>::boxResizeAndScale(timestep, old_box, new_box, extra_ndof);
+    lnboltzmann = Scalar(0.0);
+    bool result = UpdaterMuVT<Shape>::boxResizeAndScale(timestep, old_box, new_box, extra_ndof, lnboltzmann);
 
     if (result)
         {
