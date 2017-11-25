@@ -149,7 +149,6 @@ float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i,
                 hoomd.context.msg.error("Error compiling provided code\n");
                 hoomd.context.msg.error("Command "+str(cmd)+"\n");
                 hoomd.context.msg.error(e.output.decode()+"\n");
-                shutil.rmtree(dirpath)
                 raise RuntimeError("Error initializing patch energy");
 
             # IR is a text file
