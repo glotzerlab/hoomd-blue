@@ -37,7 +37,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
     {
     public:
         //! Constructor
-        PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvmm_ir, Scalar r_cut);
+        PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut);
 
         //! Get the maximum r_ij radius beyond which energies are always 0
         virtual Scalar getRCut()
