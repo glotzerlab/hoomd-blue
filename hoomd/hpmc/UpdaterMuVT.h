@@ -1366,7 +1366,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
 
         // Check particle against AABB tree for neighbors
         Scalar r_cut_patch = patch->getRCut();
-        OverlapReal R_query = r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0;
+        OverlapReal R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
         detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         const unsigned int n_images = image_list.size();
