@@ -132,7 +132,6 @@ float eval(const vec3<float>& r_ij,
     const quat<float>& q_j,
     float d_j,
     float charge_j)
-{
     {
 """
         cpp_function += code
