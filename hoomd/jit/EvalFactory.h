@@ -10,7 +10,15 @@
 class EvalFactory
     {
     public:
-        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
+        typedef float (*EvalFnPtr)(const vec3<float>& r_ij,
+            unsigned int type_i,
+            const quat<float>& q_i,
+            float d_i,
+            float charge_i,
+            unsigned int type_j,
+            const quat<float>& q_j,
+            float d_j,
+            float charge_j);
 
         //! Constructor
         EvalFactory(const std::string& llvm_ir);
