@@ -26,7 +26,7 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_orc_sources
+set(_${PACKAGE_NAME}_llvm_sources
     EvalFactory.cc
     OrcLazyJIT.cc)
 
@@ -37,15 +37,15 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_${PACKAGE_NAME}_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-set_source_files_properties(${_${PACKAGE_NAME}_orc_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
+set_source_files_properties(${_${PACKAGE_NAME}_llvm_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 add_library (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources})
-add_library (_${PACKAGE_NAME}_orc SHARED ${_${PACKAGE_NAME}_orc_sources})
+add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
-# set the appropriate compiler flags on the _orc target
+# set the appropriate compiler flags on the _llvm target
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
-llvm_update_compile_flags(_${PACKAGE_NAME}_orc)
+llvm_update_compile_flags(_${PACKAGE_NAME}_llvm)
 
 # work around missing LLVM link information
 if(LLVM_ENABLE_TERMINFO)
@@ -53,18 +53,15 @@ if(LLVM_ENABLE_TERMINFO)
     if (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
         message(FATAL_ERROR "no libtinfo or libncurses is found in system")
     else (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
-        target_link_libraries(_${PACKAGE_NAME}_orc ${TERMINFO})
+        target_link_libraries(_${PACKAGE_NAME}_llvm ${TERMINFO})
     endif (${TERMINFO} STREQUAL TERMINFO-NOTFOUND)
 endif()
-#find_library(GCCS NAMES gcc_s)
-#if (NOT ${GCCS} STREQUAL GCCS-NOTFOUND)
-#    target_link_libraries(_${PACKAGE_NAME}_orc ${GCCS})
-#    message(STATUS ${GCCS})
-#endif()
 
 # link the libraries to their dependencies
-target_link_libraries(_${PACKAGE_NAME}_orc ${llvm_libs})
-target_link_libraries(_${PACKAGE_NAME} _hoomd _${PACKAGE_NAME}_orc ${HOOMD_COMMON_LIBS})
+target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
+
+# need to link llvm_libs here, too, otherwise module import fails
+target_link_libraries(_${PACKAGE_NAME} _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -81,7 +78,7 @@ endif(ENABLE_MPI)
 # change the name of the library to be a valid python module
 # tweak the properties of the output to make a functional python module
 set_target_properties(_${PACKAGE_NAME} PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}")
-set_target_properties(_${PACKAGE_NAME}_orc PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}_orc")
+set_target_properties(_${PACKAGE_NAME}_llvm PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}_llvm")
 
 
 # .dylib is not recognized as a python module by python on Mac OS X
@@ -89,9 +86,10 @@ if(APPLE)
     set_target_properties(_${PACKAGE_NAME} PROPERTIES SUFFIX ".so")
 endif(APPLE)
 fix_cudart_rpath(_${PACKAGE_NAME})
+fix_cudart_rpath(_${PACKAGE_NAME}_llvm)
 
 # install the library
-install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_orc
+install(TARGETS _${PACKAGE_NAME} _${PACKAGE_NAME}_llvm
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME}
         )
 

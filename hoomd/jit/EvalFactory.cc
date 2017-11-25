@@ -14,7 +14,7 @@
 #include "llvm/Support/raw_os_ostream.h"
 
 //! C'tor
-EvalFactory::EvalFactory(const std::string& fname)
+EvalFactory::EvalFactory(const std::string& llvm_ir)
     {
     // set to null pointer
     m_eval = NULL;
@@ -36,13 +36,15 @@ EvalFactory::EvalFactory(const std::string& fname)
     llvm::LLVMContext &Context = llvm::getGlobalContext();
     llvm::SMDiagnostic Err;
 
-    // Read the input file
-    std::unique_ptr<llvm::Module> Mod = llvm::parseIRFile(fname, Err, Context);
+    // Read the input IR data
+    llvm::StringRef ir_str(llvm_ir);
+    std::unique_ptr<llvm::MemoryBuffer> ir_membuf = llvm::MemoryBuffer::getMemBuffer(ir_str);
+    std::unique_ptr<llvm::Module> Mod = llvm::parseIR(*ir_membuf, Err, Context);
 
     if (!Mod)
         {
         // if the module didn't load, report an error
-        Err.print("PatchEnergyJIT", llvm_err);
+        Err.print("EvalFactory", llvm_err);
         llvm_err.flush();
         m_error_msg = sstream.str();
         return;

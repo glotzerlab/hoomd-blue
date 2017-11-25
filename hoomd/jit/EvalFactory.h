@@ -13,7 +13,7 @@ class EvalFactory
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j);
 
         //! Constructor
-        EvalFactory(const std::string& fname);
+        EvalFactory(const std::string& llvm_ir);
 
         //! Return the evaluator
         EvalFnPtr getEval()

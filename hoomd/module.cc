@@ -319,6 +319,7 @@ PYBIND11_PLUGIN(_hoomd)
     m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
     m.attr("__cuda_version__") = get_cuda_version_tuple();
     m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
+    m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 
     m.def("is_MPI_available", &is_MPI_available);
 
