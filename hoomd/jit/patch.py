@@ -6,6 +6,7 @@ from hoomd.jit import _jit
 import hoomd
 
 import tempfile
+from distutils.spawn import find_executable
 import shutil
 import subprocess
 import os
@@ -79,19 +80,10 @@ class user(object):
         float eval(const vec3<float>& r_ij,
                    unsigned int type_i,
                    const quat<float>& q_i,
-                   float diameter_i,
-                   float charge_i,
                    unsigned int type_j,
-                   const quat<float>& q_j,
-                   float diameter_j,
-                   float charge_j)
+                   const quat<float>& q_j)
 
     ``vec3`` and ``quat`` are defined in HOOMDMath.h.
-
-    Warning:
-        Even though the diameter field is passed to the pair potential, the **r_cut** value is **not** shifted by the diameter.
-        To implement e.g. a diameter-shifted LJ potential, **r_cut** needs to be manually set to the maximum possible cut-off
-        for the largest diameter in the system.
 
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
@@ -109,64 +101,62 @@ class user(object):
             hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
-        dirpath = None;
-
-        if clang_exec is not None:
-            clang = clang_exec;
-        else: clang = 'clang';
-
         if code is not None:
-            llvm_ir_file = self.compile_user(code,clang)
+            llvm_ir = self.compile_user(code,clang_exec)
+        else:
+            # IR is a text file
+            with open(dirpath+'/code.ll','r') as f:
+                llvm_ir = f.read()
 
         # TODO: add MPI support - read code.ll on the root rank and broadcast to all others, modify the C++ code
         # to take LLVM IR in a string rather than a file
         #cls = _hpmc.ExternalFieldLatticeSphere;
         self.compute_name = "patch"
-        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir_file, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
         #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
 
-        if dirpath is not None:
-            shutil.rmtree(dirpath)
-
-    def compile_user(self,code,clang):
-            # compile on the root rank only
-            if hoomd.comm.get_rank() == 0:
-                dirpath = tempfile.mkdtemp()
-                with open(dirpath + '/code.cc', 'w') as f:
-                    f.write("""
+    def compile_user(self,code,clang_exec):
+        with tempfile.TemporaryDirectory() as dirpath:
+            with open(dirpath + '/code.cc', 'w') as f:
+                f.write("""
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
 extern "C"
 {
-float eval(const vec3<float>& r_ij,
-     unsigned int type_i,
-     const quat<float>& q_i,
-     float d_i,
-     float charge_i,
-     unsigned int type_j,
-     const quat<float>& q_j,
-     float d_j,
-     float charge_j)
-   {
+float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+{
 """);
-                    f.write(code)
-                    f.write("""
-   }
+                f.write(code)
+                f.write("""
+}
 }
 """);
 
-                include_path = os.path.dirname(hoomd.__file__) + '/include';
-                print(include_path)
+            include_path = os.path.dirname(hoomd.__file__) + '/include';
+            include_path_source = hoomd._hoomd.__hoomd_source_dir__;
+            print(include_path)
 
-                ret = subprocess.call([clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-S', '-emit-llvm', dirpath+'/code.cc', '-o', dirpath+'/code.ll'])
-                if ret != 0:
-                    hoomd.context.msg.error("Error compiling provided code\n");
-                    shutil.rmtree(dirpath)
-                    raise RuntimeError("Error initializing patch energy");
+            if clang_exec is not None:
+                clang = clang_exec;
+            else: clang = find_executable('clang');
 
-                return dirpath+'/code.ll';
+            try:
+                cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm', dirpath+'/code.cc', '-o', dirpath+'/code.ll']
+                subprocess.check_output(cmd,stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                hoomd.context.msg.error("Error compiling provided code\n");
+                hoomd.context.msg.error("Command "+str(cmd)+"\n");
+                hoomd.context.msg.error(e.output.decode()+"\n");
+                shutil.rmtree(dirpath)
+                raise RuntimeError("Error initializing patch energy");
+
+            # IR is a text file
+            with open(dirpath+'/code.ll','r') as f:
+                llvm_ir = f.read()
+
+        return llvm_ir
 
 class user_union(user):
     R''' Define an arbitrary patch energy on a union of particles
@@ -186,7 +176,7 @@ class user_union(user):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user(r_cut=1.1, code=square_well)
+        patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
 
     '''
@@ -205,23 +195,18 @@ class user_union(user):
 
         if clang_exec is not None:
             clang = clang_exec;
-        else: clang = 'clang';
+        else: clang = find_executable('clang')
 
         dirpath = None;
         if code is not None:
-            llvm_ir_file = self.compile_user(code,clang)
+            llvm_ir = self.compile_user(code,clang)
 
-        # TODO: add MPI support - read code.ll on the root rank and broadcast to all others, modify the C++ code
-        # to take LLVM IR in a string rather than a file
         #cls = _hpmc.ExternalFieldLatticeSphere;
         self.compute_name = "patch_union"
 
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir_file, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir, r_cut);
         #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
-
-        if dirpath is not None:
-            shutil.rmtree(dirpath)
 
     R''' Set the union shape parameters for a given particle type
 
