@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import os
 
+import numpy as np
+
 class user(object):
     R''' Define an arbitrary patch energy.
 
@@ -161,3 +163,92 @@ float eval(const vec3<float>& r_ij,
             raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
+
+class user_union(user):
+    R''' Define an arbitrary patch energy on a union of particles
+
+    Args:
+        r_cut (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        code (str): C++ code to compile
+        llvm_ir_fname (str): File name of the llvm IR file to load.
+
+    Example:
+
+    .. code-block:: python
+
+        square_well = """float rsq = dot(r_ij, r_ij);
+                            if (rsq < 1.21f)
+                                return -1.0f;
+                            else
+                                return 0.0f;
+                      """
+        patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
+        patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
+
+    '''
+    def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
+        hoomd.util.print_status_line();
+
+        # check if initialization has occurred
+        if hoomd.context.exec_conf is None:
+            hoomd.context.msg.error("Cannot create patch energy before context initialization\n");
+            raise RuntimeError('Error creating patch energy');
+
+        # raise an error if this run is on the GPU
+        if hoomd.context.exec_conf.isCUDAEnabled():
+            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
+            raise RuntimeError("Error initializing patch energy");
+
+        if clang_exec is not None:
+            clang = clang_exec;
+        else: clang = find_executable('clang')
+
+        dirpath = None;
+        if code is not None:
+            llvm_ir = self.compile_user(code,clang)
+        else:
+            # IR is a text file
+            with open(llvm_ir_file,'r') as f:
+                llvm_ir = f.read()
+
+        #cls = _hpmc.ExternalFieldLatticeSphere;
+        self.compute_name = "patch_union"
+
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir, r_cut);
+        #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
+        mc.set_PatchEnergyEvaluator(self);
+
+    R''' Set the union shape parameters for a given particle type
+
+    Args:
+        type (string): The type to set the interactions for
+        positions: The positions of the consitutent particles (list of vectors)
+        orientations: The orientations of the consituent particles (list of four-vectors)
+        diameters: The diameters of the constituent particles (list of floats)
+        charges: The charges of the constituent particles (list of floats)
+        leaf_capacity: The number of particles in a leaf of the internal tree data structure
+    '''
+    def set_params(self, type, positions, typeids, orientations=None, charges=None, diameters=None, leaf_capacity=4):
+        if orientations is None:
+            orientations = [[1,0,0,0]]*len(positions)
+
+        if charges is None:
+            charges = [0]*len(positions)
+
+        if diameters is None:
+            diameters = [1.0]*len(positions)
+
+        positions = np.array(positions).tolist()
+        orientations = np.array(orientations).tolist()
+        diameters = np.array(diameters).tolist()
+        charges = np.array(charges).tolist()
+        typeids = np.array(typeids).tolist()
+
+        ntypes = hoomd.context.current.system_definition.getParticleData().getNTypes();
+        type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
+        if not type in type_names:
+            hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
+            raise RuntimeError("Error initializing patch energy."); 
+        typeid = type_names.index(type)
+
+        self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
