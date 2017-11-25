@@ -103,7 +103,7 @@ class user(object):
             llvm_ir = self.compile_user(code,clang_exec)
         else:
             # IR is a text file
-            with open(dirpath+'/code.ll','r') as f:
+            with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
         # TODO: add MPI support - read code.ll on the root rank and broadcast to all others, modify the C++ code
