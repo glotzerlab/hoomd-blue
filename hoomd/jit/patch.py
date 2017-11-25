@@ -115,42 +115,40 @@ class user(object):
         mc.set_PatchEnergyEvaluator(self);
 
     def compile_user(self,code,clang_exec):
-        with tempfile.TemporaryDirectory() as dirpath:
-            with open(dirpath + '/code.cc', 'w') as f:
-                f.write("""
+        cpp_function = """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
 extern "C"
 {
 float eval(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
-{
-""");
-                f.write(code)
-                f.write("""
+    {
+"""
+        cpp_function += code
+        cpp_function += """
+    }
 }
-}
-""");
+"""
 
-            include_path = os.path.dirname(hoomd.__file__) + '/include';
-            include_path_source = hoomd._hoomd.__hoomd_source_dir__;
-            print(include_path)
+        include_path = os.path.dirname(hoomd.__file__) + '/include';
+        include_path_source = hoomd._hoomd.__hoomd_source_dir__;
+        print(include_path)
 
-            if clang_exec is not None:
-                clang = clang_exec;
-            else: clang = find_executable('clang');
+        if clang_exec is not None:
+            clang = clang_exec;
+        else: clang = find_executable('clang');
 
-            try:
-                cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm', dirpath+'/code.cc', '-o', dirpath+'/code.ll']
-                subprocess.check_output(cmd,stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                hoomd.context.msg.error("Error compiling provided code\n");
-                hoomd.context.msg.error("Command "+str(cmd)+"\n");
-                hoomd.context.msg.error(e.output.decode()+"\n");
-                raise RuntimeError("Error initializing patch energy");
+        cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+        p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
-            # IR is a text file
-            with open(dirpath+'/code.ll','r') as f:
-                llvm_ir = f.read()
+        # pass C++ function to stdin
+        output = p.communicate(cpp_function.encode('utf-8'))
+        llvm_ir = output[0].decode()
+
+        if p.returncode != 0:
+            hoomd.context.msg.error("Error compiling provided code\n");
+            hoomd.context.msg.error("Command "+' '.join(cmd)+"\n");
+            hoomd.context.msg.error(output[1].decode()+"\n");
+            raise RuntimeError("Error initializing patch energy");
 
         return llvm_ir
