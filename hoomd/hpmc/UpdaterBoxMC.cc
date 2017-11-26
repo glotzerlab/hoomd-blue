@@ -410,7 +410,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         return;
         }
     float move_type_select = rng.f() * range; // generate a number on [0, range) ! not (0, range)
-    
+
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
     if (move_type_select < m_Volume_weight)

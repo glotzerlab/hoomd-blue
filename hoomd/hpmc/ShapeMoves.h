@@ -562,7 +562,10 @@ protected:
 template<class Shape>
 class ShapeLogBoltzmannFunction
 {
-public:
+  public:
+    std::shared_ptr<Variant> m_k; // 
+    ShapeLogBoltzmannFunction(){};
+    ShapeLogBoltzmannFunction(std::shared_ptr<Variant> k) : m_k(k) {}
     virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
     virtual Scalar computeEnergy(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia) {return 0.0;}
 };
@@ -582,16 +585,16 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
     //Scalar m_k;
-    std::shared_ptr<Variant> m_k;
     Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
-    ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
-    {
+    using ShapeLogBoltzmannFunction< Shape >::m_k;
+    ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : ShapeLogBoltzmannFunction<Shape>(k), m_reference_shape(new typename Shape::param_type)
+        {
         (*m_reference_shape) = shape;
         detail::mass_properties<Shape> mp(*m_reference_shape);
         m_volume = mp.getVolume();
-    }
+        }
 };
 
 /*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };
@@ -615,20 +618,19 @@ public:
 template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
 {
-    using ShapeSpringBase< Shape >::m_k;
-
     using ShapeSpringBase< Shape >::m_reference_shape;
     using ShapeSpringBase< Shape >::m_volume;
     //using elastic_shape_move_function<Shape, Saru>;
     std::shared_ptr<elastic_shape_move_function<Shape, Saru> > m_shape_move;
 public:
+    using ShapeSpringBase< Shape >::m_k;
     ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 
     Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
-        Scalar stiff = m_k->getValue(timestep);
+        Scalar stiff = this->m_k->getValue(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;

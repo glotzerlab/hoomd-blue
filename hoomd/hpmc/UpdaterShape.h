@@ -129,6 +129,7 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_energy");
+    m_ProvidedQuantities.push_back("shape_move_stiffness");
         {
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -163,7 +164,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         ctTotal = std::accumulate(m_count_total.begin(), m_count_total.end(), 0);
         return ctTotal ? Scalar(ctAccepted)/Scalar(ctTotal) : 0;
         }
-    else if(quantity == "shape_move_particle_volume")
+    else if(quantity == " ")
         {
         ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
         // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
@@ -188,19 +189,22 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
         return energy;
         }
+    else if(quantity == "shape_move_stiffness")
+        {
+        return m_log_boltz_function->m_k->getValue(timestep);
+        }
     else
-		{
-		for(size_t i = 0; i < m_num_params; i++)
+		    {
+		    for(size_t i = 0; i < m_num_params; i++)
 		    {
 		    if(quantity == getParamName(i))
     			{
     			return m_move_function->getParam(i);
     			}
 		    }
-
-		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
-		throw std::runtime_error("Error getting log value");
-		}
+    		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
+    		throw std::runtime_error("Error getting log value");
+    		}
     }
 
 /*! Perform Metropolis Monte Carlo shape deformations
