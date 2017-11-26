@@ -33,7 +33,7 @@ len_cyl = l_list[p]
 rho_star_ref = rho_star_ref_list[p]
 
 # linear lattice dimension
-n = 6
+n = 10
 
 sigma = 1
 V_intersection = 1./12.*math.pi*(2*sigma+len_cyl)*(sigma-len_cyl)*(sigma-len_cyl)
@@ -116,7 +116,9 @@ class npt_wca_dimer_eos(unittest.TestCase):
 
         rho_val = []
         def accumulate_rho(timestep):
-            rho_val.append(N/log.query('volume'))
+            rho = N/log.query('volume')
+            rho_val.append(rho)
+            if (timestep % 1000 == 0): context.msg.notice(1,'rho_star = {:.5f}\n'.format(rho*d_eff**3.0))
 
         for i in range(10):
             run(1000)

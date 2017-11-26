@@ -68,7 +68,9 @@ class PatchEnergy
         const ArrayHandle<Scalar4> &orientations,
         const ArrayHandle<Scalar> &diameters,
         const ArrayHandle<Scalar> &charges,
-        const BoxDim& box, unsigned int &N)
+        const BoxDim& box,
+        unsigned int N,
+        unsigned int N_ghost)
         {
         return 0.0;
         }
