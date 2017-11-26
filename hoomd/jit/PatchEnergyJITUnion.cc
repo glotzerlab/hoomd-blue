@@ -80,7 +80,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
 
     // build tree and store proxy structure
     hpmc::detail::OBBTree tree;
-    tree.buildTree(obbs, N, leaf_capacity, true);
+    tree.buildTree(obbs, N, leaf_capacity, false);
     delete [] obbs;
     m_tree[type] = hpmc::detail::GPUTree(tree,false);
     }
