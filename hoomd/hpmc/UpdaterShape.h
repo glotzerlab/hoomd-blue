@@ -184,7 +184,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
-            energy += m_log_boltz_function->computeEnergy(h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
+            energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
             }
         return energy;
         }
@@ -279,7 +279,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
-            log_boltz += (*m_log_boltz_function)(
+            log_boltz += (*m_log_boltz_function)(   timestep,
                                                     h_ntypes.data[typ_i],           // number of particles of type typ_i,
                                                     typ_i,                          // the type id
                                                     param,                          // new shape parameter

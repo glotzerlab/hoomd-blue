@@ -3,6 +3,7 @@
 
 #include <hoomd/extern/saruprng.h>
 #include "ShapeUtils.h"
+#include <hoomd/Variant.h>
 #include "Moves.h"
 #include "hoomd/GSDState.h"
 #include <hoomd/extern/Eigen/Dense>
@@ -562,15 +563,15 @@ template<class Shape>
 class ShapeLogBoltzmannFunction
 {
 public:
-    virtual Scalar operator()(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
-    virtual Scalar computeEnergy(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia) {return 0.0;}
+    virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
+    virtual Scalar computeEnergy(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia) {return 0.0;}
 };
 
 template<class Shape>
 class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 {
 public:
-    virtual Scalar operator()(const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
         return (Scalar(N)/Scalar(2.0))*log(inew/iold);
         }
@@ -580,11 +581,12 @@ template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
-    Scalar m_k;
+    //Scalar m_k;
+    std::shared_ptr<Variant> m_k;
     Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
-    ShapeSpringBase(Scalar k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
+    ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_k(k), m_reference_shape(new typename Shape::param_type)
     {
         (*m_reference_shape) = shape;
         detail::mass_properties<Shape> mp(*m_reference_shape);
@@ -620,12 +622,13 @@ class ShapeSpring : public ShapeSpringBase< Shape >
     //using elastic_shape_move_function<Shape, Saru>;
     std::shared_ptr<elastic_shape_move_function<Shape, Saru> > m_shape_move;
 public:
-    ShapeSpring(Scalar k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
+    ShapeSpring(std::shared_ptr<Variant> k, typename Shape::param_type ref, std::shared_ptr<elastic_shape_move_function<Shape, Saru> > P) : ShapeSpringBase <Shape> (k, ref ) , m_shape_move(P)
         {
         }
 
-    Scalar operator()(const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    Scalar operator()(const unsigned int& timestep, const unsigned int& N, const unsigned int type_id ,const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
+        Scalar stiff = m_k->getValue(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Eigen::Matrix3d eps_last = m_shape_move->getEpsLast(type_id);
         AlchemyLogBoltzmannFunction< Shape > fn;
@@ -638,17 +641,18 @@ public:
                  eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
                  eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
         // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-        return N*m_k*(e_ddot_e_last-e_ddot_e)*m_volume + fn(N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        return N*stiff*(e_ddot_e_last-e_ddot_e)*m_volume + fn(timestep,N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
         }
 
-    Scalar computeEnergy(const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
+    Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
         {
+        Scalar stiff = m_k->getValue(timestep);
         Eigen::Matrix3d eps = m_shape_move->getEps(type_id);
         Scalar e_ddot_e = 0.0;
         e_ddot_e = eps(0,0)*eps(0,0) + eps(0,1)*eps(1,0) + eps(0,2)*eps(2,0) +
                  eps(1,0)*eps(0,1) + eps(1,1)*eps(1,1) + eps(1,2)*eps(2,1) +
                  eps(2,0)*eps(0,2) + eps(2,1)*eps(1,2) + eps(2,2)*eps(2,2);
-        return N*m_k*e_ddot_e*m_volume;
+        return N*stiff*e_ddot_e*m_volume;
         }
 };
 
