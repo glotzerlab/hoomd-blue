@@ -1519,7 +1519,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         }
     #endif
 
-    if (is_local)
+    unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
+
+    // we cannot rely on a valid AABB tree when there are 0 particles
+    if (is_local && nptl_local > 0)
         {
         // update the aabb tree
         const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
