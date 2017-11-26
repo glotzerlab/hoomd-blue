@@ -1378,6 +1378,22 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
     // if not, no overlaps generated, return happily
     if (!patch) return true;
 
+    // type
+    unsigned int type = this->m_pdata->getType(tag);
+
+    // read in the current position and orientation
+    quat<Scalar> orientation(m_pdata->getOrientation(tag));
+
+    // charge and diameter
+    Scalar diameter = m_pdata->getDiameter(tag);
+    Scalar charge = m_pdata->getCharge(tag);
+
+    // getPosition() takes into account grid shift, correct for that
+    Scalar3 p = m_pdata->getPosition(tag)+m_pdata->getOrigin();
+    int3 tmp = make_int3(0,0,0);
+    m_pdata->getGlobalBox().wrap(p,tmp);
+    vec3<Scalar> pos(p);
+
     if (is_local)
         {
         // update the aabb tree
@@ -1392,22 +1408,6 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-
-        // type
-        unsigned int type = this->m_pdata->getType(tag);
-
-        // read in the current position and orientation
-        quat<Scalar> orientation(m_pdata->getOrientation(tag));
-
-        // charge and diameter
-        Scalar diameter = m_pdata->getDiameter(tag);
-        Scalar charge = m_pdata->getCharge(tag);
-
-        // getPosition() takes into account grid shift, correct for that
-        Scalar3 p = m_pdata->getPosition(tag)+m_pdata->getOrigin();
-        int3 tmp = make_int3(0,0,0);
-        m_pdata->getGlobalBox().wrap(p,tmp);
-        vec3<Scalar> pos(p);
 
         // Check particle against AABB tree for neighbors
         Scalar r_cut_patch = patch->getRCut();
