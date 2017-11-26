@@ -965,17 +965,19 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = it_j->first.first;
                     unsigned int j = it_j->first.second;
 
-                    std::pair<unsigned int, unsigned int> p;
-
                     // consider each pair once
                     if (i >= j) continue;
+
+                    auto p = std::make_pair(i,j);
 
                     // add to energy
                     auto it = delta_U.find(p);
                     if (it != delta_U.end())
                         delU += it->second;
 
-                    // store new interaction energy
+                    // store new interaction energy for both permutations
+                    delta_U.insert(std::make_pair(p,delU));
+                    p = std::make_pair(j,i);
                     delta_U.insert(std::make_pair(p,delU));
                     }
                 }
@@ -988,13 +990,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = it_j->first.first;
                     unsigned int j = it_j->first.second;
 
-                    std::pair<unsigned int, unsigned int> p;
-
-                    // consider each unique pair
-                    if (i < j)
-                        p = std::make_pair(i,j);
-                    else
-                        p = std::make_pair(j,i);
+                    // consider each pair uniquely
+                    auto p = std::make_pair(i,j);
 
                     // add to energy
                     auto it = delta_U.find(p);
