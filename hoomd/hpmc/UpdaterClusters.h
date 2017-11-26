@@ -968,10 +968,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     std::pair<unsigned int, unsigned int> p;
 
                     // consider each pair once
-                    if (i < j)
-                        p = std::make_pair(i,j);
-                    else
-                        p = std::make_pair(j,i);
+                    if (i >= j) continue;
 
                     // add to energy
                     auto it = delta_U.find(p);
@@ -993,7 +990,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
                     std::pair<unsigned int, unsigned int> p;
 
-                    // consider each pair once
+                    // consider each unique pair
                     if (i < j)
                         p = std::make_pair(i,j);
                     else
