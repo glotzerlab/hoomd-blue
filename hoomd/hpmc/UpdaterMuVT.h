@@ -502,7 +502,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     // check for overlaps
     bool overlap = m_mc->countOverlaps(timestep, true);
 
-    if (m_mc->getPatchInteraction())
+    if (! overlap && patch)
         {
         ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
