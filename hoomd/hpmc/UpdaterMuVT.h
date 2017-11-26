@@ -338,6 +338,7 @@ UpdaterMuVT<Shape>::~UpdaterMuVT()
     {
     m_pdata->getNumTypesChangeSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotNumTypesChange>(this);
     m_pdata->getParticleSortSignal().template disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::mapTypes>(this);
+    m_pdata->getMaxParticleNumberSignal().disconnect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotMaxNChange>(this);
     }
 
 template<class Shape>
@@ -446,7 +447,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     lnboltzmann = Scalar(0.0);
 
     unsigned int N_old = m_pdata->getN();
-    unsigned int N_ghost_old = m_pdata->getN()+m_pdata->getNGhosts();
+    unsigned int N_ghost_old = m_pdata->getNGhosts();
 
     BoxDim old_local_box = m_pdata->getBox();
 
