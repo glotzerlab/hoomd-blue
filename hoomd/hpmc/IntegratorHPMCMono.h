@@ -226,6 +226,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 o << "orientation ";
                 }
 
+            if (m_patch)
+                {
+                flags[comm_flag::diameter] = 1;
+                flags[comm_flag::charge] = 1;
+                o << "diameter charge";
+                }
+
             m_exec_conf->msg->notice(9) << o.str() << std::endl;
             return flags;
             }
@@ -428,8 +435,11 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
             ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
 
             const BoxDim& box = m_pdata->getBox();
-            unsigned int N = m_pdata->getN();
-            return (Scalar) m_patch->computePatchEnergy(positions,orientations,diameters,charges,box,N);
+            float energy = m_patch->computePatchEnergy(positions,orientations,diameters,charges,box,m_pdata->getN(), m_pdata->getNGhosts());
+            #ifdef ENABLE_MPI
+            if (m_comm) MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            #endif
+            return (Scalar)energy;
             }
         else
             {
@@ -1274,6 +1284,11 @@ template <class Shape>
 void IntegratorHPMCMono<Shape>::updateCellWidth()
     {
     m_nominal_width = getMaxCoreDiameter();
+
+    if (m_patch)
+        {
+        m_nominal_width = std::max(m_nominal_width, m_patch->getRCut());
+        }
 
     // changing the cell width means that the particle shapes have changed, assume this invalidates the
     // image list and aabb tree

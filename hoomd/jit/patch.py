@@ -108,8 +108,6 @@ class user(object):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        # TODO: add MPI support - read code.ll on the root rank and broadcast to all others, modify the C++ code
-        # to take LLVM IR in a string rather than a file
         #cls = _hpmc.ExternalFieldLatticeSphere;
         self.compute_name = "patch"
         self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
@@ -142,7 +140,6 @@ float eval(const vec3<float>& r_ij,
 
         include_path = os.path.dirname(hoomd.__file__) + '/include';
         include_path_source = hoomd._hoomd.__hoomd_source_dir__;
-        print(include_path)
 
         if clang_exec is not None:
             clang = clang_exec;

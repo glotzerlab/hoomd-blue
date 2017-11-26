@@ -72,7 +72,6 @@ set(EXCLUDE_FROM_GPU_MPI
 )
 
 set(EXCLUDE_FROM_MPI
-    wca_dumbbell.py
 )
 
 list(LENGTH TEST_LIST_CPU _max_i)

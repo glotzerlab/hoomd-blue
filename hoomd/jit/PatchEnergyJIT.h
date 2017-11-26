@@ -75,7 +75,8 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             const ArrayHandle<Scalar> &diameters,
             const ArrayHandle<Scalar> &charges,
             const BoxDim& box,
-            unsigned int &N)
+            unsigned int N,
+            unsigned int N_ghost)
             {
             double patch_energy = 0.0;
             float r_cut = this->getRCut();
@@ -89,7 +90,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
                 Scalar4 orientation_i = orientations.data[i];
                 vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
                 int typ_i = __scalar_as_int(postype_i.w);
-                for (unsigned int j = i+1; j < N; j++)
+                for (unsigned int j = i+1; j < N+N_ghost; j++)
                     {
                     Scalar4 postype_j = positions.data[j];
                     Scalar4 orientation_j = orientations.data[j];
@@ -99,7 +100,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
                     int typ_j = __scalar_as_int(postype_j.w);
                     if (dot(dr_ij,dr_ij) <= r_cut_sq)
                         {
-                        patch_energy+=this->energy(dr_ij,
+                        float eng = this->energy(dr_ij,
                             typ_i,
                             quat<float>(orientation_i),
                             diameters.data[i],
@@ -109,6 +110,12 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
                             diameters.data[j],
                             charges.data[j]
                             );
+                        if (j >= N)
+                            {
+                            // avoid double counting of interactions with ghosts
+                            eng /= 2.0f;
+                            }
+                        patch_energy += eng;
                         }
                     }
                 }
