@@ -234,6 +234,7 @@ class UpdaterClusters : public Updater
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
         std::set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
         std::set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
+        std::set<std::pair<unsigned int, unsigned int> > m_interact_new_new;  //!< Pairs interacting new-old
 
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
@@ -303,6 +304,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     m_overlap.clear();
     m_interact_old_old.clear();
     m_interact_new_old.clear();
+    m_interact_new_new.clear();
 
     auto patch = m_mc->getPatchInteraction();
 
@@ -339,7 +341,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar charge_i(m_charge_backup[i]);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0;
+            OverlapReal R_query = std::max(0.0,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             const unsigned int n_images = image_list.size();
@@ -480,11 +482,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
-                                    auto iti = map.find(h_tag.data[i]);
-                                    assert(iti != map.end());
-                                    auto itj = map.find(new_tag_j);
-                                    assert(itj != map.end());
-                                    m_overlap.insert(std::make_pair(iti->second,itj->second));
+                                    m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
                                     } // end if overlap
                                 }
 
@@ -500,82 +498,164 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 } // end loop over nodes
             } // end loop over images
 
-        // subtract minimum AABB extent from search radius
-        OverlapReal R_query = r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0;
-        detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
-
-        // compute V(r'-r)
-        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+        if (patch)
             {
-            vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+            // subtract minimum AABB extent from search radius
+            OverlapReal R_query = std::max(0.0,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
-            detail::AABB aabb_i_image = aabb_local;
-            aabb_i_image.translate(pos_i_image);
-
-            // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
+            // compute V(r'-r)
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
-                if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
+                vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+
+                detail::AABB aabb_i_image = aabb_local;
+                aabb_i_image.translate(pos_i_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree_old.getNumNodes(); cur_node_idx++)
                     {
-                    if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
+                    if (detail::overlap(m_aabb_tree_old.getNodeAABB(cur_node_idx), aabb_i_image))
                         {
-                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
+                        if (m_aabb_tree_old.isNodeLeaf(cur_node_idx))
                             {
-                            // read in its position and orientation
-                            unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
-
-                            auto it = map.find(m_tag_backup[j]);
-                            assert(it != map.end());
-                            unsigned int new_tag_j = it->second;
-
-                            if (h_tag.data[i] == new_tag_j) continue;
-
-                            vec3<Scalar> pos_j(m_postype_backup[j]);
-                            unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
-
-                            // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = pos_j - pos_i_image;
-
-                            // check for excluded volume sphere overlap
-                            Scalar rsq_ij = dot(r_ij, r_ij);
-
-                            if (rsq_ij <= r_cut_patch*r_cut_patch)
+                            for (unsigned int cur_p = 0; cur_p < m_aabb_tree_old.getNodeNumParticles(cur_node_idx); cur_p++)
                                 {
-                                auto iti = map.find(h_tag.data[i]);
-                                assert(iti != map.end());
-                                auto p = std::make_pair(iti->second, new_tag_j);
+                                // read in its position and orientation
+                                unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                // if particle interacts in different image already, add to that energy
-                                float U = 0.0;
-                                auto it_energy = m_energy_new_old.find(p);
-                                if (it_energy != m_energy_new_old.end())
-                                    U = it_energy->second;
+                                auto it = map.find(m_tag_backup[j]);
+                                assert(it != map.end());
+                                unsigned int new_tag_j = it->second;
 
-                                U += patch->energy(r_ij, typ_i,
-                                                        quat<float>(shape_i.orientation),
-                                                        h_diameter.data[i],
-                                                        h_charge.data[i],
-                                                        typ_j,
-                                                        quat<float>(m_orientation_backup[j]),
-                                                        m_diameter_backup[j],
-                                                        m_charge_backup[j]);
-                                m_energy_new_old.insert(std::make_pair(p,U));
-                                }
-                            } // end loop over AABB tree leaf
-                        } // end is leaf
-                    } // end if overlap
-                else
-                    {
-                    // skip ahead
-                    cur_node_idx += m_aabb_tree_old.getNodeSkip(cur_node_idx);
-                    }
+                                if (h_tag.data[i] == new_tag_j) continue;
 
-                } // end loop over nodes
+                                vec3<Scalar> pos_j(m_postype_backup[j]);
+                                unsigned int typ_j = __scalar_as_int(m_postype_backup[j].w);
 
-            } // end loop over images
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = pos_j - pos_i_image;
 
+                                // check for excluded volume sphere overlap
+                                Scalar rsq_ij = dot(r_ij, r_ij);
+
+                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                    {
+                                    auto p = std::make_pair(h_tag.data[i], new_tag_j);
+
+                                    // if particle interacts in different image already, add to that energy
+                                    float U = 0.0;
+                                    auto it_energy = m_energy_new_old.find(p);
+                                    if (it_energy != m_energy_new_old.end())
+                                        U = it_energy->second;
+
+                                    U += patch->energy(r_ij, typ_i,
+                                                            quat<float>(shape_i.orientation),
+                                                            h_diameter.data[i],
+                                                            h_charge.data[i],
+                                                            typ_j,
+                                                            quat<float>(m_orientation_backup[j]),
+                                                            m_diameter_backup[j],
+                                                            m_charge_backup[j]);
+                                    m_energy_new_old.insert(std::make_pair(p,U));
+                                    }
+                                } // end loop over AABB tree leaf
+                            } // end is leaf
+                        } // end if overlap
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += m_aabb_tree_old.getNodeSkip(cur_node_idx);
+                        }
+
+                    } // end loop over nodes
+
+                } // end loop over images
+            } // end if patch
         } // end loop over local particles
 
+    if (line)
+        {
+        // locality data in new configuration
+        const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
+
+        // check if particles are interacting in the new configuration
+        for (unsigned int i = 0; i < nptl; ++i)
+            {
+            unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
+
+            vec3<Scalar> pos_i_new(h_postype.data[i]);
+            quat<Scalar> orientation_i_new(h_orientation.data[i]);
+
+            Shape shape_i(orientation_i_new, params[typ_i]);
+            Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
+
+            // subtract minimum AABB extent from search radius
+            OverlapReal R_query = std::max(r_excl_i,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_i = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // All image boxes (including the primary)
+            const unsigned int n_images = image_list.size();
+
+            // check against new AABB tree
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                {
+                vec3<Scalar> pos_i_image = pos_i_new + image_list[cur_image];
+
+                detail::AABB aabb_i_image = aabb_i;
+                aabb_i_image.translate(image_list[cur_image]);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+                    {
+                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb_i_image))
+                        {
+                        if (aabb_tree.isNodeLeaf(cur_node_idx))
+                            {
+                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                {
+                                // read in its position and orientation
+                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                // no trivial bonds
+                                if (h_tag.data[i] == h_tag.data[j]) continue;
+
+                                // load the position and orientation of the j particle
+                                vec3<Scalar> pos_j = vec3<Scalar>(h_postype.data[j]);
+                                unsigned int typ_j = __scalar_as_int(h_postype.data[j].w);
+                                Shape shape_j(quat<Scalar>(h_orientation.data[j]), params[typ_j]);
+
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = pos_j - pos_i_image;
+
+                                // check for circumsphere overlap
+                                Scalar r_excl_j = shape_j.getCircumsphereDiameter()/Scalar(2.0);
+                                Scalar RaRb = r_excl_i + r_excl_j;
+                                Scalar rsq_ij = dot(r_ij, r_ij);
+
+                                bool interact_patch = patch && rsq_ij <= r_cut_patch*r_cut_patch;
+
+                                unsigned int err = 0;
+                                if (interact_patch || (rsq_ij <= RaRb*RaRb && h_overlaps.data[overlap_idx(typ_i,typ_j)]
+                                        && test_overlap(r_ij, shape_i, shape_j, err)))
+                                    {
+                                    // add connection
+                                    m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
+                                    } // end if overlap
+
+                                } // end loop over AABB tree leaf
+                            } // end is leaf
+                        } // end if overlap
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                        }
+
+                    } // end loop over nodes
+                } // end loop over images
+            } // end loop over local particles
+        } // end if line transformation
     if (m_prof) m_prof->pop(m_exec_conf);
     }
 
@@ -661,6 +741,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // reset origin, so that takeSnapshot will not subtract it
     m_pdata->resetOrigin();
 
+    // take a snapshot, and save tag->snap idx mapping
     auto map = m_pdata->takeSnapshot(snap);
 
     #ifdef ENABLE_MPI
@@ -736,6 +817,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     m_aabb_tree_old = m_mc->buildAABBTree();
 
     // reload particle data
+    // now all tags will be consecutive
     m_pdata->initializeFromSnapshot(snap);
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -754,6 +836,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
+    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_new;
 
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
@@ -764,6 +847,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         gather_v(m_overlap, all_overlap, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_old_old, all_interact_old_old, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_new_old, all_interact_new_old, 0, m_exec_conf->getMPICommunicator());
+        gather_v(m_interact_new_new, all_interact_new_new, 0, m_exec_conf->getMPICommunicator());
         }
     else
     #endif
@@ -771,6 +855,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         all_overlap.push_back(m_overlap);
         all_interact_old_old.push_back(m_interact_old_old);
         all_interact_new_old.push_back(m_interact_new_old);
+        all_interact_new_new.push_back(m_interact_new_new);
         }
 
     if (m_mc->getPatchInteraction())
@@ -842,6 +927,19 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             }
 
          for (auto it_i = all_interact_new_old.begin(); it_i != all_interact_new_old.end(); ++it_i)
+            {
+            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                {
+                unsigned int i = it_j->first;
+                unsigned int j = it_j->second;
+
+                // if any of the particles is rejected, form a bond
+                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
+                    m_G.addEdge(i, j);
+                }
+            }
+
+         for (auto it_i = all_interact_new_new.begin(); it_i != all_interact_new_new.end(); ++it_i)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
