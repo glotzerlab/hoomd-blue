@@ -365,7 +365,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 // read in its position and orientation
                                 unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                if (i == j) continue;
+                                if (m_tag_backup[i] == m_tag_backup[j]) continue;
 
                                 // load the position and orientation of the j particle
                                 vec3<Scalar> pos_j = vec3<Scalar>(m_postype_backup[j]);
