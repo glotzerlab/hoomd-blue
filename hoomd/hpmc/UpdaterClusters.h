@@ -592,7 +592,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
             // subtract minimum AABB extent from search radius
             OverlapReal R_query = std::max(r_excl_i,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
-            detail::AABB aabb_i = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+            detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
             const unsigned int n_images = image_list.size();
