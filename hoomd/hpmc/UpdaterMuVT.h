@@ -163,6 +163,9 @@ class UpdaterMuVT : public Updater
         std::vector<unsigned int> m_transfer_types;  //!< List of types being insert/removed/transfered between boxes
 
         GPUVector<Scalar4> m_pos_backup;             //!< Backup of particle positions for volume move
+        GPUVector<Scalar4> m_orientation_backup;     //!< Backup of particle orientations for volume move
+        GPUVector<Scalar> m_charge_backup;           //!< Backup of particle charges for volume move
+        GPUVector<Scalar> m_diameter_backup;         //!< Backup of particle diameters for volume move
 
         /*! Check for overlaps of a fictituous particle
          * \param timestep Current time step
@@ -228,6 +231,9 @@ class UpdaterMuVT : public Updater
             {
             unsigned int MaxN = m_pdata->getMaxN();
             m_pos_backup.resize(MaxN);
+            m_orientation_backup.resize(MaxN);
+            m_charge_backup.resize(MaxN);
+            m_diameter_backup.resize(MaxN);
             }
     };
 
@@ -318,6 +324,9 @@ UpdaterMuVT<Shape>::UpdaterMuVT(std::shared_ptr<SystemDefinition> sysdef,
     // allocate memory for m_pos_backup
     unsigned int MaxN = m_pdata->getMaxN();
     GPUVector<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
+    GPUVector<Scalar4>(MaxN, m_exec_conf).swap(m_orientation_backup);
+    GPUVector<Scalar>(MaxN, m_exec_conf).swap(m_diameter_backup);
+    GPUVector<Scalar>(MaxN, m_exec_conf).swap(m_charge_backup);
 
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterMuVT<Shape>, &UpdaterMuVT<Shape>::slotMaxNChange>(this);
@@ -436,7 +445,11 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     {
     lnboltzmann = Scalar(0.0);
 
-    unsigned int N = m_pdata->getN();
+    unsigned int N_old = m_pdata->getN();
+    unsigned int N_ghost_old = m_pdata->getN()+m_pdata->getNGhosts();
+
+    BoxDim old_local_box = m_pdata->getBox();
+
     extra_ndof = 0;
 
     auto patch = m_mc->getPatchInteraction();
@@ -446,8 +459,17 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
         unsigned int N_backup = m_pdata->getN() + m_pdata->getNGhosts();
 
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge_backup(m_charge_backup, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar> h_diameter_backup(m_diameter_backup, access_location::host, access_mode::overwrite);
         memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
+        memcpy(h_orientation_backup.data, h_orientation.data, sizeof(Scalar4) * N_backup);
+        memcpy(h_charge_backup.data, h_charge.data, sizeof(Scalar)*N_backup);
+        memcpy(h_diameter_backup.data, h_diameter.data, sizeof(Scalar)*N_backup);
         }
 
         {
@@ -455,7 +477,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
 
         // move the particles to be inside the new box
-        for (unsigned int i = 0; i < N; i++)
+        for (unsigned int i = 0; i < N_old; i++)
             {
             Scalar3 old_pos = make_scalar3(h_pos.data[i].x, h_pos.data[i].y, h_pos.data[i].z);
 
@@ -471,6 +493,7 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
         } // end lexical scope
 
     m_pdata->setGlobalBox(new_box);
+    BoxDim new_local_box = m_pdata->getBox();
 
     // we have changed particle neighbors, communicate those changes
     m_mc->communicate(false);
@@ -478,18 +501,40 @@ bool UpdaterMuVT<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim o
     // check for overlaps
     bool overlap = m_mc->countOverlaps(timestep, true);
 
-    if (!overlap && patch)
+    if (m_mc->getPatchInteraction())
         {
-        // compute energy difference
         ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> diameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> neworientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> oldorientations(m_orientation_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> olddiameters(m_diameter_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> newdiameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> oldcharges(m_charge_backup, access_location::host, access_mode::read);
+        ArrayHandle<Scalar> newcharges(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-        unsigned int N = m_pdata->getN()+ m_pdata->getNGhosts();
-        Scalar e_new = patch->computePatchEnergy(newpositions,orientations,diameters,charges,new_box,N);
-        Scalar e_old = patch->computePatchEnergy(oldpositions,orientations,diameters,charges,old_box,N);
+        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,
+            neworientations,
+            newdiameters,
+            newcharges,
+            new_local_box,
+            m_pdata->getN(),
+            m_pdata->getNGhosts());
+        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,
+            oldorientations,
+            olddiameters,
+            oldcharges,
+            old_local_box,
+            N_old,
+            N_ghost_old);
+
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            MPI_Allreduce(MPI_IN_PLACE, &e_new, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            MPI_Allreduce(MPI_IN_PLACE, &e_old, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+            }
+        #endif
+
         lnboltzmann -= e_new-e_old;
         }
 
