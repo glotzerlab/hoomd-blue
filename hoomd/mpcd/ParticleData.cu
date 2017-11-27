@@ -11,9 +11,8 @@
 #ifdef ENABLE_MPI
 
 #include "ParticleData.cuh"
-
 #include "hoomd/extern/cub/cub/device/device_partition.cuh"
-#include "hoomd/extern/cub/cub/thread/thread_load.cuh"
+#include "hoomd/extern/cub/cub/iterator/counting_input_iterator.cuh"
 
 namespace mpcd
 {
@@ -27,75 +26,58 @@ namespace kernel
  * \param d_pos Device array of particle positions
  * \param d_vel Device array of particle velocities
  * \param d_tag Device array of particle tags
- * \param d_pos_alt Device array of particle positions (output)
- * \param d_vel_alt Device array of particle velocities (output)
- * \param d_tag_alt Device array of particle tags (output)
- * \param d_out Output array for packed particle data
  * \param d_comm_flags Communication flags (nonzero if particle should be migrated)
- * \param d_comm_flags_out Packed communication flags
- * \param d_keep_ids Partitioned indexes of particles to keep (bottom) or remove (top)
- * \param n_keep Number of particles to keep
+ * \param d_remove_ids Partitioned indexes of particles to remove (first) followed by keep (last)
+ * \param n_remove Number of particles to remove
  * \param N Number of local particles
  *
  * Particles are removed using the result of cub::DevicePartition, which constructs
  * a list of particles to keep and remove.
  */
 __global__ void remove_particles(mpcd::detail::pdata_element *d_out,
-                                 const Scalar4 *d_pos,
-                                 const Scalar4 *d_vel,
-                                 const unsigned int *d_tag,
-                                 const unsigned int *d_comm_flags,
-                                 Scalar4 *d_pos_alt,
-                                 Scalar4 *d_vel_alt,
-                                 unsigned int *d_tag_alt,
-                                 unsigned int *d_comm_flags_alt,
-                                 const unsigned int *d_keep_ids,
-                                 const unsigned int n_keep,
+                                 Scalar4 *d_pos,
+                                 Scalar4 *d_vel,
+                                 unsigned int *d_tag,
+                                 unsigned int *d_comm_flags,
+                                 const unsigned int *d_remove_ids,
+                                 const unsigned int n_remove,
                                  const unsigned int N)
     {
     // one thread per particle
-    const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
+    if (idx >= n_remove) return;
+    const unsigned int pid = d_remove_ids[idx];
+
+    // pack a comm element
+    mpcd::detail::pdata_element p;
+    p.pos = d_pos[pid];
+    p.vel = d_vel[pid];
+    p.tag = d_tag[pid];
+    p.comm_flag = d_comm_flags[pid];
+    d_out[idx] = p;
+
+    // now fill myself back in with another particle if that exists
+    idx += n_remove;
     if (idx >= N) return;
+    const unsigned int take_pid = d_remove_ids[idx];
 
-    // read static data out of textures
-    const unsigned int pid = cub::ThreadLoad<cub::LOAD_LDG>(d_keep_ids + idx);
-    const Scalar4 pos = cub::ThreadLoad<cub::LOAD_LDG>(d_pos + pid);
-    const Scalar4 vel = cub::ThreadLoad<cub::LOAD_LDG>(d_vel + pid);
-    const unsigned int tag = cub::ThreadLoad<cub::LOAD_LDG>(d_tag + pid);
-    const unsigned int flag = cub::ThreadLoad<cub::LOAD_LDG>(d_comm_flags + pid);
-
-    if (idx >= n_keep)
-        {
-        mpcd::detail::pdata_element p;
-        p.pos = pos;
-        p.vel = vel;
-        p.tag = tag;
-        p.comm_flag = flag;
-        d_out[idx - n_keep] = p;
-        }
-    else
-        {
-        d_pos_alt[idx] = pos;
-        d_vel_alt[idx] = vel;
-        d_tag_alt[idx] = tag;
-        d_comm_flags_alt[idx] = flag;
-        }
+    d_pos[pid] = d_pos[take_pid];
+    d_vel[pid] = d_vel[take_pid];
+    d_tag[pid] = d_tag[take_pid];
+    d_comm_flags[pid] = d_comm_flags[take_pid];
     }
 
 //! Kernel to transform communication flags for prefix sum
 /*!
- * \param d_keep_flags Flag to keep (1) or remove (0) a particle (output)
- * \param d_tmp_ids Particle indexes that will later be partitioned (0 to \a N-1)
+ * \param d_remove_flags Flag to remove (1) or keep (0) a particle (output)
  * \param d_comm_flags Communication flags
  * \param mask Bitwise mask for \a d_comm_flags
  * \param N Number of local particles
  *
  * Any communication flags that are bitwise AND with \a mask are transformed to
- * a 0 and stored in \a d_keep_flags, otherwise a 1 is set. The particle indexes
- * are also filled into \a d_tmp_ids.
+ * a 1 and stored in \a d_remove_flags, otherwise a 0 is set.
  */
-__global__ void mark_removed_particles(unsigned char *d_keep_flags,
-                                       unsigned int *d_tmp_ids,
+__global__ void mark_removed_particles(unsigned char *d_remove_flags,
                                        const unsigned int *d_comm_flags,
                                        const unsigned int mask,
                                        const unsigned int N)
@@ -104,16 +86,14 @@ __global__ void mark_removed_particles(unsigned char *d_keep_flags,
     const unsigned int idx = blockIdx.x*blockDim.x + threadIdx.x;
     if (idx >= N) return;
 
-    d_tmp_ids[idx] = idx;
-    d_keep_flags[idx] = (d_comm_flags[idx] & mask) ? 0 : 1;
+    d_remove_flags[idx] = (d_comm_flags[idx] & mask) ? 1 : 0;
     }
 } // end namespace kernel
 } // end namespace gpu
 } // end namespace mpcd
 
 /*!
- * \param d_keep_flags Flag to keep (1) or remove (0) a particle (output)
- * \param d_tmp_ids Particle indexes that will later be partitioned (0 to \a N-1)
+ * \param d_remove_flags Flag to remove (1) or keep (0) a particle (output)
  * \param d_comm_flags Communication flags
  * \param mask Bitwise mask for \a d_comm_flags
  * \param N Number of local particles
@@ -121,8 +101,7 @@ __global__ void mark_removed_particles(unsigned char *d_keep_flags,
  *
  * \sa mpcd::gpu::kernel::mark_removed_particles
  */
-cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_keep_flags,
-                                              unsigned int *d_tmp_ids,
+cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_remove_flags,
                                               const unsigned int *d_comm_flags,
                                               const unsigned int mask,
                                               const unsigned int N,
@@ -138,8 +117,7 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_keep_flags,
 
     unsigned int run_block_size = min(block_size, max_block_size);
     dim3 grid(N / run_block_size + 1);
-    mpcd::gpu::kernel::mark_removed_particles<<<grid, run_block_size>>>(d_keep_flags,
-                                                                        d_tmp_ids,
+    mpcd::gpu::kernel::mark_removed_particles<<<grid, run_block_size>>>(d_remove_flags,
                                                                         d_comm_flags,
                                                                         mask,
                                                                         N);
@@ -149,10 +127,9 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_keep_flags,
 /*!
  * \param d_tmp Temporary storage
  * \param tmp_bytes Number of bytes in temporary storage
- * \param d_tmp_ids Temporary particle indexes to partition
- * \param d_keep_flags Flags to keep (1) or remove (0) particles
- * \param d_keep_ids Partitioned indexes of particles to keep (bottom) or remove (top)
- * \param d_num_keep Number of particles to keep
+ * \param d_remove_flags Flags to remove (1) or keep (0) particles
+ * \param d_remove_ids Partitioned indexes of particles to remove (first) or keep (last)
+ * \param d_num_remove Number of particles to remove
  * \param N Number of particles
  *
  * \returns cudaSuccess on completion
@@ -162,20 +139,21 @@ cudaError_t mpcd::gpu::mark_removed_particles(unsigned char *d_keep_flags,
  * two calls in order for the partitioning to take effect. In the first call,
  * temporary storage is sized and returned in \a tmp_bytes. The caller must then
  * allocate this memory into \a d_tmp, and call the method a second time. The
- * particle indexes in \a d_tmp_ids are then partition into \a d_keep_ids, with
- * the particles to keep first in the array (in their original order), while
- * the removed particles are put into a reverse order at the end of the array.
- * The number of particles to keep is stored into \a d_num_keep.
+ * particle indexes are then partitioned into \a d_remove_ids, with
+ * the particles to remove first in the array (in their original order), while
+ * the kept particles are put into a reverse order at the end of the array.
+ * The number of particles to keep is stored into \a d_num_remove.
  */
 cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
                                            size_t& tmp_bytes,
-                                           const unsigned int *d_tmp_ids,
-                                           const unsigned char *d_keep_flags,
-                                           unsigned int *d_keep_ids,
-                                           unsigned int *d_num_keep,
+                                           const unsigned char *d_remove_flags,
+                                           unsigned int *d_remove_ids,
+                                           unsigned int *d_num_remove,
                                            const unsigned int N)
     {
-    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, d_tmp_ids, d_keep_flags, d_keep_ids, d_num_keep, N);
+
+    cub::CountingInputIterator<unsigned int> ids(0);
+    cub::DevicePartition::Flagged(d_tmp, tmp_bytes, ids, d_remove_flags, d_remove_ids, d_num_remove, N);
     return cudaSuccess;
     }
 
@@ -189,8 +167,8 @@ cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
  * \param d_vel_alt Device array of particle velocities (output)
  * \param d_tag_alt Device array of particle tags (output)
  * \param d_comm_flags_alt Device array of communication flags (output)
- * \param d_keep_ids Partitioned indexes of particles to keep (bottom) or remove (top)
- * \param n_keep Number of particles to keep
+ * \param d_remove_ids Partitioned indexes of particles to remove (first) or keep (last)
+ * \param n_remove Number of particles to remove
  * \param N Current number of particles
  * \param block_size Number of threads per block
  *
@@ -199,16 +177,12 @@ cudaError_t mpcd::gpu::partition_particles(void *d_tmp,
  * \sa mpcd::gpu::kernel::remove_particles
  */
 cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
-                                        const Scalar4 *d_pos,
-                                        const Scalar4 *d_vel,
-                                        const unsigned int *d_tag,
-                                        const unsigned int *d_comm_flags,
-                                        Scalar4 *d_pos_alt,
-                                        Scalar4 *d_vel_alt,
-                                        unsigned int *d_tag_alt,
-                                        unsigned int *d_comm_flags_alt,
-                                        unsigned int *d_keep_ids,
-                                        const unsigned int n_keep,
+                                        Scalar4 *d_pos,
+                                        Scalar4 *d_vel,
+                                        unsigned int *d_tag,
+                                        unsigned int *d_comm_flags,
+                                        unsigned int *d_remove_ids,
+                                        const unsigned int n_remove,
                                         const unsigned int N,
                                         const unsigned int block_size)
     {
@@ -221,18 +195,14 @@ cudaError_t mpcd::gpu::remove_particles(mpcd::detail::pdata_element *d_out,
         }
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid(N / run_block_size + 1);
+    dim3 grid(n_remove / run_block_size + 1);
     mpcd::gpu::kernel::remove_particles<<<grid, run_block_size>>>(d_out,
                                                                   d_pos,
                                                                   d_vel,
                                                                   d_tag,
                                                                   d_comm_flags,
-                                                                  d_pos_alt,
-                                                                  d_vel_alt,
-                                                                  d_tag_alt,
-                                                                  d_comm_flags_alt,
-                                                                  d_keep_ids,
-                                                                  n_keep,
+                                                                  d_remove_ids,
+                                                                  n_remove,
                                                                   N);
     return cudaSuccess;
     }

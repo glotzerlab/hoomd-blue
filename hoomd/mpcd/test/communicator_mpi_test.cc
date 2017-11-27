@@ -164,7 +164,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
 
     // attempt a migration, everyone should stay in place
-    comm->migrateParticles();
+    comm->migrateParticles(0);
     UP_ASSERT_EQUAL(pdata->getN(), 1);
         {
         const unsigned int tag = pdata->getTag(0);
@@ -271,7 +271,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
 
     // migrate to new domains
-    comm->migrateParticles();
+    comm->migrateParticles(1);
     UP_ASSERT_EQUAL(pdata->getN(), 1);
         {
         const unsigned int tag = pdata->getTag(0);
@@ -378,7 +378,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
         }
 
     // some domains have different numbers of particles after migration
-    comm->migrateParticles();
+    comm->migrateParticles(2);
         {
         unsigned int tag(0xffffffff), type(0xffffffff);
         Scalar3 pos, vel;

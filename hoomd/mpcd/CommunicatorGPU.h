@@ -57,7 +57,7 @@ class CommunicatorGPU : public mpcd::Communicator
         //@{
 
         //! Migrate particle data to local domain
-        virtual void migrateParticles();
+        virtual void migrateParticles(unsigned int timestep);
         //@}
 
         //! Set maximum number of communication stages
