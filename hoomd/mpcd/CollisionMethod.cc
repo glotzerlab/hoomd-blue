@@ -51,25 +51,59 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<mpcd::SystemData> sysdata
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is equal to the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
+ *
+ * Using a multiple allows the collision method to be disabled and then reenabled later if the \a timestep has already
+ * exceeded the \a m_next_timestep.
  */
 bool mpcd::CollisionMethod::peekCollide(unsigned int timestep) const
     {
-    return (timestep == m_next_timestep);
+    if (timestep < m_next_timestep)
+        return false;
+    else
+        return ((timestep - m_next_timestep) % m_period == 0);
+    }
+
+/*!
+ * \param cur_timestep Current simulation timestep
+ * \param period New period
+ *
+ * The collision method period is updated to \a period only if collision would occur at \a cur_timestep.
+ * It is the caller's responsibility to ensure this condition is valid.
+ */
+void mpcd::CollisionMethod::setPeriod(unsigned int cur_timestep, unsigned int period)
+    {
+    if (!peekCollide(cur_timestep))
+        {
+        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of original period" << std::endl;
+        throw std::runtime_error("Collision period can only be changed on multiple of original period");
+        }
+
+    // try to update the period
+    const unsigned int old_period = m_period;
+    m_period = period;
+
+    // validate the new period, resetting to the old one before erroring out if it doesn't match
+    if (!peekCollide(cur_timestep))
+        {
+        m_period = old_period;
+        m_exec_conf->msg->error() << "MPCD CollisionMethod period can only be changed on multiple of new period" << std::endl;
+        throw std::runtime_error("Collision period can only be changed on multiple of new period");
+        }
     }
 
 /*!
  * \param timestep Current timestep
- * \returns True when \a timestep is equal to the next timestep the collision should occur
+ * \returns True when \a timestep is a \a m_period multiple of the the next timestep the collision should occur
  *
- * \post The next timestep is also advanced. If this behavior is not desired, then
- *       use peekCollide() instead.
+ * \post The next timestep is also advanced to the next timestep the collision should occur after \a timestep.
+ *       If this behavior is not desired, then use peekCollide() instead.
  */
 bool mpcd::CollisionMethod::shouldCollide(unsigned int timestep)
     {
-    if (timestep == m_next_timestep)
+    if (peekCollide(timestep))
         {
-        m_next_timestep += m_period;
+        m_next_timestep = timestep + m_period;
         return true;
         }
     else
@@ -120,5 +154,6 @@ void mpcd::detail::export_CollisionMethod(pybind11::module& m)
     py::class_<mpcd::CollisionMethod, std::shared_ptr<mpcd::CollisionMethod> >(m, "CollisionMethod")
         .def(py::init<std::shared_ptr<mpcd::SystemData>, unsigned int, unsigned int, int, unsigned int>())
         .def("enableGridShifting", &mpcd::CollisionMethod::enableGridShifting)
-        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup);
+        .def("setEmbeddedGroup", &mpcd::CollisionMethod::setEmbeddedGroup)
+        .def("setPeriod", &mpcd::CollisionMethod::setPeriod);
     }

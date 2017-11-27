@@ -22,16 +22,18 @@ class mpcd_collide_srd_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
 
         # create an integrator
-        self.ig = mpcd.integrator(dt=0.02, period=5)
+        mpcd.integrator(dt=0.02)
 
     # test basic creation
     def test_create(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90.)
         self.assertEqual(srd.enabled, True)
         self.assertEqual(hoomd.context.current.mpcd._collide, srd)
+
         srd.disable()
         self.assertEqual(srd.enabled, False)
         self.assertEqual(hoomd.context.current.mpcd._collide, None)
+
         srd.enable()
         self.assertEqual(srd.enabled, True)
         self.assertEqual(hoomd.context.current.mpcd._collide, srd)
@@ -94,30 +96,6 @@ class mpcd_collide_srd_test(unittest.TestCase):
         mpcd.init.read_snapshot(mpcd.data.make_snapshot(N=1))
         mpcd.collide.srd(seed=42, period=5, angle=90.)
 
-    # test possible errors with the SRD period with the integrator
-    def test_bad_period(self):
-        # period cannot be less than integrator's period
-        srd = mpcd.collide.srd(seed=42, period=1, angle=130.)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        srd.disable()
-
-        # being equal is OK
-        srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
-        self.ig.update_methods()
-        srd.disable()
-
-        # period being greater but not a multiple is also an error
-        srd = mpcd.collide.srd(seed=42, period=7, angle=130.)
-        with self.assertRaises(ValueError):
-            self.ig.update_methods()
-        srd.disable()
-
-        # being greater and a multiple is OK
-        srd = mpcd.collide.srd(seed=42, period=10, angle=130.)
-        self.ig.update_methods()
-        srd.disable()
-
     # test thermostat
     def test_thermostat(self):
         srd = mpcd.collide.srd(seed=42, period=5, angle=90., kT=1.0)
@@ -133,8 +111,28 @@ class mpcd_collide_srd_test(unittest.TestCase):
         srd.set_params(kT=False)
         self.assertTrue(srd.kT is False)
 
+    # test methods for setting the collision period
+    def test_set_period(self):
+        srd = mpcd.collide.srd(seed=42, period=5, angle=130.)
+        # can change period right away
+        srd.set_period(2)
+
+        # running one step forbids changing period until we advance to a multiple
+        hoomd.run(1)
+        with self.assertRaises(RuntimeError):
+            srd.set_period(3)
+        hoomd.run(1)
+        srd.set_period(2)
+
+        # skip ahead to timestep 10, where setting period of 9 is invalid
+        hoomd.run(8)
+        with self.assertRaises(RuntimeError):
+            srd.set_period(9)
+        # period of 5 is OK because 10 is a multiple of 5
+        srd.set_period(5)
+
     def tearDown(self):
-        del self.ig
+        pass
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

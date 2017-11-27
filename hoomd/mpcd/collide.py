@@ -35,12 +35,12 @@ class _collision_method(hoomd.meta._metadata):
 
         # check for mpcd initialization
         if hoomd.context.current.mpcd is None:
-            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision rule\n')
+            hoomd.context.msg.error('mpcd.collide: an MPCD system must be initialized before the collision method\n')
             raise RuntimeError('MPCD system not initialized')
 
         # check for multiple collision rule initializations
         if hoomd.context.current.mpcd._collide is not None:
-            hoomd.context.msg.error('mpcd.collide: only one collision method can be set, use disable() first.\n')
+            hoomd.context.msg.error('mpcd.collide: only one collision method can be created.\n')
             raise RuntimeError('Multiple initialization of collision method')
 
         hoomd.meta._metadata.__init__(self)
@@ -126,6 +126,39 @@ class _collision_method(hoomd.meta._metadata):
         self.enabled = False
         hoomd.context.current.mpcd._collide = None
 
+    def set_period(self, period):
+        """ Set the collision period.
+
+        Args:
+            period (int): New collision period.
+
+        The MPCD collision period can only be changed to a new value on a
+        simulation timestep that is a multiple of both the previous *period*
+        and the new *period*. An error will be raised if it is not.
+
+        Examples::
+
+            # The initial period is 5.
+            # The period can be updated to 2 on step 10.
+            hoomd.run_upto(10)
+            method.set_period(period=2)
+
+            # The period can be updated to 4 on step 12.
+            hoomd.run_upto(12)
+            hoomd.set_period(period=4)
+
+        """
+        hoomd.util.print_status_line()
+
+        cur_tstep = hoomd.context.current.system.getCurrentTimeStep()
+        if cur_tstep % self.period != 0 or cur_tstep % period != 0:
+            hoomd.context.msg.error('mpcd.collide: collision period can only be changed on multiple of current and new period.\n')
+            raise RuntimeError('collision period can only be changed on multiple of current and new period')
+
+        self._cpp.setPeriod(cur_tstep, period)
+        self.period = period
+
+
 class at(_collision_method):
     """ Andersen thermostat method
 
@@ -195,7 +228,7 @@ class at(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  -1,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo,
                                   hoomd.context.current.mpcd._at_thermo,
@@ -260,7 +293,7 @@ class srd(_collision_method):
 
     Note:
         The *period* must be chosen as a multiple of the MPCD
-        :py:class:`~hoomd.mpcd.integrate.integrator` period. Other values will
+        :py:mod:`~hoomd.mpcd.stream` period. Other values will
         result in an error when :py:meth:`hoomd.run()` is called.
 
     When the total mean-free path of the MPCD particles is small, the underlying
@@ -305,7 +338,7 @@ class srd(_collision_method):
         self._cpp = collide_class(hoomd.context.current.mpcd.data,
                                   hoomd.context.current.system.getCurrentTimeStep(),
                                   self.period,
-                                  -1,
+                                  0,
                                   self.seed,
                                   hoomd.context.current.mpcd._thermo)
 

@@ -6,6 +6,7 @@ set(TEST_LIST
     data_snapshot
     init_make_random
     integrate_integrator
+    stream_bulk
     update_sort
     )
 SET(EXCLUDE_FROM_MPI

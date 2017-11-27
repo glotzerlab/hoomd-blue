@@ -213,6 +213,9 @@ class system(hoomd.meta._metadata):
         self.sorter = update.sort(self)
         hoomd.util.unquiet_status()
 
+        # no stream rule by default
+        self._stream = None
+
         # no collision rule by default
         self._collide = None
 

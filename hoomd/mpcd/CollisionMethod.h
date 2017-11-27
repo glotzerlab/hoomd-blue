@@ -77,6 +77,9 @@ class CollisionMethod
             m_cl->setEmbeddedGroup(m_embed_group);
             }
 
+        //! Set the period of the collision method
+        void setPeriod(unsigned int cur_timestep, unsigned int period);
+
     protected:
         std::shared_ptr<mpcd::SystemData> m_mpcd_sys;                   //!< MPCD system data
         std::shared_ptr<SystemDefinition> m_sysdef;                     //!< HOOMD system definition
