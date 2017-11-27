@@ -82,12 +82,13 @@ def read_snapshot(snapshot):
 
     An MPCD system can be initialized from a snapshot **after** the HOOMD system
     is first initialized (see :py:mod:`hoomd.init`). The system can only be
-    initialized one time.
+    initialized one time. If no type is specified in the snapshot, a default type
+    *A* will be assigned to the MPCD particles.
 
     Examples::
 
         snap = mpcd.data.make_snapshot(N=10)
-        snap.particles.positions[:] = L * np.random((10,3))
+        snap.particles.position[:] = L * np.random.random((10,3))
         mpcd.init.read_snapshot(snap)
 
     Notes:
