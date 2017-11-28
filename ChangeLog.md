@@ -12,6 +12,14 @@ Not yet released
 * Fix a critical bug where forces in MPI simulations with rigid bodies or anisotropic particles were incorrectly calculated
 * Ensure that ghost particles are updated after load balancing.
 * `meta.dump_metadata` no longer reports an error when used with `md.constrain.rigid`
+* Miscellaneous documentation fixes
+* `dump.gsd` can now write GSD files with 0 particles in a frame
+* Explicitly report MPI synchronization delays due to load imbalance with `profile=True`
+* Correctly compute net torque of rigid bodies with anisotropic constituent particles in MPI execution on multiple ranks
+* Fix `PotentialPairDPDThermoGPU.h` for use in external plugins
+* Use correct ghost region with `constrain.rigid` in MPI execution on multiple ranks
+* `hpmc.update.muvt()` now works with `depletant_mode='overlap_regions'`
+* Fix the sampling of configurations with in `hpmc.update.muvt` with depletants
 
 ## v2.2.1
 
