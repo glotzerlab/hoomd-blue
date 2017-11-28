@@ -164,7 +164,7 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         ctTotal = std::accumulate(m_count_total.begin(), m_count_total.end(), 0);
         return ctTotal ? Scalar(ctAccepted)/Scalar(ctTotal) : 0;
         }
-    else if(quantity == " ")
+    else if(quantity == "shape_move_particle_volume")
         {
         ArrayHandle< unsigned int > h_ntypes(m_ntypes, access_location::host, access_mode::read);
         // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
@@ -175,8 +175,8 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             detail::mass_properties<Shape> mp(params[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
-		return volume;
-		}
+        return volume;
+        }
     else if(quantity == "shape_move_energy")
         {
         Scalar energy = 0.0;
