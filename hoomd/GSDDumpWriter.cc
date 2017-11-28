@@ -55,7 +55,7 @@ void GSDDumpWriter::checkError(int retval)
         }
     else if (retval != 0)
         {
-        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error writing: " << m_fname << endl;
+        m_exec_conf->msg->error() << "dump.gsd: " << "Unknown error " << retval << " writing: " << m_fname << endl;
         throw runtime_error("Error writing GSD file");
         }
     }
@@ -352,6 +352,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<uint32_t> type(N);
+        type.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -378,6 +379,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<float> data(N);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -449,6 +451,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<int32_t> body(N);
+        body.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -475,6 +478,7 @@ void GSDDumpWriter::writeAttributes(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<float> data(N*3);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -517,6 +521,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<float> data(N*3);
+        data.reserve(1); //! make sure we allocate
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
             {
@@ -538,6 +543,7 @@ void GSDDumpWriter::writeProperties(const SnapshotParticleData<float>& snapshot,
 
         {
         std::vector<float> data(N*4);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -582,6 +588,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
 
         {
         std::vector<float> data(N*3);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -614,6 +621,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
 
         {
         std::vector<float> data(N*4);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -648,6 +656,7 @@ void GSDDumpWriter::writeMomenta(const SnapshotParticleData<float>& snapshot, co
 
         {
         std::vector<int32_t> data(N*3);
+        data.reserve(1); //! make sure we allocate
         bool all_default = true;
 
         for (unsigned int group_idx = 0; group_idx < N; group_idx++)
@@ -774,6 +783,7 @@ void GSDDumpWriter::writeTopology(BondData::Snapshot& bond,
         m_exec_conf->msg->notice(10) << "dump.gsd: writing constraints/value" << endl;
             {
             std::vector<float> data(N);
+            data.reserve(1); //! make sure we allocate
             for (unsigned int i = 0; i < N; i++)
                 data[i] = float(constraint.val[i]);
 
