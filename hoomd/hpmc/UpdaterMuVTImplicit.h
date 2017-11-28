@@ -207,9 +207,8 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryInsertParticle(unsigned int times
     Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
 
-    #ifdef ENABLE_MPI
     unsigned int n_overlap = 0;
-
+    #ifdef ENABLE_MPI
     // number of depletants to insert
     unsigned int n_insert = 0;
 
@@ -451,12 +450,12 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
             d_colloid_old = shape_old.getCircumsphereDiameter();
             }
 
-        Scalar delta = d_dep + d_colloid_old;
-
         #ifdef ENABLE_MPI
+
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
+            Scalar delta = d_dep + d_colloid_old;
             if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, m_mc_implicit->getNumTrials(), lnb, true))
                 {
                 lnboltzmann += lnb;
