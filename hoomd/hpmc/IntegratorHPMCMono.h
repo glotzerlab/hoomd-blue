@@ -421,11 +421,11 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
             ArrayHandle<Scalar> charges(m_pdata->getCharges(), access_location::host, access_mode::read);
 
             const BoxDim& box = m_pdata->getBox();
-            float energy = m_patch->computePatchEnergy(positions,orientations,diameters,charges,box,m_pdata->getN(), m_pdata->getNGhosts());
+            Scalar energy = m_patch->computePatchEnergy(positions,orientations,diameters,charges,box,m_pdata->getN(), m_pdata->getNGhosts());
             #ifdef ENABLE_MPI
             if (m_comm) MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
             #endif
-            return (Scalar)energy;
+            return energy;
             }
         else
             {
