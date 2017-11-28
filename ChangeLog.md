@@ -9,8 +9,10 @@ Not yet released
 *New features*
 
 * General:
+    * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
 
 * MD:
+    * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
 
 * HPMC:
     * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
