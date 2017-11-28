@@ -297,6 +297,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     auto image_list = m_mc->updateImageList();
     auto image_hkl = m_mc->getImageHKL();
 
+    // minimum AABB extent
+    Scalar min_core_diameter = m_mc->getMinCoreDiameter();
+
     Index2D overlap_idx = m_mc->getOverlapIndexer();
     ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
@@ -341,7 +344,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar charge_i(m_charge_backup[i]);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             const unsigned int n_images = image_list.size();
@@ -400,7 +403,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                                         quat<float>(m_orientation_backup[j]),
                                                         m_diameter_backup[j],
                                                         m_charge_backup[j]);
-                                    m_energy_old_old.insert(std::make_pair(p,U));
+
+                                    // update map
+                                    m_energy_old_old[p] = U;
                                     } // end if overlap
 
                                 } // end loop over AABB tree leaf
@@ -501,7 +506,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         if (patch)
             {
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // compute V(r'-r)
@@ -557,7 +562,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                                             quat<float>(m_orientation_backup[j]),
                                                             m_diameter_backup[j],
                                                             m_charge_backup[j]);
-                                    m_energy_new_old.insert(std::make_pair(p,U));
+
+                                    // update map
+                                    m_energy_new_old[p] = U;
                                     }
                                 } // end loop over AABB tree leaf
                             } // end is leaf
@@ -591,7 +598,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(r_excl_i,r_cut_patch-m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            OverlapReal R_query = std::max(r_excl_i,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
@@ -665,6 +672,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 template< class Shape >
 void UpdaterClusters<Shape>::update(unsigned int timestep)
     {
+    m_exec_conf->msg->notice(10) << timestep << " UpdaterClusters" << std::endl;
+
     m_count_step_start = m_count_total;
 
     // if no particles, exit early
@@ -704,7 +713,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // generate the move, select a pivot
     hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
     const BoxDim& box = m_pdata->getGlobalBox();
-    vec3<Scalar> pivot(make_scalar3(0,0,0));
+    vec3<Scalar> pivot(0,0,0);
 
     // is this a line reflection?
     bool line = m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
@@ -768,18 +777,18 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // reset list of rejected particles
     m_ptl_reject.clear();
 
-    // create a copy of the box without periodic boundaries
-    BoxDim global_box_nonperiodic = box;
-    global_box_nonperiodic.setPeriodic(make_uchar3(0,0,0));
-
     if (master)
         {
         // access parameters
         auto& params = m_mc->getParams();
 
+        // create a copy of the box without periodic boundaries
+        BoxDim global_box_nonperiodic = box;
+        global_box_nonperiodic.setPeriodic(make_uchar3(0,0,0));
+
         for (unsigned int i = 0; i < snap.size; ++i)
             {
-            // if the particle falls outside the active volume of the box, reject
+            // if the particle falls outside the active volume of the global_box_nonperiodic, reject
             if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
@@ -965,9 +974,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = it_j->first.first;
                     unsigned int j = it_j->first.second;
 
-                    // consider each pair once
-                    if (i >= j) continue;
-
                     auto p = std::make_pair(i,j);
 
                     // add to energy
@@ -975,10 +981,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     if (it != delta_U.end())
                         delU += it->second;
 
-                    // store new interaction energy for both permutations
-                    delta_U.insert(std::make_pair(p,delU));
-                    p = std::make_pair(j,i);
-                    delta_U.insert(std::make_pair(p,delU));
+                    // update map with new interaction energy
+                    delta_U[p] = delU;
                     }
                 }
 
@@ -998,12 +1002,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     if (it != delta_U.end())
                         delU += it->second;
 
-                    // store new interaction energy
-                    delta_U.insert(std::make_pair(p,delU));
+                    // update map with new interaction energy
+                    delta_U[p] = delU;
                     }
                 }
 
-            // apply acceptance rule
             for (auto it = delta_U.begin(); it != delta_U.end(); ++it)
                 {
                 float delU = it->second;
@@ -1011,9 +1014,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int j = it->first.second;
 
                 // if any of the particles is rejected, form a bond
-                bool reject = m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end();
+                bool reject = (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end());
 
-                float pij = 1.0f-expf(-delU);
+                float pij = 1.0f-exp(-delU);
                 if (rng.f() <= pij || reject) // GCA
                     {
                     // add bond
