@@ -195,9 +195,8 @@ class charge_pppm_screening_test(unittest.TestCase):
 # charge.pppm
 class charge_pppm_rigid_body_test(unittest.TestCase):
     def setUp(self):
-        print
-        # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=10))
+        # initialize a two particle system in a cubic box
+        snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=15))
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
             snap.particles.orientation[0] = (1,0,0,0)
@@ -235,7 +234,7 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
         self.assertAlmostEqual(self.s.particles[0].net_force[2], 0, 5)
 
         pe = log.query('potential_energy')
-        self.assertAlmostEqual(pe,-0.741706,5)
+        self.assertAlmostEqual(pe,-0.739741,5) # Mathematica ionic crystal calculation
 
         del all
         del c
@@ -274,7 +273,7 @@ class charge_pppm_rigid_body_test(unittest.TestCase):
         pe_primary_image = -math.exp(-kappa*r)/r
         self.assertAlmostEqual(pe_primary_image,-0.7391,4)
 
-        self.assertAlmostEqual(pe,-0.741706-pe_primary_image,5)
+        self.assertAlmostEqual(pe,-0.739741-pe_primary_image,5)
 
         del all
         del c

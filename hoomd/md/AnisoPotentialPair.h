@@ -473,6 +473,9 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
     if (aniso_evaluator::needsDiameter())
         flags[comm_flag::diameter] = 1;
 
+    // with rigid bodies, include net torque
+    flags[comm_flag::net_torque] = 1;
+
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 
     return flags;
