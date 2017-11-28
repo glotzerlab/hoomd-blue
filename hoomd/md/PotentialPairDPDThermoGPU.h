@@ -9,9 +9,8 @@
 
 #ifdef ENABLE_CUDA
 
-#include "hoomd/Variant.h"
+#include "PotentialPairDPDThermo.h"
 #include "PotentialPairDPDThermoGPU.cuh"
-#include "AllPairPotentials.h"
 
 /*! \file PotentialPairDPDThermoGPU.h
     \brief Defines the template class for standard pair potentials on the GPU

@@ -47,7 +47,8 @@ void export_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
     // export_AnalyzerSDF< ShapePolyhedron >(m, "AnalyzerSDFPolyhedron");
     export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
-    export_UpdaterMuVTImplicit< ShapePolyhedron >(m, "UpdaterMuVTImplicitPolyhedron");
+    export_UpdaterMuVTImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicit<ShapePolyhedron> >(m, "UpdaterMuVTImplicitPolyhedron");
+    export_UpdaterMuVTImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicitNew<ShapePolyhedron> >(m, "UpdaterMuVTImplicitNewPolyhedron");
 
     export_ExternalFieldInterface<ShapePolyhedron>(m, "ExternalFieldPolyhedron");
     export_LatticeField<ShapePolyhedron>(m, "ExternalFieldLatticePolyhedron");
