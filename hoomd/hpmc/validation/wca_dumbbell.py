@@ -140,7 +140,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
         rho_avg = np.mean(rho_val)
         i, rho_err = block.get_error_estimate()
 
-        context.msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f}\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0))
+        context.msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f} (tgt: {:.5f})\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0,rho_star_ref))
 
         # max error 0.5 %
         self.assertLessEqual(rho_err/rho_avg,0.005)
