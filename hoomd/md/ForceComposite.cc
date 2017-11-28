@@ -695,12 +695,6 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     // request orientations
     flags[comm_flag::orientation] = 1;
 
-    // request communication of particle forces
-    flags[comm_flag::net_force] = 1;
-
-    // request communication of particle torques (not currently used)
-    //flags[comm_flag::net_torque] = 1;
-
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
     if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])

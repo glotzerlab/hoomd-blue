@@ -363,9 +363,7 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
 
     if (d_body[idx] != NO_BODY)
         {
-        ghost_fraction = make_scalar3(::max(ghost_fraction.x,s_body_ghost_fractions[type].x),
-                                      ::max(ghost_fraction.y,s_body_ghost_fractions[type].y),
-                                      ::max(ghost_fraction.z,s_body_ghost_fractions[type].z));
+        ghost_fraction += s_body_ghost_fractions[type];
         }
 
     Scalar3 f = box.makeFraction(pos);

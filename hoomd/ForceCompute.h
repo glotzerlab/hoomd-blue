@@ -130,6 +130,7 @@ class ForceCompute : public Compute
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
+            flags[comm_flag::net_force] = 1; // only used if constraints are present
             return flags;
             }
         #endif

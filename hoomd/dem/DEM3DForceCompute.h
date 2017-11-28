@@ -105,6 +105,7 @@ class DEM3DForceCompute : public ForceCompute
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::orientation] = 1;
+            flags[comm_flag::net_torque] = 1; // only used with rigid bodies
 
             flags |= ForceCompute::getRequestedCommFlags(timestep);
             return flags;
