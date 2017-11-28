@@ -46,8 +46,9 @@ void export_sphinx(py::module& m)
     export_IntegratorHPMCMonoImplicitNew< ShapeSphinx >(m, "IntegratorHPMCMonoImplicitNewSphinx");
     export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
     export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
-    // export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
-    // export_UpdaterMuVTImplicit< ShapeSphinx >(m, "UpdaterMuVTImplicitSphinx");
+    export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
+    export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterMuVTImplicitSphinx");
+    export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterMuVTImplicitNewSphinx");
 
     export_ExternalFieldInterface<ShapeSphinx>(m, "ExternalFieldSphinx");
     export_LatticeField<ShapeSphinx>(m, "ExternalFieldLatticeSphinx");
