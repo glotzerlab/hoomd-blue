@@ -116,6 +116,12 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         //! Method to scale the box
         virtual bool attemptBoxResize(unsigned int timestep, const BoxDim& new_box);
 
+        //! Needed to get the Gibbs ensemble to compile in UpdaterMuVTImplicit
+        unsigned int getNumTrials()
+            {
+            return 1;
+            }
+
         //! Slot to be called when number of types changes
         void slotNumTypesChange();
 

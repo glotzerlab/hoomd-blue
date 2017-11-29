@@ -48,10 +48,11 @@ void export_union_convex_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeUnion<ShapeConvexPolyhedron> >(m, "ComputeFreeVolumeConvexPolyhedronUnion");
     // export_AnalyzerSDF< ShapeUnion<ShapeConvexPolyhedron> >(m, "AnalyzerSDFConvexPolyhedronUnion");
     export_UpdaterMuVT< ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterMuVTConvexPolyhedronUnion");
-    export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
     export_UpdaterClusters<ShapeUnion<ShapeConvexPolyhedron> >(m, "UpdaterClustersConvexPolyhedronUnion");
     export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitConvexPolyhedronUnion");
     export_UpdaterClustersImplicit<ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterClustersImplicitNewConvexPolyhedronUnion");
+    export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicit<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitConvexPolyhedronUnion");
+    export_UpdaterMuVTImplicit< ShapeUnion<ShapeConvexPolyhedron>, IntegratorHPMCMonoImplicitNew<ShapeUnion<ShapeConvexPolyhedron> > >(m, "UpdaterMuVTImplicitNewConvexPolyhedronUnion");
 
     export_ExternalFieldInterface<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldConvexPolyhedronUnion");
     export_LatticeField<ShapeUnion<ShapeConvexPolyhedron> >(m, "ExternalFieldLatticeConvexPolyhedronUnion");

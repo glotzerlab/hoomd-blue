@@ -52,10 +52,11 @@ void export_convex_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
-    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron >(m, "UpdaterMuVTImplicitConvexPolyhedron");
     export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");
     export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitConvexPolyhedron");
     export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitNewConvexPolyhedron");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitConvexPolyhedron");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitNewConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron >(m, "ExternalFieldConvexPolyhedron");
     export_LatticeField<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedron");

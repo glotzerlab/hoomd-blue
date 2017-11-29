@@ -55,6 +55,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
+            ForceDistanceConstraint::setAutotunerParams(enable, period);
+
             m_tuner_fill->setPeriod(period);
             m_tuner_force->setPeriod(period);
 

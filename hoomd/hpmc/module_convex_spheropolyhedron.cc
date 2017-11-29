@@ -52,17 +52,18 @@ void export_convex_spheropolyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeSpheropolyhedron");
     export_AnalyzerSDF< ShapeSpheropolyhedron >(m, "AnalyzerSDFSpheropolyhedron");
     export_UpdaterMuVT< ShapeSpheropolyhedron >(m, "UpdaterMuVTSpheropolyhedron");
-    export_UpdaterMuVTImplicit< ShapeSpheropolyhedron >(m, "UpdaterMuVTImplicitSpheropolyhedron");
     export_UpdaterClusters< ShapeSpheropolyhedron >(m, "UpdaterClustersSpheropolyhedron");
     export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitSpheropolyhedron");
     export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitNewSpheropolyhedron");
+    export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitSpheropolyhedron");
+    export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitNewSpheropolyhedron");
 
     export_ExternalFieldInterface<ShapeSpheropolyhedron >(m, "ExternalFieldSpheropolyhedron");
     export_LatticeField<ShapeSpheropolyhedron >(m, "ExternalFieldLatticeSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron >(m, "ExternalFieldCompositeSpheropolyhedron");
     export_RemoveDriftUpdater<ShapeSpheropolyhedron >(m, "RemoveDriftUpdaterSpheropolyhedron");
-    // export_ExternalFieldWall<ShapeSpheropolyhedron >(m, "WallSpheropolyhedron");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron >(m, "UpdaterExternalFieldWallSpheropolyhedron");
+    export_ExternalFieldWall<ShapeSpheropolyhedron >(m, "WallSpheropolyhedron");
+    export_UpdaterExternalFieldWall<ShapeSpheropolyhedron >(m, "UpdaterExternalFieldWallSpheropolyhedron");
     export_ExternalCallback<ShapeSpheropolyhedron>(m, "ExternalCallbackSpheropolyhedron");
 
     #ifdef ENABLE_CUDA

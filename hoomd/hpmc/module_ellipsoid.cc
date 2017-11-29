@@ -49,10 +49,11 @@ void export_ellipsoid(py::module& m)
     export_ComputeFreeVolume< ShapeEllipsoid >(m, "ComputeFreeVolumeEllipsoid");
     export_AnalyzerSDF< ShapeEllipsoid >(m, "AnalyzerSDFEllipsoid");
     export_UpdaterMuVT< ShapeEllipsoid >(m, "UpdaterMuVTEllipsoid");
-    export_UpdaterMuVTImplicit< ShapeEllipsoid >(m, "UpdaterMuVTImplicitEllipsoid");
     export_UpdaterClusters< ShapeEllipsoid >(m, "UpdaterClustersEllipsoid");
     export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterClustersImplicitEllipsoid");
     export_UpdaterClustersImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterClustersImplicitNewEllipsoid");
+    export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicit<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitEllipsoid");
+    export_UpdaterMuVTImplicit< ShapeEllipsoid, IntegratorHPMCMonoImplicitNew<ShapeEllipsoid> >(m, "UpdaterMuVTImplicitNewEllipsoid");
 
     export_ExternalFieldInterface<ShapeEllipsoid>(m, "ExternalFieldEllipsoid");
     export_LatticeField<ShapeEllipsoid>(m, "ExternalFieldLatticeEllipsoid");
