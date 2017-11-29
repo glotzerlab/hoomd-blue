@@ -3103,6 +3103,30 @@ void SnapshotParticleData<Real>::setTypes(py::list types)
         type_mapping[i] = py::cast<string>(types[i]);
     }
 
+#ifdef ENABLE_MPI
+template <class Real>
+void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
+    {
+    // broadcast all member quantities
+    ::bcast(pos, root, mpi_comm);
+    ::bcast(vel, root, mpi_comm);
+    ::bcast(accel, root, mpi_comm);
+    ::bcast(type, root, mpi_comm);
+    ::bcast(mass, root, mpi_comm);
+    ::bcast(charge, root, mpi_comm);
+    ::bcast(diameter, root, mpi_comm);
+    ::bcast(image, root, mpi_comm);
+    ::bcast(body, root, mpi_comm);
+    ::bcast(orientation, root, mpi_comm);
+    ::bcast(angmom, root, mpi_comm);
+    ::bcast(inertia, root, mpi_comm);
+
+    ::bcast(size, root, mpi_comm);
+    ::bcast(type_mapping, root, mpi_comm);
+    ::bcast(is_accel_set, root, mpi_comm);
+    }
+#endif
+
 // instantiate both float and double snapshots
 template struct SnapshotParticleData<float>;
 template struct SnapshotParticleData<double>;

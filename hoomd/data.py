@@ -39,7 +39,7 @@ Examples::
 
 .. rubric:: Snapshot and MPI
 
-In MPI simulations, the snapshot is only valid on rank 0. make_snapshot, read_snapshot, and take_snapshot,
+In MPI simulations, the snapshot is only valid on rank 0 by default. make_snapshot, read_snapshot, and take_snapshot,
 restore_snapshot are collective calls, and need to be called on all ranks. But only rank 0 can access data
 in the snapshot::
 
@@ -54,6 +54,12 @@ in the snapshot::
         snapshot.particles.position[:] = ....
     init.read_snapshot(snapshot)
 
+You can explicitly broadcast the information contained in the snapshot to all other ranks, using **broadcast**.
+
+    snapshot = system.take_snapshot(all=True)
+    snapshot.broadcast() # broadcast from rank 0 to all other ranks using MPI
+    snapshot.broadcast_all() # broadcast from partition 0 to all other ranks and partitions using MPI
+
 .. rubric:: Simulation box
 
 You can access the simulation box from a snapshot::
@@ -63,7 +69,7 @@ You can access the simulation box from a snapshot::
 
 and can change it::
 
-    >>> snapsot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
+    >>> snapshot.box = data.boxdim(Lx=10, Ly=20, Lz=30, xy=1.0, xz=0.1, yz=2.0)
     >>> print(snapshot.box)
     Box: Lx=10 Ly=20 Lz=30 xy=1.0 xz=0.1 yz=2.0 dimensions=3
 
@@ -2201,9 +2207,36 @@ def set_snapshot_box(snapshot, box):
     snapshot._global_box = box._getBoxDim();
     snapshot._dimensions = box.dimensions;
 
+## \internal
+# \brief Broadcast snapshot to all ranks
+def broadcast_snapshot(cpp_snapshot):
+    hoomd.context._verify_init();
+    if _hoomd.is_MPI_available():
+        # broadcast from rank 0
+        cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
+    else:
+        hoomd.context.msg.error("Broadcast of snapshot data only available with MPI.")
+        raise RuntimeError("Error broadcasting snapshot data.")
+
+## \internal
+# \brief Broadcast snapshot to all ranks
+def broadcast_snapshot_all(cpp_snapshot):
+    hoomd.context._verify_init();
+    if _hoomd.is_MPI_available():
+        # broadcast from rank 0
+        cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
+    else:
+        hoomd.context.msg.warning("Broadcast of snapshot data only available with MPI.")
+
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
 _hoomd.SnapshotSystemData_double.box = property(get_snapshot_box, set_snapshot_box);
+
+# Inject broadcast methods into SnapshotSystemData
+_hoomd.SnapshotSystemData_float.broadcast = broadcast_snapshot
+_hoomd.SnapshotSystemData_double.broadcast = broadcast_snapshot
+_hoomd.SnapshotSystemData_float.broadcast_all = broadcast_snapshot_all
+_hoomd.SnapshotSystemData_double.broadcast_all = broadcast_snapshot_all
 
 def make_snapshot(N, box, particle_types=['A'], bond_types=[], angle_types=[], dihedral_types=[], improper_types=[], pair_types=[], dtype='float'):
     R""" Make an empty snapshot.
