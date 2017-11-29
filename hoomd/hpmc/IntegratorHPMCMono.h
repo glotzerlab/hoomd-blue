@@ -663,7 +663,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (m_patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
@@ -738,9 +738,12 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
                                     Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
                                     // deltaU = U_old - U_new: add energy of old configuration
-                                    patch_field_energy_diff += m_patch->energy(r_ij,
-                                                               typ_i, quat<float>(orientation_i),
-                                                               typ_j, quat<float>(orientation_j));
+                                    if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                        {
+                                        patch_field_energy_diff += m_patch->energy(r_ij,
+                                                                   typ_i, quat<float>(orientation_i),
+                                                                   typ_j, quat<float>(orientation_j));
+                                        }
                                     }
                                 }
                             }
