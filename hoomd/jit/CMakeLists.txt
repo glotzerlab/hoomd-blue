@@ -14,8 +14,12 @@ set(_llvm_libs ${LLVM_AVAILABLE_LIBS})
 # add library directory as necessary
 # https://stackoverflow.com/questions/36757842/cmake-use-foreach-and-find-library-to-return-full-path-of-libraries
 foreach(LIB ${_llvm_libs})
-    find_library(FOUND_LIB_${LIB} ${LIB} HINTS ${LLVM_LIBRARY_DIRS})
-    list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
+    if(NOT TARGET ${LIB})
+       find_library(FOUND_LIB_${LIB} ${LIB} HINTS ${LLVM_LIBRARY_DIRS})
+       list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
+    else()
+       list(APPEND llvm_libs ${LIB})
+    endif()
 endforeach()
 
 # set files to compile
