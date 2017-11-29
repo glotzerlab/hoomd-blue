@@ -22,6 +22,7 @@ set(TEST_LIST
     test_lj_force
     test_mie_force
     test_morse_force
+    test_MolecularForceCompute
     test_neighborlist
     test_opls_dihedral_force
     test_pppm_force
