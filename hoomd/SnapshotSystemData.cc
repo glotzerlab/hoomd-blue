@@ -58,63 +58,73 @@ void SnapshotSystemData<Real>::broadcast_box(std::shared_ptr<ExecutionConfigurat
     #endif
     }
 
-#ifdef ENABLE_MPI
 template <class Real>
 void SnapshotSystemData<Real>::broadcast(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    bcast(global_box, root, exec_conf->getMPICommunicator());
-    bcast(dimensions, root, exec_conf->getMPICommunicator());
-    bcast(has_particle_data, root, exec_conf->getMPICommunicator());
-    bcast(has_bond_data, root, exec_conf->getMPICommunicator());
-    bcast(has_angle_data, root, exec_conf->getMPICommunicator());
-    bcast(has_dihedral_data, root, exec_conf->getMPICommunicator());
-    bcast(has_improper_data, root, exec_conf->getMPICommunicator());
-    bcast(has_constraint_data, root, exec_conf->getMPICommunicator());
-    bcast(has_pair_data, root, exec_conf->getMPICommunicator());
-    bcast(has_integrator_data, root, exec_conf->getMPICommunicator());
-
-    if (has_particle_data)
+    #ifdef ENABLE_MPI
+    if (exec_conf->getNRanks() > 1)
         {
-        particle_data.bcast(root, exec_conf->getMPICommunicator());
-        bcast(map, root, exec_conf->getMPICommunicator());
+        bcast(global_box, root, exec_conf->getMPICommunicator());
+        bcast(dimensions, root, exec_conf->getMPICommunicator());
+        bcast(has_particle_data, root, exec_conf->getMPICommunicator());
+        bcast(has_bond_data, root, exec_conf->getMPICommunicator());
+        bcast(has_angle_data, root, exec_conf->getMPICommunicator());
+        bcast(has_dihedral_data, root, exec_conf->getMPICommunicator());
+        bcast(has_improper_data, root, exec_conf->getMPICommunicator());
+        bcast(has_constraint_data, root, exec_conf->getMPICommunicator());
+        bcast(has_pair_data, root, exec_conf->getMPICommunicator());
+        bcast(has_integrator_data, root, exec_conf->getMPICommunicator());
+
+        if (has_particle_data)
+            {
+            particle_data.bcast(root, exec_conf->getMPICommunicator());
+            bcast(map, root, exec_conf->getMPICommunicator());
+            }
+        if (has_bond_data) bond_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_angle_data) angle_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_dihedral_data) dihedral_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_improper_data) improper_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_constraint_data) constraint_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_pair_data) pair_data.bcast(root, exec_conf->getMPICommunicator());
+        if (has_integrator_data) bcast(integrator_data, root, exec_conf->getMPICommunicator());
         }
-    if (has_bond_data) bond_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_angle_data) angle_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_dihedral_data) dihedral_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_improper_data) improper_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_constraint_data) constraint_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_pair_data) pair_data.bcast(root, exec_conf->getMPICommunicator());
-    if (has_integrator_data) bcast(integrator_data, root, exec_conf->getMPICommunicator());
+    #endif
     }
 
 template <class Real>
 void SnapshotSystemData<Real>::broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    bcast(global_box, root, MPI_COMM_WORLD);
-    bcast(dimensions, root, MPI_COMM_WORLD);
-    bcast(has_particle_data, root, MPI_COMM_WORLD);
-    bcast(has_bond_data, root, MPI_COMM_WORLD);
-    bcast(has_angle_data, root, MPI_COMM_WORLD);
-    bcast(has_dihedral_data, root, MPI_COMM_WORLD);
-    bcast(has_improper_data, root, MPI_COMM_WORLD);
-    bcast(has_constraint_data, root, MPI_COMM_WORLD);
-    bcast(has_pair_data, root, MPI_COMM_WORLD);
-    bcast(has_integrator_data, root, MPI_COMM_WORLD);
-
-    if (has_particle_data)
+    #ifdef ENABLE_MPI
+    int n_ranks;
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+    if (n_ranks > 0)
         {
-        particle_data.bcast(root, MPI_COMM_WORLD);
-        bcast(map, root, MPI_COMM_WORLD);
+        bcast(global_box, root, MPI_COMM_WORLD);
+        bcast(dimensions, root, MPI_COMM_WORLD);
+        bcast(has_particle_data, root, MPI_COMM_WORLD);
+        bcast(has_bond_data, root, MPI_COMM_WORLD);
+        bcast(has_angle_data, root, MPI_COMM_WORLD);
+        bcast(has_dihedral_data, root, MPI_COMM_WORLD);
+        bcast(has_improper_data, root, MPI_COMM_WORLD);
+        bcast(has_constraint_data, root, MPI_COMM_WORLD);
+        bcast(has_pair_data, root, MPI_COMM_WORLD);
+        bcast(has_integrator_data, root, MPI_COMM_WORLD);
+
+        if (has_particle_data)
+            {
+            particle_data.bcast(root, MPI_COMM_WORLD);
+            bcast(map, root, MPI_COMM_WORLD);
+            }
+        if (has_bond_data) bond_data.bcast(root, MPI_COMM_WORLD);
+        if (has_angle_data) angle_data.bcast(root, MPI_COMM_WORLD);
+        if (has_dihedral_data) dihedral_data.bcast(root, MPI_COMM_WORLD);
+        if (has_improper_data) improper_data.bcast(root, MPI_COMM_WORLD);
+        if (has_constraint_data) constraint_data.bcast(root, MPI_COMM_WORLD);
+        if (has_pair_data) pair_data.bcast(root, MPI_COMM_WORLD);
+        if (has_integrator_data) bcast(integrator_data, root, MPI_COMM_WORLD);
         }
-    if (has_bond_data) bond_data.bcast(root, MPI_COMM_WORLD);
-    if (has_angle_data) angle_data.bcast(root, MPI_COMM_WORLD);
-    if (has_dihedral_data) dihedral_data.bcast(root, MPI_COMM_WORLD);
-    if (has_improper_data) improper_data.bcast(root, MPI_COMM_WORLD);
-    if (has_constraint_data) constraint_data.bcast(root, MPI_COMM_WORLD);
-    if (has_pair_data) pair_data.bcast(root, MPI_COMM_WORLD);
-    if (has_integrator_data) bcast(integrator_data, root, MPI_COMM_WORLD);
+    #endif
     }
-#endif
 
 // instantiate both float and double snapshots
 template struct SnapshotSystemData<float>;

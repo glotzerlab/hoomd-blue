@@ -93,7 +93,6 @@ struct SnapshotSystemData {
     */
     void broadcast_box(std::shared_ptr<ExecutionConfiguration> exec_conf);
 
-    #ifdef ENABLE_MPI
     // Broadcast snapshot from root to all ranks
     /*! \param exec_conf The execution configuration
     */
@@ -103,7 +102,6 @@ struct SnapshotSystemData {
     /*! \param exec_conf The execution configuration
     */
     void broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
-    #endif
     };
 
 //! Export SnapshotParticleData to python

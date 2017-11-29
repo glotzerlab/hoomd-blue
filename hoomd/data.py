@@ -2211,22 +2211,15 @@ def set_snapshot_box(snapshot, box):
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot(cpp_snapshot):
     hoomd.context._verify_init();
-    if _hoomd.is_MPI_available():
-        # broadcast from rank 0
-        cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
-    else:
-        hoomd.context.msg.error("Broadcast of snapshot data only available with MPI.")
-        raise RuntimeError("Error broadcasting snapshot data.")
+    # broadcast from rank 0
+    cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
 
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
     hoomd.context._verify_init();
-    if _hoomd.is_MPI_available():
-        # broadcast from rank 0
-        cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
-    else:
-        hoomd.context.msg.warning("Broadcast of snapshot data only available with MPI.")
+    # broadcast from rank 0
+    cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
 
 # Inject a box property into SnapshotSystemData that provides and accepts boxdim objects
 _hoomd.SnapshotSystemData_float.box = property(get_snapshot_box, set_snapshot_box);
