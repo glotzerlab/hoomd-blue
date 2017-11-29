@@ -3136,7 +3136,7 @@ template <class Real>
 void SnapshotParticleData<Real>::setTypes(py::list types)
     {
     // set dirty
-    is_accel_set = true;
+    is_accel_set = false;
 
     type_mapping.resize(len(types));
 
