@@ -50,7 +50,8 @@ void export_faceted_sphere(py::module& m)
     export_ComputeFreeVolume< ShapeFacetedSphere >(m, "ComputeFreeVolumeFacetedSphere");
     export_AnalyzerSDF< ShapeFacetedSphere >(m, "AnalyzerSDFFacetedSphere");
     export_UpdaterMuVT< ShapeFacetedSphere >(m, "UpdaterMuVTFacetedSphere");
-    export_UpdaterMuVTImplicit< ShapeFacetedSphere >(m, "UpdaterMuVTImplicitFacetedSphere");
+    export_UpdaterMuVTImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicit<ShapeFacetedSphere> >(m, "UpdaterMuVTImplicitFacetedSphere");
+    export_UpdaterMuVTImplicit< ShapeFacetedSphere, IntegratorHPMCMonoImplicitNew<ShapeFacetedSphere> >(m, "UpdaterMuVTImplicitNewFacetedSphere");
 
     export_ExternalFieldInterface<ShapeFacetedSphere>(m, "ExternalFieldFacetedSphere");
     export_LatticeField<ShapeFacetedSphere>(m, "ExternalFieldLatticeFacetedSphere");

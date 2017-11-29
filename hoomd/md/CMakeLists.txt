@@ -46,6 +46,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 AllBondPotentials.h
                 AllExternalPotentials.h
                 AllPairPotentials.h
+                AllSpecialPairPotentials.h
                 AllTripletPotentials.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
@@ -105,6 +106,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 HarmonicImproperForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                MolecularForceCompute.cuh
                 MolecularForceCompute.h
                 NeighborListBinned.h
                 NeighborListGPUBinned.h
@@ -128,6 +130,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 PotentialPairGPU.h
 		PotentialPairGPU.cuh
                 PotentialPair.h
+                PotentialSpecialPairGPU.h
+                PotentialSpecialPair.h
                 PotentialTersoffGPU.h
                 PotentialTersoff.h
                 PPPMForceComputeGPU.h
@@ -171,6 +175,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            HarmonicAngleForceComputeGPU.cc
                            HarmonicDihedralForceComputeGPU.cc
                            HarmonicImproperForceComputeGPU.cc
+                           MolecularForceCompute.cu
                            NeighborListGPU.cc
                            NeighborListGPUBinned.cc
                            NeighborListGPUStencil.cc
@@ -209,6 +214,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicAngleForceGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
+                      MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu
                       NeighborListGPUStencil.cu
