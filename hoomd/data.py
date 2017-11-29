@@ -2210,6 +2210,7 @@ def set_snapshot_box(snapshot, box):
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot(cpp_snapshot):
+    hoomd.util.print_status_line();
     hoomd.context._verify_init();
     # broadcast from rank 0
     cpp_snapshot._broadcast(0, hoomd.context.exec_conf);
@@ -2217,6 +2218,7 @@ def broadcast_snapshot(cpp_snapshot):
 ## \internal
 # \brief Broadcast snapshot to all ranks
 def broadcast_snapshot_all(cpp_snapshot):
+    hoomd.util.print_status_line();
     hoomd.context._verify_init();
     # broadcast from rank 0
     cpp_snapshot._broadcast_all(0, hoomd.context.exec_conf);
