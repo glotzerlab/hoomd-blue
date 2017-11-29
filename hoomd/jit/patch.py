@@ -44,15 +44,23 @@ class user(object):
         float eval(const vec3<float>& r_ij,
                    unsigned int type_i,
                    const quat<float>& q_i,
+                   float d_i,
+                   float charge_i,
                    unsigned int type_j,
-                   const quat<float>& q_j)
+                   const quat<float>& q_j,
+                   float d_j,
+                   float charge_j)
 
     * ``vec3`` and ``quat`` are defined in HOOMDMath.h.
     * *r_ij* is a vector pointing from the center of particle *i* to the center of particle *j*.
     * *type_i* is the integer type of particle *i*
     * *q_i* is the quaternion orientation of particle *i*
+    * *d_i* is the diameter of particle *i*
+    * *charge_i* is the charge of particle *i*
     * *type_j* is the integer type of particle *j*
     * *q_j* is the quaternion orientation of particle *j*
+    * *d_j* is the diameter of particle *j*
+    * *charge_j* is the charge of particle *j*
     * Your code *must* return a value.
     * When \|r_ij\| is greater than *r_cut*, the energy *must* be 0. This *r_cut* is applied between
       the centers of the two particles: compute it accordingly based on the maximum range of the anisotropic
