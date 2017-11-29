@@ -20,6 +20,8 @@ Not yet released
 * Use correct ghost region with `constrain.rigid` in MPI execution on multiple ranks
 * `hpmc.update.muvt()` now works with `depletant_mode='overlap_regions'`
 * Fix the sampling of configurations with in `hpmc.update.muvt` with depletants
+* Fix simulation crash after modifying a snapshot and re-initializing from it
+* The pressure in simulations with rigid bodies (`md.constrain.rigid()`) and MPI on multiple ranks is now computed correctly
 
 ## v2.2.1
 
