@@ -723,9 +723,19 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (line)
         {
         // random normalized vector
-        Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-        Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
-        vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+        vec3<Scalar> n;
+
+        if (m_sysdef->getNDimensions() == 3)
+            {
+            Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
+            Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+            n = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+            }
+        else
+            {
+            // reflection around z axis
+            n = vec3<Scalar>(0,0,1);
+            }
 
         // line reflection
         q = quat<Scalar>(0,n);
@@ -735,9 +745,21 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         Scalar3 f;
         f.x = rng.template s<Scalar>();
         f.y = rng.template s<Scalar>();
-        f.z = rng.template s<Scalar>();
+        if (m_sysdef->getNDimensions() == 3)
+            {
+            f.z = rng.template s<Scalar>();
+            }
+        else
+            {
+            f.z = 0.5;
+            }
 
         pivot = vec3<Scalar>(box.makeCoordinates(f));
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            // force z component to be zero
+            pivot.z = 0.0;
+            }
         }
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
@@ -773,6 +795,12 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // compute the width of the active region
     Scalar3 npd = box.getNearestPlaneDistance();
     Scalar3 range = nominal_width / npd;
+
+    if (m_sysdef->getNDimensions() == 2)
+        {
+        // no interaction along z
+        range.z = 0;
+        }
 
     // reset list of rejected particles
     m_ptl_reject.clear();
