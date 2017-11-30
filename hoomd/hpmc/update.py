@@ -1409,5 +1409,16 @@ class elastic_shape(shape_update):
         ref_shape = self.mc.shape_class.make_param(**reference);
         self.boltzmann_function = clss(self.stiffness.cpp_variant, ref_shape, self.move_cpp);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
+
+        def set_stiffness(self, stiffness):
+            R""" Update the stiffness set point for Metropolis Monte Carlo elastic shape updates.
+
+            Args:
+                stiffness (float) or (:py:mod:`hoomd.variant`): :math:`\frac{k}{k_{\mathrm{B}}T}`. (units of inverse area in 2D or
+                    inverse volume in 3D) Apply your chosen reduced pressure convention
+                    externally.
+            """
+            self.stiffness = hoomd.variant._setup_variant_input(stiffness)
+            self.cpp_updater.setStiffness(self.stiffness.cpp_variant)
         #del self.vertex_shape_move
         #del self.python_shape_move
