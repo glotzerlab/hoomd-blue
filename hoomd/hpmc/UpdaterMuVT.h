@@ -1521,12 +1521,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
 
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
 
-    // we cannot rely on a valid AABB tree when there are 0 particles
-    if (is_local && nptl_local > 0)
+    if (is_local)
         {
-        // update the aabb tree
-        const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
-
         // update the image list
         const std::vector<vec3<Scalar> >&image_list = m_mc->updateImageList();
 
@@ -1544,13 +1540,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         // read in the current position and orientation
         Shape shape(orientation, params[type]);
 
-        // Check particle against AABB tree for neighbors
-
         OverlapReal r_cut_patch(0.0);
         if (patch) r_cut_patch = patch->getRCut();
-
-        OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
-        detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
         unsigned int err_count = 0;
 
@@ -1586,71 +1577,87 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                         );
                     }
                 }
+            }
 
-            detail::AABB aabb = aabb_local;
-            aabb.translate(pos_image);
+        // we cannot rely on a valid AABB tree when there are 0 particles
+        if (! overlap && nptl_local > 0)
+            {
+            // Check particle against AABB tree for neighbors
+            const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
-            // stackless search
-            for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
+            OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                 {
-                if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                vec3<Scalar> pos_image = pos + image_list[cur_image];
+
+
+                detail::AABB aabb = aabb_local;
+                aabb.translate(pos_image);
+
+                // stackless search
+                for (unsigned int cur_node_idx = 0; cur_node_idx < aabb_tree.getNumNodes(); cur_node_idx++)
                     {
-                    if (aabb_tree.isNodeLeaf(cur_node_idx))
+                    if (detail::overlap(aabb_tree.getNodeAABB(cur_node_idx), aabb))
                         {
-                        for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                        if (aabb_tree.isNodeLeaf(cur_node_idx))
                             {
-                            // read in its position and orientation
-                            unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                            Scalar4 postype_j = h_postype.data[j];
-                            Scalar4 orientation_j = h_orientation.data[j];
-
-                            // put particles in coordinate system of particle i
-                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
-
-                            unsigned int typ_j = __scalar_as_int(postype_j.w);
-                            Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
-
-                            if (h_overlaps.data[overlap_idx(type, typ_j)]
-                                && check_circumsphere_overlap(r_ij, shape, shape_j)
-                                && test_overlap(r_ij, shape, shape_j, err_count))
+                            for (unsigned int cur_p = 0; cur_p < aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                                 {
-                                overlap = 1;
-                                break;
-                                }
-                            else if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
-                                {
-                                lnboltzmann -= patch->energy(r_ij,
-                                    type,
-                                    quat<float>(orientation),
-                                    1.0, // diameter i
-                                    0.0, // charge i
-                                    typ_j,
-                                    quat<float>(orientation_j),
-                                    h_diameter.data[j],
-                                    h_charge.data[j]);
+                                // read in its position and orientation
+                                unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                Scalar4 postype_j = h_postype.data[j];
+                                Scalar4 orientation_j = h_orientation.data[j];
+
+                                // put particles in coordinate system of particle i
+                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_image;
+
+                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
+
+                                if (h_overlaps.data[overlap_idx(type, typ_j)]
+                                    && check_circumsphere_overlap(r_ij, shape, shape_j)
+                                    && test_overlap(r_ij, shape, shape_j, err_count))
+                                    {
+                                    overlap = 1;
+                                    break;
+                                    }
+                                else if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                    {
+                                    lnboltzmann -= patch->energy(r_ij,
+                                        type,
+                                        quat<float>(orientation),
+                                        1.0, // diameter i
+                                        0.0, // charge i
+                                        typ_j,
+                                        quat<float>(orientation_j),
+                                        h_diameter.data[j],
+                                        h_charge.data[j]);
+                                    }
                                 }
                             }
                         }
-                    }
-                else
-                    {
-                    // skip ahead
-                    cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
-                    }
+                    else
+                        {
+                        // skip ahead
+                        cur_node_idx += aabb_tree.getNodeSkip(cur_node_idx);
+                        }
+
+                    if (overlap)
+                        {
+                        break;
+                        }
+                    } // end loop over AABB nodes
 
                 if (overlap)
                     {
                     break;
                     }
-                } // end loop over AABB nodes
-
-            if (overlap)
-                {
-                break;
-                }
-            } // end loop over images
-        }
+                } // end loop over images
+            } // end if nptl_local > 0
+        } // end if local
 
     #ifdef ENABLE_MPI
     if (m_comm)
