@@ -26,6 +26,7 @@ endforeach()
 set(_${PACKAGE_NAME}_sources
      module-${PACKAGE_NAME}.cc
      PatchEnergyJIT.cc
+     PatchEnergyJITUnion.cc
    )
 
 # we compile a separate package just for the LLVM-interfacing part,
@@ -35,6 +36,7 @@ set(_${PACKAGE_NAME}_llvm_sources
     OrcLazyJIT.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
+							 PatchEnergyJITUnion.h
                              EvalFactory.h
                              OrcLazyJIT.h
    )

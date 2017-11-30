@@ -40,7 +40,7 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut);
 
         //! Get the maximum r_ij radius beyond which energies are always 0
-        Scalar getRCut()
+        virtual Scalar getRCut()
             {
             return m_r_cut;
             }
@@ -48,77 +48,34 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
         //! evaluate the energy of the patch interaction
         /*! \param r_ij Vector pointing from particle i to j
             \param type_i Integer type index of particle i
+            \param d_i Diameter of particle i
+            \param charge_i Charge of particle i
             \param q_i Orientation quaternion of particle i
             \param type_j Integer type index of particle j
             \param q_j Orientation quaternion of particle j
-
+            \param d_j Diameter of particle j
+            \param charge_j Charge of particle j
             \returns Energy of the patch interaction.
         */
-        float energy(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, unsigned int type_j, const quat<float>& q_j)
+        virtual float energy(const vec3<float>& r_ij,
+            unsigned int type_i,
+            const quat<float>& q_i,
+            float d_i,
+            float charge_i,
+            unsigned int type_j,
+            const quat<float>& q_j,
+            float d_j,
+            float charge_j)
             {
-            return m_eval(r_ij, type_i, q_i, type_j, q_j);
+            return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
-        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations,const BoxDim& box, unsigned int &N)
-            {
-            double patch_energy = 0.0;
-            float r_cut = this->getRCut();
-            float r_cut_sq = r_cut*r_cut;
-
-            //const BoxDim& box = m_pdata->getGlobalBox();
-            // read in the current position and orientation
-            for (unsigned int i = 0; i<N;i++)
-                {
-                Scalar4 postype_i = positions.data[i];
-                Scalar4 orientation_i = orientations.data[i];
-                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                int typ_i = __scalar_as_int(postype_i.w);
-                for (unsigned int j = i+1; j < N; j++)
-                    {
-                    Scalar4 postype_j = positions.data[j];
-                    Scalar4 orientation_j = orientations.data[j];
-                    vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
-                    vec3<Scalar> dr_ij = pos_j - pos_i;
-                    dr_ij = box.minImage(dr_ij);
-                    int typ_j = __scalar_as_int(postype_j.w);
-                    if (dot(dr_ij,dr_ij) <= r_cut_sq)
-                        {
-                        patch_energy+=this->energy(dr_ij, typ_i, quat<float>(orientation_i),typ_j, quat<float>(orientation_j));
-                        }
-                    }
-                }
-            return patch_energy;
-            }
-
-      //   Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-      //   {
-      //     if ( quantity == PATCH_ENERGY_LOG_NAME )
-      //         {
-      //           return m_PatchEnergy;
-      //         }
-      //     else if ( quantity == PATCH_ENERGY_RCUT )
-      //         {
-      //         return m_r_cut;
-      //         }
-      //     else
-      //         {
-      //         //exec_conf->msg->error() << "patch: " << quantity << " is not a valid log quantity" << std::endl;
-      //         throw std::runtime_error("Error getting log value");
-      //         }
-      //   }
-      //
-      // std::vector< std::string > getProvidedLogQuantities()
-      // {
-      //   return m_PatchProvidedQuantities;
-      // }
-
-    private:
+    protected:
         //! function pointer signature
-        Scalar m_r_cut;                               //!< Cutoff radius
+        typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
+        Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaulator function
         EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
-        //Scalar m_PatchEnergy;                       //!< patch energy
-        //std::vector<std::string>  m_PatchProvidedQuantities; //!< available
     };
 
 //! Exports the PatchEnergyJIT class to python

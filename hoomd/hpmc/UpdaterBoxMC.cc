@@ -318,11 +318,17 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     unsigned int N_backup = m_pdata->getN();
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::overwrite);
         memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
         }
 
     BoxDim curBox = m_pdata->getGlobalBox();
+
+    if (m_mc->getPatchInteraction())
+        {
+        // energy of old configuration
+        deltaE -= m_mc->computePatchEnergy(timestep);
+        }
 
     // Attempt box resize and check for overlaps
     BoxDim newBox = m_pdata->getGlobalBox();
@@ -331,24 +337,18 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     newBox.setTiltFactors(xy, xz, yz);
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
+
+    if (allowed && m_mc->getPatchInteraction())
+        {
+        deltaE += m_mc->computePatchEnergy(timestep);
+        }
+
     if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
         Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
         deltaE += ext_energy;
-        }
-
-    if (m_mc->getPatchInteraction())
-        {
-        ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> orientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        unsigned int N = m_pdata->getN();
-        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,orientations,newBox,N);
-        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,orientations,curBox,N);
-        // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
-        deltaE += e_new-e_old;
         }
 
     double p = rng.d();

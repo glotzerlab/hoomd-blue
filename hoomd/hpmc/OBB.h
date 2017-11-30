@@ -6,6 +6,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
+#include "ShapeSphere.h"
 
 #include <algorithm>
 #include <cfloat>
