@@ -563,7 +563,7 @@ template<class Shape>
 class ShapeLogBoltzmannFunction
 {
   public:
-    std::shared_ptr<Variant> m_k; // 
+    std::shared_ptr<Variant> m_k; //
     ShapeLogBoltzmannFunction(){};
     ShapeLogBoltzmannFunction(std::shared_ptr<Variant> k) : m_k(k) {}
     virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
@@ -584,7 +584,6 @@ template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 {
 protected:
-    //Scalar m_k;
     Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
 public:
@@ -595,6 +594,17 @@ public:
         detail::mass_properties<Shape> mp(*m_reference_shape);
         m_volume = mp.getVolume();
         }
+
+    void setStiffness(const std::shared_ptr<Variant>& stiff)
+        {
+        m_k = stiff;
+        }
+
+    std::shared_ptr<Variant> getStiffness()
+        {
+        return m_k;
+        }
+
 };
 
 /*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };

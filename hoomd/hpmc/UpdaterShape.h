@@ -64,6 +64,7 @@ public:
         if(m_move_function) m_move_function->setStepSize(typ, stepsize);
         }
 
+
     void countTypes();
 
     //! Method that is called whenever the GSD file is written if connected to a GSD file.
