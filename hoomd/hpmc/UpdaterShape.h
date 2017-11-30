@@ -76,6 +76,17 @@ public:
     //! Method that is called to connect to the gsd write state signal
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
+    // 
+    void setStiffness(const std::shared_ptr<Variant>& stiff)
+        {
+        m_log_boltz_function->m_k = stiff;
+        }
+
+    std::shared_ptr<Variant> getStiffness()
+        {
+        return m_log_boltz_function->m_k;
+        }
+
 
 protected:
     static std::string getParamName(size_t i)
@@ -108,6 +119,7 @@ private:
     bool                        m_pretend;
     bool                        m_initialized;
     detail::UpdateOrder         m_update_order;         //!< Update order
+
 };
 
 template < class Shape >
@@ -497,6 +509,8 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
     .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
     .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
+    .def("setStiffness", &UpdaterShape<Shape>::setStiffness)
+    .def("getStiffness", &UpdaterShape<Shape>::getStiffness)
     ;
     }
 

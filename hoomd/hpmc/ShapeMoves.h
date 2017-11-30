@@ -595,16 +595,6 @@ public:
         m_volume = mp.getVolume();
         }
 
-    void setStiffness(const std::shared_ptr<Variant>& stiff)
-        {
-        m_k = stiff;
-        }
-
-    std::shared_ptr<Variant> getStiffness()
-        {
-        return m_k;
-        }
-
 };
 
 /*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };
