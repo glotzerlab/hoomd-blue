@@ -70,88 +70,12 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             return m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
             }
 
-        double computePatchEnergy(const ArrayHandle<Scalar4> &positions,
-            const ArrayHandle<Scalar4> &orientations,
-            const ArrayHandle<Scalar> &diameters,
-            const ArrayHandle<Scalar> &charges,
-            const BoxDim& box,
-            unsigned int N,
-            unsigned int N_ghost)
-            {
-            double patch_energy = 0.0;
-            float r_cut = this->getRCut();
-            float r_cut_sq = r_cut*r_cut;
-
-            //const BoxDim& box = m_pdata->getGlobalBox();
-            // read in the current position and orientation
-            for (unsigned int i = 0; i<N;i++)
-                {
-                Scalar4 postype_i = positions.data[i];
-                Scalar4 orientation_i = orientations.data[i];
-                vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
-                int typ_i = __scalar_as_int(postype_i.w);
-                for (unsigned int j = i+1; j < N+N_ghost; j++)
-                    {
-                    Scalar4 postype_j = positions.data[j];
-                    Scalar4 orientation_j = orientations.data[j];
-                    vec3<Scalar> pos_j = vec3<Scalar>(postype_j);
-                    vec3<Scalar> dr_ij = pos_j - pos_i;
-                    dr_ij = box.minImage(dr_ij);
-                    int typ_j = __scalar_as_int(postype_j.w);
-                    if (dot(dr_ij,dr_ij) <= r_cut_sq)
-                        {
-                        float eng = this->energy(dr_ij,
-                            typ_i,
-                            quat<float>(orientation_i),
-                            diameters.data[i],
-                            charges.data[i],
-                            typ_j,
-                            quat<float>(orientation_j),
-                            diameters.data[j],
-                            charges.data[j]
-                            );
-                        if (j >= N)
-                            {
-                            // avoid double counting of interactions with ghosts
-                            eng /= 2.0f;
-                            }
-                        patch_energy += eng;
-                        }
-                    }
-                }
-            return patch_energy;
-            }
-
-      //   Scalar getLogValue(const std::string& quantity, unsigned int timestep)
-      //   {
-      //     if ( quantity == PATCH_ENERGY_LOG_NAME )
-      //         {
-      //           return m_PatchEnergy;
-      //         }
-      //     else if ( quantity == PATCH_ENERGY_RCUT )
-      //         {
-      //         return m_r_cut;
-      //         }
-      //     else
-      //         {
-      //         //exec_conf->msg->error() << "patch: " << quantity << " is not a valid log quantity" << std::endl;
-      //         throw std::runtime_error("Error getting log value");
-      //         }
-      //   }
-      //
-      // std::vector< std::string > getProvidedLogQuantities()
-      // {
-      //   return m_PatchProvidedQuantities;
-      // }
-
     protected:
         //! function pointer signature
         typedef float (*EvalFnPtr)(const vec3<float>& r_ij, unsigned int type_i, const quat<float>& q_i, float, float, unsigned int type_j, const quat<float>& q_j, float, float);
         Scalar m_r_cut;                             //!< Cutoff radius
         std::shared_ptr<EvalFactory> m_factory;       //!< The factory for the evaulator function
         EvalFactory::EvalFnPtr m_eval;                //!< Pointer to evaluator function inside the JIT module
-        //Scalar m_PatchEnergy;                       //!< patch energy
-        //std::vector<std::string>  m_PatchProvidedQuantities; //!< available
     };
 
 //! Exports the PatchEnergyJIT class to python

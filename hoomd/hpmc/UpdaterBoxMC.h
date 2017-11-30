@@ -202,9 +202,6 @@ class UpdaterBoxMC : public Updater
             {
             unsigned int MaxN = m_pdata->getMaxN();
             m_pos_backup.resize(MaxN);
-            m_orientation_backup.resize(MaxN);
-            m_charge_backup.resize(MaxN);
-            m_diameter_backup.resize(MaxN);
             }
 
         //! Take one timestep forward
@@ -293,7 +290,7 @@ class UpdaterBoxMC : public Updater
         Scalar m_Length_delta[3];                   //!< Max length change in each dimension
         float m_Length_weight;                     //!< relative weight of length change moves
 
-        Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension        Scalar m_Shear_reduce;                            //!< Threshold for lattice reduction
+        Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension
         float m_Shear_weight;                      //!< relative weight of shear moves
         Scalar m_Shear_reduce;                      //!< Tolerance for automatic box lattice reduction
 
@@ -301,9 +298,6 @@ class UpdaterBoxMC : public Updater
         float m_Aspect_weight;                     //!< relative weight of aspect ratio moves
 
         GPUArray<Scalar4> m_pos_backup;             //!< hold backup copy of particle positions
-        GPUArray<Scalar4> m_orientation_backup;     //!< hold backup copy of particle orientations
-        GPUArray<Scalar> m_charge_backup;           //!< hold backup copy of particle charges
-        GPUArray<Scalar> m_diameter_backup;         //!< hold backup copy of particle diameters
 
         hpmc_boxmc_counters_t m_count_total;          //!< Accept/reject total count
         hpmc_boxmc_counters_t m_count_run_start;      //!< Count saved at run() start
