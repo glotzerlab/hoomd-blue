@@ -50,9 +50,6 @@ UpdaterBoxMC::UpdaterBoxMC(std::shared_ptr<SystemDefinition> sysdef,
     // allocate memory for m_pos_backup
     unsigned int MaxN = m_pdata->getMaxN();
     GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_pos_backup);
-    GPUArray<Scalar4>(MaxN, m_exec_conf).swap(m_orientation_backup);
-    GPUArray<Scalar>(MaxN, m_exec_conf).swap(m_charge_backup);
-    GPUArray<Scalar>(MaxN, m_exec_conf).swap(m_diameter_backup);
 
     // Connect to the MaxParticleNumberChange signal
     m_pdata->getMaxParticleNumberChangeSignal().connect<UpdaterBoxMC, &UpdaterBoxMC::slotMaxNChange>(this);
@@ -319,30 +316,19 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     {
     // Make a backup copy of position data
     unsigned int N_backup = m_pdata->getN();
-    unsigned int N_ghost_backup = m_pdata->getNGhosts();
-    unsigned int n_copy = N_backup + N_ghost_backup;
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::overwrite);
-        memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * n_copy);
-        }
-
-    if (m_mc->getPatchInteraction())
-        {
-        // back up orientation, charge and diameter
-        ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_orientation_backup(m_orientation_backup, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_charge_backup(m_charge_backup, access_location::host, access_mode::overwrite);
-        ArrayHandle<Scalar> h_diameter_backup(m_diameter_backup, access_location::host, access_mode::overwrite);
-        memcpy(h_orientation_backup.data, h_orientation.data, sizeof(Scalar4) * n_copy);
-        memcpy(h_charge_backup.data, h_charge.data, sizeof(Scalar)*n_copy);
-        memcpy(h_diameter_backup.data, h_diameter.data, sizeof(Scalar)*n_copy);
+        memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
         }
 
     BoxDim curBox = m_pdata->getGlobalBox();
-    BoxDim cur_local_box = m_pdata->getBox();
+
+    if (m_mc->getPatchInteraction())
+        {
+        // energy of old configuration
+        deltaE -= m_mc->computePatchEnergy(timestep);
+        }
 
     // Attempt box resize and check for overlaps
     BoxDim newBox = m_pdata->getGlobalBox();
@@ -351,7 +337,11 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     newBox.setTiltFactors(xy, xz, yz);
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
-    BoxDim new_local_box = m_pdata->getBox();
+
+    if (allowed && m_mc->getPatchInteraction())
+        {
+        deltaE += m_mc->computePatchEnergy(timestep);
+        }
 
     if (allowed && m_mc->getExternalField())
         {
@@ -359,43 +349,6 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
         Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
         deltaE += ext_energy;
-        }
-
-    if (m_mc->getPatchInteraction())
-        {
-        ArrayHandle<Scalar4> oldpositions(m_pos_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> newpositions(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> neworientations(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> oldorientations(m_orientation_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> olddiameters(m_diameter_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> newdiameters(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> oldcharges(m_charge_backup, access_location::host, access_mode::read);
-        ArrayHandle<Scalar> newcharges(m_pdata->getCharges(), access_location::host, access_mode::read);
-
-        Scalar e_new = m_mc->getPatchInteraction()->computePatchEnergy(newpositions,
-            neworientations,
-            newdiameters,
-            newcharges,
-            new_local_box,
-            m_pdata->getN(),
-            m_pdata->getNGhosts());
-        Scalar e_old = m_mc->getPatchInteraction()->computePatchEnergy(oldpositions,
-            oldorientations,
-            olddiameters,
-            oldcharges,
-            cur_local_box,
-            N_backup,
-            N_ghost_backup);
-
-        #ifdef ENABLE_MPI
-        if (m_comm)
-            {
-            MPI_Allreduce(MPI_IN_PLACE, &e_new, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-            MPI_Allreduce(MPI_IN_PLACE, &e_old, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
-            }
-        #endif
-
-        deltaE += e_new-e_old;
         }
 
     double p = rng.d();
