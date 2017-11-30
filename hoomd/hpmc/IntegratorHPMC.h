@@ -39,11 +39,24 @@ class PatchEnergy
     public:
         PatchEnergy(){};
 
+    //! Returns the cut-off radius
     virtual Scalar getRCut()
         {
         return 0;
         }
 
+    //! evaluate the energy of the patch interaction
+    /*! \param r_ij Vector pointing from particle i to j
+        \param type_i Integer type index of particle i
+        \param d_i Diameter of particle i
+        \param charge_i Charge of particle i
+        \param q_i Orientation quaternion of particle i
+        \param type_j Integer type index of particle j
+        \param q_j Orientation quaternion of particle j
+        \param d_j Diameter of particle j
+        \param charge_j Charge of particle j
+        \returns Energy of the patch interaction.
+    */
     virtual float energy(const vec3<float>& r_ij,
         unsigned int type_i,
         const quat<float>& q_i,
@@ -56,27 +69,6 @@ class PatchEnergy
         {
         return 0;
         }
-
-    //virtual std::vector< std::string > getProvidedLogQuantities(){}
-
-    //virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep) {return 0;}
-
-    //! needed for Compute. currently not used.
-    //virtual void compute(unsigned int timestep){}
-
-    virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,
-        const ArrayHandle<Scalar4> &orientations,
-        const ArrayHandle<Scalar> &diameters,
-        const ArrayHandle<Scalar> &charges,
-        const BoxDim& box,
-        unsigned int N,
-        unsigned int N_ghost)
-        {
-        return 0.0;
-        }
-
-    //private:
-    //   std::vector<std::string>  m_PatchProvidedQuantities; // Log quantities provided when there is patch interaction
 
     };
 
@@ -298,15 +290,33 @@ class IntegratorHPMC : public Integrator
 
         ExternalField* getExternalField() { return m_external_base; }
 
-        PatchEnergy* getPatchInteraction() { return m_patch_base; }
+        //! Rueturns the patch energy interaction
+        std::shared_ptr<PatchEnergy> getPatchInteraction() { return m_patch; }
 
-        virtual double computePatchEnergy(const ArrayHandle<Scalar4> &positions,const ArrayHandle<Scalar4> &orientations)
-        {
-          return 0.0;
-        }
+        //! Compute the energy due to patch interactions
+        /*! \param timestep the current time step
+         * \returns the total patch energy
+         */
+        virtual float computePatchEnergy(unsigned int timestep)
+            {
+            // base class method returns 0
+            return 0.0;
+            }
 
         //! Enable deterministic simulations
         virtual void setDeterministic(bool deterministic) {};
+
+        //! Prepare for the run
+        virtual void prepRun(unsigned int timestep)
+            {
+            m_past_first_run = true;
+            }
+
+        //! Set the patch energy
+        void setPatchEnergy(std::shared_ptr< PatchEnergy > patch)
+            {
+            m_patch = patch;
+            }
 
     protected:
         unsigned int m_seed;                        //!< Random number seed
@@ -323,7 +333,10 @@ class IntegratorHPMC : public Integrator
         ClockSource m_clock;                           //!< Timer for self-benchmarking
 
         ExternalField* m_external_base; //! This is a cast of the derived class's m_external that can be used in a more general setting.
-        PatchEnergy* m_patch_base;
+
+        std::shared_ptr< PatchEnergy > m_patch;     //!< Patchy Interaction
+
+        bool m_past_first_run;                      //!< Flag to test if the first run() has started
 
         //! Update the nominal width of the cells
         /*! This method is virtual so that derived classes can set appropriate widths
