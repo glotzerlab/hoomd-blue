@@ -5,7 +5,6 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-//#include "OrcLazyJIT.h"
 #include "KaleidoscopeJIT.h"
 
 class EvalFactory
@@ -37,7 +36,6 @@ class EvalFactory
             }
 
     private:
-//        std::shared_ptr<llvm::OrcLazyJIT> m_jit; //!< The persistent JIT engine
         std::unique_ptr<llvm::orc::KaleidoscopeJIT> m_jit; //!< The persistent JIT engine
         EvalFnPtr m_eval;         //!< Function pointer to evaluator
 
