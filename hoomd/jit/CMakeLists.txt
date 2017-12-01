@@ -31,15 +31,26 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources
-    EvalFactory.cc
-    OrcLazyJIT.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
-							 PatchEnergyJITUnion.h
+                             PatchEnergyJITUnion.h
                              EvalFactory.h
-                             OrcLazyJIT.h
+                             KaleidoscopeJIT.h
    )
+
+# find TBB lib and includes
+find_library(TBB_LIBRARY tbb
+             PATHS ENV TBB_LINK)
+find_path(TBB_INCLUDE_DIR tbb/tbb.h
+          PATHS ENV TBB_INC)
+include_directories(${TBB_INCLUDE_DIR})
+if (TBB_LIBRARY)
+    mark_as_advanced(TBB_LIBRARY)
+endif()
+if (TBB_INCLUDE_DIR)
+    mark_as_advanced(TBB_INCLUDE_DIR)
+endif()
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
 set_source_files_properties(${_${PACKAGE_NAME}_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
@@ -67,7 +78,7 @@ endif()
 target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
 
 # need to link llvm_libs here, too, otherwise module import fails
-target_link_libraries(_${PACKAGE_NAME} _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
+target_link_libraries(_${PACKAGE_NAME} _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs} ${TBB_LIBRARY})
 
 # set installation RPATH
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME}/)
