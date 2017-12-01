@@ -3,28 +3,28 @@ version: 2
 references:
   test_container_config: &test_container_config
     docker:
-      - image: joaander/ci:20170921
+      - image: joaander/ci:20171130
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda80: &test_container_config-cuda80
     docker:
-      - image: joaander/ci:20170921-cuda80
+      - image: joaander/ci:20171130-cuda80
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda75: &test_container_config-cuda75
     docker:
-      - image: joaander/ci:20170809-cuda75
+      - image: joaander/ci:20171130-cuda75
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda70: &test_container_config-cuda70
     docker:
-      - image: joaander/ci:20170811-cuda70
+      - image: joaander/ci:20171130-cuda70
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
