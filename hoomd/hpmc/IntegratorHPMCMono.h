@@ -119,7 +119,7 @@ class UpdateOrder
             {
             // this is an implementation of the classic reservoir sampling
             // algorithm.
-            hoomd::detail::Saru rng(timestep, m_seed+select+0xd0dd, 0xfa870af6);
+            hoomd::detail::Saru rng(timestep, m_seed+select+53469, 0xfa870af6);
             std::vector<unsigned int>::iterator next, iter, end, last;
             next = m_update_order.begin();
             iter = next;
