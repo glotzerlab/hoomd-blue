@@ -2346,7 +2346,7 @@ void export_ParticleData(py::module& m)
 //! Constructor for SnapshotParticleData
 template <class Real>
 SnapshotParticleData<Real>::SnapshotParticleData(unsigned int N)
-       : size(N)
+       : size(N), is_accel_set(false)
     {
     resize(N);
     }
@@ -2367,6 +2367,7 @@ void SnapshotParticleData<Real>::resize(unsigned int N)
     angmom.resize(N,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.resize(N,vec3<Real>(0.0,0.0,0.0));
     size = N;
+    is_accel_set = false;
     }
 
 template <class Real>
@@ -2386,6 +2387,7 @@ void SnapshotParticleData<Real>::insert(unsigned int i, unsigned int n)
     angmom.insert(angmom.begin()+i,n,quat<Real>(0.0,vec3<Real>(0.0,0.0,0.0)));
     inertia.insert(inertia.begin()+i,n,vec3<Real>(0.0,0.0,0.0));
     size += n;
+    is_accel_set = false;
     }
 
 template <class Real>
@@ -2956,6 +2958,9 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
 template <class Real>
 py::object SnapshotParticleData<Real>::getPosNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
@@ -2968,6 +2973,9 @@ py::object SnapshotParticleData<Real>::getPosNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getVelNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
@@ -2980,6 +2988,9 @@ py::object SnapshotParticleData<Real>::getVelNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getAccelNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
@@ -2992,6 +3003,9 @@ py::object SnapshotParticleData<Real>::getAccelNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getTypeNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     return py::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
@@ -3001,6 +3015,9 @@ py::object SnapshotParticleData<Real>::getTypeNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getMassNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     return py::object(num_util::makeNumFromData(&mass[0], mass.size()), false);
     }
 
@@ -3010,6 +3027,9 @@ py::object SnapshotParticleData<Real>::getMassNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getChargeNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     return py::object(num_util::makeNumFromData(&charge[0], charge.size()), false);
     }
 
@@ -3019,6 +3039,9 @@ py::object SnapshotParticleData<Real>::getChargeNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getDiameterNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     return py::object(num_util::makeNumFromData(&diameter[0], diameter.size()), false);
     }
 
@@ -3028,6 +3051,9 @@ py::object SnapshotParticleData<Real>::getDiameterNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getImageNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 3;
@@ -3040,6 +3066,9 @@ py::object SnapshotParticleData<Real>::getImageNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getBodyNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     return py::object(num_util::makeNumFromData(&body[0], body.size()), false);
     }
 
@@ -3049,6 +3078,9 @@ py::object SnapshotParticleData<Real>::getBodyNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getOrientationNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = pos.size();
     dims[1] = 4;
@@ -3061,6 +3093,9 @@ py::object SnapshotParticleData<Real>::getOrientationNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getMomentInertiaNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = inertia.size();
     dims[1] = 3;
@@ -3073,6 +3108,9 @@ py::object SnapshotParticleData<Real>::getMomentInertiaNP()
 template <class Real>
 py::object SnapshotParticleData<Real>::getAngmomNP()
     {
+    // mark as dirty when accessing internal data
+    is_accel_set = false;
+
     std::vector<intp> dims(2);
     dims[0] = angmom.size();
     dims[1] = 4;
@@ -3097,6 +3135,9 @@ py::list SnapshotParticleData<Real>::getTypes()
 template <class Real>
 void SnapshotParticleData<Real>::setTypes(py::list types)
     {
+    // set dirty
+    is_accel_set = false;
+
     type_mapping.resize(len(types));
 
     for (unsigned int i = 0; i < len(types); i++)
