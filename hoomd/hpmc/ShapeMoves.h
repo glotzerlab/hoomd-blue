@@ -234,14 +234,14 @@ public:
     //! provided by this class.
     bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
         {
- 	    for(size_t i = 0; i < m_num_params; i++)
-	    {
-	    if(quantity == getParamName(i))
-			{
-			value = getParam(i);
-            return true;
-			}
-	    }
+        for(size_t i = 0; i < m_num_params; i++)
+            {
+            if(quantity == getParamName(i))
+                {
+                value = getParam(i);
+                return true;
+                }
+            }
         return false;
         }
 
