@@ -2,6 +2,53 @@
 
 [TOC]
 
+## v2.3.0
+
+Not yet released
+
+*New features*
+
+* General:
+    * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
+
+* MD:
+    * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
+
+* HPMC:
+    * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
+
+*Deprecated*
+
+## v2.2.2
+
+Released 2017/12/04
+
+*Bug fixes*
+
+* `md.dihedral.table.set_from_file` now works.
+* Fix a critical bug where forces in MPI simulations with rigid bodies or anisotropic particles were incorrectly calculated
+* Ensure that ghost particles are updated after load balancing.
+* `meta.dump_metadata` no longer reports an error when used with `md.constrain.rigid`
+* Miscellaneous documentation fixes
+* `dump.gsd` can now write GSD files with 0 particles in a frame
+* Explicitly report MPI synchronization delays due to load imbalance with `profile=True`
+* Correctly compute net torque of rigid bodies with anisotropic constituent particles in MPI execution on multiple ranks
+* Fix `PotentialPairDPDThermoGPU.h` for use in external plugins
+* Use correct ghost region with `constrain.rigid` in MPI execution on multiple ranks
+* `hpmc.update.muvt()` now works with `depletant_mode='overlap_regions'`
+* Fix the sampling of configurations with in `hpmc.update.muvt` with depletants
+* Fix simulation crash after modifying a snapshot and re-initializing from it
+* The pressure in simulations with rigid bodies (`md.constrain.rigid()`) and MPI on multiple ranks is now computed correctly
+
+## v2.2.1
+
+Released 2017/10/04
+
+*Bug fixes*
+
+* Add special pair headers to install target
+* Fix a bug where `hpmc.integrate.convex_polyhedron`, `hpmc.integrate.convex_spheropolyhedron`, `hpmc.integrate.polyedron`, `hpmc.integrate.faceted_sphere`, `hpmc.integrate.sphere_union` and `hpmc.integrate.convex_polyhedron_union` produced spurious overlaps on the GPU
+
 ## v2.2.0
 
 Released 2017/09/08

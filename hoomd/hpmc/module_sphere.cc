@@ -47,7 +47,8 @@ void export_sphere(py::module& m)
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
-    export_UpdaterMuVTImplicit< ShapeSphere >(m, "UpdaterMuVTImplicitSphere");
+    export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterMuVTImplicitSphere");
+    export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterMuVTImplicitNewSphere");
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");

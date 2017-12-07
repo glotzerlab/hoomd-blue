@@ -50,7 +50,8 @@ void export_convex_polygon(py::module& m)
     export_ComputeFreeVolume< ShapeConvexPolygon >(m, "ComputeFreeVolumeConvexPolygon");
     export_AnalyzerSDF< ShapeConvexPolygon >(m, "AnalyzerSDFConvexPolygon");
     export_UpdaterMuVT< ShapeConvexPolygon >(m, "UpdaterMuVTConvexPolygon");
-    export_UpdaterMuVTImplicit< ShapeConvexPolygon >(m, "UpdaterMuVTImplicitConvexPolygon");
+    export_UpdaterMuVTImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicit<ShapeConvexPolygon> >(m, "UpdaterMuVTImplicitConvexPolygon");
+    export_UpdaterMuVTImplicit< ShapeConvexPolygon, IntegratorHPMCMonoImplicitNew<ShapeConvexPolygon> >(m, "UpdaterMuVTImplicitNewConvexPolygon");
 
     export_ExternalFieldInterface<ShapeConvexPolygon>(m, "ExternalFieldConvexPolygon");
     export_LatticeField<ShapeConvexPolygon>(m, "ExternalFieldLatticeConvexPolygon");

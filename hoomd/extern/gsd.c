@@ -1,23 +1,64 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2016-2017 The Regents of the University of Michigan
 // This file is part of the General Simulation Data (GSD) project, released under the BSD 2-Clause License.
+
+#ifdef _WIN32
+
+#define GSD_USE_MMAP 0
+#include <io.h>
+#include <sys/stat.h>
+
+#else // linux / mac
 
 #define _XOPEN_SOURCE 500
 #include <unistd.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <stdio.h>
-
+#include <sys/mman.h>
 #define GSD_USE_MMAP 1
 
-#if GSD_USE_MMAP
-#include <sys/mman.h>
 #endif
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include "gsd.h"
 
 /*! \file gsd.c
     \brief Implements the GSD C API
 */
+
+// define windows wrapper functions
+#ifdef _WIN32
+#define lseek _lseeki64
+#define write _write
+#define read _read
+#define open _open
+#define ftruncate _chsize
+
+int S_IRUSR = _S_IREAD;
+int S_IWUSR = _S_IWRITE;
+int S_IRGRP = _S_IREAD;
+int S_IWGRP = _S_IWRITE;
+
+size_t pread(int fd, void *buf, size_t count, int64_t offset)
+    {
+    int64_t oldpos = _telli64(fd);
+    _lseeki64(fd, offset, SEEK_SET);
+    size_t result = _read(fd, buf, count);  // Note: does not support >4GB reads
+    _lseeki64(fd, oldpos, SEEK_SET);
+    return result;
+    }
+
+size_t pwrite(int fd, void *buf, size_t count, int64_t offset)
+    {
+    int64_t oldpos = _telli64(fd);
+    _lseeki64(fd, offset, SEEK_SET);
+    size_t result = _write(fd, buf, count);  // Note: does not support >4GB writes
+    _lseeki64(fd, oldpos, SEEK_SET);
+    return result;
+    }
+
+#endif
 
 /*! \internal
     \brief Utility function to expand the memory space for the index block
@@ -57,9 +98,7 @@ static int __gsd_expand_index(struct gsd_handle *handle)
         // in append mode, we don't have the whole index stored in memory. Instead, we need to copy it in chunks
         // from the file's old position to the new position
         const size_t buf_size = 1024*16;
-        char *buf = malloc(buf_size);
-        if (buf == NULL)
-            return -1;
+        char buf[1024*16];
 
         int64_t new_index_location = lseek(handle->fd, 0, SEEK_END);
         int64_t old_index_location = handle->header.index_location;
@@ -95,8 +134,6 @@ static int __gsd_expand_index(struct gsd_handle *handle)
                 return -1;
             total_bytes_written += bytes_written;
             }
-
-        free(buf);
 
         // update to the new index location in the header
         handle->header.index_location = new_index_location;
@@ -231,7 +268,12 @@ int __gsd_read_header(struct gsd_handle* handle)
     lseek(handle->fd, 0, SEEK_SET);
     size_t bytes_read = read(handle->fd, &handle->header, sizeof(struct gsd_header));
     if (bytes_read != sizeof(struct gsd_header))
-        return -1;
+        {
+        if (errno != 0)
+            return -1;
+        else
+            return -2;
+        }
 
     // validate the header
     if (handle->header.magic != 0x65DF65DF65DF65DF)
@@ -410,14 +452,81 @@ uint32_t gsd_make_version(unsigned int major, unsigned int minor)
 */
 int gsd_create(const char *fname, const char *application, const char *schema, uint32_t schema_version)
     {
+    int extra_flags = 0;
+    #ifdef WIN32
+    extra_flags = _O_BINARY;
+    #endif
+
     // create the file
-    int fd = open(fname, O_RDWR | O_CREAT | O_TRUNC,  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
-    return __gsd_initialize_file(fd, application, schema, schema_version);
+    int fd = open(fname, O_RDWR | O_CREAT | O_TRUNC | extra_flags,  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    int retval = __gsd_initialize_file(fd, application, schema, schema_version);
+    close(fd);
+    return retval;
+    }
+
+/*! \param handle Handle to open
+    \param fname File name
+    \param application Generating application name (truncated to 63 chars)
+    \param schema Schema name for data to be written in this GSD file (truncated to 63 chars)
+    \param schema_version Version of the scheme data to be written (make with gsd_make_version())
+    \param flags Either GSD_OPEN_READWRITE, or GSD_OPEN_APPEND
+    \param exclusive_create Set to non-zero to force exclusive creation of the file
+
+    \post Create an empty gsd file in a file of the given name. Overwrite any existing file at that location.
+
+    Open the generated gsd file in *handle*.
+
+    \return 0 on success. Negative value on failure:
+        * -1: IO error (check errno)
+        * -2: Not a GSD file
+        * -3: Invalid GSD file version
+        * -4: Corrupt file
+        * -5: Unable to allocate memory
+        * -6: Invalid argument
+*/
+int gsd_create_and_open(struct gsd_handle* handle,
+                        const char *fname,
+                        const char *application,
+                        const char *schema,
+                        uint32_t schema_version,
+                        const enum gsd_open_flag flags,
+                        int exclusive_create)
+    {
+    int extra_flags = 0;
+    #ifdef WIN32
+    extra_flags = _O_BINARY;
+    #endif
+
+    // set the open flags in the handle
+    if (flags == GSD_OPEN_READWRITE)
+        {
+        handle->open_flags = GSD_OPEN_READWRITE;
+        }
+    else if (flags == GSD_OPEN_READONLY)
+        {
+        return -6;
+        }
+    else if (flags == GSD_OPEN_APPEND)
+        {
+        handle->open_flags = GSD_OPEN_APPEND;
+        }
+
+    // set the exclusive create bit
+    if (exclusive_create)
+        extra_flags |= O_EXCL;
+
+    // create the file
+    handle->fd = open(fname, O_RDWR | O_CREAT | O_TRUNC | extra_flags,  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+    int retval = __gsd_initialize_file(handle->fd, application, schema, schema_version);
+    if (retval != 0)
+        return retval;
+
+    return __gsd_read_header(handle);
     }
 
 /*! \param handle Handle to open
     \param fname File name to open
-    \param flags Either GSD_OPEN_READWRITE or GSD_OPEN_READONLY
+    \param flags Either GSD_OPEN_READWRITE, GSD_OPEN_READONLY, or GSD_OPEN_APPEND
 
     \pre The file name \a fname is a GSD file.
 
@@ -438,20 +547,25 @@ int gsd_open(struct gsd_handle* handle, const char *fname, const enum gsd_open_f
     handle->namelist = NULL;
     handle->cur_frame = 0;
 
-    // create the file
+    int extra_flags = 0;
+    #ifdef WIN32
+    extra_flags = _O_BINARY;
+    #endif
+
+    // open the file
     if (flags == GSD_OPEN_READWRITE)
         {
-        handle->fd = open(fname, O_RDWR);
+        handle->fd = open(fname, O_RDWR | extra_flags);
         handle->open_flags = GSD_OPEN_READWRITE;
         }
     else if (flags == GSD_OPEN_READONLY)
         {
-        handle->fd = open(fname, O_RDONLY);
+        handle->fd = open(fname, O_RDONLY | extra_flags);
         handle->open_flags = GSD_OPEN_READONLY;
         }
     else if (flags == GSD_OPEN_APPEND)
         {
-        handle->fd = open(fname, O_RDWR);
+        handle->fd = open(fname, O_RDWR | extra_flags);
         handle->open_flags = GSD_OPEN_APPEND;
         }
 
@@ -641,7 +755,7 @@ int gsd_write_chunk(struct gsd_handle* handle,
     // validate input
     if (data == NULL)
         return -2;
-    if (N == 0 || M == 0)
+    if (M == 0)
         return -2;
     if (handle->open_flags == GSD_OPEN_READONLY)
         return -2;
@@ -801,14 +915,16 @@ int gsd_read_chunk(struct gsd_handle* handle, void* data, const struct gsd_index
 
     size_t bytes_read = pread(handle->fd, data, size, chunk->location);
     if (bytes_read != size)
+        {
         return -1;
+        }
 
     return 0;
     }
 
 /*! \param type Type ID to query
 
-    \return Size of the given type, or 1 for an unknown type ID.
+    \return Size of the given type, or 0 for an unknown type ID.
 */
 size_t gsd_sizeof_type(enum gsd_type type)
     {
@@ -835,3 +951,13 @@ size_t gsd_sizeof_type(enum gsd_type type)
     else
         return 0;
     }
+
+// undefine windows wrapper macros
+#ifdef _WIN32
+#undef lseek
+#undef write
+#undef read
+#undef open
+#undef ftruncate
+
+#endif

@@ -165,6 +165,14 @@ class gsd_write_tests (unittest.TestCase):
         if comm.get_rank() == 0:
             self.assertRaises(RuntimeError, init.read_gsd, self.tmp_file, frame=5);
 
+    # tests with zero particles
+    def test_zero_particles(self):
+        self.s.particles.remove(0)
+        self.s.particles.remove(1)
+        self.s.particles.remove(2)
+        self.s.particles.remove(3)
+        dump.gsd(filename=self.tmp_file, group=group.all(), period=1, overwrite=True);
+
     def tearDown(self):
         if (hoomd.comm.get_rank()==0):
             os.remove(self.tmp_file);

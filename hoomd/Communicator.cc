@@ -1615,9 +1615,7 @@ void Communicator::exchangeGhosts()
 
             if (h_body.data[idx] != NO_BODY)
                 {
-                ghost_fraction = make_scalar3(std::max(ghost_fraction.x, ghost_fractions_body[type].x),
-                                              std::max(ghost_fraction.y, ghost_fractions_body[type].y),
-                                              std::max(ghost_fraction.z, ghost_fractions_body[type].z));
+                ghost_fraction += ghost_fractions_body[type];
                 }
 
             Scalar3 f = box.makeFraction(pos);
