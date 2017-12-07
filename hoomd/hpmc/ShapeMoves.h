@@ -20,30 +20,59 @@ template < typename Shape, typename RNG>
 class shape_move_function
 {
 public:
-    shape_move_function(unsigned int ntypes) : m_determinantInertiaTensor(0), m_step_size(ntypes) {}
+    shape_move_function(unsigned int ntypes) :
+        m_determinantInertiaTensor(0),
+        m_step_size(ntypes)
+        {
+        }
 
-    shape_move_function(const shape_move_function& src) : m_determinantInertiaTensor(src.getDeterminantInertiaTensor()), m_step_size(src.getStepSizeArray()) {}
+    shape_move_function(const shape_move_function& src) :
+        m_determinantInertiaTensor(src.getDeterminantInertiaTensor()),
+        m_step_size(src.getStepSizeArray())
+        {
+        }
 
     //! prepare is called at the beginning of every update()
-    virtual void prepare(unsigned int timestep) { throw not_implemented_error(); }
+    virtual void prepare(unsigned int timestep)
+        {
+        throw not_implemented_error();
+        }
 
     //! construct is called for each particle type that will be changed in update()
-    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&) { throw not_implemented_error(); }
+    virtual void construct(const unsigned int&, const unsigned int&, typename Shape::param_type&, RNG&)
+        {
+        throw not_implemented_error();
+        }
 
     //! retreat whenever the proposed move is rejected.
-    virtual void retreat(const unsigned int) { throw not_implemented_error(); }
+    virtual void retreat(const unsigned int)
+        {
+        throw not_implemented_error();
+        }
 
-    virtual Scalar getParam(size_t i ) { return 0.0; }
+    // TODO: remove this?
+    Scalar getDeterminant() const
+        {
+        return m_determinantInertiaTensor;
+        }
 
-    virtual size_t getNumParam() { return 0; }
+    //! Get the stepsize for \param type_id
+    Scalar getStepSize(const unsigned int& type_id) const
+        {
+        return m_step_size[type_id];
+        }
 
-    Scalar getDeterminant() const { return m_determinantInertiaTensor; }
+    //! Get all of the stepsizes
+    const std::vector<Scalar>& getStepSizeArray() const
+        {
+        return m_step_size;
+        }
 
-    Scalar getStepSize(const unsigned int& type_id) const { return m_step_size[type_id]; }
-
-    const std::vector<Scalar>& getStepSizeArray() const { return m_step_size; }
-
-    void setStepSize(const unsigned int& type_id, const Scalar& stepsize) { m_step_size[type_id] = stepsize; }
+    //! Set the step size for the \param type_id to \param stepsize
+    void setStepSize(const unsigned int& type_id, const Scalar& stepsize)
+        {
+        m_step_size[type_id] = stepsize;
+        }
 
     //! Method that is called whenever the GSD file is written if connected to a GSD file.
     virtual int writeGSD(gsd_handle& handle, std::string name, const std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mpi) const
@@ -94,16 +123,34 @@ public:
         return success;
         }
 
+    //! Returns all of the provided log quantities for the shape move.
+    std::vector< std::string > getProvidedLogQuantities()
+        {
+        return m_ProvidedQuantities;
+        }
+
+    //! Calculates the requested log value and returns true if the quantity was
+    //! provided by this class.
+    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+        {
+        return false;
+        }
+
+
 protected:
+    std::vector< std::string >      m_ProvidedQuantities;
     Scalar                          m_determinantInertiaTensor;     // TODO: REMOVE?
     std::vector<Scalar>             m_step_size;                    // maximum stepsize. input/output
 };
 
+
+// TODO: make this class more general and make python function a spcialization.
 template < typename Shape, typename RNG >
 class python_callback_parameter_shape_move : public shape_move_function<Shape, RNG>
 {
     using shape_move_function<Shape, RNG>::m_determinantInertiaTensor;
     using shape_move_function<Shape, RNG>::m_step_size;
+    using shape_move_function<Shape, RNG>::m_ProvidedQuantities;
 public:
     python_callback_parameter_shape_move(   unsigned int ntypes,
                                             pybind11::object python_function,
@@ -111,7 +158,7 @@ public:
                                             std::vector<Scalar> stepsize,
                                             Scalar mixratio
                                         )
-        :  shape_move_function<Shape, RNG>(ntypes), m_params(params), m_python_callback(python_function) //, m_normalized(normalized)
+        :  shape_move_function<Shape, RNG>(ntypes), m_num_params(0), m_params(params), m_python_callback(python_function)
         {
         if(m_step_size.size() != stepsize.size())
             throw std::runtime_error("must provide a stepsize for each type");
@@ -119,6 +166,10 @@ public:
         m_step_size = stepsize;
         m_select_ratio = fmin(mixratio, 1.0)*65535;
         m_determinantInertiaTensor = 0.0;
+        for(size_t i = 0; i < getNumParam(); i++)
+            {
+            m_ProvidedQuantities.push_back(getParamName(i));
+            }
         }
 
     void prepare(unsigned int timestep)
@@ -162,15 +213,42 @@ public:
 
     size_t getNumParam()
         {
-        size_t n = 0;
+        if(m_num_params > 0 )
+            return m_num_params;
+        m_num_params = 0;
         for (size_t i = 0; i < m_params.size(); i++)
-            n += m_params[i].size();
-        return n;
+            m_num_params += m_params[i].size();
+        return m_num_params;
+        }
+
+    static std::string getParamName(size_t i)
+        {
+        std::stringstream ss;
+        std::string snum;
+        ss << i;
+        ss>>snum;
+        return "shape_param-" + snum;
+        }
+
+    //! Calculates the requested log value and returns true if the quantity was
+    //! provided by this class.
+    bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+        {
+ 	    for(size_t i = 0; i < m_num_params; i++)
+	    {
+	    if(quantity == getParamName(i))
+			{
+			value = getParam(i);
+            return true;
+			}
+	    }
+        return false;
         }
 
 private:
     std::vector<Scalar>                     m_step_size_backup;
     unsigned int                            m_select_ratio;     // fraction of parameters to change in each move. internal use
+    unsigned int                            m_num_params;       // cache the number of parameters.
     Scalar                                  m_scale;            // the scale needed to keep the particle at constant volume. internal use
     std::vector< std::vector<Scalar> >      m_params_backup;    // all params are from 0,1
     std::vector< std::vector<Scalar> >      m_params;           // all params are from 0,1
@@ -291,11 +369,6 @@ public:
         m_step_size[type_id] *= m_scale; // only need to scale if the parameters are not normalized
         }
 
-    // void advance(unsigned int timestep)
-    //     {
-    //     // nothing to do.
-    //     }
-
     void retreat(unsigned int timestep)
         {
         // move has been rejected.
@@ -310,120 +383,6 @@ private:
     std::vector< vec3<Scalar> > m_centroids;
     std::vector<bool>       m_calculated;
 };
-
-// template <class Shape, class RNG>
-// struct shear
-//     {
-//     shear(Scalar) {}
-//     void operator() (typename Shape::param_type& param, RNG& rng)
-//         {
-//         throw std::runtime_error("shear is not implemented for this shape.");
-//         }
-//     };
-//
-// template <class Shape, class RNG>
-// struct scale
-//     {
-//     bool isotropic;
-//     scale(bool iso = true) : isotropic(iso) {}
-//     void operator() (typename Shape::param_type& param, RNG& rng)
-//         {
-//         throw std::runtime_error("scale is not implemented for this shape.");
-//         }
-//     };
-//
-//
-// template < class RNG>
-// struct shear< ShapeConvexPolyhedron, RNG >
-//     {
-//     Scalar shear_max;
-//     shear(Scalar smax) : shear_max(smax) {}
-//     void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
-//         {
-//         Scalar gamma = rng.s(-shear_max, shear_max), gammaxy = 0.0, gammaxz = 0.0, gammayz = 0.0, gammayx = 0.0, gammazx = 0.0, gammazy = 0.0;
-//         int dim = int(6*rng.s(0.0, 1.0));
-//         if(dim == 0) gammaxy = gamma;
-//         else if(dim == 1) gammaxz = gamma;
-//         else if(dim == 2) gammayz = gamma;
-//         else if(dim == 3) gammayx = gamma;
-//         else if(dim == 4) gammazx = gamma;
-//         else if(dim == 5) gammazy = gamma;
-//         Scalar dsq = 0.0;
-//         for(unsigned int i = 0; i < param.N; i++)
-//             {
-//             param.x[i] = param.x[i] + param.y[i]*gammaxy + param.z[i]*gammaxz;
-//             param.y[i] = param.x[i]*gammayx + param.y[i] + param.z[i]*gammayz;
-//             param.z[i] = param.x[i]*gammazx + param.y[i]*gammazy + param.z[i];
-//             vec3<Scalar> vert( param.x[i], param.y[i], param.z[i]);
-//             dsq = fmax(dsq, dot(vert, vert));
-//             }
-//         param.diameter = 2.0*sqrt(dsq);
-//         // std::cout << "shearing by " << gamma << std::endl;
-//         }
-//     };
-//
-// template <class RNG>
-// struct scale< ShapeConvexPolyhedron, RNG >
-//     {
-//     bool isotropic;
-//     Scalar scale_min;
-//     Scalar scale_max;
-//     scale(Scalar movesize, bool iso = true) : isotropic(iso)
-//         {
-//         if(movesize < 0.0 || movesize > 1.0)
-//             {
-//             movesize = 0.0;
-//             }
-//         scale_max = (1.0+movesize);
-//         scale_min = 1.0/scale_max;
-//         }
-//                  // () name of perator and second (...) are the parameters
-//                  //  You can overload the () operator to call your object as if it was a function
-//     void operator() (typename ShapeConvexPolyhedron::param_type& param, RNG& rng)
-//         {
-//         Scalar sx, sy, sz;
-//         Scalar s = rng.s(scale_min, scale_max);
-//         sx = sy = sz = s;
-//         if(!isotropic)
-//             {
-//             sx = sy = sz = 1.0;
-//             Scalar dim = rng.s(0.0, 1.0);
-//             if (dim < 1.0/3.0) sx = s;
-//             else if (dim < 2.0/3.0) sy = s;
-//             else sz = s;
-//             }
-//         for(unsigned int i = 0; i < param.N; i++)
-//             {
-//             param.x[i] *= sx;
-//             param.y[i] *= sy;
-//             param.z[i] *= sz;
-//             }
-//         param.diameter *= s;
-//         // std::cout << "scaling by " << s << std::endl;
-//         }
-//     };
-//
-// template < class RNG >
-// class scale< ShapeEllipsoid, RNG >
-// {
-//     const Scalar m_v;
-//     const Scalar m_v1;
-//     const Scalar m_min;
-//     const Scalar m_max;
-// public:
-//     scale(Scalar movesize, bool) : m_v(1.0), m_v1(M_PI*4.0/3.0), m_min(-movesize), m_max(movesize) {}
-//     void operator ()(ShapeEllipsoid::param_type& param, RNG& rng)
-//         {
-//         Scalar lnx = log(param.x/param.y);
-//         Scalar dx = rng.s(m_min, m_max);
-//         Scalar x = fast::exp(lnx+dx);
-//         Scalar b = pow(m_v/m_v1/x, 1.0/3.0);
-//
-//         param.x = x*b;
-//         param.y = b;
-//         param.z = b;
-//         }
-// };
 
 //TODO: put the following functions in a class
 inline bool isIn(Scalar x, Scalar y, Scalar alpha)
@@ -537,7 +496,6 @@ public:
         #endif
         }
 
-
     Eigen::Matrix3d getEps(unsigned int type_id)
         {
         return 0.5*((m_Fbar[type_id].transpose()*m_Fbar[type_id]) - Eigen::Matrix3d::Identity());
@@ -563,22 +521,58 @@ template<class Shape>
 class ShapeLogBoltzmannFunction
 {
   public:
-    std::shared_ptr<Variant> m_k; //
     ShapeLogBoltzmannFunction(){};
-    ShapeLogBoltzmannFunction(std::shared_ptr<Variant> k) : m_k(k) {}
-    virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold) { throw std::runtime_error("not implemented"); return 0.0;}
-    virtual Scalar computeEnergy(const unsigned int& timestep,const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia) {return 0.0;}
+    virtual Scalar operator()(
+                                const unsigned int& timestep,
+                                const unsigned int& N,
+                                const unsigned int type_id,
+                                const typename Shape::param_type& shape_new,
+                                const Scalar& inew,
+                                const typename Shape::param_type& shape_old,
+                                const Scalar& iold)
+        {
+        throw std::runtime_error("not implemented");
+        return 0.0;
+        }
+
+    virtual Scalar computeEnergy(
+                                    const unsigned int& timestep,
+                                    const unsigned int& N,
+                                    const unsigned int type_id,
+                                    const typename Shape::param_type& shape,
+                                    const Scalar& inertia)
+        {
+        return 0.0;
+        }
+
+    //! Returns all of the provided log quantities for the shape move.
+    std::vector< std::string > getProvidedLogQuantities()
+        {
+        return m_ProvidedQuantities;
+        }
+
+    //! Calculates the requested log value and returns true if the quantity was
+    //! provided by this class.
+    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+        {
+        return false;
+        }
+
+protected:
+    std::vector< std::string >      m_ProvidedQuantities;
 };
 
 template<class Shape>
 class AlchemyLogBoltzmannFunction : public ShapeLogBoltzmannFunction<Shape>
 {
 public:
-    virtual Scalar operator()(const unsigned int& timestep,const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
+    virtual Scalar operator()(const unsigned int& timestep, const unsigned int& N,const unsigned int type_id, const typename Shape::param_type& shape_new, const Scalar& inew, const typename Shape::param_type& shape_old, const Scalar& iold)
         {
         return (Scalar(N)/Scalar(2.0))*log(inew/iold);
         }
 };
+
+#define SHAPE_SPRING_STIFFNESS "shape_move_stiffness"
 
 template< class Shape >
 class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
@@ -586,34 +580,40 @@ class ShapeSpringBase : public ShapeLogBoltzmannFunction<Shape>
 protected:
     Scalar m_volume;
     std::unique_ptr<typename Shape::param_type> m_reference_shape;
+    std::shared_ptr<Variant> m_k;
+    using ShapeLogBoltzmannFunction<Shape>::m_ProvidedQuantities;
 public:
-    using ShapeLogBoltzmannFunction< Shape >::m_k;
-    ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : ShapeLogBoltzmannFunction<Shape>(k), m_reference_shape(new typename Shape::param_type)
+
+    ShapeSpringBase(std::shared_ptr<Variant> k, typename Shape::param_type shape) : m_reference_shape(new typename Shape::param_type), m_k(k)
         {
         (*m_reference_shape) = shape;
         detail::mass_properties<Shape> mp(*m_reference_shape);
         m_volume = mp.getVolume();
+        m_ProvidedQuantities.push_back(SHAPE_SPRING_STIFFNESS);
         }
 
-};
-
-/*template <typename Shape> class ShapeSpring : public ShapeSpringBase<Shape> { Empty base template will fail on export to python. };
-
-template <>
-class ShapeSpring<ShapeEllipsoid> : public ShapeSpringBase<ShapeEllipsoid>
-{
-    using ShapeSpringBase<ShapeEllipsoid>::m_k;
-    using ShapeSpringBase<ShapeEllipsoid>::m_reference_shape;
-public:
-    ShapeSpring(Scalar k, ShapeEllipsoid::param_type ref) : ShapeSpringBase<ShapeEllipsoid>(k, ref) {}
-    Scalar operator()(const unsigned int& N, const ShapeEllipsoid::param_type& shape_new, const Scalar& inew, const ShapeEllipsoid::param_type& shape_old, const Scalar& iold)
+    void setStiffness(const std::shared_ptr<Variant>& stiff)
         {
-        //TODO: this uses the sphere as the reference. modify to use the reference shape.
-        Scalar x_new = shape_new.x/shape_new.y;
-        Scalar x_old = shape_old.x/shape_old.y;
-        return m_k*(log(x_old)*log(x_old) - log(x_new)*log(x_new)); // -\beta dH
+        m_k = stiff;
         }
-};*/
+
+    std::shared_ptr<Variant> getStiffness() const
+        {
+        return m_k;
+        }
+
+    //! Calculates the requested log value and returns true if the quantity was
+    //! provided by this class.
+    virtual bool getLogValue(const std::string& quantity, unsigned int timestep, Scalar& value)
+        {
+        if(quantity == SHAPE_SPRING_STIFFNESS)
+            {
+            value = m_k->getValue(timestep);
+            return true;
+            }
+        return false;
+        }
+};
 
 template<class Shape>
 class ShapeSpring : public ShapeSpringBase< Shape >
@@ -643,7 +643,7 @@ public:
                  eps_last(1,0)*eps_last(0,1) + eps_last(1,1)*eps_last(1,1) + eps_last(1,2)*eps_last(2,1) +
                  eps_last(2,0)*eps_last(0,2) + eps_last(2,1)*eps_last(1,2) + eps_last(2,2)*eps_last(2,2) ;
         // TODO: To make this more correct we need to calculate the previous volume and multiply accodingly.
-        return N*stiff*(e_ddot_e_last-e_ddot_e)*m_volume + fn(timestep,N,type_id,shape_new, inew, shape_old, iold); // -\beta dH
+        return N*stiff*(e_ddot_e_last-e_ddot_e)*m_volume + fn(timestep, N, type_id, shape_new, inew, shape_old, iold); // -\beta dH
         }
 
     Scalar computeEnergy(const unsigned int &timestep, const unsigned int& N, const unsigned int type_id, const typename Shape::param_type& shape, const Scalar& inertia)
