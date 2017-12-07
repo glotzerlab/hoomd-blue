@@ -1,7 +1,6 @@
 #include <utility>
 #include <memory>
 #include "EvalFactory.h"
-#include "OrcLazyJIT.h"
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
@@ -50,37 +49,13 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-    // Build engine with JIT
-    llvm::EngineBuilder EB;
-    auto TM = std::unique_ptr<llvm::TargetMachine>(EB.selectTarget());
-    auto CompileCallbackMgr = llvm::OrcLazyJIT::createCompileCallbackMgr(llvm::Triple(TM->getTargetTriple()));
-
-    // If we couldn't build the factory function then there must not be a callback
-    // manager for this target. Bail out.
-    if (!CompileCallbackMgr)
-        {
-        m_error_msg = "No callback manager available for target '" + TM->getTargetTriple().str() + "'.\n";
-        return;
-        }
-
-    auto IndirectStubsMgrBuilder = llvm::OrcLazyJIT::createIndirectStubsMgrBuilder(llvm::Triple(TM->getTargetTriple()));
-
-    // If we couldn't build a stubs-manager-builder for this target then bail out.
-    if (!IndirectStubsMgrBuilder)
-        {
-        m_error_msg = "No indirect stubs manager available for target '" + TM->getTargetTriple().str() + "'.\n";
-        return;
-        }
-
-    // Everything looks good. Build the JIT.
-    m_jit = std::shared_ptr<llvm::OrcLazyJIT>(new llvm::OrcLazyJIT(std::move(TM),
-                                std::move(CompileCallbackMgr),
-                                std::move(IndirectStubsMgrBuilder),
-                                true));
+    // Build the JIT
+    m_jit = std::unique_ptr<llvm::orc::KaleidoscopeJIT>(new llvm::orc::KaleidoscopeJIT());
 
     // Add the module, look up main and run it.
-    auto MainHandle = m_jit->addModule(std::move(Mod));
-    auto eval = m_jit->findSymbolIn(MainHandle, "eval");
+    m_jit->addModule(std::move(Mod));
+
+    auto eval = m_jit->findSymbol("eval");
 
     if (!eval)
         {
@@ -88,6 +63,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
+    m_eval = (EvalFnPtr) eval.getAddress();
+
     llvm_err.flush();
-    m_eval = llvm::fromTargetAddress<EvalFnPtr>(eval.getAddress());
     }
