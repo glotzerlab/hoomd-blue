@@ -76,29 +76,6 @@ public:
     //! Method that is called to connect to the gsd write state signal
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
 
-    // 
-    void setStiffness(const std::shared_ptr<Variant>& stiff)
-        {
-        m_log_boltz_function->m_k = stiff;
-        }
-
-    std::shared_ptr<Variant> getStiffness()
-        {
-        return m_log_boltz_function->m_k;
-        }
-
-
-protected:
-    static std::string getParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss>>snum;
-        return "shape_param-" + snum;
-        }
-
-
 private:
     unsigned int                m_seed;           //!< Random number seed
     unsigned int                m_nselect;
@@ -142,7 +119,6 @@ UpdaterShape<Shape>::UpdaterShape(std::shared_ptr<SystemDefinition> sysdef,
     m_ProvidedQuantities.push_back("shape_move_acceptance_ratio");
     m_ProvidedQuantities.push_back("shape_move_particle_volume");
     m_ProvidedQuantities.push_back("shape_move_energy");
-    m_ProvidedQuantities.push_back("shape_move_stiffness");
         {
         ArrayHandle<Scalar> h_det(m_determinant, access_location::host, access_mode::readwrite);
         ArrayHandle<unsigned int> h_ntypes(m_ntypes, access_location::host, access_mode::readwrite);
@@ -170,7 +146,12 @@ std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
 template < class Shape >
 Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if(quantity == "shape_move_acceptance_ratio")
+    Scalar value = 0.0;
+    if(m_move_function->getLogValue(quantity, timestep, value) || m_log_boltz_function->getLogValue(quantity, timestep, value))
+        {
+        return value;
+        }
+    else if(quantity == "shape_move_acceptance_ratio")
         {
         unsigned int ctAccepted = 0, ctTotal = 0;
         ctAccepted = std::accumulate(m_count_accepted.begin(), m_count_accepted.end(), 0);
@@ -202,22 +183,11 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             }
         return energy;
         }
-    else if(quantity == "shape_move_stiffness")
-        {
-        return m_log_boltz_function->m_k->getValue(timestep);
-        }
     else
-		    {
-		    for(size_t i = 0; i < m_num_params; i++)
-		    {
-		    if(quantity == getParamName(i))
-    			{
-    			return m_move_function->getParam(i);
-    			}
-		    }
-    		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
-    		throw std::runtime_error("Error getting log value");
-    		}
+	    {
+		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
+		throw std::runtime_error("Error getting log value");
+		}
     }
 
 /*! Perform Metropolis Monte Carlo shape deformations
@@ -410,6 +380,9 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
     if(m_log_boltz_function)
         return;
     m_log_boltz_function = lbf;
+    std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
+    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
+    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
@@ -418,11 +391,9 @@ void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<
     if(m_move_function) // if it exists I do not want to reset it.
         return;
     m_move_function = move;
-    m_num_params = m_move_function->getNumParam();
-    for(size_t i = 0; i < m_num_params; i++)
-        {
-        m_ProvidedQuantities.push_back(getParamName(i));
-        }
+    std::vector< std::string > quantities(m_move_function->getProvidedLogQuantities());
+    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
+    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
@@ -509,8 +480,6 @@ void export_UpdaterShape(pybind11::module& m, const std::string& name)
     .def("setStepSize", &UpdaterShape<Shape>::setStepSize)
     .def("connectGSDSignal", &UpdaterShape<Shape>::connectGSDSignal)
     .def("restoreStateGSD", &UpdaterShape<Shape>::restoreStateGSD)
-    .def("setStiffness", &UpdaterShape<Shape>::setStiffness)
-    .def("getStiffness", &UpdaterShape<Shape>::getStiffness)
     ;
     }
 
