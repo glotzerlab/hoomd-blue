@@ -795,6 +795,7 @@ class shape_update(_updater):
         setup_pos (bool): When True the updater will automatically update the POS analyzer if it is provided
         setup_callback (function): will override the default pos callback. will be called everytime the pos file is written
         nselect (int): number of types to change every time the updater is called.
+        nsweeps (int): number of times to change nselect types every time the updater is called.
 
     Note:
         Only one of the Monte Carlo move types are applied to evolve the particle shape definition. By default, no moves are applied.
