@@ -67,7 +67,7 @@ pipeline
                 ENABLE_MPI = 'ON'
                 BUILD_VALIDATION = 'OFF'
                 BUILD_JIT = 'OFF'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda75.img'
+                CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda75.img'
                 }
 
             steps
@@ -128,7 +128,7 @@ pipeline
                 ENABLE_MPI = 'OFF'
                 BUILD_VALIDATION = 'OFF'
                 BUILD_JIT = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170921-cuda80.img'
+                CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda80.img'
                 }
 
             steps
@@ -188,7 +188,7 @@ pipeline
                 ENABLE_MPI = 'ON'
                 BUILD_VALIDATION = 'ON'
                 BUILD_JIT = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170921-cuda80.img'
+                CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda80.img'
                 }
 
             steps

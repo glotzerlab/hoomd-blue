@@ -16,7 +16,11 @@ set(_llvm_libs ${LLVM_AVAILABLE_LIBS})
 foreach(LIB ${_llvm_libs})
     if(NOT TARGET ${LIB})
        find_library(FOUND_LIB_${LIB} ${LIB} HINTS ${LLVM_LIBRARY_DIRS})
-       list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
+       if (FOUND_LIB_${LIB})
+          list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
+       else()
+          message(WARNING "LLVM library ${LIB} not found. Ignoring. This may cause linking errors later or at runtime.")
+       endif()
     else()
        list(APPEND llvm_libs ${LIB})
     endif()
@@ -31,14 +35,12 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources
-    EvalFactory.cc
-    OrcLazyJIT.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
-							 PatchEnergyJITUnion.h
+                             PatchEnergyJITUnion.h
                              EvalFactory.h
-                             OrcLazyJIT.h
+                             KaleidoscopeJIT.h
    )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc
