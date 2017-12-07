@@ -1419,6 +1419,4 @@ class elastic_shape(shape_update):
             stiffness (float) or (:py:mod:`hoomd.variant`): :math:`\frac{k}/{k_{\mathrm{B}}T}`.
         """
         self.stiffness = hoomd.variant._setup_variant_input(stiffness)
-        self.cpp_updater.setStiffness(self.stiffness.cpp_variant)
-        #del self.vertex_shape_move
-        #del self.python_shape_move
+        self.boltzmann_function.setStiffness(self.stiffness.cpp_variant)

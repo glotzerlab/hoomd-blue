@@ -416,8 +416,10 @@ class shape_updater_test(unittest.TestCase):
         self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
         stiffness = hoomd.variant.linear_interp([(0,100), (100, 80)]);
         self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.1, move_ratio=1.0, seed=3832765, stiffness=stiffness, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
+        k = hoomd.variant.linear_interp([(0,128), (100, 64)]);
+        self.updater.set_stiffness(k)
         hoomd.analyze.log(filename="shape_updater.log", period=10, overwrite=True, quantities=['shape_move_energy', 'shape_move_stiffness', 'shape_move_acceptance_ratio', 'shape_move_particle_volume'])
-        hoomd.run(100)
+        hoomd.run(101)
 
 
 if __name__ == '__main__':

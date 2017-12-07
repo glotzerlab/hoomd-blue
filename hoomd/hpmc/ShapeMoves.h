@@ -592,7 +592,7 @@ public:
         m_ProvidedQuantities.push_back(SHAPE_SPRING_STIFFNESS);
         }
 
-    void setStiffness(const std::shared_ptr<Variant>& stiff)
+    void setStiffness(std::shared_ptr<Variant> stiff)
         {
         m_k = stiff;
         }
