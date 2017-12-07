@@ -182,7 +182,7 @@ def read_getar(filename, modes={'any': 'any'}):
     snapshot = initializer.initialize(newModes);
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
 
     try:
         box = snapshot._global_box;
@@ -239,7 +239,7 @@ def read_snapshot(snapshot):
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
@@ -296,7 +296,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         time_step = reader.getTimeStep();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
