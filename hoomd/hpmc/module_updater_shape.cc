@@ -50,7 +50,6 @@ void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name)
     pybind11::class_< ShapeLogBoltzmannFunction<Shape>, std::shared_ptr< ShapeLogBoltzmannFunction<Shape> > >
     (m, (name + "Interface").c_str() )
     .def(pybind11::init< >())
-    .def(pybind11::init< std::shared_ptr<Variant> >())
     ;
     }
 
@@ -59,7 +58,9 @@ void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::stri
     {
     pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> > >
     (m, name.c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
-    .def(pybind11::init< std::shared_ptr<Variant>, typename Shape::param_type,std::shared_ptr<elastic_shape_move_function<Shape, Saru> > >())
+    .def( pybind11::init<   std::shared_ptr<Variant>,
+                            typename Shape::param_type,
+                            std::shared_ptr<elastic_shape_move_function<Shape, Saru> > >())
     ;
     }
 
