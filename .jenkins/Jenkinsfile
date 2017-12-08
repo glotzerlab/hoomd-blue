@@ -172,20 +172,20 @@ pipeline
                 }
             }
 
-        stage('vld-clang38-py35-mpi-cd80')
+        stage('vld-gcc6-py36-mpi-cd90')
             {
             agent { label 'gpu' }
 
             environment
                 {
-                CC = '/usr/bin/clang'
-                CXX = '/usr/bin/clang++'
-                PYVER = '3.5'
-                CMAKE_BIN = '/usr/bin'
+                CC = '/usr/sbin/gcc-6'
+                CXX = '/usr/sbin/g++-6'
+                PYVER = '3.6'
+                CMAKE_BIN = '/usr/sbin'
                 ENABLE_CUDA = 'ON'
                 ENABLE_MPI = 'ON'
                 BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
+                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
                 }
 
             steps
@@ -230,6 +230,5 @@ pipeline
                     }
                 }
             }
-
         }
     }

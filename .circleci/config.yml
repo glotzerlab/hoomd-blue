@@ -29,6 +29,13 @@ references:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
+  test_container_config-arch: &test_container_config-arch
+    docker:
+      - image: joaander/ci:20171206-arch-2
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
   conda_container_config: &conda_container_config
     docker:
       - image: joaander/conda-build:20170821
@@ -177,13 +184,13 @@ jobs:
       BUILD_VALIDATION: OFF
     <<: *build_and_test
 
-  vld-clang38-py35-mpi:
-    <<: *test_container_config
+  vld-clang50-py36-mpi:
+    <<: *test_container_config-arch
     environment:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
+      CC: /usr/sbin/clang
+      CXX: /usr/sbin/clang++
+      PYVER: "3.6"
+      CMAKE_BIN: /usr/sbin
       ENABLE_MPI: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: ON
