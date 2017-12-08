@@ -262,7 +262,7 @@ workflows:
           filters:
             branches:
               ignore: release
-      - vld-clang38-py35-mpi:
+      - vld-clang50-py36-mpi:
           filters:
             branches:
               ignore: release
