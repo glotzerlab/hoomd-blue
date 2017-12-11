@@ -74,7 +74,7 @@ def rand_equiv_lattice(a1=[1.,0.,0.], a2=[0.,1.,0.], a3=[0.,0.,1.], ndim=3, iter
         # pick a lattice vector and direction by which to shear box and apply to remaining lattice vectors
         i = random.randint(0, ndim-1)
         e = a[i] * random.choice([-1,1])
-        a[np.arange(ndim) != i] += e
+        a[np.arange(3) != i] += e
     b1, b2, b3 = a[0:3]
     return b1, b2, b3
 
