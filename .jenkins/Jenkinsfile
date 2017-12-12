@@ -5,57 +5,10 @@ pipeline
 
     stages
         {
-        stage('conda-build-mac')
-            {
-            agent { label 'mac' }
-
-            environment
-                {
-                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
-                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
-                }
-
-            steps
-                {
-                sh 'echo ${CONDA_BLD_PATH}'
-
-                retry(5)
-                    {
-                    dir('code')
-                        {
-                        checkout scm
-
-                        timeout(time: 2, unit: 'HOURS')
-                            {
-                            sh 'git submodule update --init'
-
-                            sh '''
-                               conda build conda-recipe
-                               '''
-                            }
-                        }
-                    }
-
-                script
-                    {
-                    if (env.BRANCH_NAME == 'release')
-                        {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
-                        }
-                    }
-                }
-            post
-                {
-                always
-                    {
-                    deleteDir()
-                    }
-                }
-            }
-
         stage('unit-gcc49-py27-cd75')
             {
             agent { label 'gpu' }
+            when { not { branch 'release' } }
 
             environment
                 {
@@ -116,6 +69,7 @@ pipeline
         stage('unit-clang38-py35-cd80')
             {
             agent { label 'gpu' }
+            when { not { branch 'release' } }
 
             environment
                 {
@@ -172,20 +126,21 @@ pipeline
                 }
             }
 
-        stage('vld-clang38-py35-mpi-cd80')
+        stage('vld-gcc6-py36-mpi-cd90')
             {
             agent { label 'gpu' }
+            when { not { branch 'release' } }
 
             environment
                 {
-                CC = '/usr/bin/clang'
-                CXX = '/usr/bin/clang++'
-                PYVER = '3.5'
-                CMAKE_BIN = '/usr/bin'
+                CC = '/usr/sbin/gcc-6'
+                CXX = '/usr/sbin/g++-6'
+                PYVER = '3.6'
+                CMAKE_BIN = '/usr/sbin'
                 ENABLE_CUDA = 'ON'
                 ENABLE_MPI = 'ON'
                 BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
+                CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
                 }
 
             steps
@@ -231,5 +186,52 @@ pipeline
                 }
             }
 
+        stage('conda-build-mac')
+            {
+            agent { label 'mac' }
+
+            environment
+                {
+                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
+                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
+                }
+
+            steps
+                {
+                sh 'echo ${CONDA_BLD_PATH}'
+
+                retry(5)
+                    {
+                    dir('code')
+                        {
+                        checkout scm
+
+                        timeout(time: 2, unit: 'HOURS')
+                            {
+                            sh 'git submodule update --init'
+
+                            sh '''
+                               conda build conda-recipe
+                               '''
+                            }
+                        }
+                    }
+
+                script
+                    {
+                    if (env.BRANCH_NAME == 'release')
+                        {
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
+                        }
+                    }
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                }
+            }
         }
     }
