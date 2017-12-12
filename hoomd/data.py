@@ -2298,11 +2298,11 @@ def gsd_snapshot(filename, frame=0):
 
     Args:
         filename (str): GSD file to read the snapshot from.
-        frame (int): Frame to read from the GSD file.
+        frame (int): Frame to read from the GSD file. Negative values index from the end of the file.
 
     :py:func:`hoomd.data.gsd_snapshot()` opens the given GSD file and reads a snapshot from it.
     """
-    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
+    reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
     return reader.getSnapshot();
 
 
