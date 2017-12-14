@@ -7,24 +7,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-
-# grab all available libs
-set(_llvm_libs ${LLVM_AVAILABLE_LIBS})
-
-# add library directory as necessary
-# https://stackoverflow.com/questions/36757842/cmake-use-foreach-and-find-library-to-return-full-path-of-libraries
-foreach(LIB ${_llvm_libs})
-    if(NOT TARGET ${LIB})
-       find_library(FOUND_LIB_${LIB} ${LIB} HINTS ${LLVM_LIBRARY_DIRS})
-       if (FOUND_LIB_${LIB})
-          list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
-       else()
-          message(WARNING "LLVM library ${LIB} not found. Ignoring. This may cause linking errors later or at runtime.")
-       endif()
-    else()
-       list(APPEND llvm_libs ${LIB})
-    endif()
-endforeach()
+llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object transformutils lto)
 
 # set files to compile
 set(_${PACKAGE_NAME}_sources
