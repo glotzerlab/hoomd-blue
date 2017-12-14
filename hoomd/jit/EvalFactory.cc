@@ -1,11 +1,16 @@
 #include <utility>
 #include <memory>
+#include <sstream>
 #include "EvalFactory.h"
 
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+#include "llvm/ExecutionEngine/Orc/OrcABISupport.h"
+#else
 #include "llvm/ExecutionEngine/Orc/OrcArchitectureSupport.h"
+#endif
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Support/DynamicLibrary.h"
@@ -32,7 +37,11 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
             return;
         }
 
+    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+    llvm::LLVMContext Context;
+    #else
     llvm::LLVMContext &Context = llvm::getGlobalContext();
+    #endif
     llvm::SMDiagnostic Err;
 
     // Read the input IR data
@@ -63,7 +72,11 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
+    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+    m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
+    #else
     m_eval = (EvalFnPtr) eval.getAddress();
+    #endif
 
     llvm_err.flush();
     }
