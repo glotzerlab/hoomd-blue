@@ -39,7 +39,8 @@ class GSDReader
         //! Loads in the file and parses the data
         GSDReader(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                   const std::string &name,
-                  const uint64_t frame);
+                  const uint64_t frame,
+                  bool from_end);
 
         //! Destructor
         ~GSDReader();
