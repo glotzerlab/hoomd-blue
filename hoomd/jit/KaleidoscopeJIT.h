@@ -23,7 +23,7 @@
 #include "llvm/ExecutionEngine/Orc/LambdaResolver.h"
 
 // work around ObjectLinkingLayer -> RTDyldObjectLinkingLayer rename
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 4
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
 #include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #else
@@ -42,7 +42,7 @@ namespace orc {
 
 class KaleidoscopeJIT {
 public:
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 4
   typedef RTDyldObjectLinkingLayer ObjLayerT;
   typedef IRCompileLayer<ObjLayerT, SimpleCompiler> CompileLayerT;
   typedef CompileLayerT::ModuleHandleT ModuleHandleT;
@@ -112,7 +112,25 @@ public:
   ModuleHandleT addModule(std::unique_ptr<Module> M) {
     // We need a memory manager to allocate memory and resolve symbols for this
     // new module. Create one that resolves symbols by looking back into the
-    // JIT.
+    // JIT
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR == 4
+    // Build our symbol resolver:
+    // Lambda 1: Look back into the JIT itself to find symbols that are part of
+    //           the same "logical dylib".
+    // Lambda 2: Search for external symbols in the host process.
+    auto Resolver = createLambdaResolver(
+        [&](const std::string &Name) {
+          if (auto Sym = CompileLayer.findSymbol(Name, false))
+            return Sym;
+          return JITSymbol(nullptr);
+        },
+        [](const std::string &Name) {
+          if (auto SymAddr =
+                RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+            return JITSymbol(SymAddr, JITSymbolFlags::Exported);
+          return JITSymbol(nullptr);
+        });
+#else
     auto Resolver = createLambdaResolver(
         [&](const std::string &Name) {
           if (auto Sym = findMangledSymbol(Name))
@@ -120,6 +138,7 @@ public:
           return RuntimeDyld::SymbolInfo(nullptr);
         },
         [](const std::string &S) { return nullptr; });
+#endif
     auto H = CompileLayer.addModuleSet(singletonSet(std::move(M)),
                                        make_unique<SectionMemoryManager>(),
                                        std::move(Resolver));

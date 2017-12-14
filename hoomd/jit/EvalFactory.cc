@@ -6,7 +6,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/IRReader/IRReader.h"
-#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
 #include "llvm/ExecutionEngine/Orc/OrcABISupport.h"
 #else
 #include "llvm/ExecutionEngine/Orc/OrcArchitectureSupport.h"
@@ -37,7 +37,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
             return;
         }
 
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 3 || (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR >= 9)
     llvm::LLVMContext Context;
     #else
     llvm::LLVMContext &Context = llvm::getGlobalContext();
@@ -72,7 +72,7 @@ EvalFactory::EvalFactory(const std::string& llvm_ir)
         return;
         }
 
-    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 4
+    #if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR >= 5
     m_eval = (EvalFnPtr)(long unsigned int)(cantFail(eval.getAddress()));
     #else
     m_eval = (EvalFnPtr) eval.getAddress();
