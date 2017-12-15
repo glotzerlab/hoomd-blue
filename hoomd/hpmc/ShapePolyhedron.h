@@ -527,6 +527,16 @@ DEVICE inline OverlapReal shortest_distance_triangles(
 
 #include <hoomd/extern/triangle_triangle.h>
 
+/*! Test overlap in narrow phase
+
+    \param dr separation vector between the particles, IN THE REFERENCE FRAME of b
+    \param a first shape
+    \param b second shape
+    \param cur_node_a Node in a's tree to check
+    \param cur_node_a Node in b's tree to check
+    \param err gets incremented if there are errors (not currently implemented)
+    \param abs_tol an absolute tolerance for the triangle triangle check
+ */
 DEVICE inline bool test_narrow_phase_overlap( vec3<OverlapReal> dr,
                                               const ShapePolyhedron& a,
                                               const ShapePolyhedron& b,
@@ -837,14 +847,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
             // rotate and translate a's obb into b's body frame
-            obb_a.affineTransform(conj(b.orientation)*a.orientation,
-                rotate(conj(b.orientation),-r_ab));
+            vec3<OverlapReal> dr_rot(rotate(conj(b.orientation),-r_ab));
+            obb_a.affineTransform(conj(b.orientation)*a.orientation, dr_rot);
 
             unsigned cur_node_b = 0;
             while (cur_node_b < tree_b.getNumNodes())
                 {
                 unsigned int query_node = cur_node_b;
-                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(r_ab, a, b, cur_node_a, query_node, err, abs_tol)) return true;
+                if (tree_b.queryNode(obb_a, cur_node_b) && test_narrow_phase_overlap(dr_rot, a, b, cur_node_a, query_node, err, abs_tol)) return true;
                 }
             }
         }
@@ -856,14 +866,14 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
             // rotate and translate b's obb into a's body frame
-            obb_b.affineTransform(conj(a.orientation)*b.orientation,
-                rotate(conj(a.orientation),r_ab));
+            vec3<OverlapReal> dr_rot(rotate(conj(a.orientation),r_ab));
+            obb_b.affineTransform(conj(a.orientation)*b.orientation, dr_rot);
 
             unsigned cur_node_a = 0;
             while (cur_node_a < tree_a.getNumNodes())
                 {
                 unsigned int query_node = cur_node_a;
-                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(-r_ab, b, a, cur_node_b, query_node, err,abs_tol)) return true;
+                if (tree_a.queryNode(obb_b, cur_node_a) && test_narrow_phase_overlap(dr_rot, b, a, cur_node_b, query_node, err,abs_tol)) return true;
                 }
             }
         }
@@ -891,7 +901,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
         unsigned int query_node_b = cur_node_b;
 
         if (detail::traverseBinaryStack(tree_a, tree_b, cur_node_a, cur_node_b, stack, obb_a, obb_b, q,dr_rot)
-            && test_narrow_phase_overlap(dr, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
+            && test_narrow_phase_overlap(dr_rot, a, b, query_node_a, query_node_b, err, abs_tol)) return true;
         }
     #endif
     #endif
