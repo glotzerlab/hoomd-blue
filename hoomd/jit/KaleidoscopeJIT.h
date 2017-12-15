@@ -14,22 +14,88 @@
 #ifndef LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H
 #define LLVM_EXECUTIONENGINE_ORC_KALEIDOSCOPEJIT_H
 
+#include "llvm/Config/llvm-config.h"
+
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/RTDyldMemoryManager.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
 #include "llvm/ExecutionEngine/Orc/IRCompileLayer.h"
 #include "llvm/ExecutionEngine/Orc/LambdaResolver.h"
+
+// work around ObjectLinkingLayer -> RTDyldObjectLinkingLayer rename
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 4
+#include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
+#else
 #include "llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h"
+#endif
+
 #include "llvm/IR/Mangler.h"
 #include "llvm/Support/DynamicLibrary.h"
 
-#include <llvm/ExecutionEngine/Orc/ExecutionUtils.h>
+#include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
+
+#include <memory>
 
 namespace llvm {
 namespace orc {
 
 class KaleidoscopeJIT {
 public:
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR > 4
+  typedef RTDyldObjectLinkingLayer ObjLayerT;
+  typedef IRCompileLayer<ObjLayerT, SimpleCompiler> CompileLayerT;
+  typedef CompileLayerT::ModuleHandleT ModuleHandleT;
+
+  KaleidoscopeJIT()
+      : TM(EngineBuilder().selectTarget()), DL(TM->createDataLayout()),
+        ObjectLayer([]() { return std::make_shared<SectionMemoryManager>(); }),
+        CompileLayer(ObjectLayer, SimpleCompiler(*TM)),
+        CXXRuntimeOverrides(
+            [this](const std::string &S) { return mangle(S); })
+        {
+        llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+        }
+
+    ModuleHandleT addModule(std::unique_ptr<Module> M) {
+      // Build our symbol resolver:
+      // Lambda 1: Look back into the JIT itself to find symbols that are part of
+      //           the same "logical dylib".
+      // Lambda 2: Search for external symbols in the host process.
+      auto Resolver = createLambdaResolver(
+          [&](const std::string &Name) {
+            if (auto Sym = CompileLayer.findSymbol(Name, false))
+              return Sym;
+            return JITSymbol(nullptr);
+          },
+          [](const std::string &Name) {
+            if (auto SymAddr =
+                  RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+              return JITSymbol(SymAddr, JITSymbolFlags::Exported);
+            return JITSymbol(nullptr);
+          });
+
+      // Add the set to the JIT with the resolver we created above and a newly
+      // created SectionMemoryManager.
+      return cantFail(CompileLayer.addModule(std::move(M),
+                                             std::move(Resolver)));
+    }
+
+  JITSymbol findSymbol(const std::string Name) {
+    std::string MangledName;
+    raw_string_ostream MangledNameStream(MangledName);
+    Mangler::getNameWithPrefix(MangledNameStream, Name, DL);
+    return CompileLayer.findSymbol(MangledNameStream.str(), true);
+  }
+
+  JITTargetAddress getSymbolAddress(const std::string Name) {
+    return cantFail(findSymbol(Name).getAddress());
+  }
+
+  void removeModule(ModuleHandleT H) {
+    cantFail(CompileLayer.removeModule(H));
+  }
+#else
   typedef ObjectLinkingLayer<> ObjLayerT;
   typedef IRCompileLayer<ObjLayerT> CompileLayerT;
   typedef CompileLayerT::ModuleSetHandleT ModuleHandleT;
@@ -38,17 +104,33 @@ public:
       : TM(EngineBuilder().selectTarget()), DL(TM->createDataLayout()),
         CompileLayer(ObjectLayer, SimpleCompiler(*TM)),
         CXXRuntimeOverrides(
-            [this](const std::string &S) { return mangle(S); }) 
- {
-    llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-  }
-
-  TargetMachine &getTargetMachine() { return *TM; }
+            [this](const std::string &S) { return mangle(S); })
+      {
+      llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
+      }
 
   ModuleHandleT addModule(std::unique_ptr<Module> M) {
     // We need a memory manager to allocate memory and resolve symbols for this
     // new module. Create one that resolves symbols by looking back into the
-    // JIT.
+    // JIT
+#if defined LLVM_VERSION_MAJOR && LLVM_VERSION_MAJOR == 4
+    // Build our symbol resolver:
+    // Lambda 1: Look back into the JIT itself to find symbols that are part of
+    //           the same "logical dylib".
+    // Lambda 2: Search for external symbols in the host process.
+    auto Resolver = createLambdaResolver(
+        [&](const std::string &Name) {
+          if (auto Sym = CompileLayer.findSymbol(Name, false))
+            return Sym;
+          return JITSymbol(nullptr);
+        },
+        [](const std::string &Name) {
+          if (auto SymAddr =
+                RTDyldMemoryManager::getSymbolAddressInProcess(Name))
+            return JITSymbol(SymAddr, JITSymbolFlags::Exported);
+          return JITSymbol(nullptr);
+        });
+#else
     auto Resolver = createLambdaResolver(
         [&](const std::string &Name) {
           if (auto Sym = findMangledSymbol(Name))
@@ -56,6 +138,7 @@ public:
           return RuntimeDyld::SymbolInfo(nullptr);
         },
         [](const std::string &S) { return nullptr; });
+#endif
     auto H = CompileLayer.addModuleSet(singletonSet(std::move(M)),
                                        make_unique<SectionMemoryManager>(),
                                        std::move(Resolver));
@@ -73,6 +156,10 @@ public:
   JITSymbol findSymbol(const std::string Name) {
     return findMangledSymbol(mangle(Name));
   }
+#endif
+
+
+  TargetMachine &getTargetMachine() { return *TM; }
 
 private:
 
