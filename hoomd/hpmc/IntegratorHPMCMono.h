@@ -577,7 +577,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             bool overlap=false;
             OverlapReal r_cut_patch = 0;
 
-            if (m_patch)
+            if (m_patch && !m_patch_log)
                 {
                 r_cut_patch = m_patch->getRCut();
                 }
@@ -649,7 +649,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (m_patch && !m_patch_log && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
@@ -680,7 +680,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 } // end loop over images
 
             // calculate old patch energy only if m_patch not NULL and no overlaps
-            if (m_patch && !overlap)
+            if (m_patch && !m_patch_log && !overlap)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
