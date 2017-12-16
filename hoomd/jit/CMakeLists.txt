@@ -7,20 +7,7 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "LLVM Definitions: ${LLVM_DEFINITIONS}")
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-
-# grab all available libs
-set(_llvm_libs ${LLVM_AVAILABLE_LIBS})
-
-# add library directory as necessary
-# https://stackoverflow.com/questions/36757842/cmake-use-foreach-and-find-library-to-return-full-path-of-libraries
-foreach(LIB ${_llvm_libs})
-    if(NOT TARGET ${LIB})
-       find_library(FOUND_LIB_${LIB} ${LIB} HINTS ${LLVM_LIBRARY_DIRS})
-       list(APPEND llvm_libs ${FOUND_LIB_${LIB}})
-    else()
-       list(APPEND llvm_libs ${LIB})
-    endif()
-endforeach()
+llvm_map_components_to_libnames(llvm_libs executionengine support core irreader native runtimedyld orcjit object transformutils lto)
 
 # set files to compile
 set(_${PACKAGE_NAME}_sources
@@ -31,14 +18,12 @@ set(_${PACKAGE_NAME}_sources
 
 # we compile a separate package just for the LLVM-interfacing part,
 # so that can be compiled with and without RTTI
-set(_${PACKAGE_NAME}_llvm_sources
-    EvalFactory.cc
-    OrcLazyJIT.cc)
+set(_${PACKAGE_NAME}_llvm_sources EvalFactory.cc)
 
 set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
-							 PatchEnergyJITUnion.h
+                             PatchEnergyJITUnion.h
                              EvalFactory.h
-                             OrcLazyJIT.h
+                             KaleidoscopeJIT.h
    )
 
 # Need to define NO_IMPORT_ARRAY in every file but module.cc

@@ -23,6 +23,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "Profiler.h"
 #include "Index1D.h"
 #include "HOOMDMath.h"
+#include "HOOMDMPI.h"
 #include "ParticleData.h"
 
 #ifdef ENABLE_CUDA
@@ -197,6 +198,21 @@ class BondedGroupData
              *  \param old_n_particles Number of particles in system to be replicated
              */
             void replicate(unsigned int n, unsigned int old_n_particles);
+
+            #ifdef ENABLE_MPI
+            //! Broadcast the snapshot
+            /*! \param root the processor to send from
+             *  \param mpi_comm The MPI communicator
+             */
+            void bcast(unsigned int root, MPI_Comm mpi_comm)
+                {
+                ::bcast(type_id, root, mpi_comm);
+                ::bcast(val, root, mpi_comm);
+                ::bcast(groups, root, mpi_comm);
+                ::bcast(type_mapping, root, mpi_comm);
+                ::bcast(size, root, mpi_comm);
+                }
+            #endif
 
             //! Get type as a numpy array
             pybind11::object getTypeNP();

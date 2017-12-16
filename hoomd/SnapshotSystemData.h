@@ -91,7 +91,17 @@ struct SnapshotSystemData {
     /*! \param exec_conf The execution configuration
         Broadcasts the box and other metadata. Large particle data arrays are left on rank 0.
     */
-    void broadcast(std::shared_ptr<ExecutionConfiguration> exec_conf);
+    void broadcast_box(std::shared_ptr<ExecutionConfiguration> exec_conf);
+
+    // Broadcast snapshot from root to all ranks
+    /*! \param exec_conf The execution configuration
+    */
+    void broadcast(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
+
+    // Broadcast snapshot from root to all partitions
+    /*! \param exec_conf The execution configuration
+    */
+    void broadcast_all(unsigned int root, std::shared_ptr<ExecutionConfiguration> exec_conf);
     };
 
 //! Export SnapshotParticleData to python

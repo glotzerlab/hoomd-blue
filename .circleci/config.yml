@@ -3,28 +3,35 @@ version: 2
 references:
   test_container_config: &test_container_config
     docker:
-      - image: joaander/ci:20170921
+      - image: joaander/ci:20171130
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda80: &test_container_config-cuda80
     docker:
-      - image: joaander/ci:20170921-cuda80
+      - image: joaander/ci:20171130-cuda80
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda75: &test_container_config-cuda75
     docker:
-      - image: joaander/ci:20170809-cuda75
+      - image: joaander/ci:20171130-cuda75
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda70: &test_container_config-cuda70
     docker:
-      - image: joaander/ci:20170811-cuda70
+      - image: joaander/ci:20171130-cuda70
+        environment:
+          PYTHONPATH: /home/ci/project/build
+    working_directory: /home/ci/project
+
+  test_container_config-arch: &test_container_config-arch
+    docker:
+      - image: joaander/ci:20171206-arch-2
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
@@ -185,13 +192,13 @@ jobs:
       BUILD_JIT: ON
     <<: *build_and_test
 
-  vld-clang38-py35-mpi:
-    <<: *test_container_config
+  vld-clang50-py36-mpi:
+    <<: *test_container_config-arch
     environment:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      PYVER: "3.5"
-      CMAKE_BIN: /usr/bin
+      CC: /usr/sbin/clang
+      CXX: /usr/sbin/clang++
+      PYVER: "3.6"
+      CMAKE_BIN: /usr/sbin
       ENABLE_MPI: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: ON
@@ -236,15 +243,42 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - unit-gcc48-py27-cm28-mpi
-      - gcc48-py27-cm28-mpi-cd80
-      - gcc49-py34-mpi-cd75
-      - gcc54-py35-mpi-cd80
-      - gcc48-py34-cm28-mpi-cd70
-      - clang34-py34-cm28-mpi
-      - unit-clang38-py35
-      - vld-clang38-py35-mpi
-      - sphinx-docs
+      - unit-gcc48-py27-cm28-mpi:
+          filters:
+            branches:
+              ignore: release
+      - gcc48-py27-cm28-mpi-cd80:
+          filters:
+            branches:
+              ignore: release
+      - gcc49-py34-mpi-cd75:
+          filters:
+            branches:
+              ignore: release
+      - gcc54-py35-mpi-cd80:
+          filters:
+            branches:
+              ignore: release
+      - gcc48-py34-cm28-mpi-cd70:
+          filters:
+            branches:
+              ignore: release
+      - clang34-py34-cm28-mpi:
+          filters:
+            branches:
+              ignore: release
+      - unit-clang38-py35:
+          filters:
+            branches:
+              ignore: release
+      - vld-clang50-py36-mpi:
+          filters:
+            branches:
+              ignore: release
+      - sphinx-docs:
+          filters:
+            branches:
+              ignore: release
       - conda-build
       - conda-upload:
           context: org-global
