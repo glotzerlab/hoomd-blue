@@ -288,10 +288,16 @@ class IntegratorHPMC : public Integrator
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
 
-        ExternalField* getExternalField() { return m_external_base; }
+        ExternalField* getExternalField()
+            {
+            return m_external_base;
+            }
 
-        //! Rueturns the patch energy interaction
-        std::shared_ptr<PatchEnergy> getPatchInteraction() { return m_patch; }
+        //! Returns the patch energy interaction
+        std::shared_ptr<PatchEnergy> getPatchInteraction()
+            {
+            return m_patch;
+            }
 
         //! Compute the energy due to patch interactions
         /*! \param timestep the current time step

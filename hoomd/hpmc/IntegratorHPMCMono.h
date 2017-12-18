@@ -28,8 +28,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-//#include "ShapeSphere.h"
-
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
