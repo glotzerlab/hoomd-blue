@@ -63,6 +63,7 @@ set(TEST_LIST_CPU
     map_overlap.py
     hpmc_gsd_state.py
     faceted_sphere.py
+    enthalpic_interaction.py
     )
 
 set(TEST_LIST_GPU

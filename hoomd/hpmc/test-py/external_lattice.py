@@ -65,7 +65,7 @@ class external_field_lattice(unittest.TestCase):
                 self.assertLess(abs(leng-eng)/eng, 0.001); # the difference is <0.1%.
                 self.assertLess(abs(avg-uein), sigma);
 
-       
+
 
     def test_lattice(self):
         N=128;
