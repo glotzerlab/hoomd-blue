@@ -136,7 +136,8 @@ struct sph_params : param_base
     OverlapReal radius;                 //!< radius of sphere
     unsigned int ignore;                //!< Bitwise ignore flag for stats, overlaps. 1 will ignore, 0 will not ignore
                                         //   First bit is ignore overlaps, Second bit is ignore statistics
-    bool isOriented;                    //! Make spheres orientable again...
+    bool isOriented;                    //!< Flag to specify whether a sphere has orientation or not. Intended for
+                                        //!  for use with anisotropic/patchy pair potentials.
 
     #ifdef ENABLE_CUDA
     //! Attach managed memory to CUDA stream
@@ -159,7 +160,7 @@ struct ShapeSphere
     //! Does this shape have an orientation
     DEVICE bool hasOrientation() const
         {
-          return params.isOriented;
+        return params.isOriented;
         }
 
     //!Ignore flag for acceptance statistics
