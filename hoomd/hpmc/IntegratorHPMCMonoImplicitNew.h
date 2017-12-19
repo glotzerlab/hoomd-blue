@@ -160,11 +160,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         template<class RNG>
         inline void generateDepletant(RNG& rng, vec3<Scalar> pos_sphere, Scalar delta, Scalar d_min,
             vec3<Scalar>& pos, quat<Scalar>& orientation, const typename Shape::param_type& params_depletants);
-
-        //! Generate a random position in the spherical cap
-        template<class RNG>
-        inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
-             Scalar R, Scalar h, const vec3<Scalar>& d);
     };
 
 /*! \param sysdef System definition
@@ -284,6 +279,8 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
         }
+    this->m_image_list_valid = false;
+    this->m_aabb_tree_invalid = true;
 
     this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicitNew: updating nominal width to " << this->m_nominal_width << std::endl;
     }
@@ -586,7 +583,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 unsigned int insert_count = 0;
 
                 // for every pairwise intersection
-                Scalar V(0.0);
                 for (unsigned int k = 0; k < intersect_i.size(); ++k)
                     {
                     unsigned int j = intersect_i[k];
@@ -600,20 +596,35 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
                     Scalar d = sqrt(dot(rij,rij));
 
-                    // heights spherical caps that constitute the intersection volume
-                    Scalar hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
-                    Scalar hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
+                    // whether the interesection is the entire (smaller) sphere
+                    bool sphere = false;
+                    Scalar V;
+                    Scalar Vcap_i(0.0);
+                    Scalar Vcap_j(0.0);
+                    Scalar hi(0.0);
+                    Scalar hj(0.0);
 
-                    // volumes of spherical caps
-                    Scalar Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
-                    Scalar Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+                    if (d + Ri - Rj < 0 || d + Rj - Ri < 0)
+                        {
+                        sphere = true;
+                        V = (Ri < Rj) ? Scalar(M_PI*4.0/3.0)*Ri*Ri*Ri : Scalar(M_PI*4.0/3.0)*Rj*Rj*Rj;
+                        }
+                    else
+                        {
+                        // heights spherical caps that constitute the intersection volume
+                        hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
+                        hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
 
-                    // volume of intersection
-                    Scalar V_lens = Vcap_i + Vcap_j;
-                    V+=V_lens;
+                        // volumes of spherical caps
+                        Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
+                        Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+
+                        // volume of intersection
+                        V = Vcap_i + Vcap_j;
+                        }
 
                     // chooose the number of depletants in the intersection volume
-                    std::poisson_distribution<unsigned int> poisson(m_n_R*V_lens);
+                    std::poisson_distribution<unsigned int> poisson(m_n_R*V);
                     unsigned int n = poisson(rng_poisson);
 
                     // for every depletant
@@ -621,13 +632,25 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         {
                         insert_count++;
 
-                        // chose one of the two caps randomly, with a weight proportional to their volume
-                        Scalar s = rng_i.template s<Scalar>();
-                        bool cap_i = s < Vcap_i/V_lens;
+                        vec3<Scalar> pos_test;
+                        if (!sphere)
+                            {
+                            // choose one of the two caps randomly, with a weight proportional to their volume
+                            Scalar s = rng_i.template s<Scalar>();
+                            bool cap_i = s < Vcap_i/V;
 
-                        // generate a depletant position in the spherical cap
-                        vec3<Scalar> pos_test = cap_i ? generatePositionInSphericalCap(rng_i, ri, Ri, hi, rij)
-                            : generatePositionInSphericalCap(rng_i, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                            // generate a depletant position in the spherical cap
+                            pos_test = cap_i ? generatePositionInSphericalCap(rng_i, ri, Ri, hi, rij)
+                                : generatePositionInSphericalCap(rng_i, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                            }
+                        else
+                            {
+                            // generate a random position in the smaller sphere
+                            if (Ri < Rj)
+                                pos_test = generatePositionInSphere(rng_i, ri, Ri);
+                            else
+                                pos_test = generatePositionInSphere(rng_i, rj, Rj);
+                            }
 
                         Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
                         if (shape_test.hasOrientation())
@@ -685,6 +708,8 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                         // Check if the new configuration of particle i generates an overlap
                         bool overlap_new = false;
+
+                        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> r_ij = pos_i - pos_test;
 
@@ -828,7 +853,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
 
                     // for every pairwise intersection
-                    Scalar V(0.0);
                     for (unsigned int k = 0; k < intersect_i.size(); ++k)
                         {
                         unsigned int j = intersect_i[k];
@@ -851,22 +875,38 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+m_d_dep);
 
                         vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
+
                         Scalar d = sqrt(dot(rij,rij));
 
-                        // heights spherical caps that constitute the intersection volume
-                        Scalar hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
-                        Scalar hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
+                        // whether the interesection is the entire (smaller) sphere
+                        bool sphere = false;
+                        Scalar V;
+                        Scalar Vcap_i(0.0);
+                        Scalar Vcap_j(0.0);
+                        Scalar hi(0.0);
+                        Scalar hj(0.0);
 
-                        // volumes of spherical caps
-                        Scalar Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
-                        Scalar Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+                        if (d + Ri - Rj < 0 || d + Rj - Ri < 0)
+                            {
+                            sphere = true;
+                            V = (Ri < Rj) ? Scalar(M_PI*4.0/3.0)*Ri*Ri*Ri : Scalar(M_PI*4.0/3.0)*Rj*Rj*Rj;
+                            }
+                        else
+                            {
+                            // heights spherical caps that constitute the intersection volume
+                            hi = (Rj*Rj - (d-Ri)*(d-Ri))/(2*d);
+                            hj = (Ri*Ri - (d-Rj)*(d-Rj))/(2*d);
 
-                        // volume of intersection
-                        Scalar V_lens = Vcap_i + Vcap_j;
-                        V+=V_lens;
+                            // volumes of spherical caps
+                            Vcap_i = Scalar(M_PI/3.0)*hi*hi*(3*Ri-hi);
+                            Vcap_j = Scalar(M_PI/3.0)*hj*hj*(3*Rj-hj);
+
+                            // volume of intersection
+                            V = Vcap_i + Vcap_j;
+                            }
 
                         // chooose the number of depletants in the intersection volume
-                        std::poisson_distribution<unsigned int> poisson(m_n_R*V_lens);
+                        std::poisson_distribution<unsigned int> poisson(m_n_R*V);
                         unsigned int n = poisson(rng_poisson);
 
                         // for every depletant
@@ -874,13 +914,25 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             {
                             insert_count++;
 
-                            // chose one of the two caps randomly, with a weight proportional to their volume
-                            Scalar s = rng_i.template s<Scalar>();
-                            bool cap_i = s < Vcap_i/V_lens;
+                            vec3<Scalar> pos_test;
+                            if (!sphere)
+                                {
+                                // choose one of the two caps randomly, with a weight proportional to their volume
+                                Scalar s = rng_i.template s<Scalar>();
+                                bool cap_i = s < Vcap_i/V;
 
-                            // generate a depletant position in the spherical cap
-                            vec3<Scalar> pos_test = cap_i ? generatePositionInSphericalCap(rng_i, ri, Ri, hi, rij)
-                                : generatePositionInSphericalCap(rng_i, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                                // generate a depletant position in the spherical cap
+                                pos_test = cap_i ? generatePositionInSphericalCap(rng_i, ri, Ri, hi, rij)
+                                    : generatePositionInSphericalCap(rng_i, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                                }
+                            else
+                                {
+                                // generate a random position in the smaller sphere
+                                if (Ri < Rj)
+                                    pos_test = generatePositionInSphere(rng_i, ri, Ri);
+                                else
+                                    pos_test = generatePositionInSphere(rng_i, rj, Rj);
+                                }
 
                             Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
                             if (shape_test.hasOrientation())
@@ -1151,64 +1203,6 @@ inline void IntegratorHPMCMonoImplicitNew<Shape>::generateDepletant(RNG& rng, ve
         orientation = generateRandomOrientation(rng);
         }
     pos = pos_depletant;
-    }
-
-/* Generate a uniformly distributed random position in a spherical cap
- *
- * \param rng The random number generator
- * \param pos_sphere Center of sphere
- * \param R radius of sphere
- * \param h height of spherical cap
- * \param d Vector normal to the cap
- */
-template<class Shape>
-template<class RNG>
-inline vec3<Scalar> IntegratorHPMCMonoImplicitNew<Shape>::generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
-     Scalar R, Scalar h, const vec3<Scalar>& d)
-    {
-    // draw a radial coordinate uniformly distributed in the spherical cap
-    Scalar u = rng.template s<Scalar>();
-    Scalar Rmh = R-h;
-    Scalar arg = 2*u*h*h*(3*R-h)/(Rmh*Rmh*Rmh)-1;
-    Scalar r;
-    if (arg > 1.0)
-        {
-        r = Scalar(0.5)*Rmh*(1+2*cosh(log(arg+sqrt(arg*arg-1))/3));
-        }
-    else
-        {
-        // principal branch of acos
-        r = Scalar(0.5)*Rmh*(1+2*cos(acos(arg)/3));
-        }
-
-    // draw a random unit vector in a zone of height h_prime in the spherical cap
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar h_prime = r-R+h;
-    Scalar z = (R-h)+h_prime*rng.template s<Scalar>();
-
-    // unit vector in cap direction
-    vec3<Scalar> n = d/sqrt(dot(d,d));
-
-    // find two unit vectors normal to n
-    vec3<Scalar> ez(0,0,1);
-    vec3<Scalar> n1, n2;
-    vec3<Scalar> c = cross(n,ez);
-    if (dot(c,c)==0.0)
-        {
-        n1 = vec3<Scalar>(1,0,0);
-        n2 = vec3<Scalar>(0,1,0);
-        }
-    else
-        {
-        n1 = c/sqrt(dot(c,c));
-        c = cross(n,n1);
-        n2 = c/sqrt(dot(c,c));
-        }
-
-    vec3<Scalar> r_cone = n1*sqrt(r*r-z*z)*cos(theta)+n2*sqrt(r*r-z*z)*sin(theta)+n*z;
-
-    // test depletant position
-    return pos_sphere+r_cone;
     }
 
 /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
