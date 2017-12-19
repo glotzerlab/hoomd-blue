@@ -343,7 +343,9 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                if (rsq_ij <= RaRb*RaRb)
+                                if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
+                                    h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
+                                    rsq_ij <= RaRb*RaRb)
                                     {
                                     // add connection
                                     this->m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
