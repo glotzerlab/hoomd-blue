@@ -822,6 +822,16 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // transform all particles on rank zero
     bool master = !m_exec_conf->getRank();
 
+    // compute the width of the active region
+    Scalar3 npd = box.getNearestPlaneDistance();
+    Scalar3 range = nominal_width / npd;
+
+    if (m_sysdef->getNDimensions() == 2)
+        {
+        // no interaction along z
+        range.z = 0;
+        }
+
     // reset list of rejected particles
     m_ptl_reject.clear();
 
@@ -832,10 +842,16 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         // create a copy of the box without periodic boundaries
         BoxDim global_box_nonperiodic = box;
-        global_box_nonperiodic.setPeriodic(make_uchar3(0,0,0));
+        global_box_nonperiodic.setPeriodic(m_pdata->getBox().getPeriodic());
 
         for (unsigned int i = 0; i < snap.size; ++i)
             {
+            // if the particle falls outside the active volume of global_box_nonperiodic, reject
+            if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
+                {
+                m_ptl_reject.insert(i);
+                }
+
             if (!line)
                 {
                 // point reflection
@@ -850,8 +866,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     snap.orientation[i] = q*snap.orientation[i];
                 }
 
-            // reject if outside box at new position
-            Scalar3 range = make_scalar3(0,0,0);
+            // reject if outside active volume of box at new position
             if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
                 m_ptl_reject.insert(i);
@@ -860,6 +875,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             // wrap particle back into box
             int3 img_i = box.getImage(snap.pos[i]);
             snap.pos[i] = box.shift(snap.pos[i], -img_i);
+
+            // reject if in outside image
+            // NOTE this could be relaxed, but then we need to extend the image list
+            if (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)
+                m_ptl_reject.insert(i);
             }
         }
 
