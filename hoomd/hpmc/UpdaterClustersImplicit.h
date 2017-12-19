@@ -77,8 +77,8 @@ class UpdaterClustersImplicit : public UpdaterClusters<Shape>
     };
 
 template< class Shape, class Integrator >
-void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
-    const std::map<unsigned int, unsigned int>& map)
+void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int timestep, vec3<Scalar> pivot,
+    quat<Scalar> q, bool line, const std::map<unsigned int, unsigned int>& map)
     {
     // call base class method
     UpdaterClusters<Shape>::findInteractions(timestep, pivot, q, line, map);
@@ -109,6 +109,9 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
     // cluster according to overlap of excluded volume shells
     // loop over local particles
     unsigned int nptl = this->m_pdata->getN();
+
+    Index2D overlap_idx = m_mc_implicit->getOverlapIndexer();
+    ArrayHandle<unsigned int> h_overlaps(m_mc_implicit->getInteractionMatrix(), access_location::host, access_mode::read);
 
     // access particle data
     ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -149,7 +152,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                             // read in its position and orientation
                             unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (i == j) continue;
+                            if (this->m_tag_backup[i] == this->m_tag_backup[j] && cur_image == 0) continue;
 
                             // load the position and orientation of the j particle
                             vec3<Scalar> pos_j = vec3<Scalar>(this->m_postype_backup[j]);
@@ -164,7 +167,9 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                             Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                             Scalar rsq_ij = dot(r_ij, r_ij);
 
-                            if (rsq_ij <= RaRb*RaRb)
+                            if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
+                                h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
+                                rsq_ij <= RaRb*RaRb)
                                 {
                                 auto it = map.find(this->m_tag_backup[i]);
                                 assert(it != map.end());
@@ -173,6 +178,13 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 assert(it!=map.end());
                                 unsigned int new_tag_j = it->second;
                                 this->m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
+
+                                if (cur_image && line)
+                                    {
+                                    // if interaction across PBC, reject cluster move
+                                    this->m_local_reject.insert(new_tag_i);
+                                    this->m_local_reject.insert(new_tag_j);
+                                    }
                                 } // end if overlap
 
                             } // end loop over AABB tree leaf
@@ -227,11 +239,11 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                             // read in its position and orientation
                             unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
+                            if (h_tag.data[i] == this->m_tag_backup[j] && cur_image == 0) continue;
+
                             auto it = map.find(this->m_tag_backup[j]);
                             assert(it != map.end());
                             unsigned int new_tag_j = it->second;
-
-                            if (h_tag.data[i] == new_tag_j) continue;
 
                             vec3<Scalar> pos_j(this->m_postype_backup[j]);
                             unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
@@ -245,11 +257,18 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                             Scalar RaRb = r_excl_i + r_excl_j + d_dep;
                             Scalar rsq_ij = dot(r_ij, r_ij);
 
-                            if (rsq_ij <= RaRb*RaRb)
+                            if (h_overlaps.data[overlap_idx(typ_i,depletant_type)] &&
+                                h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
+                                rsq_ij <= RaRb*RaRb)
                                 {
-                                auto iti = map.find(h_tag.data[i]);
-                                assert(iti != map.end());
-                                this->m_interact_new_old.insert(std::make_pair(iti->second,new_tag_j));
+                                this->m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
+
+                                if (cur_image && line)
+                                    {
+                                    // if interaction across PBC, reject cluster move
+                                    this->m_local_reject.insert(h_tag.data[i]);
+                                    this->m_local_reject.insert(new_tag_j);
+                                    }
                                 }
                             } // end loop over AABB tree leaf
                         } // end is leaf
@@ -309,7 +328,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 unsigned int j = aabb_tree.getNodeParticle(cur_node_idx, cur_p);
 
                                 // no trivial bonds
-                                if (h_tag.data[i] == h_tag.data[j]) continue;
+                                if (h_tag.data[i] == h_tag.data[j] && cur_image == 0) continue;
 
                                 // load the position and orientation of the j particle
                                 vec3<Scalar> pos_j = vec3<Scalar>(h_postype.data[j]);
@@ -328,6 +347,13 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                     {
                                     // add connection
                                     this->m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
+
+                                    if (cur_image && line)
+                                        {
+                                        // if interaction across PBC, reject cluster move
+                                        this->m_local_reject.insert(h_tag.data[i]);
+                                        this->m_local_reject.insert(h_tag.data[j]);
+                                        }
                                     } // end if overlap
 
                                 } // end loop over AABB tree leaf
