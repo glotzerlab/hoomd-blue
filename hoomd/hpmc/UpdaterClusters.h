@@ -411,7 +411,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_old_old[p] = U;
 
-                                    if (cur_image && line)
+                                    int3 delta_img = image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
+                                    if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(new_tag_i);
@@ -500,7 +501,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // add connection
                                     m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                    if (cur_image && line)
+                                    int3 delta_img = image_hkl[cur_image] + image_hkl[h_tag.data[i]] - this->m_image_backup[j];
+                                    if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(h_tag.data[i]);
@@ -584,6 +586,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_new_old[p] = U;
 
+                                    int3 delta_img = image_hkl[cur_image] + image_hkl[h_tag.data[i]] - this->m_image_backup[j];
+                                    if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                     if (cur_image && line)
                                         {
                                         // if interaction across PBC, reject cluster move
