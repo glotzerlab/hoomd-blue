@@ -709,7 +709,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         // Check if the new configuration of particle i generates an overlap
                         bool overlap_new = false;
 
-                        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> r_ij = pos_i - pos_test;
 
