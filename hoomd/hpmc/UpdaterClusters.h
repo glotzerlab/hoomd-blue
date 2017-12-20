@@ -897,10 +897,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 m_ptl_reject.insert(i);
                 }
 
-            #if 0
             // wrap particle back into box
             box.wrap(snap.pos[i], snap.image[i]);
-            #endif
             }
         }
 
@@ -1155,6 +1153,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = *it;
 
                     snap.pos[i] = snap_old.pos[i];
+                    snap.image[i] = snap_old.image[i];
                     snap.orientation[i] = snap_old.orientation[i];
                     }
 
