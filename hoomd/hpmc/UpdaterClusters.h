@@ -742,7 +742,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // generate the move, select a pivot
     hoomd::detail::Saru rng(timestep, this->m_seed, 0x09365bf5);
-    const BoxDim& box = m_pdata->getGlobalBox();
+    BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
     // is this a line reflection?
@@ -814,7 +814,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     #endif
 
     // keep a backup copy
-    auto snap_old = snap;
+    SnapshotParticleData<Scalar> snap_old = snap;
 
     // precalculate the grid shift
     Scalar nominal_width = this->getNominalWidth();
@@ -877,7 +877,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             snap.pos[i] = box.shift(snap.pos[i], -img_i);
 
             // reject if in outside image
-            // NOTE this could be relaxed, but then we need to extend the image list
+            // this could be relaxed, but then we would need to extend the image list
             if (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)
                 m_ptl_reject.insert(i);
             }
@@ -979,35 +979,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
-                bool interact_new = false;
                 unsigned int i = it_j->first;
                 unsigned int j = it_j->second;
 
-                // particles interacting in the old but not the new configuration are part of the same cluster
-                for (auto it_k = all_interact_new_old.begin(); it_k != all_interact_new_old.end(); ++it_k)
-                    {
-                    auto it = it_k->find(std::make_pair(i,j));
-                    if (it != it_k->end())
-                        {
-                        interact_new = true;
-                        break;
-                        }
-                    it = it_k->find(std::make_pair(j,i));
-                    if (it != it_k->end())
-                        {
-                        interact_new = true;
-                        break;
-                        }
-                    }
-
-                bool reject = false;
-
-                // if any of the particles is rejected, form a bond
-                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
-                    reject = true;
-
-                if (!interact_new || reject)
-                    m_G.addEdge(i, j);
+                m_G.addEdge(i, j);
                 }
             }
 
@@ -1018,9 +993,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int i = it_j->first;
                 unsigned int j = it_j->second;
 
-                // if any of the particles is rejected, form a bond
-                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
-                    m_G.addEdge(i, j);
+                m_G.addEdge(i, j);
                 }
             }
 
@@ -1154,7 +1127,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // finally re-initialize particle data
     m_pdata->initializeFromSnapshot(snap);
 
-    // restore orgin, after initializing from translated positions
+    // restore origin, after initializing from translated positions
     m_pdata->translateOrigin(origin);
 
     if (m_prof) m_prof->pop(m_exec_conf);
@@ -1175,27 +1148,35 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         {
         if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
 
+        // nominal width may be larger than nearest plane distance, correct
+        Scalar max_shift = std::min(npd.x, std::min(npd.y,npd.z));
+        max_shift = std::min(max_shift, nominal_width);
+
         // perform the grid shift to compensate for the uncrossable boundaries
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         Scalar3 shift = make_scalar3(0,0,0);
-        shift.x = rng.s(-nominal_width/Scalar(2.0),nominal_width/Scalar(2.0));
-        shift.y = rng.s(-nominal_width/Scalar(2.0),nominal_width/Scalar(2.0));
+
+        shift.x = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        shift.y = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
         if (this->m_sysdef->getNDimensions() == 3)
             {
-            shift.z = rng.s(-nominal_width/Scalar(2.0),nominal_width/Scalar(2.0));
+            shift.z = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
             }
+
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
             // read in the current position and orientation
             Scalar4 postype_i = h_postype.data[i];
-            vec3<Scalar> r_i = vec3<Scalar>(postype_i); // translation from local to global coordinates
+            vec3<Scalar> r_i = vec3<Scalar>(postype_i);
             r_i += vec3<Scalar>(shift);
             h_postype.data[i] = vec_to_scalar4(r_i, postype_i.w);
             box.wrap(h_postype.data[i], h_image.data[i]);
             }
         this->m_pdata->translateOrigin(shift);
+
+        m_mc->invalidateAABBTree();
 
         if (m_prof) m_prof->pop(m_exec_conf);
         }
