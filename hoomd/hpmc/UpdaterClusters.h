@@ -228,6 +228,7 @@ class UpdaterClusters : public Updater
         std::vector<Scalar4> m_orientation_backup;     //!< Old local orientations
         std::vector<Scalar> m_diameter_backup;         //!< Old local diameters
         std::vector<Scalar> m_charge_backup;           //!< Old local charges
+        std::vector<int3> m_image_backup;              //!< Old local images
 
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
@@ -331,6 +332,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
     ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
     if (patch)
         {
@@ -669,14 +671,10 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (interact_patch || (rsq_ij <= RaRb*RaRb && h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                         && test_overlap(r_ij, shape_i, shape_j, err)))
                                     {
-                                    // add connection
-                                    m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
-
-                                    if (cur_image && line)
+                                    if (line && cur_image)
                                         {
-                                        // if interaction across PBC, reject cluster move
-                                        m_local_reject.insert(h_tag.data[i]);
-                                        m_local_reject.insert(h_tag.data[j]);
+                                        // add to list
+                                        m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
                                         }
                                     } // end if overlap
 
@@ -720,6 +718,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     m_diameter_backup.resize(nptl);
     m_charge_backup.resize(nptl);
     m_tag_backup.resize(nptl);
+    m_image_backup.resize(nptl);
 
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
@@ -727,6 +726,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_charge(m_pdata->getDiameters(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
         for (unsigned int i = 0; i < nptl; ++i)
             {
@@ -735,6 +735,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             m_diameter_backup[i] = h_diameter.data[i];
             m_charge_backup[i] = h_charge.data[i];
             m_tag_backup[i] = h_tag.data[i];
+            m_image_backup[i] = h_image.data[i];
             }
         }
 
@@ -749,6 +750,25 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     bool line = m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
 
     quat<Scalar> q;
+
+    Scalar3 f;
+    f.x = rng.template s<Scalar>();
+    f.y = rng.template s<Scalar>();
+    if (m_sysdef->getNDimensions() == 3)
+        {
+        f.z = rng.template s<Scalar>();
+        }
+    else
+        {
+        f.z = 0.5;
+        }
+
+    pivot = vec3<Scalar>(box.makeCoordinates(f));
+    if (m_sysdef->getNDimensions() == 2)
+        {
+        // force z component to be zero
+        pivot.z = 0.0;
+        }
 
     if (line)
         {
@@ -770,6 +790,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         // line reflection
         q = quat<Scalar>(0,n);
         }
+    #if 0
     else
         {
         Scalar3 f;
@@ -791,6 +812,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             pivot.z = 0.0;
             }
         }
+    #endif
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
@@ -798,9 +820,12 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // save origin information
     Scalar3 origin = m_pdata->getOrigin();
+    int3 origin_image = m_pdata->getOriginImage();
 
+    #if 0
     // reset origin, so that takeSnapshot will not subtract it
     m_pdata->resetOrigin();
+    #endif
 
     // take a snapshot, and save tag->snap idx mapping
     auto map = m_pdata->takeSnapshot(snap);
@@ -872,14 +897,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 m_ptl_reject.insert(i);
                 }
 
+            #if 0
             // wrap particle back into box
-            int3 img_i = box.getImage(snap.pos[i]);
-            snap.pos[i] = box.shift(snap.pos[i], -img_i);
-
-            // reject if in outside image
-            // this could be relaxed, but then we would need to extend the image list
-            if (img_i.x != 0 || img_i.y != 0 || img_i.z != 0)
-                m_ptl_reject.insert(i);
+            box.wrap(snap.pos[i], snap.image[i]);
+            #endif
             }
         }
 
@@ -960,7 +981,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
-                // particles overlapping in the new configuration are transformed as part of the same cluster
                 m_ptl_reject.insert(*it_j);
                 }
             }
@@ -969,7 +989,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
-                // particles overlapping in the new configuration are transformed as part of the same cluster
+                // particles in the new configuration overlapping with the old one are transformed as part of the same cluster
                 m_G.addEdge(it_j->first, it_j->second);
                 }
             }
@@ -982,6 +1002,24 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int i = it_j->first;
                 unsigned int j = it_j->second;
 
+                // do they interact when both particles are in the new configuration?
+                bool interact_new_new = false;
+                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                    {
+                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                        {
+                        interact_new_new = true;
+                        break;
+                        }
+                    }
+
+                if (interact_new_new)
+                    {
+                    m_ptl_reject.insert(i);
+                    m_ptl_reject.insert(j);
+                    }
+
                 m_G.addEdge(i, j);
                 }
             }
@@ -993,20 +1031,25 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int i = it_j->first;
                 unsigned int j = it_j->second;
 
+                // do they interact when both particles are in the new configuration?
+                bool interact_new_new = false;
+                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                    {
+                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                        {
+                        interact_new_new = true;
+                        break;
+                        }
+                    }
+
+                if (interact_new_new)
+                    {
+                    m_ptl_reject.insert(i);
+                    m_ptl_reject.insert(j);
+                    }
+
                 m_G.addEdge(i, j);
-                }
-            }
-
-         for (auto it_i = all_interact_new_new.begin(); it_i != all_interact_new_new.end(); ++it_i)
-            {
-            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
-                {
-                unsigned int i = it_j->first;
-                unsigned int j = it_j->second;
-
-                // if any of the particles is rejected, form a bond
-                if (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end())
-                    m_G.addEdge(i, j);
                 }
             }
 
@@ -1062,14 +1105,28 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 unsigned int i = it->first.first;
                 unsigned int j = it->first.second;
 
-                // if any of the particles is rejected, form a bond
-                bool reject = (m_ptl_reject.find(i) != m_ptl_reject.end() || m_ptl_reject.find(j) != m_ptl_reject.end());
-
                 float pij = 1.0f-exp(-delU);
-                if (rng.f() <= pij || reject) // GCA
+                if (rng.f() <= pij) // GCA
                     {
                     // add bond
                     m_G.addEdge(i,j);
+
+                    // do they interact when both particles are in the new configuration?
+                    bool interact_new_new = false;
+                    for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                        {
+                        if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                            it_k->find(std::make_pair(j,i)) != it_k->end())
+                            {
+                            interact_new_new = true;
+                            break;
+                            }
+                        }
+                    if (interact_new_new)
+                        {
+                        m_ptl_reject.insert(i);
+                        m_ptl_reject.insert(j);
+                        }
                     }
                 }
             } // end if (patch)
@@ -1128,10 +1185,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     m_pdata->initializeFromSnapshot(snap);
 
     // restore origin, after initializing from translated positions
-    m_pdata->translateOrigin(origin);
+    m_pdata->setOrigin(origin,origin_image);
 
     if (m_prof) m_prof->pop(m_exec_conf);
 
+    #if 0
     // in MPI and GPU simulations the integrator takes care of the grid shift
     bool grid_shift = true;
     #ifdef ENABLE_CUDA
@@ -1182,6 +1240,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         }
 
     if (m_prof) m_prof->pop(m_exec_conf);
+    #endif
 
     m_mc->communicate(true);
     }

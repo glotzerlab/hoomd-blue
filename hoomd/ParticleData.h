@@ -1072,6 +1072,13 @@ class ParticleData
             m_global_box.wrap(m_origin, m_o_image);
             }
 
+        //! Set the origin and its image
+        void setOrigin(const Scalar3& origin, int3& img)
+            {
+            m_origin = origin;
+            m_o_image = img;
+            }
+
         //! Rest the box origin
         /*! \post The origin is 0,0,0
         */
