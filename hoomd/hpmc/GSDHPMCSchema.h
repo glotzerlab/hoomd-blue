@@ -379,7 +379,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
                 shape[i].x[v] = vertices[count*2+0];
                 shape[i].y[v] = vertices[count*2+1];
                 dsq = fmax(shape[i].x[v]*shape[i].x[v] + shape[i].y[v]*shape[i].y[v], dsq);
-                count++
+                count++;
                 }
             shape[i].diameter = 2.0*(sqrt(dsq)+shape[i].sweep_radius);
             shape[i].N = N[i];
