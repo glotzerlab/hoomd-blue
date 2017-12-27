@@ -208,12 +208,25 @@ template<class RNG>
 inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
      Scalar R, Scalar h, const vec3<Scalar>& d)
     {
-    // pick uniformly distributed z coordinate in the spherical cap
-    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
-    Scalar z = (R-h)+h*rng.template s<Scalar>();
+    // draw a radial coordinate uniformly distributed in the spherical cap
+    Scalar u = rng.template s<Scalar>();
+    Scalar Rmh = R-h;
+    Scalar arg = 2*u*h*h*(3*R-h)/(Rmh*Rmh*Rmh)-1;
+    Scalar r;
+    if (arg > 1.0)
+        {
+        r = Scalar(0.5)*Rmh*(1+2*cosh(log(arg+sqrt(arg*arg-1))/3));
+        }
+    else
+        {
+        // principal branch of acos
+        r = Scalar(0.5)*Rmh*(1+2*cos(acos(arg)/3));
+        }
 
-    // pick a point in disk of radius sqrt(R^2-z^2)
-    Scalar r = fast::sqrt(rng.template s<Scalar>()*(R*R-z*z));
+    // draw a random unit vector in a zone of height h_prime in the spherical cap
+    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
+    Scalar h_prime = r-R+h;
+    Scalar z = (R-h)+h_prime*rng.template s<Scalar>();
 
     // unit vector in cap direction
     vec3<Scalar> n = d/sqrt(dot(d,d));
@@ -234,7 +247,7 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
         n2 = c/sqrt(dot(c,c));
         }
 
-    vec3<Scalar> r_cone = n1*r*cos(theta)+n2*r*sin(theta)+n*z;
+    vec3<Scalar> r_cone = n1*sqrt(r*r-z*z)*cos(theta)+n2*sqrt(r*r-z*z)*sin(theta)+n*z;
 
     // test depletant position
     return pos_sphere+r_cone;
