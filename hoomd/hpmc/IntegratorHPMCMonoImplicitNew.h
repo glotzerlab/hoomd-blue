@@ -649,7 +649,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             if (Ri < Rj)
                                 pos_test = generatePositionInSphere(rng_i, ri, Ri);
                             else
-                                pos_test = generatePositionInSphere(rng_i, rj, Rj);
+                                pos_test = generatePositionInSphere(rng_i, rj, Rj) - this->m_image_list[image_i[k]];
                             }
 
                         Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
@@ -930,7 +930,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 if (Ri < Rj)
                                     pos_test = generatePositionInSphere(rng_i, ri, Ri);
                                 else
-                                    pos_test = generatePositionInSphere(rng_i, rj, Rj);
+                                    pos_test = generatePositionInSphere(rng_i, rj, Rj) - this->m_image_list[image_i[k]];
                                 }
 
                             Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
