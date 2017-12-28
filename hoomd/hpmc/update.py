@@ -967,11 +967,15 @@ class cluster(_updater):
     ## Update parameters
     # \param move_ratio (If set) Update ratio of pivot to reflection moves
     #
-    def set_params(self, move_ratio):
+    def set_params(self, move_ratio=None, flip_probability=None):
         hoomd.util.print_status_line();
 
         if move_ratio is not None:
             self.cpp_updater.setMoveRatio(float(move_ratio))
+
+        if flip_probabilty is not None:
+            self.cpp_updater.setFlipProbability(float(flip_probabilty))
+
 
     ## Get the average acceptance ratio for translate moves
     #

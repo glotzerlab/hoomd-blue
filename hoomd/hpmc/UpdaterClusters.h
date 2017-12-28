@@ -160,6 +160,13 @@ class UpdaterClusters : public Updater
             m_move_ratio = move_ratio;
             }
 
+        //! Set the cluster flip probability
+        void setFlipProbability(Scalar flip_probability)
+            {
+            m_flip_probability = flip_probability;
+            }
+
+
         //! Reset statistics counters
         virtual void resetStats()
             {
@@ -217,6 +224,7 @@ class UpdaterClusters : public Updater
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_seed;                        //!< RNG seed
         Scalar m_move_ratio;                        //!< Pivot/Reflection move ratio
+        Scalar m_flip_probability;                  //!< Cluster flip probability
 
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
 
@@ -271,7 +279,7 @@ template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                                  unsigned int seed)
-        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5),
+        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5), m_flip_probability(0.5),
         m_n_particles_old(0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
@@ -1149,6 +1157,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     reject = true;
                 }
 
+            if (rng.f() < m_flip_probability)
+                reject = true;
+
             if (reject)
                 {
                 // revert cluster
@@ -1258,6 +1269,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
                          unsigned int >())
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
+        .def("setFlipProbability", &UpdaterClusters<Shape>::setFlipProbability)
     ;
     }
 
