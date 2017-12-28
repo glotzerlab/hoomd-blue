@@ -757,25 +757,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     quat<Scalar> q;
 
-    Scalar3 f;
-    f.x = rng.template s<Scalar>();
-    f.y = rng.template s<Scalar>();
-    if (m_sysdef->getNDimensions() == 3)
-        {
-        f.z = rng.template s<Scalar>();
-        }
-    else
-        {
-        f.z = 0.5;
-        }
-
-    pivot = vec3<Scalar>(box.makeCoordinates(f));
-    if (m_sysdef->getNDimensions() == 2)
-        {
-        // force z component to be zero
-        pivot.z = 0.0;
-        }
-
     if (line)
         {
         // random normalized vector
@@ -795,6 +776,27 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         // line reflection
         q = quat<Scalar>(0,n);
+        }
+    else
+        {
+        Scalar3 f;
+        f.x = rng.template s<Scalar>();
+        f.y = rng.template s<Scalar>();
+        if (m_sysdef->getNDimensions() == 3)
+            {
+            f.z = rng.template s<Scalar>();
+            }
+        else
+            {
+            f.z = 0.5;
+            }
+
+        pivot = vec3<Scalar>(box.makeCoordinates(f));
+        if (m_sysdef->getNDimensions() == 2)
+            {
+            // force z component to be zero
+            pivot.z = 0.0;
+            }
         }
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
@@ -816,9 +818,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         }
     #endif
 
-    // keep a backup copy
-    SnapshotParticleData<Scalar> snap_old = snap;
-
     // precalculate the grid shift
     Scalar nominal_width = this->getNominalWidth();
 
@@ -837,6 +836,31 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // reset list of rejected particles
     m_ptl_reject.clear();
+
+    vec3<Scalar> shift;
+
+    if (master)
+        {
+        // compute a random grid shift
+        vec3<Scalar> a(box.getLatticeVector(0));
+        vec3<Scalar> b(box.getLatticeVector(1));
+        vec3<Scalar> c(box.getLatticeVector(2));
+
+        Scalar u = rng.template s<Scalar>();
+        Scalar v = rng.template s<Scalar>();
+        Scalar w = rng.template s<Scalar>();
+        shift = u*a + v*b + w*c;
+
+        // apply shift
+        for (unsigned int i = 0; i < snap.size; ++i)
+            {
+            snap.pos[i] += shift;
+            box.wrap(snap.pos[i], snap.image[i]);
+            }
+        }
+
+    // keep a backup copy
+    SnapshotParticleData<Scalar> snap_old = snap;
 
     if (master)
         {
@@ -879,10 +903,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 }
 
             // wrap particle back into box
-            // the line around which we reflect doesn't necessarily have to be inside the box all the way
-            // so multiple image are posible
-            snap.image[i] = box.getImage(snap.pos[i]);
-            snap.pos[i] = box.shift(snap.pos[i], -snap.image[i]);
+            box.wrap(snap.pos[i],snap.image[i]);
             }
         }
 
@@ -1157,6 +1178,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; i++)
             {
+            // un-apply shift
+            snap.pos[i] -= shift;
+
             // wrap back into box
             box.wrap(snap.pos[i],snap.image[i]);
 
