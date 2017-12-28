@@ -879,7 +879,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 }
 
             // wrap particle back into box
-            box.wrap(snap.pos[i], snap.image[i]);
+            // the line around which we reflect doesn't necessarily have to be inside the box all the way
+            // so multiple image are posible
+            snap.image[i] = box.getImage(snap.pos[i]);
+            snap.pos[i] = box.shift(snap.pos[i], -snap.image[i]);
             }
         }
 
