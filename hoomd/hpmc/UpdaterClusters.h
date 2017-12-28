@@ -808,6 +808,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     int3 origin_image = m_pdata->getOriginImage();
 
     // take a snapshot, and save tag->snap idx mapping
+
+    // reset origin, so that snapshot positions match AABB tree positions
+    m_pdata->resetOrigin();
     auto map = m_pdata->takeSnapshot(snap);
 
     #ifdef ENABLE_MPI
@@ -818,13 +821,12 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         }
     #endif
 
-    // precalculate the grid shift
-    Scalar nominal_width = this->getNominalWidth();
 
     // transform all particles on rank zero
     bool master = !m_exec_conf->getRank();
 
     // compute the width of the active region
+    Scalar nominal_width = this->getNominalWidth();
     Scalar3 npd = box.getNearestPlaneDistance();
     Scalar3 range = nominal_width / npd;
 
@@ -836,28 +838,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // reset list of rejected particles
     m_ptl_reject.clear();
-
-    vec3<Scalar> shift;
-
-    if (master)
-        {
-        // compute a random grid shift
-        vec3<Scalar> a(box.getLatticeVector(0));
-        vec3<Scalar> b(box.getLatticeVector(1));
-        vec3<Scalar> c(box.getLatticeVector(2));
-
-        Scalar u = rng.template s<Scalar>();
-        Scalar v = rng.template s<Scalar>();
-        Scalar w = rng.template s<Scalar>();
-        shift = u*a + v*b + w*c;
-
-        // apply shift
-        for (unsigned int i = 0; i < snap.size; ++i)
-            {
-            snap.pos[i] += shift;
-            box.wrap(snap.pos[i], snap.image[i]);
-            }
-        }
 
     // keep a backup copy
     SnapshotParticleData<Scalar> snap_old = snap;
@@ -992,8 +972,28 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                 {
-                // particles in the new configuration overlapping with the old one are transformed as part of the same cluster
-                m_G.addEdge(it_j->first, it_j->second);
+                unsigned int i = it_j->first;
+                unsigned int j = it_j->second;
+
+                // do the particles interact in the new configuration?
+                bool interact_new_new = false;
+                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                    {
+                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                        {
+                        interact_new_new = true;
+                        break;
+                        }
+                    }
+
+                if (interact_new_new)
+                    {
+                    m_ptl_reject.insert(i);
+                    m_ptl_reject.insert(j);
+                    }
+
+                m_G.addEdge(i,j);
                 }
             }
 
@@ -1178,9 +1178,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; i++)
             {
-            // un-apply shift
-            snap.pos[i] -= shift;
-
             // wrap back into box
             box.wrap(snap.pos[i],snap.image[i]);
 
@@ -1195,6 +1192,57 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // restore origin, after initializing from translated positions
     m_pdata->setOrigin(origin,origin_image);
+
+    if (m_prof) m_prof->pop(m_exec_conf);
+
+    // in MPI and GPU simulations the integrator takes care of the grid shift
+    bool grid_shift = true;
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        grid_shift = false;
+    #endif
+
+    #ifdef ENABLE_MPI
+    if (m_comm)
+        grid_shift = false;
+    #endif
+
+    if (grid_shift)
+        {
+        if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
+
+        // nominal width may be larger than nearest plane distance, correct
+        Scalar max_shift = std::min(npd.x, std::min(npd.y,npd.z));
+        max_shift = std::min(max_shift, nominal_width);
+
+        // perform the grid shift to compensate for the uncrossable boundaries
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
+
+        Scalar3 shift = make_scalar3(0,0,0);
+
+        shift.x = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        shift.y = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+        if (this->m_sysdef->getNDimensions() == 3)
+            {
+            shift.z = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
+            }
+
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+            // read in the current position and orientation
+            Scalar4 postype_i = h_postype.data[i];
+            vec3<Scalar> r_i = vec3<Scalar>(postype_i);
+            r_i += vec3<Scalar>(shift);
+            h_postype.data[i] = vec_to_scalar4(r_i, postype_i.w);
+            box.wrap(h_postype.data[i], h_image.data[i]);
+            }
+        this->m_pdata->translateOrigin(shift);
+
+        m_mc->invalidateAABBTree();
+
+        if (m_prof) m_prof->pop(m_exec_conf);
+        }
 
     if (m_prof) m_prof->pop(m_exec_conf);
 
