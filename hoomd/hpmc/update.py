@@ -973,7 +973,7 @@ class cluster(_updater):
         if move_ratio is not None:
             self.cpp_updater.setMoveRatio(float(move_ratio))
 
-        if flip_probabilty is not None:
+        if flip_probability is not None:
             self.cpp_updater.setFlipProbability(float(flip_probabilty))
 
 
