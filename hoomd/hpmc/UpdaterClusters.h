@@ -675,7 +675,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (interact_patch || (rsq_ij <= RaRb*RaRb && h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                         && test_overlap(r_ij, shape_i, shape_j, err)))
                                     {
-                                    if (line && cur_image)
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
+                                    if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // add to list
                                         m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
@@ -739,7 +740,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             m_diameter_backup[i] = h_diameter.data[i];
             m_charge_backup[i] = h_charge.data[i];
             m_tag_backup[i] = h_tag.data[i];
-            m_image_backup[i] = h_image.data[i];
+            // reset image
+            m_image_backup[i] = make_int3(0,0,0);
             }
         }
 
@@ -796,7 +798,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             pivot.z = 0.0;
             }
         }
-    #endif
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
 
@@ -850,6 +851,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         for (unsigned int i = 0; i < snap.size; ++i)
             {
+            // reset image
+            snap.image[i] = make_int3(0,0,0);
+
             // if the particle falls outside the active volume of global_box_nonperiodic, reject
             if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
                 {
@@ -1132,7 +1136,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = *it;
 
                     snap.pos[i] = snap_old.pos[i];
-                    snap.image[i] = snap_old.image[i];
                     snap.orientation[i] = snap_old.orientation[i];
                     }
 
@@ -1155,6 +1158,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             {
             // wrap back into box
             box.wrap(snap.pos[i],snap.image[i]);
+
+            // restore image
+            snap.image[i] += snap_old.image[i];
             }
 
         } // if master
