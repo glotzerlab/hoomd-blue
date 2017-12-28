@@ -411,7 +411,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_old_old[p] = U;
 
-                                    int3 delta_img = image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
+                                    int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // if interaction across PBC, reject cluster move
@@ -501,7 +501,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // add connection
                                     m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                    int3 delta_img = image_hkl[cur_image] + image_hkl[h_tag.data[i]] - this->m_image_backup[j];
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // if interaction across PBC, reject cluster move
@@ -586,7 +586,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_new_old[p] = U;
 
-                                    int3 delta_img = image_hkl[cur_image] + image_hkl[h_tag.data[i]] - this->m_image_backup[j];
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                     if (cur_image && line)
                                         {
@@ -755,25 +755,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     quat<Scalar> q;
 
-    Scalar3 f;
-    f.x = rng.template s<Scalar>();
-    f.y = rng.template s<Scalar>();
-    if (m_sysdef->getNDimensions() == 3)
-        {
-        f.z = rng.template s<Scalar>();
-        }
-    else
-        {
-        f.z = 0.5;
-        }
-
-    pivot = vec3<Scalar>(box.makeCoordinates(f));
-    if (m_sysdef->getNDimensions() == 2)
-        {
-        // force z component to be zero
-        pivot.z = 0.0;
-        }
-
     if (line)
         {
         // random normalized vector
@@ -794,7 +775,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         // line reflection
         q = quat<Scalar>(0,n);
         }
-    #if 0
     else
         {
         Scalar3 f;
@@ -825,11 +805,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     // save origin information
     Scalar3 origin = m_pdata->getOrigin();
     int3 origin_image = m_pdata->getOriginImage();
-
-    #if 0
-    // reset origin, so that takeSnapshot will not subtract it
-    m_pdata->resetOrigin();
-    #endif
 
     // take a snapshot, and save tag->snap idx mapping
     auto map = m_pdata->takeSnapshot(snap);
@@ -1191,59 +1166,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     m_pdata->setOrigin(origin,origin_image);
 
     if (m_prof) m_prof->pop(m_exec_conf);
-
-    #if 0
-    // in MPI and GPU simulations the integrator takes care of the grid shift
-    bool grid_shift = true;
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        grid_shift = false;
-    #endif
-
-    #ifdef ENABLE_MPI
-    if (m_comm)
-        grid_shift = false;
-    #endif
-
-    if (grid_shift)
-        {
-        if (m_prof) m_prof->push(m_exec_conf,"Grid shift");
-
-        // nominal width may be larger than nearest plane distance, correct
-        Scalar max_shift = std::min(npd.x, std::min(npd.y,npd.z));
-        max_shift = std::min(max_shift, nominal_width);
-
-        // perform the grid shift to compensate for the uncrossable boundaries
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
-        ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
-        Scalar3 shift = make_scalar3(0,0,0);
-
-        shift.x = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
-        shift.y = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
-        if (this->m_sysdef->getNDimensions() == 3)
-            {
-            shift.z = rng.s(-max_shift/Scalar(2.0),max_shift/Scalar(2.0));
-            }
-
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i];
-            vec3<Scalar> r_i = vec3<Scalar>(postype_i);
-            r_i += vec3<Scalar>(shift);
-            h_postype.data[i] = vec_to_scalar4(r_i, postype_i.w);
-            box.wrap(h_postype.data[i], h_image.data[i]);
-            }
-        this->m_pdata->translateOrigin(shift);
-
-        m_mc->invalidateAABBTree();
-
-        if (m_prof) m_prof->pop(m_exec_conf);
-        }
-
-    if (m_prof) m_prof->pop(m_exec_conf);
-    #endif
 
     m_mc->communicate(true);
     }

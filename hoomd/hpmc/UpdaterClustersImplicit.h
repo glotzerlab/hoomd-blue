@@ -180,7 +180,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 unsigned int new_tag_j = it->second;
                                 this->m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
 
-                                int3 delta_img = image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
+                                int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
                                 if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                     {
                                     // if interaction across PBC, reject cluster move
@@ -265,7 +265,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 {
                                 this->m_interact_new_old.insert(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                int3 delta_img = image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
+                                int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
                                 if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                     {
                                     // if interaction across PBC, reject cluster move
@@ -350,7 +350,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                     h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
                                     rsq_ij <= RaRb*RaRb)
                                     {
-                                    int3 delta_img = image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // add to list
