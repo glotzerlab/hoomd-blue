@@ -757,6 +757,25 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     quat<Scalar> q;
 
+    Scalar3 f;
+    f.x = rng.template s<Scalar>();
+    f.y = rng.template s<Scalar>();
+    if (m_sysdef->getNDimensions() == 3)
+        {
+        f.z = rng.template s<Scalar>();
+        }
+    else
+        {
+        f.z = 0.5;
+        }
+
+    pivot = vec3<Scalar>(box.makeCoordinates(f));
+    if (m_sysdef->getNDimensions() == 2)
+        {
+        // force z component to be zero
+        pivot.z = 0.0;
+        }
+
     if (line)
         {
         // random normalized vector
@@ -776,27 +795,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         // line reflection
         q = quat<Scalar>(0,n);
-        }
-    else
-        {
-        Scalar3 f;
-        f.x = rng.template s<Scalar>();
-        f.y = rng.template s<Scalar>();
-        if (m_sysdef->getNDimensions() == 3)
-            {
-            f.z = rng.template s<Scalar>();
-            }
-        else
-            {
-            f.z = 0.5;
-            }
-
-        pivot = vec3<Scalar>(box.makeCoordinates(f));
-        if (m_sysdef->getNDimensions() == 2)
-            {
-            // force z component to be zero
-            pivot.z = 0.0;
-            }
         }
 
     SnapshotParticleData<Scalar> snap(m_pdata->getNGlobal());
