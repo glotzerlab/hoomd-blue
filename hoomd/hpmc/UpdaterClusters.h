@@ -313,10 +313,10 @@ class UpdaterClusters : public Updater
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
         std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         #else
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_old_old;
+        tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > m_overlap;
+        tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > m_interact_old_old;
+        tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > m_interact_new_old;
 
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_old;
         tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_new;
         tbb::concurrent_unordered_set<unsigned int> m_local_reject;
 
@@ -605,7 +605,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
                                     // add connection
-                                    m_overlap.insert(std::make_pair(h_tag.data[i],new_tag_j));
+                                    m_overlap.push_back(std::make_pair(h_tag.data[i],new_tag_j));
 
                                     int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
@@ -1040,9 +1040,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
     #else
-    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_overlap;
-    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
-    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
+    std::vector< tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > > all_overlap;
+    std::vector< tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
+    std::vector< tbb::concurrent_vector<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
     std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_new_new;
     std::vector< tbb::concurrent_unordered_set<unsigned int> > all_local_reject;
 
