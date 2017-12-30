@@ -17,9 +17,26 @@ if (UNIX AND NOT APPLE)
     endif (DL_LIB AND UTIL_LIB)
 endif (UNIX AND NOT APPLE)
 
+# find TBB lib and includes
+find_library(TBB_LIBRARY tbb
+             PATHS ENV TBB_LINK)
+find_path(TBB_INCLUDE_DIR tbb/tbb.h
+          PATHS ENV TBB_INC)
+include_directories(${TBB_INCLUDE_DIR})
+if (TBB_LIBRARY)
+    mark_as_advanced(TBB_LIBRARY)
+endif()
+if (TBB_INCLUDE_DIR)
+    mark_as_advanced(TBB_INCLUDE_DIR)
+endif()
+if (TBB_INCLUDE_DIR AND TBB_LIBRARY)
+    add_definitions(-DENABLE_TBB)
+endif()
+
 set(HOOMD_COMMON_LIBS
         ${HOOMD_PYTHON_LIBRARY}
         ${ADDITIONAL_LIBS}
+        ${TBB_LIBRARY}
         )
 
 if (ENABLE_CUDA)
