@@ -87,10 +87,14 @@ class Graph
     int V;    // No. of vertices
 
     // Pointer to an array containing adjacency lists
-    std::vector<std::list<int> > adj;
+    #ifndef ENABLE_TBB
+    std::map<unsigned int,std::vector<int> > adj;
+    #else
+    tbb::concurrent_unordered_map<unsigned int, tbb::concurrent_vector<int> > adj;
+    #endif
 
     // A function used by DFS
-    inline void DFSUtil(int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc);
+    inline void DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc);
 
 public:
     Graph()         //!< Default constructor
@@ -117,7 +121,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
         }
     }
 
-void Graph::DFSUtil(int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc)
+void Graph::DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc)
     {
     visited[v] = true;
     cur_cc.push_back(v);
@@ -134,7 +138,6 @@ void Graph::DFSUtil(int v, std::vector<bool>& visited, std::vector<unsigned int>
 Graph::Graph(int V)
     {
     this->V = V;
-    adj.resize(V);
     }
 
 // method to add an undirected edge
@@ -308,19 +311,20 @@ class UpdaterClusters : public Updater
 
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         #else
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_old_old;
 
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
-        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_new;  //!< Pairs interacting new-old
-        tbb::concurrent_unordered_set<unsigned int> m_local_reject;                   //!< Set of particles whose clusters moves are rejected
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_old;
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_new;
+        tbb::concurrent_unordered_set<unsigned int> m_local_reject;
 
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
-        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;
+        tbb::concurrent_unordered_set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         #endif
 
-        std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         hpmc_counters_t m_count_total;                 //!< Total count since initialization
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
@@ -1046,26 +1050,17 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     std::vector< tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
     #endif
 
-    if (this->m_prof) this->m_prof->push("copy");
-
     #ifdef ENABLE_MPI
     if (m_comm)
         {
+        // combine lists from different ranks
         gather_v(m_overlap, all_overlap, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_old_old, all_interact_old_old, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_new_old, all_interact_new_old, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_interact_new_new, all_interact_new_new, 0, m_exec_conf->getMPICommunicator());
         gather_v(m_local_reject, all_local_reject, 0, m_exec_conf->getMPICommunicator());
         }
-    else
     #endif
-        {
-        all_overlap.push_back(m_overlap);
-        all_interact_old_old.push_back(m_interact_old_old);
-        all_interact_new_old.push_back(m_interact_new_old);
-        all_interact_new_new.push_back(m_interact_new_new);
-        all_local_reject.push_back(m_local_reject);
-        }
 
     if (m_mc->getPatchInteraction())
         {
@@ -1076,115 +1071,211 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             gather_v(m_energy_old_old, all_energy_old_old, 0, m_exec_conf->getMPICommunicator());
             gather_v(m_energy_new_old, all_energy_new_old, 0, m_exec_conf->getMPICommunicator());
             }
-        else
         #endif
-            {
-            all_energy_old_old.push_back(m_energy_old_old);
-            all_energy_new_old.push_back(m_energy_new_old);
-            }
         }
 
-    if (this->m_prof) this->m_prof->pop();
+    if (this->m_prof) this->m_prof->push("fill");
     if (master)
         {
         // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
         m_G = detail::Graph(snap.size);
 
-        // complete the list of rejected particles
-        for (auto it_i = all_local_reject.begin(); it_i != all_local_reject.end(); ++it_i)
+        #ifdef ENABLE_MPI
+        if (m_comm)
             {
-            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+            // complete the lvist of rejected particles
+            for (auto it_i = all_local_reject.begin(); it_i != all_local_reject.end(); ++it_i)
                 {
-                m_ptl_reject.insert(*it_j);
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                    {
+                    m_ptl_reject.insert(*it_j);
+                    }
                 }
             }
+        #endif
 
-        for (auto it_i = all_overlap.begin(); it_i != all_overlap.end(); ++it_i)
+        #ifdef ENABLE_MPI
+        if (m_comm)
             {
-            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+            for (auto it_i = all_overlap.begin(); it_i != all_overlap.end(); ++it_i)
                 {
-                unsigned int i = it_j->first;
-                unsigned int j = it_j->second;
-
-                // do the particles interact in the new configuration?
-                bool interact_new_new = false;
-                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                     {
-                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
-                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                    unsigned int i = it_j->first;
+                    unsigned int j = it_j->second;
+
+                    // do the particles interact in the new configuration?
+                    bool interact_new_new = false;
+                    for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
                         {
-                        interact_new_new = true;
-                        break;
+                        if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                            it_k->find(std::make_pair(j,i)) != it_k->end())
+                            {
+                            interact_new_new = true;
+                            break;
+                            }
                         }
-                    }
 
-                if (interact_new_new)
-                    {
-                    m_ptl_reject.insert(i);
-                    m_ptl_reject.insert(j);
-                    }
+                    if (interact_new_new)
+                        {
+                        m_ptl_reject.insert(i);
+                        m_ptl_reject.insert(j);
+                        }
 
-                m_G.addEdge(i,j);
+                    m_G.addEdge(i,j);
+                    }
                 }
+            }
+        else
+        #endif
+            {
+            #ifdef ENABLE_TBB
+            tbb::parallel_for(m_overlap.range(), [&] (decltype(m_overlap.range()) r)
+            #else
+            auto &r = m_overlap;
+            #endif
+                {
+                for (auto it = r.begin(); it != r.end(); ++it)
+                    {
+                    unsigned int i = it->first;
+                    unsigned int j = it->second;
+
+                    if (m_interact_new_new.find(std::make_pair(i,j)) != m_interact_new_new.end()
+                        || m_interact_new_new.find(std::make_pair(j,i)) != m_interact_new_new.end())
+                        {
+                        m_local_reject.insert(i);
+                        m_local_reject.insert(j);
+                        }
+
+                    m_G.addEdge(i,j);
+                    }
+                }
+            #ifdef ENABLE_TBB
+                );
+            #endif
             }
 
         // interactions due to hard depletant-excluded volume overlaps (not used in base class)
-        for (auto it_i = all_interact_old_old.begin(); it_i != all_interact_old_old.end(); ++it_i)
+        #ifdef ENABLE_MPI
+        if (m_comm)
             {
-            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+            for (auto it_i = all_interact_old_old.begin(); it_i != all_interact_old_old.end(); ++it_i)
                 {
-                unsigned int i = it_j->first;
-                unsigned int j = it_j->second;
-
-                // do they interact when both particles are in the new configuration?
-                bool interact_new_new = false;
-                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
                     {
-                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
-                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                    unsigned int i = it_j->first;
+                    unsigned int j = it_j->second;
+
+                    // do they interact when both particles are in the new configuration?
+                    bool interact_new_new = false;
+                    for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
                         {
-                        interact_new_new = true;
-                        break;
+                        if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                            it_k->find(std::make_pair(j,i)) != it_k->end())
+                            {
+                            interact_new_new = true;
+                            break;
+                            }
                         }
-                    }
 
-                if (interact_new_new)
-                    {
-                    m_ptl_reject.insert(i);
-                    m_ptl_reject.insert(j);
-                    }
+                    if (interact_new_new)
+                        {
+                        m_ptl_reject.insert(i);
+                        m_ptl_reject.insert(j);
+                        }
 
-                m_G.addEdge(i, j);
+                    m_G.addEdge(i, j);
+                    }
                 }
             }
-
-         for (auto it_i = all_interact_new_old.begin(); it_i != all_interact_new_old.end(); ++it_i)
+        else
+        #endif
             {
-            for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+            #ifdef ENABLE_TBB
+            tbb::parallel_for(m_interact_old_old.range(), [&] (decltype(m_interact_old_old.range()) r)
+            #else
+            auto &r = m_interact_old_old;
+            #endif
                 {
-                unsigned int i = it_j->first;
-                unsigned int j = it_j->second;
-
-                // do they interact when both particles are in the new configuration?
-                bool interact_new_new = false;
-                for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                for (auto it = r.begin(); it != r.end(); ++it)
                     {
-                    if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
-                        it_k->find(std::make_pair(j,i)) != it_k->end())
+                    unsigned int i = it->first;
+                    unsigned int j = it->second;
+
+                    if (m_interact_new_new.find(std::make_pair(i,j)) != m_interact_new_new.end()
+                        || m_interact_new_new.find(std::make_pair(j,i)) != m_interact_new_new.end())
                         {
-                        interact_new_new = true;
-                        break;
+                        m_local_reject.insert(i);
+                        m_local_reject.insert(j);
                         }
-                    }
 
-                if (interact_new_new)
-                    {
-                    m_ptl_reject.insert(i);
-                    m_ptl_reject.insert(j);
+                    m_G.addEdge(i,j);
                     }
-
-                m_G.addEdge(i, j);
                 }
+            #ifdef ENABLE_TBB
+                );
+            #endif
+            }
+
+        #ifdef ENABLE_MPI
+        if (m_comm)
+            {
+            for (auto it_i = all_interact_new_old.begin(); it_i != all_interact_new_old.end(); ++it_i)
+                {
+                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                    {
+                    unsigned int i = it_j->first;
+                    unsigned int j = it_j->second;
+
+                    // do they interact when both particles are in the new configuration?
+                    bool interact_new_new = false;
+                    for (auto it_k = all_interact_new_new.begin(); it_k != all_interact_new_new.end(); ++it_k)
+                        {
+                        if (it_k->find(std::make_pair(i,j)) != it_k->end() ||
+                            it_k->find(std::make_pair(j,i)) != it_k->end())
+                            {
+                            interact_new_new = true;
+                            break;
+                            }
+                        }
+
+                    if (interact_new_new)
+                        {
+                        m_ptl_reject.insert(i);
+                        m_ptl_reject.insert(j);
+                        }
+
+                    m_G.addEdge(i, j);
+                    }
+                }
+            }
+        else
+        #endif
+            {
+            #ifdef ENABLE_TBB
+            tbb::parallel_for(m_interact_new_old.range(), [&] (decltype(m_interact_new_old.range()) r)
+            #else
+            auto &r = m_interact_new_old;
+            #endif
+                {
+                for (auto it = r.begin(); it != r.end(); ++it)
+                    {
+                    unsigned int i = it->first;
+                    unsigned int j = it->second;
+
+                    if (m_interact_new_new.find(std::make_pair(i,j)) != m_interact_new_new.end()
+                        || m_interact_new_new.find(std::make_pair(j,i)) != m_interact_new_new.end())
+                        {
+                        m_local_reject.insert(i);
+                        m_local_reject.insert(j);
+                        }
+
+                    m_G.addEdge(i,j);
+                    }
+                }
+            #ifdef ENABLE_TBB
+                );
+            #endif
             }
 
         if (m_mc->getPatchInteraction())
@@ -1192,45 +1283,113 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             // sum up interaction energies
             std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
 
-            for (auto it_i = all_energy_old_old.begin(); it_i != all_energy_old_old.end(); ++it_i)
+            #ifdef ENABLE_MPI
+            if (m_comm)
                 {
-                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                for (auto it_i = all_energy_old_old.begin(); it_i != all_energy_old_old.end(); ++it_i)
                     {
-                    float delU = -it_j->second;
-                    unsigned int i = it_j->first.first;
-                    unsigned int j = it_j->first.second;
+                    for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                        {
+                        float delU = -it_j->second;
+                        unsigned int i = it_j->first.first;
+                        unsigned int j = it_j->first.second;
 
-                    auto p = std::make_pair(i,j);
+                        auto p = std::make_pair(i,j);
 
-                    // add to energy
-                    auto it = delta_U.find(p);
-                    if (it != delta_U.end())
-                        delU += it->second;
+                        // add to energy
+                        auto it = delta_U.find(p);
+                        if (it != delta_U.end())
+                            delU += it->second;
 
-                    // update map with new interaction energy
-                    delta_U[p] = delU;
+                        // update map with new interaction energy
+                        delta_U[p] = delU;
+                        }
                     }
                 }
-
-            for (auto it_i = all_energy_new_old.begin(); it_i != all_energy_new_old.end(); ++it_i)
+            else
+            #endif
                 {
-                for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                #ifdef ENABLE_TBB
+                tbb::parallel_for(m_energy_old_old.range(), [&] (decltype(m_energy_old_old.range()) r)
+                #else
+                auto &r = m_energy_old_old;
+                #endif
                     {
-                    float delU = it_j->second;
-                    unsigned int i = it_j->first.first;
-                    unsigned int j = it_j->first.second;
+                    for (auto it = r.begin(); it != r.end(); ++it)
+                        {
+                        float delU = -it->second;
+                        unsigned int i = it->first.first;
+                        unsigned int j = it->first.second;
 
-                    // consider each pair uniquely
-                    auto p = std::make_pair(i,j);
+                        auto p = std::make_pair(i,j);
 
-                    // add to energy
-                    auto it = delta_U.find(p);
-                    if (it != delta_U.end())
-                        delU += it->second;
+                        // add to energy
+                        auto itj = delta_U.find(p);
+                        if (itj != delta_U.end())
+                            delU += itj->second;
 
-                    // update map with new interaction energy
-                    delta_U[p] = delU;
+                        // update map with new interaction energy
+                        delta_U[p] = delU;
+                        }
                     }
+                #ifdef ENABLE_TBB
+                    );
+                #endif
+                }
+
+            #ifdef ENABLE_MPI
+            if (m_comm)
+                {
+                for (auto it_i = all_energy_new_old.begin(); it_i != all_energy_new_old.end(); ++it_i)
+                    {
+                    for (auto it_j = it_i->begin(); it_j != it_i->end(); ++it_j)
+                        {
+                        float delU = it_j->second;
+                        unsigned int i = it_j->first.first;
+                        unsigned int j = it_j->first.second;
+
+                        // consider each pair uniquely
+                        auto p = std::make_pair(i,j);
+
+                        // add to energy
+                        auto it = delta_U.find(p);
+                        if (it != delta_U.end())
+                            delU += it->second;
+
+                        // update map with new interaction energy
+                        delta_U[p] = delU;
+                        }
+                    }
+                }
+            else
+            #endif
+                {
+                #ifdef ENABLE_TBB
+                tbb::parallel_for(m_energy_new_old.range(), [&] (decltype(m_energy_new_old.range()) r)
+                #else
+                auto &r = m_energy_new_old;
+                #endif
+                    {
+                    for (auto it = r.begin(); it != r.end(); ++it)
+                        {
+                        float delU = it->second;
+                        unsigned int i = it->first.first;
+                        unsigned int j = it->first.second;
+
+                        auto p = std::make_pair(i,j);
+
+                        // add to energy
+                        auto itj = delta_U.find(p);
+                        if (itj != delta_U.end())
+                            delU += itj->second;
+
+                        // update map with new interaction energy
+                        delta_U[p] = delU;
+                        }
+                    }
+                #ifdef ENABLE_TBB
+                    );
+                #endif
                 }
 
             for (auto it = delta_U.begin(); it != delta_U.end(); ++it)
@@ -1265,10 +1424,13 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 }
             } // end if (patch)
 
+        if (this->m_prof) this->m_prof->push("connected components");
         // compute connected components
         m_clusters.clear();
         m_G.connectedComponents(m_clusters);
+        if (this->m_prof) this->m_prof->pop();
 
+        if (this->m_prof) this->m_prof->push("reject");
         // move every cluster independently
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
             {
@@ -1276,7 +1438,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             bool reject = false;
             for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                 {
-                if (m_ptl_reject.find(*it) != m_ptl_reject.end())
+                #ifdef ENABLE_MPI
+                if (m_comm && m_ptl_reject.find(*it) != m_ptl_reject.end())
+                    reject = true;
+                #endif
+                if (!m_comm && m_local_reject.find(*it) != m_local_reject.end())
                     reject = true;
                 }
 
@@ -1318,15 +1484,19 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             // restore image
             snap.image[i] += snap_old.image[i];
             }
-
+        if (this->m_prof) this->m_prof->pop();
         } // if master
 
+    if (this->m_prof) this->m_prof->pop();
+
+    if (this->m_prof) this->m_prof->push("init");
     // finally re-initialize particle data
     m_pdata->initializeFromSnapshot(snap);
 
     // restore origin, after initializing from translated positions
     m_pdata->setOrigin(origin,origin_image);
 
+    if (this->m_prof) this->m_prof->pop();
     if (m_prof) m_prof->pop(m_exec_conf);
 
     // in MPI and GPU simulations the integrator takes care of the grid shift
