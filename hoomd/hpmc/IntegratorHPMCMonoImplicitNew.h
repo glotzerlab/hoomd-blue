@@ -10,10 +10,6 @@
 #include <random>
 #include <cfloat>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 /*! \file IntegratorHPMCMonoImplicitNew.h
     \brief Defines the template class for HPMC with implicit generated depletant solvent
     \note This header cannot be compiled by nvcc
@@ -24,6 +20,11 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#include <thread>
+#endif
 
 namespace hpmc
 {
@@ -139,10 +140,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
-        std::vector<hoomd::detail::Saru> m_rng_depletant;        //!< RNGs for depletant insertion
-        std::vector<std::mt19937> m_rng_depletant_mt;            //!< RNGs for depletant insertion (Poisson distribution)
-        bool m_rng_initialized;                                  //!< True if RNGs have been initialized
-
         bool m_need_initialize_poisson;                             //!< Flag to tell if we need to initialize the poisson distribution
 
         //! Take one timestep forward
@@ -173,8 +170,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
 template< class Shape >
 IntegratorHPMCMonoImplicitNew< Shape >::IntegratorHPMCMonoImplicitNew(std::shared_ptr<SystemDefinition> sysdef,
                                                                    unsigned int seed)
-    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_rng_initialized(false),
-      m_need_initialize_poisson(true)
+    : IntegratorHPMCMono<Shape>(sysdef, seed), m_n_R(0), m_type(0), m_d_dep(0.0), m_need_initialize_poisson(true)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMCImplicit" << std::endl;
 
@@ -300,33 +296,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
         m_need_initialize_poisson = false;
         }
 
-    if (!m_rng_initialized)
-        {
-        unsigned int n_omp_threads = 1;
-
-        #ifdef _OPENMP
-        n_omp_threads = omp_get_max_threads();
-        #endif
-
-        // initialize a set of random number generators
-        for (unsigned int i = 0; i < n_omp_threads; ++i)
-            {
-            m_rng_depletant.push_back(hoomd::detail::Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
-
-            // combine the three seeds
-            std::vector<unsigned int> seed_seq(4);
-            seed_seq[0] = this->m_seed;
-            seed_seq[1] = timestep;
-            seed_seq[2] = this->m_exec_conf->getRank();
-            seed_seq[3] = i;
-            std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-
-            // RNG for poisson distribution
-            m_rng_depletant_mt.push_back(std::mt19937(seed));
-            }
-        m_rng_initialized = true;
-        }
-
     // get needed vars
     ArrayHandle<hpmc_counters_t> h_counters(this->m_count_total, access_location::host, access_mode::readwrite);
     hpmc_counters_t& counters = h_counters.data[0];
@@ -367,6 +336,16 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
     // List of particle images that intersect
     std::vector<unsigned int> image_i;
+
+    #ifndef ENABLE_TBB
+    std::vector<unsigned int> seed_seq(4);
+    seed_seq[0] = this->m_seed;
+    seed_seq[1] = timestep;
+    seed_seq[2] = this->m_exec_conf->getRank();
+    seed_seq[3] = 0x91baff72;
+    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+    std::mt19937 rng_poisson(seed_seq);
+    #endif
 
     // loop over local particles nselect times
     for (unsigned int i_nselect = 0; i_nselect < this->m_nselect; i_nselect++)
@@ -586,29 +565,55 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 // we sample from their union by checking if any generated position falls in the intersection
                 // between two 'lenses' and if so, only accepting it if it was generated from neighbor j_min
 
+                #ifdef ENABLE_TBB
+                tbb::atomic<unsigned int> n_overlap_checks = 0;
+                tbb::atomic<unsigned int> overlap_err_count = 0;
+                tbb::atomic<unsigned int> insert_count = 0;
+                #else
                 unsigned int n_overlap_checks = 0;
                 unsigned int overlap_err_count = 0;
                 unsigned int insert_count = 0;
+                #endif
+
+                #ifdef ENABLE_TBB
+                // create one RNG per thread
+                tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
+                    {
+                    std::vector<unsigned int> seed_seq(5);
+                    seed_seq[0] = this->m_seed;
+                    seed_seq[1] = timestep;
+                    seed_seq[2] = this->m_exec_conf->getRank();
+                    std::hash<std::thread::id> hash;
+                    seed_seq[3] = hash(std::this_thread::get_id());
+                    seed_seq[4] = 0x6b71abc8;
+                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+                    std::vector<unsigned int> s(1);
+                    seed.generate(s.begin(),s.end());
+                    return s[0];
+                    });
+                tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
+                    {
+                    std::vector<unsigned int> seed_seq(5);
+                    seed_seq[0] = this->m_seed;
+                    seed_seq[1] = timestep;
+                    seed_seq[2] = this->m_exec_conf->getRank();
+                    std::hash<std::thread::id> hash;
+                    seed_seq[3] = hash(std::this_thread::get_id());
+                    seed_seq[4] = 0x91baff72;
+                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+                    std::vector<unsigned int> s(1);
+                    seed.generate(s.begin(),s.end());
+                    return s[0]; // use a single seed
+                    });
+                #endif
 
                 // for every pairwise intersection
-                #pragma omp parallel for reduction(+: n_overlap_checks, overlap_err_count, insert_count)
+                #ifdef ENABLE_TBB
+                tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
+                #else
                 for (unsigned int k = 0; k < intersect_i.size(); ++k)
+                #endif
                     {
-                    if (!accept)
-                        {
-                        #ifndef _OPENMP
-                        break;
-                        #else
-                        continue;
-                        #endif
-                        }
-
-                    #ifdef _OPENMP
-                    unsigned int thread_idx = omp_get_thread_num();
-                    #else
-                    unsigned int thread_idx = 0;
-                    #endif
-
                     unsigned int j = intersect_i[k];
                     vec3<Scalar> ri = pos_i_old;
                     Scalar4 postype_j = h_postype.data[j];
@@ -649,7 +654,17 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                     // chooose the number of depletants in the intersection volume
                     std::poisson_distribution<unsigned int> poisson(m_n_R*V);
-                    unsigned int n = poisson(m_rng_depletant_mt[thread_idx]);
+                    #ifdef ENABLE_TBB
+                    std::mt19937& rng_poisson = rng_parallel_mt.local();
+                    #endif
+
+                    #ifdef ENABLE_TBB
+                    hoomd::detail::Saru& my_rng = rng_parallel.local();
+                    #else
+                    hoomd::detail::Saru& my_rng = rng_i;
+                    #endif
+
+                    unsigned int n = poisson(rng_poisson);
 
                     // for every depletant
                     for (unsigned int l = 0; l < n; ++l)
@@ -660,26 +675,26 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         if (!sphere)
                             {
                             // choose one of the two caps randomly, with a weight proportional to their volume
-                            Scalar s = m_rng_depletant[thread_idx].template s<Scalar>();
+                            Scalar s = my_rng.template s<Scalar>();
                             bool cap_i = s < Vcap_i/V;
 
                             // generate a depletant position in the spherical cap
-                            pos_test = cap_i ? generatePositionInSphericalCap(m_rng_depletant[thread_idx], ri, Ri, hi, rij)
-                                : generatePositionInSphericalCap(m_rng_depletant[thread_idx], rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                            pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
+                                : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
                             }
                         else
                             {
                             // generate a random position in the smaller sphere
                             if (Ri < Rj)
-                                pos_test = generatePositionInSphere(m_rng_depletant[thread_idx], ri, Ri);
+                                pos_test = generatePositionInSphere(my_rng, ri, Ri);
                             else
-                                pos_test = generatePositionInSphere(m_rng_depletant[thread_idx], rj, Rj) - this->m_image_list[image_i[k]];
+                                pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[image_i[k]];
                             }
 
                         Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
                         if (shape_test.hasOrientation())
                             {
-                            shape_test.orientation = generateRandomOrientation(m_rng_depletant[thread_idx]);
+                            shape_test.orientation = generateRandomOrientation(my_rng);
                             }
 
                         // check if depletant falls in other intersection volumes
@@ -720,10 +735,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                 {
                                 n_overlap_checks++;
-                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i_old, overlap_err_count))
+                                unsigned int err = 0;
+                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i_old, err))
                                     {
                                     overlap_old = true;
                                     }
+                                if (err) overlap_err_count += err;
                                 }
                             }
 
@@ -743,10 +760,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                 {
                                 n_overlap_checks++;
-                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, overlap_err_count))
+                                unsigned int err = 0;
+                                if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err))
                                     {
                                     overlap_new = true;
                                     }
+                                if (err) overlap_err_count += err;
                                 }
                             }
 
@@ -776,29 +795,36 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+                            unsigned int err = 0;
                             if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
                                 && circumsphere_overlap
-                                && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
+                                && test_overlap(r_ij, shape_test, shape_j, err))
                                 {
                                 in_intersection_volume = true;
-                                break;
                                 }
+
+                            if (err) overlap_err_count+=err;
+                            if (in_intersection_volume)
+                                break;
                             } // end loop over intersections
 
                         // if not part of overlap volume in new config, reject
                         if (in_intersection_volume)
                             {
                             accept = false;
-                            #ifndef _OPENMP
+                            #ifndef ENABLE_TBB
                             break;
                             #endif
                             }
                         } // end loop over depletants
 
-                    #ifndef _OPENMP
+                    #ifndef ENABLE_TBB
                     if (!accept) break;
                     #endif
                     } // end loop over overlapping spheres
+                #ifdef ENABLE_TBB
+                    );
+                #endif
 
                 // increment counters
                 counters.overlap_checks += n_overlap_checks;
@@ -880,30 +906,23 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         } // end loop over images
 
 
-                    n_overlap_checks = 0;
-                    overlap_err_count = 0;
-                    insert_count = 0;
+                    #ifdef ENABLE_TBB
+                    tbb::atomic<unsigned int> n_overlap_checks = 0;
+                    tbb::atomic<unsigned int> overlap_err_count = 0;
+                    tbb::atomic<unsigned int> insert_count = 0;
+                    #else
+                    unsigned int n_overlap_checks = 0;
+                    unsigned int overlap_err_count = 0;
+                    unsigned int insert_count = 0;
+                    #endif
 
                     // for every pairwise intersection
-                    #pragma omp parallel for reduction(+: n_overlap_checks, overlap_err_count, insert_count)
+                    #ifdef ENABLE_TBB
+                    tbb::parallel_for((unsigned int)0, (unsigned int)intersect_i.size(), [&](unsigned int k)
+                    #else
                     for (unsigned int k = 0; k < intersect_i.size(); ++k)
+                    #endif
                         {
-                        if (accept)
-                            {
-                            #ifndef _OPENMP
-                            break;
-                            #else
-                            continue;
-                            #endif
-                            }
-
-                        #ifdef _OPENMP
-                        unsigned int thread_idx = omp_get_thread_num();
-                        #else
-                        unsigned int thread_idx = 0;
-                        #endif
-
-
                         unsigned int j = intersect_i[k];
                         vec3<Scalar> ri = pos_i;
                         unsigned int typ_j;
@@ -956,7 +975,16 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                         // chooose the number of depletants in the intersection volume
                         std::poisson_distribution<unsigned int> poisson(m_n_R*V);
-                        unsigned int n = poisson(m_rng_depletant_mt[thread_idx]);
+                        #ifdef ENABLE_TBB
+                        std::mt19937& rng_poisson = rng_parallel_mt.local();
+                        #endif
+
+                        #ifdef ENABLE_TBB
+                        hoomd::detail::Saru& my_rng = rng_parallel.local();
+                        #else
+                        hoomd::detail::Saru& my_rng = rng_i;
+                        #endif
+                        unsigned int n = poisson(rng_poisson);
 
                         // for every depletant
                         for (unsigned int l = 0; l < n; ++l)
@@ -967,26 +995,26 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             if (!sphere)
                                 {
                                 // choose one of the two caps randomly, with a weight proportional to their volume
-                                Scalar s = m_rng_depletant[thread_idx].template s<Scalar>();
+                                Scalar s = my_rng.template s<Scalar>();
                                 bool cap_i = s < Vcap_i/V;
 
                                 // generate a depletant position in the spherical cap
-                                pos_test = cap_i ? generatePositionInSphericalCap(m_rng_depletant[thread_idx], ri, Ri, hi, rij)
-                                    : generatePositionInSphericalCap(m_rng_depletant[thread_idx], rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
+                                pos_test = cap_i ? generatePositionInSphericalCap(my_rng, ri, Ri, hi, rij)
+                                    : generatePositionInSphericalCap(my_rng, rj, Rj, hj, -rij)-this->m_image_list[image_i[k]];
                                 }
                             else
                                 {
                                 // generate a random position in the smaller sphere
                                 if (Ri < Rj)
-                                    pos_test = generatePositionInSphere(m_rng_depletant[thread_idx], ri, Ri);
+                                    pos_test = generatePositionInSphere(my_rng, ri, Ri);
                                 else
-                                    pos_test = generatePositionInSphere(m_rng_depletant[thread_idx], rj, Rj) - this->m_image_list[image_i[k]];
+                                    pos_test = generatePositionInSphere(my_rng, rj, Rj) - this->m_image_list[image_i[k]];
                                 }
 
                             Shape shape_test(quat<Scalar>(), this->m_params[m_type]);
                             if (shape_test.hasOrientation())
                                 {
-                                shape_test.orientation = generateRandomOrientation(m_rng_depletant[thread_idx]);
+                                shape_test.orientation = generateRandomOrientation(my_rng);
                                 }
 
                             // check if depletant falls in other intersection volumes
@@ -1037,10 +1065,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                     {
                                     n_overlap_checks++;
-                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, overlap_err_count))
+                                    unsigned int err = 0;
+                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i, err))
                                         {
                                         overlap_new = true;
                                         }
+                                    if (err) overlap_err_count+=err;
                                     }
                                 }
 
@@ -1059,10 +1089,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                                     {
                                     n_overlap_checks++;
-                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i_old, overlap_err_count))
+                                    unsigned int err = 0;
+                                    if (circumsphere_overlap && test_overlap(r_ij, shape_test, shape_i_old, err))
                                         {
                                         overlap_old = true;
                                         }
+                                    if (err) overlap_err_count+=err;
                                     }
                                 }
 
@@ -1105,30 +1137,36 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+                                unsigned int err = 0;
                                 if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
                                     && circumsphere_overlap
-                                    && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
+                                    && test_overlap(r_ij, shape_test, shape_j, err))
                                     {
                                     in_intersection_volume = true;
-                                    break;
                                     }
+                                if (err) overlap_err_count+=err;
+                                if (in_intersection_volume)
+                                    break;
                                 } // end loop over intersections
 
                             // if not part of overlap volume in new config, reject
                             if (in_intersection_volume)
                                 {
                                 accept = true;
-                                #ifndef _OPENMP
+                                #ifndef ENABLE_TBB
                                 break;
                                 #endif
                                 }
                             } // end loop over depletants
 
-                        #ifndef _OPENMP
+                        #ifndef ENABLE_TBB
                         if (accept) break;
                         #endif
                         } // end loop over overlapping spheres
-                    }
+                    #ifdef ENABLE_TBB
+                        );
+                    #endif
+                    } // end if (!accept)
 
                 // increment counters
                 counters.overlap_checks += n_overlap_checks;
