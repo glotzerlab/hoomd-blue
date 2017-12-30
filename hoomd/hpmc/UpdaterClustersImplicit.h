@@ -8,6 +8,10 @@
 
 #include "UpdaterClusters.h"
 
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#endif
+
 namespace hpmc
 {
 
@@ -120,7 +124,12 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
     ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::read);
 
     // test old configuration against itself
+
+    #ifdef ENABLE_TBB
+    tbb::parallel_for((unsigned int)0,this->m_n_particles_old, [&](unsigned int i)
+    #else
     for (unsigned int i = 0; i < this->m_n_particles_old; ++i)
+    #endif
         {
         unsigned int typ_i = __scalar_as_int(this->m_postype_backup[i].w);
 
@@ -172,12 +181,19 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 h_overlaps.data[overlap_idx(typ_j,depletant_type)] &&
                                 rsq_ij <= RaRb*RaRb)
                                 {
-                                auto it = map.find(this->m_tag_backup[i]);
-                                assert(it != map.end());
-                                unsigned int new_tag_i = it->second;
-                                it = map.find(this->m_tag_backup[j]);
-                                assert(it!=map.end());
-                                unsigned int new_tag_j = it->second;
+                                unsigned int new_tag_i;
+                                    {
+                                    auto it = map.find(this->m_tag_backup[i]);
+                                    assert(it != map.end());
+                                    new_tag_i = it->second;
+                                    }
+                                unsigned int new_tag_j;
+                                    {
+                                    auto it = map.find(this->m_tag_backup[j]);
+                                    assert(it!=map.end());
+                                    new_tag_j = it->second;
+                                    }
+
                                 this->m_interact_old_old.insert(std::make_pair(new_tag_i,new_tag_j));
 
                                 int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
@@ -203,9 +219,16 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
             } // end loop over images
 
         } // end loop over old configuration
+    #ifdef ENABLE_TBB
+        );
+    #endif
 
     // loop over new configuration
+    #ifdef ENABLE_TBB
+    tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+    #else
     for (unsigned int i = 0; i < nptl; ++i)
+    #endif
         {
         unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
 
@@ -241,11 +264,14 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                             // read in its position and orientation
                             unsigned int j = this->m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            if (h_tag.data[i] == this->m_tag_backup[j] && cur_image == 0) continue;
+                            unsigned int new_tag_j;
+                                {
+                                auto it = map.find(this->m_tag_backup[j]);
+                                assert(it != map.end());
+                                new_tag_j = it->second;
+                                }
 
-                            auto it = map.find(this->m_tag_backup[j]);
-                            assert(it != map.end());
-                            unsigned int new_tag_j = it->second;
+                            if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
 
                             vec3<Scalar> pos_j(this->m_postype_backup[j]);
                             unsigned int typ_j = __scalar_as_int(this->m_postype_backup[j].w);
@@ -287,14 +313,20 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
             } // end loop over images
 
         } // end loop over local particles
-
+    #ifdef ENABLE_TBB
+        );
+    #endif
     if (line)
         {
         // locality data in new configuration
         const detail::AABBTree& aabb_tree = m_mc_implicit->buildAABBTree();
 
         // check if particles are interacting in the new configuration
+        #ifdef ENABLE_TBB
+        tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+        #else
         for (unsigned int i = 0; i < nptl; ++i)
+        #endif
             {
             unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
 
@@ -370,6 +402,9 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                     } // end loop over nodes
                 } // end loop over images
             } // end loop over local particles
+        #ifdef ENABLE_TBB
+            );
+        #endif
         } // end if line transformation
 
     if (this->m_prof) this->m_prof->pop(this->m_exec_conf);

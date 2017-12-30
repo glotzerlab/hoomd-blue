@@ -16,6 +16,64 @@
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
 
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/concurrent_unordered_map.h>
+
+#include "cereal/cereal.hpp"
+
+//! Serialization of tbb::concurrent_unordered_set
+namespace cereal
+{
+  namespace tbb_unordered_set_detail
+  {
+    //! @internal
+    template <class Archive, class SetT> inline
+    void save( Archive & ar, SetT const & set )
+    {
+      ar( make_size_tag( static_cast<size_type>(set.size()) ) );
+
+      for( const auto & i : set )
+        ar( i );
+    }
+
+    //! @internal
+    template <class Archive, class SetT> inline
+    void load( Archive & ar, SetT & set )
+    {
+      size_type size;
+      ar( make_size_tag( size ) );
+
+      set.clear();
+
+      for( size_type i = 0; i < size; ++i )
+      {
+        typename SetT::key_type key;
+
+        ar( key );
+        set.emplace( std::move( key ) );
+      }
+    }
+  }
+
+  //! Saving for tbb::concurrent_unordered_set
+  template <class Archive, class K, class H, class KE, class A> inline
+  void save(Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> const & unordered_set )
+  {
+    tbb_unordered_set_detail::save( ar, unordered_set );
+  }
+
+  //! Loading for tbb::concurrent_unordered_set
+  template <class Archive, class K, class H, class KE, class A> inline
+  void load( Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> & unordered_set )
+  {
+    tbb_unordered_set_detail::load( ar, unordered_set );
+  }
+}
+#endif
+
+
 namespace hpmc
 {
 
@@ -240,14 +298,27 @@ class UpdaterClusters : public Updater
 
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
+        #ifndef ENABLE_TBB
         std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
         std::set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+
         std::set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
         std::set<std::pair<unsigned int, unsigned int> > m_interact_new_new;  //!< Pairs interacting new-old
         std::set<unsigned int> m_local_reject;                   //!< Set of particles whose clusters moves are rejected
 
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
         std::map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        #else
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
+        tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > m_interact_new_new;  //!< Pairs interacting new-old
+        tbb::concurrent_unordered_set<unsigned int> m_local_reject;                   //!< Set of particles whose clusters moves are rejected
+
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_old_old;    //!< Energy of interaction old-old
+        tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>,float > m_energy_new_old;    //!< Energy of interaction old-old
+        #endif
 
         std::set<unsigned int> m_ptl_reject;              //!< List of ptls that are not transformed
         hpmc_counters_t m_count_total;                 //!< Total count since initialization
@@ -345,7 +416,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
     if (patch)
         {
         // test old configuration against itself
+        #ifdef ENABLE_TBB
+        tbb::parallel_for((unsigned int)0,m_n_particles_old, [&](unsigned int i)
+        #else
         for (unsigned int i = 0; i < m_n_particles_old; ++i)
+        #endif
             {
             unsigned int typ_i = __scalar_as_int(m_postype_backup[i].w);
 
@@ -393,19 +468,28 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (rsq_ij <= r_cut_patch*r_cut_patch)
                                     {
                                     // the particle pair
-                                    auto it = map.find(m_tag_backup[i]);
-                                    assert(it != map.end());
-                                    unsigned int new_tag_i = it->second;
-                                    it = map.find(m_tag_backup[j]);
-                                    assert(it!=map.end());
-                                    unsigned int new_tag_j = it->second;
+                                    unsigned int new_tag_i;
+                                        {
+                                        auto it = map.find(m_tag_backup[i]);
+                                        assert(it != map.end());
+                                        new_tag_i = it->second;
+                                        }
+
+                                    unsigned int new_tag_j;
+                                        {
+                                        auto it = map.find(m_tag_backup[j]);
+                                        assert(it!=map.end());
+                                        new_tag_j = it->second;
+                                        }
                                     auto p = std::make_pair(new_tag_i,new_tag_j);
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
-                                    auto it_energy = m_energy_old_old.find(p);
-                                    if (it_energy != m_energy_old_old.end())
-                                        U = it_energy->second;
+                                        {
+                                        auto it_energy = m_energy_old_old.find(p);
+                                        if (it_energy != m_energy_old_old.end())
+                                            U = it_energy->second;
+                                        }
 
                                     U += patch->energy(r_ij, typ_i,
                                                         quat<float>(orientation_i),
@@ -442,10 +526,17 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 } // end loop over images
 
             } // end loop over old configuration
+        #ifdef ENABLE_TBB
+            );
+        #endif
         }
 
     // loop over new configuration
+    #ifdef ENABLE_TBB
+    tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+    #else
     for (unsigned int i = 0; i < nptl; ++i)
+    #endif
         {
         unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
 
@@ -481,9 +572,12 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                             // read in its position and orientation
                             unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                            auto it = map.find(m_tag_backup[j]);
-                            assert(it != map.end());
-                            unsigned int new_tag_j = it->second;
+                            unsigned int new_tag_j;
+                                {
+                                auto it = map.find(m_tag_backup[j]);
+                                assert(it != map.end());
+                                new_tag_j = it->second;
+                                }
 
                             if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
 
@@ -557,9 +651,12 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 // read in its position and orientation
                                 unsigned int j = m_aabb_tree_old.getNodeParticle(cur_node_idx, cur_p);
 
-                                auto it = map.find(m_tag_backup[j]);
-                                assert(it != map.end());
-                                unsigned int new_tag_j = it->second;
+                                unsigned int new_tag_j;
+                                    {
+                                    auto it = map.find(m_tag_backup[j]);
+                                    assert(it != map.end());
+                                    new_tag_j = it->second;
+                                    }
 
                                 if (h_tag.data[i] == new_tag_j && cur_image == 0) continue;
 
@@ -578,9 +675,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
-                                    auto it_energy = m_energy_new_old.find(p);
-                                    if (it_energy != m_energy_new_old.end())
-                                        U = it_energy->second;
+                                        {
+                                        auto it_energy = m_energy_new_old.find(p);
+                                        if (it_energy != m_energy_new_old.end())
+                                            U = it_energy->second;
+                                        }
 
                                     U += patch->energy(r_ij, typ_i,
                                                             quat<float>(shape_i.orientation),
@@ -617,6 +716,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                 } // end loop over images
             } // end if patch
         } // end loop over local particles
+    #ifdef ENABLE_TBB
+        );
+    #endif
 
     if (line)
         {
@@ -624,7 +726,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
         // check if particles are interacting in the new configuration
+        #ifdef ENABLE_TBB
+        tbb::parallel_for((unsigned int)0,nptl, [&](unsigned int i)
+        #else
         for (unsigned int i = 0; i < nptl; ++i)
+        #endif
             {
             unsigned int typ_i = __scalar_as_int(h_postype.data[i].w);
 
@@ -703,6 +809,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                     } // end loop over nodes
                 } // end loop over images
             } // end loop over local particles
+        #ifdef ENABLE_TBB
+            );
+        #endif
         } // end if line transformation
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -917,6 +1026,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"Move");
 
     // collect interactions on rank 0
+    #ifndef ENABLE_TBB
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
@@ -925,6 +1035,18 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
     std::vector< std::map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
+    #else
+    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_overlap;
+    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
+    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
+    std::vector< tbb::concurrent_unordered_set<std::pair<unsigned int, unsigned int> > > all_interact_new_new;
+    std::vector< tbb::concurrent_unordered_set<unsigned int> > all_local_reject;
+
+    std::vector< tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>, float> > all_energy_old_old;
+    std::vector< tbb::concurrent_unordered_map<std::pair<unsigned int, unsigned int>, float> > all_energy_new_old;
+    #endif
+
+    if (this->m_prof) this->m_prof->push("copy");
 
     #ifdef ENABLE_MPI
     if (m_comm)
@@ -962,6 +1084,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             }
         }
 
+    if (this->m_prof) this->m_prof->pop();
     if (master)
         {
         // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
