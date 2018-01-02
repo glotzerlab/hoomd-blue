@@ -144,7 +144,7 @@ class shape_updater_test(unittest.TestCase):
             p.update({t: [0.1]});
 
         self.updater.python_shape_move(callback=fun, params=p, stepsize=0.1, param_ratio=1.0);
-        hoomd.run(10, quiet=True);
+        hoomd.run(10, quiet=False);
 
         self.tearDown();
         self.setUp();
@@ -408,6 +408,19 @@ class shape_updater_test(unittest.TestCase):
         # self.mc.shape_param.set('A', diameters=diams, centers=cent);
         # self.run_test(latticep=lattice3d, latticeq=latticeq, k=k, kalt=kalt, q=k*10.0, qalt=kalt*10.0, uein=None, snapshot_s=self.snapshot3d_s, eng_check=(eng_check3d+eng_checkq));
         pass;
+
+    def test_logger(self):
+        v = 0.33*np.array([(1,1,1), (1,-1,1), (-1,-1,1), (-1,1,1),(1,1,-1), (1,-1,-1), (-1,-1,-1), (-1,1,-1)]);
+        self.mc = hpmc.integrate.convex_polyhedron(seed=2398, d=0.1, a=0.1)
+        self.mc.shape_param.set(self.types, vertices=v)
+        self.pos = None; #hoomd.deprecated.dump.pos("shape_updater.pos", period=10)
+        stiffness = hoomd.variant.linear_interp([(0,100), (100, 80)]);
+        self.updater = hpmc.update.elastic_shape(mc=self.mc, stepsize=0.1, move_ratio=1.0, seed=3832765, stiffness=stiffness, reference=dict(vertices=v), pos=self.pos, nselect=3, nsweeps=2, param_ratio=0.5)
+        k = hoomd.variant.linear_interp([(0,128), (100, 64)]);
+        self.updater.set_stiffness(k)
+        hoomd.analyze.log(filename="shape_updater.log", period=10, overwrite=True, quantities=['shape_move_energy', 'shape_move_stiffness', 'shape_move_acceptance_ratio', 'shape_move_particle_volume'])
+        hoomd.run(101)
+
 
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

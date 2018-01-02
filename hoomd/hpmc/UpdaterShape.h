@@ -64,6 +64,7 @@ public:
         if(m_move_function) m_move_function->setStepSize(typ, stepsize);
         }
 
+
     void countTypes();
 
     //! Method that is called whenever the GSD file is written if connected to a GSD file.
@@ -74,18 +75,6 @@ public:
 
     //! Method that is called to connect to the gsd write state signal
     bool restoreStateGSD(std::shared_ptr<GSDReader> reader, std::string name);
-
-
-protected:
-    static std::string getParamName(size_t i)
-        {
-        std::stringstream ss;
-        std::string snum;
-        ss << i;
-        ss>>snum;
-        return "shape_param-" + snum;
-        }
-
 
 private:
     unsigned int                m_seed;           //!< Random number seed
@@ -107,6 +96,7 @@ private:
     bool                        m_pretend;
     bool                        m_initialized;
     detail::UpdateOrder         m_update_order;         //!< Update order
+
 };
 
 template < class Shape >
@@ -156,7 +146,12 @@ std::vector< std::string > UpdaterShape<Shape>::getProvidedLogQuantities()
 template < class Shape >
 Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
     {
-    if(quantity == "shape_move_acceptance_ratio")
+    Scalar value = 0.0;
+    if(m_move_function->getLogValue(quantity, timestep, value) || m_log_boltz_function->getLogValue(quantity, timestep, value))
+        {
+        return value;
+        }
+    else if(quantity == "shape_move_acceptance_ratio")
         {
         unsigned int ctAccepted = 0, ctTotal = 0;
         ctAccepted = std::accumulate(m_count_accepted.begin(), m_count_accepted.end(), 0);
@@ -174,8 +169,8 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
             detail::mass_properties<Shape> mp(params[i]);
             volume += mp.getVolume()*Scalar(h_ntypes.data[i]);
             }
-		return volume;
-		}
+        return volume;
+        }
     else if(quantity == "shape_move_energy")
         {
         Scalar energy = 0.0;
@@ -184,20 +179,12 @@ Scalar UpdaterShape<Shape>::getLogValue(const std::string& quantity, unsigned in
         // ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::readwrite);
         for(unsigned int i = 0; i < m_pdata->getNTypes(); i++)
             {
-            energy += m_log_boltz_function->computeEnergy(h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
+            energy += m_log_boltz_function->computeEnergy(timestep, h_ntypes.data[i], i, m_mc->getParams()[i], h_det.data[i]);
             }
         return energy;
         }
     else
-		{
-		for(size_t i = 0; i < m_num_params; i++)
-		    {
-		    if(quantity == getParamName(i))
-    			{
-    			return m_move_function->getParam(i);
-    			}
-		    }
-
+	    {
 		m_exec_conf->msg->error() << "update.shape: " << quantity << " is not a valid log quantity" << std::endl;
 		throw std::runtime_error("Error getting log value");
 		}
@@ -279,7 +266,7 @@ void UpdaterShape<Shape>::update(unsigned int timestep)
             m_exec_conf->msg->notice(5) << " UpdaterShape I=" << h_det.data[typ_i] << ", " << h_det_backup.data[typ_i] << std::endl;
             // energy and moment of interia change.
             assert(h_det.data[typ_i] != 0 && h_det_backup.data[typ_i] != 0);
-            log_boltz += (*m_log_boltz_function)(
+            log_boltz += (*m_log_boltz_function)(   timestep,
                                                     h_ntypes.data[typ_i],           // number of particles of type typ_i,
                                                     typ_i,                          // the type id
                                                     param,                          // new shape parameter
@@ -393,6 +380,9 @@ void UpdaterShape<Shape>::registerLogBoltzmannFunction(std::shared_ptr< ShapeLog
     if(m_log_boltz_function)
         return;
     m_log_boltz_function = lbf;
+    std::vector< std::string > quantities(m_log_boltz_function->getProvidedLogQuantities());
+    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
+    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>
@@ -401,11 +391,9 @@ void UpdaterShape<Shape>::registerShapeMove(std::shared_ptr<shape_move_function<
     if(m_move_function) // if it exists I do not want to reset it.
         return;
     m_move_function = move;
-    m_num_params = m_move_function->getNumParam();
-    for(size_t i = 0; i < m_num_params; i++)
-        {
-        m_ProvidedQuantities.push_back(getParamName(i));
-        }
+    std::vector< std::string > quantities(m_move_function->getProvidedLogQuantities());
+    m_ProvidedQuantities.reserve( m_ProvidedQuantities.size() + quantities.size() );
+    m_ProvidedQuantities.insert(m_ProvidedQuantities.end(), quantities.begin(), quantities.end());
     }
 
 template< typename Shape>

@@ -1384,6 +1384,7 @@ class elastic_shape(shape_update):
         # Add a shape move.
         elastic.scale_shear_move(stepsize=0.1, move_ratio=0.5);
     """
+
     def __init__(   self,
                     stiffness,
                     reference,
@@ -1406,8 +1407,16 @@ class elastic_shape(shape_update):
             hoomd.context.msg.error("update.elastic_shape: Unsupported integrator.\n");
             raise RuntimeError("Error initializing compute.elastic_shape");
 
+        self.stiffness = hoomd.variant._setup_variant_input(stiffness);
         ref_shape = self.mc.shape_class.make_param(**reference);
-        self.boltzmann_function = clss(stiffness, ref_shape, self.move_cpp);
+        self.boltzmann_function = clss(self.stiffness.cpp_variant, ref_shape, self.move_cpp);
         self.cpp_updater.registerLogBoltzmannFunction(self.boltzmann_function);
-        #del self.vertex_shape_move
-        #del self.python_shape_move
+
+    def set_stiffness(self, stiffness):
+        R""" Update the stiffness set point for Metropolis Monte Carlo elastic shape updates.
+
+        Args:
+            stiffness (float) or (:py:mod:`hoomd.variant`): :math:`\frac{k}/{k_{\mathrm{B}}T}`.
+        """
+        self.stiffness = hoomd.variant._setup_variant_input(stiffness)
+        self.boltzmann_function.setStiffness(self.stiffness.cpp_variant)

@@ -56,9 +56,18 @@ void export_ShapeLogBoltzmann(pybind11::module& m, const std::string& name)
 template<class Shape>
 void export_ShapeSpringLogBoltzmannFunction(pybind11::module& m, const std::string& name)
     {
+    pybind11::class_< ShapeSpringBase<Shape>, std::shared_ptr< ShapeSpringBase<Shape> > >
+    (m, (name+"Base").c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
+    .def(pybind11::init< std::shared_ptr<Variant>, typename Shape::param_type >())
+    ;
+
     pybind11::class_< ShapeSpring<Shape>, std::shared_ptr< ShapeSpring<Shape> > >
-    (m, name.c_str(), pybind11::base< ShapeLogBoltzmannFunction<Shape> >())
-    .def(pybind11::init< Scalar, typename Shape::param_type,std::shared_ptr<elastic_shape_move_function<Shape, Saru> > >())
+    (m, name.c_str(), pybind11::base< ShapeSpringBase<Shape> >())
+    .def( pybind11::init<   std::shared_ptr<Variant>,
+                            typename Shape::param_type,
+                            std::shared_ptr<elastic_shape_move_function<Shape, Saru> > >())
+    .def("setStiffness", &ShapeSpring<Shape>::setStiffness)
+    .def("getStiffness", &ShapeSpring<Shape>::getStiffness)
     ;
     }
 
