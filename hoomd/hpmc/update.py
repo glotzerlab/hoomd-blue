@@ -843,7 +843,7 @@ class remove_drift(_updater):
 # Moves that change the cluster size, i.e., when two clusters come together such that the resulting
 # configuration would have a bigger cluster, are rejected.
 #
-class cluster(_updater):
+class clusters(_updater):
     ## Specifies the cluster move updater
     # \param mc MC integrator (implicit depletants integrator required)
     # \param period Number of timesteps between cluster moves
@@ -966,8 +966,9 @@ class cluster(_updater):
 
     ## Update parameters
     # \param move_ratio (If set) Update ratio of pivot to reflection moves
+    # .. other parameters
     #
-    def set_params(self, move_ratio=None, flip_probability=None):
+    def set_params(self, move_ratio=None, flip_probability=None, delta_mu=None, swap_types=None):
         hoomd.util.print_status_line();
 
         if move_ratio is not None:
@@ -976,6 +977,17 @@ class cluster(_updater):
         if flip_probability is not None:
             self.cpp_updater.setFlipProbability(float(flip_probabilty))
 
+        if delta_mu is not None:
+            self.cpp_updater.setDeltaMu(float(delta_mu))
+
+        if swap_types is not None:
+            my_swap_types = tuple(swap_types)
+            if len(my_swap_types) != 2:
+                hoomd.context.msg.error("update.clusters: Need exactly two types for type swap.\n");
+                raise RuntimeError("Error setting parameters in update.clusters");
+            type_A = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[0]);
+            type_B = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[1]);
+            self.cpp_updater.setSwapTypePair(type_A, type_B)
 
     ## Get the average acceptance ratio for translate moves
     #
