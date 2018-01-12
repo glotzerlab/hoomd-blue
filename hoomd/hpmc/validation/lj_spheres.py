@@ -9,17 +9,16 @@ import math
 import unittest
 import BlockAverage
 
-# Reference potential energy (U/N/eps) from MD simulation and ...
-# U_ref = -4.188;
-# U_ref_star_rel_err = 0.002;
-U_ref = -4.228;
-U_ref_star_rel_err = 0.006;
+# Reference potential energy (U/N/eps) from MD simulations
+# and J. K. Johnson et al. (DOI:10.1080/00268979300100411)
+U_ref = -4.223;
+U_ref_star_rel_err = 0.003;
 
 # Interaction cut-off
-rcut   = 3.0;
+rcut = 3.0;
 
 # LJ length scale
-sigma   = 1.0;
+sigma = 1.0;
 
 # Temperature (kT/eps)
 Tstar = 1.0;
@@ -49,7 +48,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         N = len(system.particles);
 
-        mc = hpmc.integrate.sphere(d=0.3,seed=21566);
+        mc = hpmc.integrate.sphere(d=0.3,seed=321);
 
         mc.shape_param.set('A',diameter=diameter)
 
@@ -73,9 +72,9 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         from hoomd import jit
 
-        jit.patch.user(mc,r_cut=rcut, code=lennard_jones,clang_exec="/opt/local/bin/clang-mp-3.8")
+        jit.patch.user(mc,r_cut=rcut, code=lennard_jones);
 
-        mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.3);
+        mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
 
         log = analyze.log(filename=None, quantities=['hpmc_overlap_count','hpmc_patch_energy'],period=100,overwrite=True);
 
