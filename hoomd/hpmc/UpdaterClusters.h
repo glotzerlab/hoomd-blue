@@ -6,6 +6,7 @@
     \brief Declaration of UpdaterBoxClusters
 */
 
+#include "hoomd/HOOMDMPI.h"
 #include "hoomd/Updater.h"
 #include "hoomd/Saru.h"
 
@@ -18,82 +19,7 @@
 
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
-#include <tbb/concurrent_unordered_set.h>
-#include <tbb/concurrent_unordered_map.h>
-
-#include "cereal/cereal.hpp"
-
-namespace cereal
-{
-  //! Serialization for tbb::concurrent_vector
-  template <class Archive, class T, class A> inline
-  void save( Archive & ar, tbb::concurrent_vector<T, A> const & vector )
-  {
-    ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
-    for(auto && v : vector)
-      ar( v );
-  }
-
-  template <class Archive, class T, class A> inline
-  void load( Archive & ar, tbb::concurrent_vector<T, A> & vector )
-  {
-    size_type size;
-    ar( make_size_tag( size ) );
-
-    vector.resize( static_cast<std::size_t>( size ) );
-    for(auto && v : vector)
-      ar( v );
-  }
-
-
-   //! Serialization of tbb::concurrent_unordered_set
-  namespace tbb_unordered_set_detail
-  {
-    //! @internal
-    template <class Archive, class SetT> inline
-    void save( Archive & ar, SetT const & set )
-    {
-      ar( make_size_tag( static_cast<size_type>(set.size()) ) );
-
-      for( const auto & i : set )
-        ar( i );
-    }
-
-    //! @internal
-    template <class Archive, class SetT> inline
-    void load( Archive & ar, SetT & set )
-    {
-      size_type size;
-      ar( make_size_tag( size ) );
-
-      set.clear();
-
-      for( size_type i = 0; i < size; ++i )
-      {
-        typename SetT::key_type key;
-
-        ar( key );
-        set.emplace( std::move( key ) );
-      }
-    }
-  }
-
-  //! Saving for tbb::concurrent_unordered_set
-  template <class Archive, class K, class H, class KE, class A> inline
-  void save(Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> const & unordered_set )
-  {
-    tbb_unordered_set_detail::save( ar, unordered_set );
-  }
-
-  //! Loading for tbb::concurrent_unordered_set
-  template <class Archive, class K, class H, class KE, class A> inline
-  void load( Archive & ar, tbb::concurrent_unordered_set<K, H, KE, A> & unordered_set )
-  {
-    tbb_unordered_set_detail::load( ar, unordered_set );
-  }
-}
 #endif
-
 
 namespace hpmc
 {
