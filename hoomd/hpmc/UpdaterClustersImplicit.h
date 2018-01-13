@@ -386,6 +386,9 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // add to list
+                                        this->m_local_reject.insert(h_tag.data[i]);
+                                        this->m_local_reject.insert(h_tag.data[j]);
+
                                         this->m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
                                         }
                                     } // end if overlap
