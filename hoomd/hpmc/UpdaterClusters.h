@@ -797,7 +797,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                         {
                                         // add to reject list
                                         m_local_reject.insert(h_tag.data[i]);
-                                        m_local_reject.insert(h_tag.data[i]);
+                                        m_local_reject.insert(h_tag.data[j]);
 
                                         m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
                                         }
