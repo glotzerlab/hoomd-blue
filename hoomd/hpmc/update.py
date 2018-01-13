@@ -968,7 +968,7 @@ class clusters(_updater):
     # \param move_ratio (If set) Update ratio of pivot to reflection moves
     # .. other parameters
     #
-    def set_params(self, move_ratio=None, flip_probability=None, delta_mu=None, swap_types=None):
+    def set_params(self, move_ratio=None, flip_probability=None, swap_move_ratio=None, delta_mu=None, swap_types=None):
         hoomd.util.print_status_line();
 
         if move_ratio is not None:
@@ -976,6 +976,9 @@ class clusters(_updater):
 
         if flip_probability is not None:
             self.cpp_updater.setFlipProbability(float(flip_probabilty))
+
+        if swap_move_ratio is not None:
+            self.cpp_updater.setSwapMoveRatio(float(swap_move_ratio))
 
         if delta_mu is not None:
             self.cpp_updater.setDeltaMu(float(delta_mu))

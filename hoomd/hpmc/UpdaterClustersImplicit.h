@@ -75,17 +75,17 @@ class UpdaterClustersImplicit : public UpdaterClusters<Shape>
             \param line True if this is a line reflection
             \param map Map to lookup new tag from old tag
         */
-        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
+        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap, bool line,
             const std::map<unsigned int, unsigned int>& map);
 
     };
 
 template< class Shape, class Integrator >
 void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int timestep, vec3<Scalar> pivot,
-    quat<Scalar> q, bool line, const std::map<unsigned int, unsigned int>& map)
+    quat<Scalar> q, bool swap, bool line, const std::map<unsigned int, unsigned int>& map)
     {
     // call base class method
-    UpdaterClusters<Shape>::findInteractions(timestep, pivot, q, line, map);
+    UpdaterClusters<Shape>::findInteractions(timestep, pivot, q, swap, line, map);
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf,"Interactions");
 

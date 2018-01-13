@@ -173,6 +173,12 @@ class UpdaterClusters : public Updater
             m_move_ratio = move_ratio;
             }
 
+        //! Set the swap to geometric move ratio
+        void setSwapMoveRatio(Scalar move_ratio)
+            {
+            m_swap_move_ratio = move_ratio;
+            }
+
         //! Set the cluster flip probability
         void setFlipProbability(Scalar flip_probability)
             {
@@ -260,6 +266,7 @@ class UpdaterClusters : public Updater
         std::shared_ptr< IntegratorHPMCMono<Shape> > m_mc; //!< HPMC integrator
         unsigned int m_seed;                        //!< RNG seed
         Scalar m_move_ratio;                        //!< Pivot/Reflection move ratio
+        Scalar m_swap_move_ratio;                   //!< Type swap / geometric move ratio
         Scalar m_flip_probability;                  //!< Cluster flip probability
 
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
@@ -322,8 +329,8 @@ class UpdaterClusters : public Updater
             \param line True if this is a line reflection
             \param map Map to lookup new tag from old tag
         */
-        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
-            const std::map<unsigned int, unsigned int>& map);
+        virtual void findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+            bool line, const std::map<unsigned int, unsigned int>& map);
 
         //! Helper function to get interaction range
         virtual Scalar getNominalWidth()
@@ -340,8 +347,8 @@ template< class Shape >
 UpdaterClusters<Shape>::UpdaterClusters(std::shared_ptr<SystemDefinition> sysdef,
                                  std::shared_ptr<IntegratorHPMCMono<Shape> > mc,
                                  unsigned int seed)
-        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5), m_flip_probability(0.5),
-        m_n_particles_old(0), m_delta_mu(0.0)
+        : Updater(sysdef), m_mc(mc), m_seed(seed), m_move_ratio(0.5), m_swap_move_ratio(0.5),
+            m_flip_probability(0.5), m_n_particles_old(0), m_delta_mu(0.0)
     {
     m_exec_conf->msg->notice(5) << "Constructing UpdaterClusters" << std::endl;
 
@@ -356,8 +363,8 @@ UpdaterClusters<Shape>::~UpdaterClusters()
     }
 
 template< class Shape >
-void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool line,
-    const std::map<unsigned int, unsigned int>& map)
+void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar> pivot, quat<Scalar> q, bool swap,
+    bool line, const std::map<unsigned int, unsigned int>& map)
     {
     if (m_prof) m_prof->push(m_exec_conf,"Interactions");
 
@@ -497,10 +504,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // if interaction across PBC, reject cluster move
-                                        if (!m_ab_types.size() || (typ_i != m_ab_types[0] && typ_i != m_ab_types[1]))
-                                            m_local_reject.insert(new_tag_i);
-                                        if (!m_ab_types.size() || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1]))
-                                            m_local_reject.insert(new_tag_j);
+                                        m_local_reject.insert(new_tag_i);
+                                        m_local_reject.insert(new_tag_j);
                                         }
                                     } // end if overlap
 
@@ -592,17 +597,21 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
+                                    bool reject =  line && (delta_img.x || delta_img.y || delta_img.z);
+
+                                    if (swap && ((typ_i != m_ab_types[0] && typ_i != m_ab_types[1])
+                                        || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1])))
+                                        reject = true;
+
                                     // add connection
                                     m_overlap.push_back(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
-                                    if ((delta_img.x || delta_img.y || delta_img.z) && line)
+                                    if (reject)
                                         {
                                         // if interaction across PBC, reject cluster move
-                                        if (!m_ab_types.size() || (typ_i != m_ab_types[0] && typ_i != m_ab_types[1]))
-                                            m_local_reject.insert(h_tag.data[i]);
-                                        if (!m_ab_types.size() || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1]))
-                                            m_local_reject.insert(new_tag_j);
+                                        m_local_reject.insert(h_tag.data[i]);
+                                        m_local_reject.insert(new_tag_j);
                                         }
                                     } // end if overlap
                                 }
@@ -692,10 +701,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     if (cur_image && line)
                                         {
                                         // if interaction across PBC, reject cluster move
-                                        if (!m_ab_types.size() || (typ_i != m_ab_types[0] && typ_i != m_ab_types[1]))
-                                            m_local_reject.insert(h_tag.data[i]);
-                                        if (!m_ab_types.size() || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1]))
-                                            m_local_reject.insert(new_tag_j);
+                                        m_local_reject.insert(h_tag.data[i]);
+                                        m_local_reject.insert(new_tag_j);
                                         }
                                     }
                                 } // end loop over AABB tree leaf
@@ -789,9 +796,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
                                         // add to list
-                                        if (!m_ab_types.size() || (typ_i != m_ab_types[0] && typ_i == m_ab_types[1])
-                                            || (typ_j != m_ab_types[0] && typ_j == m_ab_types[1]))
-                                            m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
+                                        m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
                                         }
                                     } // end if overlap
 
@@ -867,8 +872,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
+    bool swap = m_ab_types.size() && (rng.template s<Scalar>() > m_swap_move_ratio);
+
     // is this a line reflection?
-    bool line = m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio);
+    bool line = !swap && (m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio));
 
     quat<Scalar> q;
 
@@ -971,15 +978,15 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             // reset image
             snap.image[i] = make_int3(0,0,0);
 
-            // for AB mixtures
-            bool swap_type = false;
-            if (m_ab_types.size() == 2)
+            if (swap && m_ab_types.size() == 2)
                 {
-                if (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1])
-                    swap_type = true;
+                // swap move
+                if (snap.type[i] == m_ab_types[0])
+                    snap.type[i] = m_ab_types[1];
+                else if (snap.type[i] == m_ab_types[1])
+                    snap.type[i] = m_ab_types[0];
                 }
-
-            if (! swap_type)
+            else
                 {
                 // if the particle falls outside the active volume of global_box_nonperiodic, reject
                 if (line && !isActive(vec_to_scalar3(snap.pos[i]), global_box_nonperiodic, range))
@@ -1009,14 +1016,6 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 // wrap particle back into box
                 box.wrap(snap.pos[i],snap.image[i]);
                 }
-            else
-                {
-                // flip A<->B
-                if (snap.type[i] == m_ab_types[0])
-                    snap.type[i] = m_ab_types[1];
-                else
-                    snap.type[i] = m_ab_types[0];
-                }
             }
         }
 
@@ -1037,7 +1036,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // determine which particles interact
-    findInteractions(timestep, pivot, q, line, map);
+    findInteractions(timestep, pivot, q, swap, line, map);
 
     if (m_prof) m_prof->push(m_exec_conf,"Move");
 
@@ -1462,7 +1461,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 reject = true;
 
             // count number of A and B particles in old and new config
-            if (m_ab_types.size())
+            if (swap && m_ab_types.size())
                 {
                 int n_A_old = 0, n_A_new = 0;
                 int n_B_old = 0, n_B_new = 0;
@@ -1498,7 +1497,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     snap.orientation[i] = snap_old.orientation[i];
                     snap.type[i] = snap_old.type[i];
 
-                    if (m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
+                    if (swap && m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
                         {
                         m_count_total.swap_reject_count++;
                         }
@@ -1518,7 +1517,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     // particle index
 
                     unsigned int i = *it;
-                    if (m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
+                    if (swap && m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
                         {
                         m_count_total.swap_accept_count++;
                         }
@@ -1620,6 +1619,7 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
         .def("getCounters", &UpdaterClusters<Shape>::getCounters)
         .def("setMoveRatio", &UpdaterClusters<Shape>::setMoveRatio)
         .def("setFlipProbability", &UpdaterClusters<Shape>::setFlipProbability)
+        .def("setSwapMoveRatio", &UpdaterClusters<Shape>::setSwapMoveRatio)
         .def("setSwapTypePair", &UpdaterClusters<Shape>::setSwapTypePair)
         .def("setDeltaMu", &UpdaterClusters<Shape>::setDeltaMu)
     ;
