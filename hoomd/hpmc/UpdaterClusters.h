@@ -1545,7 +1545,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->pop(m_exec_conf);
 
     // in MPI and GPU simulations the integrator takes care of the grid shift
-    bool grid_shift = false;
+    bool grid_shift = true;
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         grid_shift = false;
