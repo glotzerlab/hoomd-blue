@@ -795,7 +795,10 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image.data[j];
                                     if ((delta_img.x || delta_img.y || delta_img.z) && line)
                                         {
-                                        // add to list
+                                        // add to reject list
+                                        m_local_reject.insert(h_tag.data[i]);
+                                        m_local_reject.insert(h_tag.data[i]);
+
                                         m_interact_new_new.insert(std::make_pair(h_tag.data[i],h_tag.data[j]));
                                         }
                                     } // end if overlap
@@ -872,7 +875,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     BoxDim box = m_pdata->getGlobalBox();
     vec3<Scalar> pivot(0,0,0);
 
-    bool swap = m_ab_types.size() && (rng.template s<Scalar>() > m_swap_move_ratio);
+    bool swap = m_ab_types.size() && (rng.template s<Scalar>() < m_swap_move_ratio);
 
     // is this a line reflection?
     bool line = !swap && (m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio));
@@ -1014,7 +1017,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     }
 
                 // wrap particle back into box
-                box.wrap(snap.pos[i],snap.image[i]);
+                snap.image[i] = box.getImage(snap.pos[i]);
+                box.shift(snap.pos[i],-snap.image[i]);
                 }
             }
         }
