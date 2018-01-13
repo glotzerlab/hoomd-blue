@@ -877,6 +877,18 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     bool swap = m_ab_types.size() && (rng.template s<Scalar>() < m_swap_move_ratio);
 
+    if (swap)
+        {
+        auto params = m_mc->getParams();
+        Shape shape_A(quat<Scalar>(), params[m_ab_types[0]]);
+        Shape shape_B(quat<Scalar>(), params[m_ab_types[1]]);
+
+        // swap only works with equal sized spheres
+        if (shape_A.getCircumsphereDiameter() != shape_B.getCircumsphereDiameter()
+            || shape_A.hasOrientation() || shape_B.hasOrientation())
+            swap = false;
+        }
+
     // is this a line reflection?
     bool line = !swap && (m_mc->hasOrientation() || (rng.template s<Scalar>() > m_move_ratio));
 
@@ -1501,9 +1513,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     snap.orientation[i] = snap_old.orientation[i];
                     snap.type[i] = snap_old.type[i];
 
-                    if (swap && m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
+                    if (swap)
                         {
-                        m_count_total.swap_reject_count++;
+                        if (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1])
+                            m_count_total.swap_reject_count++;
                         }
                     else
                         {
@@ -1519,11 +1532,12 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                     {
                     // particle index
-
                     unsigned int i = *it;
-                    if (swap && m_ab_types.size() == 2 && (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1]))
+
+                    if (swap)
                         {
-                        m_count_total.swap_accept_count++;
+                        if (snap.type[i] == m_ab_types[0] || snap.type[i] == m_ab_types[1])
+                            m_count_total.swap_accept_count++;
                         }
                     else
                         {
