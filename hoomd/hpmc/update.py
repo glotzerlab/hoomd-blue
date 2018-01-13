@@ -840,8 +840,11 @@ class remove_drift(_updater):
 #
 # With depletants, Clusters are defined by a simple distance cut-off criterium. Two particles belong to the same cluster if
 # the circumspheres of the depletant-excluded volumes overlap. Clusters are randomly translated and rotated.
-# Moves that change the cluster size, i.e., when two clusters come together such that the resulting
-# configuration would have a bigger cluster, are rejected.
+# Moves that would lead to different cluster configurations in th old and new configuration are rejected.
+#
+# NOTE this algorithm does *not* implement the rejection free variant of the GCA, but the one where periodic images
+# are reconstructed *after* transformation. Therefore, interactions across boundary conditions lead to rejection.
+# Boundaries are shifted randomly to ensure ergodity. For a full discussion of PBC, see Sinkovits et al.
 #
 class clusters(_updater):
     ## Specifies the cluster move updater
