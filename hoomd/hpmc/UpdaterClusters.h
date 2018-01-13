@@ -1482,7 +1482,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
                 Scalar NdelMu = 0.5*(Scalar)(n_B_new-n_A_new-n_B_old+n_A_old)*m_delta_mu;
 
-                if (rng.f() < exp(NdelMu))
+                if (rng.f() > exp(NdelMu))
                     reject = true;
                 }
 
