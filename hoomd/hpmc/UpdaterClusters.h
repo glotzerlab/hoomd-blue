@@ -39,28 +39,94 @@ class Graph
         inline void resize(unsigned int V);
 
         inline void addEdge(unsigned int v, unsigned int w);
+
+        #ifdef ENABLE_TBB
+        inline void connectedComponents(std::vector<tbb::concurrent_vector<unsigned int> >& cc);
+        #else
         inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
+        #endif
 
     private:
-        // Pointer to an array containing adjacency lists
         #ifndef ENABLE_TBB
         std::multimap<unsigned int,unsigned int> adj;
         #else
         tbb::concurrent_unordered_multimap<unsigned int, unsigned int> adj;
         #endif
 
-        std::vector<bool> visited;
+        // don't use a std::vector<bool> here bc it is not thread safe
+        std::vector<unsigned int> visited;
 
         // A function used by DFS
-        inline void DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc);
+        inline void DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc);
+
+        #ifdef ENABLE_TBB
+        class DFSTask : public tbb::task
+            {
+            public:
+                DFSTask(unsigned int _root, std::vector<unsigned int>& _visited, tbb::concurrent_vector<unsigned int>& _cc,
+                    const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& _adj)
+                    : root(_root), visited(_visited), cc(_cc), adj(_adj)
+                    { }
+
+                tbb::task* execute()
+                    {
+                    visited[root] = 1;
+                    cc.push_back(root);
+
+                    unsigned int count = 1;
+                    tbb::task_list list;
+
+                    auto begin = adj.equal_range(root).first;
+                    auto end = adj.equal_range(root).second;
+
+                    for (auto it = begin; it != end; ++it)
+                        {
+                        unsigned int neighbor = it->second;
+                        if (!visited[neighbor])
+                            {
+                            list.push_back(*new(allocate_child()) DFSTask(neighbor, visited, cc, adj));
+                            count++;
+                            }
+                        }
+
+                    set_ref_count(count);
+                    spawn_and_wait_for_all(list);
+
+                    return NULL;
+                    }
+
+            private:
+                unsigned int root;
+                std::vector<unsigned int> & visited;
+                tbb::concurrent_vector<unsigned int>& cc;
+                const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& adj;
+            };
+        #endif // ENABLE_TBB
+
     };
 
 // Gather connected components in an undirected graph
+#ifdef ENABLE_TBB
+void Graph::connectedComponents(std::vector<tbb::concurrent_vector<unsigned int> >& cc)
+#else
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
+#endif
     {
-    std::fill(visited.begin(), visited.end(), false);
+    std::fill(visited.begin(), visited.end(), 0);
 
-    // Mark all the vertices as not visited
+    #ifdef ENABLE_TBB
+    for (unsigned int v = 0; v < visited.size(); ++v)
+        {
+        if (! visited[v])
+            {
+            tbb::concurrent_vector<unsigned int> component;
+            DFSTask& a = *new(tbb::task::allocate_root()) DFSTask(v, visited, component, adj);
+            tbb::task::spawn_root_and_wait(a);
+            cc.push_back(component);
+            }
+        }
+    #else
+    // Depth first search
     for (unsigned int v=0; v<visited.size(); v++)
         {
         if (visited[v] == false)
@@ -70,11 +136,12 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
             cc.push_back(cur_cc);
             }
         }
+    #endif
     }
 
-void Graph::DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc)
+void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc)
     {
-    visited[v] = true;
+    visited[v] = 1;
     cur_cc.push_back(v);
 
     // Recur for all the vertices
@@ -90,12 +157,12 @@ void Graph::DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsi
 
 Graph::Graph(unsigned int V)
     {
-    visited.resize(V, false);
+    visited.resize(V, 0);
     }
 
 void Graph::resize(unsigned int V)
     {
-    visited.resize(V, false);
+    visited.resize(V, 0);
     adj.clear();
     }
 
@@ -281,7 +348,11 @@ class UpdaterClusters : public Updater
         Scalar m_swap_move_ratio;                   //!< Type swap / geometric move ratio
         Scalar m_flip_probability;                  //!< Cluster flip probability
 
+        #ifdef ENABLE_TBB
+        std::vector<tbb::concurrent_vector<unsigned int> > m_clusters; //!< Cluster components
+        #else
         std::vector<std::vector<unsigned int> > m_clusters; //!< Cluster components
+        #endif
 
         detail::Graph m_G; //!< The graph
 
