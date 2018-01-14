@@ -842,9 +842,9 @@ class remove_drift(_updater):
 # the circumspheres of the depletant-excluded volumes overlap. Clusters are randomly translated and rotated.
 # Moves that would lead to different cluster configurations in th old and new configuration are rejected.
 #
-# NOTE this algorithm does *not* implement the rejection free variant of the GCA, but the one where periodic images
-# are reconstructed *after* transformation. Therefore, interactions across boundary conditions lead to rejection.
-# Boundaries are shifted randomly to ensure ergodity. For a full discussion of PBC, see Sinkovits et al.
+# NOTE In this algorithm, only the pivot move is rejection free. If combined with reflection moves, i.e. with finite
+# **move_ratio**, the algorithm uses rejections in order for the moves to be commensurate with the symmetry imposed
+# by the periodic boundary conditions. For a full discussion of PBC and the GCA, see Sinkovits et al.
 #
 class clusters(_updater):
     ## Specifies the cluster move updater
