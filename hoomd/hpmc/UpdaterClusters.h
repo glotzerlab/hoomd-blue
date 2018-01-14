@@ -31,33 +31,37 @@ namespace detail
 // using adjacency list representation
 class Graph
     {
-    int V;    // No. of vertices
+    public:
+        Graph() {}      //!< Default constructor
 
-    // Pointer to an array containing adjacency lists
-    #ifndef ENABLE_TBB
-    std::map<unsigned int,std::vector<int> > adj;
-    #else
-    tbb::concurrent_unordered_map<unsigned int, tbb::concurrent_vector<int> > adj;
-    #endif
+        inline Graph(unsigned int V);   // Constructor
 
-    // A function used by DFS
-    inline void DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc);
+        inline void resize(unsigned int V);
 
-public:
-    Graph()         //!< Default constructor
-        : V(0) {}
+        inline void addEdge(unsigned int v, unsigned int w);
+        inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
 
-    inline Graph(int V);   // Constructor
-    inline void addEdge(int v, int w);
-    inline void connectedComponents(std::vector<std::vector<unsigned int> >& cc);
+    private:
+        // Pointer to an array containing adjacency lists
+        #ifndef ENABLE_TBB
+        std::multimap<unsigned int,unsigned int> adj;
+        #else
+        tbb::concurrent_unordered_multimap<unsigned int, unsigned int> adj;
+        #endif
+
+        std::vector<bool> visited;
+
+        // A function used by DFS
+        inline void DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsigned int>& cur_cc);
     };
 
 // Gather connected components in an undirected graph
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
     {
+    std::fill(visited.begin(), visited.end(), false);
+
     // Mark all the vertices as not visited
-    std::vector<bool> visited(V,false);
-    for (int v=0; v<V; v++)
+    for (unsigned int v=0; v<visited.size(); v++)
         {
         if (visited[v] == false)
             {
@@ -75,23 +79,31 @@ void Graph::DFSUtil(unsigned int v, std::vector<bool>& visited, std::vector<unsi
 
     // Recur for all the vertices
     // adjacent to this vertex
-    for(auto i = adj[v].begin(); i != adj[v].end(); ++i)
+    auto begin = adj.equal_range(v).first;
+    auto end = adj.equal_range(v).second;
+    for(auto i = begin; i != end; ++i)
         {
-        if(!visited[*i])
-            DFSUtil(*i, visited, cur_cc);
+        if(!visited[i->second])
+            DFSUtil(i->second, visited, cur_cc);
         }
     }
 
-Graph::Graph(int V)
+Graph::Graph(unsigned int V)
     {
-    this->V = V;
+    visited.resize(V, false);
+    }
+
+void Graph::resize(unsigned int V)
+    {
+    visited.resize(V, false);
+    adj.clear();
     }
 
 // method to add an undirected edge
-void Graph::addEdge(int v, int w)
+void Graph::addEdge(unsigned int v, unsigned int w)
     {
-    adj[v].push_back(w);
-    adj[w].push_back(v);
+    adj.insert(std::make_pair(v,w));
+    adj.insert(std::make_pair(w,v));
     }
 } // end namespace detail
 
@@ -1102,11 +1114,22 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         #endif
         }
 
-    if (this->m_prof) this->m_prof->push("fill");
+    if (this->m_prof)
+        this->m_prof->push("fill");
+
     if (master)
         {
         // fill in the cluster bonds, using bond formation probability defined in Liu and Luijten
-        m_G = detail::Graph(snap.size);
+
+        if (m_prof)
+            m_prof->push("realloc");
+
+        // resize the number of graph nodes in place
+        m_G.resize(snap.size);
+
+        if (m_prof)
+            m_prof->pop();
+
 
         #ifdef ENABLE_MPI
         if (m_comm)
@@ -1124,6 +1147,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         if (line)
             {
+            if (m_prof)
+                m_prof->push("new new");
+
             #ifdef ENABLE_MPI
             if (m_comm)
                 {
@@ -1159,6 +1185,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     );
                 #endif
                 }
+
+            if (m_prof)
+                m_prof->pop();
             }
 
         #ifdef ENABLE_MPI
@@ -1198,6 +1227,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             }
 
 
+        if (m_prof)
+            m_prof->push("overlap");
+
         #ifdef ENABLE_MPI
         if (m_comm)
             {
@@ -1233,6 +1265,10 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                 );
             #endif
             }
+
+        if (m_prof)
+            m_prof->pop();
+
 
         // interactions due to hard depletant-excluded volume overlaps (not used in base class)
         #ifdef ENABLE_MPI
