@@ -367,10 +367,10 @@ class UpdaterClusters : public Updater
         std::vector<unsigned int> m_tag_backup;             //!< Old local tags
 
         #ifndef ENABLE_TBB
-        std::set<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local set of particle pairs due to overlap
-        std::set<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+        std::vector<std::pair<unsigned int, unsigned int> > m_overlap;   //!< A local vector of particle pairs due to overlap
+        std::vector<std::pair<unsigned int, unsigned int> > m_interact_old_old;  //!< Pairs interacting old-old
+        std::vector<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
 
-        std::set<std::pair<unsigned int, unsigned int> > m_interact_new_old;  //!< Pairs interacting new-old
         std::set<std::pair<unsigned int, unsigned int> > m_interact_new_new;  //!< Pairs interacting new-old
         std::set<unsigned int> m_local_reject;                   //!< Set of particles whose clusters moves are rejected
 
@@ -1142,9 +1142,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
     // collect interactions on rank 0
     #ifndef ENABLE_TBB
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_overlap;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
-    std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
+    std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_overlap;
+    std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_interact_old_old;
+    std::vector< std::vector<std::pair<unsigned int, unsigned int> > > all_interact_new_old;
     std::vector< std::set<std::pair<unsigned int, unsigned int> > > all_interact_new_new;
     std::vector< std::set<unsigned int> > all_local_reject;
 

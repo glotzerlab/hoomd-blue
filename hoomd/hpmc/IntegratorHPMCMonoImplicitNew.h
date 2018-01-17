@@ -348,7 +348,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     seed_seq[2] = this->m_exec_conf->getRank();
     seed_seq[3] = 0x91baff72;
     std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-    std::mt19937 rng_poisson(seed_seq);
+    std::mt19937 rng_poisson(seed);
     #endif
 
     // loop over local particles nselect times
