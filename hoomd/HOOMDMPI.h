@@ -43,6 +43,7 @@ const MPI_Datatype MPI_HOOMD_SCALAR_INT = MPI_DOUBLE_INT;
 #endif
 
 #ifdef ENABLE_TBB
+// https://www.threadingbuildingblocks.org/docs/help/reference/appendices/known_issues/linux_os.html
 #include <tbb/concurrent_vector.h>
 #include <tbb/concurrent_unordered_set.h>
 #include <tbb/concurrent_unordered_map.h>

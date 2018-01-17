@@ -17,20 +17,37 @@ if (UNIX AND NOT APPLE)
     endif (DL_LIB AND UTIL_LIB)
 endif (UNIX AND NOT APPLE)
 
-# find TBB lib and includes
-find_library(TBB_LIBRARY tbb
-             PATHS ENV TBB_LINK)
-find_path(TBB_INCLUDE_DIR tbb/tbb.h
-          PATHS ENV TBB_INC)
-include_directories(${TBB_INCLUDE_DIR})
-if (TBB_LIBRARY)
-    mark_as_advanced(TBB_LIBRARY)
+option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
+
+if(ENABLE_TBB)
+    # find TBB lib and includes
+    find_library(TBB_LIBRARY tbb
+                 PATHS ENV TBB_LINK)
+    find_path(TBB_INCLUDE_DIR tbb/tbb.h
+              PATHS ENV TBB_INC)
+    include_directories(${TBB_INCLUDE_DIR})
+    if (TBB_LIBRARY)
+        mark_as_advanced(TBB_LIBRARY)
+    endif()
+    if (TBB_INCLUDE_DIR)
+        mark_as_advanced(TBB_INCLUDE_DIR)
+    endif()
+    if (TBB_INCLUDE_DIR AND TBB_LIBRARY)
+        add_definitions(-DENABLE_TBB)
+    endif()
+
+    # Detect clang and fix incompatiblity with TBB
+    # https://github.com/wjakob/tbb/blob/master/CMakeLists.txt
+    if (NOT TBB_USE_GLIBCXX_VERSION AND UNIX AND NOT APPLE)
+      if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        # using Clang
+        string(REPLACE "." "0" TBB_USE_GLIBCXX_VERSION ${CMAKE_CXX_COMPILER_VERSION})
+      endif()
+    endif()
 endif()
-if (TBB_INCLUDE_DIR)
-    mark_as_advanced(TBB_INCLUDE_DIR)
-endif()
-if (TBB_INCLUDE_DIR AND TBB_LIBRARY)
-    add_definitions(-DENABLE_TBB)
+
+if (TBB_USE_GLIBCXX_VERSION)
+   add_definitions(-DTBB_USE_GLIBCXX_VERSION=${TBB_USE_GLIBCXX_VERSION})
 endif()
 
 set(HOOMD_COMMON_LIBS
