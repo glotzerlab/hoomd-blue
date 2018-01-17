@@ -1557,11 +1557,13 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             bool reject = false;
             for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
                 {
+                bool mpi = false;
                 #ifdef ENABLE_MPI
-                if (m_comm && m_ptl_reject.find(*it) != m_ptl_reject.end())
+                mpi = m_comm;
+                if (mpi && m_ptl_reject.find(*it) != m_ptl_reject.end())
                     reject = true;
                 #endif
-                if (!m_comm && m_local_reject.find(*it) != m_local_reject.end())
+                if (!mpi && m_local_reject.find(*it) != m_local_reject.end())
                     reject = true;
                 }
 
