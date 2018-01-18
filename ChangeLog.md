@@ -2,6 +2,19 @@
 
 [TOC]
 
+## v2.2.3
+
+*not yet released*
+
+*Bug fixes*
+
+* Write default values to gsd frames when non-default values are present in frame 0.
+* `md.wall.force_shifted_lj` now works.
+* Fix a bug in HPMC where `run()` would not start after `restore_state` unless shape parameters were also set from python.
+* Fix a bug in HPMC Box MC updater where moves were attempted with zero weight.
+* `dump.gsd()` now writes `hpmc` shape state correctly when there are multiple particle types.
+* `hpmc.integrate.polyhedron()` now produces correct results on the GPU.
+
 ## v2.2.2
 
 Released 2017/12/04
