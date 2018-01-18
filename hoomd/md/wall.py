@@ -960,7 +960,7 @@ class force_shifted_lj(wallpotential):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _md.make_wall_force_shifted_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
+        return _md.make_wall_force_shift_lj_params(_hoomd.make_scalar2(lj1, lj2), coeff['r_cut']*coeff['r_cut'], coeff['r_extrap']);
 
 class mie(wallpotential):
     R""" Mie potential wall potential.

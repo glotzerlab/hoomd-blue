@@ -64,7 +64,7 @@ references:
         echo enable_cuda=${ENABLE_CUDA}
         echo enable_mpi=${ENABLE_MPI}
         echo build_validation=${BUILD_VALIDATION}
-        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -GNinja
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_DEPRECATED=off -GNinja
 
   compile: &compile
     run:
