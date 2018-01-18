@@ -1180,6 +1180,8 @@ class ParticleData
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
         #endif
 
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
+
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
 

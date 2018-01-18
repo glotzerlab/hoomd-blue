@@ -60,7 +60,8 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_max_nparticles(0),
           m_nglobal(0),
           m_accel_set(false),
-          m_resize_factor(9./8.)
+          m_resize_factor(9./8.),
+          m_arrays_allocated(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -92,6 +93,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
+
+    // initialize rtag array
+    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize all processors
     initializeFromSnapshot(snap);
@@ -136,7 +140,8 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_max_nparticles(0),
       m_nglobal(0),
       m_accel_set(false),
-      m_resize_factor(9./8.)
+      m_resize_factor(9./8.),
+      m_arrays_allocated(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -154,6 +159,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
+
+    // initialize rtag array
+    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
@@ -377,6 +385,8 @@ void ParticleData::allocate(unsigned int N)
 
     // notify observers
     m_max_particle_num_signal.emit();
+
+    m_arrays_allocated = true;
     }
 
 /*! \param N Number of particles to allocate memory for
@@ -463,6 +473,19 @@ void ParticleData::setNGlobal(unsigned int nglobal)
  */
 void ParticleData::resize(unsigned int new_nparticles)
     {
+    // do nothing if zero size is requested
+
+    /*
+       this assumes that no code makes attempts at reading particle data from non-existing arrays when
+       the number of particles on a rank is zero
+     */
+    if (new_nparticles == 0)
+        return;
+
+    // allocate as necessary
+    if (! m_arrays_allocated)
+        allocate(new_nparticles);
+
     // resize pdata arrays as necessary
     unsigned int max_nparticles = m_max_nparticles;
     if (new_nparticles > max_nparticles)
@@ -487,6 +510,13 @@ void ParticleData::resize(unsigned int new_nparticles)
  */
 void ParticleData::reallocate(unsigned int max_n)
     {
+    if (! m_arrays_allocated)
+        {
+        // allocate instead
+        allocate(max_n);
+        return;
+        }
+
     m_exec_conf->msg->notice(7) << "Resizing particle data arrays "
         << m_max_nparticles << " -> " << max_n << " ptls" << std::endl;
     m_max_nparticles = max_n;
@@ -785,9 +815,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // broadcast global number of particles
         bcast(nglobal, root, mpi_comm);
 
-        // allocate array for reverse-lookup tags
-        GPUVector< unsigned int> rtag(nglobal, m_exec_conf);
-        m_rtag.swap(rtag);
+        // resize array for reverse-lookup tags
+        m_rtag.resize(nglobal);
 
         // Local particle data
         std::vector<Scalar3> pos;
@@ -842,12 +871,8 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
-        // we have to allocate even if the number of particles on a processor
-        // is zero, so that the arrays can be resized later
-        if (m_nparticles == 0)
-            allocate(1);
-        else
-            allocate(m_nparticles);
+        // resize particle data
+        resize(m_nparticles);
 
         // Load particle data
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
@@ -893,14 +918,13 @@ void ParticleData::initializeFromSnapshot(const SnapshotParticleData<Real>& snap
             }
 
         // allocate array for reverse lookup tags
-        GPUVector< unsigned int> rtag(snapshot.size, m_exec_conf);
-        m_rtag.swap(rtag);
+        m_rtag.resize(snapshot.size);
 
         // Now that active tag list has changed, invalidate the cache
         m_invalid_cached_tags = true;
 
         // allocate particle data such that we can accomodate the particles
-        allocate(snapshot.size);
+        resize(snapshot.size);
 
         ArrayHandle< Scalar4 > h_pos(m_pos, access_location::host, access_mode::overwrite);
         ArrayHandle< Scalar4 > h_vel(m_vel, access_location::host, access_mode::overwrite);
