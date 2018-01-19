@@ -133,6 +133,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
+            shape[i].isOriented = false;
             }
         return success;
         }
