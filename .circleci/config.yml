@@ -270,7 +270,13 @@ workflows:
           filters:
             branches:
               ignore: release
-      - conda-build
+      - conda-build:
+          filters:
+            branches:
+              only:
+                - maint
+                - master
+                - release
       - conda-upload:
           context: org-global
           requires:

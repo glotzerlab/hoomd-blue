@@ -189,6 +189,7 @@ pipeline
         stage('conda-build-mac')
             {
             agent { label 'mac' }
+            when { anyOf { branch 'master'; branch 'maint'; branch 'release' } }
 
             environment
                 {
