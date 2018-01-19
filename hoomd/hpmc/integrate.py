@@ -321,6 +321,14 @@ class mode_hpmc(_integrator):
     def _gsd_state_name(cls):
         return "state/hpmc/"+str(cls.__name__)+"/"
 
+    def restore_state(self):
+        super(mode_hpmc, self).restore_state()
+
+        # if restore state succeeds, all shape information is set
+        # set the python level is_set flags to notify this
+        for type in self.shape_param.keys():
+            self.shape_param[type].is_set = True;
+
     def setup_pos_writer(self, pos, colors={}):
         R""" Set pos_writer definitions for specified shape parameters.
 

@@ -65,7 +65,7 @@ references:
         echo enable_mpi=${ENABLE_MPI}
         echo build_validation=${BUILD_VALIDATION}
         echo build_jit=${BUILD_JIT}
-        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -GNinja
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
 
   compile: &compile
     run:
@@ -279,7 +279,13 @@ workflows:
           filters:
             branches:
               ignore: release
-      - conda-build
+      - conda-build:
+          filters:
+            branches:
+              only:
+                - maint
+                - master
+                - release
       - conda-upload:
           context: org-global
           requires:
