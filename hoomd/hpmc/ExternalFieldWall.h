@@ -700,19 +700,12 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             }
 
         bool wall_overlap(const unsigned int& index, const vec3<Scalar>& position_old,
-			  const Shape& shape_old, const vec3<Scalar>& position_new,
-			  const Shape& shape_new)
-	          {
-	          double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
-	          if (energy == INFINITY)
-                {
-		            return true;
-	              }
-            else
-                {
-                return false;
- 	              }
-	          };
+                          const Shape& shape_old, const vec3<Scalar>& position_new,
+                          const Shape& shape_new)
+            {
+            double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
+            return (energy == INFINITY);
+            }
 
         unsigned int countOverlaps(unsigned int timestep, bool early_exit = false)
             {
@@ -734,7 +727,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 if (wall_overlap(i, pos_i, shape_i, pos_i, shape_i))
                     {
                     numOverlaps++;
-                    };
+                    }
 
                 if(early_exit && numOverlaps > 0)
                     {

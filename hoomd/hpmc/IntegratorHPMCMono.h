@@ -382,10 +382,11 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
     std::vector< std::string > result = IntegratorHPMC::getProvidedLogQuantities();
     // then add ours
     if(m_patch)
-    {
-      result.push_back("hpmc_patch_energy");
-      result.push_back("hpmc_patch_rcut");
-    }
+        {
+        result.push_back("hpmc_patch_energy");
+        result.push_back("hpmc_patch_rcut");
+        }
+
     return result;
     }
 
@@ -531,9 +532,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             unsigned int i = m_update_order[cur_particle];
 
             // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i]; // first 3 scalars are the x,y,z coordinates, 4th is the type(w)
+            Scalar4 postype_i = h_postype.data[i];
             Scalar4 orientation_i = h_orientation.data[i];
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i); // convert position to vector, drops w component
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
             #ifdef ENABLE_MPI
             if (m_comm)
@@ -546,12 +547,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // make a trial move for i
             hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
-            int typ_i = __scalar_as_int(postype_i.w); // get type as int
+            int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
-            // m_params is a vector of param_type types
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
 
@@ -758,7 +758,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 patch_field_energy_diff += m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }
 
-            // If no overlaps and Metropolis critireon is met, accept
+            // If no overlaps and Metropolis criterion is met, accept
             // trial move and update positions  and/or orientations.
             if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
                 {

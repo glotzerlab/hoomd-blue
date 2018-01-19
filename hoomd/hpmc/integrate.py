@@ -735,9 +735,9 @@ class sphere(mode_hpmc):
 
     Args:
         seed (int): Random number seed
-        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type. (added in version 2.3)
+        d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
         a (float, only with **orientable=True**): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type. (added in version 2.3)
-        move_ratio (float, only with **orientable=True**): Ratio of translation moves to rotation moves.
+        move_ratio (float, only used with **orientable=True**): Ratio of translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
