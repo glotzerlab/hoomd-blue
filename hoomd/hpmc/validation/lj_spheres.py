@@ -85,7 +85,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             if (timestep % 1000 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
 
         for i in range(5):
-            run(1000,quiet=True);
+            run(100,quiet=True);
             d = mc.get_d();
             translate_acceptance = mc.get_translate_acceptance();
             util.quiet_status();
@@ -93,7 +93,7 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             mc_tune.update();
 
         # Equilibrate
-        run(1e4,quiet=True);
+        run(1e4);
 
         # Sample
         run(1e4,callback=accumulate_energy, callback_period=100)
