@@ -22,8 +22,8 @@
 #include "hoomd/GPUVector.h"
 #include "hoomd/GPUFlags.h"
 
-#include "hoomd/extern/Eigen/Dense"
-#include "hoomd/extern/Eigen/SparseLU"
+#include "hoomd/extern/Eigen/Eigen/Dense"
+#include "hoomd/extern/Eigen/Eigen/SparseLU"
 
 /*! Implements a pairwise distance constraint using the algorithm of
 
