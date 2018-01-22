@@ -51,7 +51,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             init.read_snapshot(self.snapshot);
             self.mc = hpmc.integrate.sphere(seed=10,a=0,d=0);
             self.mc.shape_param.set('A', diameter=self.diameter,orientable=True);
-            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole, clang_exec="/opt/local/bin/clang-mp-3.8");
+            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole);
             self.log = analyze.log(filename=None, quantities=['hpmc_patch_energy'],period=0,overwrite=True)
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
@@ -65,7 +65,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             init.read_snapshot(self.snapshot);
             self.mc = hpmc.integrate.sphere(seed=10,a=0,d=0);
             self.mc.shape_param.set('A', diameter=self.diameter,orientable=True);
-            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole, clang_exec="/opt/local/bin/clang-mp-3.8");
+            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole);
             self.log = analyze.log(filename=None, quantities=['hpmc_patch_energy'],period=0,overwrite=True)
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb);
@@ -79,7 +79,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             init.read_snapshot(self.snapshot);
             self.mc = hpmc.integrate.sphere(seed=10,a=0,d=0);
             self.mc.shape_param.set('A', diameter=self.diameter,orientable=True);
-            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole, clang_exec="/opt/local/bin/clang-mp-3.8");
+            self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole);
             self.log = analyze.log(filename=None, quantities=['hpmc_patch_energy'],period=0,overwrite=True)
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb/2);
@@ -93,7 +93,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
            init.read_snapshot(self.snapshot);
            self.mc = hpmc.integrate.sphere(seed=10,a=0,d=0);
            self.mc.shape_param.set('A', diameter=self.diameter,orientable=True);
-           self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole, clang_exec="/opt/local/bin/clang-mp-3.8");
+           self.patch = jit.patch.user(mc=self.mc,r_cut=self.r_cut, code=self.dipole_dipole);
            self.log = analyze.log(filename=None, quantities=['hpmc_patch_energy'],period=0,overwrite=True)
            hoomd.run(0, quiet=True);
            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb/2);
