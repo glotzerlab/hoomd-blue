@@ -149,7 +149,7 @@ class implicit_test (unittest.TestCase):
                 print('eta_p =', v);
 
         if use_clusters:
-            hpmc.update.cluster(self.mc,period=1,seed=seed+1)
+            hpmc.update.clusters(self.mc,period=1,seed=seed+1)
 
         run(4e5,callback=log_callback,callback_period=100)
 
@@ -211,7 +211,7 @@ class implicit_test (unittest.TestCase):
                 print('eta_p =', v);
 
         if use_clusters:
-            hpmc.update.cluster(self.mc,period=1,seed=seed+1)
+            hpmc.update.clusters(self.mc,period=1,seed=seed+1)
 
         run(4e5,callback=log_callback,callback_period=100)
 

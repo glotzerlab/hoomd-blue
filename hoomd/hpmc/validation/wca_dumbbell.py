@@ -132,7 +132,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
             npt_tune.update()
 
         if use_clusters:
-            hpmc.update.cluster(mc,period=1,seed=seed+2)
+            hpmc.update.clusters(mc,period=1,seed=seed+2)
 
         run(1e4,callback=accumulate_rho, callback_period=100)
 
