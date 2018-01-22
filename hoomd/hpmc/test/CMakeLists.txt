@@ -33,7 +33,7 @@ foreach (CUR_TEST ${TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _hoomd _hpmc ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hoomd _hpmc ${HOOMD_COMMON_LIBS} ${HOOMD_PYTHON_LIBRARY})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)
