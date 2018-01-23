@@ -592,8 +592,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_old_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
-                                    if (line && (delta_img.x || delta_img.y || delta_img.z))
+                                    int3 delta_img = -image_hkl[cur_image] + h_image_backup.data[i] - h_image_backup.data[j];
+                                    if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(new_tag_i);
@@ -689,8 +689,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
-                                    bool reject = line && (delta_img.x || delta_img.y || delta_img.z);
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image_backup.data[j];
+                                    bool reject = (line &&!swap) && (delta_img.x || delta_img.y || delta_img.z);
 
                                     if (swap && ((typ_i != m_ab_types[0] && typ_i != m_ab_types[1])
                                         || (typ_j != m_ab_types[0] && typ_j != m_ab_types[1])))
@@ -788,8 +788,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_new_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
-                                    if (line && (delta_img.x || delta_img.y || delta_img.z))
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image_backup.data[j];
+                                    if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
                                         {
                                         // if interaction across PBC, reject cluster move
                                         m_local_reject.insert(h_tag.data[i]);
@@ -814,7 +814,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         );
     #endif
 
-    if (line)
+    if (line && !swap)
         {
         // locality data in new configuration
         const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
@@ -1225,7 +1225,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             }
         #endif
 
-        if (line)
+        if (line && !swap)
             {
             if (m_prof)
                 m_prof->push("new new");
