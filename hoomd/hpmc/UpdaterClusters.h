@@ -73,7 +73,7 @@ class Graph
                     visited[root] = 1;
                     cc.push_back(root);
 
-                    unsigned int count = 1;
+                    unsigned int count = 0;
                     tbb::task_list list;
 
                     auto begin = adj.equal_range(root).first;
@@ -84,13 +84,22 @@ class Graph
                         unsigned int neighbor = it->second;
                         if (!visited[neighbor])
                             {
+                            if (count++ == 0)
+                                {
+                                root = neighbor; // for task recycling
+                                continue;
+                                }
                             list.push_back(*new(allocate_child()) DFSTask(neighbor, visited, cc, adj));
-                            count++;
                             }
                         }
 
-                    set_ref_count(count);
-                    spawn_and_wait_for_all(list);
+                    if (count)
+                        {
+                        set_ref_count(count);
+                        spawn(list);
+
+                        recycle_as_safe_continuation();
+                        }
 
                     return NULL;
                     }
