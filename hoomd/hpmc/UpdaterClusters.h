@@ -1614,6 +1614,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     snap.pos[i] = snap_old.pos[i];
                     snap.orientation[i] = snap_old.orientation[i];
                     snap.type[i] = snap_old.type[i];
+                    snap.image[i] = snap_old.image[i];
 
                     if (flip)
                         {
