@@ -76,7 +76,7 @@ class user(object):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user(r_cut=1.1, code=square_well)
+        patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, code=square_well)
 
     .. rubric:: LLVM IR code
 
