@@ -60,10 +60,10 @@ class Graph
         inline void DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc);
 
         #ifdef ENABLE_TBB
-        class BFSTask : public tbb::task
+        class DFSTask : public tbb::task
             {
             public:
-                BFSTask(unsigned int _root, std::vector<unsigned int>& _visited, tbb::concurrent_vector<unsigned int>& _cc,
+                DFSTask(unsigned int _root, std::vector<unsigned int>& _visited, tbb::concurrent_vector<unsigned int>& _cc,
                     const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& _adj)
                     : root(_root), visited(_visited), cc(_cc), adj(_adj)
                     { }
@@ -73,7 +73,8 @@ class Graph
                     visited[root] = 1;
                     cc.push_back(root);
 
-                    tbb::task_group g;
+                    unsigned int count = 1;
+                    tbb::task_list list;
 
                     auto begin = adj.equal_range(root).first;
                     auto end = adj.equal_range(root).second;
@@ -83,11 +84,13 @@ class Graph
                         unsigned int neighbor = it->second;
                         if (!visited[neighbor])
                             {
-                            g.run( [=]{BFSTask(neighbor,visited,cc,adj);});
+                            list.push_back(*new(allocate_child()) DFSTask(neighbor, visited, cc, adj));
+                            count++;
                             }
                         }
 
-                    g.wait();
+                    set_ref_count(count);
+                    spawn_and_wait_for_all(list);
 
                     return NULL;
                     }
@@ -117,7 +120,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
         if (! visited[v])
             {
             tbb::concurrent_vector<unsigned int> component;
-            BFSTask& a = *new(tbb::task::allocate_root()) BFSTask(v, visited, component, adj);
+            DFSTask& a = *new(tbb::task::allocate_root()) DFSTask(v, visited, component, adj);
             tbb::task::spawn_root_and_wait(a);
             cc.push_back(component);
             }
