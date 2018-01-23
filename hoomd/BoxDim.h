@@ -480,13 +480,13 @@ struct BoxDim
         //! Shift a vector by a multiple of the lattice vectors
         /*! \param v The vector to shift
             \param shift The displacement in lattice coordinates
-
-            \note This method only works on boxes for which hi=-lo in all directions
          */
         HOSTDEVICE Scalar3 shift(const Scalar3& v, const int3& shift) const
             {
             Scalar3 r = v;
-            r += makeCoordinates(make_scalar3(0.5,0.5,0.5)+make_scalar3(shift.x,shift.y,shift.z));
+            r += shift.x*getLatticeVector(0);
+            r += shift.y*getLatticeVector(1);
+            r += shift.z*getLatticeVector(2);
             return r;
             }
 
