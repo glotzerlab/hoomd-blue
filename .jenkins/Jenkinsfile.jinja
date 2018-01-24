@@ -5,66 +5,73 @@ pipeline
 
     stages
         {
-        {% for test in tests %}stage('{{ test.name }}')
+        stage('Unit and validation tests')
             {
-            agent { label '{{ test.agent }}' }
             when { not { branch 'release' } }
-
-            environment
+            failFast true
+            parallel
                 {
-                CC = '{{ test.CC }}'
-                CXX = '{{ test.CXX }}'
-                PYVER = '{{ test.PYVER }}'
-                CMAKE_BIN = '{{ test.CMAKE_BIN }}'
-                ENABLE_CUDA = '{{ test.ENABLE_CUDA }}'
-                ENABLE_MPI = '{{ test.ENABLE_MPI }}'
-                BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
-                CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
+                {% for test in tests %}stage('{{ test.name }}')
                     {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
+                    agent { label '{{ test.agent }}' }
 
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
+                    environment
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        CC = '{{ test.CC }}'
+                        CXX = '{{ test.CXX }}'
+                        PYVER = '{{ test.PYVER }}'
+                        CMAKE_BIN = '{{ test.CMAKE_BIN }}'
+                        ENABLE_CUDA = '{{ test.ENABLE_CUDA }}'
+                        ENABLE_MPI = '{{ test.ENABLE_MPI }}'
+                        BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
+                        CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
                         }
 
-                    timeout(time: {{ test.timeout }}, unit: 'HOURS')
+                    steps
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                                }
+
+                            timeout(time: {{ test.timeout }}, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
                         }
                     }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
+                {% endfor %}
                 }
             }
-        {% endfor %}
 
         stage('conda-build-mac')
             {
