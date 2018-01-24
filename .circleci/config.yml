@@ -184,18 +184,6 @@ jobs:
       BUILD_VALIDATION: OFF
     <<: *build_and_test
 
-  vld-clang50-py36-mpi:
-    <<: *test_container_config-arch
-    environment:
-      CC: /usr/sbin/clang
-      CXX: /usr/sbin/clang++
-      PYVER: "3.6"
-      CMAKE_BIN: /usr/sbin
-      ENABLE_MPI: ON
-      ENABLE_CUDA: OFF
-      BUILD_VALIDATION: ON
-    <<: *build_and_test
-
   sphinx-docs:
     <<: *test_container_config
     steps:
@@ -259,10 +247,6 @@ workflows:
             branches:
               ignore: release
       - unit-clang38-py35:
-          filters:
-            branches:
-              ignore: release
-      - vld-clang50-py36-mpi:
           filters:
             branches:
               ignore: release

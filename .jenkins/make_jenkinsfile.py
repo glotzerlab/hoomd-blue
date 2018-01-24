@@ -40,4 +40,16 @@ tests.append(dict(name='vld-gcc6-py36-mpi-cd90',
                   CONTAINER = 'ci-20171206-arch-2.img',
                   timeout=15))
 
+tests.append(dict(name='vld-clang50-py36-mpi',
+                  agent='linux-cpu',
+                  CC = '/usr/sbin/clang',
+                  CXX = '/usr/sbin/clang++',
+                  PYVER = '3.6',
+                  CMAKE_BIN = '/usr/sbin',
+                  ENABLE_CUDA = 'OFF',
+                  ENABLE_MPI = 'ON',
+                  BUILD_VALIDATION = 'ON',
+                  CONTAINER = 'ci-20171206-arch-2.img',
+                  timeout=15))
+
 print(template.render(tests=tests))
