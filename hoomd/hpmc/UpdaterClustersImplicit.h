@@ -196,7 +196,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
 
                                 this->m_interact_old_old.push_back(std::make_pair(new_tag_i,new_tag_j));
 
-                                int3 delta_img = -image_hkl[cur_image] + h_image_backup.data[i] - h_image_backup.data[j];
+                                int3 delta_img = -image_hkl[cur_image] + this->m_image_backup[i] - this->m_image_backup[j];
                                 if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
                                     {
                                     // if interaction across PBC, reject cluster move
@@ -291,7 +291,7 @@ void UpdaterClustersImplicit<Shape,Integrator>::findInteractions(unsigned int ti
                                 {
                                 this->m_interact_new_old.push_back(std::make_pair(h_tag.data[i],new_tag_j));
 
-                                int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image_backup.data[j];
+                                int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - this->m_image_backup[j];
                                 if (line && !swap &&  (delta_img.x || delta_img.y || delta_img.z))
                                     {
                                     // if interaction across PBC, reject cluster move

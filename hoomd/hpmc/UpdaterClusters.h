@@ -592,7 +592,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_old_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + h_image_backup.data[i] - h_image_backup.data[j];
+                                    int3 delta_img = -image_hkl[cur_image] + m_image_backup[i] - m_image_backup[j];
                                     if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
                                         {
                                         // if interaction across PBC, reject cluster move
@@ -689,7 +689,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 if (h_overlaps.data[overlap_idx(typ_i,typ_j)]
                                     && test_overlap(r_ij, shape_i, shape_j, err))
                                     {
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image_backup.data[j];
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - m_image_backup[j];
                                     bool reject = (line &&!swap) && (delta_img.x || delta_img.y || delta_img.z);
 
                                     if (swap && ((typ_i != m_ab_types[0] && typ_i != m_ab_types[1])
@@ -788,7 +788,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                     // update map
                                     m_energy_new_old[p] = U;
 
-                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - h_image_backup.data[j];
+                                    int3 delta_img = -image_hkl[cur_image] + h_image.data[i] - m_image_backup[j];
                                     if (line && !swap && (delta_img.x || delta_img.y || delta_img.z))
                                         {
                                         // if interaction across PBC, reject cluster move
