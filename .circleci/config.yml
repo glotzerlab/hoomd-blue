@@ -111,7 +111,7 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
-      BUILD_JIT: ON
+      BUILD_JIT: OFF
     <<: *build_and_test
 
   gcc48-py27-cm28-mpi-cd80:
