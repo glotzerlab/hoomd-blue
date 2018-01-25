@@ -70,7 +70,7 @@ references:
     run:
       name: Compile
       working_directory: build
-      command: ninja -j4
+      command: ninja -j3
 
   native_build: &native_build
     steps:
