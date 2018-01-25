@@ -1426,7 +1426,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (m_mc->getPatchInteraction())
             {
             // sum up interaction energies
+            #ifdef ENABLE_TBB
+            tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, float> delta_U;
+            #else
             std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
+            #endif
 
             #ifdef ENABLE_MPI
             if (m_comm)
