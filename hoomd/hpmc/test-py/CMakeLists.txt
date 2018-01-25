@@ -91,6 +91,7 @@ set(EXCLUDE_FROM_MPI
     test_sdf.py
     map_overlap.py
     shape_union.py
+    enthalpic_interaction.py
    )
 
 set(MPI_ONLY
