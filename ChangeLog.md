@@ -21,7 +21,7 @@ Not yet released
 
 ## v2.2.3
 
-Not yet released
+Released 2018/01/25
 
 *Bug fixes*
 
@@ -31,6 +31,7 @@ Not yet released
 * Fix a bug in HPMC Box MC updater where moves were attempted with zero weight.
 * `dump.gsd()` now writes `hpmc` shape state correctly when there are multiple particle types.
 * `hpmc.integrate.polyhedron()` now produces correct results on the GPU.
+* Fix binary compatibility across python minor versions.
 
 ## v2.2.2
 
