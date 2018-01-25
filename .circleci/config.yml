@@ -114,13 +114,13 @@ jobs:
       BUILD_JIT: OFF
     <<: *build_and_test
 
-  gcc48-py27-cm28-mpi-cd80:
+  gcc48-py27-mpi-cd80:
     <<: *test_container_config-cuda80
     environment:
       CC: /usr/bin/gcc-4.8
       CXX: /usr/bin/g++-4.8
       PYVER: "2.7"
-      CMAKE_BIN: /opt/cmake-2.8.12/bin
+      CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
@@ -234,7 +234,7 @@ workflows:
           filters:
             branches:
               ignore: release
-      - gcc48-py27-cm28-mpi-cd80:
+      - gcc48-py27-mpi-cd80:
           filters:
             branches:
               ignore: release
