@@ -222,6 +222,7 @@ Joshua Anderson, University of Michigan - Lead developer
  * Bounding box tree generation, query, and optimizations
  * BVH implementation of trial move processing
  * SSE and AVX intrinsics
+ * `jit.patch.user` user defined patchy interactions with LLVM runtime compiled code
 
 Eric Irrgang, University of Michigan
  * NPT updater
@@ -251,6 +252,7 @@ Jens Glaser, University of Michigan
  * Helped port the Sphinx overlap check
  * Dynamic number of particle types support
  * Implicit depletants
+ * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature
@@ -280,6 +282,9 @@ Paul Dodd, Erin Teich, University of Michigan
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
+
+William Zygmunt, Luis Rivera-Rivera, University of Michigan
+ * Patchy interaction support in HPMC CPU integrators
 
 DEM developers
 --------------
