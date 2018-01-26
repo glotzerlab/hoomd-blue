@@ -178,6 +178,12 @@ IntegratorHPMCMonoGPU< Shape>::~IntegratorHPMCMonoGPU()
 template< class Shape >
 void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     {
+    if (this->m_patch && !this->m_patch_log)
+        {
+        this->m_exec_conf->msg->error() << "GPU simulations with patches are unsupported." << std::endl;
+        throw std::runtime_error("Error during HPMC integration\n");
+        }
+
     IntegratorHPMC::update(timestep);
     // compute the width of the active region
     Scalar3 npd = this->m_pdata->getBox().getNearestPlaneDistance();

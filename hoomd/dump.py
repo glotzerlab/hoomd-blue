@@ -578,13 +578,6 @@ class gsd(hoomd.analyze._analyzer):
         dump.gsd(filename="momentum_too.gsd", period=1000, group=group.all(), phase=0, dynamic=['momentum'])
         dump.gsd(filename="saveall.gsd", overwrite=True, period=1000, group=group.all(), dynamic=['attribute', 'momentum', 'topology'])
 
-    .. warning::
-
-        **Known issue**: If a non-default quantity is written out to frame 0 and that quantity later becomes default on
-        frame *i*, it will not be written to frame *i*. This results in an invalid configuration because the gsd spec
-        states that quantities not written should be read from frame 0. A reasonable fix for this problem is
-        non-trivial and requires a new version of the gsd spec.
-
     """
     def __init__(self,
                  filename,

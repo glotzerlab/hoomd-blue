@@ -321,6 +321,14 @@ class mode_hpmc(_integrator):
     def _gsd_state_name(cls):
         return "state/hpmc/"+str(cls.__name__)+"/"
 
+    def restore_state(self):
+        super(mode_hpmc, self).restore_state()
+
+        # if restore state succeeds, all shape information is set
+        # set the python level is_set flags to notify this
+        for type in self.shape_param.keys():
+            self.shape_param[type].is_set = True;
+
     def setup_pos_writer(self, pos, colors={}):
         R""" Set pos_writer definitions for specified shape parameters.
 
@@ -728,6 +736,8 @@ class sphere(mode_hpmc):
     Args:
         seed (int): Random number seed
         d (float): Maximum move displacement, Scalar to set for all types, or a dict containing {type:size} to set by type.
+        a (float, only with **orientable=True**): Maximum rotation move, Scalar to set for all types, or a dict containing {type:size} to set by type. (added in version 2.3)
+        move_ratio (float, only used with **orientable=True**): Ratio of translation moves to rotation moves. (added in version 2.3)
         nselect (int): The number of trial moves to perform in each cell.
         implicit (bool): Flag to enable implicit depletants.
         depletant_mode (string, only with **implicit=True**): Where to place random depletants, either 'circumsphere' or 'overlap_regions'
@@ -740,6 +750,7 @@ class sphere(mode_hpmc):
     Sphere parameters:
 
     * *diameter* (**required**) - diameter of the sphere (distance units)
+    * *orientable* (**default: False**) - set to True for spheres with orientation (added in version 2.3)
     * *ignore_statistics* (**default: False**) - set to True to disable ignore for statistics tracking
     * *ignore_overlaps* (**default: False**) - set to True to disable overlap checks between this and other types with *ignore_overlaps=True*
 
@@ -752,6 +763,7 @@ class sphere(mode_hpmc):
         mc = hpmc.integrate.sphere(seed=415236, d=0.3)
         mc.shape_param.set('A', diameter=1.0)
         mc.shape_param.set('B', diameter=2.0)
+        mc.shape_param.set('C', diameter=1.0, orientable=True)
         print('diameter = ', mc.shape_param['A'].diameter)
 
     Depletants Example::

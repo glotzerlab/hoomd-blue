@@ -28,8 +28,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-//#include "ShapeSphere.h"
-
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
@@ -278,18 +276,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Return true if anisotropic particles are present
         virtual bool hasOrientation() { return m_hasOrientation; }
 
-        //! Calculate Boltzmann factor
-        bool accept(double total_energy, hoomd::detail::Saru& rng)
-            {
-            double boltz = fast::exp(total_energy);
-            bool reject = false;
-            if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
-                reject = false;
-            else
-                reject = true;
-            return !reject;
-            }
-
         //! Compute the energy due to patch interactions
         /*! \param timestep the current time step
          * \returns the total patch energy
@@ -410,16 +396,17 @@ std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
     std::vector< std::string > result = IntegratorHPMC::getProvidedLogQuantities();
     // then add ours
     if(m_patch)
-    {
-      result.push_back("hpmc_patch_energy");
-      result.push_back("hpmc_patch_rcut");
-    }
+        {
+        result.push_back("hpmc_patch_energy");
+        result.push_back("hpmc_patch_rcut");
+        }
+
     return result;
     }
 
 template<class Shape>
 Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
-{
+    {
     if (quantity == "hpmc_patch_energy")
         {
         if (m_patch)
@@ -434,22 +421,22 @@ Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsig
         }
     else if (quantity == "hpmc_patch_rcut")
         {
-            if (m_patch)
-                {
-                return (Scalar)m_patch->getRCut();
-                }
-            else
-                {
-                this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
-                throw std::runtime_error("Error getting log value");
-                }
+        if (m_patch)
+            {
+            return (Scalar)m_patch->getRCut();
+            }
+        else
+            {
+            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+            throw std::runtime_error("Error getting log value");
+            }
         }
     else
         {
         //nothing found -> pass on to integrator
         return IntegratorHPMC::getLogValue(quantity, timestep);
         }
-}
+    }
 
 template <class Shape>
 void IntegratorHPMCMono<Shape>::printStats()
@@ -559,9 +546,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             unsigned int i = m_update_order[cur_particle];
 
             // read in the current position and orientation
-            Scalar4 postype_i = h_postype.data[i]; // first 3 scalars are the x,y,z coordinates, 4th is the type(w)
+            Scalar4 postype_i = h_postype.data[i];
             Scalar4 orientation_i = h_orientation.data[i];
-            vec3<Scalar> pos_i = vec3<Scalar>(postype_i); // convert position to vector, drops w component
+            vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
 
             #ifdef ENABLE_MPI
             if (m_comm)
@@ -574,12 +561,11 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             // make a trial move for i
             hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank()*m_nselect + i_nselect, timestep);
-            int typ_i = __scalar_as_int(postype_i.w); // get type as int
+            int typ_i = __scalar_as_int(postype_i.w);
             Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < m_move_ratio);
 
-            // m_params is a vector of param_type types
             Shape shape_old(quat<Scalar>(orientation_i), m_params[typ_i]);
             vec3<Scalar> pos_old = pos_i;
 
@@ -605,7 +591,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             bool overlap=false;
             OverlapReal r_cut_patch = 0;
 
-            if (m_patch)
+            if (m_patch && !m_patch_log)
                 {
                 r_cut_patch = m_patch->getRCut();
                 }
@@ -677,7 +663,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (m_patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (m_patch && !m_patch_log && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
                                     {
                                     // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
@@ -708,7 +694,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 } // end loop over images
 
             // calculate old patch energy only if m_patch not NULL and no overlaps
-            if (m_patch && !overlap)
+            if (m_patch && !m_patch_log && !overlap)
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -786,23 +772,9 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 patch_field_energy_diff += m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }
 
-
-            bool reject_move = false;
-            if (!overlap)
-                {
-                 // boltzmann check
-                if (accept(patch_field_energy_diff, rng_i) == true)
-                    {
-                    reject_move = false;
-                    }
-                else
-                    {
-                    reject_move = true;
-                    }
-                }
-
-            // if the move is accepted
-            if (!overlap && !reject_move)
+            // If no overlaps and Metropolis criterion is met, accept
+            // trial move and update positions  and/or orientations.
+            if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
                 {
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
@@ -811,7 +783,7 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                         counters.translate_accept_count++;
                     else
                         counters.rotate_accept_count++;
-                }
+                    }
 
                 // update the position of the particle in the tree for future updates
                 detail::AABB aabb = aabb_i_local;

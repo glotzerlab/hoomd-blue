@@ -76,7 +76,7 @@ class user(object):
                             else
                                 return 0.0f;
                       """
-        patch = hoomd.jit.patch.user(r_cut=1.1, code=square_well)
+        patch = hoomd.jit.patch.user(mc=mc, r_cut=1.1, code=square_well)
 
     .. rubric:: LLVM IR code
 
@@ -99,6 +99,8 @@ class user(object):
 
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
+
+    .. versionadded:: 2.3
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
@@ -113,6 +115,8 @@ class user(object):
             hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
+        self.mc = mc
+
         if code is not None:
             llvm_ir = self.compile_user(code,clang_exec)
         else:
@@ -125,6 +129,9 @@ class user(object):
         self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
         #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
+
+        self.enabled = True
+        self.log = False
 
     def compile_user(self,code,clang_exec):
         cpp_function = """
@@ -172,6 +179,33 @@ float eval(const vec3<float>& r_ij,
 
         return llvm_ir
 
+    R''' Disable the patch energy and optionally enable it only for logging
+
+    Args:
+        log (bool): If true, only use patch energy as a log quantity
+
+    '''
+    def disable(self,log=None):
+        hoomd.util.print_status_line();
+
+        if log:
+            # enable only for logging purposes
+            self.mc.cpp_integrator.disablePatchEnergyLogOnly(log)
+            self.log = True
+        else:
+            # disable completely
+            self.mc.cpp_integrator.setPatchEnergy(0);
+            self.log = False
+
+        self.enabled = False
+
+    R''' (Re-)Enable the patch energy
+
+    '''
+    def enable(self):
+        hoomd.util.print_status_line()
+        self.mc.cpp_intgrator.setPatchEnergy(self)
+
 class user_union(user):
     R''' Define an arbitrary patch energy on a union of particles
 
@@ -193,6 +227,7 @@ class user_union(user):
         patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
 
+    .. versionadded:: 2.2
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
@@ -201,11 +236,6 @@ class user_union(user):
         if hoomd.context.exec_conf is None:
             hoomd.context.msg.error("Cannot create patch energy before context initialization\n");
             raise RuntimeError('Error creating patch energy');
-
-        # raise an error if this run is on the GPU
-        if hoomd.context.exec_conf.isCUDAEnabled():
-            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
-            raise RuntimeError("Error initializing patch energy");
 
         if clang_exec is not None:
             clang = clang_exec;
@@ -225,6 +255,10 @@ class user_union(user):
         self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir, r_cut);
         #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
+
+        self.mc = mc
+        self.enabled = True
+        self.log = False
 
     R''' Set the union shape parameters for a given particle type
 
@@ -256,7 +290,7 @@ class user_union(user):
         type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not type in type_names:
             hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
-            raise RuntimeError("Error initializing patch energy."); 
+            raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 
         self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)

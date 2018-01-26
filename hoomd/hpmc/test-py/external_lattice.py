@@ -61,11 +61,10 @@ class external_field_lattice(unittest.TestCase):
                     leng = kalt*diff.dot(diff) + qalt*diffq.dot(diffq);
                 else:
                     leng = kalt*diff.dot(diff);
-                print("leng = ",leng, "eng = ", eng, "avg = ", avg, "sigma = ",sigma);
                 self.assertLess(abs(leng-eng)/eng, 0.001); # the difference is <0.1%.
                 self.assertLess(abs(avg-uein), sigma);
 
-       
+
 
     def test_lattice(self):
         N=128;
@@ -122,7 +121,6 @@ class external_field_lattice(unittest.TestCase):
         self.system = init.read_snapshot(self.snapshot3d)
         self.mc = hpmc.integrate.sphere(seed=2398, d=0.0)
         self.mc.shape_param.set('A', diameter=diam)
-        print(eng_check3d)
         self.run_test(latticep=lattice3d, latticeq=[], k=k, kalt=kalt, q=0, qalt=0, uein=1.5, snapshot_s=self.snapshot3d_s, eng_check=eng_check3d, d=0.001428 );
         self.tear_down()
 
