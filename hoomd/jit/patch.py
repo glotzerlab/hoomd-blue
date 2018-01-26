@@ -237,11 +237,6 @@ class user_union(user):
             hoomd.context.msg.error("Cannot create patch energy before context initialization\n");
             raise RuntimeError('Error creating patch energy');
 
-        # raise an error if this run is on the GPU
-        if hoomd.context.exec_conf.isCUDAEnabled():
-            hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
-            raise RuntimeError("Error initializing patch energy");
-
         if clang_exec is not None:
             clang = clang_exec;
         else: clang = find_executable('clang')
