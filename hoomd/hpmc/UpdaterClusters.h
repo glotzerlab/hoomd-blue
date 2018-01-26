@@ -1533,8 +1533,11 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     unsigned int i = it->first.first;
                     unsigned int j = it->first.second;
 
+                    // create a RNG specific to this particle pair
+                    hoomd::detail::Saru rng_ij(timestep+this->m_seed, std::min(i,j), std::max(i,j));
+
                     float pij = 1.0f-exp(-delU);
-                    if (rng.f() <= pij) // GCA
+                    if (rng_ij.f() <= pij) // GCA
                         {
                         // add bond
                         m_G.addEdge(i,j);
