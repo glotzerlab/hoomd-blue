@@ -570,11 +570,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                         assert(it!=map.end());
                                         new_tag_j = it->second;
                                         }
-                                    std::pair<unsigned int, unsigned int> p;
-                                    if (new_tag_i < new_tag_j)
-                                        p = std::make_pair(new_tag_i,new_tag_j);
-                                    else
-                                        p = std::make_pair(new_tag_j,new_tag_i);
+                                    auto p = std::make_pair(new_tag_i,new_tag_j);
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
@@ -770,11 +766,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
 
                                 if (rsq_ij <= r_cut_patch*r_cut_patch)
                                     {
-                                    std::pair<unsigned int, unsigned int> p;
-                                    if (h_tag.data[i] < new_tag_j)
-                                        p = std::make_pair(h_tag.data[i], new_tag_j);
-                                    else
-                                        p = std::make_pair(new_tag_j, h_tag.data[i]);
+                                    auto p = std::make_pair(h_tag.data[i], new_tag_j);
 
                                     // if particle interacts in different image already, add to that energy
                                     float U = 0.0;
