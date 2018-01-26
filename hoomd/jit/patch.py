@@ -194,7 +194,7 @@ float eval(const vec3<float>& r_ij,
             self.log = True
         else:
             # disable completely
-            self.mc.cpp_integrator.setPatchEnergy(0);
+            self.mc.cpp_integrator.setPatchEnergy(None);
             self.log = False
 
         self.enabled = False
