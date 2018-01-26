@@ -194,7 +194,7 @@ float eval(const vec3<float>& r_ij,
             self.log = True
         else:
             # disable completely
-            self.mc.cpp_integrator.setPatchEnergy(0);
+            self.mc.cpp_integrator.setPatchEnergy(None);
             self.log = False
 
         self.enabled = False
@@ -204,7 +204,7 @@ float eval(const vec3<float>& r_ij,
     '''
     def enable(self):
         hoomd.util.print_status_line()
-        self.mc.cpp_intgrator.setPatchEnergy(self)
+        self.mc.cpp_integrator.setPatchEnergy(self.cpp_evaluator);
 
 class user_union(user):
     R''' Define an arbitrary patch energy on a union of particles
