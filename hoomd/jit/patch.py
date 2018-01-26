@@ -99,6 +99,8 @@ class user(object):
 
     Compile the file with clang: ``clang -O3 --std=c++11 -DHOOMD_NOPYTHON -I /path/to/hoomd/include -S -emit-llvm code.cc`` to produce
     the LLVM IR in ``code.ll``.
+
+    .. versionadded:: 2.3
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
@@ -193,6 +195,7 @@ class user_union(user):
         patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
 
+    .. versionadded:: 2.2
     '''
     def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
         hoomd.util.print_status_line();
@@ -256,7 +259,7 @@ class user_union(user):
         type_names = [ hoomd.context.current.system_definition.getParticleData().getNameByType(i) for i in range(0,ntypes) ];
         if not type in type_names:
             hoomd.context.msg.error("{} is not a valid particle type.\n".format(type));
-            raise RuntimeError("Error initializing patch energy."); 
+            raise RuntimeError("Error initializing patch energy.");
         typeid = type_names.index(type)
 
         self.cpp_evaluator.setParam(typeid, typeids, positions, orientations, diameters, charges, leaf_capacity)
