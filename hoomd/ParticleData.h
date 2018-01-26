@@ -797,10 +797,8 @@ class ParticleData
         //! Get the angular momentum array
         const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
-        #ifdef ENABLE_MPI
         //! Get the communication flags array
         const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
-        #endif
 
         #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
@@ -1129,9 +1127,7 @@ class ParticleData
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
-        #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
-        #endif
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
