@@ -63,8 +63,11 @@ set(TEST_LIST_CPU
     map_overlap.py
     hpmc_gsd_state.py
     faceted_sphere.py
-    enthalpic_interaction.py
     )
+
+if (BUILD_JIT)
+    list(APPEND TEST_LIST_CPU enthalpic_interaction.py)
+endif()
 
 set(TEST_LIST_GPU
     shape_union.py
