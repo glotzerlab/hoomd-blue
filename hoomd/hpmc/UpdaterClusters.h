@@ -1428,10 +1428,8 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             // sum up interaction energies
             #ifdef ENABLE_TBB
             tbb::concurrent_unordered_map< std::pair<unsigned int, unsigned int>, float> delta_U;
-            tbb::concurrent_unordered_set< std::pair<unsigned int, unsigned int> > broken_bonds;
             #else
             std::map< std::pair<unsigned int, unsigned int>, float> delta_U;
-            std::set< std::pair<unsigned int, unsigned int> >  broken_bonds;
             #endif
 
             #ifdef ENABLE_MPI
@@ -1523,31 +1521,29 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
                     }
                 }
 
-            for (auto it = delta_U.begin(); it != delta_U.end(); ++it)
+            #ifdef ENABLE_TBB
+            tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
+            #else
+            auto &r = delta_U;
+            #endif
                 {
-                float delU = it->second;
-                unsigned int i = it->first.first;
-                unsigned int j = it->first.second;
-
-                // don't try to make a second guess
-                auto itj = broken_bonds.find(std::make_pair(i,j));
-                if (itj != broken_bonds.end())
-                    continue;
-                itj = broken_bonds.find(std::make_pair(j,i));
-                if (itj != broken_bonds.end());
-                    continue;
-
-                float pij = 1.0f-exp(-delU);
-                if (rng.f() <= pij) // GCA
+                for (auto it = r.begin(); it != r.end(); ++it)
                     {
-                    // add bond
-                    m_G.addEdge(i,j);
-                    }
-                else
-                    {
-                    broken_bonds.insert(it->first);
+                    float delU = it->second;
+                    unsigned int i = it->first.first;
+                    unsigned int j = it->first.second;
+
+                    float pij = 1.0f-exp(-delU);
+                    if (rng.f() <= pij) // GCA
+                        {
+                        // add bond
+                        m_G.addEdge(i,j);
+                        }
                     }
                 }
+            #ifdef ENABLE_TBB
+                );
+            #endif
             } // end if (patch)
 
         if (this->m_prof) this->m_prof->push("connected components");
