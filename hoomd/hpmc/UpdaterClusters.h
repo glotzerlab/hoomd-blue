@@ -1458,32 +1458,22 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             else
             #endif
                 {
-                #ifdef ENABLE_TBB
-                tbb::parallel_for(m_energy_old_old.range(), [&] (decltype(m_energy_old_old.range()) r)
-                #else
-                auto &r = m_energy_old_old;
-                #endif
+                for (auto it = m_energy_old_old.begin(); it != m_energy_old_old.end(); ++it)
                     {
-                    for (auto it = r.begin(); it != r.end(); ++it)
-                        {
-                        float delU = -it->second;
-                        unsigned int i = it->first.first;
-                        unsigned int j = it->first.second;
+                    float delU = -it->second;
+                    unsigned int i = it->first.first;
+                    unsigned int j = it->first.second;
 
-                        auto p = std::make_pair(i,j);
+                    auto p = std::make_pair(i,j);
 
-                        // add to energy
-                        auto itj = delta_U.find(p);
-                        if (itj != delta_U.end())
-                            delU += itj->second;
+                    // add to energy
+                    auto itj = delta_U.find(p);
+                    if (itj != delta_U.end())
+                        delU += itj->second;
 
-                        // update map with new interaction energy
-                        delta_U[p] = delU;
-                        }
+                    // update map with new interaction energy
+                    delta_U[p] = delU;
                     }
-                #ifdef ENABLE_TBB
-                    );
-                #endif
                 }
 
             #ifdef ENABLE_MPI
@@ -1513,47 +1503,47 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
             else
             #endif
                 {
-                #ifdef ENABLE_TBB
-                tbb::parallel_for(m_energy_new_old.range(), [&] (decltype(m_energy_new_old.range()) r)
-                #else
-                auto &r = m_energy_new_old;
-                #endif
+                for (auto it = m_energy_new_old.begin(); it != m_energy_new_old.end(); ++it)
                     {
-                    for (auto it = r.begin(); it != r.end(); ++it)
+                    float delU = it->second;
+                    unsigned int i = it->first.first;
+                    unsigned int j = it->first.second;
+
+                    auto p = std::make_pair(i,j);
+
+                    // add to energy
+                    auto itj = delta_U.find(p);
+                    if (itj != delta_U.end())
+                        delU += itj->second;
+
+                    // update map with new interaction energy
+                    delta_U[p] = delU;
+                    }
+                }
+
+            #ifdef ENABLE_TBB
+            tbb::parallel_for(delta_U.range(), [&] (decltype(delta_U.range()) r)
+            #else
+            auto &r = delta_U;
+            #endif
+                {
+                for (auto it = r.begin(); it != r.end(); ++it)
+                    {
+                    float delU = it->second;
+                    unsigned int i = it->first.first;
+                    unsigned int j = it->first.second;
+
+                    float pij = 1.0f-exp(-delU);
+                    if (rng.f() <= pij) // GCA
                         {
-                        float delU = it->second;
-                        unsigned int i = it->first.first;
-                        unsigned int j = it->first.second;
-
-                        auto p = std::make_pair(i,j);
-
-                        // add to energy
-                        auto itj = delta_U.find(p);
-                        if (itj != delta_U.end())
-                            delU += itj->second;
-
-                        // update map with new interaction energy
-                        delta_U[p] = delU;
+                        // add bond
+                        m_G.addEdge(i,j);
                         }
                     }
-                #ifdef ENABLE_TBB
-                    );
-                #endif
                 }
-
-            for (auto it = delta_U.begin(); it != delta_U.end(); ++it)
-                {
-                float delU = it->second;
-                unsigned int i = it->first.first;
-                unsigned int j = it->first.second;
-
-                float pij = 1.0f-exp(-delU);
-                if (rng.f() <= pij) // GCA
-                    {
-                    // add bond
-                    m_G.addEdge(i,j);
-                    }
-                }
+            #ifdef ENABLE_TBB
+                );
+            #endif
             } // end if (patch)
 
         if (this->m_prof) this->m_prof->push("connected components");
