@@ -56,7 +56,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
 
-            # Disable patch with log = False and check energy is 0
+            # Disable patch with log = True and check logged energy is correct
             self.patch.disable(log=True);
             hoomd.run(2, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
@@ -86,7 +86,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb);
 
-            # Disable patch with log = False and check energy is 0
+            # Disable patch with log = True and check logged energy is correct
             self.patch.disable(log=True);
             hoomd.run(2, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb);
@@ -115,7 +115,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
             hoomd.run(0, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb/2);
 
-            # Disable patch with log = False and check energy is 0
+            # Disable patch with log = True and check logged energy is correct
             self.patch.disable(log=True);
             hoomd.run(2, quiet=True);
             self.assertEqual(self.log.query('hpmc_patch_energy'), self.lamb/2);
@@ -144,7 +144,7 @@ class enthalpic_dipole_interaction(unittest.TestCase):
            hoomd.run(0, quiet=True);
            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb/2);
 
-           # Disable patch with log = False and check energy is 0
+           # Disable patch with log = True and check logged energy is correct
            self.patch.disable(log=True);
            hoomd.run(2, quiet=True);
            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb/2);
