@@ -17,7 +17,7 @@
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_deprecated)
+PYBIND11_MODULE(_deprecated, m)
     {
     pybind11::module m("_deprecated");
 
@@ -27,9 +27,6 @@ PYBIND11_PLUGIN(_deprecated)
     export_HOOMDInitializer(m);
     export_RandomGenerator(m);
 
-    return m.ptr();
-
 #ifdef ENABLE_CUDA
 #endif
-
     }

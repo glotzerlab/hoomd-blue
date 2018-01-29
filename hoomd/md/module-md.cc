@@ -193,10 +193,8 @@ void export_PotentialExternalWall(py::module& m, const std::string& name)
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_md)
+PYBIND11_MODULE(_md, m)
     {
-    pybind11::module m("_md");
-
     export_ActiveForceCompute(m);
     export_ConstExternalFieldDipoleForceCompute(m);
     export_HarmonicAngleForceCompute(m);
@@ -345,6 +343,4 @@ PYBIND11_PLUGIN(_md)
     export_ConstraintEllipsoidGPU(m);
     export_MuellerPlatheFlowGPU(m);
 #endif
-
-    return m.ptr();
     }

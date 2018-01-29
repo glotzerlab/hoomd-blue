@@ -16,9 +16,8 @@
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_cgcmm)
+PYBIND11_MODULE(_cgcmm, m)
     {
-    pybind11::module m("_cgcmm");
     export_CGCMMAngleForceCompute(m);
     export_CGCMMForceCompute(m);
 
@@ -26,6 +25,4 @@ PYBIND11_PLUGIN(_cgcmm)
     export_CGCMMForceComputeGPU(m);
     export_CGCMMAngleForceComputeGPU(m);
 #endif
-
-    return m.ptr();
     }

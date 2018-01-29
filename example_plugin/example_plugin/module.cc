@@ -8,14 +8,11 @@
 
 // specify the python module. Note that the name must expliclty match the PROJECT() name provided in CMakeLists
 // (with an underscore in front)
-PYBIND11_PLUGIN(_example_plugin)
+PYBIND11_MODULE(_example_plugin, m)
     {
-    pybind11::module m("_example_plugin");
     export_ExampleUpdater(m);
 
     #ifdef ENABLE_CUDA
     export_ExampleUpdaterGPU(m);
     #endif
-
-    return m.ptr();
     }
