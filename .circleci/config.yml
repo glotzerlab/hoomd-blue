@@ -3,28 +3,28 @@ version: 2
 references:
   test_container_config: &test_container_config
     docker:
-      - image: joaander/ci:20170809
+      - image: joaander/ci:20171130
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda80: &test_container_config-cuda80
     docker:
-      - image: joaander/ci:20170809-cuda80
+      - image: joaander/ci:20171130-cuda80
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
   test_container_config-cuda75: &test_container_config-cuda75
     docker:
-      - image: joaander/ci:20170809-cuda75
+      - image: joaander/ci:20171130-cuda75
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
 
-  test_container_config-cuda75: &test_container_config-cuda70
+  test_container_config-cuda70: &test_container_config-cuda70
     docker:
-      - image: joaander/ci:20170811-cuda70
+      - image: joaander/ci:20171130-cuda70
         environment:
           PYTHONPATH: /home/ci/project/build
     working_directory: /home/ci/project
@@ -64,7 +64,8 @@ references:
         echo enable_cuda=${ENABLE_CUDA}
         echo enable_mpi=${ENABLE_MPI}
         echo build_validation=${BUILD_VALIDATION}
-        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_DEPRECATED=off -GNinja
+        echo build_jit=${BUILD_JIT}
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
 
   compile: &compile
     run:
@@ -110,18 +111,20 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
     <<: *build_and_test
 
-  gcc48-py27-cm28-mpi-cd80:
+  gcc48-py27-mpi-cd80:
     <<: *test_container_config-cuda80
     environment:
       CC: /usr/bin/gcc-4.8
       CXX: /usr/bin/g++-4.8
       PYVER: "2.7"
-      CMAKE_BIN: /opt/cmake-2.8.12/bin
+      CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
     <<: *native_build
 
   gcc49-py34-mpi-cd75:
@@ -134,6 +137,7 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
     <<: *native_build
 
   gcc48-py34-cm28-mpi-cd70:
@@ -146,6 +150,7 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
     <<: *native_build
 
   clang34-py34-cm28-mpi:
@@ -158,6 +163,7 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
+      BUILD_JIT: OFF
     <<: *native_build
 
   gcc54-py35-mpi-cd80:
@@ -170,6 +176,7 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
     <<: *native_build
 
   unit-clang38-py35:
@@ -182,6 +189,7 @@ jobs:
       ENABLE_MPI: OFF
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
     <<: *build_and_test
 
   sphinx-docs:
@@ -226,7 +234,7 @@ workflows:
           filters:
             branches:
               ignore: release
-      - gcc48-py27-cm28-mpi-cd80:
+      - gcc48-py27-mpi-cd80:
           filters:
             branches:
               ignore: release

@@ -275,7 +275,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::initializePoissonDistribution()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
     {
-    this->m_nominal_width = this->getMaxDiameter();
+    this->m_nominal_width = this->getMaxCoreDiameter();
 
     if (m_n_R > Scalar(0.0))
         {
@@ -291,6 +291,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     {
+    if (this->m_patch && !this->m_patch_log)
+        {
+        this->m_exec_conf->msg->error() << "Depletant simulations with patches are unsupported." << std::endl;
+        throw std::runtime_error("Error during implicit depletant integration\n");
+        }
+
     this->m_exec_conf->msg->notice(10) << "HPMCMonoImplicit update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
 

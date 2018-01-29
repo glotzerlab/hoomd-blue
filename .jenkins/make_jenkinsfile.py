@@ -13,7 +13,8 @@ tests.append(dict(name='unit-gcc49-py27-cd75',
                   ENABLE_CUDA = 'ON',
                   ENABLE_MPI = 'ON',
                   BUILD_VALIDATION = 'OFF',
-                  CONTAINER = 'ci-20170809-cuda75.img',
+                  CONTAINER = 'ci-20171130-cuda75.img',
+                  BUILD_JIT = 'OFF',
                   timeout=1))
 
 tests.append(dict(name='unit-clang38-py35-cd80',
@@ -25,7 +26,8 @@ tests.append(dict(name='unit-clang38-py35-cd80',
                   ENABLE_CUDA = 'ON',
                   ENABLE_MPI = 'OFF',
                   BUILD_VALIDATION = 'OFF',
-                  CONTAINER = 'ci-20170809-cuda80.img',
+                  CONTAINER = 'ci-20171130-cuda80.img',
+                  BUILD_JIT = 'ON',
                   timeout=1))
 
 tests.append(dict(name='vld-gcc6-py36-mpi-cd90',
@@ -38,6 +40,7 @@ tests.append(dict(name='vld-gcc6-py36-mpi-cd90',
                   ENABLE_MPI = 'ON',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-20171206-arch-2.img',
+                  BUILD_JIT = 'ON',
                   timeout=15))
 
 tests.append(dict(name='vld-clang50-py36-mpi',
@@ -50,6 +53,7 @@ tests.append(dict(name='vld-clang50-py36-mpi',
                   ENABLE_MPI = 'ON',
                   BUILD_VALIDATION = 'ON',
                   CONTAINER = 'ci-20171206-arch-2.img',
+                  BUILD_JIT = 'ON',
                   timeout=15))
 
 print(template.render(tests=tests))

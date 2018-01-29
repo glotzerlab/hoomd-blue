@@ -28,8 +28,6 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#include "ShapeSphere.h"
-
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #endif
@@ -120,6 +118,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
     {
     public:
         //! Param type from the shape
+        //! Each shape has a param_type member that contain
+        //! shape-specific descriptors(radius, vertices, etc)
         typedef typename Shape::param_type param_type;
 
         //! Constructor
@@ -142,7 +142,10 @@ class IntegratorHPMCMono : public IntegratorHPMC
         virtual void update(unsigned int timestep);
 
         //! Get the maximum particle diameter
-        virtual Scalar getMaxDiameter();
+        virtual Scalar getMaxCoreDiameter();
+
+        //! Get the minimum particle diameter
+        virtual OverlapReal getMinCoreDiameter();
 
         //! Set the pair parameters for a single type
         virtual void setParam(unsigned int typ, const param_type& param);
@@ -156,6 +159,12 @@ class IntegratorHPMCMono : public IntegratorHPMC
             m_external = external;
             this->m_external_base = (ExternalField*)external.get();
             }
+
+        //! Get a list of logged quantities
+        virtual std::vector< std::string > getProvidedLogQuantities();
+
+        //! Get the value of a logged quantity
+        virtual Scalar getLogValue(const std::string& quantity, unsigned int timestep);
 
         //! Get the particle parameters
         virtual std::vector<param_type, managed_allocator<param_type> >& getParams()
@@ -208,6 +217,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 o << "orientation ";
                 }
 
+            if (m_patch)
+                {
+                flags[comm_flag::diameter] = 1;
+                flags[comm_flag::charge] = 1;
+                o << "diameter charge";
+                }
+
             m_exec_conf->msg->notice(9) << o.str() << std::endl;
             return flags;
             }
@@ -216,6 +232,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
         //! Prepare for the run
         virtual void prepRun(unsigned int timestep)
             {
+            // base class method
+            IntegratorHPMC::prepRun(timestep);
+
                 {
                 // for p in params, if Shape dummy(q_dummy, params).hasOrientation() then m_hasOrientation=true
                 m_hasOrientation = false;
@@ -230,8 +249,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
             updateCellWidth(); // make sure the cell width is up-to-date and forces a rebuild of the AABB tree and image list
 
             communicate(true);
-
-            m_past_first_run = true;
             }
 
         //! Communicate particles
@@ -255,6 +272,12 @@ class IntegratorHPMCMono : public IntegratorHPMC
                 }
             #endif
             }
+
+        //! Compute the energy due to patch interactions
+        /*! \param timestep the current time step
+         * \returns the total patch energy
+         */
+        virtual float computePatchEnergy(unsigned int timestep);
 
         //! Build the AABB tree (if needed)
         const detail::AABBTree& buildAABBTree();
@@ -294,8 +317,6 @@ class IntegratorHPMCMono : public IntegratorHPMC
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
         bool m_aabb_tree_invalid;                   //!< Flag if the aabb tree has been invalidated
 
-        bool m_past_first_run;                      //!< Flag to test if the first run() has started
-
         Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
 
         //! Set the nominal width appropriate for looped moves
@@ -331,8 +352,7 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
-              m_hasOrientation(true),
-              m_past_first_run(false)
+              m_hasOrientation(true)
     {
     // allocate the parameter storage
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
@@ -352,6 +372,56 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
     m_aabbs = NULL;
     m_aabbs_capacity = 0;
     m_aabb_tree_invalid = true;
+    }
+
+
+template<class Shape>
+std::vector< std::string > IntegratorHPMCMono<Shape>::getProvidedLogQuantities()
+    {
+    // start with the integrator provided quantities
+    std::vector< std::string > result = IntegratorHPMC::getProvidedLogQuantities();
+    // then add ours
+    if(m_patch)
+        {
+        result.push_back("hpmc_patch_energy");
+        result.push_back("hpmc_patch_rcut");
+        }
+
+    return result;
+    }
+
+template<class Shape>
+Scalar IntegratorHPMCMono<Shape>::getLogValue(const std::string& quantity, unsigned int timestep)
+    {
+    if (quantity == "hpmc_patch_energy")
+        {
+        if (m_patch)
+            {
+            return computePatchEnergy(timestep);
+            }
+        else
+            {
+            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+            throw std::runtime_error("Error getting log value");
+            }
+        }
+    else if (quantity == "hpmc_patch_rcut")
+        {
+        if (m_patch)
+            {
+            return (Scalar)m_patch->getRCut();
+            }
+        else
+            {
+            this->m_exec_conf->msg->error() << "No patch enabled:" << quantity << " not registered." << std::endl;
+            throw std::runtime_error("Error getting log value");
+            }
+        }
+    else
+        {
+        //nothing found -> pass on to integrator
+        return IntegratorHPMC::getLogValue(quantity, timestep);
+        }
     }
 
 template <class Shape>
@@ -449,6 +519,8 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
         //access move sizes
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
@@ -501,10 +573,23 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
 
-            // check for overlaps with neighboring particle's positions
-            bool overlap=false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
 
+            bool overlap=false;
+            OverlapReal r_cut_patch = 0;
+
+            if (m_patch && !m_patch_log)
+                {
+                r_cut_patch = m_patch->getRCut();
+                }
+
+            // subtract minimum AABB extent from search radius
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // patch + field interaction deltaU
+            double patch_field_energy_diff = 0;
+
+            // check for overlaps with neighboring particle's positions (also calculate the new energy)
             // All image boxes (including the primary)
             const unsigned int n_images = m_image_list.size();
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -564,6 +649,19 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
+                                else if (m_patch && !m_patch_log && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                    {
+                                    // deltaU = U_old - U_new: subtract energy of new configuration
+                                    patch_field_energy_diff -= m_patch->energy(r_ij, typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               h_diameter.data[i],
+                                                               h_charge.data[i],
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               h_diameter.data[j],
+                                                               h_charge.data[j]
+                                                               );
+                                    }
                                 }
                             }
                         }
@@ -581,24 +679,98 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     break;
                 } // end loop over images
 
-            // move could be rejected by the external potential or the overlap.
-            bool reject_external = false;
-            if(m_external && !overlap && !m_external->accept(i, pos_old, shape_old, pos_i, shape_i, rng_i))
+            // calculate old patch energy only if m_patch not NULL and no overlaps
+            if (m_patch && !m_patch_log && !overlap)
                 {
-                reject_external = true;
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_old + m_image_list[cur_image];
+                    detail::AABB aabb = aabb_i_local;
+                    aabb.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        {
+                        if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            {
+                            if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                    Scalar4 postype_j;
+                                    Scalar4 orientation_j;
+
+                                    // handle j==i situations
+                                    if ( j != i )
+                                        {
+                                        // load the position and orientation of the j particle
+                                        postype_j = h_postype.data[j];
+                                        orientation_j = h_orientation.data[j];
+                                        }
+                                    else
+                                        {
+                                        if (cur_image == 0)
+                                            {
+                                            // in the first image, skip i == j
+                                            continue;
+                                            }
+                                        else
+                                            {
+                                            // If this is particle i and we are in an outside image, use the translated position and orientation
+                                            postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            }
+                                        }
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+                                    // deltaU = U_old - U_new: add energy of old configuration
+                                    if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                        patch_field_energy_diff += m_patch->energy(r_ij,
+                                                                   typ_i,
+                                                                   quat<float>(orientation_i),
+                                                                   h_diameter.data[i],
+                                                                   h_charge.data[i],
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   h_diameter.data[j],
+                                                                   h_charge.data[j]);
+                                    }
+                                }
+                            }
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                            }
+                        }  // end loop over AABB nodes
+                    } // end loop over images
+                } // end if (m_patch)
+
+            // Add external energetic contribution
+            if (m_external)
+                {
+                patch_field_energy_diff += m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                 }
 
-            // if the move is accepted
-            if (!overlap && !reject_external)
+            // If no overlaps and Metropolis criterion is met, accept
+            // trial move and update positions  and/or orientations.
+            if (!overlap && rng_i.d() < slow::exp(patch_field_energy_diff))
                 {
                 // increment accept counter and assign new position
                 if (!shape_i.ignoreStatistics())
-                  {
-                  if (move_type_translate)
-                      counters.translate_accept_count++;
-                  else
-                      counters.rotate_accept_count++;
-                  }
+                    {
+                    if (move_type_translate)
+                        counters.translate_accept_count++;
+                    else
+                        counters.rotate_accept_count++;
+                    }
+
                 // update the position of the particle in the tree for future updates
                 detail::AABB aabb = aabb_i_local;
                 aabb.translate(pos_i);
@@ -612,7 +784,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
                     h_orientation.data[i] = quat_to_scalar4(shape_i.orientation);
                     }
                 }
-
             else
                 {
                 if (!shape_i.ignoreStatistics())
@@ -630,7 +801,6 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
         {
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::readwrite);
-
         // wrap particles back into box
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
@@ -698,7 +868,6 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     buildAABBTree();
     // update the image list
     updateImageList();
-
 
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC count overlaps");
 
@@ -809,8 +978,135 @@ unsigned int IntegratorHPMCMono<Shape>::countOverlaps(unsigned int timestep, boo
     return overlap_count;
     }
 
+template<class Shape>
+float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
+    {
+    // sum up in double precision
+    double energy = 0.0;
+
+    // return if nothing to do
+    if (!m_patch) return energy;
+
+    // the cut-off
+    float r_cut = m_patch->getRCut();
+
+    m_exec_conf->msg->notice(10) << "HPMC compute patch energy: " << timestep << std::endl;
+
+    if (!m_past_first_run)
+        {
+        m_exec_conf->msg->error() << "get_patch_energy only works after a run() command" << std::endl;
+        throw std::runtime_error("Error communicating in count_overlaps");
+        }
+
+    // build an up to date AABB tree
+    buildAABBTree();
+    // update the image list
+    updateImageList();
+
+    if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC compute patch energy");
+
+    // access particle data and system box
+    ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+
+    // access parameters and interaction matrix
+    ArrayHandle<unsigned int> h_overlaps(m_overlaps, access_location::host, access_mode::read);
+
+    // Loop over all particles
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+        {
+        // read in the current position and orientation
+        Scalar4 postype_i = h_postype.data[i];
+        Scalar4 orientation_i = h_orientation.data[i];
+        unsigned int typ_i = __scalar_as_int(postype_i.w);
+        Shape shape_i(quat<Scalar>(orientation_i), m_params[typ_i]);
+        vec3<Scalar> pos_i = vec3<Scalar>(postype_i);
+
+        Scalar d_i = h_diameter.data[i];
+        Scalar charge_i = h_charge.data[i];
+
+        // subtract minimum AABB extent from search radius
+        OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut-getMinCoreDiameter()/(OverlapReal)2.0);
+        detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+        const unsigned int n_images = m_image_list.size();
+        for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+            {
+            vec3<Scalar> pos_i_image = pos_i + m_image_list[cur_image];
+            detail::AABB aabb = aabb_i_local;
+            aabb.translate(pos_i_image);
+
+            // stackless search
+            for (unsigned int cur_node_idx = 0; cur_node_idx < m_aabb_tree.getNumNodes(); cur_node_idx++)
+                {
+                if (detail::overlap(m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                    {
+                    if (m_aabb_tree.isNodeLeaf(cur_node_idx))
+                        {
+                        for (unsigned int cur_p = 0; cur_p < m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                            {
+                            // read in its position and orientation
+                            unsigned int j = m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                            // skip i==j in the 0 image
+                            if (cur_image == 0 && i == j)
+                                continue;
+
+                            Scalar4 postype_j = h_postype.data[j];
+                            Scalar4 orientation_j = h_orientation.data[j];
+                            Scalar d_j = h_diameter.data[j];
+                            Scalar charge_j = h_charge.data[j];
+
+                            // put particles in coordinate system of particle i
+                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+
+                            unsigned int typ_j = __scalar_as_int(postype_j.w);
+                            Shape shape_j(quat<Scalar>(orientation_j), m_params[typ_j]);
+
+                            // count unique pairs within range
+                            if (h_tag.data[i] <= h_tag.data[j] && dot(r_ij,r_ij) <= r_cut*r_cut)
+                                {
+                                energy += m_patch->energy(r_ij,
+                                       typ_i,
+                                       quat<float>(orientation_i),
+                                       d_i,
+                                       charge_i,
+                                       typ_j,
+                                       quat<float>(orientation_j),
+                                       d_j,
+                                       charge_j);
+                                }
+                            }
+                        }
+                    }
+                else
+                    {
+                    // skip ahead
+                    cur_node_idx += m_aabb_tree.getNodeSkip(cur_node_idx);
+                    }
+
+                } // end loop over AABB nodes
+            } // end loop over images
+        } // end loop over particles
+
+    if (this->m_prof) this->m_prof->pop(this->m_exec_conf);
+
+    #ifdef ENABLE_MPI
+    if (this->m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &energy, 1, MPI_DOUBLE, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    return energy;
+    }
+
+
 template <class Shape>
-Scalar IntegratorHPMCMono<Shape>::getMaxDiameter()
+Scalar IntegratorHPMCMono<Shape>::getMaxCoreDiameter()
     {
     // for each type, create a temporary shape and return the maximum diameter
     OverlapReal maxD = OverlapReal(0.0);
@@ -822,6 +1118,20 @@ Scalar IntegratorHPMCMono<Shape>::getMaxDiameter()
 
     return maxD;
     }
+
+template <class Shape>
+OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
+    {
+    // for each type, create a temporary shape and return the minimum diameter
+    OverlapReal minD = OverlapReal(0.0);
+    for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+        {
+        Shape temp(quat<Scalar>(), m_params[typ]);
+        minD = std::min(minD, temp.getCircumsphereDiameter());
+        }
+
+        return minD;
+        }
 
 template <class Shape>
 void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param)
@@ -879,7 +1189,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
     // triclinic boxes have 4 linearly independent body diagonals
     // box_circumsphere = max(body_diagonals)
-    // range = getMaxDiameter() + box_circumsphere
+    // range = getMaxCoreDiameter() + box_circumsphere
     // while still adding images, examine successively larger blocks of images, checking the outermost against range
 
     if (m_prof) m_prof->push(m_exec_conf, "HPMC image list");
@@ -919,13 +1229,22 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
         // access the type parameters
         ArrayHandle<Scalar> h_d(m_d, access_location::host, access_mode::read);
 
-        // for each type, create a temporary shape and return the maximum sum of diameter and move size
+        Scalar r_cut_patch(0.0);
+        if (m_patch)
+            {
+            r_cut_patch = (Scalar)m_patch->getRCut();
+            }
+
+       // for each type, create a temporary shape and return the maximum sum of diameter and move size
         for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
             {
             Shape temp(quat<Scalar>(), m_params[typ]);
-            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, temp.getCircumsphereDiameter()+Scalar(m_nselect)*h_d.data[typ]);
+
+            Scalar range_i = detail::max((Scalar)temp.getCircumsphereDiameter(),r_cut_patch);
+            max_trans_d_and_diam = detail::max(max_trans_d_and_diam, range_i+Scalar(m_nselect)*h_d.data[typ]);
             }
         }
+
     range += max_trans_d_and_diam;
 
     Scalar range_sq = range*range;
@@ -1022,7 +1341,12 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 template <class Shape>
 void IntegratorHPMCMono<Shape>::updateCellWidth()
     {
-    m_nominal_width = getMaxDiameter();
+    m_nominal_width = getMaxCoreDiameter();
+
+    if (m_patch)
+        {
+        m_nominal_width = std::max(m_nominal_width, m_patch->getRCut());
+        }
 
     // changing the cell width means that the particle shapes have changed, assume this invalidates the
     // image list and aabb tree
@@ -1322,6 +1646,7 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setParam", &IntegratorHPMCMono<Shape>::setParam)
           .def("setOverlapChecks", &IntegratorHPMCMono<Shape>::setOverlapChecks)
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
+          .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
           .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
           .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
