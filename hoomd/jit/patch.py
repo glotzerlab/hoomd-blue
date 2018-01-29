@@ -20,6 +20,7 @@ class user(object):
         r_cut (float): Particle center to center distance cutoff beyond which all pair interactions are assumed 0.
         code (str): C++ code to compile
         llvm_ir_fname (str): File name of the llvm IR file to load.
+        clang_exec (str): The Clang executable to use
 
     Patch energies define energetic interactions between pairs of shapes in :py:mod:`hpmc <hoomd.hpmc>` integrators.
     Shapes within a cutoff distance of *r_cut* are potentially interacting and the energy of interaction is a function
@@ -115,25 +116,38 @@ class user(object):
             hoomd.context.msg.error("Patch energies are not supported on the GPU\n");
             raise RuntimeError("Error initializing patch energy");
 
-        self.mc = mc
+        # Find a clang executable if none is provided
+        if clang_exec is not None:
+            clang = clang_exec;
+        else:
+            clang = find_executable('clang')
 
         if code is not None:
-            llvm_ir = self.compile_user(code,clang_exec)
+            llvm_ir = self.compile_user(code, clang)
         else:
             # IR is a text file
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        #cls = _hpmc.ExternalFieldLatticeSphere;
         self.compute_name = "patch"
         self.cpp_evaluator = _jit.PatchEnergyJIT(hoomd.context.exec_conf, llvm_ir, r_cut);
-        #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
 
+        self.mc = mc
         self.enabled = True
         self.log = False
 
-    def compile_user(self,code,clang_exec):
+    def compile_user(self, code, clang_exec, fn=None):
+        R'''Helper function to compile the provided code into an executable
+
+        Args:
+            code (str): C++ code to compile
+            clang_exec (str): The Clang executable to use
+            fn (str): If provided, the code will be written to a file.
+
+
+        .. versionadded:: 2.3
+        '''
         cpp_function = """
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
@@ -162,9 +176,13 @@ float eval(const vec3<float>& r_ij,
 
         if clang_exec is not None:
             clang = clang_exec;
-        else: clang = find_executable('clang');
+        else:
+            clang = find_executable('clang');
 
-        cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
+        if fn is not None:
+            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o',fn,'-']
+        else:
+            cmd = [clang, '-O3', '--std=c++11', '-DHOOMD_NOPYTHON', '-I', include_path, '-I', include_path_source, '-S', '-emit-llvm','-x','c++', '-o','-','-']
         p = subprocess.Popen(cmd,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 
         # pass C++ function to stdin
@@ -239,9 +257,9 @@ class user_union(user):
 
         if clang_exec is not None:
             clang = clang_exec;
-        else: clang = find_executable('clang')
+        else:
+            clang = find_executable('clang')
 
-        dirpath = None;
         if code is not None:
             llvm_ir = self.compile_user(code,clang)
         else:
@@ -249,11 +267,8 @@ class user_union(user):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
-        #cls = _hpmc.ExternalFieldLatticeSphere;
         self.compute_name = "patch_union"
-
         self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir, r_cut);
-        #hoomd.context.current.system.addCompute(self.cpp_evaluator, self.compute_name)
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc
