@@ -906,7 +906,7 @@ void export_shape_param_proxy(pybind11::module& m, const std::string& name)
     using detail::shape_param_proxy;
     pybind11::class_<shape_param_proxy<Shape, AccessType>, std::shared_ptr< shape_param_proxy<Shape, AccessType> > >(m, name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
-    .def_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
+    .def_property("ignore_statistics", &shape_param_proxy<Shape, AccessType>::getIgnoreStatistics, &shape_param_proxy<Shape, AccessType>::setIgnoreStatistics)
     ;
     }
 
