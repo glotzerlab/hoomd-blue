@@ -26,7 +26,7 @@
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 //! GPU implementation of dynamic load balancing
-class LoadBalancerGPU : public LoadBalancer
+class PYBIND11_EXPORT LoadBalancerGPU : public LoadBalancer
     {
     public:
         //! Constructor

@@ -34,7 +34,7 @@
 
     \ingroup updaters
 */
-class SFCPackUpdaterGPU : public SFCPackUpdater
+class PYBIND11_EXPORT SFCPackUpdaterGPU : public SFCPackUpdater
     {
     public:
         //! Constructor

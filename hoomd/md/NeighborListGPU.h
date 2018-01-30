@@ -30,7 +30,7 @@
 
     \ingroup computes
 */
-class NeighborListGPU : public NeighborList
+class PYBIND11_EXPORT NeighborListGPU : public NeighborList
     {
     public:
         //! Constructs the compute

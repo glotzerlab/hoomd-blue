@@ -53,7 +53,7 @@
 
     \ingroup updaters
 */
-class Updater
+class PYBIND11_EXPORT Updater
     {
     public:
         //! Constructs the compute and associates it with the ParticleData

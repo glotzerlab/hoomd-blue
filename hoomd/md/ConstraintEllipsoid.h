@@ -24,7 +24,7 @@
 //! Applys a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes
 */
-class ConstraintEllipsoid : public Updater
+class PYBIND11_EXPORT ConstraintEllipsoid : public Updater
     {
     public:
         //! Constructs the compute

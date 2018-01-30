@@ -29,7 +29,7 @@
 //! A null stream that doesn't write anything sent to it
 /*! From: http://bytes.com/topic/c/answers/127843-null-output-stream#post444998
 */
-struct nullstream: std::ostream
+struct PYBIND11_EXPORT nullstream: std::ostream
     {
     //! Construct a null stream
     nullstream(): std::ios(0), std::ostream(0) {}
@@ -101,7 +101,7 @@ struct nullstream: std::ostream
         - 7 memory allocation/reallocation notices from GPUArray
     - 10: Trace messages that may print many times per time step.
 */
-class Messenger
+class PYBIND11_EXPORT Messenger
     {
     public:
         //! Construct a messenger

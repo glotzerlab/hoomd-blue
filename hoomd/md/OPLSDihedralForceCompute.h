@@ -29,7 +29,7 @@
     The dihedrals which forces are computed on are accessed from ParticleData::getDihedralData
     \ingroup computes
 */
-class OPLSDihedralForceCompute : public ForceCompute
+class PYBIND11_EXPORT OPLSDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

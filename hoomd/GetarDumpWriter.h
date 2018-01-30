@@ -211,7 +211,7 @@ namespace getardump{
         };
 
     /// HOOMD analyzer which periodically dumps a set of properties
-    class GetarDumpWriter: public Analyzer
+    class PYBIND11_EXPORT GetarDumpWriter: public Analyzer
         {
         public:
             typedef std::map<unsigned int, std::vector<GetarDumpDescription> > PeriodMap;

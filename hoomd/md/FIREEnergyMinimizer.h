@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class FIREEnergyMinimizer : public IntegratorTwoStep
+class PYBIND11_EXPORT FIREEnergyMinimizer : public IntegratorTwoStep
     {
     public:
         //! Constructs the minimizer and associates it with the system

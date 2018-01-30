@@ -19,8 +19,6 @@
 */
 PYBIND11_MODULE(_deprecated, m)
     {
-    pybind11::module m("_deprecated");
-
     export_MSDAnalyzer(m);
     export_HOOMDDumpWriter(m);
     export_POSDumpWriter(m);

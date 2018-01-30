@@ -54,7 +54,7 @@
 
     \ingroup computes
 */
-class ComputeThermo : public Compute
+class PYBIND11_EXPORT ComputeThermo : public Compute
     {
     public:
         //! Constructs the compute

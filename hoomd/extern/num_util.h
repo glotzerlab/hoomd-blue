@@ -25,7 +25,7 @@
 
 
 
-namespace num_util{
+namespace PYBIND11_EXPORT num_util{
   //!
   /**
    *A free function that extracts a PyArrayObject from any sequential PyObject.

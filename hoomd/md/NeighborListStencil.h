@@ -27,7 +27,7 @@
     \sa CellListStencil
     \ingroup computes
 */
-class NeighborListStencil : public NeighborList
+class PYBIND11_EXPORT NeighborListStencil : public NeighborList
     {
     public:
         //! Constructs the compute

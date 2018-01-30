@@ -38,7 +38,7 @@
     \cite Yu2010
     \ingroup updaters
 */
-class TwoStepNPTMTK : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNPTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Specify possible couplings between the diagonal elements of the pressure tensor

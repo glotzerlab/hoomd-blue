@@ -29,7 +29,7 @@
 
     \ingroup computes
 */
-class NeighborListGPUStencil : public NeighborListGPU
+class PYBIND11_EXPORT NeighborListGPUStencil : public NeighborListGPU
     {
     public:
         //! Constructs the compute

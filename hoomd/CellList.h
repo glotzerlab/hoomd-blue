@@ -96,7 +96,7 @@
     take the appropriate action. If possible, flags 1 and 2 should be set to the index of the particle causing the
     flag plus 1.
 */
-class CellList : public Compute
+class PYBIND11_EXPORT CellList : public Compute
     {
     public:
         //! Construct a cell list

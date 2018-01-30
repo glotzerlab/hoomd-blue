@@ -22,7 +22,7 @@
 //! Adds an active force to a number of particles on the GPU
 /*! \ingroup computes
 */
-class ActiveForceComputeGPU : public ActiveForceCompute
+class PYBIND11_EXPORT ActiveForceComputeGPU : public ActiveForceCompute
     {
     public:
         //! Constructs the compute

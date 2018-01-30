@@ -33,7 +33,7 @@
 
     \ingroup computes
 */
-class CosineSqAngleForceComputeGPU : public CosineSqAngleForceCompute
+class PYBIND11_EXPORT CosineSqAngleForceComputeGPU : public CosineSqAngleForceCompute
     {
     public:
         //! Constructs the compute

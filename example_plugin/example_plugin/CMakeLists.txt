@@ -22,6 +22,7 @@ add_library (_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_CUDA_GEN
 
 # link the library to its dependencies
 target_link_libraries(_${COMPONENT_NAME} ${HOOMD_LIBRARIES})
+set_target_properties(_${COMPONENT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

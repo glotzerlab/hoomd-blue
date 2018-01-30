@@ -103,7 +103,7 @@ endif (ENABLE_CUDA)
 add_library (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_hpmc _hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hpmc ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

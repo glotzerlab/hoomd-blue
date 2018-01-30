@@ -42,7 +42,7 @@
 
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 
-class MolecularForceCompute : public ForceConstraint
+class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     {
     public:
         //! Constructs the compute

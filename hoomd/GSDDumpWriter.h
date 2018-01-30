@@ -33,7 +33,7 @@
 
     \ingroup analyzers
 */
-class GSDDumpWriter : public Analyzer
+class PYBIND11_EXPORT GSDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer

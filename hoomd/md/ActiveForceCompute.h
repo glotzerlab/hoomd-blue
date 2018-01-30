@@ -29,7 +29,7 @@
 //! Adds an active force to a number of particles
 /*! \ingroup computes
 */
-class ActiveForceCompute : public ForceCompute
+class PYBIND11_EXPORT ActiveForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

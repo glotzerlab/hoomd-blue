@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVEGPU : public TwoStepNVE
+class PYBIND11_EXPORT TwoStepNVEGPU : public TwoStepNVE
     {
     public:
         //! Constructs the integration method and associates it with the system

@@ -27,7 +27,7 @@
 
     \ingroup updaters
 */
-class BoxResizeUpdater : public Updater
+class PYBIND11_EXPORT BoxResizeUpdater : public Updater
     {
     public:
         //! Constructor

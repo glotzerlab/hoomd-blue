@@ -112,7 +112,7 @@
 
     \ingroup computes
 */
-class NeighborList : public Compute
+class PYBIND11_EXPORT NeighborList : public Compute
     {
     public:
         //! Simple enum for the storage modes

@@ -7,6 +7,7 @@ set(_deprecated_sources
      POSDumpWriter.cc
      HOOMDInitializer.cc
      RandomGenerator.cc
+     xmlParser.cc
    )
 
 set(_deprecated_headers
@@ -15,6 +16,7 @@ set(_deprecated_headers
     MSDAnalyzer.h
     POSDumpWriter.h
     RandomGenerator.h
+    xmlParser.h
     )
 
 if (ENABLE_CUDA)
@@ -35,7 +37,8 @@ endif (ENABLE_CUDA)
 add_library (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_deprecated _hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_deprecated ${HOOMD_LIBRARIES})
+set_target_properties(_deprecated PROPERTIES CXX_VISIBILITY_PRESET "hidden")
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

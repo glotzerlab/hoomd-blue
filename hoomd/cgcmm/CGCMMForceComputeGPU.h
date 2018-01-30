@@ -29,7 +29,7 @@
     The GPU kernel for calculating the forces is in cgcmmforcesum_kernel.cu.
     \ingroup computes
 */
-class CGCMMForceComputeGPU : public CGCMMForceCompute
+class PYBIND11_EXPORT CGCMMForceComputeGPU : public CGCMMForceCompute
     {
     public:
         //! Constructs the compute

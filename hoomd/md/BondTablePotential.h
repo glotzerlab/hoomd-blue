@@ -50,7 +50,7 @@
     f = (r - rmin) / dr - float(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
-class BondTablePotential : public ForceCompute
+class PYBIND11_EXPORT BondTablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute

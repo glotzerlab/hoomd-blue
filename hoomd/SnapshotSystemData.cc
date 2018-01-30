@@ -127,8 +127,8 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root, std::shared_ptr<
     }
 
 // instantiate both float and double snapshots
-template struct SnapshotSystemData<float>;
-template struct SnapshotSystemData<double>;
+template struct PYBIND11_EXPORT SnapshotSystemData<float>;
+template struct PYBIND11_EXPORT SnapshotSystemData<double>;
 
 void export_SnapshotSystemData(py::module& m)
     {

@@ -36,7 +36,7 @@
 
     \ingroup computes
 */
-class CGCMMForceCompute : public ForceCompute
+class PYBIND11_EXPORT CGCMMForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

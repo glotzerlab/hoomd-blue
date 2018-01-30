@@ -32,7 +32,7 @@
 #define ALIGN_SCALAR 8
 #endif
 
-struct SphereWall
+struct PYBIND11_EXPORT SphereWall
     {
     SphereWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), bool ins = true) : origin(vec3<Scalar>(orig)), r(rad), inside(ins) {}
     vec3<Scalar>    origin; // need to order datatype in descending order of type size for Fermi
@@ -47,7 +47,7 @@ struct SphereWall
     \param quatAxisToZRot (Calculated not input) The quaternion which rotates the simulation space such that the axis of the cylinder is parallel to the z' axis
     \param inside Determines which half space is evaluated.
 */
-struct CylinderWall
+struct PYBIND11_EXPORT CylinderWall
     {
     CylinderWall(Scalar rad = 0.0, Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 zorient = make_scalar3(0.0,0.0,1.0), bool ins=true) : origin(vec3<Scalar>(orig)), axis(vec3<Scalar>(zorient)), r(rad), inside(ins)
         {
@@ -86,7 +86,7 @@ struct CylinderWall
     \param normal The x,y,z normal vector of the plane (normalized upon input)
     \param inside Determines which half space is evaluated.
 */
-struct PlaneWall
+struct PYBIND11_EXPORT PlaneWall
     {
     PlaneWall(Scalar3 orig = make_scalar3(0.0,0.0,0.0), Scalar3 norm = make_scalar3(0.0,0.0,1.0), bool ins = true) : normal(vec3<Scalar>(norm)), origin(vec3<Scalar>(orig)), inside(ins)
         {

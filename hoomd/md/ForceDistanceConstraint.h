@@ -33,7 +33,7 @@
     See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
 */
-class ForceDistanceConstraint : public MolecularForceCompute
+class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute

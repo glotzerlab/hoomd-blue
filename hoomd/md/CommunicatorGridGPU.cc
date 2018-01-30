@@ -167,9 +167,9 @@ void CommunicatorGridGPU<T>::communicate(const GPUArray<T>& grid)
     }
 
 //! Explicit template instantiations
-template class CommunicatorGridGPU<Scalar>;
-template class CommunicatorGridGPU<unsigned int>;
-template class CommunicatorGridGPU<cufftComplex>;
+template class PYBIND11_EXPORT CommunicatorGridGPU<Scalar>;
+template class PYBIND11_EXPORT CommunicatorGridGPU<unsigned int>;
+template class PYBIND11_EXPORT CommunicatorGridGPU<cufftComplex>;
 #endif //ENABLE_CUDA
 
 #endif // ENABLE_MPI

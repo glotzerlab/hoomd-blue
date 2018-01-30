@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class Enforce2DUpdaterGPU : public Enforce2DUpdater
+class PYBIND11_EXPORT Enforce2DUpdaterGPU : public Enforce2DUpdater
     {
     public:
         //! Constructor

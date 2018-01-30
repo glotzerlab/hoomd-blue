@@ -59,7 +59,7 @@ class Communicator;
 
     \ingroup hoomd_lib
 */
-class System
+class PYBIND11_EXPORT System
     {
     public:
         //! Constructor

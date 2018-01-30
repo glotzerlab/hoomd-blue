@@ -27,7 +27,7 @@
 
     \ingroup updaters
 */
-class ZeroMomentumUpdater : public Updater
+class PYBIND11_EXPORT ZeroMomentumUpdater : public Updater
     {
     public:
         //! Constructor

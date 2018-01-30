@@ -30,7 +30,7 @@
     The impropers which forces are computed on are accessed from ParticleData::getImproperData
     \ingroup computes
 */
-class HarmonicImproperForceCompute : public ForceCompute
+class PYBIND11_EXPORT HarmonicImproperForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

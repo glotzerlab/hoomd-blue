@@ -21,7 +21,7 @@
 
 /*! Implements the Berendsen thermostat on the GPU
 */
-class TwoStepBerendsenGPU : public TwoStepBerendsen
+class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     {
     public:
         //! Cosntructor

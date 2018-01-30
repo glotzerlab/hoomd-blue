@@ -25,7 +25,7 @@
     \sa CellList
     \ingroup computes
 */
-class CellListGPU : public CellList
+class PYBIND11_EXPORT CellListGPU : public CellList
     {
     public:
         //! Construct a cell list

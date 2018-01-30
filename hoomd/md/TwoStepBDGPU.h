@@ -24,7 +24,7 @@
 
     \ingroup updaters
 */
-class TwoStepBDGPU : public TwoStepBD
+class PYBIND11_EXPORT TwoStepBDGPU : public TwoStepBD
     {
     public:
         //! Constructs the integration method and associates it with the system

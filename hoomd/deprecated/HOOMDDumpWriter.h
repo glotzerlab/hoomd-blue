@@ -46,7 +46,7 @@
 
     \ingroup analyzers
 */
-class HOOMDDumpWriter : public Analyzer
+class PYBIND11_EXPORT HOOMDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer

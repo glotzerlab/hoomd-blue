@@ -25,7 +25,7 @@
     to the xy plane.
     \ingroup updaters
 */
-class Enforce2DUpdater : public Updater
+class PYBIND11_EXPORT Enforce2DUpdater : public Updater
     {
     public:
         //! Constructor

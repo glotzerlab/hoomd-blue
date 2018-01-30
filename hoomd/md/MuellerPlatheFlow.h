@@ -43,7 +43,7 @@ struct flow_enum
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
 */
-class MuellerPlatheFlow : public Updater
+class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     {
     public:
         //! Constructs the compute

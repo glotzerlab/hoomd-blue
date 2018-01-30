@@ -20,7 +20,7 @@
 #include <cassert>
 
 //! CachedAllocator: a simple allocator for caching allocation requests
-class CachedAllocator
+class PYBIND11_EXPORT CachedAllocator
     {
     public:
          // needed by thrust
@@ -114,7 +114,7 @@ class CachedAllocator
 /*! When it goes out of scope, the temporary memory is automatically returned to the cache
  */
 template<typename T>
-class ScopedAllocation
+class PYBIND11_EXPORT ScopedAllocation
     {
     public:
         //! Copy constructor

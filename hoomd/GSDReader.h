@@ -33,7 +33,7 @@ template <class Real> struct SnapshotSystemData;
 
     \ingroup data_structs
 */
-class GSDReader
+class PYBIND11_EXPORT GSDReader
     {
     public:
         //! Loads in the file and parses the data

@@ -23,7 +23,7 @@
 //! Applys a constraint force to keep a group of particles on a sphere on the GPU
 /*! \ingroup computes
 */
-class OneDConstraintGPU : public OneDConstraint
+class PYBIND11_EXPORT OneDConstraintGPU : public OneDConstraint
     {
     public:
         //! Constructs the compute

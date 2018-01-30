@@ -42,7 +42,7 @@ not read or reset the flags more times than is needed.
 
 \ingroup data_structs
 */
-template<class T> class GPUFlags
+template<class T> class PYBIND11_EXPORT GPUFlags
     {
     public:
         //! Constructs a NULL GPUFlags

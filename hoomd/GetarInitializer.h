@@ -22,7 +22,7 @@
 namespace getardump{
 
     /// Object to use to restore HOOMD system snapshots
-    class GetarInitializer
+    class PYBIND11_EXPORT GetarInitializer
         {
         public:
             /// Constructor

@@ -59,8 +59,6 @@ set(_hoomd_sources Analyzer.cc
                    extern/mgpuutil.cc
                    extern/num_util.cc
                    extern/vmdsock.cc
-                   extern/xmlParser.cc
-                   extern/quickhull/QuickHull.cpp
                    )
 
 set(_hoomd_headers
@@ -190,10 +188,14 @@ endif (ENABLE_CUDA)
 
 add_library (_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES})
 
-# link the library to its dependencies
-target_link_libraries(_hoomd ${HOOMD_COMMON_LIBS})
+# add quick hull as its own library so that it's symbols can be public
+add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
-set(HOOMD_LIBRARIES _hoomd ${HOOMD_COMMON_LIBS})
+# link the library to its dependencies
+target_link_libraries(_hoomd quickhull ${HOOMD_COMMON_LIBS})
+set_target_properties(_hoomd PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+
+set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -219,6 +221,9 @@ fix_cudart_rpath(_hoomd)
 
 # install the library
 install(TARGETS _hoomd
+        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        )
+install(TARGETS quickhull
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
         )
 

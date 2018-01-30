@@ -30,7 +30,7 @@
     The angles which forces are computed on are accessed from ParticleData::getAngleData
     \ingroup computes
 */
-class CGCMMAngleForceCompute : public ForceCompute
+class PYBIND11_EXPORT CGCMMAngleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

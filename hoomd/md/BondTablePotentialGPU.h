@@ -27,7 +27,7 @@
     The GPU kernel for calculating this can be found in BondTablePotentialGPU.cu/
     \ingroup computes
 */
-class BondTablePotentialGPU : public BondTablePotential
+class PYBIND11_EXPORT BondTablePotentialGPU : public BondTablePotential
     {
     public:
         //! Constructs the compute

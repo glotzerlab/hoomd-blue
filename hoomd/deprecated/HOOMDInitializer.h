@@ -47,7 +47,7 @@ template <class Real> struct SnapshotSystemData;
 
     \ingroup data_structs
 */
-class HOOMDInitializer
+class PYBIND11_EXPORT HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data

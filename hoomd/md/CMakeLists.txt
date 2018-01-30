@@ -256,6 +256,8 @@ else()
     target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
 endif()
 
+set_target_properties(_md PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
 if (ENABLE_MPI)

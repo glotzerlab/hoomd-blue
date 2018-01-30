@@ -27,7 +27,7 @@
     The GPU kernel for calculating this can be found in OPLSDihedralForceComputeGPU.cu
     \ingroup computes
 */
-class OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
+class PYBIND11_EXPORT OPLSDihedralForceComputeGPU : public OPLSDihedralForceCompute
     {
     public:
         //! Constructs the compute

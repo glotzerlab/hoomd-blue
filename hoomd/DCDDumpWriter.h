@@ -48,7 +48,7 @@
     not being maintained, it will print a warning but continue.
     \ingroup analyzers
 */
-class DCDDumpWriter : public Analyzer
+class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer

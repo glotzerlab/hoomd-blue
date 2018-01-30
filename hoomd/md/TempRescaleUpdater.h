@@ -29,7 +29,7 @@
 
     \ingroup updaters
 */
-class TempRescaleUpdater : public Updater
+class PYBIND11_EXPORT TempRescaleUpdater : public Updater
     {
     public:
         //! Constructor

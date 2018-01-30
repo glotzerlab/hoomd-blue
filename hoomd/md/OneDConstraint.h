@@ -25,7 +25,7 @@
 //! Applys a constraint force to prevent motion in x and y directions
 /*! \ingroup computes
 */
-class OneDConstraint : public ForceConstraint
+class PYBIND11_EXPORT OneDConstraint : public ForceConstraint
     {
     public:
         //! Constructs the compute

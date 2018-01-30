@@ -47,7 +47,8 @@ endif (ENABLE_CUDA)
 add_library (_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_dem _hoomd _md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_dem _md ${HOOMD_LIBRARIES})
+set_target_properties(_dem PROPERTIES CXX_VISIBILITY_PRESET "hidden")
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

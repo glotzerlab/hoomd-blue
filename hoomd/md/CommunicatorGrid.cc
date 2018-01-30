@@ -236,8 +236,8 @@ void CommunicatorGrid<T>::communicate(const GPUArray<T>& grid)
     }
 
 //! Explicit template instantiations
-template class CommunicatorGrid<Scalar>;
-template class CommunicatorGrid<unsigned int>;
+template class PYBIND11_EXPORT CommunicatorGrid<Scalar>;
+template class PYBIND11_EXPORT CommunicatorGrid<unsigned int>;
 
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
 inline kiss_fft_cpx operator + (kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
@@ -248,7 +248,7 @@ inline kiss_fft_cpx operator + (kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
     return res;
     }
 
-template class CommunicatorGrid<kiss_fft_cpx>;
+template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
 #ifdef ENABLE_CUDA
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
@@ -260,7 +260,7 @@ inline cufftComplex operator + (cufftComplex& lhs, cufftComplex& rhs)
     return res;
     }
 
-template class CommunicatorGrid<cufftComplex>;
+template class PYBIND11_EXPORT CommunicatorGrid<cufftComplex>;
 #endif
 
 #endif //ENABLE_MPI

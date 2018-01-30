@@ -24,7 +24,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVE : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNVE : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system

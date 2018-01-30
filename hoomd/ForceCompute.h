@@ -45,7 +45,7 @@
     \ingroup data_structs
 */
 
-class ForceCompute : public Compute
+class PYBIND11_EXPORT ForceCompute : public Compute
     {
     public:
         //! Constructs the compute

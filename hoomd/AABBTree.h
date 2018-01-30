@@ -44,7 +44,7 @@ const unsigned int INVALID_NODE = 0xffffffff;   //!< Invalid node index sentinel
 //! Node in an AABBTree
 /*! Stores data for a node in the AABB tree
 */
-struct AABBNode
+struct PYBIND11_EXPORT AABBNode
     {
     //! Default constructor
     AABBNode()
@@ -90,7 +90,7 @@ struct AABBNode
     tail recursion, or it uses a local stack to traverse the tree. The stack is cached between calls to limit
     the amount of dynamic memory allocation.
 */
-class AABBTree
+class PYBIND11_EXPORT AABBTree
     {
     public:
         //! Construct an AABBTree

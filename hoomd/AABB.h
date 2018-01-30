@@ -90,7 +90,7 @@ namespace detail
     - overlap()
     - contains()
 */
-struct AABB
+struct PYBIND11_EXPORT AABB
     {
     #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
     __m256d lower_v;    //!< Lower left corner (AVX data type)

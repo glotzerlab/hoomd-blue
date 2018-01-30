@@ -24,7 +24,7 @@ const unsigned int PPPM_MAX_ORDER = 7;
 
 /*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
  */
-class PPPMForceCompute : public ForceCompute
+class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     {
     public:
         //! Constructor

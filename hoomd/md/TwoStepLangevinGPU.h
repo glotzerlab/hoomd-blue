@@ -24,7 +24,7 @@
 
     \ingroup updaters
 */
-class TwoStepLangevinGPU : public TwoStepLangevin
+class PYBIND11_EXPORT TwoStepLangevinGPU : public TwoStepLangevin
     {
     public:
         //! Constructs the integration method and associates it with the system

@@ -26,7 +26,7 @@
  *
     \ingroup updaters
 */
-class TwoStepNPTMTKGPU : public TwoStepNPTMTK
+class PYBIND11_EXPORT TwoStepNPTMTKGPU : public TwoStepNPTMTK
     {
     public:
         //! Constructs the integration method and associates it with the system
