@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape >
-class UpdaterExternalFieldWall : public Updater
+class __attribute__ ((visibility ("hidden"))) UpdaterExternalFieldWall : public Updater
     {
     public:
         //! Constructor

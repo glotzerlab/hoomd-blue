@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape>
-class ExternalCallback : public ExternalFieldMono<Shape>
+class __attribute__ ((visibility ("hidden"))) ExternalCallback : public ExternalFieldMono<Shape>
     {
     public:
         ExternalCallback(std::shared_ptr<SystemDefinition> sysdef,
@@ -99,7 +99,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                 return false;
             }
 
-        // Compute the energy difference for a proposed move on a single particle 
+        // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,
                           const vec3<Scalar>& position_old,
                           const Shape& shape_old,
