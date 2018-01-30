@@ -193,7 +193,7 @@ namespace  num_util __attribute__((visibility("default"))) {
    *@param expected_type an expected numpy type.
    *@return -----
    */
-  void check_type(PyObject *arr,
+  __attribute__((visibility("default"))) void check_type(PyObject *arr,
           NPY_TYPES expected_type);
 
   /**
@@ -209,14 +209,14 @@ namespace  num_util __attribute__((visibility("default"))) {
    *@param expected_rank an expected rank of the numeric array.
    *@return -----
    */
-  void check_rank(PyObject *arr, int expected_rank);
+  __attribute__((visibility("default"))) void check_rank(PyObject *arr, int expected_rank);
 
   /**
    *A free function that returns the total size of the array.
    *@param arr a PythonArrayObject pointer.
    *@return an integer that indicates the total size of the array.
    */
-  intp size(PyObject *arr);
+  __attribute__((visibility("default"))) intp size(PyObject *arr);
 
   /**
    *Throw an exception if the actual total size of the array is not equal to
@@ -274,14 +274,14 @@ namespace  num_util __attribute__((visibility("default"))) {
    *@param arr a PythonArrayObject pointer.
    *@return -----
   */
-  void check_contiguous(PyObject *arr);
+  __attribute__((visibility("default"))) void check_contiguous(PyObject *arr);
 
   /**
    *Returns a pointer to the data in the array.
    *@param arr a PythonArrayObject pointer.
    *@return a char pointer pointing at the first element of the array.
    */
-  void* data(PyObject *arr);
+  __attribute__((visibility("default"))) void* data(PyObject *arr);
 
   /**
    *Copies data into the array.
