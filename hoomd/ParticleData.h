@@ -143,7 +143,7 @@ namespace cereal
  * \ingroup data_structs
  */
 template <class Real>
-struct SnapshotParticleData {
+struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0), is_accel_set(false)

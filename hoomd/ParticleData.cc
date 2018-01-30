@@ -31,10 +31,6 @@ using namespace std;
 
 namespace py = pybind11;
 
-// instantiate both float and double snapshots
-template struct PYBIND11_EXPORT SnapshotParticleData<float>;
-template struct PYBIND11_EXPORT SnapshotParticleData<double>;
-
 ////////////////////////////////////////////////////////////////////////////
 // ParticleData members
 
@@ -3171,6 +3167,10 @@ void SnapshotParticleData<Real>::bcast(unsigned int root, MPI_Comm mpi_comm)
     ::bcast(is_accel_set, root, mpi_comm);
     }
 #endif
+
+// instantiate both float and double snapshots
+template struct SnapshotParticleData<float>;
+template struct SnapshotParticleData<double>;
 
 void export_SnapshotParticleData(py::module& m)
     {

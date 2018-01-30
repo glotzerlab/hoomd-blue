@@ -14,7 +14,7 @@
 
 #include "hoomd/ParticleData.h"
 #include "hoomd/BondedGroupData.h"
-#include "hoomd/extern/xmlParser.h"
+#include "hoomd/deprecated/xmlParser.h"
 
 #include <string>
 #include <vector>
