@@ -114,7 +114,7 @@ class __attribute__((visibility("default"))) CachedAllocator
 /*! When it goes out of scope, the temporary memory is automatically returned to the cache
  */
 template<typename T>
-class PYBIND11_EXPORT ScopedAllocation
+class ScopedAllocation
     {
     public:
         //! Copy constructor
