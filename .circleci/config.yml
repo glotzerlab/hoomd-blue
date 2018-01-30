@@ -153,19 +153,6 @@ jobs:
       BUILD_JIT: OFF
     <<: *native_build
 
-  clang34-py34-cm28-mpi:
-    <<: *test_container_config-cuda70
-    environment:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_CUDA: OFF
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
   gcc54-py35-mpi-cd80:
     <<: *test_container_config-cuda80
     environment:
@@ -247,10 +234,6 @@ workflows:
             branches:
               ignore: release
       - gcc48-py34-cm28-mpi-cd70:
-          filters:
-            branches:
-              ignore: release
-      - clang34-py34-cm28-mpi:
           filters:
             branches:
               ignore: release
