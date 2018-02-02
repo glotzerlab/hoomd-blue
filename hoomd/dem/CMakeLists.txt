@@ -44,7 +44,7 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_dem_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-pybind11_add_module(_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
 
 # link the library to its dependencies
 target_link_libraries(_dem PRIVATE _md ${HOOMD_LIBRARIES})
