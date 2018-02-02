@@ -26,11 +26,10 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${PACKAGE_NAME}_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_${PACKAGE_NAME} _md ${HOOMD_LIBRARIES})
-set_target_properties(_${PACKAGE_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+target_link_libraries(_${PACKAGE_NAME} PRIVATE _md ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -43,15 +42,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_${PACKAGE_NAME} PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_${PACKAGE_NAME} PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_${PACKAGE_NAME})
 
 # install the library

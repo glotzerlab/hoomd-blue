@@ -242,21 +242,19 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
+pybind11_add_module(_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES})
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
     if(${CUDA_VERSION} VERSION_LESS 8.0)
-        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
+        target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY})
     else()
         # CUDA 8.0 requires that we link in gomp
-        target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
+        target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS} ${CUDA_cusolver_LIBRARY} ${CUDA_cusparse_LIBRARY} gomp)
     endif()
 else()
-    target_link_libraries(_md _hoomd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(_md PRIVATE _hoomd ${HOOMD_COMMON_LIBS})
 endif()
-
-set_target_properties(_md PROPERTIES CXX_VISIBILITY_PRESET "hidden")
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -269,15 +267,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_md PROPERTIES PREFIX "" OUTPUT_NAME "_md")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_md PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_md)
 
 # install the library

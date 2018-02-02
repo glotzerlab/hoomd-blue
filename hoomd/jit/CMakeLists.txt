@@ -30,7 +30,7 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
 set_source_files_properties(${_${PACKAGE_NAME}_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 set_source_files_properties(${_${PACKAGE_NAME}_llvm_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
-add_library (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources})
+pybind11_add_module (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources})
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
 # set the appropriate compiler flags on the _llvm target
@@ -58,8 +58,7 @@ endif()
 target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
 
 # need to link llvm_libs here, too, otherwise module import fails
-target_link_libraries(_${PACKAGE_NAME} _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
-set_target_properties(_${PACKAGE_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+target_link_libraries(_${PACKAGE_NAME} PRIVATE _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
 
 # set installation RPATH
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME}/)
@@ -76,17 +75,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_${PACKAGE_NAME} PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}")
-set_target_properties(_${PACKAGE_NAME}_llvm PROPERTIES PREFIX "" OUTPUT_NAME "_${PACKAGE_NAME}_llvm")
-
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_${PACKAGE_NAME} PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_${PACKAGE_NAME})
 fix_cudart_rpath(_${PACKAGE_NAME}_llvm)
 

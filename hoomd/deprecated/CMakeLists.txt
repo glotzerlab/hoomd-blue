@@ -34,11 +34,10 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_deprecated_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module (_deprecated SHARED ${_deprecated_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_deprecated ${HOOMD_LIBRARIES})
-set_target_properties(_deprecated PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+target_link_libraries(_deprecated PRIVATE ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -51,15 +50,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_deprecated PROPERTIES PREFIX "" OUTPUT_NAME "_deprecated")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_deprecated PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_deprecated)
 
 # install the library
