@@ -18,11 +18,10 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${COMPONENT_NAME}_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module (_${COMPONENT_NAME} SHARED ${_${COMPONENT_NAME}_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
 
 # link the library to its dependencies
-target_link_libraries(_${COMPONENT_NAME} ${HOOMD_LIBRARIES})
-set_target_properties(_${COMPONENT_NAME} PROPERTIES CXX_VISIBILITY_PRESET "hidden")
+target_link_libraries(_${COMPONENT_NAME} PRIVATE ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
