@@ -409,7 +409,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    float move_type_select = rng.f() * range; // generate a number on [0, range) ! not (0, range)
+    float move_type_select = rng.f() * range; // generate a number on [0, range)
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
