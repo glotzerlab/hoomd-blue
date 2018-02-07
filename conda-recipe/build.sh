@@ -24,9 +24,6 @@ make install -j 4
 
 else
 # Linux build
-CC=${PREFIX}/bin/gcc
-CXX=${PREFIX}/bin/g++
-
 cmake ../ \
       -DCMAKE_INSTALL_PREFIX=${SP_DIR} \
       -DPYTHON_EXECUTABLE=${PYTHON} \
