@@ -10,14 +10,25 @@ Not yet released
 
 * General:
     * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
+    * `init.read_gsd` and `data.gsd_snapshot` now accept negative frame indices to index from the end of the trajectory.
 
 * MD:
     * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
 
 * HPMC:
     * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
+    * Support patchy energetic interactions between particles (CPU only)
+
+* JIT:
+    * Add new experimental `jit` module that uses LLVM to compile and execute user provided C++ code at runtime. (CPU only)
+    * Add `jit.patch.user`: Compute arbitrary patch energy between particles in HPMC (CPU only)
+    * Add `jit.patch.user_union`: Compute arbitrary patch energy between rigid unions of points in HPMC (CPU only)
 
 *Deprecated*
+
+*Other changes*
+
+* Eigen is now provided as a submodule. Plugins that use Eigen headers need to update include paths.
 
 ## v2.2.4
 
