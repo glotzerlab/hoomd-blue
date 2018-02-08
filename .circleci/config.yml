@@ -179,6 +179,19 @@ jobs:
       BUILD_JIT: ON
     <<: *native_build
 
+  gcc72-py36-mpi:
+    <<: *test_container_config-arch
+    environment:
+      CC: /usr/bin/gcc
+      CXX: /usr/bin/g++
+      PYVER: "3.6"
+      CMAKE_BIN: /usr/bin
+      ENABLE_MPI: ON
+      ENABLE_CUDA: OFF
+      BUILD_VALIDATION: OFF
+      BUILD_JIT: ON
+    <<: *native_build
+
   unit-clang38-py35:
     <<: *test_container_config
     environment:
@@ -255,6 +268,10 @@ workflows:
             branches:
               ignore: release
       - unit-clang38-py35:
+          filters:
+            branches:
+              ignore: release
+      - gcc72-py36-mpi:
           filters:
             branches:
               ignore: release
