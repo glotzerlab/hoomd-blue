@@ -38,7 +38,7 @@ references:
 
   conda_container_config: &conda_container_config
     docker:
-      - image: joaander/conda-build:20170821
+      - image: joaander/conda-build:20180207
     working_directory: /root/project
 
   load_code: &load_code

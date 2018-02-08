@@ -171,6 +171,82 @@ DEVICE inline quat<Scalar> generateRandomOrientation(RNG& rng)
 
     }
 
+/* Generate a uniformly distributed random position in a sphere
+ * \param rng Saru RNG
+ * \param pos_sphere Center of insertion sphere
+ * \param R radius of insertion sphere
+ */
+template<class RNG>
+inline vec3<Scalar> generatePositionInSphere(RNG& rng, vec3<Scalar> pos_sphere, Scalar R)
+    {
+    // draw a random vector in the excluded volume sphere of the colloid
+    Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
+    Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
+
+    // random normalized vector
+    vec3<Scalar> n(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
+
+    // draw random radial coordinate in test sphere
+    Scalar r3 = rng.template s<Scalar>(0,Scalar(1.0));
+    Scalar r = R*fast::pow(r3,Scalar(1.0/3.0));
+
+    // test depletant position
+    vec3<Scalar> pos_in_sphere = pos_sphere+r*n;
+
+    return pos_in_sphere;
+    }
+
+/* Generate a uniformly distributed random position in a spherical cap
+ *
+ * \param rng The random number generator
+ * \param pos_sphere Center of sphere
+ * \param R radius of sphere
+ * \param h height of spherical cap (0<h<2*R)
+ * \param d Vector normal to the cap
+ */
+template<class RNG>
+inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>& pos_sphere,
+     Scalar R, Scalar h, const vec3<Scalar>& d)
+    {
+    // pick a z coordinate in the spherical cap s.t. V(z) ~ uniform
+    Scalar theta = Scalar(2.0*M_PI)*rng.template s<Scalar>();
+    Scalar R3=R*R*R;
+    Scalar V_cap = Scalar(M_PI/3.0)*h*h*(Scalar(3.0)*R-h);
+    Scalar V = V_cap*rng.template s<Scalar>();
+    const Scalar sqrt3(1.7320508075688772935);
+
+    // convert the cap volume into a z coordinate in the sphere, using the correct root of the cubic polynomial
+    Scalar arg = Scalar(1./3.)*atan2(fast::sqrt((Scalar(4.0*M_PI)*R3-Scalar(3.0)*V)*3*V),Scalar(2.0*M_PI)*R3-Scalar(3.0)*V);
+    Scalar z = R*(fast::cos(arg)-sqrt3*fast::sin(arg));
+
+    // pick a point in disk of radius sqrt(R^2-z^2)
+    Scalar r = fast::sqrt(rng.template s<Scalar>()*(R*R-z*z));
+
+    // unit vector in cap direction
+    vec3<Scalar> n = d/sqrt(dot(d,d));
+
+    // find two unit vectors normal to n
+    vec3<Scalar> ez(0,0,1);
+    vec3<Scalar> n1, n2;
+    vec3<Scalar> c = cross(n,ez);
+    if (dot(c,c)==0.0)
+        {
+        n1 = vec3<Scalar>(1,0,0);
+        n2 = vec3<Scalar>(0,1,0);
+        }
+    else
+        {
+        n1 = c/sqrt(dot(c,c));
+        c = cross(n,n1);
+        n2 = c/sqrt(dot(c,c));
+        }
+
+    vec3<Scalar> r_cone = n1*r*cos(theta)+n2*r*sin(theta)+n*z;
+
+    // test depletant position
+    return pos_sphere+r_cone;
+    }
+
 }; // end namespace hpmc
 
 #endif //__MOVES_H__
