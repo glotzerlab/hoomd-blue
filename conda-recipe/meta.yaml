@@ -1,5 +1,5 @@
 {% set name = "hoomd" %}
-{% set version = "2.2.2" %}
+{% set version = "2.2.3" %}
 
 package:
   name: {{ name }}
@@ -21,21 +21,22 @@ build:
 
 requirements:
   build:
-    - gcc                         # [linux]
     - python {{ python }}
     - numpy
     - mpich2                      # [linux]
     - cmake
     - pkg-config
     - sqlite
+    - cudatoolkit {{ cuda }}      # [linux]
 
   run:
     - python
     - numpy
     - mpich2                      # [linux]
     - sqlite
-    - libgcc                      # [linux]
-    - cudatoolkit {{ cuda }}      # [linux]
+    - libgcc-ng                   # [linux]
+    - libstdcxx-ng                # [linux]
+    - cudatoolkit                 # [linux]
 
 about:
   home: http://glotzerlab.engin.umich.edu/hoomd-blue

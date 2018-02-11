@@ -19,9 +19,22 @@ Not yet released
 
 *Deprecated*
 
-## v2.2.3
+## v2.2.4
 
 Not yet released
+
+*Bug fixes*
+
+* Fix a rare error in `md.nlist.tree` when particles are very close to each other.
+* Fix deadlock when `init.read_getar` is given different file names on different ranks.
+* Sample from the correct uniform distribution of depletants in a sphere cap with `depletant_mode='overlap_regions'` on the CPU
+* Fix a bug where ternary (or higher order) mixtures of small and large particles were not correctly handled with `depletant_mode='overlap_regions'` on the CPU
+* Improve acceptance rate in depletant simulations with `depletant_mode='overlap_regions'`
+
+
+## v2.2.3
+
+Released 2018/01/25
 
 *Bug fixes*
 
@@ -31,6 +44,7 @@ Not yet released
 * Fix a bug in HPMC Box MC updater where moves were attempted with zero weight.
 * `dump.gsd()` now writes `hpmc` shape state correctly when there are multiple particle types.
 * `hpmc.integrate.polyhedron()` now produces correct results on the GPU.
+* Fix binary compatibility across python minor versions.
 
 ## v2.2.2
 

@@ -5,8 +5,11 @@ python:
 cuda:
     - 8.0
 
+pin_run_as_build:
+    cuda:
+        max_pin: x.x
+
 ignore_version:
-    - gcc
     - numpy
     - mpich2
     - cmake
