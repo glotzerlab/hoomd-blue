@@ -75,6 +75,10 @@
 #include <fstream>
 using namespace std;
 
+#ifdef ENABLE_TBB
+#include "tbb/task_scheduler_init.h"
+#endif
+
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -285,6 +289,14 @@ std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfigu
     #endif
     }
 
+//! set number of TBB threads
+void set_num_threads(unsigned int num_threads)
+    {
+    #ifdef ENABLE_TBB
+    static tbb::task_scheduler_init init(num_threads);
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -319,11 +331,14 @@ PYBIND11_PLUGIN(_hoomd)
     m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
     m.attr("__cuda_version__") = get_cuda_version_tuple();
     m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
+    m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 
     m.def("is_MPI_available", &is_MPI_available);
 
     m.def("cuda_profile_start", &cuda_profile_start);
     m.def("cuda_profile_stop", &cuda_profile_stop);
+
+    m.def("set_num_threads", &set_num_threads);
 
     pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
     pybind11::bind_vector<string>(m,"std_vector_string");

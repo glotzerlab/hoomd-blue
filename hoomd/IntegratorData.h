@@ -18,6 +18,7 @@
 #include "ParticleData.h"
 #include <string>
 
+#include "HOOMDMPI.h"
 
 //! Stores integrator variables
 /*! The integration state is necessary for exact restarts.  Extended systems
@@ -31,6 +32,20 @@ struct IntegratorVariables
     std::string type;                   //!<The type of integrator (NVT, NPT, etc.)
     std::vector<Scalar> variable;       //!<Variables that define the integration state
     };
+
+#ifdef ENABLE_MPI
+namespace cereal
+    {
+    //! Serialization of IntegratorVariables
+    template<class Archive>
+    void serialize(Archive & ar, IntegratorVariables & iv, const unsigned int version)
+        {
+        // serialize both members
+        ar & iv.type;
+        ar & iv.variable;
+        }
+    }
+#endif
 
 //! Stores all integrator variables in the simulation
 /*! IntegratorData keeps track of the parameters for all of the integrators

@@ -111,7 +111,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (exec_mode == GPU)
         {
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     #endif
 

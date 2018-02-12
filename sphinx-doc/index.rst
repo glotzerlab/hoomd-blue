@@ -50,6 +50,7 @@ of the high performance network. Your cluster may also require a specific versio
 
    package-cgcmm
    package-deprecated
+   package-jit
    package-metal
 
 .. toctree::
