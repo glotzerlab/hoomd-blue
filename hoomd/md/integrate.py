@@ -244,12 +244,12 @@ class nvt(_integration_method):
 
         Args:
             seed (int): Random number seed
- 
+
         Note:
-            Radomization is applied at the start of the next :py:func:`hoomd.run`.            
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
-        self.cpp_method.setRandomizeVelocitiesParams(kT, seed) 
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class npt(_integration_method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -606,7 +606,7 @@ class npt(_integration_method):
             seed (int): Random number seed
 
         Note:
-            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
@@ -652,14 +652,14 @@ class nph(npt):
         R""" Assign random velocities to particles in the group.
 
         Args:
-            kT (float): New temperature (if set) (in energy units) 
+            kT (float): New temperature (if set) (in energy units)
             seed (int): Random number seed
 
         Note:
-            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
-        sef.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class nve(_integration_method):
     R""" NVE Integration via Velocity-Verlet
@@ -763,7 +763,7 @@ class nve(_integration_method):
             seed (int): Random number seed
 
         Note:
-            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
@@ -1391,7 +1391,7 @@ class berendsen(_integration_method):
             seed (int): Random number seed
 
         Note:
-            Radomization is applied at the start of the next :py:func:`hoomd.run`.
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
         self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
