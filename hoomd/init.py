@@ -216,7 +216,7 @@ def read_snapshot(snapshot):
         snapshot (:py:mod:`hoomd.data` snapshot): The snapshot to initialize the system.
 
     Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
-    single object. They can be used to start or restart a simulation.
+    single object. Snapshots are set to time_step 0, and should not be used to restart a simulation.
 
     Example use cases in which a simulation may be started from a snapshot include user code that generates initial
     particle positions.

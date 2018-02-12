@@ -112,33 +112,31 @@ __device__ int3 find_cell(const Scalar3& pos,
     return make_int3(ix, iy, iz);
     }
 
-__global__ void gpu_bin_particles_kernel(const unsigned int N,
-                                         const Scalar4 *d_postype,
-                                         Scalar4 *d_particle_bins,
-                                         unsigned int *d_n_cell,
-                                         unsigned int *d_overflow,
-                                         const Index2D bin_idx,
-                                         const uint3 mesh_dim,
-                                         const uint3 n_ghost_bins,
-                                         const Scalar *d_charge,
-                                         const BoxDim box,
-                                         int order,
-                                         const unsigned int *d_index_array,
-                                         unsigned int group_size)
+__global__ void gpu_assign_particles_kernel(const uint3 mesh_dim,
+                                            const uint3 n_ghost_bins,
+                                            unsigned int group_size,
+                                            const unsigned int *d_index_array,
+                                            const Scalar4 *d_postype,
+                                            const Scalar *d_charge,
+                                            cufftComplex *d_mesh,
+                                            Scalar V_cell,
+                                            int order,
+                                            BoxDim box)
     {
-    unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
-
+    unsigned int group_idx = blockIdx.x*blockDim.x+threadIdx.x;
     if (group_idx >= group_size) return;
+
+    int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
+                             mesh_dim.y+2*n_ghost_bins.y,
+                             mesh_dim.z+2*n_ghost_bins.z);
+
+    // grid coordinates of bin (column-major)
     unsigned int idx = d_index_array[group_idx];
 
     Scalar4 postype = d_postype[idx];
 
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
-    Scalar charge = d_charge[idx];
-
-    int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
-                             mesh_dim.y+2*n_ghost_bins.y,
-                             mesh_dim.z+2*n_ghost_bins.z);
+    Scalar qi = d_charge[idx];
 
     // compute coordinates in units of the cell size
     Scalar3 dr = make_scalar3(0,0,0);
@@ -152,169 +150,34 @@ __global__ void gpu_bin_particles_kernel(const unsigned int N,
         return;
         }
 
-    // row-major mapping of bins onto array
-    unsigned int bin = bin_coord.x + bin_dim.x * (bin_coord.y + bin_dim.y * bin_coord.z);
-
-    // we bin non-deterministically here
-    unsigned int n = atomicInc(&d_n_cell[bin], 0xffffffff);
-
-    if (n >= bin_idx.getH())
-        {
-        // overflow
-        atomicMax(d_overflow, n+1);
-        return;
-        }
-
-    // store separation in global mem
-    d_particle_bins[bin_idx(bin,n)] = make_scalar4(dr.x, dr.y, dr.z, charge);
-    }
-
-void gpu_bin_particles(const unsigned int N,
-                       const Scalar4 *d_postype,
-                       Scalar4 *d_particle_bins,
-                       unsigned int *d_n_cell,
-                       unsigned int *d_overflow,
-                       const Index2D& bin_idx,
-                       const uint3 mesh_dim,
-                       const uint3 n_ghost_bins,
-                       const Scalar *d_charge,
-                       const BoxDim& box,
-                       int order,
-                       const unsigned int *d_index_array,
-                       unsigned int group_size,
-                       unsigned int block_size)
-    {
-    static unsigned int max_block_size = UINT_MAX;
-    if (max_block_size == UINT_MAX)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_bin_particles_kernel);
-        max_block_size = attr.maxThreadsPerBlock;
-        }
-
-    unsigned int run_block_size = min(max_block_size, block_size);
-    gpu_bin_particles_kernel<<<group_size/run_block_size+1, run_block_size>>>(N,
-             d_postype,
-             d_particle_bins,
-             d_n_cell,
-             d_overflow,
-             bin_idx,
-             mesh_dim,
-             n_ghost_bins,
-             d_charge,
-             box,
-             order,
-             d_index_array,
-             group_size);
-    }
-
-template<unsigned int scratch_size>
-__global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_dim,
-                                                           const uint3 n_ghost_bins,
-                                                           const Scalar4 *d_particle_bins,
-                                                           const unsigned int *d_n_cell,
-                                                           Scalar *d_mesh_scratch,
-                                                           const Index2D bin_idx,
-                                                           const Index2D scratch_idx,
-                                                           Scalar V_cell,
-                                                           int order)
-    {
-    // allocate local memory for summing up neighbor contributions
-    Scalar scratch_neighbors[scratch_size];
-
-    unsigned int bin;
-
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        bin = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
-        }
-    else
-        {
-        bin = blockDim.x * blockIdx.x + threadIdx.x;
-        }
-
-
-    if (bin >= bin_idx.getW()) return;
-
-    int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
-                             mesh_dim.y+2*n_ghost_bins.y,
-                             mesh_dim.z+2*n_ghost_bins.z);
-
-    // grid coordinates of bin (row-major)
-    int i,j,k;
-    k = bin /bin_dim.y / bin_dim.x;
-    j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
-    i = bin % bin_dim.x;
-
-    // reset local memory
-    for (unsigned int sidx = 0; sidx < scratch_idx.getH(); ++sidx)
-        scratch_neighbors[sidx] = Scalar(0.0);
-
-    // loop over particles in bin
-    unsigned int n_bin = d_n_cell[bin];
+    int i = bin_coord.x;
+    int j = bin_coord.y;
+    int k = bin_coord.z;
 
     int nlower = - (order - 1)/2;
     int nupper = order/2;
 
-    int neigh_bin_idx;
     Scalar result;
 
     int mult_fact = 2*order + 1;
 
-    for (unsigned int idx = 0; idx < n_bin; ++idx)
-        {
-        Scalar4 xyzc = d_particle_bins[bin_idx(bin,idx)];
+    Scalar x0 = qi/V_cell;
 
-        neigh_bin_idx = 0;
-
-        Scalar x0 = xyzc.w/V_cell;
-
-        // loop over neighboring bins
-        for (int l = nlower; l <= nupper; ++l)
-            {
-            // precalculate assignment factor
-            result = Scalar(0.0);
-            for (int iorder = order-1; iorder >= 0; iorder--)
-                {
-                result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * xyzc.x;
-                }
-            Scalar y0 = x0 * result;
-
-            for (int m = nlower; m <= nupper; ++m)
-                {
-                result = Scalar(0.0);
-                for (int iorder = order-1; iorder >= 0; iorder--)
-                    {
-                    result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * xyzc.y;
-                    }
-                Scalar z0 = y0 * result;
-
-                for (int n = nlower; n <= nupper; ++n)
-                    {
-                    result = Scalar(0.0);
-                    for (int iorder = order-1; iorder >= 0; iorder--)
-                        {
-                        result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * xyzc.z;
-                        }
-
-                    // compute fraction of particle density assigned to cell
-                    // from particles in this bin
-                    scratch_neighbors[neigh_bin_idx] += z0*result;
-                    neigh_bin_idx++;
-                    }
-                }
-            } // end of loop over neighboring bins
-        } // end of ptl loop
-
-    // write out shared memory to neighboring cells
-    // loop over neighboring bins
-    neigh_bin_idx = 0;
     bool ignore_x = false;
     bool ignore_y = false;
     bool ignore_z = false;
-    for (int l = nlower; l <= nupper ; ++l)
+
+    // loop over neighboring bins
+    for (int l = nlower; l <= nupper; ++l)
         {
+        // precalculate assignment factor
+        result = Scalar(0.0);
+        for (int iorder = order-1; iorder >= 0; iorder--)
+            {
+            result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * dr.x;
+            }
+        Scalar y0 = x0 * result;
+
         int neighi = i + l;
         if (neighi >= (int)bin_dim.x)
             {
@@ -331,8 +194,16 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                 ignore_x = true;
             }
 
+
         for (int m = nlower; m <= nupper; ++m)
             {
+            result = Scalar(0.0);
+            for (int iorder = order-1; iorder >= 0; iorder--)
+                {
+                result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * dr.y;
+                }
+            Scalar z0 = y0 * result;
+
             int neighj = j + m;
             if (neighj >= (int) bin_dim.y)
                 {
@@ -349,8 +220,15 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
                     ignore_y = true;
                 }
 
+
             for (int n = nlower; n <= nupper; ++n)
                 {
+                result = Scalar(0.0);
+                for (int iorder = order-1; iorder >= 0; iorder--)
+                    {
+                    result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * dr.z;
+                    }
+
                 int neighk = k + n;
 
                 if (neighk >= (int)bin_dim.z)
@@ -370,441 +248,45 @@ __global__ void gpu_assign_binned_particles_to_scratch_kernel(const uint3 mesh_d
 
                 if (!ignore_x && !ignore_y && !ignore_z)
                     {
-                    uint3 scratch_cell_coord = make_uint3(neighi, neighj, neighk);
-
                     // write out to global memory using row-major
-                    unsigned int cell_idx = scratch_cell_coord.x + bin_dim.x * (scratch_cell_coord.y + bin_dim.y * scratch_cell_coord.z);
+                    unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
 
-                    d_mesh_scratch[scratch_idx(cell_idx,neigh_bin_idx)] =
-                        scratch_neighbors[neigh_bin_idx];
+                    // compute fraction of particle density assigned to cell
+                    // from particles in this bin
+                    atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
                     }
 
                 ignore_z = false;
-                neigh_bin_idx++;
                 }
             ignore_y = false;
             }
         ignore_x = false;
-        }
+        } // end of loop over neighboring bins
     }
 
-__global__ void gpu_reduce_scratch_kernel(const uint3 grid_dim,
-                               const Scalar *d_mesh_scratch,
-                               const Index2D scratch_idx,
-                               cufftComplex *d_mesh)
-    {
-    unsigned int cell_idx;
-
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        cell_idx = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
-        }
-    else
-        {
-        cell_idx = blockDim.x * blockIdx.x + threadIdx.x;
-        }
-
-
-    if (cell_idx >= grid_dim.x*grid_dim.y*grid_dim.z) return;
-
-    // simply add up contents of scratch cell
-    Scalar grid_val(0.0);
-    for (unsigned int sidx = 0; sidx < scratch_idx.getH(); ++sidx)
-        {
-        grid_val += d_mesh_scratch[scratch_idx(cell_idx,sidx)];
-        }
-
-    d_mesh[cell_idx].x = grid_val;
-    d_mesh[cell_idx].y = Scalar(0.0);
-    }
-
-void gpu_assign_binned_particles_to_mesh_deterministic(const uint3 mesh_dim,
-                                         const uint3 n_ghost_bins,
-                                         const uint3 grid_dim,
-                                         const Scalar4 *d_particle_bins,
-                                         Scalar *d_mesh_scratch,
-                                         const Index2D& bin_idx,
-                                         const Index2D& scratch_idx,
-                                         const unsigned int *d_n_cell,
-                                         cufftComplex *d_mesh,
-                                         int order,
-                                         const BoxDim& box,
-                                         unsigned int block_size,
-                                         const cudaDeviceProp& dev_prop
-                                         )
-    {
-    Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
-
-    cudaMemset(d_mesh_scratch, 0, sizeof(Scalar)*scratch_idx.getNumElements());
-
-    // pre-defined launch parameters for various interpolation orders
-    if (order < 2)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
-        static int sm = -1;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<1>);
-            max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
-            }
-
-        unsigned int run_block_size = min(max_block_size, block_size);
-
-        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            run_block_size -= dev_prop.warpSize;
-            }
-
-        unsigned int n_blocks = bin_idx.getW()/run_block_size;
-        if (bin_idx.getW()%run_block_size) n_blocks +=1;
-        dim3 grid(n_blocks, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
-
-        gpu_assign_binned_particles_to_scratch_kernel<1><<<grid,run_block_size>>>(
-              mesh_dim,
-              n_ghost_bins,
-              d_particle_bins,
-              d_n_cell,
-              d_mesh_scratch,
-              bin_idx,
-              scratch_idx,
-              V_cell,
-              order);
-        }
-    else if (order < 4)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
-        static int sm = -1;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<27>);
-            max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
-            }
-
-        unsigned int run_block_size = min(max_block_size, block_size);
-
-        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            run_block_size -= dev_prop.warpSize;
-            }
-
-        unsigned int n_blocks = bin_idx.getW()/run_block_size;
-        if (bin_idx.getW()%run_block_size) n_blocks +=1;
-        dim3 grid(n_blocks, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
-
-        gpu_assign_binned_particles_to_scratch_kernel<27><<<grid,run_block_size>>>(
-              mesh_dim,
-              n_ghost_bins,
-              d_particle_bins,
-              d_n_cell,
-              d_mesh_scratch,
-              bin_idx,
-              scratch_idx,
-              V_cell,
-              order);
-        }
-    else if (order < 6)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
-        static int sm = -1;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<125>);
-            max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
-            }
-
-        unsigned int run_block_size = min(max_block_size, block_size);
-
-        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            run_block_size -= dev_prop.warpSize;
-            }
-
-        unsigned int n_blocks = bin_idx.getW()/run_block_size;
-        if (bin_idx.getW()%run_block_size) n_blocks +=1;
-        dim3 grid(n_blocks, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
-
-        gpu_assign_binned_particles_to_scratch_kernel<125><<<grid,run_block_size>>>(
-              mesh_dim,
-              n_ghost_bins,
-              d_particle_bins,
-              d_n_cell,
-              d_mesh_scratch,
-              bin_idx,
-              scratch_idx,
-              V_cell,
-              order);
-        }
-    else if (order < 8)
-        {
-        static unsigned int max_block_size = UINT_MAX;
-        static cudaFuncAttributes attr;
-        static int sm = -1;
-        if (max_block_size == UINT_MAX)
-            {
-            cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_to_scratch_kernel<343>);
-            max_block_size = attr.maxThreadsPerBlock;
-            sm = attr.binaryVersion;
-            }
-
-        unsigned int run_block_size = min(max_block_size, block_size);
-
-        while (attr.sharedSizeBytes >= dev_prop.sharedMemPerBlock)
-            {
-            run_block_size -= dev_prop.warpSize;
-            }
-
-        unsigned int n_blocks = bin_idx.getW()/run_block_size;
-        if (bin_idx.getW()%run_block_size) n_blocks +=1;
-        dim3 grid(n_blocks, 1, 1);
-
-        // hack to enable grids of more than 65k blocks
-        if (sm < 30 && grid.x > 65535)
-            {
-            grid.y = grid.x / 65535 + 1;
-            grid.x = 65535;
-            }
-
-        gpu_assign_binned_particles_to_scratch_kernel<343><<<grid,run_block_size>>>(
-              mesh_dim,
-              n_ghost_bins,
-              d_particle_bins,
-              d_n_cell,
-              d_mesh_scratch,
-              bin_idx,
-              scratch_idx,
-              V_cell,
-              order);
-        }
-
-    static int sm = -1;
-    if (sm == -1)
-        {
-        cudaFuncAttributes attr;
-        cudaFuncGetAttributes(&attr, (const void*)gpu_reduce_scratch_kernel);
-        sm = attr.binaryVersion;
-        }
-
-    block_size = 512;
-    unsigned int n_blocks = (grid_dim.x*grid_dim.y*grid_dim.z)/block_size;
-    if ((grid_dim.x*grid_dim.y*grid_dim.z)%block_size) n_blocks +=1;
-    dim3 grid(n_blocks, 1, 1);
-
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
-
-    gpu_reduce_scratch_kernel<<<grid, block_size>>>(grid_dim,
-                                                    d_mesh_scratch,
-                                                    scratch_idx,
-                                                    d_mesh);
-    }
-
-__global__ void gpu_assign_binned_particles_kernel(const uint3 mesh_dim,
-                                                           const uint3 n_ghost_bins,
-                                                           const Scalar4 *d_particle_bins,
-                                                           const unsigned int *d_n_cell,
-                                                           cufftComplex *d_mesh,
-                                                           const Index2D bin_idx,
-                                                           Scalar V_cell,
-                                                           int order)
-    {
-    unsigned int bin;
-
-    if (gridDim.y > 1)
-        {
-        // if gridDim.y > 1, then the fermi workaround is in place, index blocks on a 2D grid
-        bin = (blockIdx.x + blockIdx.y * 65535) * blockDim.x + threadIdx.x;
-        }
-    else
-        {
-        bin = blockDim.x * blockIdx.x + threadIdx.x;
-        }
-
-    if (bin >= bin_idx.getW()) return;
-
-    int3 bin_dim = make_int3(mesh_dim.x+2*n_ghost_bins.x,
-                             mesh_dim.y+2*n_ghost_bins.y,
-                             mesh_dim.z+2*n_ghost_bins.z);
-
-    // grid coordinates of bin (row-major)
-    int i,j,k;
-    k = bin /bin_dim.y / bin_dim.x;
-    j = (bin - k * bin_dim.y*bin_dim.x)/bin_dim.x;
-    i = bin % bin_dim.x;
-
-    // loop over particles in bin
-    unsigned int n_bin = d_n_cell[bin];
-
-    int nlower = - (order - 1)/2;
-    int nupper = order/2;
-
-    Scalar result;
-
-    int mult_fact = 2*order + 1;
-
-    for (unsigned int idx = 0; idx < n_bin; ++idx)
-        {
-        Scalar4 xyzc = d_particle_bins[bin_idx(bin,idx)];
-
-        Scalar x0 = xyzc.w/V_cell;
-
-        bool ignore_x = false;
-        bool ignore_y = false;
-        bool ignore_z = false;
-
-        // loop over neighboring bins
-        for (int l = nlower; l <= nupper; ++l)
-            {
-            // precalculate assignment factor
-            result = Scalar(0.0);
-            for (int iorder = order-1; iorder >= 0; iorder--)
-                {
-                result = GPU_rho_coeff[l-nlower + iorder*mult_fact] + result * xyzc.x;
-                }
-            Scalar y0 = x0 * result;
-
-            int neighi = i + l;
-            if (neighi >= (int)bin_dim.x)
-                {
-                if (! n_ghost_bins.x)
-                    neighi -= (int)bin_dim.x;
-                else
-                    ignore_x = true;
-                }
-            else if (neighi < 0)
-                {
-                if (! n_ghost_bins.x)
-                    neighi += (int)bin_dim.x;
-                else
-                    ignore_x = true;
-                }
-
-
-            for (int m = nlower; m <= nupper; ++m)
-                {
-                result = Scalar(0.0);
-                for (int iorder = order-1; iorder >= 0; iorder--)
-                    {
-                    result = GPU_rho_coeff[m-nlower + iorder*mult_fact] + result * xyzc.y;
-                    }
-                Scalar z0 = y0 * result;
-
-                int neighj = j + m;
-                if (neighj >= (int) bin_dim.y)
-                    {
-                    if (! n_ghost_bins.y)
-                        neighj -= (int)bin_dim.y;
-                    else
-                        ignore_y = true;
-                    }
-                else if (neighj < 0)
-                    {
-                    if (! n_ghost_bins.y)
-                        neighj += (int)bin_dim.y;
-                    else
-                        ignore_y = true;
-                    }
-
-
-                for (int n = nlower; n <= nupper; ++n)
-                    {
-                    result = Scalar(0.0);
-                    for (int iorder = order-1; iorder >= 0; iorder--)
-                        {
-                        result = GPU_rho_coeff[n-nlower + iorder*mult_fact] + result * xyzc.z;
-                        }
-
-                    int neighk = k + n;
-
-                    if (neighk >= (int)bin_dim.z)
-                        {
-                        if (! n_ghost_bins.z)
-                            neighk -= (int)bin_dim.z;
-                        else
-                            ignore_z = true;
-                        }
-                    else if (neighk < 0)
-                        {
-                        if (! n_ghost_bins.z)
-                            neighk += (int)bin_dim.z;
-                        else
-                            ignore_z = true;
-                        }
-
-                    if (!ignore_x && !ignore_y && !ignore_z)
-                        {
-                        // write out to global memory using row-major
-                        unsigned int cell_idx = neighi + bin_dim.x * (neighj + bin_dim.y * neighk);
-
-                        // compute fraction of particle density assigned to cell
-                        // from particles in this bin
-                        atomicFloatAdd(&d_mesh[cell_idx].x, z0*result);
-                        }
-
-                    ignore_z = false;
-                    }
-                ignore_y = false;
-                }
-            ignore_x = false;
-            } // end of loop over neighboring bins
-        } // end of ptl loop
-    }
-
-void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
-                                         const uint3 n_ghost_bins,
-                                         const uint3 grid_dim,
-                                         const Scalar4 *d_particle_bins,
-                                         const Index2D& bin_idx,
-                                         const unsigned int *d_n_cell,
-                                         cufftComplex *d_mesh,
-                                         int order,
-                                         const BoxDim& box,
-                                         unsigned int block_size,
-                                         const cudaDeviceProp& dev_prop
-                                         )
+void gpu_assign_particles(const uint3 mesh_dim,
+                         const uint3 n_ghost_bins,
+                         const uint3 grid_dim,
+                         unsigned int group_size,
+                         const unsigned int *d_index_array,
+                         const Scalar4 *d_postype,
+                         const Scalar *d_charge,
+                         cufftComplex *d_mesh,
+                         int order,
+                         const BoxDim& box,
+                         unsigned int block_size,
+                         const cudaDeviceProp& dev_prop
+                         )
     {
     cudaMemset(d_mesh, 0, sizeof(cufftComplex)*grid_dim.x*grid_dim.y*grid_dim.z);
     Scalar V_cell = box.getVolume()/(Scalar)(mesh_dim.x*mesh_dim.y*mesh_dim.z);
 
     static unsigned int max_block_size = UINT_MAX;
     static cudaFuncAttributes attr;
-    static int sm = -1;
     if (max_block_size == UINT_MAX)
         {
-        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_binned_particles_kernel);
+        cudaFuncGetAttributes(&attr, (const void*)gpu_assign_particles_kernel);
         max_block_size = attr.maxThreadsPerBlock;
-        sm = attr.binaryVersion;
         }
 
     unsigned int run_block_size = min(max_block_size, block_size);
@@ -814,26 +296,19 @@ void gpu_assign_binned_particles_to_mesh_nondeterministic(const uint3 mesh_dim,
         run_block_size -= dev_prop.warpSize;
         }
 
-    unsigned int n_blocks = bin_idx.getW()/run_block_size;
-    if (bin_idx.getW()%run_block_size) n_blocks +=1;
-    dim3 grid(n_blocks, 1, 1);
+    unsigned int n_blocks = group_size/run_block_size+1;
 
-    // hack to enable grids of more than 65k blocks
-    if (sm < 30 && grid.x > 65535)
-        {
-        grid.y = grid.x / 65535 + 1;
-        grid.x = 65535;
-        }
-
-    gpu_assign_binned_particles_kernel<<<grid,run_block_size>>>(
+    gpu_assign_particles_kernel<<<n_blocks,run_block_size>>>(
           mesh_dim,
           n_ghost_bins,
-          d_particle_bins,
-          d_n_cell,
+          group_size,
+          d_index_array,
+          d_postype,
+          d_charge,
           d_mesh,
-          bin_idx,
           V_cell,
-          order);
+          order,
+          box);
     }
 
 __global__ void gpu_compute_mesh_virial_kernel(const unsigned int n_wave_vectors,
@@ -1027,7 +502,10 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
                                           const BoxDim box,
                                           int order,
                                           const unsigned int *d_index_array,
-                                          unsigned int group_size)
+                                          unsigned int group_size,
+                                          const cufftComplex *inv_fourier_mesh_x,
+                                          const cufftComplex *inv_fourier_mesh_y,
+                                          const cufftComplex *inv_fourier_mesh_z)
     {
     unsigned int group_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -1049,6 +527,14 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
     // find cell the particle is in
     int3 cell_coord = find_cell(pos, inner_dim.x, inner_dim.y, inner_dim.z, n_ghost_cells, box, order, dr);
+
+    // ignore particles that are not within our domain (the error should be caught by HOOMD's cell list)
+    if (cell_coord.x < 0 || cell_coord.x >= (int) grid_dim.x ||
+        cell_coord.y < 0 || cell_coord.y >= (int) grid_dim.y ||
+        cell_coord.z < 0 || cell_coord.z >= (int) grid_dim.z)
+        {
+        return;
+        }
 
     Scalar3 force = make_scalar3(0.0,0.0,0.0);
 
@@ -1092,7 +578,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.x)
                     {
-                    if (neighl >= grid_dim.x)
+                    if (neighl >= (int)grid_dim.x)
                         neighl -= grid_dim.x;
                     else if (neighl < 0)
                         neighl += grid_dim.x;
@@ -1100,7 +586,7 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.y)
                     {
-                    if (neighm >= grid_dim.y)
+                    if (neighm >= (int)grid_dim.y)
                         neighm -= grid_dim.y;
                     else if (neighm < 0)
                         neighm += grid_dim.y;
@@ -1108,14 +594,15 @@ __global__ void gpu_compute_forces_kernel(const unsigned int N,
 
                 if (! n_ghost_cells.z)
                     {
-                    if (neighn >= grid_dim.z)
+                    if (neighn >= (int)grid_dim.z)
                         neighn -= grid_dim.z;
                     else if (neighn < 0)
                         neighn += grid_dim.z;
                     }
 
-                // use row-major layout
+                // use column-major layout
                 unsigned int cell_idx = neighl + grid_dim.x * (neighm + grid_dim.y * neighn);
+
 
                 cufftComplex inv_mesh_x = tex1Dfetch(inv_fourier_mesh_tex_x,cell_idx);
                 cufftComplex inv_mesh_y = tex1Dfetch(inv_fourier_mesh_tex_y,cell_idx);
@@ -1181,7 +668,10 @@ void gpu_compute_forces(const unsigned int N,
              box,
              order,
              d_index_array,
-             group_size);
+             group_size,
+             d_inv_fourier_mesh_x,
+             d_inv_fourier_mesh_y,
+             d_inv_fourier_mesh_z);
     }
 
 __global__ void kernel_calculate_pe_partial(

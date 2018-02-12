@@ -272,7 +272,16 @@ Scalar Integrator::computeTotalMomentum(unsigned int timestep)
         p_tot_z += mass*(double)h_vel.data[i].z;
         }
 
-    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getN());
+    #ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_x, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_y, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        MPI_Allreduce(MPI_IN_PLACE, &p_tot_z, 1, MPI_HOOMD_SCALAR, MPI_SUM, m_exec_conf->getMPICommunicator());
+        }
+    #endif
+
+    double p_tot = sqrt(p_tot_x * p_tot_x + p_tot_y * p_tot_y + p_tot_z * p_tot_z) / Scalar(m_pdata->getNGlobal());
 
     // done!
     return Scalar(p_tot);
@@ -373,6 +382,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
+
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -380,10 +393,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->updateNetForce(timestep);
         }
     #endif
-
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
-        return;
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque

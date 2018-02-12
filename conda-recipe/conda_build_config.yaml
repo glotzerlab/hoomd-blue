@@ -1,0 +1,15 @@
+python:
+    - 2.7
+    - 3.4
+    - 3.5
+    - 3.6
+cuda:
+    - 8.0
+
+ignore_version:
+    - gcc
+    - numpy
+    - mpich2
+    - cmake
+    - pkg-config
+    - sqlite

@@ -22,7 +22,9 @@
 #else
 #define DEVICE
 #include <iostream>
+#if defined (__SSE__)
 #include <immintrin.h>
+#endif
 #endif
 
 namespace hpmc
@@ -67,14 +69,13 @@ struct poly3d_verts : param_base
 
     //! Load dynamic data members into shared memory and increase pointer
     /*! \param ptr Pointer to load data to (will be incremented)
-        \param load If true, copy data to pointer, otherwise increment only
-        \param ptr_max Maximum address in shared memory
+        \param available_bytes Size of remaining shared memory allocation
      */
-    HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+    HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
         {
-        x.load_shared(ptr,load,ptr_max);
-        y.load_shared(ptr,load,ptr_max);
-        z.load_shared(ptr,load,ptr_max);
+        x.load_shared(ptr,available_bytes);
+        y.load_shared(ptr,available_bytes);
+        z.load_shared(ptr,available_bytes);
         }
 
     #ifdef ENABLE_CUDA

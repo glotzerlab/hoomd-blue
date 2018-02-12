@@ -19,6 +19,7 @@ void export_polyhedron(pybind11::module& m);
 void export_ellipsoid(pybind11::module& m);
 void export_faceted_sphere(pybind11::module& m);
 void export_sphinx(pybind11::module& m);
+void export_union_convex_polyhedron(pybind11::module& m);
 void export_union_sphere(pybind11::module& m);
 void export_convex_polyhedron(pybind11::module& m);
 void export_convex_spheropolyhedron(pybind11::module& m);

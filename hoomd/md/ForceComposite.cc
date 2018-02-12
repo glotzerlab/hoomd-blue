@@ -18,12 +18,17 @@ namespace py = pybind11;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
-        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false)
+        : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
+         m_global_max_d(0.0),
+         m_comm_ghost_layer_connected(false), m_global_max_d_changed(true)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
     m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
 
     m_pdata->getGlobalParticleNumberChangeSignal().connect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+
+    // connect to box change signal
+    m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
     GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
@@ -42,6 +47,8 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
 
     m_d_max.resize(m_pdata->getNTypes(), Scalar(0.0));
     m_d_max_changed.resize(m_pdata->getNTypes(), false);
+
+    m_body_max_diameter.resize(m_pdata->getNTypes(), Scalar(0.0));
     }
 
 //! Destructor
@@ -50,6 +57,7 @@ ForceComposite::~ForceComposite()
     // disconnect from signal in ParticleData;
     m_pdata->getNumTypesChangeSignal().disconnect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);
     m_pdata->getGlobalParticleNumberChangeSignal().disconnect<ForceComposite, &ForceComposite::slotPtlsAddedRemoved>(this);
+    m_pdata->getCompositeParticlesSignal().disconnect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
     #ifdef ENABLE_MPI
     if (m_comm_ghost_layer_connected)
         m_comm->getExtraGhostLayerWidthRequestSignal().disconnect<ForceComposite, &ForceComposite::requestExtraGhostLayerWidth>(this);
@@ -79,6 +87,18 @@ void ForceComposite::setParam(unsigned int body_typeid,
         {
         m_exec_conf->msg->error() << "constrain.rigid(): Constituent particle lists"
             <<" (position, orientation, type) are of unequal length." << std::endl;
+        throw std::runtime_error("Error initializing ForceComposite");
+        }
+    if (charge.size() && charge.size() != pos.size())
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Charges are non-empty but of different"
+            <<" length than the positions." << std::endl;
+        throw std::runtime_error("Error initializing ForceComposite");
+        }
+    if (diameter.size() && diameter.size() != pos.size())
+        {
+        m_exec_conf->msg->error() << "constrain.rigid(): Diameters are non-empty but of different"
+            <<" length than the positions." << std::endl;
         throw std::runtime_error("Error initializing ForceComposite");
         }
 
@@ -137,24 +157,25 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     if (body_updated)
         {
-        ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
-        ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
-
-        m_body_charge[body_typeid].resize(type.size());
-        m_body_diameter[body_typeid].resize(type.size());
-
-        // store body data in GPUArray
-        for (unsigned int i = 0; i < type.size(); ++i)
             {
-            h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
-            h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
-            h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+            ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::readwrite);
+            ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::readwrite);
 
-            m_body_charge[body_typeid][i] = charge[i];
-            m_body_diameter[body_typeid][i] = diameter[i];
+            m_body_charge[body_typeid].resize(type.size());
+            m_body_diameter[body_typeid].resize(type.size());
+
+            // store body data in GPUArray
+            for (unsigned int i = 0; i < type.size(); ++i)
+                {
+                h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
+                h_body_pos.data[m_body_idx(body_typeid,i)] = pos[i];
+                h_body_orientation.data[m_body_idx(body_typeid,i)] = orientation[i];
+
+                m_body_charge[body_typeid][i] = charge[i];
+                m_body_diameter[body_typeid][i] = diameter[i];
+                }
             }
-
         m_bodies_changed = true;
         assert(m_d_max_changed.size() > body_typeid);
 
@@ -166,8 +187,51 @@ void ForceComposite::setParam(unsigned int body_typeid,
             {
             m_d_max_changed[type[i]] = true;
             }
+
+        // story body diameter
+        m_body_max_diameter[body_typeid] = getBodyDiameter(body_typeid);
+
+        // indicate that the maximum diameter may have changed
+        m_global_max_d_changed = true;
         }
    }
+
+Scalar ForceComposite::getBodyDiameter(unsigned int body_type)
+    {
+    m_exec_conf->msg->notice(7) << "ForceComposite: calculating body diameter for type " << m_pdata->getNameByType(body_type) << std::endl;
+
+    // get maximum pairwise distance
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::read);
+    ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
+    ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
+
+    Scalar d_max(0.0);
+
+    for (unsigned int i = 0; i < h_body_len.data[body_type]; ++i)
+        {
+        // distance to central particle
+        Scalar3 dr = h_body_pos.data[m_body_idx(body_type,i)];
+        Scalar d = sqrt(dot(dr,dr));
+        if (d > d_max)
+            {
+            d_max = d;
+            }
+
+        // distance to every other particle
+        for (unsigned int j = 0; j < h_body_len.data[body_type]; ++j)
+            {
+            dr = h_body_pos.data[m_body_idx(body_type,i)]-h_body_pos.data[m_body_idx(body_type,j)];
+            d = sqrt(dot(dr,dr));
+
+            if (d > d_max)
+                {
+                d_max = d;
+                }
+            }
+        }
+
+    return d_max;
+    }
 
 void ForceComposite::slotNumTypesChange()
     {
@@ -197,6 +261,8 @@ void ForceComposite::slotNumTypesChange()
 
     m_d_max.resize(new_ntypes, Scalar(0.0));
     m_d_max_changed.resize(new_ntypes, false);
+
+    m_body_max_diameter.resize(new_ntypes,0.0);
     }
 
 Scalar ForceComposite::requestExtraGhostLayerWidth(unsigned int type)
@@ -629,12 +695,6 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     // request orientations
     flags[comm_flag::orientation] = 1;
 
-    // request communication of particle forces
-    flags[comm_flag::net_force] = 1;
-
-    // request communication of particle torques (not currently used)
-    //flags[comm_flag::net_torque] = 1;
-
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
     if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])
@@ -795,14 +855,6 @@ void ForceComposite::computeForces(unsigned int timestep)
                     Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
                     Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
 
-                    // zero net virial
-                    h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
-
                     // subtract intra-body virial prt
                     h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
                     h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
@@ -812,6 +864,14 @@ void ForceComposite::computeForces(unsigned int timestep)
                     h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
                     }
                 }
+
+            // zero net virial
+            h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
             }
         }
     }

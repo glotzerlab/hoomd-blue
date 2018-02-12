@@ -49,6 +49,8 @@ class GPUTree
             m_center = ManagedArray<vec3<OverlapReal> >(m_num_nodes, managed);
             m_lengths = ManagedArray<vec3<OverlapReal> >(m_num_nodes,managed);
             m_rotation = ManagedArray<quat<OverlapReal> >(m_num_nodes,managed);
+            m_mask = ManagedArray<unsigned int>(m_num_nodes,managed);
+            m_is_sphere = ManagedArray<unsigned int>(m_num_nodes,managed);
             m_left = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_escape = ManagedArray<unsigned int>(m_num_nodes, managed);
             m_ancestors = ManagedArray<unsigned int>(m_num_nodes, managed);
@@ -66,6 +68,8 @@ class GPUTree
                 m_center[i] = tree.getNodeOBB(i).getPosition();
                 m_rotation[i] = tree.getNodeOBB(i).rotation;
                 m_lengths[i] = tree.getNodeOBB(i).lengths;
+                m_mask[i] = tree.getNodeOBB(i).mask;
+                m_is_sphere[i] = tree.getNodeOBB(i).isSphere();
 
                 m_leaf_ptr[i] = n;
                 n += tree.getNodeNumParticles(i);
@@ -249,6 +253,8 @@ class GPUTree
             obb.center = m_center[idx];
             obb.lengths = m_lengths[idx];
             obb.rotation = m_rotation[idx];
+            obb.mask = m_mask[idx];
+            obb.is_sphere = m_is_sphere[idx];
             return obb;
             }
 
@@ -260,6 +266,8 @@ class GPUTree
             m_center.attach_to_stream(stream);
             m_lengths.attach_to_stream(stream);
             m_rotation.attach_to_stream(stream);
+            m_mask.attach_to_stream(stream);
+            m_is_sphere.attach_to_stream(stream);
 
             m_left.attach_to_stream(stream);
             m_escape.attach_to_stream(stream);
@@ -273,22 +281,23 @@ class GPUTree
 
         //! Load dynamic data members into shared memory and increase pointer
         /*! \param ptr Pointer to load data to (will be incremented)
-            \param load If true, copy data to pointer, otherwise increment only
-            \param ptr_max Maximum address in shared memory
+            \param available_bytes Size of remaining shared memory allocation
          */
-        HOSTDEVICE void load_shared(char *& ptr, bool load, char *ptr_max) const
+        HOSTDEVICE void load_shared(char *& ptr, unsigned int &available_bytes) const
             {
-            m_center.load_shared(ptr, load, ptr_max);
-            m_lengths.load_shared(ptr, load, ptr_max);
-            m_rotation.load_shared(ptr, load, ptr_max);
+            m_center.load_shared(ptr, available_bytes);
+            m_lengths.load_shared(ptr, available_bytes);
+            m_rotation.load_shared(ptr, available_bytes);
+            m_mask.load_shared(ptr, available_bytes);
+            m_is_sphere.load_shared(ptr, available_bytes);
 
-            m_left.load_shared(ptr, load, ptr_max);
-            m_escape.load_shared(ptr, load, ptr_max);
-            m_ancestors.load_shared(ptr, load, ptr_max);
+            m_left.load_shared(ptr, available_bytes);
+            m_escape.load_shared(ptr, available_bytes);
+            m_ancestors.load_shared(ptr, available_bytes);
 
-            m_leaf_ptr.load_shared(ptr, load, ptr_max);
-            m_leaf_obb_ptr.load_shared(ptr, load, ptr_max);
-            m_particles.load_shared(ptr, load, ptr_max);
+            m_leaf_ptr.load_shared(ptr, available_bytes);
+            m_leaf_obb_ptr.load_shared(ptr, available_bytes);
+            m_particles.load_shared(ptr, available_bytes);
             }
 
         //! Get the capacity of leaf nodes
@@ -301,6 +310,8 @@ class GPUTree
         ManagedArray<vec3<OverlapReal> > m_center;
         ManagedArray<vec3<OverlapReal> > m_lengths;
         ManagedArray<quat<OverlapReal> > m_rotation;
+        ManagedArray<unsigned int> m_mask;
+        ManagedArray<unsigned int> m_is_sphere;
 
         ManagedArray<unsigned int> m_leaf_ptr; //!< Pointer to leaf node contents
         ManagedArray<unsigned int> m_leaf_obb_ptr; //!< Pointer to leaf node OBBs

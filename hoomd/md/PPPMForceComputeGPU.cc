@@ -21,10 +21,6 @@ PPPMForceComputeGPU::PPPMForceComputeGPU(std::shared_ptr<SystemDefinition> sysde
       m_block_size(256),
       m_gpu_q_max(m_exec_conf)
     {
-    // initial value of number of particles per bin
-    m_cell_size = 2;
-
-    m_tuner_bin.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_bin", this->m_exec_conf));
     m_tuner_assign.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_assign", this->m_exec_conf));
     m_tuner_update.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_update_mesh", this->m_exec_conf));
     m_tuner_force.reset(new Autotuner(32, 1024, 32, 5, 100000, "pppm_force", this->m_exec_conf));
@@ -108,10 +104,6 @@ void PPPMForceComputeGPU::initializeFFT()
         cufftPlan3d(&m_cufft_plan, m_mesh_points.z, m_mesh_points.y, m_mesh_points.x, CUFFT_C2C);
         }
 
-    unsigned int n_particle_bins = m_grid_dim.x*m_grid_dim.y*m_grid_dim.z;
-    m_bin_idx = Index2D(n_particle_bins,m_cell_size);
-    m_scratch_idx = Index2D(n_particle_bins,(2*m_radius+1)*(2*m_radius+1)*(2*m_radius+1));
-
     // allocate mesh and transformed mesh
 
     // pad with offset
@@ -139,21 +131,6 @@ void PPPMForceComputeGPU::initializeFFT()
 
     GPUArray<cufftComplex> inv_fourier_mesh_z(m_n_cells+m_ghost_offset, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
-
-    GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(), m_exec_conf);
-    m_particle_bins.swap(particle_bins);
-
-    GPUArray<unsigned int> n_cell(m_bin_idx.getW(), m_exec_conf);
-    m_n_cell.swap(n_cell);
-
-    GPUFlags<unsigned int> cell_overflowed(m_exec_conf);
-    m_cell_overflowed.swap(cell_overflowed);
-
-    m_cell_overflowed.resetFlags(0);
-
-    // allocate scratch space for density reduction
-    GPUArray<Scalar> mesh_scratch(m_scratch_idx.getNumElements(), m_exec_conf);
-    m_mesh_scratch.swap(mesh_scratch);
 
     unsigned int n_blocks = (m_mesh_points.x*m_mesh_points.y*m_mesh_points.z)/m_block_size+1;
     GPUArray<Scalar> sum_partial(n_blocks,m_exec_conf);
@@ -190,101 +167,29 @@ void PPPMForceComputeGPU::assignParticles()
     ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
-    ArrayHandle<unsigned int> d_n_cell(m_n_cell, access_location::device, access_mode::overwrite);
+    // access the group
+    ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
+    unsigned int group_size = m_group->getNumMembers();
 
-    bool cont = true;
-    while (cont)
-        {
-        cudaMemset(d_n_cell.data,0,sizeof(unsigned int)*m_n_cell.getNumElements());
+    m_tuner_assign->begin();
+    unsigned int block_size = m_tuner_assign->getParam();
 
-            {
-            ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::overwrite);
+    gpu_assign_particles(m_mesh_points,
+                        m_n_ghost_cells,
+                        m_grid_dim,
+                        group_size,
+                        d_index_array.data,
+                        d_postype.data,
+                        d_charge.data,
+                        d_mesh.data,
+                        m_order,
+                        m_pdata->getBox(),
+                        block_size,
+                        m_exec_conf->dev_prop);
 
-            // access the group
-            ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
-            unsigned int group_size = m_group->getNumMembers();
-
-            unsigned int block_size = m_tuner_bin->getParam();
-            m_tuner_bin->begin();
-            gpu_bin_particles(m_pdata->getN(),
-                              d_postype.data,
-                              d_particle_bins.data,
-                              d_n_cell.data,
-                              m_cell_overflowed.getDeviceFlags(),
-                              m_bin_idx,
-                              m_mesh_points,
-                              m_n_ghost_cells,
-                              d_charge.data,
-                              m_pdata->getBox(),
-                              m_order,
-                              d_index_array.data,
-                              group_size,
-                              block_size);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            m_tuner_bin->end();
-            }
-
-        unsigned int flags = m_cell_overflowed.readFlags();
-
-        if (flags)
-            {
-            // reallocate particle bins array
-            m_cell_size = flags;
-
-            m_bin_idx = Index2D(m_bin_idx.getW(),m_cell_size);
-            GPUArray<Scalar4> particle_bins(m_bin_idx.getNumElements(),m_exec_conf);
-            m_particle_bins.swap(particle_bins);
-            m_cell_overflowed.resetFlags(0);
-            }
-        else
-            {
-            cont = false;
-            }
-
-        // assign particles to mesh
-        ArrayHandle<Scalar4> d_particle_bins(m_particle_bins, access_location::device, access_mode::read);
-        ArrayHandle<Scalar> d_mesh_scratch(m_mesh_scratch, access_location::device, access_mode::overwrite);
-
-        m_tuner_assign->begin();
-        unsigned int block_size = m_tuner_assign->getParam();
-
-        /*
-           NOTE: we also provide a determinstic code path which is currently not used
-           it would further require making the binning of particles determinstic
-
-        gpu_assign_binned_particles_to_mesh_deterministic(m_mesh_points,
-                                            m_n_ghost_cells,
-                                            m_grid_dim,
-                                            d_particle_bins.data,
-                                            d_mesh_scratch.data,
-                                            m_bin_idx,
-                                            m_scratch_idx,
-                                            d_n_cell.data,
-                                            d_mesh.data,
-                                            m_order,
-                                            m_pdata->getBox(),
-                                            block_size,
-                                            m_exec_conf->dev_prop);
-        */
-
-        gpu_assign_binned_particles_to_mesh_nondeterministic(m_mesh_points,
-                                            m_n_ghost_cells,
-                                            m_grid_dim,
-                                            d_particle_bins.data,
-                                            m_bin_idx,
-                                            d_n_cell.data,
-                                            d_mesh.data,
-                                            m_order,
-                                            m_pdata->getBox(),
-                                            block_size,
-                                            m_exec_conf->dev_prop);
-
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_tuner_assign->end();
-        }
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+    m_tuner_assign->end();
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
@@ -298,7 +203,7 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
         ArrayHandle<cufftComplex> d_fourier_mesh(m_fourier_mesh, access_location::device, access_mode::overwrite);
 
-        cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD);
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan, d_mesh.data, d_fourier_mesh.data, CUFFT_FORWARD));
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI
@@ -375,18 +280,19 @@ void PPPMForceComputeGPU::updateMeshes()
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::device, access_mode::overwrite);
         ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::device, access_mode::overwrite);
 
-        cufftExecC2C(m_cufft_plan,
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_x.data,
                      d_inv_fourier_mesh_x.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_cufft_plan,
+                     CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_y.data,
                      d_inv_fourier_mesh_y.data,
-                     CUFFT_INVERSE);
-        cufftExecC2C(m_cufft_plan,
+                     CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_cufft_plan,
                      d_fourier_mesh_G_z.data,
                      d_inv_fourier_mesh_z.data,
-                     CUFFT_INVERSE);
+                     CUFFT_INVERSE));
+
         if (m_prof) m_prof->pop(m_exec_conf);
         }
     #ifdef ENABLE_MPI

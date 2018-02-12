@@ -25,19 +25,19 @@ namespace hpmc
  * for pure GC moves see Vink and Horbach JCP 2004
  * Bolhuis Frenkel JCP 1994, Biben/Hansen J. Phys. Cond. Mat. 1996
  */
-template<class Shape>
+template<class Shape, class Integrator>
 class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     {
     public:
         //! Constructor
         UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
-            std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+            std::shared_ptr<Integrator > mc_implicit,
             unsigned int seed,
             unsigned int npartition);
 
     protected:
         std::poisson_distribution<unsigned int> m_poisson;   //!< Poisson distribution
-        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
+        std::shared_ptr<Integrator > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
@@ -149,13 +149,15 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 
 //! Export the UpdaterMuVT class to python
 /*! \param name Name of the class in the exported python module
-    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape> will be exported
+    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape,Integrator> will be exported
 */
-template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
+template < class Shape, class Integrator >
+void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> > >(m, name.c_str(), pybind11::base<UpdaterMuVT<Shape> >())
+    pybind11::class_< UpdaterMuVTImplicit<Shape, Integrator>, std::shared_ptr< UpdaterMuVTImplicit<Shape, Integrator> > >(m, name.c_str(),
+          pybind11::base<UpdaterMuVT<Shape> >())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-            std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
+            std::shared_ptr< Integrator >, unsigned int, unsigned int>())
           ;
     }
 
@@ -165,17 +167,17 @@ template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, co
     \param seed RNG seed
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
-template<class Shape>
-UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
+template<class Shape, class Integrator>
+UpdaterMuVTImplicit<Shape, Integrator>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<Integrator> mc_implicit,
     unsigned int seed,
     unsigned int npartition)
     : UpdaterMuVT<Shape>(sysdef, mc_implicit,seed,npartition), m_mc_implicit(mc_implicit)
     {
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation, Scalar &lnboltzmann)
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation, Scalar &lnboltzmann)
     {
     // check overlaps with colloid particles first
     lnboltzmann = Scalar(0.0);
@@ -205,9 +207,8 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
     Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
 
-    #ifdef ENABLE_MPI
     unsigned int n_overlap = 0;
-
+    #ifdef ENABLE_MPI
     // number of depletants to insert
     unsigned int n_insert = 0;
 
@@ -268,50 +269,17 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             unsigned int n_dep = getNumDepletants(timestep, V, false);
 
             // count depletants overlapping with new config (but ignore overlap in old one)
-            unsigned int n_free = 0;
-            unsigned int n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
-
-            Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-            // fix the maximum number of removed depletants at the average number
-            // of depletants in the excluded volume sphere
-            unsigned int m = (unsigned int)(V*n_R) + 1;
-            hoomd::detail::Saru rng(this->m_seed, timestep,  0x2138af32);
-            unsigned int n_remove = rand_select(rng, m-1);
-
-            if (n_free >= n_remove && n_remove >= n_overlap)
-                {
-                // compute combinatorial factor
-                for (unsigned int np = n_free; np > n_free - n_overlap; np--)
-                    {
-                    lnboltzmann -= log(np);
-                    }
-                for (unsigned int np = n_remove; np > n_remove - n_overlap; np--)
-                    {
-                    lnboltzmann += log(np);
-                    }
-
-                // compute acceptance probability for GC cluster move
-                // according to Vink and Horbach JCP 2004
-                //lnboltzmann -= log((Scalar)m);
-                for (unsigned int np = n_free; np > n_free - n_remove; np--)
-                    {
-                    lnboltzmann += log((Scalar)np/(V*n_R));
-                    }
-                }
-            else
-                {
-                // reject
-                nonzero = false;
-                }
+            unsigned int n_free;
+            n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
+            nonzero = !n_overlap;
             }
         }
 
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, unsigned int new_type,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::trySwitchType(unsigned int timestep, unsigned int tag, unsigned int new_type,
     Scalar &lnboltzmann)
     {
     // check overlaps with colloid particles first
@@ -421,8 +389,8 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
     {
     // call parent class method
     lnboltzmann = Scalar(0.0);
@@ -482,13 +450,12 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
             d_colloid_old = shape_old.getCircumsphereDiameter();
             }
 
-        Scalar delta = d_dep + d_colloid_old;
-        Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
-
         #ifdef ENABLE_MPI
+
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
+            Scalar delta = d_dep + d_colloid_old;
             if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, m_mc_implicit->getNumTrials(), lnb, true))
                 {
                 lnboltzmann += lnb;
@@ -501,51 +468,15 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         else
         #endif
             {
-            if (nonzero)
-                {
-                Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-                hoomd::detail::Saru rng(this->m_seed, timestep,  0x123763de);
-
-                // fix the maximum number of inserted depletants at the average number
-                // of depletants in the excluded volume sphere
-                unsigned int m = (unsigned int)(V*n_R)+1;
-                n_insert = rand_select(rng, m-1);
-
-                // getPosition() corrects for grid shift, add it back
-                Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
-                int3 tmp = make_int3(0,0,0);
-                this->m_pdata->getGlobalBox().wrap(p,tmp);
-                vec3<Scalar> pos(p);
-
-                // try inserting depletants in new configuration (where particle is removed)
-
-                // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V, false);
-                unsigned int n_overlap = countDepletantOverlaps(timestep, n_dep, delta, pos);
-                unsigned int n_free = n_dep - n_overlap;
-
-                nonzero = moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag,  1, lnb, false);
-
-                if (nonzero)
-                    {
-                    // compute acceptance probability for GC cluster move
-                    // according to Vink and Horbach JCP 2004
-                    //lnboltzmann += log((Scalar)m);
-                    for (unsigned int np = n_free+n_insert; np > n_free; np--)
-                        {
-                        lnboltzmann += log((V*n_R)/(Scalar)np);
-                        }
-                    }
-                }
+            // just accept
             }
         } // end nglobal
 
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsInUpdatedRegion(unsigned int timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int new_type, unsigned int n_trial, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -746,8 +677,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int n_trial, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -921,8 +852,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape)
     {
     lnboltzmann = Scalar(0.0);
@@ -1116,8 +1047,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free)
     {
     // number of depletants successfully inserted
@@ -1278,8 +1209,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
     return n_overlap;
     }
 
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos)
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos)
     {
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;
@@ -1423,8 +1354,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
 
 
 //! Get a poisson-distributed number of depletants
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,  Scalar V, bool local)
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::getNumDepletants(unsigned int timestep,  Scalar V, bool local)
     {
     // parameter for Poisson distribution
     Scalar lambda = this->m_mc_implicit->getDepletantDensity()*V;
@@ -1455,8 +1386,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
     return n;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
     unsigned int &extra_ndof)
     {
     // call parent class method

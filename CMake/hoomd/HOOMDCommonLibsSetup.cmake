@@ -18,9 +18,12 @@ if (UNIX AND NOT APPLE)
 endif (UNIX AND NOT APPLE)
 
 set(HOOMD_COMMON_LIBS
-        ${HOOMD_PYTHON_LIBRARY}
         ${ADDITIONAL_LIBS}
         )
+
+if (APPLE)
+    list(APPEND HOOMD_COMMON_LIBS "-undefined dynamic_lookup")
+endif()
 
 if (ENABLE_CUDA)
     list(APPEND HOOMD_COMMON_LIBS ${CUDA_LIBRARIES} ${CUDA_cufft_LIBRARY} ${CUDA_curand_LIBRARY})

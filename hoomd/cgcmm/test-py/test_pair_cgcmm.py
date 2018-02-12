@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import cgcmm
 from hoomd import md;
 context.initialize()
@@ -13,7 +12,7 @@ import os
 class pair_cgcmm_tests (unittest.TestCase):
     def setUp(self):
         print
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[4,4,4]); #target a packing fraction of 0.05
         self.nl = md.nlist.cell()
         context.current.sorter.set_params(grid=8)
 
