@@ -80,12 +80,12 @@ class velocity_randomization_tests (unittest.TestCase):
 
         avg_trans_KE = self.log.query('translational_kinetic_energy') / N
         # We expect D * (1/2 kT) translational energy per particle
-        self.assertAlmostEqual(avg_trans_KE, self.D/2*self.kT, 2)
+        self.assertAlmostEqual(avg_trans_KE, 0.5*self.D*self.kT, 2)
 
         if self.aniso:
             avg_rot_KE = self.log.query('rotational_kinetic_energy') / N
             # We expect rot_dof * (1/2 kT) rotational energy per particle
-            self.assertAlmostEqual(avg_rot_KE, self.rot_dof/2*self.kT, 2)
+            self.assertAlmostEqual(avg_rot_KE, 0.5*self.rot_dof*self.kT, 2)
 
     def test_nvt(self):
         self.kT = 1.0
