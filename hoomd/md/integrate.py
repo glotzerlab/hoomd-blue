@@ -262,7 +262,7 @@ class nvt(_integration_method):
             self.cpp_method.setTau(tau);
             self.tau = tau
 
-    def randomize_velocities(self, kT, seed):
+    def randomize_velocities(self, seed):
         R""" Assign random velocities to particles in the group.
 
         Args:
@@ -272,6 +272,8 @@ class nvt(_integration_method):
             Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class npt(_integration_method):
@@ -632,7 +634,7 @@ class npt(_integration_method):
 
         return data
 
-    def randomize_velocities(self, kT, seed):
+    def randomize_velocities(self, seed):
         R""" Assign random velocities to particles in the group.
 
         Args:
@@ -642,6 +644,8 @@ class npt(_integration_method):
             Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
         self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class nph(npt):
@@ -688,7 +692,7 @@ class nph(npt):
         R""" Assign random velocities to particles in the group.
 
         Args:
-            kT (float): New temperature (if set) (in energy units)
+            kT (float): Temperature (in energy units)
             seed (int): Random number seed
 
         Note:
@@ -795,7 +799,7 @@ class nve(_integration_method):
         R""" Assign random velocities to particles in the group.
 
         Args:
-            kT (float): New temperature (if set) (in energy units)
+            kT (float): Temperature (in energy units)
             seed (int): Random number seed
 
         Note:
@@ -1501,4 +1505,6 @@ class berendsen(_integration_method):
             Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
 
         """
-        self.cpp_method.setRandomizeVelocitiesParams(self.kT, seed)
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)

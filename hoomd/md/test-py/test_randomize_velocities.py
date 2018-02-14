@@ -90,14 +90,21 @@ class velocity_randomization_tests (unittest.TestCase):
     def test_nvt(self):
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
-        integrator.randomize_velocities(kT=1.0, seed=42)
+        integrator.randomize_velocities(seed=42)
+        run(1)
+        self.check_quantities()
+
+    def test_berendsen(self):
+        self.kT = 1.0
+        integrator = md.integrate.berendsen(group=self.all, kT=self.kT, tau=0.5)
+        integrator.randomize_velocities(seed=42)
         run(1)
         self.check_quantities()
 
     def test_npt(self):
         self.kT = 1.0
         integrator = md.integrate.npt(group=self.all, kT=self.kT, tau=0.5, tauP=1.0, P=2.0)
-        integrator.randomize_velocities(kT=self.kT, seed=42)
+        integrator.randomize_velocities(seed=42)
         run(1)
         self.check_quantities()
 
@@ -118,7 +125,7 @@ class velocity_randomization_tests (unittest.TestCase):
     def test_nvt_2d(self):
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
-        integrator.randomize_velocities(kT=self.kT, seed=42)
+        integrator.randomize_velocities(seed=42)
         run(1)
         self.check_quantities()
 
@@ -126,7 +133,7 @@ class velocity_randomization_tests (unittest.TestCase):
         self.aniso_prep()
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
-        integrator.randomize_velocities(kT=self.kT, seed=42)
+        integrator.randomize_velocities(seed=42)
         run(1)
         self.check_quantities()
 
@@ -134,7 +141,7 @@ class velocity_randomization_tests (unittest.TestCase):
         self.aniso_prep()
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
-        integrator.randomize_velocities(kT=self.kT, seed=42)
+        integrator.randomize_velocities(seed=42)
         run(1)
         self.check_quantities()
 
