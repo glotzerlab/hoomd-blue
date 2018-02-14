@@ -301,10 +301,11 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x;
-        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y;
+        Scalar mass =  h_vel.data[j].w;
+        h_vel.data[j].x = h_vel.data[j].x - com_momentum.x / mass;
+        h_vel.data[j].y = h_vel.data[j].y - com_momentum.y / mass;
         if (D > 2)
-            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z;
+            h_vel.data[j].z = h_vel.data[j].z - com_momentum.z / mass;
         else
             h_vel.data[j].z = 0; // For 2D systems
         }
