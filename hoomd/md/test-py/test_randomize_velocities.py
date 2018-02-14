@@ -13,32 +13,50 @@ class velocity_randomization_tests (unittest.TestCase):
 
     def setUp(self):
         print
-        option.set_notice_level(0)
-        util.quiet_status()
 
         # Target a packing fraction of 0.05
         # Set an orientation and a moment of inertia for the anisotropic test
         a = 2.1878096788957757
-        uc = lattice.unitcell(N=1,
-                              a1=[a, 0, 0],
-                              a2=[0, a, 0],
-                              a3=[0, 0, a],
-                              position=[[0, 0, 0]],
-                              type_name=['A'],
-                              mass=[1],
-                              moment_inertia=[[1, 1, 0]],
-                              orientation=[[1, 0, 0, 0]])
+        if '2d' not in self._testMethodName:
+            self.D = 3
+            self.rot_dof = 3
+            uc = lattice.unitcell(N=1,
+                                  a1=[a, 0, 0],
+                                  a2=[0, a, 0],
+                                  a3=[0, 0, a],
+                                  position=[[0, 0, 0]],
+                                  type_name=['A'],
+                                  mass=[1],
+                                  moment_inertia=[[1, 1, 1]],
+                                  orientation=[[1, 0, 0, 0]])
+            n = [50, 50, 40]
+        else:
+            self.D = 2
+            self.rot_dof = 1
+            uc = lattice.unitcell(N=1,
+                                  a1=[a, 0, 0],
+                                  a2=[0, a, 0],
+                                  a3=[0, 0, 1],
+                                  dimensions=2,
+                                  position=[[0, 0, 0]],
+                                  type_name=['A'],
+                                  mass=[1],
+                                  moment_inertia=[[0, 0, 1]],
+                                  orientation=[[1, 0, 0, 0]])
+            n = 316
 
-        # The system has to be reasonably large to ensure that the measured
-        # temperature is approximately equal to the desired temperature after
-        # removing the center of mass momentum (eliminating drift)
-        self.system = init.create_lattice(unitcell=uc, n=[50,50,40])
+        # The system has to be reasonably large (~100k particles in brief
+        # tests) to ensure that the measured temperature is approximately
+        # equal to the desired temperature after removing the center of mass
+        # momentum (eliminating drift)
+        self.system = init.create_lattice(unitcell=uc, n=n)
 
         # Set one particle to be really massive for validation
         self.system.particles[0].mass = 10000
 
         md.integrate.mode_standard(dt=0.)
         self.all = group.all()
+        self.aniso = False
         self.quantities = ['N',
                            'kinetic_energy',
                            'translational_kinetic_energy',
@@ -47,15 +65,27 @@ class velocity_randomization_tests (unittest.TestCase):
                            'momentum']
         self.log = analyze.log(filename=None, quantities=self.quantities, period=None)
 
+    def aniso_prep(self):
+        # Sets up an anisotropic pair potential, so that rotational degrees of
+        # freedom are given some energy
+        nlist = md.nlist.cell()
+        dipole = md.pair.dipole(r_cut=2, nlist=nlist)
+        dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+        self.aniso = True
+
     def check_quantities(self):
-        for q in self.quantities:
-            if 'energy' in q:
-                print('average', q, self.log.query(q) / self.log.query('N'))
-            else:
-                print(q, self.log.query(q))
+        N = self.log.query('N')
         self.assertAlmostEqual(self.log.query('temperature'), self.kT, 2)
         self.assertAlmostEqual(self.log.query('momentum'), 0, 6)
-        #self.assertAlmostEqual(self.log.query('kinetic_energy')
+
+        avg_trans_KE = self.log.query('translational_kinetic_energy') / N
+        # We expect D * (1/2 kT) translational energy per particle
+        self.assertAlmostEqual(avg_trans_KE, self.D/2*self.kT, 2)
+
+        if self.aniso:
+            avg_rot_KE = self.log.query('rotational_kinetic_energy') / N
+            # We expect rot_dof * (1/2 kT) rotational energy per particle
+            self.assertAlmostEqual(avg_rot_KE, self.rot_dof/2*self.kT, 2)
 
     def test_nvt(self):
         self.kT = 1.0
@@ -85,13 +115,23 @@ class velocity_randomization_tests (unittest.TestCase):
         run(1)
         self.check_quantities()
 
-    def test_nvt_anisotropic(self):
-        # Sets up an anisotropic pair potential, so that rotational degrees of
-        # freedom are given some energy
-        nlist = md.nlist.cell()
-        dipole = md.pair.dipole(r_cut=2, nlist=nlist)
-        dipole.pair_coeff.set('A', 'A', mu=0.0, A=1.0, kappa=1.0)
+    def test_nvt_2d(self):
+        self.kT = 1.0
+        integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
+        integrator.randomize_velocities(kT=self.kT, seed=42)
+        run(1)
+        self.check_quantities()
 
+    def test_nvt_anisotropic(self):
+        self.aniso_prep()
+        self.kT = 1.0
+        integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
+        integrator.randomize_velocities(kT=self.kT, seed=42)
+        run(1)
+        self.check_quantities()
+
+    def test_nvt_anisotropic_2d(self):
+        self.aniso_prep()
         self.kT = 1.0
         integrator = md.integrate.nvt(group=self.all, kT=self.kT, tau=0.5)
         integrator.randomize_velocities(kT=self.kT, seed=42)
