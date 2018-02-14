@@ -190,7 +190,8 @@ void IntegrationMethodTwoStep::validateGroup()
     }
 
 /*!
-   Randomizes linear velocities and angular momenta by sampling the Maxwell-Boltzmann (MB) distribution.
+   Randomizes linear velocities and angular momenta by sampling the
+   Maxwell-Boltzmann (MB) distribution.
    The user provides three arguments:
    - The particle group
    - Temperature
@@ -203,19 +204,32 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         {
         return;
         }
+
     /* Get the number of particles in the group */
     unsigned int group_size = m_group->getNumMembers();
 
     /* Grab some variables */
     const unsigned int D = Scalar(m_sysdef->getNDimensions());
 
-    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
+    ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(),
+                               access_location::host,
+                               access_mode::readwrite);
 
-    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
-    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(), access_location::host, access_mode::readwrite);
-    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(),
+                                       access_location::host,
+                                       access_mode::read);
 
-    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
+    ArrayHandle<Scalar4> h_angmom(m_pdata->getAngularMomentumArray(),
+                                  access_location::host,
+                                  access_mode::readwrite);
+
+    ArrayHandle<Scalar3> h_inertia(m_pdata->getMomentsOfInertiaArray(),
+                                   access_location::host,
+                                   access_mode::read);
+
+    ArrayHandle<unsigned int> h_tag(m_pdata->getTags(),
+                                    access_location::host,
+                                    access_mode::read);
 
     /* Total momentum */
     vec3<Scalar> tot_momentum(0,0,0);
@@ -239,26 +253,25 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         else
             h_vel.data[j].z = 0; // For 2D systems
 
-	tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
+        tot_momentum += mass * vec3<Scalar>(h_vel.data[j]);
 
-        /* Generate a new random angular momentum if the particle is a rigid body and anisotropy flag gets set
-           There may be some issues for 2D systems */
+        /* Generate a new random angular momentum if the particle is a rigid
+         * body and anisotropy flag gets set.
+         * There may be some issues for 2D systems */
         if (m_aniso)
             {
-            vec3<Scalar> p_vec;
+            vec3<Scalar> p_vec(0,0,0);
             quat<Scalar> q(h_orientation.data[j]);
             vec3<Scalar> I(h_inertia.data[j]);
 
-            bool x_zero, y_zero, z_zero;
-            x_zero = (I.x < EPSILON); y_zero = (I.y < EPSILON); z_zero = (I.z < EPSILON);
-
-            /* Generate a new random angular momentum for particle j in body frame */
-            p_vec.x = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.x));
-            p_vec.y = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.y));
-            p_vec.z = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.z));
-            if (x_zero) p_vec.x = 0;
-            if (y_zero) p_vec.y = 0;
-            if (z_zero) p_vec.z = 0;
+            /* Generate a new random angular momentum for particle j in
+             * body frame */
+            if (I.x >= EPSILON)
+                p_vec.x = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.x));
+            if (I.y >= EPSILON)
+                p_vec.y = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.y));
+            if (I.z >= EPSILON)
+                p_vec.z = gaussian_rng(saru, fast::sqrt(m_T_randomize * I.z));
 
             /* Store the angular momentum quaternion */
             quat<Scalar> p = Scalar(2.0) * q * p_vec;
@@ -271,7 +284,8 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
     vec3<Scalar> reduced_tot_momentum(0,0,0);
     if(m_comm)
        {
-       MPI_Reduce(&tot_momentum, &reduced_tot_momentum, 3, MPI_FLOAT, MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+       MPI_Reduce(&tot_momentum, &reduced_tot_momentum, 3, MPI_FLOAT,
+                  MPI_SUM, 0, m_exec_conf->getMPICommunicator());
        }
     else
        {
