@@ -95,11 +95,16 @@ class velocity_randomization_tests (unittest.TestCase):
         self.check_quantities()
 
     def test_berendsen(self):
-        self.kT = 1.0
-        integrator = md.integrate.berendsen(group=self.all, kT=self.kT, tau=0.5)
-        integrator.randomize_velocities(seed=42)
-        run(1)
-        self.check_quantities()
+        if comm.get_num_ranks() == 1:
+            self.kT = 1.0
+            integrator = md.integrate.berendsen(group=self.all, kT=self.kT, tau=0.5)
+            integrator.randomize_velocities(seed=42)
+            run(1)
+            self.check_quantities()
+        else:
+            # We can only run the berendsen thermostat if we have one rank.
+            # Ignore this test on MPI with more than one rank.
+            pass
 
     def test_npt(self):
         self.kT = 1.0

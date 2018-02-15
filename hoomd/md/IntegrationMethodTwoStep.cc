@@ -232,7 +232,7 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
                                     access_mode::read);
 
     /* Total momentum */
-    vec3<Scalar> tot_momentum(0,0,0);
+    vec3<Scalar> tot_momentum(0, 0, 0);
 
     /* Loop over all the particles in the group */
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
@@ -245,7 +245,7 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
 
         /* Generate a new random linear velocity for particle j */
         Scalar mass =  h_vel.data[j].w;
-        Scalar sigma = fast::sqrt(m_T_randomize/mass);
+        Scalar sigma = fast::sqrt(m_T_randomize / mass);
         h_vel.data[j].x = gaussian_rng(saru, sigma);
         h_vel.data[j].y = gaussian_rng(saru, sigma);
         if (D > 2)
@@ -280,24 +280,19 @@ void IntegrationMethodTwoStep::randomizeVelocities(unsigned int timestep)
         }
 
     /* Remove the drift i.e. remove the center of mass velocity */
+
     #ifdef ENABLE_MPI
-    vec3<Scalar> reduced_tot_momentum(0,0,0);
-    if(m_comm)
+    // Reduce the total momentum from all MPI ranks
+    if (m_comm)
        {
-       MPI_Reduce(&tot_momentum, &reduced_tot_momentum, 3, MPI_FLOAT,
-                  MPI_SUM, 0, m_exec_conf->getMPICommunicator());
+       MPI_Allreduce(MPI_IN_PLACE, &tot_momentum, 3, MPI_HOOMD_SCALAR,
+                     MPI_SUM, m_exec_conf->getMPICommunicator());
        }
-    else
-       {
-       reduced_tot_momentum = tot_momentum;
-       }
-    #else
-    vec3<Scalar> reduced_tot_momentum = tot_momentum;
     #endif
-    vec3<Scalar> com_momentum(0,0,0);
-    com_momentum.x = reduced_tot_momentum.x / m_group->getNumMembersGlobal();
-    com_momentum.y = reduced_tot_momentum.y / m_group->getNumMembersGlobal();
-    com_momentum.z = reduced_tot_momentum.z / m_group->getNumMembersGlobal();
+
+    vec3<Scalar> com_momentum(tot_momentum /
+                              Scalar(m_group->getNumMembersGlobal()));
+
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
