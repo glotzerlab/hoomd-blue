@@ -1738,6 +1738,15 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
     ;
     }
 
+inline void export_hpmc_clusters_counters(pybind11::module &m)
+    {
+    pybind11::class_< hpmc_clusters_counters_t >(m, "hpmc_clusters_counters_t")
+        .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
+        .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
+        .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
+        .def("getNMoves", &hpmc_clusters_counters_t::getNMoves);
+    }
+
 } // end namespace hpmc
 
 #endif // _UPDATER_HPMC_CLUSTERS_

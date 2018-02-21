@@ -63,6 +63,7 @@ set(TEST_LIST_CPU
     map_overlap.py
     hpmc_gsd_state.py
     faceted_sphere.py
+    test_clusters.py
     )
 
 if (BUILD_JIT)
@@ -80,6 +81,7 @@ set(TEST_LIST_GPU
     muvt.py
     shape_proxy.py
     faceted_sphere.py
+    test_clusters.py
     )
 
 set(EXCLUDE_FROM_MPI
