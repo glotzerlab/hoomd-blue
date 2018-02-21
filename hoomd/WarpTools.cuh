@@ -20,6 +20,48 @@ namespace hoomd
 namespace detail
 {
 
+template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
+class WarpReduce
+    {
+    public:
+        DEVICE WarpReduce()
+            {
+            static_assert(PTX_ARCH >= 300, "PTX architecture must be >= 300");
+            static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS, "Logical warp size cannot exceed hardware warp size");
+            static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS-1)), "Logical warp size must be a power of 2");
+            }
+
+        DEVICE T Sum(T input)
+            {
+            return Reduce(input, cub::Sum());
+            }
+
+        DEVICE T Sum(T input, int valid_items)
+            {
+            return Reduce(input, cub::Sum(), valid_items);
+            }
+
+        template<typename ReduceOpT>
+        DEVICE T Reduce(T input, ReduceOpT reduce_op)
+            {
+            // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
+            TempStorage tmp;
+            return WarpReduceShfl(tmp).template Reduce<true>(input, LOGICAL_WARP_THREADS, reduce_op);
+            }
+
+        template<typename ReduceOpT>
+        DEVICE T Reduce(T input, ReduceOpT reduce_op, int valid_items)
+            {
+            // shuffle-based reduce does not need temporary space, so we let the compiler optimize this dummy variable out
+            TempStorage tmp;
+            return WarpReduceShfl(tmp).template Reduce<false>(input, valid_items, reduce_op);
+            }
+
+    private:
+        typedef cub::WarpReduceShfl<T,LOGICAL_WARP_THREADS,PTX_ARCH> WarpReduceShfl;    //!< CUB shuffle-based reduce
+        typedef typename WarpReduceShfl::TempStorage TempStorage;                       //!< Nominal data type for CUB temporary storage
+    };
+
 //! Computes warp-level scan (prefix sum) using shuffle instructions
 /*!
  * Scan operations are performed at the warp or sub-warp level using shuffle instructions. The sub-warp is defined as

@@ -13,6 +13,31 @@
 
 #include "hoomd/Index1D.h"
 
+//! Arguments for warp reduce tests
+struct reduce_params
+    {
+    reduce_params(int* data_,
+                  int* reduce_,
+                  int* sum_,
+                  unsigned int N_,
+                  unsigned int width_,
+                  unsigned int tpp_,
+                  const Index2D& reduce_idx_)
+        : data(data_), reduce(reduce_), sum(sum_), N(N_), width(width_), tpp(tpp_), reduce_idx(reduce_idx_)
+        {}
+
+    const int* data;        //!< Data to scan as a N x width matrix
+    int* reduce;            //!< Output of the reduction at each step
+    int* sum;               //!< Total sum for each row of data
+    const unsigned int N;       //!< Number of rows in data
+    const unsigned int width;   //!< Number of entries to reduce
+    const unsigned int tpp;     //!< Number of threads to scan with per particle
+    const Index2D reduce_idx;   //!< Indexer for saving intermediate results of reduction
+    };
+
+//! Calls the warp reduce kernel
+void warp_reduce(const reduce_params& params);
+
 //! Arguments for warp scan tests
 struct scan_params
     {
@@ -26,9 +51,9 @@ struct scan_params
         : data(data_), scan(scan_), sum(sum_), N(N_), width(width_), tpp(tpp_), scan_idx(scan_idx_)
         {}
 
-    int* data;  //!< Data to scan as a N x width matrix
-    int* scan;  //!< Output of the scan at each step of sum
-    int* sum;   //!< Total sum for each row of data
+    const int* data;    //!< Data to scan as a N x width matrix
+    int* scan;          //!< Output of the scan at each step of sum
+    int* sum;           //!< Total sum for each row of data
     const unsigned int N;       //!< Number of rows in data
     const unsigned int width;   //!< Number of entries to scan
     const unsigned int tpp;     //!< Number of threads to scan with per particle
