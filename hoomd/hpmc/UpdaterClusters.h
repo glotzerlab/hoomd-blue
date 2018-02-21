@@ -215,20 +215,20 @@ class UpdaterClusters : public Updater
             {
             hpmc_clusters_counters_t counters = getCounters(2);
 
-            if (quantity == "hpmc_cluster_moves")
+            if (quantity == "hpmc_clusters_moves")
                 {
                 hpmc_clusters_counters_t counters_total = getCounters(0);
                 return double(counters_total.getNMoves()) / double(m_pdata->getNGlobal());
                 }
-            else if (quantity == "hpmc_cluster_pivot_acceptance")
+            else if (quantity == "hpmc_clusterd_pivot_acceptance")
                 {
                 return counters.getPivotAcceptance();
                 }
-            else if (quantity == "hpmc_cluster_reflection_acceptance")
+            else if (quantity == "hpmc_clusters_reflection_acceptance")
                 {
                 return counters.getReflectionAcceptance();
                 }
-            else if (quantity == "hpmc_cluster_swap_acceptance")
+            else if (quantity == "hpmc_clusters_swap_acceptance")
                 {
                 return counters.getSwapAcceptance();
                 }
@@ -243,10 +243,10 @@ class UpdaterClusters : public Updater
             // start with the integrator provided quantities
             std::vector< std::string > result;
             // then add ours
-            result.push_back("hpmc_cluster_moves");
-            result.push_back("hpmc_cluster_pivot_acceptance");
-            result.push_back("hpmc_cluster_reflection_acceptance");
-            result.push_back("hpmc_cluster_swap_acceptance");
+            result.push_back("hpmc_clusters_moves");
+            result.push_back("hpmc_clusters_pivot_acceptance");
+            result.push_back("hpmc_clusters_reflection_acceptance");
+            result.push_back("hpmc_clusters_swap_acceptance");
             return result;
             }
 
