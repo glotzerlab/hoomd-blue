@@ -166,6 +166,14 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     #ifdef ENABLE_TBB
     m_num_threads = tbb::task_scheduler_init::default_num_threads();
+
+    char *env;
+    if ((env = getenv("OMP_NUM_THREADS")) != NULL)
+        {
+        unsigned int num_threads = atoi(env);
+        msg->notice(2) << "Setting number of TBB threads to value of OMP_NUM_THREADS=" << num_threads << std::endl;
+        setNumThreads(num_threads);
+        }
     #endif
     }
 
