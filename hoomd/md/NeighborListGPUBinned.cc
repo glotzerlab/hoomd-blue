@@ -39,13 +39,7 @@ NeighborListGPUBinned::NeighborListGPUBinned(std::shared_ptr<SystemDefinition> s
     // encoded as block_size*10000 + threads_per_particle
     std::vector<unsigned int> valid_params;
 
-    unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
-    if (m_exec_conf->getComputeCapability() < 300)
-        {
-        // no wide parallelism on Fermi
-        max_tpp = 1;
-        }
-
+    const unsigned int max_tpp = m_exec_conf->dev_prop.warpSize;
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
         unsigned int s=1;
