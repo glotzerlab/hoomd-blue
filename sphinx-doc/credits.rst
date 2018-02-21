@@ -200,6 +200,9 @@ Lin Yang, Alex Travesset, Iowa State University
 Tim Moore, Vanderbilt University
   * angle.cosinesq
 
+Bradley Dice, Avisek Das, University of Michigan
+  * integrator.randomize_velocities()
+
 HPMC developers
 ---------------
 
