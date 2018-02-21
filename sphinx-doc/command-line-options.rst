@@ -253,3 +253,4 @@ the number of threads can be set. On the command line, this is done using::
 
 Alternatively, the same option can be passed to :py:class:`hoomd.context.initialize()`, and the number of threads can be updated any time
 using :py:class:`hoomd.context.ExecutionContext()` . If no number of threads is specified, TBB by default uses all CPUs in the system.
+For compatbility with OpenMP, HOOMD also honors a value set in the environment variable **OMP_NUM_THREADS**.
