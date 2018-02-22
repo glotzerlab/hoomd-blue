@@ -23,7 +23,12 @@ class test_clusters_spheres (unittest.TestCase):
     def test_integrate(self):
         run(100)
 
-        self.assertAlmostEqual(self.clusters.get_pivot_acceptance(),1.0)
+        if comm.get_num_ranks() == 1:
+            self.assertAlmostEqual(self.clusters.get_pivot_acceptance(),1.0)
+        else:
+            # in MPI, there are inactive boundaries
+            self.assertTrue(self.clusters.get_pivot_acceptance() > 0)
+
         self.assertTrue(self.clusters.get_reflection_acceptance() > 0)
 
     def test_binary_spheres(self):
@@ -34,7 +39,10 @@ class test_clusters_spheres (unittest.TestCase):
 
         g = group.type(type='B',name='B')
         self.assertTrue(len(g) > 0)
-        self.assertAlmostEqual(self.clusters.get_swap_acceptance(),1.0)
+        if comm.get_num_ranks() == 1:
+            self.assertAlmostEqual(self.clusters.get_swap_acceptance(),1.0)
+        else:
+            self.assertTrue(self.clusters.get_swap_acceptance() > 0)
 
         # set a finite chemical potential difference
         self.clusters.set_params(delta_mu=0.1)
