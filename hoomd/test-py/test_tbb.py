@@ -4,25 +4,27 @@
 from hoomd import *
 import hoomd;
 
-# test the command line option
-context.initialize("--nthreads=4")
+from hoomd import _hoomd
+if _hoomd.is_TBB_available():
+    # test the command line option
+    context.initialize("--nthreads=4")
 
-import unittest
-import os
+    import unittest
+    import os
 
-# unit tests for options
-class option_tests (unittest.TestCase):
-    def setUp(self):
-        print
+    # unit tests for options
+    class option_tests (unittest.TestCase):
+        def setUp(self):
+            print
 
-    # tests that mode settings work properly
-    def test_nthreads(self):
-        self.assertEqual(hoomd.context.ExecutionContext().num_threads, 4);
-        hoomd.context.ExecutionContext().num_threads = 2
-        self.assertEqual(hoomd.context.ExecutionContext().num_threads, 2);
+        # tests that mode settings work properly
+        def test_nthreads(self):
+            self.assertEqual(hoomd.context.ExecutionContext().num_threads, 4);
+            hoomd.context.ExecutionContext().num_threads = 2
+            self.assertEqual(hoomd.context.ExecutionContext().num_threads, 2);
 
-    def tearDown(self):
-        pass;
+        def tearDown(self):
+            pass;
 
-if __name__ == '__main__':
-    unittest.main(argv = ['test.py', '-v'])
+    if __name__ == '__main__':
+        unittest.main(argv = ['test.py', '-v'])
