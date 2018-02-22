@@ -396,13 +396,6 @@ class ExecutionContext(hoomd.meta._metadata):
         else:
             return self._get_exec_conf().getNumThreads();
 
-    @num_threads.setter
-    def num_threads(self, nthreads):
-        if not _hoomd.is_TBB_available():
-            msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
-        else:
-            self._get_exec_conf().setNumThreads(int(nthreads));
-
 ## \internal
 # \brief Gather context about HOOMD
 class HOOMDContext(hoomd.meta._metadata):

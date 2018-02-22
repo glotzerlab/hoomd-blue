@@ -20,7 +20,7 @@ if _hoomd.is_TBB_available():
         # tests that mode settings work properly
         def test_nthreads(self):
             self.assertEqual(hoomd.context.ExecutionContext().num_threads, 4);
-            hoomd.context.ExecutionContext().num_threads = 2
+            option.set_num_threads(2)
             self.assertEqual(hoomd.context.ExecutionContext().num_threads, 2);
 
         def tearDown(self):

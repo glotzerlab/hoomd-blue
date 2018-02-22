@@ -274,6 +274,23 @@ def set_autotuner_params(enable=True, period=100000):
     hoomd.context.options.autotuner_period = period;
     hoomd.context.options.autotuner_enable = enable;
 
+def set_num_threads(num_threads):
+    R""" Set the number of CPU (TBB) threads HOOMD uses
+
+    Args:
+        num_threads (int): The number of threads
+
+    Note:
+        Overrides ``--nthreads`` on the command line.
+
+    """
+
+    if not _hoomd.is_TBB_available():
+        msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
+    else:
+        hoomd.context.exec_conf.setNumThreads(int(num_threads));
+
+
 ## \internal
 # \brief Throw an error if the context is not initialized
 def _verify_init():
