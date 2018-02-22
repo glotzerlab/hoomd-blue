@@ -22,6 +22,7 @@ else(HOOMD_ROOT)
   find_package(PythonInterp)
 
   set(find_hoomd_script "
+from __future__ import print_function;
 import sys, os; sys.stdout = open(os.devnull, 'w')
 import hoomd
 print(os.path.dirname(hoomd.__file__), file=sys.stderr, end='')")
@@ -88,6 +89,8 @@ include (CMake_install_options)
 
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
+# setup numpy
+include (HOOMDNumpySetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 # Set default CFlags
