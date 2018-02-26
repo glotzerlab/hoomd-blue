@@ -95,6 +95,10 @@ Options
 
         specifies the prefix of files to write per-partition output to (filename: *prefix.\<partition_id\>*)
 
+* *Option available only when compiled with TBB support*
+    * **--nthreads**
+        Number of TBB threads to use, by default use all CPUs in the system
+
 Detailed description
 --------------------
 
@@ -237,3 +241,16 @@ if hoomd is executed with::
 
 then :py:func:`hoomd.option.get_user()` will return ``['--N=5', '--rho=0.5']``, which is a format suitable for processing by standard
 tools such as :py:obj:`optparse`.
+
+Execution with CPU threads (Intel TBB support)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some classes in HOOMD support CPU threads using Intel's Threading Building Blocks (TBB). TBB can speed up the calculation considerably,
+depending on the number of CPU cores available in the system. If HOOMD was compiled with support for TBB,
+the number of threads can be set. On the command line, this is done using::
+
+    python script.py --mode=cpu --nthreads=20
+
+Alternatively, the same option can be passed to :py:class:`hoomd.context.initialize()`, and the number of threads can be updated any time
+using :py:func:`hoomd.option.set_num_threads()` . If no number of threads is specified, TBB by default uses all CPUs in the system.
+For compatbility with OpenMP, HOOMD also honors a value set in the environment variable **OMP_NUM_THREADS**.

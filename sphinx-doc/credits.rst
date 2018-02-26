@@ -89,6 +89,7 @@ Jens Glaser, University of Michigan
  * pair.van_der_waals
  * hpmc interaction_matrix
  * special_pair framework
+ * TBB support
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -199,6 +200,9 @@ Lin Yang, Alex Travesset, Iowa State University
 Tim Moore, Vanderbilt University
   * angle.cosinesq
 
+Bradley Dice, Avisek Das, University of Michigan
+  * integrator.randomize_velocities()
+
 HPMC developers
 ---------------
 
@@ -253,6 +257,7 @@ Jens Glaser, University of Michigan
  * Dynamic number of particle types support
  * Implicit depletants
  * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
+ * Geometric Cluster Algorithm implementation
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature

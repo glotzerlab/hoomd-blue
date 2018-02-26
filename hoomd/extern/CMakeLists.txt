@@ -5,7 +5,7 @@ file(GLOB_RECURSE _extern_headers
 # Eigen headers have no suffix
 file(GLOB _eigen_files
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-    Eigen/*)
+    Eigen/Eigen/*)
 
 #filter directories
 FOREACH(file ${_eigen_files})
