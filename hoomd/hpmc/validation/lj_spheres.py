@@ -46,13 +46,23 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
-        use_clusters = int(option.get_user()[0])
+        use_clusters = int(option.get_user()[0])%2
+        use_depletants = int(option.get_user()[0])//2
 
         N = len(system.particles);
 
-        mc = hpmc.integrate.sphere(d=0.3,seed=321);
+        if use_depletants:
+            mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True,depletant_mode='overlap_regions');
+        else:
+            mc = hpmc.integrate.sphere(d=0.3,seed=321);
 
         mc.shape_param.set('A',diameter=diameter)
+
+        if use_depletants:
+            # set up a dummy depletant
+            system.particles.types.add('B')
+            mc.set_params(depletant_type='B',nR=0)
+            mc.shape_param.set('B', diameter=0)
 
         lennard_jones = """
                         float rsq = dot(r_ij, r_ij);
