@@ -86,9 +86,9 @@ Example script for a pure bulk SRD fluid::
 
 .. rubric:: Stability
 
-:py:mod:`hoomd.mpcd` is currently **unstable**. (It is under development.) When
-upgrading from version 2.x to 2.y (y > x), existing job scripts may need to be
-updated.
+:py:mod:`hoomd.mpcd` is currently **stable**, but remains under development.
+When upgrading versions, existing job scripts may need to be need to be updated.
+Such modifications will be noted in the change log.
 
 **Maintainer:** Michael P. Howard, Princeton University.
 """
