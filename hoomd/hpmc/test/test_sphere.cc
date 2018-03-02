@@ -27,6 +27,7 @@ UP_TEST( construction )
     sph_params par;
     par.radius = 1.25;
     par.ignore = 0;
+    par.isOriented = false;
 
     // construct and check
     ShapeSphere a(o, par);
@@ -53,6 +54,7 @@ UP_TEST( overlap_sphere)
     sph_params par;
     par.radius=1.25;
     par.ignore=0;
+    par.isOriented = false;
 
     // place test spheres
     ShapeSphere a(o, par);
@@ -88,6 +90,7 @@ UP_TEST( overlap_boundaries )
     sph_params par;
     par.radius=1.0;
     par.ignore = 0;
+    par.isOriented = false;
 
     // place test spheres
     vec3<Scalar> pos_a(9,0,0);

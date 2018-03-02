@@ -6,6 +6,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
+#include "ShapeSphere.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -14,8 +15,8 @@
 #define __OBB_H__
 
 #ifndef NVCC
-#include "hoomd/extern/Eigen/Dense"
-#include "hoomd/extern/Eigen/Eigenvalues"
+#include "hoomd/extern/Eigen/Eigen/Dense"
+#include "hoomd/extern/Eigen/Eigen/Eigenvalues"
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 #endif

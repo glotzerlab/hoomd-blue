@@ -65,6 +65,10 @@ set(TEST_LIST_CPU
     faceted_sphere.py
     )
 
+if (BUILD_JIT)
+    list(APPEND TEST_LIST_CPU enthalpic_interaction.py)
+endif()
+
 set(TEST_LIST_GPU
     shape_union.py
     stats_check.py
@@ -90,6 +94,7 @@ set(EXCLUDE_FROM_MPI
     test_sdf.py
     map_overlap.py
     shape_union.py
+    enthalpic_interaction.py
    )
 
 set(MPI_ONLY

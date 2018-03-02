@@ -87,6 +87,7 @@ class GSDDumpWriter : public Analyzer
         gsd_handle m_handle;                //!< Handle to the file
 
         std::shared_ptr<ParticleGroup> m_group;   //!< Group to write out to the file
+        std::map<std::string, bool> m_nondefault; //!< Map of quantities (true when non-default in frame 0)
 
         hoomd::detail::SharedSignal<int (gsd_handle&)> m_write_signal;
 
@@ -118,6 +119,9 @@ class GSDDumpWriter : public Analyzer
 
         //! Check and raise an exception if an error occurs
         void checkError(int retval);
+
+        //! Populate the non-default map
+        void populateNonDefault();
     };
 
 //! Exports the GSDDumpWriter class to python

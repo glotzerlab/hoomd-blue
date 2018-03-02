@@ -695,12 +695,6 @@ CommFlags ForceComposite::getRequestedCommFlags(unsigned int timestep)
     // request orientations
     flags[comm_flag::orientation] = 1;
 
-    // request communication of particle forces
-    flags[comm_flag::net_force] = 1;
-
-    // request communication of particle torques (not currently used)
-    //flags[comm_flag::net_torque] = 1;
-
     // only communicate net virial if needed
     PDataFlags pdata_flags = this->m_pdata->getFlags();
     if (pdata_flags[pdata_flag::isotropic_virial] || pdata_flags[pdata_flag::pressure_tensor])
@@ -861,14 +855,6 @@ void ForceComposite::computeForces(unsigned int timestep)
                     Scalar virialyz = h_net_virial.data[4*net_virial_pitch+idxj];
                     Scalar virialzz = h_net_virial.data[5*net_virial_pitch+idxj];
 
-                    // zero net virial
-                    h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
-                    h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
-
                     // subtract intra-body virial prt
                     h_virial.data[0*m_virial_pitch+central_idx] += virialxx - f.x*dr_space.x;
                     h_virial.data[1*m_virial_pitch+central_idx] += virialxy - f.x*dr_space.y;
@@ -878,6 +864,14 @@ void ForceComposite::computeForces(unsigned int timestep)
                     h_virial.data[5*m_virial_pitch+central_idx] += virialzz - f.z*dr_space.z;
                     }
                 }
+
+            // zero net virial
+            h_net_virial.data[0*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[1*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[2*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[3*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[4*net_virial_pitch+idxj] = 0.0;
+            h_net_virial.data[5*net_virial_pitch+idxj] = 0.0;
             }
         }
     }

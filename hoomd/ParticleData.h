@@ -26,6 +26,8 @@
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
 
+#include "HOOMDMPI.h"
+
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 
@@ -103,6 +105,29 @@ const unsigned int NO_BODY = 0xffffffff;
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
+#ifdef ENABLE_MPI
+namespace cereal
+    {
+    //! Serialization of vec3<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, vec3<Real> & v, const unsigned int version)
+        {
+        ar & v.x;
+        ar & v.y;
+        ar & v.z;
+        }
+
+    //! Serialization of quat<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, quat<Real> & q, const unsigned int version)
+        {
+        // serialize both members
+        ar & q.s;
+        ar & q.v;
+        }
+    }
+#endif
+
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData
@@ -142,6 +167,14 @@ struct SnapshotParticleData {
     /*! \returns true if the number of elements is consistent
      */
     bool validate() const;
+
+    #ifdef ENABLE_MPI
+    //! Broadcast the snapshot using MPI
+    /*! \param root the processor to send from
+        \param mpi_comm The MPI communicator
+     */
+    void bcast(unsigned int root, MPI_Comm mpi_comm);
+    #endif
 
     //! Replicate this snapshot
     /*! \param nx Number of times to replicate the system along the x direction

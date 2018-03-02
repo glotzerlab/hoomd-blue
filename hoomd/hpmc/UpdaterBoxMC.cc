@@ -310,7 +310,7 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
                                           Scalar xz,
                                           Scalar yz,
                                           unsigned int timestep,
-                                          Scalar boltzmann,
+                                          Scalar deltaE,
                                           hoomd::detail::Saru& rng
                                           )
     {
@@ -318,11 +318,17 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     unsigned int N_backup = m_pdata->getN();
         {
         ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::overwrite);
         memcpy(h_pos_backup.data, h_pos.data, sizeof(Scalar4) * N_backup);
         }
 
     BoxDim curBox = m_pdata->getGlobalBox();
+
+    if (m_mc->getPatchInteraction())
+        {
+        // energy of old configuration
+        deltaE -= m_mc->computePatchEnergy(timestep);
+        }
 
     // Attempt box resize and check for overlaps
     BoxDim newBox = m_pdata->getGlobalBox();
@@ -331,17 +337,23 @@ inline bool UpdaterBoxMC::box_resize_trial(Scalar Lx,
     newBox.setTiltFactors(xy, xz, yz);
 
     bool allowed = m_mc->attemptBoxResize(timestep, newBox);
+
+    if (allowed && m_mc->getPatchInteraction())
+        {
+        deltaE += m_mc->computePatchEnergy(timestep);
+        }
+
     if (allowed && m_mc->getExternalField())
         {
         ArrayHandle<Scalar4> h_pos_backup(m_pos_backup, access_location::host, access_mode::readwrite);
-        Scalar ext_boltzmann = m_mc->getExternalField()->calculateBoltzmannFactor(h_pos_backup.data, NULL, &curBox);
+        Scalar ext_energy = m_mc->getExternalField()->calculateDeltaE(h_pos_backup.data, NULL, &curBox);
         // The exponential is a very fast function and we may do better to add pseudo-Hamiltonians and exponentiate only once...
-        boltzmann *= ext_boltzmann;
+        deltaE += ext_energy;
         }
 
     double p = rng.d();
 
-    if (allowed && p < boltzmann)
+    if (allowed && p < fast::exp(-deltaE))
         {
         return true;
         }
@@ -409,35 +421,35 @@ void UpdaterBoxMC::update(unsigned int timestep)
         if (m_prof) m_prof->pop();
         return;
         }
-    float move_type_select = rng.f() * range;
+    float move_type_select = rng.f() * range; // generate a number on [0, range)
 
     // Attempt and evaluate a move
     // This section will need to be updated when move types are added.
-    if (move_type_select <= m_Volume_weight)
+    if (move_type_select < m_Volume_weight)
         {
         // Isotropic volume change
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    if (move_type_select <= m_Volume_weight + m_lnVolume_weight)
+    if (move_type_select < m_Volume_weight + m_lnVolume_weight)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;
         update_lnV(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight)
         {
         // Volume change in distribution of box lengths
         m_exec_conf->msg->notice(8) << "Box length move performed at step " << timestep << std::endl;
         update_L(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight)
         {
         // Shear change
         m_exec_conf->msg->notice(8) << "Box shear move performed at step " << timestep << std::endl;
         update_shear(timestep, rng);
         }
-    else if (move_type_select <= m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight + m_Length_weight + m_Shear_weight + m_Aspect_weight)
         {
         // Volume conserving aspect change
         m_exec_conf->msg->notice(8) << "Box aspect move performed at step " << timestep << std::endl;
@@ -509,8 +521,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
         dV = Vnew - Vold;
 
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/Vold);
-        double Boltzmann = exp(dBetaH);
+        double dBetaH = P * dV - Nglobal * log(Vnew/Vold);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -520,7 +531,7 @@ void UpdaterBoxMC::update_L(unsigned int timestep, hoomd::detail::Saru& rng)
                                   newShear[1],
                                   newShear[2],
                                   timestep,
-                                  Boltzmann,
+                                  dBetaH,
                                   rng
                                   );
 
@@ -596,8 +607,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
     else
         {
         // Calculate Boltzmann factor
-        double dBetaH = -P * (new_V-V) + (Nglobal+1) * log(new_V/V);
-        double Boltzmann = exp(dBetaH);
+        double dBetaH = P * (new_V-V) - (Nglobal+1) * log(new_V/V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -607,7 +617,7 @@ void UpdaterBoxMC::update_lnV(unsigned int timestep, hoomd::detail::Saru& rng)
                                       newShear[1],
                                       newShear[2],
                                       timestep,
-                                      Boltzmann,
+                                      dBetaH,
                                       rng);
 
         if (accept)
@@ -686,8 +696,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
             Vnew *= newL[2];
             }
         // Calculate Boltzmann factor
-        double dBetaH = -P * dV + Nglobal * log(Vnew/V);
-        double Boltzmann = exp(dBetaH);
+        double dBetaH = P * dV - Nglobal * log(Vnew/V);
 
         // attempt box change
         bool accept = box_resize_trial(newL[0],
@@ -697,7 +706,7 @@ void UpdaterBoxMC::update_V(unsigned int timestep, hoomd::detail::Saru& rng)
                                       newShear[1],
                                       newShear[2],
                                       timestep,
-                                      Boltzmann,
+                                      dBetaH,
                                       rng);
 
         if (accept)
@@ -750,7 +759,7 @@ void UpdaterBoxMC::update_shear(unsigned int timestep, hoomd::detail::Saru& rng)
                                           newShear[1],
                                           newShear[2],
                                           timestep,
-                                          Scalar(1.0),
+                                          Scalar(0.0),
                                           rng);
     if (trial_success)
         {
@@ -814,7 +823,7 @@ void UpdaterBoxMC::update_aspect(unsigned int timestep, hoomd::detail::Saru& rng
                                           newShear[1],
                                           newShear[2],
                                           timestep,
-                                          Scalar(1.0),
+                                          Scalar(0.0),
                                           rng);
     if (trial_success)
         {

@@ -59,6 +59,7 @@ option(BUILD_METAL "Build the metal package" on)
 option(BUILD_DEM "Build the dem package" on)
 option(BUILD_CGCMM "Build the cgcmm package" on)
 option(BUILD_MPCD "Build the mpcd package" on)
+option(BUILD_JIT "Build the jit package" off)
 
 ###############################
 ## In jenkins tests on multiple build configurations, it is wasteful to run CPU tests on CPU and all GPU test paths
