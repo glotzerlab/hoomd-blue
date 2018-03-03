@@ -17,6 +17,7 @@
 
 #include "HOOMDMath.h"
 #include "GPUArray.h"
+#include "GlobalArray.h"
 #include "GPUVector.h"
 
 #ifdef ENABLE_CUDA
@@ -1077,20 +1078,20 @@ class ParticleData
         bool m_accel_set;                           //!< Flag to tell if acceleration data has been set
 
         // per-particle data
-        GPUArray<Scalar4> m_pos;                    //!< particle positions and types
-        GPUArray<Scalar4> m_vel;                    //!< particle velocities and masses
-        GPUArray<Scalar3> m_accel;                  //!< particle accelerations
-        GPUArray<Scalar> m_charge;                  //!< particle charges
-        GPUArray<Scalar> m_diameter;                //!< particle diameters
-        GPUArray<int3> m_image;                     //!< particle images
-        GPUArray<unsigned int> m_tag;               //!< particle tags
+        GlobalArray<Scalar4> m_pos;                    //!< particle positions and types
+        GlobalArray<Scalar4> m_vel;                    //!< particle velocities and masses
+        GlobalArray<Scalar3> m_accel;                  //!< particle accelerations
+        GlobalArray<Scalar> m_charge;                  //!< particle charges
+        GlobalArray<Scalar> m_diameter;                //!< particle diameters
+        GlobalArray<int3> m_image;                     //!< particle images
+        GlobalArray<unsigned int> m_tag;               //!< particle tags
         GPUVector<unsigned int> m_rtag;             //!< reverse lookup tags
-        GPUArray<unsigned int> m_body;              //!< rigid body ids
-        GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
-        GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
-        GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
+        GlobalArray<unsigned int> m_body;              //!< rigid body ids
+        GlobalArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
+        GlobalArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
+        GlobalArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
         #ifdef ENABLE_MPI
-        GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
+        GlobalArray<unsigned int> m_comm_flags;        //!< Array of communication flags
         #endif
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
@@ -1107,20 +1108,20 @@ class ParticleData
            data can be written to the alternate arrays, which are then swapped in for
            the real particle data at effectively zero cost.
          */
-        GPUArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
-        GPUArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
-        GPUArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
-        GPUArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
-        GPUArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
-        GPUArray<int3> m_image_alt;                 //!< particle images (swap-in)
-        GPUArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
-        GPUArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
-        GPUArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
-        GPUArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
-        GPUArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
-        GPUArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
-        GPUArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
-        GPUArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
+        GlobalArray<Scalar4> m_pos_alt;                //!< particle positions and type (swap-in)
+        GlobalArray<Scalar4> m_vel_alt;                //!< particle velocities and masses (swap-in)
+        GlobalArray<Scalar3> m_accel_alt;              //!< particle accelerations (swap-in)
+        GlobalArray<Scalar> m_charge_alt;              //!< particle charges (swap-in)
+        GlobalArray<Scalar> m_diameter_alt;            //!< particle diameters (swap-in)
+        GlobalArray<int3> m_image_alt;                 //!< particle images (swap-in)
+        GlobalArray<unsigned int> m_tag_alt;           //!< particle tags (swap-in)
+        GlobalArray<unsigned int> m_body_alt;          //!< rigid body ids (swap-in)
+        GlobalArray<Scalar4> m_orientation_alt;        //!< orientations (swap-in)
+        GlobalArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
+        GlobalArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
+        GlobalArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
+        GlobalArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
+        GlobalArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
         std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
