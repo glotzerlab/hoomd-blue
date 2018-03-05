@@ -146,7 +146,7 @@ class getar(hoomd.analyze._analyzer):
        "improper_all", "improper_type_names, improper_tag, improper_type"
        "particle_all", "angular_momentum, body, charge, diameter, image, mass, moment_inertia, orientation, position, type, type_names, velocity"
        "all", "particle_all, angle_all, bond_all, dihedral_all, improper_all, global_all"
-       "viz_static", "type, type_names"
+       "viz_static", "type, type_names, dimensions"
        "viz_dynamic", "position, box"
        "viz_all", "viz_static, viz_dynamic"
        "viz_aniso_dynamic", "viz_dynamic, orientation"
@@ -212,7 +212,7 @@ class getar(hoomd.analyze._analyzer):
         'improper_all': ['improper_type_names', 'improper_tag', 'improper_type'],
         'global_all': ['box', 'dimensions'],
         'viz_dynamic': ['position', 'box'],
-        'viz_static': ['type', 'type_names'],
+        'viz_static': ['type', 'type_names', 'dimensions'],
         'viz_all': ['viz_static', 'viz_dynamic'],
         'viz_aniso_dynamic': ['viz_dynamic', 'orientation'],
         'viz_aniso_all': ['viz_static', 'viz_aniso_dynamic']};

@@ -221,6 +221,15 @@ class IntegrationMethodTwoStep
          */
         virtual unsigned int getRotationalNDOF(std::shared_ptr<ParticleGroup> query_group);
 
+        void setRandomizeVelocitiesParams(Scalar T_randomize, unsigned int seed_randomize)
+            {
+            m_T_randomize = T_randomize;
+            m_seed_randomize = seed_randomize;
+            m_shouldRandomize = true;
+            }
+
+        void randomizeVelocities(unsigned int timestep);
+
         //! Reinitialize the integration variables if needed (implemented in the actual subclasses)
         virtual void initializeIntegratorVariables() {}
 
@@ -231,6 +240,11 @@ class IntegrationMethodTwoStep
         std::shared_ptr<Profiler> m_prof;                 //!< The profiler this method is to use
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         bool m_aniso;                                       //!< True if anisotropic integration is requested
+
+        /*! Member variables for randomizeVelocities(). */
+        Scalar m_T_randomize = 0;
+        unsigned int m_seed_randomize = 0;
+        bool m_shouldRandomize = false;
 
         Scalar m_deltaT;                                    //!< The time step
 

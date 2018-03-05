@@ -2,13 +2,12 @@ mkdir -p build-conda
 cd build-conda
 rm -rf ./*
 
-export GCC_ARCH=core2
-
 if [ "$(uname)" == "Darwin" ]; then
 
 cmake ../ \
       -DCMAKE_OSX_DEPLOYMENT_TARGET=10.8 \
-      -DCMAKE_CXX_FLAGS="-mmacosx-version-min=10.8 -stdlib=libc++" \
+      -DCMAKE_CXX_FLAGS="-mmacosx-version-min=10.8 -stdlib=libc++ -march=core2" \
+      -DCMAKE_C_FLAGS="-march=core2" \
       -DCMAKE_INSTALL_PREFIX=${SP_DIR} \
       -DPYTHON_EXECUTABLE=${PYTHON} \
        \
@@ -24,12 +23,11 @@ make install -j 2
 
 else
 # Linux build
-CC=${PREFIX}/bin/gcc
-CXX=${PREFIX}/bin/g++
-
 cmake ../ \
       -DCMAKE_INSTALL_PREFIX=${SP_DIR} \
       -DPYTHON_EXECUTABLE=${PYTHON} \
+      -DCMAKE_CXX_FLAGS="-march=core2" \
+      -DCMAKE_C_FLAGS="-march=core2" \
       -DCUDA_HOST_COMPILER=${CC} \
        \
       -DENABLE_MPI=on \
