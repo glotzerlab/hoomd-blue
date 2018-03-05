@@ -505,9 +505,9 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
-                                else if (this->m_patch && !this->m_patch_log && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch) // If there is no overlap and m_patch is not NULL, calculate energy
+                                // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_patch*r_cut_patch)
                                     {
-                                    // deltaU = U_old - U_new: subtract energy of new configuration
                                     patch_field_energy_diff -= this->m_patch->energy(r_ij, typ_i,
                                                                quat<float>(shape_i.orientation),
                                                                h_diameter.data[i],
@@ -539,8 +539,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             // whether the move is accepted
             bool accept = !overlap;
 
+            // In most cases checking patch energy should be cheaper than computing
+            // depletants, so do that first. Calculate old patch energy only if
+            // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
+            // and then exponentiating directly (rather than exp(-(U_new-U_old)))
             if (this->m_patch && !this->m_patch_log && accept)
-            // calculate old patch energy only if m_patch not NULL and no overlaps
                 {
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
@@ -589,7 +592,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
                                     Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
-                                    // deltaU = U_old - U_new: add energy of old configuration
                                     if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
                                         patch_field_energy_diff += this->m_patch->energy(r_ij,
                                                                    typ_i,
