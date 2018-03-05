@@ -39,7 +39,7 @@ macro(compile_test TEST_EXE TEST_SRC)
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
     add_dependencies(test_all ${TEST_EXE})
-    target_link_libraries(${TEST_EXE} _hoomd _md _mpcd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${TEST_EXE} _mpcd _md _hoomd ${HOOMD_PYTHON_LIBRARY})
     fix_cudart_rpath(${TEST_EXE})
 
     if (ENABLE_MPI)
