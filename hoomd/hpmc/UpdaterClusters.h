@@ -215,20 +215,20 @@ class UpdaterClusters : public Updater
             {
             hpmc_clusters_counters_t counters = getCounters(2);
 
-            if (quantity == "hpmc_cluster_moves")
+            if (quantity == "hpmc_clusters_moves")
                 {
                 hpmc_clusters_counters_t counters_total = getCounters(0);
                 return double(counters_total.getNMoves()) / double(m_pdata->getNGlobal());
                 }
-            else if (quantity == "hpmc_cluster_pivot_acceptance")
+            else if (quantity == "hpmc_clusterd_pivot_acceptance")
                 {
                 return counters.getPivotAcceptance();
                 }
-            else if (quantity == "hpmc_cluster_reflection_acceptance")
+            else if (quantity == "hpmc_clusters_reflection_acceptance")
                 {
                 return counters.getReflectionAcceptance();
                 }
-            else if (quantity == "hpmc_cluster_swap_acceptance")
+            else if (quantity == "hpmc_clusters_swap_acceptance")
                 {
                 return counters.getSwapAcceptance();
                 }
@@ -243,10 +243,10 @@ class UpdaterClusters : public Updater
             // start with the integrator provided quantities
             std::vector< std::string > result;
             // then add ours
-            result.push_back("hpmc_cluster_moves");
-            result.push_back("hpmc_cluster_pivot_acceptance");
-            result.push_back("hpmc_cluster_reflection_acceptance");
-            result.push_back("hpmc_cluster_swap_acceptance");
+            result.push_back("hpmc_clusters_moves");
+            result.push_back("hpmc_clusters_pivot_acceptance");
+            result.push_back("hpmc_clusters_reflection_acceptance");
+            result.push_back("hpmc_clusters_swap_acceptance");
             return result;
             }
 
@@ -1736,6 +1736,15 @@ template < class Shape> void export_UpdaterClusters(pybind11::module& m, const s
         .def("setSwapTypePair", &UpdaterClusters<Shape>::setSwapTypePair)
         .def("setDeltaMu", &UpdaterClusters<Shape>::setDeltaMu)
     ;
+    }
+
+inline void export_hpmc_clusters_counters(pybind11::module &m)
+    {
+    pybind11::class_< hpmc_clusters_counters_t >(m, "hpmc_clusters_counters_t")
+        .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
+        .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
+        .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
+        .def("getNMoves", &hpmc_clusters_counters_t::getNMoves);
     }
 
 } // end namespace hpmc

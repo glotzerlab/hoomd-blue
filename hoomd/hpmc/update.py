@@ -831,49 +831,41 @@ class remove_drift(_updater):
         self.cpp_updater = cls(hoomd.context.current.system_definition, external_lattice.cpp_compute, mc.cpp_integrator);
         self.setupUpdater(period);
 
-
-## Perform cluster moves
-#
-# Clusters moves are supported for enthalpic interactions and depletants.
-#
-# For enthalpic interactions, the geometric cluster algorithm by Liu and Luijten is used.
-#
-# With depletants, Clusters are defined by a simple distance cut-off criterium. Two particles belong to the same cluster if
-# the circumspheres of the depletant-excluded volumes overlap. Clusters are randomly translated and rotated.
-# Moves that would lead to different cluster configurations in th old and new configuration are rejected.
-#
-# NOTE In this algorithm, only the pivot move is rejection free. If combined with reflection moves, i.e. with finite
-# **move_ratio**, the algorithm uses rejections in order for the moves to be commensurate with the symmetry imposed
-# by the periodic boundary conditions. For a full discussion of PBC and the GCA, see Sinkovits et al.
-#
 class clusters(_updater):
-    ## Specifies the cluster move updater
-    # \param mc MC integrator (implicit depletants integrator required)
-    # \param period Number of timesteps between cluster moves
-    # \param seed The seed of the pseudo-randon number generator
-    #
-    # \par Quick Examples:
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=1234,implicit=True)
-    # mc.set_params(depletant_type='B',nR=0)
-    # update.cluster(mc)
-    # ~~~~~~~~~~~~
-    #
-    # \par Example with auto-tuning of the cluster step size
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.sphere(seed=1234,implicit=True)
-    # mc.set_params(depletant_type='B',nR=0)
-    # cluster=update.cluster(mc,period=10)
-    # tuner = hpmc.util.tune(cluster, tunables=['d', 'a'], target=0.2, gamma=0.5)
-    # for i in range(10):
-    #     run(1e4)
-    #     tuner.update()
-    # ~~~~~~~~~~~~
+    R""" Equilibrate the system according to the geometric cluster algorithm (GCA).
+
+    The GCA as described in Liu and Lujten (2004), http://doi.org/10.1103/PhysRevLett.92.035504 is used for hard shape,
+    patch interactions and depletants.
+
+    With depletants, Clusters are defined by a simple distance cut-off criterium. Two particles belong to the same cluster if
+    the circumspheres of the depletant-excluded volumes overlap.
+
+    Supported moves include pivot moves (point reflection), line reflections (pi rotation around an axis), and type swaps.
+    Only the pivot move is rejection free. With anisotropic particles, the pivot move cannot be used because it would create a
+    chiral mirror image of the particle, and only line reflections are employed. Line reflections are not rejection free because
+    of periodic boundary conditions, as dicussed in Sinkovits et al. (2012), http://doi.org/10.1063/1.3694271 .
+
+    The type swap move works between two types of spherical particles and exchanges their identities.
+
+    The :py:class:`clusters` updater support TBB execution on multiple CPU cores. See :doc:`compiling` for more information on how
+    to compile HOOMD with TBB support.
+
+    Args:
+        mc (:py:mod:`hoomd.hpmc.integrate`): MC integrator.
+        seed (int): The seed of the pseudo-random number generator (Needs to be the same across partitions of the same Gibbs ensemble)
+        period (int): Number of timesteps between histogram evaluations.
+
+    Example::
+
+        mc = hpmc.integrate.uphere(seed=415236)
+        hpmc.update.clusters(mc=mc, seed=123)
+
+    """
     def __init__(self, mc, seed, period=1):
         hoomd.util.print_status_line();
 
         if not isinstance(mc, integrate.mode_hpmc):
-            hoomd.context.msg.warning("update.cluster: Must have a handle to an HPMC integrator.\n");
+            hoomd.context.msg.warning("update.clusters: Must have a handle to an HPMC integrator.\n");
             return
 
         # initialize base class
@@ -967,11 +959,26 @@ class clusters(_updater):
         # register the clusters updater
         self.setupUpdater(period)
 
-    ## Update parameters
-    # \param move_ratio (If set) Update ratio of pivot to reflection moves
-    # .. other parameters
-    #
     def set_params(self, move_ratio=None, flip_probability=None, swap_move_ratio=None, delta_mu=None, swap_types=None):
+        R""" Set options for the clusters moves.
+
+        Args:
+            move_ratio (float): Set the ratio between pivot and reflection moves (default 0.5)
+            flip_probability (float): Set the probability for transforming an individual cluster (default 0.5)
+            swap_move_ratio (float): Set the ratio between type swap moves and geometric moves (default 0.5)
+            delta_mu (float): The chemical potential difference between types to be swapped
+            swap_types (list): A pair of two types whose identities are swapped
+
+        Note:
+            When an argument is None, the value is left unchanged from its current state.
+
+        Example::
+
+            clusters = hpmc.update.clusters(mc, seed=123)
+            clusters.set_params(move_ratio = 1.0)
+            clusters.set_params(swap_types=['A','B'], delta_mu = -0.001)
+        """
+
         hoomd.util.print_status_line();
 
         if move_ratio is not None:
@@ -995,50 +1002,29 @@ class clusters(_updater):
             type_B = hoomd.context.current.system_definition.getParticleData().getTypeByName(my_swap_types[1]);
             self.cpp_updater.setSwapTypePair(type_A, type_B)
 
-    ## Get the average acceptance ratio for translate moves
-    #
-    # \returns The average translate accept ratio during the last run()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # run(100)
-    # cluster = hpmc.update.cluster(mc=mc);
-    # t_accept = cluster.get_translate_acceptance();
-    # ~~~~~~~~~~~~
-    #
-    def get_translate_acceptance(self):
+    def get_pivot_acceptance(self):
+        R""" Get the average acceptance ratio for pivot moves
+
+        Returns:
+            The average acceptance rate for pivot moves during the last run
+        """
         counters = self.cpp_updater.getCounters(1);
-        return counters.getTranslateAcceptance();
+        return counters.getPivotAcceptance();
 
-    ## Get the average acceptance ratio for rotate moves
-    #
-    # \returns The average rotate accept ratio during the last run()
-    #
-    # \par Quick Example
-    # ~~~~~~~~~~~~
-    # mc = hpmc.integrate.shape(..);
-    # mc.shape_param.set(....);
-    # run(100)
-    # cluster = hpmc.update.cluster(mc=mc);
-    # r_accept = cluster.get_rotate_acceptance();
-    # ~~~~~~~~~~~~
-    #
-    def get_rotate_acceptance(self):
+    def get_reflection_acceptance(self):
+        R""" Get the average acceptance ratio for reflection moves
+
+        Returns:
+            The average acceptance rate for reflection moves during the last run
+        """
         counters = self.cpp_updater.getCounters(1);
-        return counters.getRotateAcceptance();
+        return counters.getReflectionAcceptance();
 
-    ## Get the maximum trial displacement
-    #
-    # \returns The current value of the 'd' parameter of the updater
-    #
-    def get_d(self,type=None):
-        return self.cpp_updater.getClusterD();
+    def get_swap_acceptance(self):
+        R""" Get the average acceptance ratio for swap moves
 
-    ## Get the maximum trial rotation
-    #
-    # \returns The current value of the 'a' parameter of the updater
-    #
-    def get_a(self,type=None):
-        return self.cpp_updater.getClusterA();
+        Returns:
+            The average acceptance rate for type swap moves during the last run
+        """
+        counters = self.cpp_updater.getCounters(1);
+        return counters.getSwapAcceptance();
