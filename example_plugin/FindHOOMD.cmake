@@ -16,6 +16,7 @@
 
 set(HOOMD_ROOT "" CACHE FILEPATH "Directory containing a hoomd installation (i.e. _hoomd.so)")
 
+# Let HOOMD_ROOT take precedence, but if unset, try letting Python find a hoomd package in its default paths.
 if(HOOMD_ROOT)
   set(hoomd_installation_guess ${HOOMD_ROOT})
 else(HOOMD_ROOT)
@@ -31,9 +32,10 @@ print(os.path.dirname(hoomd.__file__), file=sys.stderr, end='')")
   message(STATUS "Python output: " ${hoomd_installation_guess})
 endif(HOOMD_ROOT)
 
+message(STATUS "Looking for a HOOMD installation at " ${hoomd_installation_guess})
 find_path(FOUND_HOOMD_ROOT
         NAMES _hoomd.so __init__.py
-        HINTS ${HOOMD_ROOT} ${hoomd_installation_guess}
+        HINTS ${hoomd_installation_guess}
         )
 
 if(FOUND_HOOMD_ROOT)
