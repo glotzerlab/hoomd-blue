@@ -42,6 +42,7 @@ class options:
         self.onelevel = None;
         self.autotuner_enable = True;
         self.autotuner_period = 100000;
+        self.single_mpi = False;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -58,7 +59,8 @@ class options:
                    ny=self.ny,
                    nz=self.nz,
                    linear=self.linear,
-                   onelevel=self.onelevel)
+                   onelevel=self.onelevel,
+                   single_mpi=self.single_mpi)
         return str(tmp);
 
 ## Parses command line options
@@ -81,6 +83,7 @@ def _parse_command_line(arg_string=None):
     parser.add_option("--nz", dest="nz", help="(MPI) Number of domains along the z-direction");
     parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
     parser.add_option("--onelevel", dest="onelevel", action="store_true", default=False, help="(MPI only) Disable two-level (node-local) decomposition");
+    parser.add_option("--single-mpi", dest="single_mpi", action="store_true", help="Allow single-threaded HOOMD builds in MPI jobs");
     parser.add_option("--user", dest="user", help="User options");
 
     input_args = None;
@@ -158,6 +161,7 @@ def _parse_command_line(arg_string=None):
     hoomd.context.options.nz = cmd_options.nz;
     hoomd.context.options.linear = cmd_options.linear
     hoomd.context.options.onelevel = cmd_options.onelevel
+    hoomd.context.options.single_mpi = cmd_options.single_mpi
 
     if cmd_options.notice_level is not None:
         hoomd.context.options.notice_level = cmd_options.notice_level;
