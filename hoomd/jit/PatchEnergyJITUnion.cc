@@ -2,6 +2,10 @@
 
 #include "hoomd/hpmc/OBBTree.h"
 
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#endif
+
 //! Set the per-type constituent particles
 void PatchEnergyJITUnion::setParam(unsigned int type,
     pybind11::list types,
@@ -150,11 +154,20 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
 
+    #ifndef ENABLE_TBB
     float energy = 0.0;
+    #endif
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
+        #ifdef ENABLE_TBB
+        return tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
+            0.0f,
+            [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+            for (unsigned int cur_leaf_a = r.begin(); cur_leaf_a != r.end(); ++cur_leaf_a)
+        #else
         for (unsigned int cur_leaf_a = 0; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a ++)
+        #endif
             {
             unsigned int cur_node_a = tree_a.getLeafNode(cur_leaf_a);
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
@@ -175,10 +188,21 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
                     energy += compute_leaf_leaf_energy(r_ij, type_i, type_j, q_i, q_j, cur_node_a, query_node);
                 }
             }
+        #ifdef ENABLE_TBB
+        return energy;
+        }, [](float x, float y)->float { return x+y; } );
+        #endif
         }
     else
         {
-        for (unsigned int cur_leaf_b = 0; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b++)
+        #ifdef ENABLE_TBB
+        return tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
+            0.0f,
+            [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
+            for (unsigned int cur_leaf_b = r.begin(); cur_leaf_b != r.end(); ++cur_leaf_b)
+        #else
+        for (unsigned int cur_leaf_b = 0; cur_leaf_b < tree_b.getNumLeaves(); cur_leaf_b ++)
+        #endif
             {
             unsigned int cur_node_b = tree_b.getLeafNode(cur_leaf_b);
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
@@ -199,9 +223,15 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
                     energy += compute_leaf_leaf_energy(-r_ij, type_j, type_i, q_j, q_i, cur_node_b, query_node);
                 }
             }
+        #ifdef ENABLE_TBB
+        return energy;
+        }, [](float x, float y)->float { return x+y; } );
+        #endif
         }
 
+    #ifndef ENABLE_TBB
     return energy;
+    #endif
     }
 
 void export_PatchEnergyJITUnion(pybind11::module &m)

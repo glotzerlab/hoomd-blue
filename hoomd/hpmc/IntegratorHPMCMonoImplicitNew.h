@@ -275,6 +275,10 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
+
+        // extend the image list by the depletant diameter, since we're querying
+        // AABBs that are larger than the shape diameters themselves
+        this->m_extra_image_width = tmp.getCircumsphereDiameter();
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
