@@ -23,6 +23,7 @@ pipeline
                         CMAKE_BIN = '/usr/bin'
                         ENABLE_CUDA = 'ON'
                         ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'OFF'
                         BUILD_VALIDATION = 'OFF'
                         CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda75.img'
                         BUILD_JIT = 'OFF'
@@ -43,7 +44,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
@@ -82,6 +83,7 @@ pipeline
                         CMAKE_BIN = '/usr/bin'
                         ENABLE_CUDA = 'ON'
                         ENABLE_MPI = 'OFF'
+                        ENABLE_TBB = 'OFF'
                         BUILD_VALIDATION = 'OFF'
                         CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda80.img'
                         BUILD_JIT = 'ON'
@@ -102,7 +104,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
@@ -129,7 +131,7 @@ pipeline
                             }
                         }
                     }
-                stage('vld-gcc6-py36-mpi-cd90')
+                stage('vld-gcc6-py36-mpi-tbb-cd90')
                     {
                     agent { label 'gpu' }
 
@@ -141,7 +143,8 @@ pipeline
                         CMAKE_BIN = '/usr/sbin'
                         ENABLE_CUDA = 'ON'
                         ENABLE_MPI = 'ON'
-                        BUILD_VALIDATION = 'ON'
+                        ENABLE_TBB = 'OFF'
+                        BUILD_VALIDATION = 'OFF'
                         CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
                         BUILD_JIT = 'ON'
                         }
@@ -161,7 +164,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
@@ -188,7 +191,7 @@ pipeline
                             }
                         }
                     }
-                stage('vld-clang50-py36-mpi')
+                stage('vld-clang50-py36-mpi-tbb')
                     {
                     agent { label 'linux-cpu' }
 
@@ -200,6 +203,7 @@ pipeline
                         CMAKE_BIN = '/usr/sbin'
                         ENABLE_CUDA = 'OFF'
                         ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'ON'
                         BUILD_VALIDATION = 'ON'
                         CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
                         BUILD_JIT = 'ON'
@@ -220,7 +224,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv ${CONTAINER} ninja -j 3'

@@ -349,6 +349,11 @@ HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
     a.x -= b.x; a.y -= b.y; a.z -= b.z;
     return a;
     }
+//! Integer vector unary -
+HOSTDEVICE inline int3 operator- (const int3 &a)
+    {
+    return make_int3(-a.x, -a.y, -a.z);
+    }
 //! Integer vector comparison
 HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
     {

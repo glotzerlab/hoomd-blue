@@ -204,6 +204,7 @@ def initialize(args=None):
         from hoomd import *
         context.initialize();
         context.initialize("--mode=gpu --nrank=64");
+        context.initialize("--mode=cpu --nthreads=64");
 
     """
     global exec_conf, msg, options, current, _prev_args
@@ -289,6 +290,11 @@ def _create_exec_conf():
     if options.gpu_error_checking:
        exec_conf.setCUDAErrorChecking(True);
 
+    if _hoomd.is_TBB_available():
+        # set the number of TBB threads as necessary
+        if options.nthreads != None:
+            exec_conf.setNumThreads(options.nthreads)
+
     exec_conf = exec_conf;
 
     return exec_conf;
@@ -314,6 +320,8 @@ class ExecutionContext(hoomd.meta._metadata):
             'username', 'wallclocktime', 'cputime',
             'job_id', 'job_name'
             ]
+        if _hoomd.is_TBB_available():
+            self.metadata_fields.append('num_threads')
 
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
@@ -382,6 +390,14 @@ class ExecutionContext(hoomd.meta._metadata):
         else:
             return '';
 
+    # \brief Return the number of CPU threads
+    @property
+    def num_threads(self):
+        if not _hoomd.is_TBB_available():
+            msg.warning("HOOMD was compiled without thread support, returning None\n");
+            return None
+        else:
+            return self._get_exec_conf().getNumThreads();
 
 ## \internal
 # \brief Gather context about HOOMD

@@ -247,6 +247,20 @@ inline vec3<Scalar> generatePositionInSphericalCap(RNG& rng, const vec3<Scalar>&
     return pos_sphere+r_cone;
     }
 
+/*! Reflect a point in R3 around a line (pi rotation), given by a point p through which it passes
+    and a rotation quaternion
+ */
+inline vec3<Scalar> lineReflection(vec3<Scalar> pos, vec3<Scalar> p, quat<Scalar> q)
+    {
+    // find closest point on line
+    vec3<Scalar> n = q.v;
+    Scalar t = dot(pos-p,n);
+    vec3<Scalar> r = p + t*n;
+
+    // pivot around that point
+    return r - (pos - r);
+    }
+
 }; // end namespace hpmc
 
 #endif //__MOVES_H__

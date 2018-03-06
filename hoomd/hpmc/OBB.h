@@ -133,7 +133,7 @@ struct OBB
         return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
         }
 
-    } __attribute__((aligned(32)));
+    };
 
 //! Check if two OBBs overlap
 /*! \param a First OBB
