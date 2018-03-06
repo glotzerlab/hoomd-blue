@@ -318,6 +318,9 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
         quat<Scalar> o;
         Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
+
+        // update image list range
+        this->m_extra_image_width = tmp.getCircumsphereDiameter();
         }
 
     this->m_exec_conf->msg->notice(5) << "IntegratorHPMCMonoImplicit: updating nominal width to " << this->m_nominal_width << std::endl;

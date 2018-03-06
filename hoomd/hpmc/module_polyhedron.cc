@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -47,6 +49,9 @@ void export_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapePolyhedron >(m, "ComputeFreeVolumePolyhedron");
     // export_AnalyzerSDF< ShapePolyhedron >(m, "AnalyzerSDFPolyhedron");
     export_UpdaterMuVT< ShapePolyhedron >(m, "UpdaterMuVTPolyhedron");
+    export_UpdaterClusters< ShapePolyhedron >(m, "UpdaterClustersPolyhedron");
+    export_UpdaterClustersImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicit<ShapePolyhedron> >(m, "UpdaterClustersImplicitPolyhedron");
+    export_UpdaterClustersImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicitNew<ShapePolyhedron> >(m, "UpdaterClustersImplicitNewPolyhedron");
     export_UpdaterMuVTImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicit<ShapePolyhedron> >(m, "UpdaterMuVTImplicitPolyhedron");
     export_UpdaterMuVTImplicit< ShapePolyhedron, IntegratorHPMCMonoImplicitNew<ShapePolyhedron> >(m, "UpdaterMuVTImplicitNewPolyhedron");
 

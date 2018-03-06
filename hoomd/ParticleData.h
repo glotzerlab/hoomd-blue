@@ -797,10 +797,8 @@ class ParticleData
         //! Get the angular momentum array
         const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
-        #ifdef ENABLE_MPI
         //! Get the communication flags array
         const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
-        #endif
 
         #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
@@ -1072,6 +1070,13 @@ class ParticleData
             m_global_box.wrap(m_origin, m_o_image);
             }
 
+        //! Set the origin and its image
+        void setOrigin(const Scalar3& origin, int3& img)
+            {
+            m_origin = origin;
+            m_o_image = img;
+            }
+
         //! Rest the box origin
         /*! \post The origin is 0,0,0
         */
@@ -1122,9 +1127,7 @@ class ParticleData
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
-        #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
-        #endif
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
@@ -1172,6 +1175,8 @@ class ParticleData
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
         #endif
+
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
