@@ -151,6 +151,9 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
+        ## MPCD system
+        self.mpcd = None;
+
         ## Stored reference to the reader that was used to initialize the system
         self.state_reader = None;
 

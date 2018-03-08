@@ -37,9 +37,9 @@ set(_hoomd_sources Analyzer.cc
                    IntegratorData.cc
                    LoadBalancer.cc
                    Logger.cc
-		   LogPlainTXT.cc
-		   LogMatrix.cc
-		   LogHDF5.cc
+                   LogPlainTXT.cc
+                   LogMatrix.cc
+                   LogHDF5.cc
                    Messenger.cc
                    ParticleData.cc
                    ParticleGroup.cc
@@ -253,7 +253,7 @@ set(files analyze.py
           util.py
           variant.py
           lattice.py
-	  hdf5.py
+          hdf5.py
     )
 
 install(FILES ${files}
@@ -298,7 +298,6 @@ if (BUILD_TESTING)
     add_subdirectory(test)
 endif()
 
-option(BUILD_MD "Build the md package" on)
 if (BUILD_MD)
     if (ENABLE_MPI)
         # add the distributed FFT library
@@ -308,37 +307,31 @@ if (BUILD_MD)
     add_subdirectory(md)
 endif()
 
-if (NOT SINGLE_PRECISION)
-option(BUILD_HPMC "Build the hpmc package" on)
-else ()
-option(BUILD_HPMC "Build the hpmc package" off)
-endif()
 
 if (NOT SINGLE_PRECISION AND BUILD_HPMC)
     add_subdirectory(hpmc)
 endif()
 
-option(BUILD_DEPRECATED "Build the deprecated package" on)
 if (BUILD_DEPRECATED)
     add_subdirectory(deprecated)
 endif()
 
-option(BUILD_CGCMM "Build the cgcmm package" on)
 if (BUILD_CGCMM AND BUILD_MD)
     add_subdirectory(cgcmm)
 endif()
 
-option(BUILD_METAL "Build the metal package" on)
 if (BUILD_METAL AND BUILD_MD)
     add_subdirectory(metal)
 endif()
 
-option(BUILD_DEM "Build the dem package" on)
 if (BUILD_DEM AND BUILD_MD)
     add_subdirectory(dem)
 endif()
 
-option(BUILD_JIT "Build the jit package" off)
+if (BUILD_MPCD)
+    add_subdirectory(mpcd)
+endif()
+
 if (BUILD_JIT)
     add_subdirectory(jit)
 endif()
@@ -346,7 +339,7 @@ endif()
 file(GLOB _directory_contents RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
 
 # explicitly remove packages which are already explicitly dealt with
-list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem jit)
+list(REMOVE_ITEM _directory_contents test test-py extern md hpmc deprecated cgcmm metal dem mpcd jit)
 
 foreach(entry ${_directory_contents})
     if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${entry} OR IS_SYMLINK ${CMAKE_CURRENT_SOURCE_DIR}/${entry})
