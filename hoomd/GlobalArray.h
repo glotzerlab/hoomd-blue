@@ -110,7 +110,8 @@ class GlobalArray : public GPUArray<T>
         #endif
                         ) const
             {
-            cudaDeviceSynchronize();
+            if (location == access_location::host)
+                cudaDeviceSynchronize();
 
             return get();
             }
