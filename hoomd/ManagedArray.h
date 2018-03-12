@@ -185,6 +185,16 @@ class ManagedArray
             available_bytes -= size_int*sizeof(int)+max_align_bytes;
             }
 
+        bool isManaged() const
+            {
+            return managed;
+            }
+
+        unsigned int size() const
+            {
+            return N;
+            }
+
     protected:
         #ifndef NVCC
         void allocate()
@@ -206,3 +216,6 @@ class ManagedArray
         unsigned int N;        //!< Number of data elements
         unsigned int managed;  //!< True if we are CUDA managed
     };
+
+#undef DEVICE
+#undef HOSTDEVICE

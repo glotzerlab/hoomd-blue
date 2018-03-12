@@ -1120,14 +1120,14 @@ class ParticleData
         GlobalArray<Scalar4> m_angmom_alt;             //!< angular momenta (swap-in)
         GlobalArray<Scalar3> m_inertia_alt;             //!< Principal moments of inertia for each particle (swap-in)
         GlobalArray<Scalar4> m_net_force_alt;          //!< Net force (swap-in)
-        GlobalArray<Scalar> m_net_virial_alt;          //!< Net virial (swap-in)
+        GPUArray<Scalar> m_net_virial_alt;             //!< Net virial (swap-in)
         GlobalArray<Scalar4> m_net_torque_alt;         //!< Net torque (swap-in)
 
         std::shared_ptr<Profiler> m_prof;         //!< Pointer to the profiler. NULL if there is no profiler.
 
-        GPUArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
+        GlobalArray< Scalar4 > m_net_force;             //!< Net force calculated for each particle
         GPUArray< Scalar > m_net_virial;             //!< Net virial calculated for each particle (2D GPU array of dimensions 6*number of particles)
-        GPUArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
+        GlobalArray< Scalar4 > m_net_torque;            //!< Net torque calculated for each particle
 
         Scalar m_external_virial[6];                 //!< External potential contribution to the virial
         Scalar m_external_energy;                    //!< External potential energy
