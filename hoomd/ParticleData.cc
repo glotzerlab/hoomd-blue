@@ -321,51 +321,51 @@ void ParticleData::allocate(unsigned int N)
     m_max_nparticles = N;
 
     // positions
-    GPUArray< Scalar4 > pos(N, m_exec_conf);
+    GlobalArray< Scalar4 > pos(N, m_exec_conf);
     m_pos.swap(pos);
 
     // velocities
-    GPUArray< Scalar4 > vel(N, m_exec_conf);
+    GlobalArray< Scalar4 > vel(N, m_exec_conf);
     m_vel.swap(vel);
 
     // accelerations
-    GPUArray< Scalar3 > accel(N, m_exec_conf);
+    GlobalArray< Scalar3 > accel(N, m_exec_conf);
     m_accel.swap(accel);
 
     // charge
-    GPUArray< Scalar > charge(N, m_exec_conf);
+    GlobalArray< Scalar > charge(N, m_exec_conf);
     m_charge.swap(charge);
 
     // diameter
-    GPUArray< Scalar > diameter(N, m_exec_conf);
+    GlobalArray< Scalar > diameter(N, m_exec_conf);
     m_diameter.swap(diameter);
 
     // image
-    GPUArray< int3 > image(N, m_exec_conf);
+    GlobalArray< int3 > image(N, m_exec_conf);
     m_image.swap(image);
 
     // global tag
-    GPUArray< unsigned int> tag(N, m_exec_conf);
+    GlobalArray< unsigned int> tag(N, m_exec_conf);
     m_tag.swap(tag);
 
     // body ID
-    GPUArray< unsigned int > body(N, m_exec_conf);
+    GlobalArray< unsigned int > body(N, m_exec_conf);
     m_body.swap(body);
 
-    GPUArray< Scalar4 > net_force(N, m_exec_conf);
+    GlobalArray< Scalar4 > net_force(N, m_exec_conf);
     m_net_force.swap(net_force);
     GPUArray< Scalar > net_virial(N,6, m_exec_conf);
     m_net_virial.swap(net_virial);
-    GPUArray< Scalar4 > net_torque(N, m_exec_conf);
+    GlobalArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
-    GPUArray< Scalar4 > orientation(N, m_exec_conf);
+    GlobalArray< Scalar4 > orientation(N, m_exec_conf);
     m_orientation.swap(orientation);
-    GPUArray< Scalar4 > angmom(N, m_exec_conf);
+    GlobalArray< Scalar4 > angmom(N, m_exec_conf);
     m_angmom.swap(angmom);
-    GPUArray< Scalar3 > inertia(N, m_exec_conf);
+    GlobalArray< Scalar3 > inertia(N, m_exec_conf);
     m_inertia.swap(inertia);
 
-    GPUArray< unsigned int > comm_flags(N, m_exec_conf);
+    GlobalArray< unsigned int > comm_flags(N, m_exec_conf);
     m_comm_flags.swap(comm_flags);
 
     // allocate alternate particle data arrays (for swapping in-out)
@@ -384,51 +384,51 @@ void ParticleData::allocate(unsigned int N)
 void ParticleData::allocateAlternateArrays(unsigned int N)
     {
     // positions
-    GPUArray< Scalar4 > pos_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > pos_alt(N, m_exec_conf);
     m_pos_alt.swap(pos_alt);
 
     // velocities
-    GPUArray< Scalar4 > vel_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > vel_alt(N, m_exec_conf);
     m_vel_alt.swap(vel_alt);
 
     // accelerations
-    GPUArray< Scalar3 > accel_alt(N, m_exec_conf);
+    GlobalArray< Scalar3 > accel_alt(N, m_exec_conf);
     m_accel_alt.swap(accel_alt);
 
     // charge
-    GPUArray< Scalar > charge_alt(N, m_exec_conf);
+    GlobalArray< Scalar > charge_alt(N, m_exec_conf);
     m_charge_alt.swap(charge_alt);
 
     // diameter
-    GPUArray< Scalar > diameter_alt(N, m_exec_conf);
+    GlobalArray< Scalar > diameter_alt(N, m_exec_conf);
     m_diameter_alt.swap(diameter_alt);
 
     // image
-    GPUArray< int3 > image_alt(N, m_exec_conf);
+    GlobalArray< int3 > image_alt(N, m_exec_conf);
     m_image_alt.swap(image_alt);
 
     // global tag
-    GPUArray< unsigned int> tag_alt(N, m_exec_conf);
+    GlobalArray< unsigned int> tag_alt(N, m_exec_conf);
     m_tag_alt.swap(tag_alt);
 
     // body ID
-    GPUArray< unsigned int > body_alt(N, m_exec_conf);
+    GlobalArray< unsigned int > body_alt(N, m_exec_conf);
     m_body_alt.swap(body_alt);
 
     // orientation
-    GPUArray< Scalar4 > orientation_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > orientation_alt(N, m_exec_conf);
     m_orientation_alt.swap(orientation_alt);
 
     // angular momentum
-    GPUArray< Scalar4 > angmom_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > angmom_alt(N, m_exec_conf);
     m_angmom_alt.swap(angmom_alt);
 
     // moments of inertia
-    GPUArray< Scalar3 > inertia_alt(N, m_exec_conf);
+    GlobalArray< Scalar3 > inertia_alt(N, m_exec_conf);
     m_inertia_alt.swap(inertia_alt);
 
     // Net force
-    GPUArray< Scalar4 > net_force_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > net_force_alt(N, m_exec_conf);
     m_net_force_alt.swap(net_force_alt);
 
     // Net virial
@@ -436,7 +436,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     m_net_virial_alt.swap(net_virial_alt);
 
     // Net torque
-    GPUArray< Scalar4 > net_torque_alt(N, m_exec_conf);
+    GlobalArray< Scalar4 > net_torque_alt(N, m_exec_conf);
     m_net_torque_alt.swap(net_torque_alt);
     }
 
