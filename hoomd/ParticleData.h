@@ -17,6 +17,7 @@
 
 #include "HOOMDMath.h"
 #include "GPUArray.h"
+#include "GPUVector.h"
 #include "GlobalArray.h"
 #include "GlobalVector.h"
 
