@@ -644,6 +644,7 @@ int ExecutionConfiguration::guessLocalRank()
     // setup common environment variables containing local rank information
     env_vars.push_back("MV2_COMM_WORLD_LOCAL_RANK");
     env_vars.push_back("OMPI_COMM_WORLD_LOCAL_RANK");
+    env_vars.push_back("JSM_NAMESPACE_LOCAL_RANK");
 
     std::vector<std::string>::iterator it;
 
