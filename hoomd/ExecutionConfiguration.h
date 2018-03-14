@@ -137,10 +137,10 @@ struct ExecutionConfiguration
         return m_gpu_id;
         }
 
-    #ifdef ENABLE_CUDA
     //! Sync up all active GPUs
     void multiGPUBarrier() const
         {
+        #ifdef ENABLE_CUDA
         if (getNumActiveGPUs() > 1)
             {
             // synchronize all GPUs
@@ -150,8 +150,8 @@ struct ExecutionConfiguration
                 cudaDeviceSynchronize();
                 }
             }
+        #endif
         }
-    #endif
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
