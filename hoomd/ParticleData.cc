@@ -101,6 +101,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
 
+    // listen to own particle sort signal
+    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
+
     // initialize all processors
     initializeFromSnapshot(snap);
 
@@ -116,9 +119,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    // listen to own particle sort signal
-    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -173,6 +173,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
 
+    // listen to own particle sort signal
+    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
+
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
 
@@ -188,9 +191,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
-
-    // listen to own particle sort signal
-    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())

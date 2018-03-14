@@ -15,7 +15,7 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
-#include "hoomd/GPUArray.h"
+#include "hoomd/GlobalArray.h"
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
 
@@ -68,7 +68,7 @@
 
     rcutsq, ronsq, and the params are stored per particle type pair. It wastes a little bit of space, but benchmarks
     show that storing the symmetric type pairs and indexing with Index2D is faster than not storing redudant pairs
-    and indexing with Index2DUpperTriangular. All of these values are stored in GPUArray
+    and indexing with Index2DUpperTriangular. All of these values are stored in GlobalArray
     for easy access on the GPU by a derived class. The type of the parameters is defined by \a param_type in the
     potential evaluator class passed in. See the appropriate documentation for the evaluator for the definition of each
     element of the parameters.
@@ -137,9 +137,9 @@ class PotentialPair : public ForceCompute
         std::shared_ptr<NeighborList> m_nlist;    //!< The neighborlist to use for the computation
         energyShiftMode m_shift_mode;               //!< Store the mode with which to handle the energy shift at r_cut
         Index2D m_typpair_idx;                      //!< Helper class for indexing per type pair arrays
-        GPUArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
-        GPUArray<Scalar> m_ronsq;                   //!< ron squared per type pair
-        GPUArray<param_type> m_params;              //!< Pair parameters per type pair
+        GlobalArray<Scalar> m_rcutsq;                  //!< Cuttoff radius squared per type pair
+        GlobalArray<Scalar> m_ronsq;                   //!< ron squared per type pair
+        GlobalArray<param_type> m_params;              //!< Pair parameters per type pair
         std::string m_prof_name;                    //!< Cached profiler name
         std::string m_log_name;                     //!< Cached log name
 
@@ -159,11 +159,11 @@ class PotentialPair : public ForceCompute
             m_typpair_idx = Index2D(m_pdata->getNTypes());
 
             // reallocate parameter arrays
-            GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_rcutsq.swap(rcutsq);
-            GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
             m_ronsq.swap(ronsq);
-            GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
+            GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
             }
     };
@@ -183,11 +183,11 @@ PotentialPair< evaluator >::PotentialPair(std::shared_ptr<SystemDefinition> sysd
     assert(m_pdata);
     assert(m_nlist);
 
-    GPUArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar> rcutsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_rcutsq.swap(rcutsq);
-    GPUArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar> ronsq(m_typpair_idx.getNumElements(), m_exec_conf);
     m_ronsq.swap(ronsq);
-    GPUArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
+    GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
     m_params.swap(params);
 
     // initialize name

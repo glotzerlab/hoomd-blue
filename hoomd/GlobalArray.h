@@ -27,7 +27,7 @@ class GlobalArray : public GPUArray<T>
             \param exec_conf The current execution configuration
          */
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-            : m_pitch(num_elements), m_height(1)
+            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf)
             {
             m_array = ManagedArray<T>(num_elements, exec_conf->isCUDAEnabled());
             }
@@ -38,7 +38,7 @@ class GlobalArray : public GPUArray<T>
             \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
          */
         GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
-            m_height(height)
+            m_height(height), m_exec_conf(exec_conf)
             {
             // make m_pitch the next multiple of 16 larger or equal to the given width
             m_pitch = (width + (16 - (width & 15)));
@@ -54,6 +54,7 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_pitch,from.m_pitch);
             std::swap(m_height,from.m_height);
             std::swap(m_array, from.m_array);
+            std::swap(m_exec_conf, from.m_exec_conf);
             }
 
         //! Swap the pointers of two equally sized GPUArrays
@@ -113,6 +114,20 @@ class GlobalArray : public GPUArray<T>
         virtual void resize(unsigned int num_elements)
             {
             ManagedArray<T> new_array(num_elements, m_array.isManaged());
+
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
+
             std :: copy(m_array.get(), m_array.get() + m_array.size(), new_array.get());
             m_array = new_array;
             m_pitch = m_array.size();
@@ -129,6 +144,19 @@ class GlobalArray : public GPUArray<T>
             assert(num_elements > 0);
 
             ManagedArray<T> new_array(num_elements, m_array.isManaged());
+
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
 
             // copy over data
             // every column is copied separately such as to align with the new pitch
@@ -149,14 +177,26 @@ class GlobalArray : public GPUArray<T>
         unsigned int m_pitch;  //!< Pitch of 2D array
         unsigned int m_height; //!< Height of 2D array
 
+        std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Handle to the current execution configuration
+
         virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
                         ) const
             {
-            if (location == access_location::host)
-                cudaDeviceSynchronize();
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled() && location == access_location::host)
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
 
             return get();
             }

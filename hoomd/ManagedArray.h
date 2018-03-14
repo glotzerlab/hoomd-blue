@@ -95,6 +95,21 @@ class ManagedArray
             other.N = 0;
             other.managed = 0;
             }
+
+        //! Move assignment operator
+        ManagedArray& operator=(ManagedArray&& other)
+            {
+            data = std::move(other.data);
+            N = std::move(other.N);
+            managed = std::move(other.managed);
+
+            // set the other array's values to 0 so it is no longer free'd upon destruction
+            other.data = nullptr;
+            other.N = 0;
+            other.managed = 0;
+
+            return *this;
+            }
         #endif
 
         //! Assignment operator

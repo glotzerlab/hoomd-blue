@@ -28,10 +28,17 @@ class GPUPartition
             for (unsigned int i = 0; i < m_gpu_map.size(); ++i)
                 {
                 m_gpu_range[i] = std::make_pair(offset, offset+n_per_gpu);
+                offset += n_per_gpu;
                 }
 
             // fill last GPU with remaining particles
             m_gpu_range[m_gpu_map.size()-1].second = N;
+            }
+
+        //! Get the number of active GPUs
+        unsigned int getNumActiveGPUs() const
+            {
+            return m_gpu_map.size();
             }
 
         //! Get the index range for a given GPU

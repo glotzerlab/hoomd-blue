@@ -111,7 +111,7 @@ class NeighborListGPU : public NeighborList
         std::unique_ptr<Autotuner> m_tuner_filter; //!< Autotuner for filter block size
         std::unique_ptr<Autotuner> m_tuner_head_list; //!< Autotuner for the head list block size
 
-        GPUArray<unsigned int> m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
+        GlobalArray<unsigned int> m_alt_head_list; //!< Alternate array to hold the head list from prefix sum
     };
 
 //! Exports NeighborListGPU to python

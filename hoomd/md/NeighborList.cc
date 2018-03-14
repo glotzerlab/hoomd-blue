@@ -59,34 +59,34 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_last_L_local = m_pdata->getBox().getNearestPlaneDistance();
 
     // allocate r_cut pairwise storage
-    GPUArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
+    GlobalArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
 
     // holds the maximum rcut on a per type basis
-    GPUArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
+    GlobalArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
 
     // allocate the r_listsq array which accelerates CPU calculations
-    GPUArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
+    GlobalArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
 
     // default initialization of the rcut for all pairs
     setRCut(_r_cut, r_buff);
 
     // allocate the number of neighbors (per particle)
-    GPUArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
+    GlobalArray<unsigned int> n_neigh(m_pdata->getMaxN(), exec_conf);
     m_n_neigh.swap(n_neigh);
 
     // default allocation of 8 neighbors per particle for the neighborlist
-    GPUArray<unsigned int> nlist(8*m_pdata->getMaxN(), exec_conf);
+    GlobalArray<unsigned int> nlist(8*m_pdata->getMaxN(), exec_conf);
     m_nlist.swap(nlist);
 
     // allocate head list indexer
-    GPUArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
+    GlobalArray<unsigned int> head_list(m_pdata->getMaxN(), exec_conf);
     m_head_list.swap(head_list);
 
     // allocate the max number of neighbors per type allowed
-    GPUArray<unsigned int> Nmax(m_pdata->getNTypes(), exec_conf);
+    GlobalArray<unsigned int> Nmax(m_pdata->getNTypes(), exec_conf);
     m_Nmax.swap(Nmax);
     // flood Nmax with 8s initially
         {
@@ -98,11 +98,11 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
         }
 
     // allocate overflow flags for the number of neighbors per type
-    GPUArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
+    GlobalArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
 
     // allocate m_last_pos
-    GPUArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
     m_last_pos.swap(last_pos);
 
     // allocate initial memory allowing 4 exclusions per particle (will grow to match specified exclusions)
@@ -111,12 +111,12 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     GPUVector<unsigned int> n_ex_tag(m_pdata->getRTags().size(), m_exec_conf);
     m_n_ex_tag.swap(n_ex_tag);
 
-    GPUArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
+    GlobalArray<unsigned int> ex_list_tag(m_pdata->getRTags().size(), 1, m_exec_conf);
     m_ex_list_tag.swap(ex_list_tag);
 
-    GPUArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
+    GlobalArray<unsigned int> n_ex_idx(m_pdata->getMaxN(), m_exec_conf);
     m_n_ex_idx.swap(n_ex_idx);
-    GPUArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
+    GlobalArray<unsigned int> ex_list_idx(m_pdata->getMaxN(), 1, m_exec_conf);
     m_ex_list_idx.swap(ex_list_idx);
 
     // reset exclusions

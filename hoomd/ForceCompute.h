@@ -161,17 +161,17 @@ class ForceCompute : public Compute
 
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 
-        GPUArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
+        GlobalArray<Scalar4> m_force;            //!< m_force.x,m_force.y,m_force.z are the x,y,z components of the force, m_force.u is the PE
 
-        /*! per-particle virial, a 2D GPUArray with width=number
+        /*! per-particle virial, a 2D array with width=number
             of particles and height=6. The elements of the (upper triangular)
             3x3 virial matrix \f$ \left(\mathrm{virial}_{ij}\right),k \f$ for
             particle \f$k\f$ are stored in the rows and are indexed in the
             order xx, xy, xz, yy, yz, zz
          */
-        GPUArray<Scalar>  m_virial;
+        GlobalArray<Scalar>  m_virial;
         unsigned int m_virial_pitch;    //!< The pitch of the 2D virial array
-        GPUArray<Scalar4> m_torque;    //!< per-particle torque
+        GlobalArray<Scalar4> m_torque;    //!< per-particle torque
         int m_nbytes;                   //!< stores the number of bytes of memory allocated
 
         Scalar m_external_virial[6]; //!< Stores external contribution to virial
