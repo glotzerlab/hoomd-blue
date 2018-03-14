@@ -180,7 +180,7 @@ class GlobalArray : public GPUArray<T>
         //! Test if the GPUArray is NULL
         virtual bool isNull() const
             {
-            return m_array.size() > 0;
+            return m_array.size() == 0;
             }
 
         //! Get the width of the allocated rows in elements
