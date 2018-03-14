@@ -92,9 +92,17 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             gpu_id.push_back((guessLocalRank() % dev_count));
             }
 
-        // initialize all requested GPUs
-        for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
-            initializeGPU(*it, min_cpu);
+        if (! gpu_id.size())
+            {
+            // auto-detect a single GPU
+            initializeGPU(-1, min_cpu);
+            }
+        else
+            {
+            // initialize all requested GPUs
+            for (auto it = gpu_id.begin(); it != gpu_id.end(); ++it)
+                initializeGPU(*it, min_cpu);
+            }
         }
 #else
     if (exec_mode == GPU)
@@ -377,7 +385,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id, bool min_cpu)
     cudaGetDevice(&cuda_gpu_id);
 
     // add to list of active GPUs
-    m_gpu_id.push_back(gpu_id);
+    m_gpu_id.push_back(cuda_gpu_id);
 
     cudaError_t err_sync = cudaGetLastError();
     handleCUDAError(err_sync, __FILE__, __LINE__);
