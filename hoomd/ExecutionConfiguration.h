@@ -125,6 +125,7 @@ struct ExecutionConfiguration
         m_cuda_error_checking = cuda_error_checking;
         }
 
+    #ifdef ENABLE_CUDA
     //! Get the number of active GPUs
     unsigned int getNumActiveGPUs() const
         {
@@ -136,6 +137,7 @@ struct ExecutionConfiguration
         {
         return m_gpu_id;
         }
+    #endif
 
     //! Sync up all active GPUs
     void multiGPUBarrier() const

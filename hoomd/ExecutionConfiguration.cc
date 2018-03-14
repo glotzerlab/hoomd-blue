@@ -744,7 +744,9 @@ void export_ExecutionConfiguration(py::module& m)
         bool, bool, std::shared_ptr<Messenger>, unsigned int >())
          .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+#ifdef ENABLE_CUDA
          .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
+#endif
          .def("getGPUName", &ExecutionConfiguration::getGPUName)
          .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
          .def_readonly("msg", &ExecutionConfiguration::msg)
