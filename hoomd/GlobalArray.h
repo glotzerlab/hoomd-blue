@@ -115,7 +115,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual void resize(unsigned int num_elements)
             {
-            ManagedArray<T> new_array(num_elements, m_array.isManaged());
+            ManagedArray<T> new_array(num_elements, m_exec_conf->isCUDAEnabled());
 
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
@@ -145,7 +145,7 @@ class GlobalArray : public GPUArray<T>
             unsigned int num_elements = pitch * height;
             assert(num_elements > 0);
 
-            ManagedArray<T> new_array(num_elements, m_array.isManaged());
+            ManagedArray<T> new_array(num_elements, m_exec_conf->isCUDAEnabled());
 
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
