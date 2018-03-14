@@ -19,7 +19,7 @@
     assert((a).m_acquired); \
     if ((a).m_acquired) \
         { \
-        throw std::runtime_error("Internal error - GlobalArray already acquired in "+std::string(__FILE__)+" line "+std::to_string(__LINE__)); \
+        throw std::runtime_error("GlobalArray already acquired in "+std::string(__FILE__)+" line "+std::to_string(__LINE__)+" - ArrayHandle scoping mistake?"); \
         } \
     }
 
@@ -226,7 +226,8 @@ class GlobalArray : public GPUArray<T>
                 }
             #endif
 
-            std :: copy(m_array.get(), m_array.get() + m_array.size(), new_array.get());
+            unsigned int num_copy_elements = m_array.size() > num_elements ? num_elements : m_array.size();
+            std :: copy(m_array.get(), m_array.get() + num_copy_elements, new_array.get());
             std::swap(m_array, new_array);
             m_pitch = m_array.size();
             m_height = 1;
