@@ -36,7 +36,7 @@ class ManagedArray
 
         #ifndef NVCC
         ManagedArray(unsigned int _N, bool _managed)
-            : N(_N), managed(_managed)
+            : data(nullptr), N(_N), managed(_managed)
             {
             if (N > 0)
                 {
@@ -46,7 +46,7 @@ class ManagedArray
 
         //! Convenience constructor to fill array with values
         ManagedArray(unsigned int _N, bool _managed, const T& value)
-            : N(_N), managed(_managed)
+            : data(nullptr), N(_N), managed(_managed)
             {
             if (N > 0)
                 {
@@ -64,18 +64,17 @@ class ManagedArray
             }
 
         //! Copy constructor
+        /*! \warn the copy constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
         DEVICE ManagedArray(const ManagedArray<T>& other)
-            : N(other.N), managed(other.managed)
+            : data(nullptr), N(other.N), managed(other.managed)
             {
-            printf("copy construct\n");
             #ifndef NVCC
             if (N > 0)
                 {
                 allocate();
-
-                #ifdef ENABLE_CUDA
-                cudaDeviceSynchronize();
-                #endif
 
                 std::copy(other.data, other.data+N, data);
                 }
@@ -114,9 +113,12 @@ class ManagedArray
         #endif
 
         //! Assignment operator
+        /*! \warn the copy assignment constructor reads from the other array and assumes that array is available on the
+                  host. If the GPU isn't synced up, this can lead to erros, so proper multi-GPU synchronization
+                  needs to be ensured
+         */
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
-            printf("copy assign\n");
             #ifndef NVCC
             deallocate();
             #endif
@@ -128,10 +130,6 @@ class ManagedArray
             if (N > 0)
                 {
                 allocate();
-
-                #ifdef ENABLE_CUDA
-                cudaDeviceSynchronize();
-                #endif
 
                 std::copy(other.data, other.data+N, data);
                 }

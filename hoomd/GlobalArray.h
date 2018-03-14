@@ -33,6 +33,75 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_array, array);
             }
 
+        //! Copy constructor
+        GlobalArray(const GlobalArray& from)
+            : m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf)
+            {
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
+
+            m_array = from.m_array;
+            }
+
+        //! = operator
+        GlobalArray& operator=(const GlobalArray& rhs)
+            {
+            m_pitch = rhs.m_pitch;
+            m_height = rhs.m_height;
+            m_exec_conf = rhs.m_exec_conf;
+
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                // synchronize all active GPUs
+                auto gpu_map = m_exec_conf->getGPUIds();
+                for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+                    {
+                    cudaSetDevice(gpu_map[idev]);
+                    cudaDeviceSynchronize();
+                    }
+                }
+            #endif
+
+            m_array = rhs.m_array;
+            }
+
+        //! Move constructor, provided for convenience, so std::swap can be used
+        GlobalArray(GlobalArray&& other)
+            : m_array(std::move(other.m_array)),
+              m_pitch(std::move(other.m_pitch)),
+              m_height(std::move(other.m_height)),
+              m_exec_conf(std::move(other.m_exec_conf))
+            {
+            // reset the other array's values
+            other.m_pitch = 0;
+            other.m_height = 0;
+            }
+
+        //! Move assignment operator
+        GlobalArray& operator=(GlobalArray&& other)
+            {
+            m_array = std::move(other.m_array);
+            m_pitch = std::move(other.m_pitch);
+            m_height = std::move(other.m_height);
+            m_exec_conf = std::move(other.m_exec_conf);
+
+            other.m_pitch = 0;
+            other.m_height = 0;
+
+            return *this;
+            }
+
         /*! Allocate a 2D array in managed memory
             \param width Width of the 2-D array to allocate (in elements)
             \param height Number of rows to allocate in the 2D array
@@ -80,7 +149,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getNumElements() const
             {
-            return m_array.size() > 0;
+            return m_array.size();
             }
 
         //! Test if the GPUArray is NULL
