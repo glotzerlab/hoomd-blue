@@ -1088,6 +1088,14 @@ class ParticleData
             m_o_image = make_int3(0,0,0);
             }
 
+        #ifdef ENABLE_CUDA
+        //! Return the load balancing GPU partition
+        const GPUPartition& getGPUPartition() const
+            {
+            return m_gpu_partition;
+            }
+        #endif
+
     private:
         BoxDim m_box;                               //!< The simulation box
         BoxDim m_global_box;                        //!< Global simulation box
