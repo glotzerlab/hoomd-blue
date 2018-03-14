@@ -16,7 +16,7 @@
 #include <string>
 
 #define checkAcquired(a) { \
-    assert((a).m_acquired); \
+    assert(!(a).m_acquired); \
     if ((a).m_acquired) \
         { \
         throw std::runtime_error("GlobalArray already acquired in "+std::string(__FILE__)+" line "+std::to_string(__LINE__)+" - ArrayHandle scoping mistake?"); \
@@ -314,4 +314,9 @@ class GlobalArray : public GPUArray<T>
             m_acquired = false;
             }
 
+        //! Returns the acquire state
+        virtual inline bool isAcquired() const
+            {
+            return m_acquired;
+            }
     };

@@ -218,7 +218,7 @@ template<class T> class GPUArray
         //! Copy constructor
         GPUArray(const GPUArray& from);
         //! = operator
-        GPUArray& operator=(const GPUArray& rhs);
+        virtual GPUArray& operator=(const GPUArray& rhs);
 
         //! Swap the pointers in two GPUArrays
         virtual inline void swap(GPUArray& from);
@@ -292,6 +292,12 @@ template<class T> class GPUArray
             m_acquired = false;
             }
 
+        //! Returns the acquire state
+        virtual inline bool isAcquired() const
+            {
+            return m_acquired;
+            }
+
     private:
         mutable unsigned int m_num_elements;            //!< Number of elements
         mutable unsigned int m_pitch;                   //!< Pitch of the rows in elements
@@ -360,7 +366,7 @@ template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, cons
 
 template<class T> ArrayHandle<T>::~ArrayHandle()
     {
-    assert(m_gpu_array.m_acquired);
+    assert(m_gpu_array.isAcquired());
     m_gpu_array.release();
     }
 
