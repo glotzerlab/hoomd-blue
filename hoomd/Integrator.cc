@@ -329,17 +329,23 @@ void Integrator::computeNetForce(unsigned int timestep)
         // also sum up forces for ghosts, in case they are needed by the communicator
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
         unsigned int net_virial_pitch = net_virial.getPitch();
+
+        if (! (nparticles <= net_force.getNumElements()))
+            printf("Here\n");
+
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
 
         for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
             {
-            //phasing out ForceDataArrays
-            //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array = (*force_compute)->getForceArray();
             GPUArray<Scalar>& h_virial_array = (*force_compute)->getVirialArray();
             GPUArray<Scalar4>& h_torque_array = (*force_compute)->getTorqueArray();
+
+            assert(nparticles <= h_force_array.getNumElements());
+            assert(6*nparticles <= h_virial_array.getNumElements());
+            assert(nparticles <= h_torque_array.getNumElements());
 
             ArrayHandle<Scalar4> h_force(h_force_array,access_location::host,access_mode::read);
             ArrayHandle<Scalar> h_virial(h_virial_array,access_location::host,access_mode::read);
@@ -422,8 +428,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         assert(6*nparticles <= net_virial.getNumElements());
         for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
             {
-            //phasing out ForceDataArrays
-            //ForceDataArrays force_arrays = (*force_compute)->acquire();
             GPUArray<Scalar4>& h_force_array =(*force_constraint)->getForceArray();
             GPUArray<Scalar>& h_virial_array =(*force_constraint)->getVirialArray();
             GPUArray<Scalar4>& h_torque_array = (*force_constraint)->getTorqueArray();
@@ -432,6 +436,9 @@ void Integrator::computeNetForce(unsigned int timestep)
             ArrayHandle<Scalar4> h_torque(h_torque_array,access_location::host,access_mode::read);
             unsigned int virial_pitch = h_virial_array.getPitch();
 
+            assert(nparticles <= h_force_array.getNumElements());
+            assert(6*nparticles <= h_virial_array.getNumElements());
+            assert(nparticles <= h_torque_array.getNumElements());
 
             for (unsigned int j = 0; j < nparticles; j++)
                 {
