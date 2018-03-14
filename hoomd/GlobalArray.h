@@ -29,7 +29,8 @@ class GlobalArray : public GPUArray<T>
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf)
             : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf)
             {
-            m_array = ManagedArray<T>(num_elements, exec_conf->isCUDAEnabled());
+            ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
+            std::swap(m_array, array);
             }
 
         /*! Allocate a 2D array in managed memory
@@ -44,7 +45,8 @@ class GlobalArray : public GPUArray<T>
             m_pitch = (width + (16 - (width & 15)));
 
             unsigned int num_elements = m_pitch * m_height;
-            m_array = ManagedArray<T>(num_elements, exec_conf->isCUDAEnabled());
+            ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
+            std::swap(m_array, array);
             }
 
 
@@ -129,7 +131,7 @@ class GlobalArray : public GPUArray<T>
             #endif
 
             std :: copy(m_array.get(), m_array.get() + m_array.size(), new_array.get());
-            m_array = new_array;
+            std::swap(m_array, new_array);
             m_pitch = m_array.size();
             m_height = 1;
             }
@@ -168,7 +170,7 @@ class GlobalArray : public GPUArray<T>
             m_height = height;
             m_pitch  = pitch;
 
-            m_array = new_array;
+            std::swap(m_array,new_array);
             }
 
     protected:

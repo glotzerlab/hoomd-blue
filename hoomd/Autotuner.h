@@ -198,8 +198,8 @@ class Autotuner
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Execution configuration
 
         #ifdef ENABLE_CUDA
-        cudaEvent_t m_start;      //!< CUDA event for recording start times
-        cudaEvent_t m_stop;       //!< CUDA event for recording end times
+        std::vector<cudaEvent_t> m_start;      //!< CUDA event for recording start times, per GPU
+        std::vector<cudaEvent_t> m_stop;       //!< CUDA event for recording end times, per GPU
         #endif
 
         bool m_sync;              //!< If true, synchronize results via MPI

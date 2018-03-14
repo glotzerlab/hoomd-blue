@@ -47,14 +47,6 @@ template<class T> class GlobalVector : public GlobalArray<T>
         //! Constructs a GlobalVector
         GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
-    #ifdef ENABLE_CUDA
-        //! Constructs an empty GlobalVector
-        GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
-
-        //! Constructs a GlobalVector
-        GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
-    #endif
-
         //! Frees memory
         virtual ~GlobalVector() {}
 
@@ -188,26 +180,6 @@ template<class T> GlobalVector<T>::GlobalVector(unsigned int size, std::shared_p
      : GlobalArray<T>(size, exec_conf), m_size(size)
     {
     }
-
-#ifdef ENABLE_CUDA
-//! Constructs an empty GlobalVector
-/*! \param exec_conf Shared pointer to the execution configuration
- *  \param mapped True if using mapped-pinned memory
- */
-template<class T> GlobalVector<T>::GlobalVector(std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
-    : GlobalArray<T>(0,exec_conf, mapped), m_size(0)
-    {
-    }
-
-/*! \param size Number of elements to allocate initial memory for in the array
-    \param exec_conf Shared pointer to the execution configuration
-    \param mapped True if using mapped-pinned memory
-*/
-template<class T> GlobalVector<T>::GlobalVector(unsigned int size, std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped)
-     : GlobalArray<T>(size, exec_conf, mapped), m_size(size)
-    {
-    }
-#endif
 
 template<class T> GlobalVector<T>::GlobalVector(const GlobalVector& from) : GlobalArray<T>(from), m_size(from.m_size)
     {

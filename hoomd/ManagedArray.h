@@ -67,6 +67,7 @@ class ManagedArray
         DEVICE ManagedArray(const ManagedArray<T>& other)
             : N(other.N), managed(other.managed)
             {
+            printf("copy construct\n");
             #ifndef NVCC
             if (N > 0)
                 {
@@ -115,6 +116,7 @@ class ManagedArray
         //! Assignment operator
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
             {
+            printf("copy assign\n");
             #ifndef NVCC
             deallocate();
             #endif

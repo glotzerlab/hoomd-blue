@@ -76,6 +76,8 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     // scan through the particle data arrays and calculate distances
     if (m_prof) m_prof->push(m_exec_conf, "dist-check");
 
+    m_exec_conf->multiGPUBarrier();
+
     // access data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     BoxDim box = m_pdata->getBox();
@@ -136,6 +138,17 @@ void NeighborListGPU::filterNlist()
     {
     if (m_prof)
         m_prof->push(m_exec_conf, "filter");
+
+    if (this->m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        // synchronize all active GPUs, since we perform a Scan in what follows
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            cudaSetDevice(gpu_map[idev]);
+            cudaDeviceSynchronize();
+            }
+        }
 
     // access data
 

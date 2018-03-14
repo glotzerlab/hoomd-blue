@@ -137,6 +137,21 @@ struct ExecutionConfiguration
         return m_gpu_id;
         }
 
+    #ifdef ENABLE_CUDA
+    //! Sync up all active GPUs
+    void multiGPUBarrier() const
+        {
+        if (getNumActiveGPUs() > 1)
+            {
+            // synchronize all GPUs
+            for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+                {
+                cudaSetDevice(m_gpu_id[idev]);
+                cudaDeviceSynchronize();
+                }
+            }
+        }
+    #endif
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
@@ -302,8 +317,13 @@ private:
 #define CHECK_CUDA_ERROR() { \
     cudaError_t err_sync = cudaGetLastError(); \
     this->m_exec_conf->handleCUDAError(err_sync, __FILE__, __LINE__); \
-    cudaError_t err_async = cudaDeviceSynchronize(); \
-    this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
+    auto gpu_map = this->m_exec_conf->getGPUIds(); \
+    for (int idev = this->m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev) \
+        { \
+        cudaSetDevice(gpu_map[idev]); \
+        cudaError_t err_async = cudaDeviceSynchronize(); \
+        this->m_exec_conf->handleCUDAError(err_async, __FILE__, __LINE__); \
+        } \
     }
 #else
 #define CHECK_CUDA_ERROR()

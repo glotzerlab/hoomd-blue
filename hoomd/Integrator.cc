@@ -481,10 +481,15 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // compute all the normal forces first
+
+    m_exec_conf->multiGPUBarrier();
+
     std::vector< std::shared_ptr<ForceCompute> >::iterator force_compute;
 
     for (force_compute = m_forces.begin(); force_compute != m_forces.end(); ++force_compute)
         (*force_compute)->compute(timestep);
+
+    m_exec_conf->multiGPUBarrier();
 
     if (m_prof)
         {
@@ -667,10 +672,14 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
     #endif
 
+    m_exec_conf->multiGPUBarrier();
+
     // compute all the constraint forces next
     std::vector< std::shared_ptr<ForceConstraint> >::iterator force_constraint;
     for (force_constraint = m_constraint_forces.begin(); force_constraint != m_constraint_forces.end(); ++force_constraint)
         (*force_constraint)->compute(timestep);
+
+    m_exec_conf->multiGPUBarrier();
 
     if (m_prof)
         {

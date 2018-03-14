@@ -774,6 +774,17 @@ void ParticleGroup::rebuildIndexListGPU() const
     // get temporary buffer
     ScopedAllocation<unsigned int> d_tmp(m_pdata->getExecConf()->getCachedAllocator(), m_pdata->getN());
 
+    if (this->m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        // synchronize all active GPUs, since we reduce GPU memory in the following kernel call
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
+            {
+            cudaSetDevice(gpu_map[idev]);
+            cudaDeviceSynchronize();
+            }
+        }
+
     // reset membership properties
     if (m_member_tags.getNumElements() > 0)
         {
