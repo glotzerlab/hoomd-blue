@@ -101,6 +101,12 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     GlobalArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
 
+        {
+        // initially reset conditions
+        ArrayHandle<unsigned int> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+        memset(h_conditions.data, 0, sizeof(unsigned int)*m_pdata->getNTypes());
+        }
+
     // allocate m_last_pos
     GlobalArray<Scalar4> last_pos(m_pdata->getMaxN(), m_exec_conf);
     m_last_pos.swap(last_pos);
