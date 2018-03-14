@@ -37,6 +37,7 @@
 #endif
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
 
 #ifdef ENABLE_CUDA
 //! Forward declaration
@@ -75,7 +76,7 @@ struct ExecutionConfiguration
 
     //! Constructor
     ExecutionConfiguration(executionMode mode=AUTO,
-                           int gpu_id=-1,
+                           std::vector<unsigned int> gpu_id = std::vector<unsigned int>(),
                            bool min_cpu=false,
                            bool ignore_display=false,
                            std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
@@ -124,34 +125,32 @@ struct ExecutionConfiguration
         m_cuda_error_checking = cuda_error_checking;
         }
 
-    //! Get the name of the executing GPU (or the empty string)
-    std::string getGPUName() const;
-
-    //! Activate the GPU
-    /*! This low-overhead call should be made before any operation that uses the GPU. It ensures that the selected
-        device is active. GPUArray calls it whenever an array handle is accessed. This should cover almost all
-        cases where it is necessary to set the active GPU.
-
-        This needs to be called because another library (i.e. a GPU library imported into a user python script)
-        may have changed the active GPU context for this process.
-    */
-    void setGPUDevice() const
+    //! Get the number of active GPUs
+    unsigned int getNumActiveGPUs() const
         {
-        #ifdef ENABLE_CUDA
-        if (isCUDAEnabled())
-            cudaSetDevice(m_gpu_id);
-        #endif
+        return m_gpu_id.size();
         }
 
+    //! Get the IDs of the active GPUs
+    const std::vector<unsigned int>& getGPUIds() const
+        {
+        return m_gpu_id;
+        }
+
+
+    //! Get the name of the executing GPU (or the empty string)
+    std::string getGPUName(unsigned int idev=0) const;
+
 #ifdef ENABLE_CUDA
-    cudaDeviceProp dev_prop;    //!< Cached device properties
-    int m_gpu_id;               //!< GPU ID
+    cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
+    std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
+    std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
 
     //! Get the compute capability of the GPU that we are running on
-    std::string getComputeCapabilityAsString() const;
+    std::string getComputeCapabilityAsString(unsigned int igpu = 0) const;
 
-    //! Get thie compute capability of the GPU
-    unsigned int getComputeCapability() const;
+    //! Get the compute capability of the GPU
+    unsigned int getComputeCapability(unsigned int igpu = 0) const;
 
     //! Handle cuda error message
     void handleCUDAError(cudaError_t err, const char *file, unsigned int line) const;

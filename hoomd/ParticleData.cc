@@ -16,6 +16,7 @@
 
 #ifdef ENABLE_CUDA
 #include "CachedAllocator.h"
+#include "GPUPartition.cuh"
 #endif
 
 #include "hoomd/extern/num_util.h"
@@ -62,6 +63,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_accel_set(false),
           m_resize_factor(9./8.),
           m_arrays_allocated(false)
+#ifdef ENABLE_CUDA
+          , m_gpu_partition(m_exec_conf->getGPUIds())
+#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -95,7 +99,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     setGlobalBox(global_box);
 
     // initialize rtag array
-    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
+    GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize all processors
     initializeFromSnapshot(snap);
@@ -112,6 +116,9 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
     // zero the origin
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
+
+    // listen to own particle sort signal
+    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
@@ -142,6 +149,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_accel_set(false),
       m_resize_factor(9./8.),
       m_arrays_allocated(false)
+#ifdef ENABLE_CUDA
+          , m_gpu_partition(m_exec_conf->getGPUIds())
+#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -161,7 +171,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         }
 
     // initialize rtag array
-    GPUVector<unsigned int>(exec_conf).swap(m_rtag);
+    GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
 
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
@@ -179,6 +189,9 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
     m_origin = make_scalar3(0,0,0);
     m_o_image = make_int3(0,0,0);
 
+    // listen to own particle sort signal
+    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
+
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
         {
@@ -192,6 +205,8 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 ParticleData::~ParticleData()
     {
     m_exec_conf->msg->notice(5) << "Destroying ParticleData" << endl;
+
+    getParticleSortSignal().disconnect<ParticleData, &ParticleData::slotParticlesSorted>(this);
     }
 
 /*! \return Simulation box dimensions
@@ -467,6 +482,7 @@ void ParticleData::resize(unsigned int new_nparticles)
         if (! m_arrays_allocated)
             allocate(1);
         m_nparticles = new_nparticles;
+
         return;
         }
 
@@ -557,7 +573,7 @@ void ParticleData::maybe_rebuild_tag_cache()
     if(!m_invalid_cached_tags)
         return;
 
-    // GPUVector checks if the resize is necessary
+    // GlobalVector checks if the resize is necessary
     m_cached_tag_set.resize(m_tag_set.size());
 
     ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);

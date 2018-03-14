@@ -18,10 +18,11 @@
 #include "HOOMDMath.h"
 #include "GPUArray.h"
 #include "GlobalArray.h"
-#include "GPUVector.h"
+#include "GlobalVector.h"
 
 #ifdef ENABLE_CUDA
 #include "ParticleData.cuh"
+#include "GPUPartition.cuh"
 #endif
 
 #include "ExecutionConfiguration.h"
@@ -595,7 +596,7 @@ class ParticleData
         const GPUArray< unsigned int >& getTags() const { return m_tag; }
 
         //! Return reverse-lookup tags
-        const GPUVector< unsigned int >& getRTags() const { return m_rtag; }
+        const GlobalVector< unsigned int >& getRTags() const { return m_rtag; }
 
         //! Return body ids
         const GPUArray< unsigned int >& getBodies() const { return m_body; }
@@ -1123,7 +1124,7 @@ class ParticleData
         GlobalArray<Scalar> m_diameter;                //!< particle diameters
         GlobalArray<int3> m_image;                     //!< particle images
         GlobalArray<unsigned int> m_tag;               //!< particle tags
-        GPUVector<unsigned int> m_rtag;             //!< reverse lookup tags
+        GlobalVector<unsigned int> m_rtag;             //!< reverse lookup tags
         GlobalArray<unsigned int> m_body;              //!< rigid body ids
         GlobalArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GlobalArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
@@ -1132,7 +1133,7 @@ class ParticleData
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
-        GPUVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        GlobalVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
         bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data
@@ -1173,11 +1174,13 @@ class ParticleData
         Scalar3 m_origin;                            //!< Tracks the position of the origin of the coordinate system
         int3 m_o_image;                              //!< Tracks the origin image
 
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
+
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
-        #endif
 
-        bool m_arrays_allocated;                     //!< True if arrays have been initialized
+        GPUPartition m_gpu_partition;                //!< The partition of the local number of particles across GPUs
+        #endif
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);
@@ -1200,6 +1203,14 @@ class ParticleData
          */
         template <class Real>
         bool inBox(const SnapshotParticleData<Real>& snap);
+
+        //! Called whenever local particles are added/sorted...
+        void slotParticlesSorted()
+            {
+            #ifdef ENABLE_CUDA
+            m_gpu_partition.setN(getN());
+            #endif
+            }
     };
 
 #ifndef NVCC

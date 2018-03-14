@@ -285,9 +285,9 @@ def _create_exec_conf():
 
     # convert None options to defaults
     if options.gpu is None:
-        gpu_id = -1;
+        gpu_id = [];
     else:
-        gpu_id = int(options.gpu);
+        gpu_id = options.gpu;
 
     if options.nrank is None:
         nrank = 0;
@@ -351,7 +351,8 @@ class ExecutionContext(hoomd.meta._metadata):
     # \brief Return the name of the GPU used in GPU mode.
     @property
     def gpu(self):
-        return self._get_exec_conf().getGPUName()
+        n_gpu = self._get_exec_conf().getNumActiveGPUs()
+        return [self._get_exec_conf().getGPUName(i) for i in range(n_gpu)]
 
     # \brief Return the execution mode
     @property

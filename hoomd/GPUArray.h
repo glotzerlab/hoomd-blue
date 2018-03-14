@@ -791,9 +791,6 @@ template<class T> T* GPUArray<T>::acquire(const access_location::Enum location, 
     if (isNull())
         return NULL;
 
-    if (m_exec_conf)
-        m_exec_conf->setGPUDevice();
-
     // first, break down based on where the data is to be acquired
     if (location == access_location::host)
         {

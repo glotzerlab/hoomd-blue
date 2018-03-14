@@ -111,9 +111,9 @@ def _parse_command_line(arg_string=None):
     # convert gpu to an integer
     if cmd_options.gpu is not None:
         try:
-            cmd_options.gpu = int(cmd_options.gpu);
+            cmd_options.gpu = [int(gpu) for gpu in str(cmd_options.gpu).split(',')]
         except ValueError:
-            parser.error('--gpu must be an integer')
+            parser.error('--gpu must be an integer or comma-separated list of integers')
 
     # convert notice_level to an integer
     if cmd_options.notice_level is not None:

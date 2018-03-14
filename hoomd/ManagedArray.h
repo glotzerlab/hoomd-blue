@@ -7,6 +7,7 @@
 #include "managed_allocator.h"
 
 #include <algorithm>
+#include <utility>
 #endif
 
 #ifdef ENABLE_CUDA
@@ -70,12 +71,31 @@ class ManagedArray
             if (N > 0)
                 {
                 allocate();
+
+                #ifdef ENABLE_CUDA
+                cudaDeviceSynchronize();
+                #endif
+
                 std::copy(other.data, other.data+N, data);
                 }
             #else
             data = other.data;
             #endif
             }
+
+        #ifndef NVCC
+        //! Move constructor
+        ManagedArray(ManagedArray<T>&& other)
+            : data(std::move(other.data)),
+              N(std::move(other.N)),
+              managed(std::move(other.managed))
+            {
+            // set the other array's values to 0 so it is no longer free'd upon destruction
+            other.data = nullptr;
+            other.N = 0;
+            other.managed = 0;
+            }
+        #endif
 
         //! Assignment operator
         DEVICE ManagedArray& operator=(const ManagedArray<T>& other)
@@ -91,6 +111,11 @@ class ManagedArray
             if (N > 0)
                 {
                 allocate();
+
+                #ifdef ENABLE_CUDA
+                cudaDeviceSynchronize();
+                #endif
+
                 std::copy(other.data, other.data+N, data);
                 }
             #else

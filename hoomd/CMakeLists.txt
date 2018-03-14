@@ -98,6 +98,7 @@ set(_hoomd_headers
     GetarDumpWriter.h
     GetarInitializer.h
     GlobalArray.h
+    GlobalVector.h
     GPUArray.h
     GPUFlags.h
     GPUVector.h
