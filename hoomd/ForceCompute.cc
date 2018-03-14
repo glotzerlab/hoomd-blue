@@ -28,16 +28,17 @@ namespace py = pybind11;
     \post \c force and \c virial GPUarrays are initialized
     \post All forces are initialized to 0
 */
-ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(sysdef), m_particles_sorted(false)
+ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
+     : Compute(sysdef), m_particles_sorted(false)
     {
     assert(m_pdata);
     assert(m_pdata->getMaxN() > 0);
 
     // allocate data on the host
     unsigned int max_num_particles = m_pdata->getMaxN();
-    GlobalArray<Scalar4>  force(max_num_particles,exec_conf);
-    GlobalArray<Scalar>   virial(max_num_particles,6,exec_conf);
-    GlobalArray<Scalar4>  torque(max_num_particles,exec_conf);
+    GlobalArray<Scalar4>  force(max_num_particles,m_exec_conf);
+    GlobalArray<Scalar>   virial(max_num_particles,6,m_exec_conf);
+    GlobalArray<Scalar4>  torque(max_num_particles,m_exec_conf);
     m_force.swap(force);
     m_virial.swap(virial);
     m_torque.swap(torque);
