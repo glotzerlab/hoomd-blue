@@ -10,6 +10,12 @@
 class GPUPartition
     {
     public:
+        // Empty constructor
+        GPUPartition() {}
+
+        //! Constructor
+        /*! \param gpu_id Mapping of contiguous device IDs onto CUDA devices
+         */
         GPUPartition(const std::vector<unsigned int>& gpu_id)
             : m_gpu_map(gpu_id)
             {

@@ -63,9 +63,6 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
           m_accel_set(false),
           m_resize_factor(9./8.),
           m_arrays_allocated(false)
-#ifdef ENABLE_CUDA
-          , m_gpu_partition(m_exec_conf->getGPUIds())
-#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -97,6 +94,11 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     // initialize box dimensions on all procesors
     setGlobalBox(global_box);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+    #endif
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
@@ -149,9 +151,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
       m_accel_set(false),
       m_resize_factor(9./8.),
       m_arrays_allocated(false)
-#ifdef ENABLE_CUDA
-          , m_gpu_partition(m_exec_conf->getGPUIds())
-#endif
     {
     m_exec_conf->msg->notice(5) << "Constructing ParticleData" << endl;
 
@@ -169,6 +168,11 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
         m_exec_conf->msg->warning() << "Not all particles were found inside the given box" << endl;
         throw runtime_error("Error initializing ParticleData");
         }
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+    #endif
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);

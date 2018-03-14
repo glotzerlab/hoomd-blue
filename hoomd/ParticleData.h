@@ -1217,7 +1217,8 @@ class ParticleData
         void slotParticlesSorted()
             {
             #ifdef ENABLE_CUDA
-            m_gpu_partition.setN(getN());
+            if (m_exec_conf->isCUDAEnabled())
+                m_gpu_partition.setN(getN());
             #endif
             }
     };
