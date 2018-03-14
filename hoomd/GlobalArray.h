@@ -4,14 +4,24 @@
 
 // Maintainers: jglaser, pschwende
 
-/*! \file GlobalPUArray.h
+/*! \file GlobalArray.h
     \brief Defines the GlobalArray class
 */
 
 #pragma once
+
 #include "ManagedArray.h"
 #include "GPUArray.h"
 #include <type_traits>
+#include <string>
+
+#define checkAcquired(a) { \
+    assert((a).m_acquired); \
+    if ((a).m_acquired) \
+        { \
+        throw std::runtime_error("Internal error - GlobalArray already acquired in "+std::string(__FILE__)+" line "+std::to_string(__LINE__)); \
+        } \
+    }
 
 template<class T>
 class GlobalArray : public GPUArray<T>
@@ -19,7 +29,7 @@ class GlobalArray : public GPUArray<T>
     public:
         //! Empty constructor
         GlobalArray()
-            : m_pitch(0), m_height(0)
+            : m_pitch(0), m_height(0), m_acquired(false)
             { }
 
         /*! Allocate a 1D array in managed memory
@@ -27,7 +37,7 @@ class GlobalArray : public GPUArray<T>
             \param exec_conf The current execution configuration
          */
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf)
-            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf)
+            : m_pitch(num_elements), m_height(1), m_exec_conf(exec_conf), m_acquired(false)
             {
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
             std::swap(m_array, array);
@@ -35,8 +45,10 @@ class GlobalArray : public GPUArray<T>
 
         //! Copy constructor
         GlobalArray(const GlobalArray& from)
-            : m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf)
+            : m_pitch(from.m_pitch), m_height(from.m_height), m_exec_conf(from.m_exec_conf), m_acquired(false)
             {
+            checkAcquired(from);
+
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
                 {
@@ -56,9 +68,13 @@ class GlobalArray : public GPUArray<T>
         //! = operator
         GlobalArray& operator=(const GlobalArray& rhs)
             {
+            checkAcquired(rhs);
+            checkAcquired(*this);
+
             m_pitch = rhs.m_pitch;
             m_height = rhs.m_height;
             m_exec_conf = rhs.m_exec_conf;
+            m_acquired = false;
 
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled())
@@ -81,23 +97,32 @@ class GlobalArray : public GPUArray<T>
             : m_array(std::move(other.m_array)),
               m_pitch(std::move(other.m_pitch)),
               m_height(std::move(other.m_height)),
-              m_exec_conf(std::move(other.m_exec_conf))
+              m_exec_conf(std::move(other.m_exec_conf)),
+              m_acquired(std::move(other.m_acquired))
             {
+            checkAcquired(other);
+
             // reset the other array's values
             other.m_pitch = 0;
             other.m_height = 0;
+            other.m_acquired = false;
             }
 
         //! Move assignment operator
         GlobalArray& operator=(GlobalArray&& other)
             {
+            checkAcquired(*this);
+            checkAcquired(other);
+
             m_array = std::move(other.m_array);
             m_pitch = std::move(other.m_pitch);
             m_height = std::move(other.m_height);
             m_exec_conf = std::move(other.m_exec_conf);
+            m_acquired = std::move(other.m_acquired);
 
             other.m_pitch = 0;
             other.m_height = 0;
+            other.m_acquired = false;
 
             return *this;
             }
@@ -108,7 +133,7 @@ class GlobalArray : public GPUArray<T>
             \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
          */
         GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
-            m_height(height), m_exec_conf(exec_conf)
+            m_height(height), m_exec_conf(exec_conf), m_acquired(false)
             {
             // make m_pitch the next multiple of 16 larger or equal to the given width
             m_pitch = (width + (16 - (width & 15)));
@@ -122,6 +147,9 @@ class GlobalArray : public GPUArray<T>
         //! Swap the pointers of two GlobalArrays
         inline void swap(GlobalArray &from)
             {
+            checkAcquired(from);
+            checkAcquired(*this);
+
             std::swap(m_pitch,from.m_pitch);
             std::swap(m_height,from.m_height);
             std::swap(m_array, from.m_array);
@@ -133,9 +161,6 @@ class GlobalArray : public GPUArray<T>
             {
             throw std::runtime_error("GlobalArray::swap() not supported with GPUArray()");
             }
-
-        //! Swap the pointers of two equally sized GPUArrays
-        // inline void swap(GPUArray& from) const;
 
         T *get() const
             {
@@ -184,6 +209,8 @@ class GlobalArray : public GPUArray<T>
         */
         virtual void resize(unsigned int num_elements)
             {
+            checkAcquired(*this);
+
             ManagedArray<T> new_array(num_elements, m_exec_conf->isCUDAEnabled());
 
             #ifdef ENABLE_CUDA
@@ -208,6 +235,8 @@ class GlobalArray : public GPUArray<T>
         //! Resize a 2D GlobalArray
         virtual void resize(unsigned int width, unsigned int height)
             {
+            checkAcquired(*this);
+
             // make m_pitch the next multiple of 16 larger or equal to the given width
             unsigned int pitch = (width + (16 - (width & 15)));
 
@@ -250,12 +279,16 @@ class GlobalArray : public GPUArray<T>
 
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Handle to the current execution configuration
 
+        mutable bool m_acquired;       //!< Tracks if the array is already acquired
+
         virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
                          , bool async = false
         #endif
                         ) const
             {
+            checkAcquired(*this);
+
             #ifdef ENABLE_CUDA
             if (m_exec_conf->isCUDAEnabled() && location == access_location::host)
                 {
@@ -269,6 +302,15 @@ class GlobalArray : public GPUArray<T>
                 }
             #endif
 
+            m_acquired = true;
+
             return get();
             }
+
+        //! Release the data pointer
+        virtual inline void release() const
+            {
+            m_acquired = false;
+            }
+
     };

@@ -287,7 +287,7 @@ template<class T> class GPUArray
                         ) const;
 
         //! Release the data pointer
-        inline void release() const
+        virtual inline void release() const
             {
             m_acquired = false;
             }
@@ -361,7 +361,7 @@ template<class T> ArrayHandle<T>::ArrayHandle(const GPUArray<T>& gpu_array, cons
 template<class T> ArrayHandle<T>::~ArrayHandle()
     {
     assert(m_gpu_array.m_acquired);
-    m_gpu_array.m_acquired = false;
+    m_gpu_array.release();
     }
 
 #ifdef ENABLE_CUDA
@@ -373,7 +373,7 @@ template<class T> ArrayHandleAsync<T>::ArrayHandleAsync(const GPUArray<T>& gpu_a
 
 template<class T> ArrayHandleAsync<T>::~ArrayHandleAsync()
     {
-    m_gpu_array.m_acquired = false;
+    m_gpu_array.release();
     }
 #endif
 
