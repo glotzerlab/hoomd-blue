@@ -369,7 +369,7 @@ void ParticleData::allocate(unsigned int N)
 
     GlobalArray< Scalar4 > net_force(N, m_exec_conf);
     m_net_force.swap(net_force);
-    GPUArray< Scalar > net_virial(N,6, m_exec_conf);
+    GlobalArray< Scalar > net_virial(N,6, m_exec_conf);
     m_net_virial.swap(net_virial);
     GlobalArray< Scalar4 > net_torque(N, m_exec_conf);
     m_net_torque.swap(net_torque);
@@ -447,7 +447,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
     m_net_force_alt.swap(net_force_alt);
 
     // Net virial
-    GPUArray< Scalar > net_virial_alt(N,6, m_exec_conf);
+    GlobalArray< Scalar > net_virial_alt(N,6, m_exec_conf);
     m_net_virial_alt.swap(net_virial_alt);
 
     // Net torque

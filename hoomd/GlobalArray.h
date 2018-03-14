@@ -19,17 +19,41 @@ class GlobalArray : public GPUArray<T>
     public:
         //! Empty constructor
         GlobalArray()
+            : m_pitch(0), m_height(0)
             { }
 
+        /*! Allocate a 1D array in managed memory
+            \param num_elements Number of elements in array
+            \param exec_conf The current execution configuration
+         */
         GlobalArray(unsigned int num_elements, std::shared_ptr<const ExecutionConfiguration> exec_conf)
+            : m_pitch(num_elements), m_height(1)
             {
             m_array = ManagedArray<T>(num_elements, exec_conf->isCUDAEnabled());
             }
 
-        //! Swap the pointers of two equally sized GPUArrays
+        /*! Allocate a 2D array in managed memory
+            \param width Width of the 2-D array to allocate (in elements)
+            \param height Number of rows to allocate in the 2D array
+            \param exec_conf Shared pointer to the execution configuration for managing CUDA initialization and shutdown
+         */
+        GlobalArray(unsigned int width, unsigned int height, std::shared_ptr<const ExecutionConfiguration> exec_conf) :
+            m_height(height)
+            {
+            // make m_pitch the next multiple of 16 larger or equal to the given width
+            m_pitch = (width + (16 - (width & 15)));
+
+            unsigned int num_elements = m_pitch * m_height;
+            m_array = ManagedArray<T>(num_elements, exec_conf->isCUDAEnabled());
+            }
+
+
+        //! Swap the pointers of two GlobalArrays
         inline void swap(GlobalArray &from)
             {
-            std :: swap(m_array, from.m_array);
+            std::swap(m_pitch,from.m_pitch);
+            std::swap(m_height,from.m_height);
+            std::swap(m_array, from.m_array);
             }
 
         //! Swap the pointers of two equally sized GPUArrays
@@ -69,7 +93,7 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getPitch() const
             {
-            return getNumElements();
+            return m_pitch;
             }
 
         //! Get the number of rows allocated
@@ -79,30 +103,51 @@ class GlobalArray : public GPUArray<T>
         */
         virtual unsigned int getHeight() const
             {
-            return 1;
+            return m_height;
             }
 
-        //! Resize the GPUArray
+        //! Resize the GlobalArray
         /*! This method resizes the array by allocating a new array and copying over the elements
-            from the old array. This is a slow process.
-            Only data from the currently active memory location (gpu/cpu) is copied over to the resized
-            memory area.
+            from the old array. Resizing is a slow operation.
         */
         virtual void resize(unsigned int num_elements)
             {
             ManagedArray<T> new_array(num_elements, m_array.isManaged());
             std :: copy(m_array.get(), m_array.get() + m_array.size(), new_array.get());
             m_array = new_array;
+            m_pitch = m_array.size();
+            m_height = 1;
             }
 
-        //! Resize a 2D GPUArray
+        //! Resize a 2D GlobalArray
         virtual void resize(unsigned int width, unsigned int height)
             {
-            throw std::runtime_error("2D Resize not implemented for GlobalArray");
+            // make m_pitch the next multiple of 16 larger or equal to the given width
+            unsigned int pitch = (width + (16 - (width & 15)));
+
+            unsigned int num_elements = pitch * height;
+            assert(num_elements > 0);
+
+            ManagedArray<T> new_array(num_elements, m_array.isManaged());
+
+            // copy over data
+            // every column is copied separately such as to align with the new pitch
+            unsigned int num_copy_rows = m_height > height ? height : m_height;
+            unsigned int num_copy_columns = m_pitch > pitch ? pitch : m_pitch;
+            for (unsigned int i = 0; i < num_copy_rows; i++)
+                std::copy(m_array.get() + i*m_pitch, m_array.get() + i*m_pitch + num_copy_columns, new_array.get() + i * pitch);
+
+            m_height = height;
+            m_pitch  = pitch;
+
+            m_array = new_array;
             }
 
     protected:
-        mutable ManagedArray<T> m_array;
+        mutable ManagedArray<T> m_array; //!< Data storage in managed or host memory
+
+        unsigned int m_pitch;  //!< Pitch of 2D array
+        unsigned int m_height; //!< Height of 2D array
 
         virtual inline T* acquire(const access_location::Enum location, const access_mode::Enum mode
         #ifdef ENABLE_CUDA
