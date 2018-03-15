@@ -637,7 +637,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -797,7 +798,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                                          force_list,
                                          nparticles,
                                          clear,
-                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial]);
+                                         flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
+                                         m_pdata->getGPUPartition());
 
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
