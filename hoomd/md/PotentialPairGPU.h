@@ -131,6 +131,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     // start the profile
     if (this->m_prof) this->m_prof->push(this->exec_conf, this->m_prof_name);
 
+    this->m_exec_conf->multiGPUBarrier();
+
     // The GPU implementation CANNOT handle a half neighborlist, error out now
     bool third_law = this->m_nlist->getStorageMode() == NeighborList::half;
     if (third_law)
@@ -196,6 +198,8 @@ void PotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int timeste
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     if (!m_param) this->m_tuner->end();
+
+    this->m_exec_conf->multiGPUBarrier();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }

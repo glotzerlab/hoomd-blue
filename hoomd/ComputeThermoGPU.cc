@@ -62,9 +62,6 @@ void ComputeThermoGPU::computeProperties()
     if (m_group->getNumMembersGlobal() == 0)
         return;
 
-    // sync all GPUs, since we're reducing
-    m_exec_conf->multiGPUBarrier();
-
     unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
