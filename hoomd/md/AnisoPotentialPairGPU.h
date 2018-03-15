@@ -155,6 +155,8 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
     // access flags
     PDataFlags flags = this->m_pdata->getFlags();
 
+    this->m_exec_conf->beginMultiGPU();
+
     if (! m_param) this->m_tuner->begin();
     unsigned int param = !m_param ?  this->m_tuner->getParam() : m_param;
     unsigned int block_size = param / 10000;
@@ -179,12 +181,15 @@ void AnisoPotentialPairGPU< evaluator, gpu_cgpf >::computeForces(unsigned int ti
                            block_size,
                            this->m_shift_mode,
                            flags[pdata_flag::pressure_tensor] || flags[pdata_flag::isotropic_virial],
-                           threads_per_particle),
+                           threads_per_particle,
+                           this->m_pdata->getGPUPartition()),
              d_params.data);
     if (!m_param) this->m_tuner->end();
 
     if (this->exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    this->m_exec_conf->endMultiGPU();
 
     if (this->m_prof) this->m_prof->pop(this->exec_conf);
     }
