@@ -753,6 +753,28 @@ unsigned int ExecutionConfiguration::getNRanks() const
     }
 #endif
 
+void ExecutionConfiguration::multiGPUBarrier() const
+    {
+    #ifdef ENABLE_CUDA
+    if (getNumActiveGPUs() > 1)
+        {
+        // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
+        for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaEventRecord(m_events[idev], 0);
+            }
+
+        // wait for all those events on all GPUs
+        for (int idev_i = m_gpu_id.size()-1; idev_i >= 0; --idev_i)
+            {
+            cudaSetDevice(m_gpu_id[idev_i]);
+            for (int idev_j = 0; idev_j < (int) m_gpu_id.size(); ++idev_j)
+                cudaStreamWaitEvent(0, m_events[idev_j], 0);
+            }
+        }
+    #endif
+    }
 
 void export_ExecutionConfiguration(py::module& m)
     {

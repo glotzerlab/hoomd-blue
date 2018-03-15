@@ -140,24 +140,7 @@ struct ExecutionConfiguration
     #endif
 
     //! Sync up all active GPUs
-    void multiGPUBarrier() const
-        {
-        #ifdef ENABLE_CUDA
-        if (getNumActiveGPUs() > 1)
-            {
-            // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
-            for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
-                {
-                cudaSetDevice(m_gpu_id[idev]);
-                cudaEventRecord(m_events[idev], 0);
-                }
-
-            // wait on GPU 0 for all those events
-            for (int idev = 0; idev < (int) m_gpu_id.size(); ++idev)
-                cudaStreamWaitEvent(0, m_events[idev], 0);
-            }
-        #endif
-        }
+    void multiGPUBarrier() const;
 
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
