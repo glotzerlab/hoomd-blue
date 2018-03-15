@@ -137,6 +137,15 @@ class AnisoPotentialPair : public ForceCompute
             m_rcutsq.swap(rcutsq);
             GlobalArray<param_type> params(m_typpair_idx.getNumElements(), m_exec_conf);
             m_params.swap(params);
+
+            #ifdef ENABLE_CUDA
+            if (m_pdata->getExecConf()->isCUDAEnabled())
+                {
+                cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+                cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
+                }
+            #endif
+
             }
     };
 
@@ -158,6 +167,14 @@ AnisoPotentialPair< aniso_evaluator >::AnisoPotentialPair(std::shared_ptr<System
     m_rcutsq.swap(rcutsq);
     GlobalArray<param_type> params(m_typpair_idx.getNumElements(), exec_conf);
     m_params.swap(params);
+
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_rcutsq.get(), m_rcutsq.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        cudaMemAdvise(m_params.get(), m_params.getNumElements()*sizeof(param_type), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
 
     // initialize name
     m_prof_name = std::string("Aniso_Pair ") + aniso_evaluator::getName();
