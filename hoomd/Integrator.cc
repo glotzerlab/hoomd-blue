@@ -330,9 +330,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         unsigned int nparticles = m_pdata->getN()+m_pdata->getNGhosts();
         unsigned int net_virial_pitch = net_virial.getPitch();
 
-        if (! (nparticles <= net_force.getNumElements()))
-            printf("Here\n");
-
         assert(nparticles <= net_force.getNumElements());
         assert(6*nparticles <= net_virial.getNumElements());
         assert(nparticles <= net_torque.getNumElements());
@@ -503,6 +500,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     Scalar external_virial[6];
     Scalar external_energy;
 
+    m_exec_conf->beginMultiGPU();
+
         {
         // access the net force and virial arrays
         const GPUArray< Scalar4 >& net_force  = m_pdata->getNetForce();
@@ -658,6 +657,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
 
     m_pdata->setExternalEnergy(external_energy);
 
+    m_exec_conf->endMultiGPU();
+
     if (m_prof)
         {
         m_prof->pop(m_exec_conf);
@@ -686,6 +687,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->push("Integrate");
         m_prof->push(m_exec_conf, "Net force");
         }
+
+    m_exec_conf->beginMultiGPU();
 
         {
         // access the net force and virial arrays
@@ -805,6 +808,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
                 CHECK_CUDA_ERROR();
             }
         }
+
+    m_exec_conf->endMultiGPU();
 
     // add up external virials
     for (unsigned int cur_force = 0; cur_force < m_constraint_forces.size(); cur_force ++)
