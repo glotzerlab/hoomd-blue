@@ -12,6 +12,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
+#include "hoomd/GPUPartition.cuh"
 
 /*! \file NeighborListGPUBinned.cuh
     \brief Declares GPU kernel code for neighbor list generation on the GPU
@@ -48,5 +49,6 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool diameter_shift,
                                      const Scalar3& ghost_width,
-                                     const unsigned int compute_capability);
+                                     const unsigned int compute_capability,
+                                     const GPUPartition& gpu_partition);
 #endif

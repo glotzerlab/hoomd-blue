@@ -42,6 +42,9 @@ void CellListGPU::computeCellList()
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
+    // wait for GPUs to catch up
+    m_exec_conf->multiGPUBarrier();
+
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_orientation(m_pdata->getOrientationArray(), access_location::device, access_mode::read);

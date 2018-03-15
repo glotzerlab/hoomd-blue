@@ -68,6 +68,8 @@ struct warp_scan_sm30
     \param r_buff The maximum radius for which to include particles as neighbors
     \param ntypes Number of particle types
     \param ghost_width Width of ghost cell layer
+    \param offset Starting particle index
+    \param nwork Number of particles to process
 
     \note optimized for Kepler
 */
@@ -93,7 +95,9 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
                                                     const Scalar *d_r_cut,
                                                     const Scalar r_buff,
                                                     const unsigned int ntypes,
-                                                    const Scalar3 ghost_width)
+                                                    const Scalar3 ghost_width,
+                                                    const unsigned int offset,
+                                                    const unsigned int nwork)
     {
     bool filter_body = flags & 1;
     bool diameter_shift = flags & 2;
@@ -138,7 +142,10 @@ __global__ void gpu_compute_nlist_binned_kernel(unsigned int *d_nlist,
         }
 
     // one thread per particle
-    if (my_pidx >= N) return;
+    if (my_pidx >= nwork) return;
+
+    // get particle index
+    my_pidx += offset;
 
     Scalar4 my_postype = d_pos[my_pidx];
     Scalar3 my_pos = make_scalar3(my_postype.x, my_postype.y, my_postype.z);
@@ -344,11 +351,15 @@ inline void launcher(unsigned int *d_nlist,
               unsigned int tpp,
               bool filter_body,
               bool diameter_shift,
-              unsigned int block_size)
+              unsigned int block_size,
+              std::pair<unsigned int, unsigned int> range)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
     unsigned int shared_size = sizeof(Scalar)*typpair_idx.getNumElements() + sizeof(unsigned int)*ntypes;
+
+    unsigned int offset = range.first;
+    unsigned int nwork = range.second - range.first;
 
     if (tpp == cur_tpp && cur_tpp != 0)
         {
@@ -360,7 +371,7 @@ inline void launcher(unsigned int *d_nlist,
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
+            dim3 grid(nwork / (block_size/tpp) + 1);
             if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
@@ -388,7 +399,9 @@ inline void launcher(unsigned int *d_nlist,
                                                                                          d_r_cut,
                                                                                          r_buff,
                                                                                          ntypes,
-                                                                                         ghost_width);
+                                                                                         ghost_width,
+                                                                                         offset,
+                                                                                         nwork);
             }
         else if (!diameter_shift && filter_body)
             {
@@ -398,7 +411,7 @@ inline void launcher(unsigned int *d_nlist,
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
+            dim3 grid(nwork / (block_size/tpp) + 1);
             if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
@@ -426,7 +439,9 @@ inline void launcher(unsigned int *d_nlist,
                                                                                          d_r_cut,
                                                                                          r_buff,
                                                                                          ntypes,
-                                                                                         ghost_width);
+                                                                                         ghost_width,
+                                                                                         offset,
+                                                                                         nwork);
             }
         else if (diameter_shift && !filter_body)
             {
@@ -436,7 +451,7 @@ inline void launcher(unsigned int *d_nlist,
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
+            dim3 grid(nwork / (block_size/tpp) + 1);
             if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
@@ -463,7 +478,9 @@ inline void launcher(unsigned int *d_nlist,
                                                                                          d_r_cut,
                                                                                          r_buff,
                                                                                          ntypes,
-                                                                                         ghost_width);
+                                                                                         ghost_width,
+                                                                                         offset,
+                                                                                         nwork);
             }
         else if (diameter_shift && filter_body)
             {
@@ -473,7 +490,7 @@ inline void launcher(unsigned int *d_nlist,
             if (compute_capability < 35) gpu_nlist_binned_bind_texture(d_cell_xyzf, cli.getNumElements());
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size/tpp) + 1);
+            dim3 grid(nwork / (block_size/tpp) + 1);
             if (compute_capability < 30 && grid.x > 65535)
                 {
                 grid.y = grid.x/65535 + 1;
@@ -500,7 +517,9 @@ inline void launcher(unsigned int *d_nlist,
                                                                                          d_r_cut,
                                                                                          r_buff,
                                                                                          ntypes,
-                                                                                         ghost_width);
+                                                                                         ghost_width,
+                                                                                         offset,
+                                                                                         nwork);
             }
         }
     else
@@ -531,7 +550,8 @@ inline void launcher(unsigned int *d_nlist,
                      tpp,
                      filter_body,
                      diameter_shift,
-                     block_size
+                     block_size,
+                     range
                      );
         }
     }
@@ -564,7 +584,8 @@ inline void launcher<min_threads_per_particle/2>(unsigned int *d_nlist,
               unsigned int tpp,
               bool filter_body,
               bool diameter_shift,
-              unsigned int block_size)
+              unsigned int block_size,
+              std::pair<unsigned int, unsigned int> range)
     { }
 
 cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
@@ -593,36 +614,43 @@ cudaError_t gpu_compute_nlist_binned(unsigned int *d_nlist,
                                      bool filter_body,
                                      bool diameter_shift,
                                      const Scalar3& ghost_width,
-                                     const unsigned int compute_capability)
+                                     const unsigned int compute_capability,
+                                     const GPUPartition& gpu_partition)
     {
-    launcher<max_threads_per_particle>(d_nlist,
-                                   d_n_neigh,
-                                   d_last_updated_pos,
-                                   d_conditions,
-                                   d_Nmax,
-                                   d_head_list,
-                                   d_pos,
-                                   d_body,
-                                   d_diameter,
-                                   N,
-                                   d_cell_size,
-                                   d_cell_xyzf,
-                                   d_cell_tdb,
-                                   d_cell_adj,
-                                   ci,
-                                   cli,
-                                   cadji,
-                                   box,
-                                   d_r_cut,
-                                   r_buff,
-                                   ntypes,
-                                   ghost_width,
-                                   compute_capability,
-                                   threads_per_particle,
-                                   filter_body,
-                                   diameter_shift,
-                                   block_size
-                                   );
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
+        launcher<max_threads_per_particle>(d_nlist,
+                                       d_n_neigh,
+                                       d_last_updated_pos,
+                                       d_conditions,
+                                       d_Nmax,
+                                       d_head_list,
+                                       d_pos,
+                                       d_body,
+                                       d_diameter,
+                                       N,
+                                       d_cell_size,
+                                       d_cell_xyzf,
+                                       d_cell_tdb,
+                                       d_cell_adj,
+                                       ci,
+                                       cli,
+                                       cadji,
+                                       box,
+                                       d_r_cut,
+                                       r_buff,
+                                       ntypes,
+                                       ghost_width,
+                                       compute_capability,
+                                       threads_per_particle,
+                                       filter_body,
+                                       diameter_shift,
+                                       block_size,
+                                       range
+                                       );
+    }
     return cudaSuccess;
     }

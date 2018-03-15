@@ -114,8 +114,6 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
-    m_exec_conf->multiGPUBarrier();
-
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_diameter(m_pdata->getDiameters(), access_location::device, access_mode::read);
@@ -191,11 +189,11 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
                              m_filter_body,
                              m_diameter_shift,
                              m_cl->getGhostWidth(),
-                             m_exec_conf->getComputeCapability()/10);
+                             m_exec_conf->getComputeCapability()/10,
+                             m_pdata->getGPUPartition());
+
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     this->m_tuner->end();
-
-    m_exec_conf->multiGPUBarrier();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);

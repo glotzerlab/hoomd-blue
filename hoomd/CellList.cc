@@ -292,7 +292,7 @@ void CellList::initializeMemory()
     m_cell_list_indexer = Index2D(m_Nmax, m_cell_indexer.getNumElements());
 
     // allocate memory
-    GPUArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
+    GlobalArray<unsigned int> cell_size(m_cell_indexer.getNumElements(), m_exec_conf);
     m_cell_size.swap(cell_size);
 
     if (m_compute_adj_list)
@@ -311,7 +311,7 @@ void CellList::initializeMemory()
 
         m_cell_adj_indexer = Index2D(n_adj, m_cell_indexer.getNumElements());
 
-        GPUArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<unsigned int> cell_adj(m_cell_adj_indexer.getNumElements(), m_exec_conf);
         m_cell_adj.swap(cell_adj);
         }
     else
@@ -319,46 +319,46 @@ void CellList::initializeMemory()
         m_cell_adj_indexer = Index2D();
 
         // array is not needed, discard it
-        GPUArray<unsigned int> cell_adj;
+        GlobalArray<unsigned int> cell_adj;
         m_cell_adj.swap(cell_adj);
         }
 
-    GPUArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
+    GlobalArray<Scalar4> xyzf(m_cell_list_indexer.getNumElements(), m_exec_conf);
     m_xyzf.swap(xyzf);
 
     if (m_compute_tdb)
         {
-        GPUArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<Scalar4> tdb(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_tdb.swap(tdb);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<Scalar4> tdb;
+        GlobalArray<Scalar4> tdb;
         m_tdb.swap(tdb);
         }
 
     if (m_compute_orientation)
         {
-        GPUArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<Scalar4> orientation(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_orientation.swap(orientation);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<Scalar4> orientation;
+        GlobalArray<Scalar4> orientation;
         m_orientation.swap(orientation);
         }
 
     if (m_compute_idx || m_sort_cell_list)
         {
-        GPUArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
+        GlobalArray<unsigned int> idx(m_cell_list_indexer.getNumElements(), m_exec_conf);
         m_idx.swap(idx);
         }
     else
         {
         // array is no longer needed, discard it
-        GPUArray<unsigned int> idx;
+        GlobalArray<unsigned int> idx;
         m_idx.swap(idx);
         }
 
