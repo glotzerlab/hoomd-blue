@@ -202,7 +202,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
         {
         cudaSetDevice(m_gpu_id[idev]);
-        cudaEventCreate(&m_events[idev]);
+        cudaEventCreateWithFlags(&m_events[idev],cudaEventDisableTiming);
         }
     #endif
     }
@@ -771,6 +771,47 @@ void ExecutionConfiguration::multiGPUBarrier() const
             cudaSetDevice(m_gpu_id[idev_i]);
             for (int idev_j = 0; idev_j < (int) m_gpu_id.size(); ++idev_j)
                 cudaStreamWaitEvent(0, m_events[idev_j], 0);
+            }
+        }
+    #endif
+    }
+
+void ExecutionConfiguration::beginMultiGPU() const
+    {
+    #ifdef ENABLE_CUDA
+    // implement a one-to-n barrier
+    if (getNumActiveGPUs() > 1)
+        {
+        // record a syncrhonization point on GPU 0
+        cudaEventRecord(m_events[0], 0);
+
+        // wait for that event on all GPUs (including GPU 0, but it's probably not worth optimizing out)
+        for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaStreamWaitEvent(0, m_events[0], 0);
+            }
+        }
+    #endif
+    }
+
+void ExecutionConfiguration::endMultiGPU() const
+    {
+    #ifdef ENABLE_CUDA
+    // implement an n-to-one barrier
+    if (getNumActiveGPUs() > 1)
+        {
+        // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
+        for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaEventRecord(m_events[idev], 0);
+            }
+
+        // wait for that event on GPU 0
+        for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+            {
+            cudaStreamWaitEvent(0, m_events[idev], 0);
             }
         }
     #endif
