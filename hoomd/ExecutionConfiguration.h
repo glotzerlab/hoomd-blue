@@ -145,12 +145,16 @@ struct ExecutionConfiguration
         #ifdef ENABLE_CUDA
         if (getNumActiveGPUs() > 1)
             {
-            // synchronize all GPUs
+            // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
             for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
                 {
                 cudaSetDevice(m_gpu_id[idev]);
-                cudaDeviceSynchronize();
+                cudaEventRecord(m_events[idev], 0);
                 }
+
+            // wait on GPU 0 for all those events
+            for (int idev = 0; idev < (int) m_gpu_id.size(); ++idev)
+                cudaStreamWaitEvent(0, m_events[idev], 0);
             }
         #endif
         }
@@ -290,6 +294,7 @@ private:
     std::vector< bool > m_gpu_available;    //!< true if the GPU is avaialble for computation, false if it is not
     bool m_system_compute_exclusive;        //!< true if every GPU in the system is marked compute-exclusive
     std::vector< int > m_gpu_list;          //!< A list of capable GPUs listed in priority order
+    std::vector< cudaEvent_t > m_events;      //!< A list of events to synchronize between GPUs
 #endif
 
 #ifdef ENABLE_MPI

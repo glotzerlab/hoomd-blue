@@ -195,11 +195,28 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
         setNumThreads(num_threads);
         }
     #endif
+
+    #ifdef ENABLE_CUDA
+    // setup synchronization events
+    m_events.resize(m_gpu_id.size());
+    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        {
+        cudaSetDevice(m_gpu_id[idev]);
+        cudaEventCreate(&m_events[idev]);
+        }
+    #endif
     }
 
 ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
+
+    #ifdef ENABLE_CUDA
+    for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        {
+        cudaEventDestroy(m_events[idev]);
+        }
+    #endif
 
     #if defined(ENABLE_CUDA)
     if (exec_mode == GPU)
