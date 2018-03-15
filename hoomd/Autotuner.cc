@@ -60,18 +60,8 @@ Autotuner::Autotuner(const std::vector<unsigned int>& parameters,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    unsigned int n_gpu = m_exec_conf->getNumActiveGPUs();
-    auto gpu_map = m_exec_conf->getGPUIds();
-
-    m_start.resize(n_gpu);
-    m_stop.resize(n_gpu);
-    for (int idev = n_gpu-1; idev>=0; idev--)
-        {
-        cudaSetDevice(gpu_map[idev]);
-        cudaEventCreate(&m_start[idev]);
-        cudaEventCreate(&m_stop[idev]);
-        }
-
+    cudaEventCreate(&m_start);
+    cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -134,18 +124,8 @@ Autotuner::Autotuner(unsigned int start,
 
     // create CUDA events
     #ifdef ENABLE_CUDA
-    unsigned int n_gpu = m_exec_conf->getNumActiveGPUs();
-    auto gpu_map = m_exec_conf->getGPUIds();
-
-    m_start.resize(n_gpu);
-    m_stop.resize(n_gpu);
-    for (int idev = n_gpu-1; idev>=0; idev--)
-        {
-        cudaSetDevice(gpu_map[idev]);
-        cudaEventCreate(&m_start[idev]);
-        cudaEventCreate(&m_stop[idev]);
-        }
-
+    cudaEventCreate(&m_start);
+    cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
     #endif
 
@@ -156,11 +136,8 @@ Autotuner::~Autotuner()
     {
     m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << endl;
     #ifdef ENABLE_CUDA
-    for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
-        {
-        cudaEventDestroy(m_start[idev]);
-        cudaEventDestroy(m_stop[idev]);
-        }
+    cudaEventDestroy(m_start);
+    cudaEventDestroy(m_stop);
     CHECK_CUDA_ERROR();
     #endif
     }
@@ -175,13 +152,7 @@ void Autotuner::begin()
     // if we are scanning, record a cuda event - otherwise do nothing
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        auto gpu_map = m_exec_conf->getGPUIds();
-        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
-            {
-            cudaSetDevice(gpu_map[idev]);
-            cudaEventRecord(m_start[idev], 0);
-            }
-
+        cudaEventRecord(m_start, 0);
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
         }
@@ -198,21 +169,9 @@ void Autotuner::end()
     // handle timing updates if scanning
     if (m_state == STARTUP || m_state == SCANNING)
         {
-        auto gpu_map = m_exec_conf->getGPUIds();
-
-        m_samples[m_current_element][m_current_sample] = 0.0f;
-        for (int idev = m_exec_conf->getNumActiveGPUs()-1; idev>=0; idev--)
-            {
-            cudaSetDevice(gpu_map[idev]);
-            cudaEventRecord(m_stop[idev], 0);
-            cudaEventSynchronize(m_stop[idev]);
-            float elapsed;
-            cudaEventElapsedTime(&elapsed, m_start[idev], m_stop[idev]);
-
-            // average over GPUs
-            m_samples[m_current_element][m_current_sample] += elapsed / (float) gpu_map.size();
-            }
-
+        cudaEventRecord(m_stop, 0);
+        cudaEventSynchronize(m_stop);
+        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
         m_exec_conf->msg->notice(9) << "Autotuner " << m_name << ": t(" << m_current_param << "," << m_current_sample
                                      << ") = " << m_samples[m_current_element][m_current_sample] << endl;
 
