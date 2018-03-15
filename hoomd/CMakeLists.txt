@@ -119,6 +119,7 @@ set(_hoomd_headers
     LogPlainTXT.h
     LogMatrix.h
     LogHDF5.h
+    managed_allocator.h
     ManagedArray.h
     Messenger.h
     ParticleData.cuh
