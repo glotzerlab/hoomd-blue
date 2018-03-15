@@ -62,16 +62,8 @@ void ComputeThermoGPU::computeProperties()
     if (m_group->getNumMembersGlobal() == 0)
         return;
 
-    if (this->m_exec_conf->getNumActiveGPUs() > 1)
-        {
-        // synchronize all active GPUs
-        auto gpu_map = m_exec_conf->getGPUIds();
-        for (int idev = m_exec_conf->getNumActiveGPUs() - 1; idev >= 0; --idev)
-            {
-            cudaSetDevice(gpu_map[idev]);
-            cudaDeviceSynchronize();
-            }
-        }
+    // sync all GPUs, since we're reducing
+    m_exec_conf->multiGPUBarrier();
 
     unsigned int group_size = m_group->getNumMembers();
 
