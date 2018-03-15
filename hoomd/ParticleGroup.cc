@@ -8,6 +8,8 @@
 #ifdef ENABLE_CUDA
 #include "ParticleGroup.cuh"
 #include "CachedAllocator.h"
+
+#include <cuda_runtime.h>
 #endif
 
 #include <algorithm>
@@ -382,6 +384,13 @@ ParticleGroup::ParticleGroup(std::shared_ptr<SystemDefinition> sysdef, const std
     #ifdef ENABLE_CUDA
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
+        cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
+
+    #ifdef ENABLE_CUDA
+    if (m_pdata->getExecConf()->isCUDAEnabled())
+        {
         // create a ModernGPU context
         m_mgpu_context = mgpu::CreateCudaDeviceAttachStream(0);
         }
@@ -483,6 +492,13 @@ void ParticleGroup::updateMemberTags(bool force_update) const
 
         GlobalArray<unsigned int> member_idx(member_tags.size(), m_pdata->getExecConf());
         m_member_idx.swap(member_idx);
+
+        #ifdef ENABLE_CUDA
+        if (m_pdata->getExecConf()->isCUDAEnabled())
+            {
+            cudaMemAdvise(m_member_idx.get(), m_member_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, 0);
+            }
+        #endif
         }
 
     // one byte per particle to indicate membership in the group, initialize with current number of local particles
