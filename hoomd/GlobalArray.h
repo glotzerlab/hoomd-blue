@@ -291,7 +291,7 @@ class GlobalArray : public GPUArray<T>
             checkAcquired(*this);
 
             #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled() && location == access_location::host)
+            if (!isNull() && m_array.isManaged() && location == access_location::host)
                 {
                 // synchronize all active GPUs
                 auto gpu_map = m_exec_conf->getGPUIds();
