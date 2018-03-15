@@ -6,6 +6,8 @@
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
+// support converting python lists as arguments to STL vectors
+#include <hoomd/extern/pybind/include/pybind11/stl.h>
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
