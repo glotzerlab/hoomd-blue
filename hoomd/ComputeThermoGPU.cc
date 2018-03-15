@@ -41,10 +41,6 @@ ComputeThermoGPU::ComputeThermoGPU(std::shared_ptr<SystemDefinition> sysdef,
 
     m_block_size = 512;
 
-    // override base class allocation using mapped memory
-    GPUArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf,true);
-    m_properties.swap(properties);
-
     cudaEventCreate(&m_event, cudaEventDisableTiming);
     }
 

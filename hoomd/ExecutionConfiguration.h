@@ -142,6 +142,12 @@ struct ExecutionConfiguration
     //! Sync up all active GPUs
     void multiGPUBarrier() const;
 
+    //! Begin a multi-GPU section
+    void beginMultiGPU() const;
+
+    //! End a multi-GPU section
+    void endMultiGPU() const;
+
     //! Get the name of the executing GPU (or the empty string)
     std::string getGPUName(unsigned int idev=0) const;
 

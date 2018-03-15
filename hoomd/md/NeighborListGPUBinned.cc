@@ -114,7 +114,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "compute");
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->beginMultiGPU();
 
     // acquire the particle data
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -197,7 +197,7 @@ void NeighborListGPUBinned::buildNlist(unsigned int timestep)
     if(m_exec_conf->isCUDAErrorCheckingEnabled()) CHECK_CUDA_ERROR();
     this->m_tuner->end();
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->endMultiGPU();
 
     if (m_prof)
         m_prof->pop(m_exec_conf);

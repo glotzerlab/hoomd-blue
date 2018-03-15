@@ -78,7 +78,7 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 1");
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->beginMultiGPU();
 
         {
         // access all the needed data
@@ -109,7 +109,8 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
         m_tuner_one->end();
         }
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->endMultiGPU();
+
     if (m_aniso)
         {
         // angular degrees of freedom, step one
@@ -157,7 +158,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
     if (m_prof)
         m_prof->push(m_exec_conf, "NVT MTK step 2");
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->beginMultiGPU();
 
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
@@ -183,7 +184,7 @@ void TwoStepNVTMTKGPU::integrateStepTwo(unsigned int timestep)
         m_tuner_two->end();
         }
 
-    m_exec_conf->multiGPUBarrier();
+    m_exec_conf->endMultiGPU();
 
     if (m_aniso)
         {
