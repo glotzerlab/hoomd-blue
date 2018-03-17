@@ -2981,7 +2981,8 @@ void ParticleData::updateGPUPartition()
             cudaMemAdvise(m_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_angmom.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_inertia.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_net_virial.get()+range.first, sizeof(Scalar)*6*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            for (unsigned int i = 0; i < 6; ++i)
+                cudaMemAdvise(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             }
         }
