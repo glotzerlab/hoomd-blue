@@ -154,10 +154,20 @@ class ForceCompute : public Compute
         void setParticlesSorted()
             {
             m_particles_sorted = true;
+
+            #ifdef ENABLE_CUDA
+            if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+                updateGPUMapping();
+            #endif
             }
 
         //! Reallocate internal arrays
         void reallocate();
+
+        #ifdef ENABLE_CUDA
+        //! Update memory region GPU locality
+        void updateGPUMapping();
+        #endif
 
         Scalar m_deltaT;  //!< timestep size (required for some types of non-conservative forces)
 

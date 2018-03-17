@@ -97,12 +97,7 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
-        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-
-        // listen to own particle sort signal
-        getParticleSortSignal().connect<ParticleData, &ParticleData::updateGPUPartition>(this);
-        }
     #endif
 
     // initialize rtag array
@@ -173,12 +168,7 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
-        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
-
-        // listen to own particle sort signal
-        getParticleSortSignal().connect<ParticleData, &ParticleData::updateGPUPartition>(this);
-        }
     #endif
 
     // initialize rtag array
@@ -213,11 +203,6 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 ParticleData::~ParticleData()
     {
     m_exec_conf->msg->notice(5) << "Destroying ParticleData" << endl;
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        getParticleSortSignal().disconnect<ParticleData, &ParticleData::updateGPUPartition>(this);
-    #endif
     }
 
 /*! \return Simulation box dimensions
@@ -267,6 +252,14 @@ const BoxDim & ParticleData::getGlobalBox() const
 */
 void ParticleData::notifyParticleSort()
     {
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // need to update GPUPartition before calling subscribers, so that updated information is available
+        updateGPUPartition();
+        }
+    #endif
+
     m_sort_signal.emit();
     }
 
