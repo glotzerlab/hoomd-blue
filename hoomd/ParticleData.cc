@@ -409,6 +409,7 @@ void ParticleData::allocate(unsigned int N)
             cudaMemAdvise(m_net_virial.get(), sizeof(Scalar)*m_net_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_net_torque.get(), sizeof(Scalar4)*m_net_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
@@ -505,6 +506,7 @@ void ParticleData::allocateAlternateArrays(unsigned int N)
             cudaMemAdvise(m_net_virial_alt.get(), sizeof(Scalar)*m_net_virial_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_net_torque_alt.get(), sizeof(Scalar4)*m_net_torque_alt.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
     }
@@ -2978,6 +2980,8 @@ void ParticleData::updateGPUPartition()
                 cudaMemAdvise(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             }
+
+        CHECK_CUDA_ERROR();
         }
     #endif
     }

@@ -572,6 +572,10 @@ class NeighborList : public Compute
             {
             m_need_reallocate_exlist = true;
             }
+
+        #ifdef ENABLE_CUDA
+        void updateGPUMapping();
+        #endif
     };
 
 //! Exports NeighborList to python

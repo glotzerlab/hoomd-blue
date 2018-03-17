@@ -55,6 +55,7 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef)
             cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
@@ -93,6 +94,7 @@ void ForceCompute::reallocate()
             cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
+        CHECK_CUDA_ERROR();
         }
     #endif
 
@@ -119,6 +121,7 @@ void ForceCompute::updateGPUMapping()
             cudaMemAdvise(m_virial.get()+i*m_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
         cudaMemAdvise(m_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
         }
+    CHECK_CUDA_ERROR();
     }
 #endif
 

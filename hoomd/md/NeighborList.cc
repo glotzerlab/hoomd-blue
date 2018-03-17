@@ -142,6 +142,11 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
 
     m_pdata->getGlobalParticleNumberChangeSignal().connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_pdata->getParticleSortSignal().connect<NeighborList, &NeighborList::updateGPUMapping>(this);
+    #endif
+
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
@@ -198,6 +203,12 @@ NeighborList::~NeighborList()
 #endif
 
     m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(this);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_pdata->getParticleSortSignal().disconnect<NeighborList, &NeighborList::updateGPUMapping>(this);
+    #endif
+
     getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
 
@@ -1357,6 +1368,11 @@ void NeighborList::buildHeadList()
 
     resizeNlist(headAddress);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        updateGPUMapping();
+    #endif
+
     if (m_prof) m_prof->pop();
     }
 
@@ -1460,6 +1476,44 @@ bool NeighborList::peekUpdate(unsigned int timestep)
     return result;
     }
 #endif
+
+#ifdef ENABLE_CUDA
+//! Update GPU memory locality
+void NeighborList::updateGPUMapping()
+    {
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        // split preferred location of neighbor list across GPUs
+        const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
+
+            {
+            ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                auto range = gpu_partition.getRange(idev);
+
+                unsigned int start = h_head_list.data[range.first];
+                unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
+
+                cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                }
+            }
+        CHECK_CUDA_ERROR();
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+            cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    }
+#endif
+
 
 void export_NeighborList(py::module& m)
     {
