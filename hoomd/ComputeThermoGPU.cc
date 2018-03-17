@@ -11,6 +11,7 @@
 
 #include "ComputeThermoGPU.h"
 #include "ComputeThermoGPU.cuh"
+#include "GPUPartition.cuh"
 
 namespace py = pybind11;
 
@@ -58,6 +59,8 @@ void ComputeThermoGPU::computeProperties()
     if (m_group->getNumMembersGlobal() == 0)
         return;
 
+    m_exec_conf->beginMultiGPU();
+
     unsigned int group_size = m_group->getNumMembers();
 
     if (m_prof) m_prof->push(m_exec_conf,"Thermo");
@@ -65,13 +68,27 @@ void ComputeThermoGPU::computeProperties()
     assert(m_pdata);
     assert(m_ndof != 0);
 
-    // number of blocks in reduction
-    unsigned int num_blocks = m_group->getNumMembers() / m_block_size + 1;
+    // number of blocks in reduction (round up for every GPU)
+    unsigned int num_blocks = m_group->getNumMembers() / m_block_size + m_exec_conf->getNumActiveGPUs();
 
     // resize work space
+    unsigned int old_size = m_scratch.size();
+
     m_scratch.resize(num_blocks);
     m_scratch_pressure_tensor.resize(num_blocks*6);
     m_scratch_rot.resize(num_blocks);
+
+    if (m_scratch.size() != old_size)
+        {
+        // reset to zero, to be on the safe side
+        ArrayHandle<Scalar4> d_scratch(m_scratch, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_scratch_pressure_tensor(m_scratch_pressure_tensor, access_location::device, access_mode::overwrite);
+        ArrayHandle<Scalar> d_scratch_rot(m_scratch_rot, access_location::device, access_mode::overwrite);
+
+        cudaMemset(d_scratch.data, 0, sizeof(Scalar4)*m_scratch.size());
+        cudaMemset(d_scratch_pressure_tensor.data, 0, sizeof(Scalar)*m_scratch_pressure_tensor.size());
+        cudaMemset(d_scratch_rot.data, 0, sizeof(Scalar)*m_scratch_rot.size());
+        }
 
     // access the particle data
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::read);
@@ -97,8 +114,8 @@ void ComputeThermoGPU::computeProperties()
     ArrayHandle< unsigned int > d_index_array(m_group->getIndexArray(), access_location::device, access_mode::read);
 
     // build up args list
-    num_blocks = m_group->getNumMembers() / m_block_size + 1;
     compute_thermo_args args;
+    args.n_blocks = num_blocks;
     args.d_net_force = d_net_force.data;
     args.d_net_virial = d_net_virial.data;
     args.d_orientation = d_orientation.data;
@@ -111,7 +128,6 @@ void ComputeThermoGPU::computeProperties()
     args.d_scratch_pressure_tensor = d_scratch_pressure_tensor.data;
     args.d_scratch_rot = d_scratch_rot.data;
     args.block_size = m_block_size;
-    args.n_blocks = num_blocks;
     args.external_virial_xx = m_pdata->getExternalVirial(0);
     args.external_virial_xy = m_pdata->getExternalVirial(1);
     args.external_virial_xz = m_pdata->getExternalVirial(2);
@@ -120,8 +136,25 @@ void ComputeThermoGPU::computeProperties()
     args.external_virial_zz = m_pdata->getExternalVirial(5);
     args.external_energy = m_pdata->getExternalEnergy();
 
-    // perform the computation on the GPU
-    gpu_compute_thermo( d_properties.data,
+    // perform the computation on the GPU(s)
+    gpu_compute_thermo_partial( d_properties.data,
+                        d_vel.data,
+                        d_index_array.data,
+                        group_size,
+                        box,
+                        args,
+                        flags[pdata_flag::pressure_tensor],
+                        flags[pdata_flag::rotational_kinetic_energy],
+                        m_group->getGPUPartition());
+
+    if(m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    // converge GPUs
+    m_exec_conf->endMultiGPU();
+
+    // perform the computation on GPU 0
+    gpu_compute_thermo_final( d_properties.data,
                         d_vel.data,
                         d_index_array.data,
                         group_size,
@@ -129,9 +162,6 @@ void ComputeThermoGPU::computeProperties()
                         args,
                         flags[pdata_flag::pressure_tensor],
                         flags[pdata_flag::rotational_kinetic_energy]);
-
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
     }
 
     #ifdef ENABLE_MPI
