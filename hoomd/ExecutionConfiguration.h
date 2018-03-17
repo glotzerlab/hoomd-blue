@@ -151,6 +151,12 @@ struct ExecutionConfiguration
     std::string getGPUName(unsigned int idev=0) const;
 
 #ifdef ENABLE_CUDA
+    //! Get the device properties of a logical GPU
+    cudaDeviceProp getDeviceProperties(unsigned int idev) const
+        {
+        return m_dev_prop[idev];
+        }
+
     cudaDeviceProp dev_prop;              //!< Cached device properties of the first GPU
     std::vector<unsigned int> m_gpu_id;   //!< IDs of active GPUs
     std::vector<cudaDeviceProp> m_dev_prop; //!< Device configuration of active GPUs
