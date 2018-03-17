@@ -97,14 +97,16 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+
+        // listen to own particle sort signal
+        getParticleSortSignal().connect<ParticleData, &ParticleData::updateGPUPartition>(this);
+        }
     #endif
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
-
-    // listen to own particle sort signal
-    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
 
     // initialize all processors
     initializeFromSnapshot(snap);
@@ -171,14 +173,16 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+
+        // listen to own particle sort signal
+        getParticleSortSignal().connect<ParticleData, &ParticleData::updateGPUPartition>(this);
+        }
     #endif
 
     // initialize rtag array
     GlobalVector<unsigned int>(exec_conf).swap(m_rtag);
-
-    // listen to own particle sort signal
-    getParticleSortSignal().connect<ParticleData, &ParticleData::slotParticlesSorted>(this);
 
     // initialize particle data with snapshot contents
     initializeFromSnapshot(snapshot);
@@ -210,7 +214,10 @@ ParticleData::~ParticleData()
     {
     m_exec_conf->msg->notice(5) << "Destroying ParticleData" << endl;
 
-    getParticleSortSignal().disconnect<ParticleData, &ParticleData::slotParticlesSorted>(this);
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        getParticleSortSignal().disconnect<ParticleData, &ParticleData::updateGPUPartition>(this);
+    #endif
     }
 
 /*! \return Simulation box dimensions
@@ -2946,6 +2953,40 @@ void ParticleData::addParticlesGPU(const GPUVector<pdata_element>& in)
 
 #endif // ENABLE_CUDA
 #endif // ENABLE_MPI
+
+void ParticleData::updateGPUPartition()
+    {
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // update the partition information
+        m_gpu_partition.setN(getN());
+
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        // split preferred location of particle data across GPUs
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            auto range = m_gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            cudaMemAdvise(m_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_vel.get()+range.first, sizeof(Scalar4)*nelem,cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_accel.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_charge.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_diameter.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_image.get()+range.first, sizeof(int3)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_tag.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_body.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_angmom.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_inertia.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_net_virial.get()+range.first, sizeof(Scalar)*6*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            }
+        }
+    #endif
+    }
 
 unsigned int ParticleData::addType(const std::string& type_name)
     {

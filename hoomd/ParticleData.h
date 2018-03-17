@@ -1214,13 +1214,7 @@ class ParticleData
         bool inBox(const SnapshotParticleData<Real>& snap);
 
         //! Called whenever local particles are added/sorted...
-        void slotParticlesSorted()
-            {
-            #ifdef ENABLE_CUDA
-            if (m_exec_conf->isCUDAEnabled())
-                m_gpu_partition.setN(getN());
-            #endif
-            }
+        void updateGPUPartition();
     };
 
 #ifndef NVCC

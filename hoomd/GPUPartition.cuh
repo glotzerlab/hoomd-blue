@@ -50,6 +50,17 @@ class GPUPartition
         //! Get the index range for a given GPU
         /*! \param igpu The logical ID of the GPU
          */
+        std::pair<unsigned int, unsigned int> getRange(unsigned int igpu) const
+            {
+            if (igpu > m_gpu_map.size())
+                throw std::runtime_error("GPU "+std::to_string(igpu)+" not in execution configuration");
+
+            return m_gpu_range[igpu];
+            }
+ 
+        //! Get the index range for a given GPU
+        /*! \param igpu The logical ID of the GPU
+         */
         std::pair<unsigned int, unsigned int> getRangeAndSetGPU(unsigned int igpu) const
             {
             if (igpu > m_gpu_map.size())
