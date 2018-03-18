@@ -253,7 +253,7 @@ const BoxDim & ParticleData::getGlobalBox() const
 void ParticleData::notifyParticleSort()
     {
     #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+    if (m_exec_conf->isCUDAEnabled())
         {
         // need to update GPUPartition before calling subscribers, so that updated information is available
         updateGPUPartition();
@@ -3011,6 +3011,9 @@ void ParticleData::updateGPUPartition()
         {
         // update the partition information
         m_gpu_partition.setN(getN());
+
+        if (m_exec_conf->getNumActiveGPUs() == 1)
+            return;
 
         auto gpu_map = m_exec_conf->getGPUIds();
 
