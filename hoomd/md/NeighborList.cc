@@ -66,6 +66,7 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     if (m_exec_conf->isCUDAEnabled())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
         }
     #endif
 
@@ -189,6 +190,7 @@ void NeighborList::reallocateTypes()
     if (m_exec_conf->isCUDAEnabled())
         {
         cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
         }
     #endif
 
