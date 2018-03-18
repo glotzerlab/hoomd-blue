@@ -56,12 +56,16 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
                                              const BoxDim box,
                                              const Index3D ci,
                                              const Index2D cli,
-                                             const Scalar3 ghost_width)
+                                             const Scalar3 ghost_width,
+                                             const unsigned int nwork,
+                                             const unsigned int offset)
     {
     // read in the particle that belongs to this thread
     unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx >= N + n_ghost)
+    if (idx >= nwork)
         return;
+
+    idx += offset;
 
     Scalar4 postype = d_pos[idx];
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
@@ -175,14 +179,9 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
                                   const Index3D& ci,
                                   const Index2D& cli,
                                   const Scalar3& ghost_width,
-                                  const unsigned int block_size)
+                                  const unsigned int block_size,
+                                  const GPUPartition& gpu_partition)
     {
-    cudaError_t err;
-    err = cudaMemsetAsync(d_cell_size, 0, sizeof(unsigned int)*ci.getNumElements(),0);
-
-    if (err != cudaSuccess)
-        return err;
-
     static unsigned int max_block_size = UINT_MAX;
     if (max_block_size == UINT_MAX)
         {
@@ -191,29 +190,43 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         max_block_size = attr.maxThreadsPerBlock;
         }
 
-    unsigned int run_block_size = min(block_size, max_block_size);
-    int n_blocks = (N+n_ghost)/run_block_size + 1;
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev)
+        {
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
 
-    gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
-                                                               d_xyzf,
-                                                               d_tdb,
-                                                               d_cell_orientation,
-                                                               d_cell_idx,
-                                                               d_conditions,
-                                                               d_pos,
-                                                               d_orientation,
-                                                               d_charge,
-                                                               d_diameter,
-                                                               d_body,
-                                                               N,
-                                                               n_ghost,
-                                                               Nmax,
-                                                               flag_charge,
-                                                               flag_type,
-                                                               box,
-                                                               ci,
-                                                               cli,
-                                                               ghost_width);
+        unsigned int nwork = range.second - range.first;
+
+        // process ghosts in final range
+        if (idev == 0)
+            nwork += n_ghost;
+
+        unsigned int run_block_size = min(block_size, max_block_size);
+        int n_blocks = nwork/run_block_size + 1;
+
+        gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
+                                                                   d_xyzf,
+                                                                   d_tdb,
+                                                                   d_cell_orientation,
+                                                                   d_cell_idx,
+                                                                   d_conditions,
+                                                                   d_pos,
+                                                                   d_orientation,
+                                                                   d_charge,
+                                                                   d_diameter,
+                                                                   d_body,
+                                                                   N,
+                                                                   n_ghost,
+                                                                   Nmax,
+                                                                   flag_charge,
+                                                                   flag_type,
+                                                                   box,
+                                                                   ci,
+                                                                   cli,
+                                                                   ghost_width,
+                                                                   nwork,
+                                                                   range.first);
+        }
 
     return cudaSuccess;
     }

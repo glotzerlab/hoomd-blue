@@ -58,6 +58,12 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar4> d_cell_orientation(m_orientation, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
 
+    // reset cell list contents
+    cudaMemsetAsync(d_cell_size.data, 0, sizeof(unsigned int)*m_cell_indexer.getNumElements(),0);
+    if (m_exec_conf->isCUDAErrorCheckingEnabled())
+        CHECK_CUDA_ERROR();
+
+    m_exec_conf->beginMultiGPU();
 
     // autotune block sizes
     m_tuner->begin();
@@ -81,13 +87,16 @@ void CellListGPU::computeCellList()
                           m_cell_indexer,
                           m_cell_list_indexer,
                           getGhostWidth(),
-                          m_tuner->getParam());
+                          m_tuner->getParam(),
+                          m_pdata->getGPUPartition());
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_exec_conf->endMultiGPU();
 
     if (m_sort_cell_list)
         {
