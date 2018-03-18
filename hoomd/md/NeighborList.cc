@@ -1485,6 +1485,11 @@ void NeighborList::updateGPUMapping()
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
+        // reset previous hints
+        cudaMemAdvise(m_nlist.get(), sizeof(unsigned int)*m_nlist.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+        cudaMemAdvise(m_head_list.get(), sizeof(unsigned int)*m_head_list.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+        CHECK_CUDA_ERROR();
+
         // split preferred location of neighbor list across GPUs
         const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
 
