@@ -1352,18 +1352,20 @@ void NeighborList::buildHeadList()
     {
     if (m_prof) m_prof->push("head-list");
 
-    ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
-    ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
-    ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
-
     unsigned int headAddress = 0;
-    for (unsigned int i=0; i < m_pdata->getN(); ++i)
         {
-        h_head_list.data[i] = headAddress;
+        ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::overwrite);
+        ArrayHandle<Scalar4> h_pos(m_pdata->getPositions(), access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_Nmax(m_Nmax, access_location::host, access_mode::read);
 
-        // move the head address along
-        unsigned int myType = __scalar_as_int(h_pos.data[i].w);
-        headAddress += h_Nmax.data[myType];
+        for (unsigned int i=0; i < m_pdata->getN(); ++i)
+            {
+            h_head_list.data[i] = headAddress;
+
+            // move the head address along
+            unsigned int myType = __scalar_as_int(h_pos.data[i].w);
+            headAddress += h_Nmax.data[myType];
+            }
         }
 
     resizeNlist(headAddress);
@@ -1506,7 +1508,8 @@ void NeighborList::updateGPUMapping()
                 unsigned int start = h_head_list.data[range.first];
                 unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
 
-                cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                if (end - start > 0)
+                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 }
             }
         CHECK_CUDA_ERROR();
