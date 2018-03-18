@@ -362,6 +362,30 @@ void CellList::initializeMemory()
         m_idx.swap(idx);
         }
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        // set up memory mappings for arrays to all GPUs
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaMemAdvise(m_cell_size.get(), sizeof(unsigned int)*m_cell_size.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            if (! m_cell_adj.isNull())
+                cudaMemAdvise(m_cell_adj.get(), sizeof(unsigned int)*m_cell_adj.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            cudaMemAdvise(m_xyzf.get(), sizeof(Scalar4)*m_xyzf.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            if (! m_tdb.isNull())
+                cudaMemAdvise(m_tdb.get(), sizeof(Scalar4)*m_tdb.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            if (! m_orientation.isNull())
+                cudaMemAdvise(m_orientation.get(), sizeof(Scalar4)*m_orientation.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            if (! m_idx.isNull())
+                cudaMemAdvise(m_idx.get(), sizeof(unsigned int)*m_idx.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
+
     if (m_prof)
         m_prof->pop();
 
