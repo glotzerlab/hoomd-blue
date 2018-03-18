@@ -787,11 +787,20 @@ void ExecutionConfiguration::beginMultiGPU() const
         // record a syncrhonization point on GPU 0
         cudaEventRecord(m_events[0], 0);
 
-        // wait for that event on all GPUs (including GPU 0, but it's probably not worth optimizing out)
-        for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        // wait for that event on all GPUs (except GPU 0, for which we rely on implicit synchronization)
+        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
             {
             cudaSetDevice(m_gpu_id[idev]);
             cudaStreamWaitEvent(0, m_events[0], 0);
+            }
+
+        // set GPU 0
+        cudaSetDevice(m_gpu_id[0]);
+
+        if (isCUDAErrorCheckingEnabled())
+            {
+            cudaError_t err_sync = cudaGetLastError();
+            handleCUDAError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
@@ -803,17 +812,24 @@ void ExecutionConfiguration::endMultiGPU() const
     // implement an n-to-one barrier
     if (getNumActiveGPUs() > 1)
         {
-        // record the synchronization point on every GPU after the last kernel has finished, count down in reverse
-        for (int idev = m_gpu_id.size() - 1; idev >= 0; --idev)
+        // record the synchronization point on every GPU, except GPU 0 
+        for (int idev = m_gpu_id.size() - 1; idev >= 1; --idev)
             {
             cudaSetDevice(m_gpu_id[idev]);
             cudaEventRecord(m_events[idev], 0);
             }
 
-        // wait for that event on GPU 0
-        for (int idev = m_gpu_id.size()-1; idev >= 0; --idev)
+        // wait for these events on GPU 0
+        cudaSetDevice(m_gpu_id[0]);
+        for (int idev = m_gpu_id.size()-1; idev >= 1; --idev)
             {
             cudaStreamWaitEvent(0, m_events[idev], 0);
+            }
+
+        if (isCUDAErrorCheckingEnabled())
+            {
+            cudaError_t err_sync = cudaGetLastError();
+            handleCUDAError(err_sync, __FILE__, __LINE__);
             }
         }
     #endif
