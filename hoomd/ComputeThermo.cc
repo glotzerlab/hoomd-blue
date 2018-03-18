@@ -36,6 +36,15 @@ ComputeThermo::ComputeThermo(std::shared_ptr<SystemDefinition> sysdef,
     GlobalArray< Scalar > properties(thermo_index::num_quantities, m_exec_conf);
     m_properties.swap(properties);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        cudaMemPrefetchAsync(m_properties.get(), m_properties.getNumElements()*sizeof(Scalar), cudaCpuDeviceId);
+        }
+    #endif
+
     m_logname_list.push_back(string("temperature") + suffix);
     m_logname_list.push_back(string("translational_temperature") + suffix);
     m_logname_list.push_back(string("rotational_temperature") + suffix);
