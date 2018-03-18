@@ -117,10 +117,8 @@ void ForceCompute::updateGPUMapping()
     {
     auto gpu_map = m_exec_conf->getGPUIds();
 
-    // reset previous hints
-    cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
-    cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
-    cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+    if (m_exec_conf->getNumActiveGPUs() == 1)
+        return;
 
     // split preferred location of particle data across GPUs
     const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
@@ -130,6 +128,11 @@ void ForceCompute::updateGPUMapping()
         cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
         if (!dev_prop.concurrentManagedAccess)
             continue;
+
+        // reset previous hints
+        cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+        cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+        cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
 
         auto range = gpu_partition.getRange(idev);
         unsigned int nelem =  range.second - range.first;
