@@ -721,7 +721,7 @@ void ExecutionConfiguration::setupStats()
         {
         m_dev_prop.resize(m_gpu_id.size());
 
-        for (unsigned int idev = 0; idev < m_gpu_id.size(); ++idev)
+        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
             {
             cudaSetDevice(m_gpu_id[idev]);
             cudaGetDeviceProperties(&m_dev_prop[idev], m_gpu_id[idev]);

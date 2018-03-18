@@ -1499,6 +1499,11 @@ void NeighborList::updateGPUMapping()
 
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
+                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+                if (!dev_prop.concurrentManagedAccess)
+                    continue;
+
                 auto range = gpu_partition.getRange(idev);
 
                 unsigned int start = h_head_list.data[range.first];
@@ -1511,6 +1516,11 @@ void NeighborList::updateGPUMapping()
 
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
             {
+            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+            if (!dev_prop.concurrentManagedAccess)
+                continue;
+
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
