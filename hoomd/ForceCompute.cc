@@ -108,6 +108,11 @@ void ForceCompute::updateGPUMapping()
     {
     auto gpu_map = m_exec_conf->getGPUIds();
 
+    // reset previous hints
+    cudaMemAdvise(m_force.get(), sizeof(Scalar4)*m_force.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+    cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+    cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+
     // split preferred location of particle data across GPUs
     const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
 
