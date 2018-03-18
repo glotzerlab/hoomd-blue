@@ -62,6 +62,13 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     GlobalArray<Scalar> r_cut(m_typpair_idx.getNumElements(), exec_conf);
     m_r_cut.swap(r_cut);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
+
     // holds the maximum rcut on a per type basis
     GlobalArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
@@ -177,6 +184,14 @@ void NeighborList::reallocateTypes()
     {
     m_typpair_idx = Index2D(m_pdata->getNTypes());
     m_r_cut.resize(m_typpair_idx.getNumElements());
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        cudaMemAdvise(m_r_cut.get(), m_r_cut.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        }
+    #endif
+
     m_rcut_max.resize(m_pdata->getNTypes());
     m_r_listsq.resize(m_typpair_idx.getNumElements());
     m_Nmax.resize(m_pdata->getNTypes());
