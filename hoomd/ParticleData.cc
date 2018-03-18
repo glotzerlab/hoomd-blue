@@ -3067,6 +3067,23 @@ void ParticleData::updateGPUPartition()
             for (unsigned int i = 0; i < 6; ++i)
                 cudaMemAdvise(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+            // migrate data to preferred location
+            cudaMemPrefetchAsync(m_pos.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_vel.get()+range.first, sizeof(Scalar4)*nelem,gpu_map[idev]);
+            cudaMemPrefetchAsync(m_accel.get()+range.first, sizeof(Scalar3)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_charge.get()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_diameter.get()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_image.get()+range.first, sizeof(int3)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_tag.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_body.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_orientation.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_angmom.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_inertia.get()+range.first, sizeof(Scalar3)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_net_force.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+            for (unsigned int i = 0; i < 6; ++i)
+                cudaMemPrefetchAsync(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
             }
 
         CHECK_CUDA_ERROR();
@@ -3121,6 +3138,22 @@ void ParticleData::updateGPUPartition()
                 for (unsigned int i = 0; i < 6; ++i)
                     cudaMemAdvise(m_net_virial_alt.get()+i*m_net_virial_alt.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 cudaMemAdvise(m_net_torque_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+                cudaMemPrefetchAsync(m_pos_alt.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_vel_alt.get()+range.first, sizeof(Scalar4)*nelem,gpu_map[idev]);
+                cudaMemPrefetchAsync(m_accel_alt.get()+range.first, sizeof(Scalar3)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_charge_alt.get()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_diameter_alt.get()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_image_alt.get()+range.first, sizeof(int3)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_tag_alt.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_body_alt.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_orientation_alt.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_angmom_alt.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_inertia_alt.get()+range.first, sizeof(Scalar3)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_net_force_alt.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
+                for (unsigned int i = 0; i < 6; ++i)
+                    cudaMemPrefetchAsync(m_net_virial_alt.get()+i*m_net_virial_alt.getPitch()+range.first, sizeof(Scalar)*nelem, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_net_torque_alt.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
                 }
 
             CHECK_CUDA_ERROR();

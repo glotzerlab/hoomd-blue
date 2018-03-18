@@ -1509,7 +1509,10 @@ void NeighborList::updateGPUMapping()
                 unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
 
                 if (end - start > 0)
+                    {
+                    // set preferred location
                     cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                    }
                 }
             }
         CHECK_CUDA_ERROR();
@@ -1525,6 +1528,7 @@ void NeighborList::updateGPUMapping()
             cudaMemAdvise(m_head_list.get(), sizeof(unsigned int)*m_head_list.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get(), sizeof(unsigned int)*m_n_neigh.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
 
+            // set preferred location
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);

@@ -134,6 +134,7 @@ void ForceCompute::updateGPUMapping()
         cudaMemAdvise(m_virial.get(), sizeof(Scalar)*m_virial.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
         cudaMemAdvise(m_torque.get(), sizeof(Scalar4)*m_torque.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
 
+        // set preferred location
         auto range = gpu_partition.getRange(idev);
         unsigned int nelem =  range.second - range.first;
 
