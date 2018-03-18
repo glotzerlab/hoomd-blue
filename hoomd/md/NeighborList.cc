@@ -1488,6 +1488,7 @@ void NeighborList::updateGPUMapping()
         // reset previous hints
         cudaMemAdvise(m_nlist.get(), sizeof(unsigned int)*m_nlist.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
         cudaMemAdvise(m_head_list.get(), sizeof(unsigned int)*m_head_list.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
+        cudaMemAdvise(m_n_neigh.get(), sizeof(unsigned int)*m_n_neigh.getNumElements(), cudaMemAdviseUnsetPreferredLocation, 0);
         CHECK_CUDA_ERROR();
 
         // split preferred location of neighbor list across GPUs
@@ -1513,6 +1514,7 @@ void NeighborList::updateGPUMapping()
             auto range = gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
