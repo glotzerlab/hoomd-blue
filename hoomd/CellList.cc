@@ -365,7 +365,7 @@ void CellList::initializeMemory()
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
         {
-        // map cell size into memory of all active GPUs
+        // map cell list arrays into memory of all active GPUs
         auto& gpu_map = m_exec_conf->getGPUIds();
 
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
@@ -377,6 +377,14 @@ void CellList::initializeMemory()
 
             if (! m_cell_adj.isNull())
                 cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+            cudaMemAdvise(m_xyzf.get(), m_xyzf.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+            if (! m_tdb.isNull())
+                cudaMemAdvise(m_tdb.get(), m_tdb.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
+
+            if (! m_orientation.isNull())
+                cudaMemAdvise(m_orientation.get(), m_orientation.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }
