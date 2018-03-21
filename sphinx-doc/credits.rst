@@ -299,6 +299,18 @@ The following people contributed to the :py:mod:`hoomd.dem` package.
 Matthew Spellings, University of Michigan - Lead developer
 Ryan Marson, University of Michigan
 
+MPCD developers
+---------------
+
+The following people contributed to the :py:mod:`hoomd.mpcd` package.
+
+Michael P. Howard, Princeton University - **Lead developer**
+* Design
+* Cell list and properties
+* Particle and cell communication
+* Basic streaming method
+* SRD and AT collision rules
+
 Source code
 -----------
 

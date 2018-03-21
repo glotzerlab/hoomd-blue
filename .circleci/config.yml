@@ -63,9 +63,10 @@ references:
         echo cxx=${CXX}
         echo enable_cuda=${ENABLE_CUDA}
         echo enable_mpi=${ENABLE_MPI}
+        echo enable_tbb=${ENABLE_TBB}
         echo build_validation=${BUILD_VALIDATION}
         echo build_jit=${BUILD_JIT}
-        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
+        ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DBUILD_JIT=${BUILD_JIT} -DBUILD_DEPRECATED=off -GNinja
 
   compile: &compile
     run:
@@ -101,7 +102,7 @@ references:
           path: test-results
 
 jobs:
-  unit-gcc48-py27-cm28-mpi:
+  unit-gcc48-py27-cm28-mpi-tbb:
     <<: *test_container_config
     environment:
       CC: /usr/bin/gcc-4.8
@@ -109,6 +110,7 @@ jobs:
       PYVER: "2.7"
       CMAKE_BIN: /opt/cmake-2.8.12/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
@@ -122,6 +124,7 @@ jobs:
       PYVER: "2.7"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
@@ -135,6 +138,7 @@ jobs:
       PYVER: "3.4"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
@@ -148,6 +152,7 @@ jobs:
       PYVER: "3.4"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
@@ -161,6 +166,7 @@ jobs:
       PYVER: "3.4"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
@@ -174,6 +180,7 @@ jobs:
       PYVER: "3.5"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: OFF
       ENABLE_CUDA: ON
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
@@ -187,6 +194,7 @@ jobs:
       PYVER: "3.6"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: ON
+      ENABLE_TBB: ON
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
@@ -200,6 +208,7 @@ jobs:
       PYVER: "3.5"
       CMAKE_BIN: /usr/bin
       ENABLE_MPI: OFF
+      ENABLE_TBB: OFF
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: ON
@@ -243,7 +252,7 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - unit-gcc48-py27-cm28-mpi:
+      - unit-gcc48-py27-cm28-mpi-tbb:
           filters:
             branches:
               ignore: release

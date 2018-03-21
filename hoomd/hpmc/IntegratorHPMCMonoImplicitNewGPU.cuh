@@ -1026,4 +1026,3 @@ cudaError_t gpu_hpmc_implicit_accept_reject_new(const hpmc_implicit_args_new_t& 
 } // end namespace hpmc
 
 #endif // _HPMC_IMPLICIT_CUH_
-
