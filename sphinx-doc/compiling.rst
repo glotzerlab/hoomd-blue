@@ -183,10 +183,13 @@ Other option changes take effect at any time. These can be set from within `ccma
     - When set to **OFF**, HOOMD always runs in single-GPU mode
 * **ENABLE_MPI_CUDA** - Enable CUDA-aware MPI library support
     - Requires a MPI library with CUDA support to be installed
-    - When set to **ON** (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of  the capability of the MPI library to accelerate CUDA-buffer transfers
+    - When set to **ON** (default if a CUDA-aware MPI library is detected), HOOMD-blue will make use of the capability of the MPI library to accelerate CUDA-buffer transfers
     - When set to **OFF**, standard MPI calls will be used
     - *Warning:* Manually setting this feature to ON when the MPI library does not support CUDA may
       result in a crash of HOOMD-blue
+* **ENABLE_TBB** - Enable support for Intel's Threading Building Blocks (TBB)
+    - Requires TBB to be installed
+    - When set to **ON**, HOOMD will use TBB to speed up calculations in some classes on multiple CPU cores
 * **UPDATE_SUBMODULES** - When ON (the default), execute ``git submodule update --init`` whenever cmake runs.
 * **COPY_HEADERS** - When ON (OFF is default), copy header files into the build directory to make it a valid plugin build source
 

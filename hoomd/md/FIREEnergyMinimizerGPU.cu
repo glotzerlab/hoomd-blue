@@ -795,5 +795,3 @@ cudaError_t gpu_fire_update_angmom(const Scalar4 *d_net_torque,
 
     return cudaSuccess;
     }
-
-

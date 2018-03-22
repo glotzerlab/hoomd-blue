@@ -89,6 +89,7 @@ Jens Glaser, University of Michigan
  * pair.van_der_waals
  * hpmc interaction_matrix
  * special_pair framework
+ * TBB support
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -256,6 +257,7 @@ Jens Glaser, University of Michigan
  * Dynamic number of particle types support
  * Implicit depletants
  * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
+ * Geometric Cluster Algorithm implementation
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature
@@ -296,6 +298,18 @@ The following people contributed to the :py:mod:`hoomd.dem` package.
 
 Matthew Spellings, University of Michigan - Lead developer
 Ryan Marson, University of Michigan
+
+MPCD developers
+---------------
+
+The following people contributed to the :py:mod:`hoomd.mpcd` package.
+
+Michael P. Howard, Princeton University - **Lead developer**
+* Design
+* Cell list and properties
+* Particle and cell communication
+* Basic streaming method
+* SRD and AT collision rules
 
 Source code
 -----------

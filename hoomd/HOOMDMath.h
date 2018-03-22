@@ -102,6 +102,34 @@ HOSTDEVICE inline Scalar4 make_scalar4(Scalar x, Scalar y, Scalar z, Scalar w)
     return retval;
     }
 
+#ifndef NVCC
+//! Stuff an integer inside a float
+HOSTDEVICE inline float __int_as_float(int a)
+    {
+    union
+        {
+        int a; float b;
+        } u;
+
+    u.a = a;
+
+    return u.b;
+    }
+#endif // NVCC
+
+//! Stuff an integer inside a double
+HOSTDEVICE inline double __int_as_double(int a)
+    {
+    union
+        {
+        int a; double b;
+        } u;
+
+    u.a = a;
+
+    return u.b;
+    }
+
 //! Stuff an integer inside a Scalar
 HOSTDEVICE inline Scalar __int_as_scalar(int a)
     {
@@ -113,6 +141,34 @@ HOSTDEVICE inline Scalar __int_as_scalar(int a)
     u.a = a;
 
     return u.b;
+    }
+
+#ifndef NVCC
+//! Extract an integer from a float stuffed by __int_as_float()
+HOSTDEVICE inline int __float_as_int(float b)
+    {
+    union
+        {
+        int a; float b;
+        } u;
+
+    u.b = b;
+
+    return u.a;
+    }
+#endif // NVCC
+
+//! Extract an integer from a double stuffed by __int_as_double()
+HOSTDEVICE inline int __double_as_int(double b)
+    {
+    union
+        {
+        int a; double b;
+        } u;
+
+    u.b = b;
+
+    return u.a;
     }
 
 //! Extract an integer from a Scalar stuffed by __int_as_scalar()
@@ -153,39 +209,6 @@ HOSTDEVICE inline bool operator== (const Scalar4 &a, const Scalar4 &b)
             a.z == b.z &&
             a.w == b.w);
     }
-
-//! Vector addition
-HOSTDEVICE inline int3 operator+ (const int3 &a, const int3 &b)
-    {
-    return make_int3(a.x + b.x,
-                    a.y + b.y,
-                    a.z + b.z);
-    }
-
-HOSTDEVICE inline int3 operator- (const int3 &a, const int3 &b)
-    {
-    return make_int3(a.x - b.x,
-                    a.y - b.y,
-                    a.z - b.z);
-    }
-
-//! Comparison
-HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
-    {
-    return (a.x == b.x &&
-            a.y == b.y &&
-            a.z == b.z );
-    }
-
-//! Comparison
-HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
-    {
-    return (a.x != b.x ||
-            a.y != b.y ||
-            a.z != b.z );
-    }
-
-
 
 //! Vector addition
 HOSTDEVICE inline Scalar3 operator+ (const Scalar3 &a, const Scalar3 &b)
@@ -275,6 +298,14 @@ HOSTDEVICE inline Scalar3 operator/ (const Scalar3 &a, const Scalar &b)
                         a.y/b,
                         a.z/b);
     }
+//! Vector - scalar division in place
+HOSTDEVICE inline Scalar3& operator/= (Scalar3 &a, const Scalar &b)
+    {
+    a.x /= b;
+    a.y /= b;
+    a.z /= b;
+    return a;
+    }
 //! Vector - scalar division
 HOSTDEVICE inline Scalar3 operator/ (const Scalar &a, const Scalar3 &b)
     {
@@ -293,6 +324,45 @@ HOSTDEVICE inline Scalar3 operator- (const Scalar3 &a)
 HOSTDEVICE inline Scalar dot(const Scalar3& a, const Scalar3& b)
     {
     return a.x*b.x + a.y*b.y + a.z*b.z;
+    }
+
+// ----------- Integer vector math functions ----------------------
+//! Integer vector addition
+HOSTDEVICE inline int3 operator+(const int3& a, const int3& b)
+    {
+    return make_int3(a.x + b.x, a.y + b.y, a.z + b.z);
+    }
+//! Integer vector unary addition
+HOSTDEVICE inline int3 operator+=(int3& a, const int3& b)
+    {
+    a.x += b.x; a.y += b.y; a.z += b.z;
+    return a;
+    }
+//! Integer vector substraction
+HOSTDEVICE inline int3 operator-(const int3& a, const int3& b)
+    {
+    return make_int3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+//! Integer vector unary subtraction
+HOSTDEVICE inline int3 operator-=(int3& a, const int3& b)
+    {
+    a.x -= b.x; a.y -= b.y; a.z -= b.z;
+    return a;
+    }
+//! Integer vector unary -
+HOSTDEVICE inline int3 operator- (const int3 &a)
+    {
+    return make_int3(-a.x, -a.y, -a.z);
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator== (const int3 &a, const int3 &b)
+    {
+    return (a.x == b.x && a.y == b.y && a.z == b.z );
+    }
+//! Integer vector comparison
+HOSTDEVICE inline bool operator!= (const int3 &a, const int3 &b)
+    {
+    return (a.x != b.x || a.y != b.y || a.z != b.z );
     }
 
 //! Export relevant hoomd math functions to python
@@ -395,6 +465,22 @@ inline HOSTDEVICE float exp(float x)
 inline HOSTDEVICE double exp(double x)
     {
     return ::exp(x);
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE float log(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return __logf(x);
+    #else
+    return ::log(x);
+    #endif
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE double log(double x)
+    {
+    return ::log(x);
     }
 
 //! Compute the sqrt of x
@@ -526,6 +612,22 @@ inline HOSTDEVICE float exp(float x)
 inline HOSTDEVICE double exp(double x)
     {
     return ::exp(x);
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE float log(float x)
+    {
+    #ifdef __CUDA_ARCH__
+    return logf(x);
+    #else
+    return ::log(x);
+    #endif
+    }
+
+//! Compute the natural log of x
+inline HOSTDEVICE double log(double x)
+    {
+    return ::log(x);
     }
 
 //! Compute the sqrt of x

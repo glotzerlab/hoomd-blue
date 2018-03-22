@@ -325,6 +325,70 @@ struct hpmc_muvt_counters_t
 
     };
 
+//! Storage for cluseter move acceptance counters
+/*! \ingroup hpmc_data_structs */
+struct hpmc_clusters_counters_t
+    {
+    unsigned long long int pivot_accept_count;      //!< Count of accepted pivot moves
+    unsigned long long int pivot_reject_count;      //!< Count of rejected pivot moves
+    unsigned long long int reflection_accept_count;         //!< Count of accepted reflection moves
+    unsigned long long int reflection_reject_count;         //!< Count of rejected reflection moves
+    unsigned long long int swap_accept_count;         //!< Count of accepted reflection moves
+    unsigned long long int swap_reject_count;         //!< Count of rejected reflection moves
+
+    //! Construct a zero set of counters
+    hpmc_clusters_counters_t()
+        {
+        pivot_accept_count = 0;
+        pivot_reject_count = 0;
+        reflection_accept_count = 0;
+        reflection_reject_count = 0;
+        swap_accept_count = 0;
+        swap_reject_count = 0;
+        }
+
+    //! Get the translate acceptance
+    /*! \returns The ratio of pivot moves that are accepted, or 0 if there are no pivot moves
+    */
+    DEVICE double getPivotAcceptance()
+        {
+        if (pivot_reject_count + pivot_accept_count == 0)
+            return 0.0;
+        else
+            return double(pivot_accept_count) / double(pivot_reject_count + pivot_accept_count);
+        }
+
+    //! Get the reflection acceptance
+    /*! \returns The ratio of reflection moves that are accepted, or 0 if there are no reflection moves
+    */
+    DEVICE double getReflectionAcceptance()
+        {
+        if (reflection_reject_count + reflection_accept_count == 0)
+            return 0.0;
+        else
+            return double(reflection_accept_count) / double(reflection_reject_count + reflection_accept_count);
+        }
+
+    //! Get the swap acceptance
+    /*! \returns The ratio of type swap moves that are accepted, or 0 if there are no type swap moves
+    */
+    DEVICE double getSwapAcceptance()
+        {
+        if (swap_reject_count + swap_accept_count == 0)
+            return 0.0;
+        else
+            return double(swap_accept_count) / double(swap_reject_count + swap_accept_count);
+        }
+
+    //! Get the number of moves
+    /*! \return The total number of moves
+    */
+    DEVICE unsigned long long int getNMoves()
+        {
+        return pivot_accept_count + pivot_reject_count + reflection_accept_count + reflection_reject_count + swap_accept_count + swap_reject_count;
+        }
+    };
+
 //! Take the difference of two sets of counters
 DEVICE inline hpmc_implicit_counters_t operator-(const hpmc_implicit_counters_t& a, const hpmc_implicit_counters_t& b)
     {
@@ -347,6 +411,19 @@ DEVICE inline hpmc_muvt_counters_t operator-(const hpmc_muvt_counters_t& a, cons
     result.remove_reject_count = a.remove_reject_count - b.remove_reject_count;
     result.exchange_reject_count = a.exchange_reject_count - b.exchange_reject_count;
     result.volume_reject_count = a.volume_reject_count - b.volume_reject_count;
+    return result;
+    }
+
+//! Take the difference of two sets of counters
+DEVICE inline hpmc_clusters_counters_t operator-(const hpmc_clusters_counters_t& a, const hpmc_clusters_counters_t& b)
+    {
+    hpmc_clusters_counters_t result;
+    result.pivot_accept_count = a.pivot_accept_count - b.pivot_accept_count;
+    result.reflection_accept_count = a.reflection_accept_count - b.reflection_accept_count;
+    result.swap_accept_count = a.swap_accept_count - b.swap_accept_count;
+    result.pivot_reject_count = a.pivot_reject_count - b.pivot_reject_count;
+    result.reflection_reject_count = a.reflection_reject_count - b.reflection_reject_count;
+    result.swap_reject_count = a.swap_reject_count - b.swap_reject_count;
     return result;
     }
 

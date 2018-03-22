@@ -59,6 +59,7 @@ set(_hpmc_headers
     ShapeSphinx.h
     ShapeUnion.h
     SphinxOverlap.h
+    UpdaterClusters.h
     UpdaterExternalFieldWall.h
     UpdaterMuVT.h
     UpdaterMuVTImplicit.h

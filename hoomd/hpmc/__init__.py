@@ -49,6 +49,13 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_muvt_remove_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 - ``hpmc_muvt_volume_acceptance`` - Fraction of particle removals accepted (averaged from start of run)
 
+:py:class:`update.clusters()` provides the following loggable quantities.
+
+- ``hpmc_clusters_moves`` - Fraction of cluster moves divided by the number of particles
+- ``hpmc_clusters_pivot_acceptance`` - Fraction of pivot moves accepted
+- ``hpmc_clusters_reflection_acceptance`` - Fraction of reflection moves accepted
+- ``hpmc_clusters_swap_acceptance`` - Fraction of swap moves accepted
+
 .. rubric:: Timestep definition
 
 HOOMD-blue started as an MD code where **timestep** has a clear meaning. MC simulations are run
