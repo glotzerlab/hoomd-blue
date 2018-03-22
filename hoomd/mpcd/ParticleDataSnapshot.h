@@ -49,7 +49,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class ParticleDataSnapshot
+class PYBIND11_EXPORT ParticleDataSnapshot
     {
     public:
         //! Default constructor

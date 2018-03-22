@@ -22,7 +22,7 @@ namespace mpcd
 {
 
 //! Computes the MPCD cell list on the GPU
-class CellListGPU : public mpcd::CellList
+class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     {
     public:
     //! Constructor

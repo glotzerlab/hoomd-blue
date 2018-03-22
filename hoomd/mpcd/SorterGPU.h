@@ -26,7 +26,7 @@ namespace mpcd
 /*!
  * See mpcd::Sorter for design details.
  */
-class SorterGPU : public mpcd::Sorter
+class PYBIND11_EXPORT SorterGPU : public mpcd::Sorter
     {
     public:
         //! Constructor

@@ -21,7 +21,7 @@
 namespace mpcd
 {
 
-class SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
+class PYBIND11_EXPORT SRDCollisionMethodGPU : public mpcd::SRDCollisionMethod
     {
     public:
         //! Constructor

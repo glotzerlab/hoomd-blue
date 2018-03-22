@@ -29,7 +29,7 @@
 namespace mpcd
 {
 //! Computes the cell (thermodynamic) properties
-class CellThermoCompute : public Compute
+class PYBIND11_EXPORT CellThermoCompute : public Compute
     {
     public:
         //! Constructor

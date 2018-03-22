@@ -26,7 +26,7 @@
 namespace mpcd
 {
 //! Computes the cell (thermodynamic) properties on the GPU
-class CellThermoComputeGPU : public mpcd::CellThermoCompute
+class PYBIND11_EXPORT CellThermoComputeGPU : public mpcd::CellThermoCompute
     {
     public:
         //! Constructor

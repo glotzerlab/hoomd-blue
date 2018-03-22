@@ -24,7 +24,7 @@ namespace mpcd
 {
 
 //! Structure for initializing system data
-class SystemDataSnapshot
+class PYBIND11_EXPORT SystemDataSnapshot
     {
     public:
         //! Constructor

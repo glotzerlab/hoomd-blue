@@ -68,7 +68,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Number constructor

@@ -86,10 +86,8 @@ namespace kernel
 
 }; // end namespace mpcd
 
-PYBIND11_PLUGIN(_mpcd)
+PYBIND11_MODULE(_mpcd, m)
     {
-    pybind11::module m("_mpcd");
-
     mpcd::detail::export_ParticleData(m);
     mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_Sorter(m);
@@ -125,6 +123,4 @@ PYBIND11_PLUGIN(_mpcd)
     mpcd::detail::export_CommunicatorGPU(m);
     #endif // ENABLE_CUDA
     #endif // ENABLE_MPI
-
-    return m.ptr();
     }

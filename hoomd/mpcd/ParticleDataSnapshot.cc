@@ -9,7 +9,7 @@
  */
 
 #include "ParticleDataSnapshot.h"
-#include "hoomd/extern/num_util.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 
 mpcd::ParticleDataSnapshot::ParticleDataSnapshot()
     : size(0), mass(1.0)
@@ -123,23 +123,26 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
 
 pybind11::object mpcd::ParticleDataSnapshot::getPosition()
     {
-    std::vector<intp> dims(2);
+    std::vector<ssize_t> dims(2);
     dims[0] = position.size();
     dims[1] = 3;
-    return pybind11::object(num_util::makeNumFromData((Scalar*)&position[0], dims), false);
+    return pybind11::array(dims, (Scalar*)&position[0]);
+    //return pybind11::object(num_util::makeNumFromData((Scalar*)&position[0], dims), false);
     }
 
 pybind11::object mpcd::ParticleDataSnapshot::getVelocity()
     {
-    std::vector<intp> dims(2);
+    std::vector<ssize_t> dims(2);
     dims[0] = velocity.size();
     dims[1] = 3;
-    return pybind11::object(num_util::makeNumFromData((Scalar*)&velocity[0], dims), false);
+    return pybind11::array(dims, (Scalar*)&velocity[0]);
+    //return pybind11::object(num_util::makeNumFromData((Scalar*)&velocity[0], dims), false);
     }
 
 pybind11::object mpcd::ParticleDataSnapshot::getType()
     {
-    return pybind11::object(num_util::makeNumFromData(&type[0], type.size()), false);
+    return pybind11::array(type.size(), &type[0]);
+    //return pybind11::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
 pybind11::list mpcd::ParticleDataSnapshot::getTypeNames()

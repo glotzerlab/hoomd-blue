@@ -55,7 +55,7 @@ namespace mpcd
  *
  * \ingroup communication
  */
-class Communicator
+class PYBIND11_EXPORT Communicator
     {
     public:
         //! Constructor

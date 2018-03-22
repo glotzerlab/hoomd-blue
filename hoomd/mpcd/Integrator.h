@@ -29,7 +29,7 @@
 namespace mpcd
 {
 
-class Integrator : public ::IntegratorTwoStep
+class PYBIND11_EXPORT Integrator : public ::IntegratorTwoStep
     {
     public:
         //! Constructor

@@ -23,7 +23,7 @@
 namespace mpcd
 {
 
-class ATCollisionMethod : public mpcd::CollisionMethod
+class PYBIND11_EXPORT ATCollisionMethod : public mpcd::CollisionMethod
     {
     public:
         //! Constructor

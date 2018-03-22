@@ -33,7 +33,7 @@ namespace mpcd
  * must set the map from old particle index to new particle index, and the
  * reverse mapping.
  */
-class Sorter : public ::Updater
+class PYBIND11_EXPORT Sorter : public ::Updater
     {
     public:
         //! Constructor

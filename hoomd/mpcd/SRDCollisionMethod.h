@@ -23,7 +23,7 @@
 namespace mpcd
 {
 
-class SRDCollisionMethod : public mpcd::CollisionMethod
+class PYBIND11_EXPORT SRDCollisionMethod : public mpcd::CollisionMethod
     {
     public:
         //! Constructor

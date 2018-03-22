@@ -70,52 +70,52 @@ namespace  num_util __attribute__((visibility("default"))) {
     //specializations for use by makeNum
 
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned char>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<signed char>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<short>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned short>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned int>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<int>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned long long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<float>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<double>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long double>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<float> >(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<double> >(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<long double> >(void);
 
 
