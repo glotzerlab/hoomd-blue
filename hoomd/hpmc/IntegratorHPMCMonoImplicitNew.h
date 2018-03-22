@@ -279,6 +279,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
         // extend the image list by the depletant diameter, since we're querying
         // AABBs that are larger than the shape diameters themselves
         this->m_extra_image_width = tmp.getCircumsphereDiameter();
+
+        }
+    // Account for patch width
+    if (this->m_patch)
+        {
+        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut());
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
@@ -289,12 +295,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     {
-    if (this->m_patch && !this->m_patch_log)
-        {
-        this->m_exec_conf->msg->error() << "Depletant simulations with patches are unsupported." << std::endl;
-        throw std::runtime_error("Error during implicit depletant integration\n");
-        }
-
     this->m_exec_conf->msg->notice(10) << "HPMCMonoImplicit update: " << timestep << std::endl;
     IntegratorHPMC::update(timestep);
 
@@ -363,6 +363,8 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
         // access particle data and system box
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar> h_diameter(this->m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(this->m_pdata->getCharges(), access_location::host, access_mode::read);
 
         // access interaction matrix
         ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
@@ -397,6 +399,9 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
 
+            Shape shape_old(quat<Scalar>(orientation_i), this->m_params[typ_i]);
+            vec3<Scalar> pos_old = pos_i;
+
             if (move_type_translate)
                 {
                 // skip if moves are disabled
@@ -423,7 +428,17 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
             // check for overlaps with neighboring particle's positions
             bool overlap=false;
-            detail::AABB aabb_i_local = shape_i.getAABB(vec3<Scalar>(0,0,0));
+            OverlapReal r_cut_patch = 0;
+
+            if (this->m_patch && !this->m_patch_log)
+                {
+                r_cut_patch = this->m_patch->getRCut();
+                }
+            OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-this->getMinCoreDiameter()/(OverlapReal)2.0);
+            detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+            // patch + field interaction deltaU
+            double patch_field_energy_diff = 0;
 
             // All image boxes (including the primary)
             const unsigned int n_images = this->m_image_list.size();
@@ -490,6 +505,19 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     overlap = true;
                                     break;
                                     }
+                                // If there is no overlap and m_patch is not NULL, calculate energy
+                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_patch*r_cut_patch)
+                                    {
+                                    patch_field_energy_diff -= this->m_patch->energy(r_ij, typ_i,
+                                                               quat<float>(shape_i.orientation),
+                                                               h_diameter.data[i],
+                                                               h_charge.data[i],
+                                                               typ_j,
+                                                               quat<float>(orientation_j),
+                                                               h_diameter.data[j],
+                                                               h_charge.data[j]
+                                                               );
+                                    }
                                 }
                             }
                         }
@@ -511,7 +539,92 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             // whether the move is accepted
             bool accept = !overlap;
 
-            if (!overlap)
+            // In most cases checking patch energy should be cheaper than computing
+            // depletants, so do that first. Calculate old patch energy only if
+            // m_patch not NULL and no overlaps. Note that we are computing U_old-U_new
+            // and then exponentiating directly (rather than exp(-(U_new-U_old)))
+            if (this->m_patch && !this->m_patch_log && accept)
+                {
+                for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                    {
+                    vec3<Scalar> pos_i_image = pos_old + this->m_image_list[cur_image];
+                    detail::AABB aabb = aabb_i_local;
+                    aabb.translate(pos_i_image);
+
+                    // stackless search
+                    for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
+                        {
+                        if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                            {
+                            if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                {
+                                for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                    {
+                                    // read in its position and orientation
+                                    unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                    Scalar4 postype_j;
+                                    Scalar4 orientation_j;
+
+                                    // handle j==i situations
+                                    if ( j != i )
+                                        {
+                                        // load the position and orientation of the j particle
+                                        postype_j = h_postype.data[j];
+                                        orientation_j = h_orientation.data[j];
+                                        }
+                                    else
+                                        {
+                                        if (cur_image == 0)
+                                            {
+                                            // in the first image, skip i == j
+                                            continue;
+                                            }
+                                        else
+                                            {
+                                            // If this is particle i and we are in an outside image, use the translated position and orientation
+                                            postype_j = make_scalar4(pos_old.x, pos_old.y, pos_old.z, postype_i.w);
+                                            orientation_j = quat_to_scalar4(shape_old.orientation);
+                                            }
+                                        }
+
+                                    // put particles in coordinate system of particle i
+                                    vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
+                                    unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                    Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
+                                    if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                        patch_field_energy_diff += this->m_patch->energy(r_ij,
+                                                                   typ_i,
+                                                                   quat<float>(orientation_i),
+                                                                   h_diameter.data[i],
+                                                                   h_charge.data[i],
+                                                                   typ_j,
+                                                                   quat<float>(orientation_j),
+                                                                   h_diameter.data[j],
+                                                                   h_charge.data[j]);
+                                    }
+                                }
+                            }
+                        else
+                            {
+                            // skip ahead
+                            cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
+                            }
+                        }  // end loop over AABB nodes
+                    } // end loop over images
+
+                // Add external energetic contribution
+                if (this->m_external)
+                    {
+                    patch_field_energy_diff += this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                    }
+
+                // Update acceptance based on patch, will only be reached if overlap check succeeded
+                accept = rng_i.d() < slow::exp(patch_field_energy_diff);
+                } // end if (m_patch)
+
+            // Depletant check
+            if (accept)
                 {
                 intersect_i.clear();
                 image_i.clear();
@@ -635,7 +748,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                     vec3<Scalar> rij(rj-ri - this->m_image_list[image_i[k]]);
                     Scalar d = sqrt(dot(rij,rij));
 
-                    // whether the interesection is the entire (smaller) sphere
+                    // whether the intersection is the entire (smaller) sphere
                     bool sphere = false;
                     Scalar V;
                     Scalar Vcap_i(0.0);
