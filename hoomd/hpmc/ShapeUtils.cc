@@ -7,7 +7,8 @@ namespace hpmc{
 namespace detail{
 
 const unsigned int ConvexHull::invalid_index = -1;
-const Scalar ConvexHull::zero = Scalar(1e-5);
+  //const Scalar ConvexHull::zero = Scalar(1e-5);
+const Scalar ConvexHull::zero = Scalar(1e-7);
 
 }
 
