@@ -1002,18 +1002,9 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
 
         if (m_sysdef->getNDimensions() == 3)
             {
-            #if 0
             Scalar theta = rng.template s<Scalar>(Scalar(0.0),Scalar(2.0*M_PI));
             Scalar z = rng.template s<Scalar>(Scalar(-1.0),Scalar(1.0));
             n = vec3<Scalar>(fast::sqrt(Scalar(1.0)-z*z)*fast::cos(theta),fast::sqrt(Scalar(1.0)-z*z)*fast::sin(theta),z);
-            #endif
-            unsigned int axis = rand_select(rng, 2);
-            if (axis == 0)
-                n.x = 1;
-            else if (axis == 1)
-                n.y = 1;
-            else if (axis == 2)
-                n.z = 1;
             }
         else
             {
@@ -1024,10 +1015,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         // line reflection
         q = quat<Scalar>(0,n);
         }
-
-    #if 0
     else
-    #endif
         {
         Scalar3 f;
         f.x = rng.template s<Scalar>();
@@ -1165,7 +1153,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
     if (m_prof) m_prof->push(m_exec_conf,"HPMC Clusters");
 
     // determine which particles interact
-    findInteractions(timestep, pivot, q, swap, false && line, map);
+    findInteractions(timestep, pivot, q, swap, line, map);
 
     if (m_prof) m_prof->push(m_exec_conf,"Move");
 
