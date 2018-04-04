@@ -884,7 +884,7 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 Scalar RaRb = r_excl_i + r_excl_j;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                Scalar rcut_ij = r_cut_patch + extent_i + patch->getAdditiveCutoff(typ_j);
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
                                 bool interact_patch = patch && rsq_ij <= rcut_ij*rcut_ij;
 
                                 unsigned int err = 0;
