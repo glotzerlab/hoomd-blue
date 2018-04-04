@@ -284,7 +284,13 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
     // Account for patch width
     if (this->m_patch)
         {
-        this->m_nominal_width = std::max(this->m_nominal_width, this->m_patch->getRCut());
+        Scalar max_extent = 0.0;
+        for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+            {
+            max_extent = std::max(max_extent, this->m_patch->getAdditiveCutoff(typ));
+            }
+
+        this->m_nominal_width = std::max(this->m_nominal_width, max_extent+this->m_patch->getRCut());
         }
     this->m_image_list_valid = false;
     this->m_aabb_tree_invalid = true;
@@ -432,7 +438,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
             if (this->m_patch && !this->m_patch_log)
                 {
-                r_cut_patch = this->m_patch->getRCut();
+                r_cut_patch = this->m_patch->getRCut() + 0.5*this->m_patch->getAdditiveCutoff(typ_i);
                 }
             OverlapReal R_query = std::max(shape_i.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch-this->getMinCoreDiameter()/(OverlapReal)2.0);
             detail::AABB aabb_i_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
@@ -498,6 +504,10 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                 OverlapReal DaDb = shape_i.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
                                 bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
+                                Scalar r_cut_ij = 0.0;
+                                if (this->m_patch)
+                                    r_cut_ij = r_cut_patch + 0.5*this->m_patch->getAdditiveCutoff(typ_j);
+
                                 if (h_overlaps.data[this->m_overlap_idx(typ_i,typ_j)]
                                     && circumsphere_overlap
                                     && test_overlap(r_ij, shape_i, shape_j, counters.overlap_err_count))
@@ -506,7 +516,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     break;
                                     }
                                 // If there is no overlap and m_patch is not NULL, calculate energy
-                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_patch*r_cut_patch)
+                                else if (this->m_patch && !this->m_patch_log && rsq <= r_cut_ij*r_cut_ij)
                                     {
                                     patch_field_energy_diff -= this->m_patch->energy(r_ij, typ_i,
                                                                quat<float>(shape_i.orientation),
