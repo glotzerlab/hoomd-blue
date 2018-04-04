@@ -41,7 +41,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
     // extract member parameters, posistions, and orientations and compute the rcut along the way
-    float rcut_i = 0.0;
+    float extent_i = 0.0;
 
     // resize data structures
     m_position[type].resize(N);
@@ -73,14 +73,15 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         obbs[i] = hpmc::detail::OBB(pos,0.0);
 
         Scalar d = sqrt(dot(pos,pos));
-        rcut_i = std::max(rcut_i, float(2*d + m_r_cut));
+        extent_i = std::max(extent_i, float(2*d));
 
         // we do not support exclusions
         obbs[i].mask = 1;
         }
 
     // set the diameter
-    m_rcut_type[type] = rcut_i;
+    m_rcut_type[type] = extent_i + m_r_cut;
+    m_extent_type[type] = extent_i;
 
     // build tree and store proxy structure
     hpmc::detail::OBBTree tree;

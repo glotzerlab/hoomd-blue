@@ -45,6 +45,12 @@ class PatchEnergy
         return 0;
         }
 
+    //! Returns the geometric extent, per type
+    virtual Scalar getAdditiveCutoff(unsigned int type)
+        {
+        return 0;
+        }
+
     //! evaluate the energy of the patch interaction
     /*! \param r_ij Vector pointing from particle i to j
         \param type_i Integer type index of particle i

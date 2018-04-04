@@ -45,6 +45,13 @@ class PatchEnergyJIT : public hpmc::PatchEnergy
             return m_r_cut;
             }
 
+        //! Get the maximum r_ij radius beyond which energies are always 0
+        virtual Scalar getAdditiveCutoff(unsigned int type)
+            {
+            // this potential corresponds to a point particle
+            return 0.0;
+            }
+
         //! evaluate the energy of the patch interaction
         /*! \param r_ij Vector pointing from particle i to j
             \param type_i Integer type index of particle i
