@@ -571,8 +571,12 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
 
             if (move_type_translate)
                 {
+                // skip if no overlap check is required
                 if (h_d.data[typ_i] == 0.0)
+                    {
+                    counters.translate_accept_count++;
                     continue;
+                    }
 
                 move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
 
@@ -588,7 +592,10 @@ void IntegratorHPMCMono<Shape>::update(unsigned int timestep)
             else
                 {
                 if (h_a.data[typ_i] == 0.0)
+                    {
+                    counters.rotate_accept_count++;
                     continue;
+                    }
 
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
