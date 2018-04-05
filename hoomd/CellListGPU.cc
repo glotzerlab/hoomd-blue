@@ -93,9 +93,6 @@ void CellListGPU::computeCellList()
         CHECK_CUDA_ERROR();
     m_tuner->end();
 
-    if(m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-
     m_exec_conf->endMultiGPU();
 
     if (m_sort_cell_list)

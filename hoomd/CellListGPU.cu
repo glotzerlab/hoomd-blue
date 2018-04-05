@@ -140,7 +140,12 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
         return;
         }
 
+    #if (__CUDA_ARCH__ >= 600)
+    unsigned int size = atomicInc_system(&d_cell_size[bin], 0xffffffff);
+    #else
     unsigned int size = atomicInc(&d_cell_size[bin], 0xffffffff);
+    #endif
+
     if (size < Nmax)
         {
         unsigned int write_pos = cli(size, bin);
@@ -155,7 +160,11 @@ __global__ void gpu_compute_cell_list_kernel(unsigned int *d_cell_size,
     else
         {
         // handle overflow
+        #if (__CUDA_ARCH__ >= 600)
+        atomicMax_system(&(*d_conditions).x, size+1);
+        #else
         atomicMax(&(*d_conditions).x, size+1);
+        #endif
         }
     }
 
@@ -198,7 +207,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int nwork = range.second - range.first;
 
         // process ghosts in final range
-        if (idev == 0)
+        if (idev == gpu_partition.getNumActiveGPUs()-1)
             nwork += n_ghost;
 
         unsigned int run_block_size = min(block_size, max_block_size);
