@@ -217,6 +217,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         m_mpi_comm = mpi_comm;
         }
 
+    //! Set the HOOMD world MPI communicator
+    void setHOOMDWorldMPICommunicator(const MPI_Comm mpi_comm)
+        {
+        m_hoomd_world = mpi_comm;
+        }
+
     //! Perform a job-wide MPI barrier
     void barrier()
         {
