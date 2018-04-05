@@ -410,8 +410,12 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
             if (move_type_translate)
                 {
-                // skip if moves are disabled
-                if (h_d.data[typ_i] == Scalar(0.0)) continue;
+                // skip if no overlap check is required
+                if (h_d.data[typ_i] == 0.0)
+                    {
+                    counters.translate_accept_count++;
+                    continue;
+                    }
 
                 move_translate(pos_i, rng_i, h_d.data[typ_i], ndim);
 
@@ -426,8 +430,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 }
             else
                 {
-                // skip if moves are disabled
-                if (h_a.data[typ_i] == Scalar(0.0)) continue;
+                if (h_a.data[typ_i] == 0.0)
+                    {
+                    counters.rotate_accept_count++;
+                    continue;
+                    }
 
                 move_rotate(shape_i.orientation, rng_i, h_a.data[typ_i], ndim);
                 }
