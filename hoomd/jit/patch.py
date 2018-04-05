@@ -229,8 +229,11 @@ class user_union(user):
 
     Args:
         r_cut (float): Constituent particle center to center distance cutoff beyond which all pair interactions are assumed 0.
+        r_cut_iso (float, **optional**): Cut-off for isotropic interaction between centers of union particles
         code (str): C++ code to compile
+        code_iso (str, **optional**): C++ code for isotropic part
         llvm_ir_fname (str): File name of the llvm IR file to load.
+        llvm_ir_fname_iso (str, **optional**): File name of the llvm IR file to load for isotropic interaction
 
     Example:
 
@@ -245,9 +248,33 @@ class user_union(user):
         patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well)
         patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
 
-    .. versionadded:: 2.2
+    Example with added isotropic interactions:
+
+    .. code-block:: python
+
+        # square well attraction on constituent spheres
+        square_well = """float rsq = dot(r_ij, r_ij);
+                            if (rsq < 1.21f)
+                                return -1.0f;
+                            else
+                                return 0.0f;
+                      """
+
+        # soft repulsion between centers of unions
+        soft_repulsion = """float rsq = dot(r_ij, r_ij);
+                            if (rsq < 6.25f)
+                                return 1.0f;
+                            else
+                                return 0.0f;
+                      """
+
+        patch = hoomd.jit.patch.user_union(r_cut=1.1, code=square_well, r_cut_iso=5, code_iso=soft_repulsion)
+        patch.set_params('A',positions=[(0,0,-5.),(0,0,.5)], typeids=[0,0])
+
+    .. versionadded:: 2.3
     '''
-    def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, clang_exec=None):
+    def __init__(self, mc, r_cut, code=None, llvm_ir_file=None, r_cut_iso=None, code_iso=None,
+        llvm_ir_file_iso=None, clang_exec=None):
         hoomd.util.print_status_line();
 
         # check if initialization has occurred
@@ -267,8 +294,19 @@ class user_union(user):
             with open(llvm_ir_file,'r') as f:
                 llvm_ir = f.read()
 
+        if code_iso is not None:
+            llvm_ir_iso = self.compile_user(code_iso,clang)
+        else:
+            # IR is a text file
+            with open(llvm_ir_file_iso,'r') as f:
+                llvm_ir_iso = f.read()
+
+        if r_cut_iso is None:
+            r_cut_iso = -1.0
+
         self.compute_name = "patch_union"
-        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf, llvm_ir, r_cut);
+        self.cpp_evaluator = _jit.PatchEnergyJITUnion(hoomd.context.current.system_definition, hoomd.context.exec_conf,
+            llvm_ir_iso, r_cut_iso, llvm_ir, r_cut);
         mc.set_PatchEnergyEvaluator(self);
 
         self.mc = mc

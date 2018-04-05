@@ -12,14 +12,28 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         //! Constructor
         /*! \param r_cut Max rcut for constituent particles
          */
-        PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& fname, Scalar r_cut)
-            : PatchEnergyJIT(exec_conf, fname, r_cut), m_sysdef(sysdef)
+        PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf,
+            const std::string& llvm_ir_iso, Scalar r_cut_iso,
+            const std::string& llvm_ir_union, Scalar r_cut_union)
+            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso), m_sysdef(sysdef), m_rcut_union(r_cut_union),
+              m_use_iso_cutoff(true)
             {
+            // build the JIT.
+            m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));
+
+            // get the evaluator
+            m_eval_union = m_factory_union->getEval();
+
+            if (!m_eval)
+                {
+                exec_conf->msg->error() << m_factory_union->getError() << std::endl;
+                throw std::runtime_error("Error compiling Union JIT code.");
+                }
+
             // Connect to number of types change signal
             m_sysdef->getParticleData()->getNumTypesChangeSignal().connect<PatchEnergyJITUnion, &PatchEnergyJITUnion::slotNumTypesChange>(this);
 
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-            m_rcut_type.resize(ntypes,0.0);
             m_extent_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
@@ -28,6 +42,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_charge.resize(ntypes);
             m_tree.resize(ntypes);
             }
+
         //! Destructor
         virtual ~PatchEnergyJITUnion()
             {
@@ -50,23 +65,32 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             pybind11::list charges,
             unsigned int leaf_capacity=4);
 
-        //! Set the global cutoff distance
-        void setRCut(float rcut)
-            {
-            m_r_cut = rcut;
-            }
-
         //! Get the cut-off for constituent particles
         virtual Scalar getRCut()
             {
-            return m_r_cut;
+            if (m_use_iso_cutoff)
+                {
+                // return isotropic potential cutoff
+                return m_r_cut;
+                }
+            else
+                {
+                // return cutoff on every constituent particle
+                return m_rcut_union;
+                }
             }
 
         //! Get the maximum geometric extent, which is added to the cutoff, per type
         virtual Scalar getAdditiveCutoff(unsigned int type)
             {
             assert(type <= m_extent_type.size());
-            return m_extent_type[type];
+            if (m_use_iso_cutoff)
+                {
+                // no additive contribution, everything is taken care of by a single cut-off
+                return 0.0;
+                }
+            else
+                return m_extent_type[type];
             }
 
         //! evaluate the energy of the patch interaction
@@ -96,7 +120,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         virtual void slotNumTypesChange()
             {
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
-            m_rcut_type.resize(ntypes,0.0);
             m_extent_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
@@ -109,7 +132,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
     protected:
         std::shared_ptr<SystemDefinition> m_sysdef;               // HOOMD's system definition
         std::vector<hpmc::detail::GPUTree> m_tree;                // The tree acceleration structure per particle type
-        std::vector< float > m_rcut_type;                         // The per-type rcut
         std::vector< float > m_extent_type;                       // The per-type geometric extent
         std::vector< std::vector<vec3<float> > > m_position;      // The positions of the constituent particles
         std::vector< std::vector<quat<float> > > m_orientation;   // The orientations of the constituent particles
@@ -125,6 +147,11 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                      const quat<float>& orientation_b,
                                      unsigned int cur_node_a,
                                      unsigned int cur_node_b);
+
+        std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaulator function, for constituent ptls
+        EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module
+        Scalar m_rcut_union;                                     //!< Cutoff on constituent particles
+        bool m_use_iso_cutoff;                                   //!< True if the isotropic cutoff is greater than the union cutoffs
     };
 
 //! Exports the PatchEnergyJITUnion class to python

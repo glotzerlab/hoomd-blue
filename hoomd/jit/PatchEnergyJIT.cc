@@ -13,10 +13,6 @@
 */
 PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf, const std::string& llvm_ir, Scalar r_cut) : m_r_cut(r_cut)
     {
-
-    //m_PatchProvidedQuantities.push_back(PATCH_ENERGY_LOG_NAME);
-    //m_PatchProvidedQuantities.push_back(PATCH_ENERGY_RCUT);
-
     // build the JIT.
     m_factory = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir));
 
@@ -29,8 +25,6 @@ PatchEnergyJIT::PatchEnergyJIT(std::shared_ptr<ExecutionConfiguration> exec_conf
         throw std::runtime_error("Error compiling JIT code.");
         }
     }
-
-
 
 
 void export_PatchEnergyJIT(pybind11::module &m)
