@@ -246,8 +246,8 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryInsertParticle(unsigned int times
             {
             MPI_Request req[2];
             MPI_Status status[2];
-            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[0]);
-            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[1]);
+            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[0]);
+            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[1]);
             MPI_Waitall(2, req, status);
             }
         if (this->m_comm)
@@ -366,8 +366,8 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::trySwitchType(unsigned int timestep,
             {
             MPI_Request req[2];
             MPI_Status status[2];
-            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[0]);
-            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[1]);
+            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[0]);
+            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[1]);
             MPI_Waitall(2, req, status);
             }
         if (this->m_comm)
@@ -419,8 +419,8 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
             {
             MPI_Request req[2];
             MPI_Status status[2];
-            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[0]);
-            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, MPI_COMM_WORLD, &req[1]);
+            MPI_Isend(&n_overlap, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[0]);
+            MPI_Irecv(&n_insert, 1, MPI_UNSIGNED, other, 0, this->m_exec_conf->getHOOMDWorldMPICommunicator(), &req[1]);
             MPI_Waitall(2, req, status);
             }
         if (this->m_comm)
