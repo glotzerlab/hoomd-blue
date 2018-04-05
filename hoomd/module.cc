@@ -250,8 +250,13 @@ void initialize_mpi()
         hoomd_launch_timing = true;
         }
 
-    // initalize MPI
-    MPI_Init(0, (char ***) NULL);
+    // initialize MPI if it has not been initialized by another program
+    int is_initialized = 0;
+    MPI_Initialized(&is_initialized);
+    if (!is_initialized)
+        {
+        MPI_Init(0, (char ***) NULL);
+        }
 
     if (hoomd_launch_timing)
         {
