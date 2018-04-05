@@ -277,7 +277,7 @@ private:
 #endif
 
 #ifdef ENABLE_MPI
-    void initializeMPI();                  //!< Initialize MPI environment
+    void initializeMPI(MPI_Comm mpi_comm=MPI_COMM_WORLD); //!< Initialize MPI environment
 
     MPI_Comm m_mpi_comm;                   //!< The MPI communicator
     unsigned int m_n_rank;                 //!< Ranks per partition

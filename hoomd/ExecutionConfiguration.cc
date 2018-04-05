@@ -199,9 +199,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
     }
 
 #ifdef ENABLE_MPI
-void ExecutionConfiguration::initializeMPI()
+void ExecutionConfiguration::initializeMPI(MPI_Comm mpi_comm)
     {
-    m_mpi_comm = MPI_COMM_WORLD;
+    m_mpi_comm = mpi_comm;
 
     int num_total_ranks;
     MPI_Comm_size(m_mpi_comm, &num_total_ranks);
@@ -210,7 +210,7 @@ void ExecutionConfiguration::initializeMPI()
 
     if  (m_n_rank != 0)
         {
-        int  rank;
+        int rank;
         MPI_Comm_rank(m_mpi_comm, &rank);
 
         if (num_total_ranks % m_n_rank != 0)
