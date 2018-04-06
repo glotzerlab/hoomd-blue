@@ -229,7 +229,7 @@ bool hoomd_launch_timing=false;
 char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 
 //! Initialize the MPI environment
-void initialize_mpi()
+int initialize_mpi()
     {
     #ifdef ENABLE_MPI_CUDA
     // if we are using an MPI-CUDA implementation, enable this feature
@@ -251,9 +251,9 @@ void initialize_mpi()
         }
 
     // initialize MPI if it has not been initialized by another program
-    int is_initialized = 0;
-    MPI_Initialized(&is_initialized);
-    if (!is_initialized)
+    int external_init = 0;
+    MPI_Initialized(&external_init);
+    if (!external_init)
         {
         MPI_Init(0, (char ***) NULL);
         }
@@ -265,6 +265,8 @@ void initialize_mpi()
         gettimeofday(&t, NULL);
         hoomd_mpi_init_time = t.tv_sec - hoomd_launch_time;
         }
+
+    return external_init;
     }
 
 //! Get the processor name associated to this rank
@@ -307,17 +309,20 @@ std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfigu
     }
 
 //! Create the python module
-/*! each class setup their own python exports in a function export_ClassName
+/*! each class sets up its own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
 PYBIND11_MODULE(_hoomd, m)
     {
     #ifdef ENABLE_MPI
-    // initialize MPI early
-    initialize_mpi();
+    // initialize MPI early, unless already initialized by another program
+    int external_init = initialize_mpi();
 
-    // register clean-up function
-    Py_AtExit(finalize_mpi);
+    // if HOOMD called MPI_Init, it should call MPI_Finalize at exit
+    if (!external_init)
+        {
+        Py_AtExit(finalize_mpi);
+        }
     m.def("get_mpi_proc_name", get_mpi_proc_name);
     #endif
 
