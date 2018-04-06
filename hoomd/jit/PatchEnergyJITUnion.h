@@ -81,7 +81,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             }
 
         //! Get the maximum geometric extent, which is added to the cutoff, per type
-        virtual Scalar getAdditiveCutoff(unsigned int type)
+        virtual inline Scalar getAdditiveCutoff(unsigned int type)
             {
             assert(type <= m_extent_type.size());
             if (m_use_iso_cutoff)
@@ -90,7 +90,14 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                 return 0.0;
                 }
             else
-                return m_extent_type[type];
+                {
+                Scalar extent = m_extent_type[type];
+                // ensure the minimum cutoff distance is the isotropic r_cut
+                if (0.5*extent < m_r_cut)
+                    return std::max((Scalar)0.0,m_r_cut-m_rcut_union);
+                else
+                    return extent;
+                }
             }
 
         //! evaluate the energy of the patch interaction
