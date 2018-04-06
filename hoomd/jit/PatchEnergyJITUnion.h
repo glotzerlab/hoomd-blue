@@ -15,8 +15,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         PatchEnergyJITUnion(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ExecutionConfiguration> exec_conf,
             const std::string& llvm_ir_iso, Scalar r_cut_iso,
             const std::string& llvm_ir_union, Scalar r_cut_union)
-            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso), m_sysdef(sysdef), m_rcut_union(r_cut_union),
-              m_use_iso_cutoff(true)
+            : PatchEnergyJIT(exec_conf, llvm_ir_iso, r_cut_iso), m_sysdef(sysdef), m_rcut_union(r_cut_union)
             {
             // build the JIT.
             m_factory_union = std::shared_ptr<EvalFactory>(new EvalFactory(llvm_ir_union));
@@ -68,36 +67,20 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         //! Get the cut-off for constituent particles
         virtual Scalar getRCut()
             {
-            if (m_use_iso_cutoff)
-                {
-                // return isotropic potential cutoff
-                return m_r_cut;
-                }
-            else
-                {
-                // return cutoff on every constituent particle
-                return m_rcut_union;
-                }
+            // return cutoff for constituent particle potentials
+            return m_rcut_union;
             }
 
         //! Get the maximum geometric extent, which is added to the cutoff, per type
         virtual inline Scalar getAdditiveCutoff(unsigned int type)
             {
             assert(type <= m_extent_type.size());
-            if (m_use_iso_cutoff)
-                {
-                // no additive contribution, everything is taken care of by a single cut-off
-                return 0.0;
-                }
+            Scalar extent = m_extent_type[type];
+            // ensure the minimum cutoff distance is the isotropic r_cut
+            if (extent + m_rcut_union < m_r_cut)
+                return m_r_cut-m_rcut_union;
             else
-                {
-                Scalar extent = m_extent_type[type];
-                // ensure the minimum cutoff distance is the isotropic r_cut
-                if (extent + m_rcut_union < m_r_cut)
-                    return m_r_cut-m_rcut_union;
-                else
-                    return extent;
-                }
+                return extent;
             }
 
         //! evaluate the energy of the patch interaction
@@ -158,7 +141,6 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaulator function, for constituent ptls
         EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module
         Scalar m_rcut_union;                                     //!< Cutoff on constituent particles
-        bool m_use_iso_cutoff;                                   //!< True if the isotropic cutoff is greater than the union cutoffs
     };
 
 //! Exports the PatchEnergyJITUnion class to python

@@ -82,12 +82,6 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     // set the diameter
     m_extent_type[type] = extent_i;
 
-    // determine whether to use a single cutoff
-    Scalar rcut_max(0.0);
-    for (unsigned int i = 0; i < m_sysdef->getParticleData()->getNTypes(); ++i)
-        rcut_max = std::max(rcut_max, m_extent_type[type] + m_rcut_union);
-    m_use_iso_cutoff = rcut_max < m_r_cut;
-
     // build tree and store proxy structure
     hpmc::detail::OBBTree tree;
     tree.buildTree(obbs, N, leaf_capacity, false);
