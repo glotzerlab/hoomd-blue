@@ -313,6 +313,9 @@ private:
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
+
+    //! Tracks whether this ExecutionConfiguration is managed by SSAGES
+    bool m_ssages;
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time

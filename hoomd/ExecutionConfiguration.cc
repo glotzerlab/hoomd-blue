@@ -53,7 +53,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                #endif
                                                bool ssages
                                                )
-    : m_cuda_error_checking(false), msg(_msg)
+    : m_cuda_error_checking(false), msg(_msg), m_ssages(ssages)
     {
     if (!msg)
         msg = std::shared_ptr<Messenger>(new Messenger());
