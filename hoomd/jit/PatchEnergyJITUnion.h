@@ -93,8 +93,8 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                 {
                 Scalar extent = m_extent_type[type];
                 // ensure the minimum cutoff distance is the isotropic r_cut
-                if (0.5*extent < m_r_cut)
-                    return std::max((Scalar)0.0,m_r_cut-m_rcut_union);
+                if (extent + m_rcut_union < m_r_cut)
+                    return m_r_cut-m_rcut_union;
                 else
                     return extent;
                 }
