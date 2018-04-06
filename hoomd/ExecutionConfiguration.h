@@ -79,11 +79,10 @@ struct PYBIND11_EXPORT ExecutionConfiguration
                            bool min_cpu=false,
                            bool ignore_display=false,
                            std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
-                           unsigned int n_ranks = 0,
+                           unsigned int n_ranks = 0
                            #ifdef ENABLE_MPI
-                           MPI_Comm hoomd_world=MPI_COMM_WORLD,
+                           , MPI_Comm hoomd_world=MPI_COMM_WORLD
                            #endif
-                           bool ssages=false
                            );
 
     ~ExecutionConfiguration();
@@ -313,9 +312,6 @@ private:
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
-
-    //! Tracks whether this ExecutionConfiguration is managed by SSAGES
-    bool m_ssages;
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time

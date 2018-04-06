@@ -47,13 +47,12 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool min_cpu,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
-                                               unsigned int n_ranks,
+                                               unsigned int n_ranks
                                                #ifdef ENABLE_MPI
-                                               MPI_Comm hoomd_world,
+                                               , MPI_Comm hoomd_world
                                                #endif
-                                               bool ssages
                                                )
-    : m_cuda_error_checking(false), msg(_msg), m_ssages(ssages)
+    : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
         msg = std::shared_ptr<Messenger>(new Messenger());
