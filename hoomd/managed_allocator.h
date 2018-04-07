@@ -8,6 +8,8 @@
 
 #ifdef ENABLE_CUDA
 #include <cuda_runtime.h>
+
+#include <unistd.h>
 #endif
 
 #include <iostream>
@@ -38,7 +40,16 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (m_use_device)
                 {
-                cudaError_t error = cudaMallocManaged(&result, n*sizeof(T), cudaMemAttachGlobal);
+                int page_size = getpagesize();
+                int allocation_bytes = n*sizeof(T);
+                if (n*sizeof(T) < page_size)
+                    {
+                    // round up to a full OS page to ensure unified memory for this allocation does not interfere
+                    // with other allocations
+                    allocation_bytes = page_size;
+                    }
+
+                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
@@ -67,7 +78,16 @@ class managed_allocator
             #ifdef ENABLE_CUDA
             if (use_device)
                 {
-                cudaError_t error = cudaMallocManaged(&result, (int) (n*sizeof(T)), cudaMemAttachGlobal);
+                int page_size = getpagesize();
+                int allocation_bytes = n*sizeof(T);
+                if (n*sizeof(T) < page_size)
+                    {
+                    // round up to a full OS page to ensure unified memory for this allocation does not interfere
+                    // with other allocations
+                    allocation_bytes = page_size;
+                    }
+
+                cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
                 if (error != cudaSuccess)
                     {
                     std::cerr << cudaGetErrorString(error) << std::endl;
