@@ -25,7 +25,7 @@
 
 #define REGISTER_ALLOCATION(my_exec_conf, my_array) { \
     if (my_exec_conf->getMemoryTracer()) \
-        my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size()); \
+        my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size(), typeid(T).name()); \
     }
 
 template<class T>
