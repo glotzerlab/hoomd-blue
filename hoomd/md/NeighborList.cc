@@ -74,6 +74,15 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     GlobalArray<Scalar> rcut_max(m_pdata->getNTypes(), m_exec_conf);
     m_rcut_max.swap(rcut_max);
 
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_rcut_max.get(), m_rcut_max.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     // allocate the r_listsq array which accelerates CPU calculations
     GlobalArray<Scalar> r_listsq(m_typpair_idx.getNumElements(), exec_conf);
     m_r_listsq.swap(r_listsq);
@@ -108,6 +117,16 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     // allocate overflow flags for the number of neighbors per type
     GlobalArray<unsigned int> conditions(m_pdata->getNTypes(), exec_conf);
     m_conditions.swap(conditions);
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        cudaMemPrefetchAsync(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaCpuDeviceId);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
 
         {
         // initially reset conditions
@@ -200,9 +219,29 @@ void NeighborList::reallocateTypes()
     #endif
 
     m_rcut_max.resize(m_pdata->getNTypes());
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_rcut_max.get(), m_rcut_max.getNumElements()*sizeof(Scalar), cudaMemAdviseSetReadMostly, 0);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
+
     m_r_listsq.resize(m_typpair_idx.getNumElements());
     m_Nmax.resize(m_pdata->getNTypes());
     m_conditions.resize(m_pdata->getNTypes());
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        // store in host memory for faster access from CPU
+        cudaMemAdvise(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId);
+        cudaMemPrefetchAsync(m_conditions.get(), m_conditions.getNumElements()*sizeof(unsigned int), cudaCpuDeviceId);
+        CHECK_CUDA_ERROR();
+        }
+    #endif
 
     m_rcut_signal.emit();
     forceUpdate();
@@ -1553,6 +1592,7 @@ void NeighborList::updateGPUMapping()
 
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
 
@@ -1597,6 +1637,12 @@ void NeighborList::updateGPUMapping()
             unsigned int nelem =  range.second - range.first;
             cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+
+            // pin to that device by prefetching
+            cudaMemPrefetchAsync(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
         }

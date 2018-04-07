@@ -90,6 +90,9 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
     lambda_min = (lambda_min < lambda.z) ? lambda_min : lambda.z;
 
     ArrayHandle<Scalar> d_rcut_max(m_rcut_max, access_location::device, access_mode::read);
+
+    m_exec_conf->beginMultiGPU();
+
     gpu_nlist_needs_update_check_new(m_flags.getDeviceFlags(),
                                      d_last_pos.data,
                                      d_pos.data,
@@ -100,10 +103,13 @@ bool NeighborListGPU::distanceCheck(unsigned int timestep)
                                      m_pdata->getNTypes(),
                                      lambda_min,
                                      lambda,
-                                     ++m_checkn);
+                                     ++m_checkn,
+                                     m_pdata->getGPUPartition());
 
     if(m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_exec_conf->endMultiGPU();
 
     bool result = m_flags.readFlags() == m_checkn;
 
