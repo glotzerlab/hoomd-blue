@@ -42,7 +42,7 @@ class managed_allocator
                 {
                 int page_size = getpagesize();
                 int allocation_bytes = n*sizeof(T);
-                if (n*sizeof(T) < page_size)
+                if ((int)(n*sizeof(T)) < page_size)
                     {
                     // round up to a full OS page to ensure unified memory for this allocation does not interfere
                     // with other allocations
@@ -80,7 +80,7 @@ class managed_allocator
                 {
                 int page_size = getpagesize();
                 int allocation_bytes = n*sizeof(T);
-                if (n*sizeof(T) < page_size)
+                if ((int)(n*sizeof(T)) < page_size)
                     {
                     // round up to a full OS page to ensure unified memory for this allocation does not interfere
                     // with other allocations
