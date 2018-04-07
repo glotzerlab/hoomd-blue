@@ -184,11 +184,12 @@ class SimulationContext(object):
 
         current = self.prev;
 
-def initialize(args=None):
+def initialize(args=None, memory_traceback=False):
     R""" Initialize the execution context
 
     Args:
         args (str): Arguments to parse. When *None*, parse the arguments passed on the command line.
+        memory_traceback (bool): If true, enable memory allocation tracking (*only for debugging/profiling purposes*)
 
     :py:func:`hoomd.context.initialize()` parses the command line arguments given, sets the options and initializes MPI and GPU execution
     (if any). By default, :py:func:`hoomd.context.initialize()` reads arguments given on the command line. Provide a string to :py:func:`hoomd.context.initialize()`
@@ -237,7 +238,10 @@ def initialize(args=None):
     # ensure creation of global bibliography to print HOOMD base citations
     cite._ensure_global_bib()
 
-    _create_exec_conf();
+    exec_conf = _create_exec_conf();
+
+    # set memory tracing option
+    exec_conf.setMemoryTracing(memory_traceback)
 
     current = SimulationContext();
     return current

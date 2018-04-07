@@ -27,6 +27,7 @@
 #endif
 
 #include "Messenger.h"
+#include "MemoryTraceback.h"
 
 /*! \file ExecutionConfiguration.h
     \brief Declares ExecutionConfiguration and related classes
@@ -262,6 +263,21 @@ struct ExecutionConfiguration
         }
     #endif
 
+    //! Set up memory tracing
+    void setMemoryTracing(bool enable)
+        {
+        if (enable)
+            m_memory_traceback = std::shared_ptr<MemoryTraceback>(new MemoryTraceback);
+        else
+            m_memory_traceback = std::shared_ptr<MemoryTraceback>();
+        }
+
+    //! Returns the memory tracer
+    std::shared_ptr<MemoryTraceback> getMemoryTracer() const
+        {
+        return m_memory_traceback;
+        }
+
 private:
 #ifdef ENABLE_CUDA
     //! Initialize the GPU with the given id
@@ -311,6 +327,8 @@ private:
 
     //! Setup and print out stats on the chosen CPUs/GPUs
     void setupStats();
+
+    std::shared_ptr<MemoryTraceback> m_memory_traceback;    //!< Keeps track of allocations
     };
 
 // Macro for easy checking of CUDA errors - enabled all the time

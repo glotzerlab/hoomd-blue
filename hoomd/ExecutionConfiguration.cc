@@ -235,6 +235,10 @@ ExecutionConfiguration::~ExecutionConfiguration()
     // enable Messenger to gracefully finish any MPI-IO
     msg->unsetMPICommunicator();
     #endif
+
+    // output memory trace information
+    if (m_memory_traceback)
+        m_memory_traceback->outputTraces(msg);
     }
 
 #ifdef ENABLE_MPI
@@ -865,7 +869,9 @@ void export_ExecutionConfiguration(py::module& m)
 #ifdef ENABLE_TBB
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
 #endif
-        .def("getNumThreads", &ExecutionConfiguration::getNumThreads);
+        .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
+        .def("setMemoryTracing", &ExecutionConfiguration::setMemoryTracing)
+        .def("getMemoryTracer", &ExecutionConfiguration::getMemoryTracer);
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

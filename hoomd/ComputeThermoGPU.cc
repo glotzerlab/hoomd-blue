@@ -91,7 +91,6 @@ void ComputeThermoGPU::computeProperties()
                 if (!dev_prop.concurrentManagedAccess)
                     continue;
 
-                // reset previous setting
                 cudaMemAdvise(m_scratch.get(), sizeof(Scalar4)*m_scratch.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_scratch_pressure_tensor.get(), sizeof(Scalar)*m_scratch_pressure_tensor.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
                 cudaMemAdvise(m_scratch_rot.get(), sizeof(Scalar)*m_scratch_rot.getNumElements(), cudaMemAdviseSetAccessedBy, gpu_map[idev]);

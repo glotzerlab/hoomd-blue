@@ -41,6 +41,7 @@ set(_hoomd_sources Analyzer.cc
                    LogMatrix.cc
                    LogHDF5.cc
                    Messenger.cc
+                   MemoryTraceback.cc
                    ParticleData.cc
                    ParticleGroup.cc
                    Profiler.cc
@@ -122,6 +123,7 @@ set(_hoomd_headers
     LogHDF5.h
     managed_allocator.h
     ManagedArray.h
+    MemoryTraceback.h
     Messenger.h
     ParticleData.cuh
     ParticleData.h

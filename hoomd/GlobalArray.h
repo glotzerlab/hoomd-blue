@@ -23,6 +23,11 @@
         } \
     }
 
+#define REGISTER_ALLOCATION(my_exec_conf, my_array) { \
+    if (my_exec_conf->getMemoryTracer()) \
+        my_exec_conf->getMemoryTracer()->registerAllocation(my_array.get(), sizeof(T)*my_array.size()); \
+    }
+
 template<class T>
 class GlobalArray : public GPUArray<T>
     {
@@ -41,6 +46,8 @@ class GlobalArray : public GPUArray<T>
             {
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
             std::swap(m_array, array);
+
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
         //! Copy constructor
@@ -63,6 +70,7 @@ class GlobalArray : public GPUArray<T>
             #endif
 
             m_array = from.m_array;
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
         //! = operator
@@ -90,6 +98,7 @@ class GlobalArray : public GPUArray<T>
             #endif
 
             m_array = rhs.m_array;
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
         //! Move constructor, provided for convenience, so std::swap can be used
@@ -141,6 +150,8 @@ class GlobalArray : public GPUArray<T>
             unsigned int num_elements = m_pitch * m_height;
             ManagedArray<T> array(num_elements, exec_conf->isCUDAEnabled());
             std::swap(m_array, array);
+
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
 
@@ -231,6 +242,8 @@ class GlobalArray : public GPUArray<T>
             std::swap(m_array, new_array);
             m_pitch = m_array.size();
             m_height = 1;
+
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
         //! Resize a 2D GlobalArray
@@ -270,6 +283,7 @@ class GlobalArray : public GPUArray<T>
             m_pitch  = pitch;
 
             std::swap(m_array,new_array);
+            REGISTER_ALLOCATION(m_exec_conf, m_array);
             }
 
     protected:
