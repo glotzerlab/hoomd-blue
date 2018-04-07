@@ -207,7 +207,7 @@ cudaError_t gpu_compute_cell_list(unsigned int *d_cell_size,
         unsigned int nwork = range.second - range.first;
 
         // process ghosts in final range
-        if (idev == gpu_partition.getNumActiveGPUs()-1)
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
             nwork += n_ghost;
 
         unsigned int run_block_size = min(block_size, max_block_size);

@@ -57,7 +57,7 @@ class GPUPartition
 
             return m_gpu_range[igpu];
             }
- 
+
         //! Get the index range for a given GPU
         /*! \param igpu The logical ID of the GPU
          */
@@ -73,6 +73,13 @@ class GPUPartition
 
             return m_gpu_range[igpu];
             };
+
+        //! Comparison operator
+        bool operator==(const GPUPartition& other)
+            {
+            return m_gpu_map == other.m_gpu_map
+                && m_gpu_range == other.m_gpu_range;
+            }
 
     private:
         std::vector<unsigned int> m_gpu_map;

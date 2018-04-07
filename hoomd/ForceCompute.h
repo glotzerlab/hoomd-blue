@@ -193,6 +193,10 @@ class ForceCompute : public Compute
             \param timestep Current time step
         */
         virtual void computeForces(unsigned int timestep){}
+
+        #ifdef ENABLE_CUDA
+        GPUPartition m_last_gpu_partition;
+        #endif
     };
 
 //! Exports the ForceCompute class to python

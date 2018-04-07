@@ -575,6 +575,8 @@ class NeighborList : public Compute
 
         #ifdef ENABLE_CUDA
         void updateGPUMapping();
+
+        GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };
 

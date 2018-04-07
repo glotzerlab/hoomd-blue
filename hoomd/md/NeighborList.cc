@@ -162,6 +162,11 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
     m_update_periods.resize(100);
     for (unsigned int i = 0; i < m_update_periods.size(); i++)
         m_update_periods[i] = 0;
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        m_last_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+    #endif
     }
 
 void NeighborList::reallocate()
@@ -1500,13 +1505,15 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 //! Update GPU memory locality
 void NeighborList::updateGPUMapping()
     {
+    // only update if something changed
+    if (m_last_gpu_partition == m_pdata->getGPUPartition())
+        return;
+
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
         {
         auto gpu_map = m_exec_conf->getGPUIds();
 
-        // split preferred location of neighbor list across GPUs
-        const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
-
+        // reset old usage hints
             {
             ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
 
@@ -1517,8 +1524,52 @@ void NeighborList::updateGPUMapping()
                 if (!dev_prop.concurrentManagedAccess)
                     continue;
 
-                // reset previous hints
-                cudaMemAdvise(m_nlist.get(), sizeof(unsigned int)*m_nlist.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                auto range = m_last_gpu_partition.getRange(idev);
+
+                unsigned int start = h_head_list.data[range.first];
+                unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
+
+                if (end - start > 0)
+                    {
+                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    }
+                }
+            }
+        CHECK_CUDA_ERROR();
+
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+            if (!dev_prop.concurrentManagedAccess)
+                continue;
+
+            // set preferred location
+            auto range = m_last_gpu_partition.getRange(idev);
+            unsigned int nelem =  range.second - range.first;
+
+            if (!nelem)
+                continue;
+
+            cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+            cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+
+        // split preferred location of neighbor list across GPUs
+        const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
+
+        m_last_gpu_partition = gpu_partition;
+
+            {
+            ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
+
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+                if (!dev_prop.concurrentManagedAccess)
+                    continue;
 
                 auto range = gpu_partition.getRange(idev);
 
@@ -1540,10 +1591,6 @@ void NeighborList::updateGPUMapping()
 
             if (!dev_prop.concurrentManagedAccess)
                 continue;
-
-            // reset previous hints
-            cudaMemAdvise(m_head_list.get(), sizeof(unsigned int)*m_head_list.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_n_neigh.get(), sizeof(unsigned int)*m_n_neigh.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
 
             // set preferred location
             auto range = gpu_partition.getRange(idev);

@@ -97,7 +97,10 @@ ParticleData::ParticleData(unsigned int N, const BoxDim &global_box, unsigned in
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+        m_last_gpu_partition = m_gpu_partition;
+        }
     #endif
 
     // initialize rtag array
@@ -168,7 +171,10 @@ ParticleData::ParticleData(const SnapshotParticleData<Real>& snapshot,
 
     #ifdef ENABLE_CUDA
     if (m_exec_conf->isCUDAEnabled())
+        {
         m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+        m_last_gpu_partition = m_gpu_partition;
+        }
     #endif
 
     // initialize rtag array
@@ -3012,34 +3018,85 @@ void ParticleData::updateGPUPartition()
         // update the partition information
         m_gpu_partition.setN(getN());
 
-        if (m_exec_conf->getNumActiveGPUs() == 1)
+        // only call CUDA API when necessary
+        if (m_gpu_partition == m_last_gpu_partition)
             return;
 
         auto gpu_map = m_exec_conf->getGPUIds();
 
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+        if (m_exec_conf->getNumActiveGPUs() > 1)
             {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
+            // unset previous hints
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
 
-            // reset previous setting
-            cudaMemAdvise(m_pos.get(), sizeof(Scalar4)*m_pos.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_vel.get(), sizeof(Scalar4)*m_vel.getNumElements(),cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_accel.get(), sizeof(Scalar3)*m_accel.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_charge.get(), sizeof(Scalar)*m_charge.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_diameter.get(), sizeof(Scalar)*m_diameter.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_image.get(), sizeof(int3)*m_image.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_tag.get(), sizeof(unsigned int)*m_tag.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_body.get(), sizeof(unsigned int)*m_body.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_orientation.get(), sizeof(Scalar4)*m_orientation.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_angmom.get(), sizeof(Scalar4)*m_angmom.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_inertia.get(), sizeof(Scalar3)*m_inertia.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_net_force.get(), sizeof(Scalar4)*m_net_force.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_net_virial.get(), sizeof(Scalar)*m_net_virial.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_net_torque.get(), sizeof(Scalar4)*m_net_torque.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                if (!dev_prop.concurrentManagedAccess)
+                    continue;
+
+                auto range = m_last_gpu_partition.getRange(idev);
+                unsigned int nelem =  range.second - range.first;
+
+                // skip if no hint set
+                if (!nelem)
+                    continue;
+
+                cudaMemAdvise(m_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_vel.get()+range.first, sizeof(Scalar4)*nelem,cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_accel.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_charge.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_diameter.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_image.get()+range.first, sizeof(int3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_tag.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_body.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_orientation.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_angmom.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_inertia.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_net_force.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                for (unsigned int i = 0; i < 6; ++i)
+                    cudaMemAdvise(m_net_virial.get()+i*m_net_virial.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                cudaMemAdvise(m_net_torque.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                }
             CHECK_CUDA_ERROR();
+
+            if (! m_pos_alt.isNull())
+                {
+                for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                    {
+                    cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+                    if (!dev_prop.concurrentManagedAccess)
+                        continue;
+
+                    auto range = m_last_gpu_partition.getRange(idev);
+                    unsigned int nelem =  range.second - range.first;
+
+                    if (!nelem)
+                        continue;
+
+                    cudaMemAdvise(m_pos_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_vel_alt.get()+range.first, sizeof(Scalar4)*nelem,cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_accel_alt.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_charge_alt.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_diameter_alt.get()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_image_alt.get()+range.first, sizeof(int3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_tag_alt.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_body_alt.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_orientation_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_angmom_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_inertia_alt.get()+range.first, sizeof(Scalar3)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_net_force_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    for (unsigned int i = 0; i < 6; ++i)
+                        cudaMemAdvise(m_net_virial_alt.get()+i*m_net_virial_alt.getPitch()+range.first, sizeof(Scalar)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    cudaMemAdvise(m_net_torque_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
+                    }
+                }
             }
+
+        m_last_gpu_partition = m_gpu_partition;
+
+        if (m_exec_conf->getNumActiveGPUs() == 1)
+            return;
 
         // split preferred location of particle data across GPUs
         for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
@@ -3051,6 +3108,9 @@ void ParticleData::updateGPUPartition()
 
             auto range = m_gpu_partition.getRange(idev);
             unsigned int nelem =  range.second - range.first;
+
+            if (!nelem)
+                continue;
 
             cudaMemAdvise(m_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
             cudaMemAdvise(m_vel.get()+range.first, sizeof(Scalar4)*nelem,cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
@@ -3093,35 +3153,15 @@ void ParticleData::updateGPUPartition()
             for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
                 {
                 cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-                if (!dev_prop.concurrentManagedAccess)
-                    continue;
-
-                cudaMemAdvise(m_pos_alt.get(), sizeof(Scalar4)*m_pos_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_vel_alt.get(), sizeof(Scalar4)*m_vel_alt.getNumElements(),cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_accel_alt.get(), sizeof(Scalar3)*m_accel_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_charge_alt.get(), sizeof(Scalar)*m_charge_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_diameter_alt.get(), sizeof(Scalar)*m_diameter_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_image_alt.get(), sizeof(int3)*m_image_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_tag_alt.get(), sizeof(unsigned int)*m_tag_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_body_alt.get(), sizeof(unsigned int)*m_body_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_orientation_alt.get(), sizeof(Scalar4)*m_orientation_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_angmom_alt.get(), sizeof(Scalar4)*m_angmom_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_inertia_alt.get(), sizeof(Scalar3)*m_inertia_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_net_force_alt.get(), sizeof(Scalar4)*m_net_force_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_net_virial_alt.get(), sizeof(Scalar)*m_net_virial_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                cudaMemAdvise(m_net_torque_alt.get(), sizeof(Scalar4)*m_net_torque_alt.getNumElements(), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                CHECK_CUDA_ERROR();
-                }
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
 
                 if (!dev_prop.concurrentManagedAccess)
                     continue;
 
                 auto range = m_gpu_partition.getRange(idev);
                 unsigned int nelem =  range.second - range.first;
+
+                if (!nelem)
+                    continue;
 
                 cudaMemAdvise(m_pos_alt.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 cudaMemAdvise(m_vel_alt.get()+range.first, sizeof(Scalar4)*nelem,cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
