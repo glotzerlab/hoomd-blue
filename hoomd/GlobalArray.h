@@ -99,6 +99,8 @@ class GlobalArray : public GPUArray<T>
 
             m_array = rhs.m_array;
             REGISTER_ALLOCATION(m_exec_conf, m_array);
+
+            return *this;
             }
 
         //! Move constructor, provided for convenience, so std::swap can be used
