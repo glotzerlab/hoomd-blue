@@ -49,9 +49,13 @@ ForceCompositeGPU::ForceCompositeGPU(std::shared_ptr<SystemDefinition> sysdef)
 
     m_tuner_update.reset(new Autotuner(valid_params_update, 5, 100000, "update_composite", this->m_exec_conf));
 
-    GPUFlags<uint2> flag(m_exec_conf);
-    m_flag.swap(flag);
-    m_flag.resetFlags(make_uint2(0,0));
+    GlobalArray<uint2> flag(1, m_exec_conf);
+    std::swap(m_flag, flag);
+
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::overwrite);
+        *h_flag.data = make_uint2(0,0);
+        }
     }
 
 ForceCompositeGPU::~ForceCompositeGPU()
@@ -95,11 +99,6 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
-    m_tuner_force->begin();
-    unsigned int param = m_tuner_force->getParam();
-    unsigned int block_size = param % 10000;
-    unsigned int n_bodies_per_block = param/10000;
-
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
     if (flags[pdata_flag::isotropic_virial] || flags[pdata_flag::pressure_tensor])
@@ -107,34 +106,49 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         compute_virial = true;
         }
 
-    // launch GPU kernel
-    gpu_rigid_force(d_force.data,
-                    d_torque.data,
-                    d_molecule_length.data,
-                    d_molecule_list.data,
-                    molecule_indexer,
-                    d_postype.data,
-                    d_orientation.data,
-                    m_body_idx,
-                    d_body_pos.data,
-                    d_body_orientation.data,
-                    d_body_len.data,
-                    d_body.data,
-                    d_tag.data,
-                    m_flag.getDeviceFlags(),
-                    d_net_force.data,
-                    d_net_torque.data,
-                    nmol,
-                    m_pdata->getN(),
-                    n_bodies_per_block,
-                    block_size,
-                    m_exec_conf->dev_prop,
-                    !compute_virial);
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        {
+        ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
-    uint2 flag = m_flag.readFlags();
+        m_tuner_force->begin();
+        unsigned int param = m_tuner_force->getParam();
+        unsigned int block_size = param % 10000;
+        unsigned int n_bodies_per_block = param/10000;
+
+        // launch GPU kernel
+        gpu_rigid_force(d_force.data,
+                        d_torque.data,
+                        d_molecule_length.data,
+                        d_molecule_list.data,
+                        molecule_indexer,
+                        d_postype.data,
+                        d_orientation.data,
+                        m_body_idx,
+                        d_body_pos.data,
+                        d_body_orientation.data,
+                        d_body_len.data,
+                        d_body.data,
+                        d_tag.data,
+                        d_flag.data,
+                        d_net_force.data,
+                        d_net_torque.data,
+                        nmol,
+                        m_pdata->getN(),
+                        n_bodies_per_block,
+                        block_size,
+                        m_exec_conf->dev_prop,
+                        !compute_virial);
+
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
+        }
+
+    uint2 flag;
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::read);
+        flag = *h_flag.data;
+        }
+ 
     if (flag.x)
         {
         m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.x-1 << " incomplete"
@@ -147,9 +161,9 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     if (compute_virial)
         {
         m_tuner_virial->begin();
-        param = m_tuner_virial->getParam();
-        block_size = param % 10000;
-        n_bodies_per_block = param/10000;
+        unsigned int param = m_tuner_virial->getParam();
+        unsigned int block_size = param % 10000;
+        unsigned int n_bodies_per_block = param/10000;
 
         // launch GPU kernel
         gpu_rigid_virial(d_virial.data,
@@ -210,39 +224,47 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
-    m_exec_conf->beginMultiGPU();
+        {
+        ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
-    m_tuner_update->begin();
-    unsigned int block_size = m_tuner_update->getParam();
+        m_exec_conf->beginMultiGPU();
 
-    gpu_update_composite(m_pdata->getN(),
-        m_pdata->getNGhosts(),
-        d_body.data,
-        d_rtag.data,
-        d_postype.data,
-        d_orientation.data,
-        m_body_idx,
-        d_body_pos.data,
-        d_body_orientation.data,
-        d_body_len.data,
-        d_molecule_order.data,
-        d_molecule_len.data,
-        d_molecule_idx.data,
-        d_image.data,
-        m_pdata->getBox(),
-        m_pdata->getGlobalBox(),
-        block_size,
-        m_flag.getDeviceFlags(),
-        m_pdata->getGPUPartition());
+        m_tuner_update->begin();
+        unsigned int block_size = m_tuner_update->getParam();
 
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
+        gpu_update_composite(m_pdata->getN(),
+            m_pdata->getNGhosts(),
+            d_body.data,
+            d_rtag.data,
+            d_postype.data,
+            d_orientation.data,
+            m_body_idx,
+            d_body_pos.data,
+            d_body_orientation.data,
+            d_body_len.data,
+            d_molecule_order.data,
+            d_molecule_len.data,
+            d_molecule_idx.data,
+            d_image.data,
+            m_pdata->getBox(),
+            m_pdata->getGlobalBox(),
+            block_size,
+            d_flag.data,
+            m_pdata->getGPUPartition());
 
-    m_tuner_update->end();
+        if (m_exec_conf->isCUDAErrorCheckingEnabled())
+            CHECK_CUDA_ERROR();
 
-    m_exec_conf->endMultiGPU();
+        m_tuner_update->end();
 
-    uint2 flag = m_flag.readFlags();
+        m_exec_conf->endMultiGPU();
+        }
+
+    uint2 flag;
+        {
+        ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::read);
+        flag = *h_flag.data;
+        }
 
     if (flag.x)
         {

@@ -58,6 +58,9 @@ void CellListGPU::computeCellList()
     ArrayHandle<Scalar4> d_cell_orientation(m_orientation, access_location::device, access_mode::overwrite);
     ArrayHandle<unsigned int> d_cell_idx(m_idx, access_location::device, access_mode::overwrite);
 
+    // error conditions
+    ArrayHandle<uint3> d_conditions(m_conditions, access_location::device, access_mode::overwrite);
+
     // reset cell list contents
     cudaMemsetAsync(d_cell_size.data, 0, sizeof(unsigned int)*m_cell_indexer.getNumElements(),0);
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -72,7 +75,7 @@ void CellListGPU::computeCellList()
                           d_tdb.data,
                           d_cell_orientation.data,
                           d_cell_idx.data,
-                          m_conditions.getDeviceFlags(),
+                          d_conditions.data,
                           d_pos.data,
                           d_orientation.data,
                           d_charge.data,

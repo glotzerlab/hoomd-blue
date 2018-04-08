@@ -6,7 +6,6 @@
 
 #include "HOOMDMath.h"
 #include "GlobalArray.h"
-#include "GPUFlags.h"
 
 #include "Index1D.h"
 #include "Compute.h"
@@ -353,7 +352,7 @@ class CellList : public Compute
         GlobalArray<Scalar4> m_tdb;             //!< Cell list with type,diameter,body
         GlobalArray<Scalar4> m_orientation;     //!< Cell list with orientation
         GlobalArray<unsigned int> m_idx;        //!< Cell list with index
-        GPUFlags<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
+        GlobalArray<uint3> m_conditions;        //!< Condition flags set during the computeCellList() call
 
         bool m_sort_cell_list;               //!< If true, sort cell list
         bool m_compute_adj_list;            //!< If true, compute the cell adjacency lists

@@ -34,9 +34,14 @@ CellList::CellList(std::shared_ptr<SystemDefinition> sysdef)
     m_box_changed = false;
     m_multiple = 1;
 
-    GPUFlags<uint3> conditions(exec_conf);
-    m_conditions.swap(conditions);
-    resetConditions();
+    GlobalArray<uint3> conditions(1, exec_conf);
+    std::swap(m_conditions, conditions);
+
+        {
+        // reset conditions
+        ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+        *h_conditions.data = make_uint3(0,0,0);
+        }
 
     m_actual_width = make_scalar3(0.0,0.0,0.0);
     m_ghost_width = make_scalar3(0.0,0.0,0.0);
@@ -593,8 +598,11 @@ void CellList::computeCellList()
         h_cell_size.data[bin]++;
         }
 
-    // write out conditions
-    m_conditions.resetFlags(conditions);
+        {
+        // write out conditions
+        ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+        *h_conditions.data = conditions;
+        }
 
     if (m_prof)
         m_prof->pop();
@@ -650,12 +658,15 @@ bool CellList::checkConditions()
 
 void CellList::resetConditions()
     {
-    m_conditions.resetFlags(make_uint3(0,0,0));
+    // reset conditions
+    ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::overwrite);
+    *h_conditions.data = make_uint3(0,0,0);
     }
 
 uint3 CellList::readConditions()
     {
-    return m_conditions.readFlags();
+    ArrayHandle<uint3> h_conditions(m_conditions, access_location::host, access_mode::read);
+    return *h_conditions.data;
     }
 
 /*! Generic statistics that apply to any cell list, Derived classes should
