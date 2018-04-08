@@ -3,6 +3,7 @@
 
 
 #include "hoomd/HOOMDMath.h"
+#include "hoomd/GPUPartition.cuh"
 
 // Maintainer: jglaser
 
@@ -72,4 +73,5 @@ void gpu_update_composite(unsigned int N,
     const BoxDim box,
     const BoxDim global_box,
     unsigned int block_size,
-    uint2 *d_flag);
+    uint2 *d_flag,
+    const GPUPartition &gpu_partition);

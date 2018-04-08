@@ -213,6 +213,8 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
 
+    m_exec_conf->beginMultiGPU();
+
     gpu_update_composite(m_pdata->getN(),
         m_pdata->getNGhosts(),
         d_body.data,
@@ -230,10 +232,13 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_pdata->getBox(),
         m_pdata->getGlobalBox(),
         block_size,
-        m_flag.getDeviceFlags());
+        m_flag.getDeviceFlags(),
+        m_pdata->getGPUPartition());
 
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
+
+    m_exec_conf->endMultiGPU();
 
     m_tuner_update->end();
 

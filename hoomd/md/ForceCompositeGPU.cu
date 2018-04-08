@@ -6,6 +6,8 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 
+#include "ForceCompositeGPU.cuh"
+
 // Maintainer: jglaser
 
 /*! \file ForceComposite.cu
@@ -582,6 +584,8 @@ cudaError_t gpu_rigid_virial(Scalar* d_virial,
 
 
 __global__ void gpu_update_composite_kernel(unsigned int N,
+    unsigned int nwork,
+    unsigned int offset,
     unsigned int n_ghost,
     const unsigned int *d_body,
     const unsigned int *d_rtag,
@@ -602,7 +606,10 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (idx >= N+n_ghost) return;
+    if (idx >= nwork)
+        return;
+    
+    idx += offset;
 
     unsigned int central_tag = d_body[idx];
 
@@ -689,7 +696,8 @@ void gpu_update_composite(unsigned int N,
     const BoxDim box,
     const BoxDim global_box,
     unsigned int block_size,
-    uint2 *d_flag)
+    uint2 *d_flag,
+    const GPUPartition &gpu_partition)
     {
     unsigned int run_block_size = block_size;
 
@@ -706,22 +714,36 @@ void gpu_update_composite(unsigned int N,
         run_block_size = max_block_size;
         }
 
-    unsigned int n_blocks = (N+n_ghost)/run_block_size + 1;
-    gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
-        n_ghost,
-        d_body,
-        d_rtag,
-        d_postype,
-        d_orientation,
-        body_indexer,
-        d_body_pos,
-        d_body_orientation,
-        d_body_len,
-        d_molecule_order,
-        d_molecule_len,
-        d_molecule_idx,
-        d_image,
-        box,
-        global_box,
-        d_flag);
+    // iterate over active GPUs in reverse, to end up on first GPU when returning from this function 
+    for (int idev = gpu_partition.getNumActiveGPUs() - 1; idev >= 0; --idev) 
+        { 
+        auto range = gpu_partition.getRangeAndSetGPU(idev);
+
+        unsigned int nwork = range.second - range.first;
+
+        // process ghosts in final range
+        if (idev == (int)gpu_partition.getNumActiveGPUs()-1)
+            nwork += n_ghost;
+
+        unsigned int n_blocks = nwork/run_block_size + 1;
+        gpu_update_composite_kernel<<<n_blocks,run_block_size>>>(N,
+            nwork,
+            range.first,
+            n_ghost,
+            d_body,
+            d_rtag,
+            d_postype,
+            d_orientation,
+            body_indexer,
+            d_body_pos,
+            d_body_orientation,
+            d_body_len,
+            d_molecule_order,
+            d_molecule_len,
+            d_molecule_idx,
+            d_image,
+            box,
+            global_box,
+            d_flag);
+        }
     }
