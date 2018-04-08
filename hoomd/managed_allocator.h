@@ -42,11 +42,11 @@ class managed_allocator
                 {
                 int page_size = getpagesize();
                 int allocation_bytes = n*sizeof(T);
-                if ((int)(n*sizeof(T)) < page_size)
+                if ((int)(n*sizeof(T)) % page_size)
                     {
                     // round up to a full OS page to ensure unified memory for this allocation does not interfere
                     // with other allocations
-                    allocation_bytes = page_size;
+                    allocation_bytes = ((n*sizeof(T))/page_size + 1)*page_size;
                     }
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
@@ -84,7 +84,7 @@ class managed_allocator
                     {
                     // round up to a full OS page to ensure unified memory for this allocation does not interfere
                     // with other allocations
-                    allocation_bytes = page_size;
+                    allocation_bytes = ((n*sizeof(T))/page_size + 1)*page_size;
                     }
 
                 cudaError_t error = cudaMallocManaged(&result, allocation_bytes, cudaMemAttachGlobal);
