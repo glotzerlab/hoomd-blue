@@ -210,10 +210,10 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
 
+    m_exec_conf->beginMultiGPU();
+
     m_tuner_update->begin();
     unsigned int block_size = m_tuner_update->getParam();
-
-    m_exec_conf->beginMultiGPU();
 
     gpu_update_composite(m_pdata->getN(),
         m_pdata->getNGhosts(),
@@ -238,9 +238,9 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 
-    m_exec_conf->endMultiGPU();
-
     m_tuner_update->end();
+
+    m_exec_conf->endMultiGPU();
 
     uint2 flag = m_flag.readFlags();
 
