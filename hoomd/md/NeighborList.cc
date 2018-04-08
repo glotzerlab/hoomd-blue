@@ -169,11 +169,6 @@ NeighborList::NeighborList(std::shared_ptr<SystemDefinition> sysdef, Scalar _r_c
 
     m_pdata->getGlobalParticleNumberChangeSignal().connect<NeighborList, &NeighborList::slotGlobalParticleNumberChange>(this);
 
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        m_pdata->getParticleSortSignal().connect<NeighborList, &NeighborList::updateGPUMapping>(this);
-    #endif
-
     // connect locally to the rcut changing signal
     getRCutChangeSignal().connect<NeighborList, &NeighborList::slotRCutChange>(this);
 
@@ -264,11 +259,6 @@ NeighborList::~NeighborList()
 #endif
 
     m_pdata->getNumTypesChangeSignal().disconnect<NeighborList, &NeighborList::reallocateTypes>(this);
-
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        m_pdata->getParticleSortSignal().disconnect<NeighborList, &NeighborList::updateGPUMapping>(this);
-    #endif
 
     getRCutChangeSignal().disconnect<NeighborList, &NeighborList::slotRCutChange>(this);
     }
