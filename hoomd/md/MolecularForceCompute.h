@@ -78,7 +78,7 @@ class MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule list
-        const GPUVector<unsigned int>& getMoleculeList()
+        const GlobalVector<unsigned int>& getMoleculeList()
             {
             checkParticlesSorted();
 
@@ -86,7 +86,7 @@ class MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule lengths
-        const GPUVector<unsigned int>& getMoleculeLengths()
+        const GlobalVector<unsigned int>& getMoleculeLengths()
             {
             checkParticlesSorted();
 
@@ -94,7 +94,7 @@ class MolecularForceCompute : public ForceConstraint
             }
 
         //! Return molecule order
-        const GPUVector<unsigned int>& getMoleculeOrder()
+        const GlobalVector<unsigned int>& getMoleculeOrder()
             {
             checkParticlesSorted();
 
@@ -102,7 +102,7 @@ class MolecularForceCompute : public ForceConstraint
             }
 
         //! Return reverse lookup array
-        const GPUVector<unsigned int>& getMoleculeIndex()
+        const GlobalVector<unsigned int>& getMoleculeIndex()
             {
             checkParticlesSorted();
 
@@ -127,14 +127,14 @@ class MolecularForceCompute : public ForceConstraint
         #endif
 
     protected:
-        GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
+        GlobalVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
     private:
-        GPUVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
-        GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
-        GPUVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
-        GPUVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
+        GlobalVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
+        GlobalVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
+        GlobalVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
+        GlobalVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
 
         #ifdef ENABLE_CUDA
         std::unique_ptr<Autotuner> m_tuner_fill;    //!< Autotuner for block size for filling the molecule table

@@ -30,16 +30,16 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     // connect to box change signal
     m_pdata->getCompositeParticlesSignal().connect<ForceComposite, &ForceComposite::getMaxBodyDiameter>(this);
 
-    GPUArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
+    GlobalArray<unsigned int> body_types(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_types.swap(body_types);
 
-    GPUArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
+    GlobalArray<Scalar3> body_pos(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_pos.swap(body_pos);
 
-    GPUArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
+    GlobalArray<Scalar4> body_orientation(m_pdata->getNTypes(), 1, m_exec_conf);
     m_body_orientation.swap(body_orientation);
 
-    GPUArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
+    GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
     m_body_len.swap(body_len);
 
     m_body_charge.resize(m_pdata->getNTypes());
@@ -165,7 +165,7 @@ void ForceComposite::setParam(unsigned int body_typeid,
             m_body_charge[body_typeid].resize(type.size());
             m_body_diameter[body_typeid].resize(type.size());
 
-            // store body data in GPUArray
+            // store body data in GlobalArray
             for (unsigned int i = 0; i < type.size(); ++i)
                 {
                 h_body_type.data[m_body_idx(body_typeid,i)] = type[i];
@@ -664,7 +664,7 @@ void ForceComposite::validateRigidBodies(bool create)
         // resize GPU table
         m_molecule_tag.resize(molecule_tag.size());
             {
-            // store global molecule information in GPUArray
+            // store global molecule information in GlobalArray
             ArrayHandle<unsigned int> h_molecule_tag(m_molecule_tag, access_location::host, access_mode::overwrite);
             std::copy(molecule_tag.begin(), molecule_tag.end(), h_molecule_tag.data);
             }

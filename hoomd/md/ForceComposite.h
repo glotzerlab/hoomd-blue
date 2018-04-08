@@ -75,10 +75,10 @@ class ForceComposite : public MolecularForceCompute
         bool m_bodies_changed;          //!< True if constituent particles have changed
         bool m_ptls_added_removed;      //!< True if particles have been added or removed
 
-        GPUArray<unsigned int> m_body_types;    //!< Constituent ptl types per type id (2D)
-        GPUArray<Scalar3> m_body_pos;           //!< Constituent ptl offsets per type id (2D)
-        GPUArray<Scalar4> m_body_orientation;   //!< Constituent ptl orientations per type id (2D)
-        GPUArray<unsigned int> m_body_len;      //!< Length of body per type id
+        GlobalArray<unsigned int> m_body_types;    //!< Constituent ptl types per type id (2D)
+        GlobalArray<Scalar3> m_body_pos;           //!< Constituent ptl offsets per type id (2D)
+        GlobalArray<Scalar4> m_body_orientation;   //!< Constituent ptl orientations per type id (2D)
+        GlobalArray<unsigned int> m_body_len;      //!< Length of body per type id
 
         std::vector<std::vector<Scalar> > m_body_charge;      //!< Constituent ptl charges
         std::vector<std::vector<Scalar> > m_body_diameter;    //!< Constituent ptl diameters
