@@ -103,14 +103,59 @@ struct pair_args_t
     };
 
 #ifdef NVCC
+
+#if (__CUDA_ARCH__ >= 300)
+// need this wrapper here for CUDA toolkit versions (<6.5) which do not provide a
+// double specialization
+__device__ inline
+double __my_shfl_down(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl_down(a.x, srcLane, width);
+    a.y = __shfl_down(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
+__device__ inline
+float __my_shfl_down(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl_down(var, srcLane, width);
+    }
+#endif
+
 //! CTA reduce, returns result in first thread
 template<typename T>
-__device__ static T warp_reduce(unsigned int NT, T x)
+__device__ static T warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
     {
-    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
-        x += __shfl_down_sync(x, dest_count, NT);
+    #if (__CUDA_ARCH__ < 300)
+    shared[tid] = x;
+    __syncthreads();
+    #endif
 
+    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
+        {
+        #if (__CUDA_ARCH__ < 300)
+        if (tid < dest_count)
+            {
+            shared[tid] += shared[dest_count + tid];
+            }
+        __syncthreads();
+        #else
+        x += __my_shfl_down(x, dest_count, NT);
+        #endif
+        }
+
+    #if (__CUDA_ARCH__ < 300)
+    T total;
+    if (tid == 0)
+        {
+        total = shared[0];
+        }
+    __syncthreads();
+    return total;
+    #else
     return x;
+    #endif
     }
 
 //! Texture for reading particle positions
@@ -395,11 +440,19 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         force.w *= Scalar(0.5);
         }
 
+    // we need to access a separate portion of shared memory to avoid race conditions
+    const unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements();
+
+    // need to declare as volatile, because we are using warp-synchronous programming
+    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
+
+    unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
+
     // reduce force over threads in cta
-    force.x = warp_reduce(tpp, force.x);
-    force.y = warp_reduce(tpp, force.y);
-    force.z = warp_reduce(tpp, force.z);
-    force.w = warp_reduce(tpp, force.w);
+    force.x = warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
+    force.y = warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
+    force.z = warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
+    force.w = warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     if (active && threadIdx.x % tpp == 0)
@@ -407,12 +460,12 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
     if (compute_virial)
         {
-        virialxx = warp_reduce(tpp, virialxx);
-        virialxy = warp_reduce(tpp, virialxy);
-        virialxz = warp_reduce(tpp, virialxz);
-        virialyy = warp_reduce(tpp, virialyy);
-        virialyz = warp_reduce(tpp, virialyz);
-        virialzz = warp_reduce(tpp, virialzz);
+        virialxx = warp_reduce(tpp, threadIdx.x % tpp, virialxx, &sh[cta_offs]);
+        virialxy = warp_reduce(tpp, threadIdx.x % tpp, virialxy, &sh[cta_offs]);
+        virialxz = warp_reduce(tpp, threadIdx.x % tpp, virialxz, &sh[cta_offs]);
+        virialyy = warp_reduce(tpp, threadIdx.x % tpp, virialyy, &sh[cta_offs]);
+        virialyz = warp_reduce(tpp, threadIdx.x % tpp, virialyz, &sh[cta_offs]);
+        virialzz = warp_reduce(tpp, threadIdx.x % tpp, virialzz, &sh[cta_offs]);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x %tpp == 0)
@@ -513,6 +566,11 @@ inline void launch_compute_pair_force_kernel(const pair_args_t& pair_args,
         {
         grid.y = grid.x/65535 + 1;
         grid.x = 65535;
+        }
+
+    if (pair_args.compute_capability < 30)
+        {
+        shared_bytes += sizeof(Scalar)*block_size;
         }
 
     unsigned int offset = range.first;

@@ -101,7 +101,7 @@ struct a_pair_args_t
 #ifdef NVCC
 //! CTA reduce, returns result in first thread
 template<typename T>
-__device__ static T aniso_warp_reduce(unsigned int NT, T x)
+__device__ static T aniso_warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
     {
     for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
         x += __shfl_down_sync(x, dest_count, NT);
@@ -345,15 +345,24 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
     // potential energy per particle must be halved
     force.w *= 0.5f;
 
-    // reduce force over threads in cta
-    force.x = aniso_warp_reduce(tpp, force.x);
-    force.y = aniso_warp_reduce(tpp, force.y);
-    force.z = aniso_warp_reduce(tpp, force.z);
-    force.w = aniso_warp_reduce(tpp, force.w);
+    // we need to access a separate portion of shared memory to avoid race conditions
+    const unsigned int shared_bytes = (2*sizeof(Scalar) + sizeof(typename evaluator::param_type))
+        * num_typ_parameters;
 
-    torque.x = aniso_warp_reduce(tpp, torque.x);
-    torque.y = aniso_warp_reduce(tpp, torque.y);
-    torque.z = aniso_warp_reduce(tpp, torque.z);
+    // need to declare as volatile, because we are using warp-synchronous programming
+    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
+
+    unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
+
+    // reduce force over threads in cta
+    force.x = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
+    force.y = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
+    force.z = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
+    force.w = aniso_warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
+
+    torque.x = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.x, &sh[cta_offs]);
+    torque.y = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.y, &sh[cta_offs]);
+    torque.z = aniso_warp_reduce(tpp, threadIdx.x % tpp, torque.z, &sh[cta_offs]);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: ? bytes)
     if (threadIdx.x % tpp == 0)
@@ -364,12 +373,12 @@ __global__ void gpu_compute_pair_aniso_forces_kernel(Scalar4 *d_force,
 
     if (compute_virial)
         {
-        virialxx = aniso_warp_reduce(tpp, virialxx);
-        virialxy = aniso_warp_reduce(tpp, virialxy);
-        virialxz = aniso_warp_reduce(tpp, virialxz);
-        virialyy = aniso_warp_reduce(tpp, virialyy);
-        virialyz = aniso_warp_reduce(tpp, virialyz);
-        virialzz = aniso_warp_reduce(tpp, virialzz);
+        virialxx = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxx, &sh[cta_offs]);
+        virialxy = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxy, &sh[cta_offs]);
+        virialxz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialxz, &sh[cta_offs]);
+        virialyy = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialyy, &sh[cta_offs]);
+        virialyz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialyz, &sh[cta_offs]);
+        virialzz = aniso_warp_reduce(tpp, threadIdx.x % tpp, virialzz, &sh[cta_offs]);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (threadIdx.x %tpp == 0)

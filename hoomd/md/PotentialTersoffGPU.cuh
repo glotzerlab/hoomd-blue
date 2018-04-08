@@ -89,6 +89,15 @@ struct tersoff_args_t
 texture<unsigned int, 1, cudaReadModeElementType> nlist_tex;
 
 #if !defined(SINGLE_PRECISION)
+__device__ inline
+double __my_shfl(double var, unsigned int srcLane, int width=32)
+    {
+    int2 a = *reinterpret_cast<int2*>(&var);
+    a.x = __shfl(a.x, srcLane, width);
+    a.y = __shfl(a.y, srcLane, width);
+    return *reinterpret_cast<double*>(&a);
+    }
+
 #if (__CUDA_ARCH__ < 600)
 //! atomicAdd function for double-precision floating point numbers
 /*! This function is only used when hoomd is compiled for double precision on the GPU.
@@ -116,6 +125,12 @@ __device__ double myAtomicAdd(double* address, double val)
     return atomicAdd(address, val);
     }
 #endif
+#else // (!defined(SINGLE_PRECISION))
+__device__ inline
+float __my_shfl(float var, unsigned int srcLane, int width=32)
+    {
+    return __shfl(var, srcLane, width);
+    }
 #endif
 
 __device__ float myAtomicAdd(float* address, float val)
@@ -288,11 +303,13 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4 *d_force,
             {
             Scalar phi = s_phi_ab[threadIdx.x*ntypes+typ_b];
 
+            #if (__CUDA_ARCH__ >= 300)
             // reduce in warp
-            phi = warp_reduce(tpp, phi);
+            phi = warp_reduce(tpp, threadIdx.x % tpp, phi, (Scalar *)0);
 
             // broadcast into shared mem
-            s_phi_ab[threadIdx.x*ntypes+typ_b] = __shfl_sync(phi, 0, tpp);
+            s_phi_ab[threadIdx.x*ntypes+typ_b] = __my_shfl(phi, 0, tpp);
+            #endif
 
             if (threadIdx.x % tpp == 0)
                 {
