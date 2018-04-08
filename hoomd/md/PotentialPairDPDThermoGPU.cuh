@@ -353,20 +353,11 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
         force.w *= Scalar(0.5);
         }
 
-    // we need to access a separate portion of shared memory to avoid race conditions
-    const unsigned int shared_bytes = (sizeof(Scalar) + sizeof(typename evaluator::param_type))
-        * num_typ_parameters;
-
-    // need to declare as volatile, because we are using warp-synchronous programming
-    volatile Scalar *sh = (Scalar *) &s_data[shared_bytes];
-
-    unsigned int cta_offs = (threadIdx.x/tpp)*tpp;
-
     // reduce force over threads in cta
-    force.x = warp_reduce(tpp, threadIdx.x % tpp, force.x, &sh[cta_offs]);
-    force.y = warp_reduce(tpp, threadIdx.x % tpp, force.y, &sh[cta_offs]);
-    force.z = warp_reduce(tpp, threadIdx.x % tpp, force.z, &sh[cta_offs]);
-    force.w = warp_reduce(tpp, threadIdx.x % tpp, force.w, &sh[cta_offs]);
+    force.x = warp_reduce(tpp, force.x);
+    force.y = warp_reduce(tpp, force.y);
+    force.z = warp_reduce(tpp, force.z);
+    force.w = warp_reduce(tpp, force.w);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     if (active && threadIdx.x % tpp == 0)
@@ -375,7 +366,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4 *d_force,
     if (compute_virial)
         {
         for (unsigned int i = 0; i < 6; ++i)
-            virial[i] = warp_reduce(tpp, threadIdx.x % tpp, virial[i], &sh[cta_offs]);
+            virial[i] = warp_reduce(tpp, virial[i]);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x %tpp == 0)
@@ -443,11 +434,6 @@ inline void launch_gpu_compute_dpd_forces_kernel(const dpd_pair_args_t& args,
         {
         grid.y = grid.x/65535 + 1;
         grid.x = 65535;
-        }
-
-    if (args.compute_capability < 30)
-        {
-        shared_bytes += sizeof(Scalar)*block_size;
         }
 
     gpu_compute_dpd_forces_kernel<evaluator, shift_mode, compute_virial, use_gmem_nlist>
