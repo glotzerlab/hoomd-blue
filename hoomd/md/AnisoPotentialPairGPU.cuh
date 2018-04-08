@@ -26,6 +26,25 @@
 //! Maximum number of threads (width of a dpd_warp)
 const unsigned int gpu_aniso_pair_force_max_tpp = 32;
 
+//! CTA reduce
+template<typename T>
+__device__ static T aniso_warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
+    {
+    shared[tid] = x;
+
+    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
+        {
+        if (tid < dest_count)
+           {
+            x += shared[dest_count + tid];
+            shared[tid] = x;
+            }
+         }
+    T total = shared[0];
+    return total;
+    }
+
+
 //! Wraps arguments to gpu_cgpf
 struct a_pair_args_t
     {
@@ -99,16 +118,6 @@ struct a_pair_args_t
     };
 
 #ifdef NVCC
-//! CTA reduce, returns result in first thread
-template<typename T>
-__device__ static T aniso_warp_reduce(unsigned int NT, int tid, T x, volatile T* shared)
-    {
-    for (int dest_count = NT/2; dest_count >= 1; dest_count /= 2)
-        x += __shfl_down_sync(x, dest_count, NT);
-
-    return x;
-    }
-
 //! Texture for reading particle positions
 scalar4_tex_t aniso_pdata_pos_tex;
 
@@ -485,6 +494,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                         grid.x = 65535;
                         }
 
+                    shared_bytes += sizeof(Scalar)*block_size;
+
                     gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 1>
                         <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
                                                       pair_args.d_torque,
@@ -524,6 +535,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                         grid.y = grid.x/65535 + 1;
                         grid.x = 65535;
                         }
+
+                    shared_bytes += sizeof(Scalar)*block_size;
 
                     gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 1>
                         <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
@@ -573,6 +586,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                         grid.x = 65535;
                         }
 
+                    shared_bytes += sizeof(Scalar)*block_size;
+
                     gpu_compute_pair_aniso_forces_kernel<evaluator, 0, 0>
                         <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
                                                       pair_args.d_torque,
@@ -612,6 +627,8 @@ cudaError_t gpu_compute_pair_aniso_forces(const a_pair_args_t& pair_args,
                         grid.y = grid.x/65535 + 1;
                         grid.x = 65535;
                         }
+
+                    shared_bytes += sizeof(Scalar)*block_size;
 
                     gpu_compute_pair_aniso_forces_kernel<evaluator, 1, 0>
                         <<<grid, block_size, shared_bytes>>>(pair_args.d_force,
