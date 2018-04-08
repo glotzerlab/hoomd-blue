@@ -108,12 +108,11 @@ void ForceComposite::setParam(unsigned int body_typeid,
 
     // detect if bodies have changed
 
-    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
-
         {
         ArrayHandle<unsigned int> h_body_type(m_body_types, access_location::host, access_mode::read);
         ArrayHandle<Scalar3> h_body_pos(m_body_pos, access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_body_orientation(m_body_orientation, access_location::host, access_mode::read);
+        ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
 
         assert(body_typeid < m_body_len.getNumElements());
         if (type.size() != h_body_len.data[body_typeid])
