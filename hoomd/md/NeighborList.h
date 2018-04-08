@@ -526,6 +526,14 @@ class NeighborList : public Compute
             }
         #endif
 
+        #ifdef ENABLE_CUDA
+        //! Reset memory usage hints
+        void unsetMemoryMapping();
+
+        //! Update memory usage hints
+        void updateMemoryMapping();
+        #endif
+
     private:
         Nano::Signal<void ()> m_rcut_signal;                //!< Signal that is triggered when the cutoff radius changes
 
@@ -574,8 +582,6 @@ class NeighborList : public Compute
             }
 
         #ifdef ENABLE_CUDA
-        void updateGPUMapping();
-
         GPUPartition m_last_gpu_partition; //!< The partition at the time of the last memory hints
         #endif
     };

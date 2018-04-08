@@ -1421,11 +1421,6 @@ void NeighborList::buildHeadList()
 
     resizeNlist(headAddress);
 
-    #ifdef ENABLE_CUDA
-    if (m_exec_conf->isCUDAEnabled())
-        updateGPUMapping();
-    #endif
-
     if (m_prof) m_prof->pop();
     }
 
@@ -1531,13 +1526,8 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 #endif
 
 #ifdef ENABLE_CUDA
-//! Update GPU memory locality
-void NeighborList::updateGPUMapping()
+void NeighborList::unsetMemoryMapping()
     {
-    // only update if something changed
-    if (m_last_gpu_partition == m_pdata->getGPUPartition())
-        return;
-
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
         {
         auto gpu_map = m_exec_conf->getGPUIds();
@@ -1559,9 +1549,8 @@ void NeighborList::updateGPUMapping()
                 unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
 
                 if (end - start > 0)
-                    {
-                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                    }
+                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start),
+                        cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
                 }
             }
         CHECK_CUDA_ERROR();
@@ -1585,12 +1574,22 @@ void NeighborList::updateGPUMapping()
             cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
             }
         CHECK_CUDA_ERROR();
+        }
+    }
 
-        // split preferred location of neighbor list across GPUs
+//! Update GPU memory locality
+void NeighborList::updateMemoryMapping()
+    {
+    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
         const GPUPartition& gpu_partition = m_pdata->getGPUPartition();
 
+        // stash this partition for the future, so we can unset hints again
         m_last_gpu_partition = gpu_partition;
 
+        // split preferred location of neighbor list across GPUs
             {
             ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
 
@@ -1607,10 +1606,9 @@ void NeighborList::updateGPUMapping()
                 unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
 
                 if (end - start > 0)
-                    {
                     // set preferred location
-                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start), cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
-                    }
+                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start),
+                        cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
                 }
             }
         CHECK_CUDA_ERROR();
