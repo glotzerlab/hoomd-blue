@@ -273,7 +273,7 @@ class ParticleGroup
             {
             checkRebuild();
 
-            ArrayHandle<unsigned char> h_handle(m_is_member, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_handle(m_is_member, access_location::host, access_mode::read);
             return h_handle.data[idx] == 1;
             }
 
@@ -333,7 +333,7 @@ class ParticleGroup
 
         // NOTE a design with so many mutable members is broken, we should refactor const correctness
         // in ParticleGroup in the future by using resize methods on the arrays
-        mutable GlobalArray<unsigned char> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
+        mutable GlobalArray<unsigned int> m_is_member;    //!< One byte per particle, == 1 if index is a local member of the group
         mutable GlobalArray<unsigned int> m_member_idx;    //!< List of all particle indices in the group
         mutable GlobalArray<unsigned int> m_member_tags;   //!< Lists the tags of the paritcle members
         mutable unsigned int m_num_local_members;       //!< Number of members on the local processor
@@ -341,15 +341,13 @@ class ParticleGroup
         mutable bool m_reallocated;                     //!< True if particle data arrays have been reallocated
         mutable bool m_global_ptl_num_change;           //!< True if the global particle number changed
 
-        mutable GlobalArray<unsigned char> m_is_member_tag;  //!< One byte per particle, == 1 if tag is a member of the group
+        mutable GlobalArray<unsigned int> m_is_member_tag;  //!< One byte per particle, == 1 if tag is a member of the group
         std::shared_ptr<ParticleSelector> m_selector; //!< The associated particle selector
 
         bool m_update_tags;                             //!< True if tags should be updated when global number of particles changes
         mutable bool m_warning_printed;                         //!< True if warning about static groups has been printed
 
         #ifdef ENABLE_CUDA
-        mgpu::ContextPtr m_mgpu_context;                //!< moderngpu context
-
         mutable GPUPartition m_gpu_partition;           //!< A handy struct to store load balancing info for this group's local members
         #endif
 
