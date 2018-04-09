@@ -106,7 +106,14 @@ class managed_allocator
 
             #ifdef ENABLE_CUDA
             if (use_device)
-                cudaDeviceSynchronize();
+                {
+                cudaError_t error = cudaDeviceSynchronize();
+                if (error != cudaSuccess)
+                    {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    throw std::runtime_error("managed_allocator: Error on device sync during allocate_construct");
+                    }
+                } 
             #endif
 
             // construct objects explicitly using placement new
@@ -140,7 +147,14 @@ class managed_allocator
             {
             #ifdef ENABLE_CUDA
             if (use_device)
-                cudaDeviceSynchronize();
+                {
+                cudaError_t error = cudaDeviceSynchronize();
+                if (error != cudaSuccess)
+                    {
+                    std::cerr << cudaGetErrorString(error) << std::endl;
+                    throw std::runtime_error("managed_allocator: Error on device sync during deallocate_destroy");
+                    }
+                }
             #endif
 
             // we used placement new in the allocation, so call destructors explicitly
