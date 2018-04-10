@@ -85,79 +85,8 @@ class PYBIND11_EXPORT ParticleDataSnapshot
 namespace detail
 {
 
-//! Adapter to access MPCD particle data arrays as numpy arrays
-/*!
- * mpcd::ParticleDataSnapshot needs to be visible itself for use in external plugins. This adapter class provides
- * The hidden API needed to access the data as numpy arrays.
- *
- * This class stores a python dict, m_holder, so that it can tie the lifetime of the numpy arrays to the lifetime
- * of this instance.
- *
- * \ingroup data_structs
- */
-class ParticleDataSnapshotAdapter
-    {
-    public:
-        ParticleDataSnapshotAdapter(std::shared_ptr<ParticleDataSnapshot> pdata) : m_pdata(pdata) { }
-
-        ~ParticleDataSnapshotAdapter() { std::cout << "Destructing adapter: " << m_holder.ref_count() << std::endl; }
-
-        void resize(unsigned int N)
-            {
-            m_pdata->resize(N);
-            }
-
-        bool validate() const
-            {
-            return m_pdata->validate();
-            }
-
-        void replicate(unsigned int nx,
-                       unsigned int ny,
-                       unsigned int nz,
-                       const BoxDim& old_box,
-                       const BoxDim& new_box)
-            {
-            m_pdata->replicate(nx, ny, nz, old_box, new_box);
-            }
-
-        Scalar getMass()
-            {
-            return m_pdata->mass;
-            }
-
-        void setMass(Scalar mass)
-            {
-            m_pdata->mass = mass;
-            }
-
-        unsigned int getSize()
-            {
-            return m_pdata->size;
-            }
-
-        //! Get snapshot velocities as a numpy array
-        pybind11::object getVelocity();
-
-        //! Get snapshot types as a numpy array
-        pybind11::object getType();
-
-        //! Get snapshot type names as a python list
-        pybind11::list getTypeNames();
-
-        //! Set snapshot type names from a python list
-        void setTypeNames(pybind11::list types);
-
-        std::shared_ptr<ParticleDataSnapshot> m_pdata;
-
-        pybind11::dict m_holder;
-    };
-
-//! Get snapshot positions as a numpy array
-pybind11::object ParticleDataSnapshotAdapterGetPosition(pybind11::object self);
-
 //! Export mpcd::ParticleDataSnapshot to python
-void export_ParticleDataSnapshotAdapter(pybind11::module& m);
+void export_ParticleDataSnapshot(pybind11::module& m);
 } // end namespace detail
 
 } // end namespace mpcd

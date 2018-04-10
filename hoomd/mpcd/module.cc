@@ -89,7 +89,7 @@ namespace kernel
 PYBIND11_MODULE(_mpcd, m)
     {
     mpcd::detail::export_ParticleData(m);
-    mpcd::detail::export_ParticleDataSnapshotAdapter(m);
+    mpcd::detail::export_ParticleDataSnapshot(m);
     mpcd::detail::export_Sorter(m);
     #ifdef ENABLE_CUDA
     mpcd::detail::export_SorterGPU(m);
