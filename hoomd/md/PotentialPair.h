@@ -19,6 +19,10 @@
 #include "hoomd/ForceCompute.h"
 #include "NeighborList.h"
 
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 #ifdef ENABLE_MPI
 #include "hoomd/Communicator.h"
 #endif
