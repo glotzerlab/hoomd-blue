@@ -25,18 +25,18 @@ void at_collision_method_basic_test(std::shared_ptr<ExecutionConfiguration> exec
     // 4 particle system
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
         {
-        mpcd::ParticleDataSnapshot& mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap.resize(4);
+        auto mpcd_snap = mpcd_sys_snap->particles;
+        mpcd_snap->resize(4);
 
-        mpcd_snap.position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap.position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
-        mpcd_snap.position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
-        mpcd_snap.position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
+        mpcd_snap->position[0] = vec3<Scalar>(-0.6, -0.6, -0.6);
+        mpcd_snap->position[1] = vec3<Scalar>(-0.6, -0.6, -0.6);
+        mpcd_snap->position[2] = vec3<Scalar>(0.5, 0.5, 0.5);
+        mpcd_snap->position[3] = vec3<Scalar>(0.5, 0.5, 0.5);
 
-        mpcd_snap.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap.velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
-        mpcd_snap.velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
+        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+        mpcd_snap->velocity[2] = vec3<Scalar>(5.0, -2.0, 3.0);
+        mpcd_snap->velocity[3] = vec3<Scalar>(-1.0, 2.0, -5.0);
         }
     // Save original momentum for comparison as well
     const Scalar3 orig_mom = make_scalar3(7.0, 0.0, -2.0);

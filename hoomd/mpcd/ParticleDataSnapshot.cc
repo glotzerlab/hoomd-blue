@@ -121,36 +121,38 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
         } // i
     }
 
-pybind11::object mpcd::detail::ParticleDataSnapshotAdapter::getPosition()
+pybind11::object mpcd::detail::ParticleDataSnapshotAdapterGetPosition(pybind11::object self)
     {
+    auto self_cpp = self.cast<ParticleDataSnapshotAdapter *>();
+
     std::vector<ssize_t> dims(2);
-    dims[0] = m_pdata.position.size();
+    dims[0] = self_cpp->m_pdata->position.size();
     dims[1] = 3;
-    return pybind11::array(dims, (Scalar*)&m_pdata.position[0], m_holder);
+    return pybind11::array(dims, (Scalar*)&self_cpp->m_pdata->position[0], self);
     //return pybind11::object(num_util::makeNumFromData((Scalar*)&position[0], dims), false);
     }
 
 pybind11::object mpcd::detail::ParticleDataSnapshotAdapter::getVelocity()
     {
     std::vector<ssize_t> dims(2);
-    dims[0] = m_pdata.velocity.size();
+    dims[0] = m_pdata->velocity.size();
     dims[1] = 3;
-    return pybind11::array(dims, (Scalar*)&m_pdata.velocity[0], m_holder);
+    return pybind11::array(dims, (Scalar*)&m_pdata->velocity[0], m_holder);
     //return pybind11::object(num_util::makeNumFromData((Scalar*)&velocity[0], dims), false);
     }
 
 pybind11::object mpcd::detail::ParticleDataSnapshotAdapter::getType()
     {
-    return pybind11::array(m_pdata.type.size(), &m_pdata.type[0], m_holder);
+    return pybind11::array(m_pdata->type.size(), &m_pdata->type[0], m_holder);
     //return pybind11::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
 pybind11::list mpcd::detail::ParticleDataSnapshotAdapter::getTypeNames()
     {
     pybind11::list py_types;
-    for (unsigned int i=0; i < m_pdata.type_mapping.size(); ++i)
+    for (unsigned int i=0; i < m_pdata->type_mapping.size(); ++i)
         {
-        py_types.append(pybind11::str(m_pdata.type_mapping[i]));
+        py_types.append(pybind11::str(m_pdata->type_mapping[i]));
         }
     return py_types;
     }
@@ -160,10 +162,10 @@ pybind11::list mpcd::detail::ParticleDataSnapshotAdapter::getTypeNames()
  */
 void mpcd::detail::ParticleDataSnapshotAdapter::setTypeNames(pybind11::list types)
     {
-    m_pdata.type_mapping.resize(len(types));
+    m_pdata->type_mapping.resize(len(types));
     for (unsigned int i=0; i < len(types); ++i)
         {
-        m_pdata.type_mapping[i] = pybind11::cast<std::string>(types[i]);
+        m_pdata->type_mapping[i] = pybind11::cast<std::string>(types[i]);
         }
     }
 
@@ -173,7 +175,7 @@ void mpcd::detail::ParticleDataSnapshotAdapter::setTypeNames(pybind11::list type
 void mpcd::detail::export_ParticleDataSnapshotAdapter(pybind11::module& m)
     {
     pybind11::class_< mpcd::detail::ParticleDataSnapshotAdapter, std::shared_ptr<mpcd::detail::ParticleDataSnapshotAdapter> >(m, "MPCDParticleDataSnapshotAdapter")
-    .def_property_readonly("position", &mpcd::detail::ParticleDataSnapshotAdapter::getPosition)
+    .def_property_readonly("position", &mpcd::detail::ParticleDataSnapshotAdapterGetPosition)
     .def_property_readonly("velocity", &mpcd::detail::ParticleDataSnapshotAdapter::getVelocity)
     .def_property_readonly("typeid", &mpcd::detail::ParticleDataSnapshotAdapter::getType)
     .def_property("mass", &mpcd::detail::ParticleDataSnapshotAdapter::getMass, &mpcd::detail::ParticleDataSnapshotAdapter::setMass)

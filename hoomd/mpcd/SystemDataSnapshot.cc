@@ -24,7 +24,7 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
     L.z *= (Scalar) nz;
     m_global_box.setL(L);
 
-    particles.replicate(nx, ny, nz, old_box, m_global_box);
+    particles->replicate(nx, ny, nz, old_box, m_global_box);
     }
 
 /*!
@@ -39,5 +39,5 @@ void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
         .def("replicate", &mpcd::SystemDataSnapshot::replicate)
         .def_property_readonly("particles", [](mpcd::SystemDataSnapshot& self) {
             return mpcd::detail::ParticleDataSnapshotAdapter(self.particles);
-            }, py::keep_alive<0, 1>());
+            });
     }

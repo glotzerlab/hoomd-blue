@@ -98,16 +98,18 @@ namespace detail
 class ParticleDataSnapshotAdapter
     {
     public:
-        ParticleDataSnapshotAdapter(ParticleDataSnapshot& pdata) : m_pdata(pdata) { }
+        ParticleDataSnapshotAdapter(std::shared_ptr<ParticleDataSnapshot> pdata) : m_pdata(pdata) { }
+
+        ~ParticleDataSnapshotAdapter() { std::cout << "Destructing adapter: " << m_holder.ref_count() << std::endl; }
 
         void resize(unsigned int N)
             {
-            m_pdata.resize(N);
+            m_pdata->resize(N);
             }
 
         bool validate() const
             {
-            return m_pdata.validate();
+            return m_pdata->validate();
             }
 
         void replicate(unsigned int nx,
@@ -116,26 +118,23 @@ class ParticleDataSnapshotAdapter
                        const BoxDim& old_box,
                        const BoxDim& new_box)
             {
-            m_pdata.replicate(nx, ny, nz, old_box, new_box);
+            m_pdata->replicate(nx, ny, nz, old_box, new_box);
             }
 
         Scalar getMass()
             {
-            return m_pdata.mass;
+            return m_pdata->mass;
             }
 
         void setMass(Scalar mass)
             {
-            m_pdata.mass = mass;
+            m_pdata->mass = mass;
             }
 
         unsigned int getSize()
             {
-            return m_pdata.size;
+            return m_pdata->size;
             }
-
-        //! Get snapshot positions as a numpy array
-        pybind11::object getPosition();
 
         //! Get snapshot velocities as a numpy array
         pybind11::object getVelocity();
@@ -149,10 +148,13 @@ class ParticleDataSnapshotAdapter
         //! Set snapshot type names from a python list
         void setTypeNames(pybind11::list types);
 
-    private:
-        ParticleDataSnapshot& m_pdata;
+        std::shared_ptr<ParticleDataSnapshot> m_pdata;
+
         pybind11::dict m_holder;
     };
+
+//! Get snapshot positions as a numpy array
+pybind11::object ParticleDataSnapshotAdapterGetPosition(pybind11::object self);
 
 //! Export mpcd::ParticleDataSnapshot to python
 void export_ParticleDataSnapshotAdapter(pybind11::module& m);
