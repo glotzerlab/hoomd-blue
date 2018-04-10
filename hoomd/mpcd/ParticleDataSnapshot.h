@@ -59,7 +59,7 @@ class PYBIND11_EXPORT ParticleDataSnapshot
         ParticleDataSnapshot(unsigned int N);
 
         //! Destructor
-        ~ParticleDataSnapshot() { std::cout << "Destructing snapshot" << std::endl; };
+        ~ParticleDataSnapshot() {};
 
         //! Resize the snapshot
         void resize(unsigned int N);
