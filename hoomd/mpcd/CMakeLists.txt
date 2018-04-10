@@ -91,7 +91,7 @@ endif (ENABLE_CUDA)
 pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${_CUDA_GENERATED_FILES})
 
 # link the library to its dependencies
-target_link_libraries(_mpcd PRIVATE _hoomd ${HOOMD_LIBRARIES})
+target_link_libraries(_mpcd PRIVATE _md ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags

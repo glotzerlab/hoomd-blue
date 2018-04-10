@@ -37,5 +37,7 @@ void mpcd::detail::export_SystemDataSnapshot(pybind11::module& m)
     py::class_<mpcd::SystemDataSnapshot, std::shared_ptr<mpcd::SystemDataSnapshot> >(m,"SystemDataSnapshot")
         .def(py::init<std::shared_ptr<::SystemDefinition> >())
         .def("replicate", &mpcd::SystemDataSnapshot::replicate)
-        .def_readonly("particles", &mpcd::SystemDataSnapshot::particles);
+        .def_property_readonly("particles", [](mpcd::SystemDataSnapshot& self) {
+            return mpcd::detail::ParticleDataSnapshotAdapter(self.particles);
+            }, py::keep_alive<0, 1>());
     }

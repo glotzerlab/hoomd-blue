@@ -59,7 +59,7 @@ class PYBIND11_EXPORT ParticleDataSnapshot
         ParticleDataSnapshot(unsigned int N);
 
         //! Destructor
-        ~ParticleDataSnapshot() {};
+        ~ParticleDataSnapshot() { std::cout << "Destructing snapshot" << std::endl; };
 
         //! Resize the snapshot
         void resize(unsigned int N);
@@ -73,6 +73,66 @@ class PYBIND11_EXPORT ParticleDataSnapshot
                        unsigned int nz,
                        const BoxDim& old_box,
                        const BoxDim& new_box);
+
+        unsigned int size;                      //!< Number of particles
+        std::vector< vec3<Scalar> > position;   //!< MPCD particle positions
+        std::vector< vec3<Scalar> > velocity;   //!< MPCD particle velocities
+        std::vector<unsigned int> type;         //!< MPCD particle type IDs
+        Scalar mass;                            //!< MPCD particle mass
+        std::vector<std::string> type_mapping;  //!< Type name mapping
+    };
+
+namespace detail
+{
+
+//! Adapter to access MPCD particle data arrays as numpy arrays
+/*!
+ * mpcd::ParticleDataSnapshot needs to be visible itself for use in external plugins. This adapter class provides
+ * The hidden API needed to access the data as numpy arrays.
+ *
+ * This class stores a python dict, m_holder, so that it can tie the lifetime of the numpy arrays to the lifetime
+ * of this instance.
+ *
+ * \ingroup data_structs
+ */
+class ParticleDataSnapshotAdapter
+    {
+    public:
+        ParticleDataSnapshotAdapter(ParticleDataSnapshot& pdata) : m_pdata(pdata) { }
+
+        void resize(unsigned int N)
+            {
+            m_pdata.resize(N);
+            }
+
+        bool validate() const
+            {
+            return m_pdata.validate();
+            }
+
+        void replicate(unsigned int nx,
+                       unsigned int ny,
+                       unsigned int nz,
+                       const BoxDim& old_box,
+                       const BoxDim& new_box)
+            {
+            m_pdata.replicate(nx, ny, nz, old_box, new_box);
+            }
+
+        Scalar getMass()
+            {
+            return m_pdata.mass;
+            }
+
+        void setMass(Scalar mass)
+            {
+            m_pdata.mass = mass;
+            }
+
+        unsigned int getSize()
+            {
+            return m_pdata.size;
+            }
 
         //! Get snapshot positions as a numpy array
         pybind11::object getPosition();
@@ -89,18 +149,13 @@ class PYBIND11_EXPORT ParticleDataSnapshot
         //! Set snapshot type names from a python list
         void setTypeNames(pybind11::list types);
 
-        unsigned int size;                      //!< Number of particles
-        std::vector< vec3<Scalar> > position;   //!< MPCD particle positions
-        std::vector< vec3<Scalar> > velocity;   //!< MPCD particle velocities
-        std::vector<unsigned int> type;         //!< MPCD particle type IDs
-        Scalar mass;                            //!< MPCD particle mass
-        std::vector<std::string> type_mapping;  //!< Type name mapping
+    private:
+        ParticleDataSnapshot& m_pdata;
+        pybind11::dict m_holder;
     };
 
-namespace detail
-{
 //! Export mpcd::ParticleDataSnapshot to python
-void export_ParticleDataSnapshot(pybind11::module& m);
+void export_ParticleDataSnapshotAdapter(pybind11::module& m);
 } // end namespace detail
 
 } // end namespace mpcd
