@@ -368,10 +368,11 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
         }
 
     // reduce force over threads in cta
-    force.x = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(force.x);
-    force.y = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(force.y);
-    force.z = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(force.z);
-    force.w = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(force.w);
+    hoomd::detail::WarpReduce<Scalar, tpp> reducer;
+    force.x = reducer.Sum(force.x);
+    force.y = reducer.Sum(force.y);
+    force.z = reducer.Sum(force.z);
+    force.w = reducer.Sum(force.w);
 
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     if (active && threadIdx.x % tpp == 0)
@@ -379,12 +380,12 @@ __global__ void gpu_compute_pair_forces_shared_kernel(Scalar4 *d_force,
 
     if (compute_virial)
         {
-        virialxx = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialxx);
-        virialxy = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialxy);
-        virialxz = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialxz);
-        virialyy = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialyy);
-        virialyz = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialyz);
-        virialzz = hoomd::detail::WarpReduce<Scalar, tpp>().Sum(virialzz);
+        virialxx = reducer.Sum(virialxx);
+        virialxy = reducer.Sum(virialxy);
+        virialxz = reducer.Sum(virialxz);
+        virialyy = reducer.Sum(virialyy);
+        virialyz = reducer.Sum(virialyz);
+        virialzz = reducer.Sum(virialzz);
 
         // if we are the first thread in the cta, write out virial to global mem
         if (active && threadIdx.x %tpp == 0)
