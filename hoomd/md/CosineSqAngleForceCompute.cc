@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -101,8 +101,8 @@ Scalar CosineSqAngleForceCompute::getLogValue(const std::string& quantity, unsig
         }
     else
         {
-        m_exec_conf->msg->error() << "angle.cosinesq: " 
-            << quantity << " is not a valid log quantity for AngleForceCompute" 
+        m_exec_conf->msg->error() << "angle.cosinesq: "
+            << quantity << " is not a valid log quantity for AngleForceCompute"
             << endl;
         throw runtime_error("Error getting log value");
         }
@@ -198,7 +198,7 @@ void CosineSqAngleForceCompute::computeForces(unsigned int timestep)
         Scalar c_abbc = dab.x*dcb.x+dab.y*dcb.y+dab.z*dcb.z;  // = ab dot bc
         c_abbc /= rab*rcb;  // cos(t)
 
-        if (c_abbc > 1.0) c_abbc = 1.0;  // how does this ever happen? 
+        if (c_abbc > 1.0) c_abbc = 1.0;  // how does this ever happen?
         if (c_abbc < -1.0) c_abbc = -1.0;
 
         // actually calculate the force
