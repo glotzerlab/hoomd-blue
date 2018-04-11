@@ -75,6 +75,10 @@
 #include <fstream>
 using namespace std;
 
+#ifdef ENABLE_TBB
+#include "tbb/task_scheduler_init.h"
+#endif
+
 /*! \file hoomd_module.cc
     \brief Brings all of the export_* functions together to export the hoomd python module
 */
@@ -185,6 +189,18 @@ void mpi_barrier_world()
     MPI_Barrier(MPI_COMM_WORLD);
     #endif
     }
+
+//! Determine availability of TBB support
+bool is_TBB_available()
+   {
+   return
+#ifdef ENABLE_TBB
+       true;
+#else
+       false;
+#endif
+    }
+
 
 //! Start the CUDA profiler
 void cuda_profile_start()
@@ -322,6 +338,7 @@ PYBIND11_PLUGIN(_hoomd)
     m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 
     m.def("is_MPI_available", &is_MPI_available);
+    m.def("is_TBB_available", &is_TBB_available);
 
     m.def("cuda_profile_start", &cuda_profile_start);
     m.def("cuda_profile_stop", &cuda_profile_stop);

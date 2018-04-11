@@ -19,6 +19,7 @@
 #include "ShapeUnion.h"
 #include "AnalyzerSDF.h"
 #include "UpdaterBoxMC.h"
+#include "UpdaterClusters.h"
 
 #include "ShapeProxy.h"
 
@@ -106,6 +107,7 @@ PYBIND11_PLUGIN(_hpmc)
     // export counters
     export_hpmc_implicit_counters(m);
 
+    export_hpmc_clusters_counters(m);
     return m.ptr();
     }
 

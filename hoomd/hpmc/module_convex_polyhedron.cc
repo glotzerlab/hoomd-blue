@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -50,6 +52,9 @@ void export_convex_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
+    export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitConvexPolyhedron");
+    export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitNewConvexPolyhedron");
     export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitConvexPolyhedron");
     export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitNewConvexPolyhedron");
 
