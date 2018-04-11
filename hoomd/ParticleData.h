@@ -1142,7 +1142,7 @@ class ParticleData
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
-        GlobalVector<unsigned int> m_cached_tag_set;    //!< Cached constant-time lookup table for tags by active index
+        std::vector<unsigned int> m_cached_tag_set;   //!< Cached constant-time lookup table for tags by active index
         bool m_invalid_cached_tags;                  //!< true if m_cached_tag_set needs to be rebuilt
 
         /* Alternate particle data arrays are provided for fast swapping in and out of particle data

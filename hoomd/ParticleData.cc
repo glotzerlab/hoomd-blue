@@ -693,15 +693,13 @@ void ParticleData::maybe_rebuild_tag_cache()
     // GlobalVector checks if the resize is necessary
     m_cached_tag_set.resize(m_tag_set.size());
 
-    ArrayHandle<unsigned int> h_active_tag(m_cached_tag_set, access_location::host, access_mode::overwrite);
-
     // iterate over each element in the set, building a mapping
     // from dense array indices to sparse particle tag indices
     unsigned int i(0);
     for(std::set<unsigned int>::const_iterator it(m_tag_set.begin());
         it != m_tag_set.end(); ++it, ++i)
         {
-        h_active_tag.data[i] = *it;
+        m_cached_tag_set[i] = *it;
         }
 
     m_invalid_cached_tags = false;
