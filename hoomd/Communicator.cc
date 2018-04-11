@@ -479,7 +479,9 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
         // output groups to send buffer in rank-sorted order
         for (typename group_map_t::iterator it = group_send_map.begin(); it != group_send_map.end(); ++it)
+            {
             m_groups_sendbuf.push_back(it->second);
+            }
 
             {
             ArrayHandle<unsigned int> h_unique_neighbors(m_comm.m_unique_neighbors, access_location::host, access_mode::read);
@@ -944,7 +946,9 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
             // exchange group data, write directly to the particle data arrays
             if (m_comm.m_prof)
+                {
                 m_comm.m_prof->push("MPI send/recv");
+                }
 
                 {
                 MPI_Isend(&plan_copybuf.front(),
@@ -1702,7 +1706,9 @@ void Communicator::exchangeGhosts()
             m_velocity_copybuf.resize(max_copy_ghosts);
 
         if (flags[comm_flag::orientation])
+            {
             m_orientation_copybuf.resize(max_copy_ghosts);
+            }
 
             {
             // we fill all fields, but send only those that are requested by the CommFlags bitset
@@ -1796,7 +1802,9 @@ void Communicator::exchangeGhosts()
 
         // exchange particle data, write directly to the particle data arrays
         if (m_prof)
+            {
             m_prof->push("MPI send/recv");
+            }
 
             {
             ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir], access_location::host, access_mode::read);

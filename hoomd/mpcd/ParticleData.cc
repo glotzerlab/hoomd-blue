@@ -396,7 +396,11 @@ void mpcd::ParticleData::initializeRandom(unsigned int N, const BoxDim& local_bo
         }
     #endif // ENABLE_MPI
     if (N > 0)
-        vel_cm.x /= N; vel_cm.y /= N; vel_cm.z /= N;
+        {
+        vel_cm.x /= N;
+        vel_cm.y /= N;
+        vel_cm.z /= N;
+        }
 
     // subtract center-of-mass velocity
     for (unsigned int i=0; i < m_N; ++i)

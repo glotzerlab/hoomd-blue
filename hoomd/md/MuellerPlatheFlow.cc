@@ -340,7 +340,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     if(m_prof) m_prof->pop();
     }
 
-void MuellerPlatheFlow::verify_orthorhombic_box(void) throw(runtime_error)
+void MuellerPlatheFlow::verify_orthorhombic_box(void)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getGlobalBox();
