@@ -130,6 +130,17 @@ class MolecularForceCompute : public ForceConstraint
         GlobalVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
+        //! Helper function to check if particles have been sorted and rebuild indices if necessary
+        virtual void checkParticlesSorted()
+            {
+            if (m_dirty)
+                {
+                // rebuild molecule list
+                initMolecules();
+                m_dirty = false;
+                }
+            }
+
     private:
         GlobalVector<unsigned int> m_molecule_list;    //!< 2D Array of molecule members
         GlobalVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
@@ -156,18 +167,6 @@ class MolecularForceCompute : public ForceConstraint
         //! construct a list of local molecules on the GPU
         virtual void initMoleculesGPU();
         #endif
-
-        //! Helper function to check if particles have been sorted and rebuild indices if necessary
-        void checkParticlesSorted()
-            {
-            if (m_dirty)
-                {
-                // rebuild molecule list
-                initMolecules();
-                m_dirty = false;
-                }
-            }
-
 
     };
 

@@ -62,6 +62,15 @@ class ForceCompositeGPU : public ForceComposite
         //! Compute the forces and torques on the central particle
         virtual void computeForces(unsigned int timestep);
 
+        //! Helper function to check if particles have been sorted and rebuild indices if necessary
+        virtual void checkParticlesSorted()
+            {
+            MolecularForceCompute::checkParticlesSorted();
+
+            // sort center particles for use in GPU kernel
+            sortRigidBodies();
+            }
+
         std::unique_ptr<Autotuner> m_tuner_force;  //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_virial; //!< Autotuner for block size and threads per particle
         std::unique_ptr<Autotuner> m_tuner_update; //!< Autotuner for block size of update kernel

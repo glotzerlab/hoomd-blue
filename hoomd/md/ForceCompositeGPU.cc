@@ -77,6 +77,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
 
     ArrayHandle<unsigned int> d_molecule_length(getMoleculeLengths(), access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_molecule_list(getMoleculeList(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_molecule_idx(getMoleculeIndex(), access_location::device, access_mode::read);
 
     // access particle data
     ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
@@ -98,6 +99,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
     ArrayHandle<Scalar3> d_body_pos(m_body_pos, access_location::device, access_mode::read);
     ArrayHandle<Scalar4> d_body_orientation(m_body_orientation, access_location::device, access_mode::read);
     ArrayHandle<unsigned int> d_body_len(m_body_len, access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::read);
 
     PDataFlags flags = m_pdata->getFlags();
     bool compute_virial = false;
@@ -110,6 +112,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         {
         ArrayHandle<uint2> d_flag(m_flag, access_location::device, access_mode::overwrite);
 
+        m_exec_conf->beginMultiGPU();
+
         m_tuner_force->begin();
         unsigned int param = m_tuner_force->getParam();
         unsigned int block_size = param % 10000;
@@ -120,6 +124,8 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                         d_torque.data,
                         d_molecule_length.data,
                         d_molecule_list.data,
+                        d_molecule_idx.data,
+                        d_rigid_center.data,
                         molecule_indexer,
                         d_postype.data,
                         d_orientation.data,
@@ -137,10 +143,13 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
                         n_bodies_per_block,
                         block_size,
                         m_exec_conf->dev_prop,
-                        !compute_virial);
+                        !compute_virial,
+                        m_gpu_partition);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
+
+        m_exec_conf->endMultiGPU();
         }
 
     uint2 flag;
@@ -148,7 +157,7 @@ void ForceCompositeGPU::computeForces(unsigned int timestep)
         ArrayHandle<uint2> h_flag(m_flag, access_location::host, access_mode::read);
         flag = *h_flag.data;
         }
- 
+
     if (flag.x)
         {
         m_exec_conf->msg->error() << "constrain.rigid(): Composite particle with body tag " << flag.x-1 << " incomplete"

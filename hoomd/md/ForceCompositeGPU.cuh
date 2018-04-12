@@ -15,6 +15,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  Scalar4* d_torque,
                  const unsigned int *d_molecule_len,
                  const unsigned int *d_molecule_list,
+                 const unsigned int *d_molecule_idx,
+                 const unsigned int *d_rigid_center,
                  Index2D molecule_indexer,
                  const Scalar4 *d_postype,
                  const Scalar4* d_orientation,
@@ -32,7 +34,8 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
                  unsigned int n_bodies_per_block,
                  unsigned int block_size,
                  const cudaDeviceProp& dev_prop,
-                 bool zero_force);
+                 bool zero_force,
+                 const GPUPartition &gpu_partition);
 
 cudaError_t gpu_rigid_virial(Scalar* d_virial,
                  const unsigned int *d_molecule_len,
