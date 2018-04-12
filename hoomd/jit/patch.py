@@ -297,9 +297,13 @@ class user_union(user):
         if code_iso is not None:
             llvm_ir_iso = self.compile_user(code_iso,clang)
         else:
-            # IR is a text file
-            with open(llvm_ir_file_iso,'r') as f:
-                llvm_ir_iso = f.read()
+            if llvm_ir_file_iso is not None:
+                # IR is a text file
+                with open(llvm_ir_file_iso,'r') as f:
+                    llvm_ir_iso = f.read()
+            else:
+                # provide a dummy function
+                llvm_ir_iso = self.compile_user('return 0;',clang)
 
         if r_cut_iso is None:
             r_cut_iso = -1.0
