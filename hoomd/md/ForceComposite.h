@@ -23,6 +23,10 @@
 #error This header cannot be compiled by nvcc
 #endif
 
+#ifdef ENABLE_CUDA
+#include "hoomd/GPUPartition.cuh"
+#endif
+
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 #ifndef __ForceComposite_H__
@@ -88,6 +92,14 @@ class ForceComposite : public MolecularForceCompute
         std::vector<bool> m_d_max_changed;                        //!< True if maximum body diameter changed (per type)
         std::vector<Scalar> m_body_max_diameter;                  //!< List of diameters for all body types
         Scalar m_global_max_d;                                    //!< Maximum over all body diameters
+
+        #ifdef ENABLE_CUDA
+        GPUPartition m_gpu_partition;               //!< Partition of the rigid bodies
+        GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
+
+        //! Helper function to identify center particle indices
+        void sortRigidBodies();
+        #endif
 
         //! Helper function to be called when the number of types changes
         void slotNumTypesChange();
