@@ -19,6 +19,7 @@ set(TEST_LIST
     test_utils
     test_vec2
     test_vec3
+    test_warp_tools
     )
 
 option(HOOMD_SKIP_LONG_TESTS "Skip long unit tests" on)
