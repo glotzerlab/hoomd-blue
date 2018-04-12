@@ -355,6 +355,36 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     seed_seq[3] = 0x91baff72;
     std::seed_seq seed(seed_seq.begin(), seed_seq.end());
     std::mt19937 rng_poisson(seed);
+    #else
+    // create one RNG per thread
+    tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
+        {
+        std::vector<unsigned int> seed_seq(5);
+        seed_seq[0] = this->m_seed;
+        seed_seq[1] = timestep;
+        seed_seq[2] = this->m_exec_conf->getRank();
+        std::hash<std::thread::id> hash;
+        seed_seq[3] = hash(std::this_thread::get_id());
+        seed_seq[4] = 0x6b71abc8;
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::vector<unsigned int> s(1);
+        seed.generate(s.begin(),s.end());
+        return s[0];
+        });
+    tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
+        {
+        std::vector<unsigned int> seed_seq(5);
+        seed_seq[0] = this->m_seed;
+        seed_seq[1] = timestep;
+        seed_seq[2] = this->m_exec_conf->getRank();
+        std::hash<std::thread::id> hash;
+        seed_seq[3] = hash(std::this_thread::get_id());
+        seed_seq[4] = 0x91baff72;
+        std::seed_seq seed(seed_seq.begin(), seed_seq.end());
+        std::vector<unsigned int> s(1);
+        seed.generate(s.begin(),s.end());
+        return s[0]; // use a single seed
+        });
     #endif
 
     // loop over local particles nselect times
@@ -696,38 +726,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 unsigned int n_overlap_checks = 0;
                 unsigned int overlap_err_count = 0;
                 unsigned int insert_count = 0;
-                #endif
-
-                #ifdef ENABLE_TBB
-                // create one RNG per thread
-                tbb::enumerable_thread_specific< hoomd::detail::Saru > rng_parallel([=]
-                    {
-                    std::vector<unsigned int> seed_seq(5);
-                    seed_seq[0] = this->m_seed;
-                    seed_seq[1] = timestep;
-                    seed_seq[2] = this->m_exec_conf->getRank();
-                    std::hash<std::thread::id> hash;
-                    seed_seq[3] = hash(std::this_thread::get_id());
-                    seed_seq[4] = 0x6b71abc8;
-                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-                    std::vector<unsigned int> s(1);
-                    seed.generate(s.begin(),s.end());
-                    return s[0];
-                    });
-                tbb::enumerable_thread_specific<std::mt19937> rng_parallel_mt([=]
-                    {
-                    std::vector<unsigned int> seed_seq(5);
-                    seed_seq[0] = this->m_seed;
-                    seed_seq[1] = timestep;
-                    seed_seq[2] = this->m_exec_conf->getRank();
-                    std::hash<std::thread::id> hash;
-                    seed_seq[3] = hash(std::this_thread::get_id());
-                    seed_seq[4] = 0x91baff72;
-                    std::seed_seq seed(seed_seq.begin(), seed_seq.end());
-                    std::vector<unsigned int> s(1);
-                    seed.generate(s.begin(),s.end());
-                    return s[0]; // use a single seed
-                    });
                 #endif
 
                 // for every pairwise intersection
