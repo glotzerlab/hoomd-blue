@@ -49,6 +49,10 @@ std::string hoomd_compile_flags()
     o << "MPI_CUDA ";
     #endif
 
+    #ifdef ENABLE_TBB
+    o << "TBB ";
+    #endif
+
     #ifdef __SSE__
     o << "SSE ";
     #endif

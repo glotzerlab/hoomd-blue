@@ -46,11 +46,24 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         system = init.create_lattice(unitcell=lattice.sc(a=a), n=n);
 
+        use_clusters = int(option.get_user()[0])%2
+        use_depletants = int(option.get_user()[0])//2
+        depletant_mode = 'overlap_regions' if use_depletants == 2 else 'circumsphere'
+
         N = len(system.particles);
 
-        mc = hpmc.integrate.sphere(d=0.3,seed=321);
+        if use_depletants:
+            mc = hpmc.integrate.sphere(d=0.3,seed=321,implicit=True,depletant_mode=depletant_mode);
+        else:
+            mc = hpmc.integrate.sphere(d=0.3,seed=321);
 
         mc.shape_param.set('A',diameter=diameter)
+
+        if use_depletants:
+            # set up a dummy depletant
+            system.particles.types.add('B')
+            mc.set_params(depletant_type='B',nR=0)
+            mc.shape_param.set('B', diameter=0)
 
         lennard_jones = """
                         float rsq = dot(r_ij, r_ij);
@@ -74,8 +87,6 @@ class nvt_lj_sphere_energy(unittest.TestCase):
 
         jit.patch.user(mc,r_cut=rcut, code=lennard_jones);
 
-        mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
-
         log = analyze.log(filename=None, quantities=['hpmc_overlap_count','hpmc_patch_energy'],period=100,overwrite=True);
 
         energy_val = [];
@@ -84,13 +95,19 @@ class nvt_lj_sphere_energy(unittest.TestCase):
             energy_val.append(energy);
             if (timestep % 1000 == 0): context.msg.notice(1,'energy = {:.5f}\n'.format(energy));
 
-        for i in range(5):
-            run(100,quiet=True);
-            d = mc.get_d();
-            translate_acceptance = mc.get_translate_acceptance();
-            util.quiet_status();
-            print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
-            mc_tune.update();
+        if use_clusters:
+            mc.set_params(d=0, a=0)
+            clusters = hpmc.update.clusters(mc, seed=312)
+        else:
+            mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=0.5,target=0.4);
+
+            for i in range(5):
+                run(100,quiet=True);
+                d = mc.get_d();
+                translate_acceptance = mc.get_translate_acceptance();
+                util.quiet_status();
+                print('d: {:3.2f} accept: {:3.2f}'.format(d,translate_acceptance));
+                mc_tune.update();
 
         # Equilibrate
         run(1e4);

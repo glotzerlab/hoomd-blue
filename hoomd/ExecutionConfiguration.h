@@ -22,6 +22,10 @@
 #include <cuda_runtime.h>
 #endif
 
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
+#endif
+
 #include "Messenger.h"
 
 /*! \file ExecutionConfiguration.h
@@ -216,6 +220,25 @@ struct ExecutionConfiguration
         }
     #endif
 
+    #ifdef ENABLE_TBB
+    //! set number of TBB threads
+    void setNumThreads(unsigned int num_threads)
+        {
+        m_task_scheduler.reset(new tbb::task_scheduler_init(num_threads));
+        m_num_threads = num_threads;
+        }
+    #endif
+
+    //! Return the number of active threads
+    unsigned int getNumThreads() const
+        {
+        #ifdef ENABLE_TBB
+        return m_num_threads;
+        #else
+        return 0;
+        #endif
+        }
+
 
     #ifdef ENABLE_CUDA
     //! Returns the cached allocator for temporary allocations
@@ -264,6 +287,11 @@ private:
 
     #ifdef ENABLE_CUDA
     CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
+    #endif
+
+    #ifdef ENABLE_TBB
+    std::unique_ptr<tbb::task_scheduler_init> m_task_scheduler; //!< The TBB task scheduler
+    unsigned int m_num_threads;            //!<  The number of TBB threads used
     #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs

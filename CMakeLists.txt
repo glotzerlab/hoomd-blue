@@ -157,15 +157,14 @@ add_custom_target(copy_cmake ALL
 # set up unit tests
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
-if (BUILD_TESTING)
-     # add test_all to the ALL target
-     add_custom_target(test_all ALL)
-
-endif (BUILD_TESTING)
 
 ################################
 # set up long validation tests
 option(BUILD_VALIDATION "Build validation tests" OFF)
+if (BUILD_TESTING OR BUILD_VALIDATION)
+     # add test_all to the ALL target
+     add_custom_target(test_all ALL)
+endif (BUILD_TESTING OR BUILD_VALIDATION)
 
 ################################
 ## Process subdirectories

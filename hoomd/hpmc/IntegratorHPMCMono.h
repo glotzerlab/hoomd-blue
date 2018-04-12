@@ -273,6 +273,9 @@ class IntegratorHPMCMono : public IntegratorHPMC
             #endif
             }
 
+        //! Return true if anisotropic particles are present
+        virtual bool hasOrientation() { return m_hasOrientation; }
+
         //! Compute the energy due to patch interactions
         /*! \param timestep the current time step
          * \returns the total patch energy
@@ -284,6 +287,13 @@ class IntegratorHPMCMono : public IntegratorHPMC
 
         //! Make list of image indices for boxes to check in small-box mode
         const std::vector<vec3<Scalar> >& updateImageList();
+
+        //! Return list of integer shift vectors for periodic images
+        const std::vector<int3>& getImageHKL()
+            {
+            updateImageList();
+            return m_image_hkl;
+            }
 
         //! Method to be called when number of types changes
         virtual void slotNumTypesChange();
@@ -306,6 +316,7 @@ class IntegratorHPMCMono : public IntegratorHPMC
         bool m_image_list_is_initialized;                    //!< true if image list has been used
         bool m_image_list_valid;                             //!< image list is invalid if the box dimensions or particle parameters have changed.
         std::vector<vec3<Scalar> > m_image_list;             //!< List of potentially interacting simulation box images
+        std::vector<int3> m_image_hkl;               //!< List of potentially interacting simulation box images (integer shifts)
         unsigned int m_image_list_rebuilds;                  //!< Number of times the image list has been rebuilt
         bool m_image_list_warning_issued;                    //!< True if the image list warning has been issued
         bool m_hkl_max_warning_issued;                       //!< True if the image list size warning has been issued
@@ -316,6 +327,8 @@ class IntegratorHPMCMono : public IntegratorHPMC
         detail::AABB* m_aabbs;                      //!< list of AABBs, one per particle
         unsigned int m_aabbs_capacity;              //!< Capacity of m_aabbs list
         bool m_aabb_tree_invalid;                   //!< Flag if the aabb tree has been invalidated
+
+        Scalar m_extra_image_width;                 //! Extra width to extend the image list
 
         Index2D m_overlap_idx;                      //!!< Indexer for interaction matrix
 
@@ -352,7 +365,8 @@ IntegratorHPMCMono<Shape>::IntegratorHPMCMono(std::shared_ptr<SystemDefinition> 
               m_update_order(seed+m_exec_conf->getRank(), m_pdata->getN()),
               m_image_list_is_initialized(false),
               m_image_list_valid(false),
-              m_hasOrientation(true)
+              m_hasOrientation(true),
+              m_extra_image_width(0.0)
     {
     // allocate the parameter storage
     m_params = std::vector<param_type, managed_allocator<param_type> >(m_pdata->getNTypes(), param_type(), managed_allocator<param_type>(m_exec_conf->isCUDAEnabled()));
@@ -1199,6 +1213,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
     m_image_list_valid = true;
     m_image_list_is_initialized = true;
     m_image_list.clear();
+    m_image_hkl.clear();
     m_image_list_rebuilds++;
 
     // Get box vectors
@@ -1247,6 +1262,9 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
 
     range += max_trans_d_and_diam;
 
+    // add any extra requested width
+    range += m_extra_image_width;
+
     Scalar range_sq = range*range;
 
     // initialize loop
@@ -1294,6 +1312,7 @@ inline const std::vector<vec3<Scalar> >& IntegratorHPMCMono<Shape>::updateImageL
                             {
                             vec3<Scalar> img = (Scalar)hkl.x*e1+(Scalar)hkl.y*e2+(Scalar)hkl.z*e3;
                             m_image_list.push_back(img);
+                            m_image_hkl.push_back(make_int3(hkl.x, hkl.y, hkl.z));
                             added_images = true;
                             }
                         }

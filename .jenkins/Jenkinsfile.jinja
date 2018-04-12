@@ -23,6 +23,7 @@ pipeline
                         CMAKE_BIN = '{{ test.CMAKE_BIN }}'
                         ENABLE_CUDA = '{{ test.ENABLE_CUDA }}'
                         ENABLE_MPI = '{{ test.ENABLE_MPI }}'
+                        ENABLE_TBB = '{{ test.ENABLE_TBB }}'
                         BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
                         CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
                         BUILD_JIT = '{{ test.BUILD_JIT }}'
@@ -43,7 +44,7 @@ pipeline
                             timeout(time: 1, unit: 'HOURS')
                                 {
                                 sh '''
-                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
                                    '''
 
                                 sh 'singularity exec --nv ${CONTAINER} ninja -j 3'

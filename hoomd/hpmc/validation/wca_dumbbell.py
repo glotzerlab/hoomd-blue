@@ -25,12 +25,17 @@ rho_star_ref_list = [0.86902,1.00270,1.02583]
 # and Vega, Paras and Monson 1992 (Table I)
 rho_star_hard = [0.881,1.021,1.039]
 
+n_params = len(l_list)
+
+# are we testing update.cluster?
+use_clusters = p//n_params
+
 # relative error on the reference values = 1%
 rho_star_rel_err = 0.005
 
-P_star = P_star_list[p]
-len_cyl = l_list[p]
-rho_star_ref = rho_star_ref_list[p]
+P_star = P_star_list[p % n_params]
+len_cyl = l_list[p % n_params]
+rho_star_ref = rho_star_ref_list[p % n_params]
 
 # linear lattice dimension
 n = 10
@@ -57,7 +62,8 @@ class npt_wca_dimer_eos(unittest.TestCase):
 
         N = len(system.particles)
 
-        mc = hpmc.integrate.sphere_union(d=0.1,a=0.1,seed=1234)
+        seed = 1234
+        mc = hpmc.integrate.sphere_union(d=0.1,a=0.1,seed=seed)
 
         mc.shape_param.set('A',diameters=[sigma]*2,centers=[(0,0,-len_cyl/2),(0,0,len_cyl/2)],overlap=[0]*2,colors=['ff5984ff']*2)
 
@@ -106,7 +112,7 @@ class npt_wca_dimer_eos(unittest.TestCase):
 
         from hoomd import jit
         jit.patch.user(mc,r_cut=rcut, code=dumbbell)
-        boxmc = hpmc.update.boxmc(mc,betaP=P_star/d_eff**3.0, seed=5432)
+        boxmc = hpmc.update.boxmc(mc,betaP=P_star/d_eff**3.0, seed=seed+1)
         boxmc.ln_volume(delta=0.001,weight=1)
 
         mc_tune = hpmc.util.tune(mc, tunables=['d','a'],max_val=[4,0.5],gamma=1,target=0.3)
@@ -125,13 +131,16 @@ class npt_wca_dimer_eos(unittest.TestCase):
             mc_tune.update()
             npt_tune.update()
 
+        if use_clusters:
+            hpmc.update.clusters(mc,period=1,seed=seed+2)
+
         run(1e4,callback=accumulate_rho, callback_period=100)
 
         block = BlockAverage.BlockAverage(rho_val)
         rho_avg = np.mean(rho_val)
         i, rho_err = block.get_error_estimate()
 
-        context.msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f}\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0))
+        context.msg.notice(1,'P_star = {:.3f} rho_star = {:.5f}+-{:.5f} (tgt: {:.5f})\n'.format(P_star,rho_avg*d_eff**3.0,rho_err*d_eff**3.0,rho_star_ref))
 
         # max error 0.5 %
         self.assertLessEqual(rho_err/rho_avg,0.005)

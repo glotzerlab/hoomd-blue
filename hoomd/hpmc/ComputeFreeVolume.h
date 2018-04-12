@@ -146,9 +146,11 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
 
     if (m_prof) m_prof->push("Free volume");
 
+    // only check if AABB tree is populated
+    if (m_pdata->getN() + m_pdata->getNGhosts())
         {
         // access particle data and system box
-        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         const BoxDim& box = m_pdata->getBox();
 

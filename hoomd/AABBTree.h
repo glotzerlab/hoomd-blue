@@ -106,6 +106,58 @@ class AABBTree
                 free(m_nodes);
             }
 
+        //! Copy constructor
+        AABBTree(const AABBTree& from)
+            {
+            m_num_nodes = from.m_num_nodes;
+            m_node_capacity = from.m_node_capacity;
+            m_root = from.m_root;
+            m_mapping = from.m_mapping;
+
+            m_nodes = NULL;
+
+            if (from.m_nodes)
+                {
+                // allocate memory
+                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating AABBTree memory");
+                    }
+
+                // copy over data
+                std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
+                }
+            }
+
+        //! Copy assignment
+        AABBTree& operator=(const AABBTree& from)
+            {
+            m_num_nodes = from.m_num_nodes;
+            m_node_capacity = from.m_node_capacity;
+            m_root = from.m_root;
+            m_mapping = from.m_mapping;
+
+            if (m_nodes)
+                free(m_nodes);
+
+            m_nodes = NULL;
+
+            if (from.m_nodes)
+                {
+                // allocate memory
+                int retval = posix_memalign((void**)&m_nodes, 32, m_node_capacity*sizeof(AABBNode));
+                if (retval != 0)
+                    {
+                    throw std::runtime_error("Error allocating AABBTree memory");
+                    }
+
+                // copy over data
+                std::copy(from.m_nodes, from.m_nodes + m_num_nodes, m_nodes);
+                }
+            return *this;
+            }
+
         //! Build a tree smartly from a list of AABBs
         inline void buildTree(AABB *aabbs, unsigned int N);
 

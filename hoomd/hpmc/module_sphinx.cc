@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -47,6 +49,9 @@ void export_sphinx(py::module& m)
     export_ComputeFreeVolume< ShapeSphinx >(m, "ComputeFreeVolumeSphinx");
     export_AnalyzerSDF< ShapeSphinx >(m, "AnalyzerSDFSphinx");
     export_UpdaterMuVT< ShapeSphinx >(m, "UpdaterMuVTSphinx");
+    export_UpdaterClusters< ShapeSphinx >(m, "UpdaterClustersSphinx");
+    export_UpdaterClustersImplicit< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterClustersImplicitSphinx");
+    export_UpdaterClustersImplicit< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterClustersImplicitNewSphinx");
     export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicit<ShapeSphinx> >(m, "UpdaterMuVTImplicitSphinx");
     export_UpdaterMuVTImplicit< ShapeSphinx, IntegratorHPMCMonoImplicitNew<ShapeSphinx> >(m, "UpdaterMuVTImplicitNewSphinx");
 
