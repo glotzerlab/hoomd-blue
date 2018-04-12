@@ -11,6 +11,10 @@
 #include <stdexcept>
 #include <memory>
 
+#ifdef ENABLE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 #include "NeighborList.h"
 #include "hoomd/ForceCompute.h"
 
