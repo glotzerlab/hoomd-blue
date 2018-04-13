@@ -25,7 +25,7 @@ template <class Real> struct SnapshotSystemData;
     between particles. This initializer only generates a single particle type.
     \ingroup data_structs
 */
-class SimpleCubicInitializer
+class PYBIND11_EXPORT SimpleCubicInitializer
     {
     public:
         //! Set the parameters
@@ -48,7 +48,7 @@ class SimpleCubicInitializer
     placed too close together. This initializer only generates a single particle
     type.
 */
-class RandomInitializer
+class PYBIND11_EXPORT RandomInitializer
     {
     public:
         //! Set the parameters

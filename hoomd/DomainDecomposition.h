@@ -46,7 +46,7 @@
  *
  *  The initialization of the domain decomposition scheme is performed in the constructor.
  */
-class DomainDecomposition
+class PYBIND11_EXPORT DomainDecomposition
     {
 #ifdef ENABLE_MPI
     public:

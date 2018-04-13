@@ -41,7 +41,7 @@
  *
  * \ingroup computes
  */
-class CellListStencil : public Compute
+class PYBIND11_EXPORT CellListStencil : public Compute
     {
     public:
         //! Constructor

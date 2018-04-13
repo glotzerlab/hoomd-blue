@@ -45,7 +45,7 @@
 
     \ingroup analyzers
 */
-class Logger : public Analyzer
+class __attribute__ ((visibility ("hidden"))) Logger : public Analyzer
     {
     public:
         //! Constructs a logger

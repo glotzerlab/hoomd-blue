@@ -26,7 +26,7 @@
 
     \ingroup updaters
 */
-class FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
+class PYBIND11_EXPORT FIREEnergyMinimizerGPU : public FIREEnergyMinimizer
     {
     public:
         //! Constructs the minimizer and associates it with the system

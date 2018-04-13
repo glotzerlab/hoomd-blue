@@ -58,7 +58,7 @@
     f = (r - rmin) / dr - Scalar(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
-class TablePotential : public ForceCompute
+class PYBIND11_EXPORT TablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute

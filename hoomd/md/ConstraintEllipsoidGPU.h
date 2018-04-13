@@ -22,7 +22,7 @@
 //! Applys a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes
 */
-class ConstraintEllipsoidGPU : public ConstraintEllipsoid
+class PYBIND11_EXPORT ConstraintEllipsoidGPU : public ConstraintEllipsoid
     {
     public:
         //! Constructs the compute

@@ -22,7 +22,7 @@ namespace mpcd
 {
 
 //! MPCD streaming method on the GPU
-class StreamingMethodGPU : public mpcd::StreamingMethod
+class PYBIND11_EXPORT StreamingMethodGPU : public mpcd::StreamingMethod
     {
     public:
         //! Constructor

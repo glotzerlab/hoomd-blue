@@ -27,7 +27,7 @@
 
     \ingroup analyzers
 */
-class POSDumpWriter : public Analyzer
+class PYBIND11_EXPORT POSDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer

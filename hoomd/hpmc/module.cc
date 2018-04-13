@@ -57,10 +57,8 @@ namespace detail
 using namespace hpmc::detail;
 
 //! Define the _hpmc python module exports
-PYBIND11_PLUGIN(_hpmc)
+PYBIND11_MODULE(_hpmc, m)
     {
-    py::module m("_hpmc");
-
     export_IntegratorHPMC(m);
 
     export_UpdaterBoxMC(m);
@@ -108,7 +106,6 @@ PYBIND11_PLUGIN(_hpmc)
     export_hpmc_implicit_counters(m);
 
     export_hpmc_clusters_counters(m);
-    return m.ptr();
     }
 
 /*! \defgroup hpmc_integrators HPMC integrators

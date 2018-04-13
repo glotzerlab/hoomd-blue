@@ -100,7 +100,7 @@ class Communicator;
 
     \ingroup updaters
 */
-class IntegrationMethodTwoStep
+class PYBIND11_EXPORT IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system

@@ -34,7 +34,7 @@
 
     \ingroup computes
 */
-class CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
+class PYBIND11_EXPORT CGCMMAngleForceComputeGPU : public CGCMMAngleForceCompute
     {
     public:
         //! Constructs the compute

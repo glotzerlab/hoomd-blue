@@ -26,7 +26,7 @@ namespace mpcd
  * This method implements the base version of ballistic propagation of MPCD
  * particles.
  */
-class StreamingMethod
+class PYBIND11_EXPORT StreamingMethod
     {
     public:
         //! Constructor

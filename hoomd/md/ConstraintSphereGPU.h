@@ -22,7 +22,7 @@
 //! Applys a constraint force to keep a group of particles on a sphere on the GPU
 /*! \ingroup computes
 */
-class ConstraintSphereGPU : public ConstraintSphere
+class PYBIND11_EXPORT ConstraintSphereGPU : public ConstraintSphere
     {
     public:
         //! Constructs the compute

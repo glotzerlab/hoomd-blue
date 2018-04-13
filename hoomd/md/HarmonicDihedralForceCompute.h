@@ -30,7 +30,7 @@
     The dihedrals which forces are computed on are accessed from ParticleData::getDihedralData
     \ingroup computes
 */
-class HarmonicDihedralForceCompute : public ForceCompute
+class PYBIND11_EXPORT HarmonicDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

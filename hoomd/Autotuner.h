@@ -54,7 +54,7 @@
     each set of samples. When idle, the number of calls is counted in m_calls. m_state lists the current state in the
     state machine.
 */
-class Autotuner
+class PYBIND11_EXPORT Autotuner
     {
     public:
         //! Constructor

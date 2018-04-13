@@ -21,7 +21,7 @@
 namespace mpcd
 {
 
-class ATCollisionMethodGPU : public mpcd::ATCollisionMethod
+class PYBIND11_EXPORT ATCollisionMethodGPU : public mpcd::ATCollisionMethod
     {
     public:
         //! Constructor

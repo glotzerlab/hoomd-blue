@@ -23,7 +23,7 @@
 #ifndef __ForceCompositeGPU_H__
 #define __ForceCompositeGPU_H__
 
-class ForceCompositeGPU : public ForceComposite
+class PYBIND11_EXPORT ForceCompositeGPU : public ForceComposite
     {
     public:
         //! Constructs the compute

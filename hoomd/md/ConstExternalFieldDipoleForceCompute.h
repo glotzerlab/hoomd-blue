@@ -24,7 +24,7 @@
 //! Adds the force of a constant external field on a dipole for each particle
 /*! \ingroup computes
 */
-class ConstExternalFieldDipoleForceCompute : public ForceCompute
+class PYBIND11_EXPORT ConstExternalFieldDipoleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

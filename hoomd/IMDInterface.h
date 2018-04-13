@@ -33,7 +33,7 @@
     result in the socket closing the connection.
     \ingroup analyzers
 */
-class IMDInterface : public Analyzer
+class PYBIND11_EXPORT IMDInterface : public Analyzer
     {
     public:
         //! Constructor

@@ -24,7 +24,7 @@
 
 /*! Implements the Berendsen thermostat \cite Berendsen1984
 */
-class TwoStepBerendsen : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepBerendsen : public IntegrationMethodTwoStep
     {
     public:
         //! Constructor

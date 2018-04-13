@@ -27,7 +27,7 @@
  *
  * \ingroup computes
  */
-class NeighborListGPUTree : public NeighborListGPU
+class PYBIND11_EXPORT NeighborListGPUTree : public NeighborListGPU
     {
     public:
         //! Constructs the compute

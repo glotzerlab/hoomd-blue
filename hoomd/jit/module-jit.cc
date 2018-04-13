@@ -11,11 +11,8 @@
  create the hoomd python module and define the exports here.
  */
 
-PYBIND11_PLUGIN(_jit)
+PYBIND11_MODULE(_jit, m)
     {
-    pybind11::module m("_jit");
     export_PatchEnergyJIT(m);
     export_PatchEnergyJITUnion(m);
-
-    return m.ptr();
     }

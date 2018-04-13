@@ -27,7 +27,7 @@
     The GPU kernel for calculating this can be found in TableDihedralForceComputeGPU.cu/
     \ingroup computes
 */
-class TableDihedralForceComputeGPU : public TableDihedralForceCompute
+class PYBIND11_EXPORT TableDihedralForceComputeGPU : public TableDihedralForceCompute
     {
     public:
         //! Constructs the compute

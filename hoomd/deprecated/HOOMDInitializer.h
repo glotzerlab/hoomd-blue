@@ -14,7 +14,7 @@
 
 #include "hoomd/ParticleData.h"
 #include "hoomd/BondedGroupData.h"
-#include "hoomd/extern/xmlParser.h"
+#include "hoomd/deprecated/xmlParser.h"
 
 #include <string>
 #include <vector>
@@ -47,7 +47,7 @@ template <class Real> struct SnapshotSystemData;
 
     \ingroup data_structs
 */
-class HOOMDInitializer
+class PYBIND11_EXPORT HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data

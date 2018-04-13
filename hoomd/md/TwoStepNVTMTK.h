@@ -36,7 +36,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVTMTK : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system

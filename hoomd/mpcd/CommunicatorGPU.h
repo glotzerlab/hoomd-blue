@@ -44,7 +44,7 @@ namespace mpcd
  *
  * \ingroup communication
  */
-class CommunicatorGPU : public mpcd::Communicator
+class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     {
     public:
         //! Constructor

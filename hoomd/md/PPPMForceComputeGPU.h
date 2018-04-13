@@ -29,7 +29,7 @@
 
 /*! Order parameter evaluated using the particle mesh method
  */
-class PPPMForceComputeGPU : public PPPMForceCompute
+class PYBIND11_EXPORT PPPMForceComputeGPU : public PPPMForceCompute
     {
     public:
         //! Constructor

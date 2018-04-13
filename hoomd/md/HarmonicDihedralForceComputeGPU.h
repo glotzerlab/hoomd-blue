@@ -29,7 +29,7 @@
 
     \ingroup computes
 */
-class HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
+class PYBIND11_EXPORT HarmonicDihedralForceComputeGPU : public HarmonicDihedralForceCompute
     {
     public:
         //! Constructs the compute

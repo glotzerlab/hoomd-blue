@@ -25,7 +25,7 @@
     The GPU kernel for calculating this can be found in TableAngleForceComputeGPU.cu/
     \ingroup computes
 */
-class TableAngleForceComputeGPU : public TableAngleForceCompute
+class PYBIND11_EXPORT TableAngleForceComputeGPU : public TableAngleForceCompute
     {
     public:
         //! Constructs the compute

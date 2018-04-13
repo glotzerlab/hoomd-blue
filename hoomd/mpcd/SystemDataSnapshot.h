@@ -24,14 +24,16 @@ namespace mpcd
 {
 
 //! Structure for initializing system data
-class SystemDataSnapshot
+class PYBIND11_EXPORT SystemDataSnapshot
     {
     public:
         //! Constructor
         SystemDataSnapshot(std::shared_ptr<::SystemDefinition> sysdef)
             : m_sysdef(sysdef), m_hoomd_pdata(m_sysdef->getParticleData()),
               m_global_box(m_hoomd_pdata->getGlobalBox())
-            { }
+            {
+            particles = std::make_shared<mpcd::ParticleDataSnapshot>();
+            }
 
         //! Replicate the snapshot
         void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
@@ -70,7 +72,7 @@ class SystemDataSnapshot
             #endif // ENABLE_MPI
             }
 
-        mpcd::ParticleDataSnapshot particles;   //!< MPCD particle data snapshot
+        std::shared_ptr<mpcd::ParticleDataSnapshot> particles;   //!< MPCD particle data snapshot
 
     private:
         std::shared_ptr<::SystemDefinition> m_sysdef;   //!< HOOMD system definition

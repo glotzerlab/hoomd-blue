@@ -26,17 +26,13 @@ void export_NF_WCA_3D(pybind11::module& m);
 void export_NF_SWCA_3D(pybind11::module& m);
 void export_NF_SWCA_2D(pybind11::module& m);
 
-PYBIND11_PLUGIN(_dem)
+PYBIND11_MODULE(_dem, m)
     {
-    pybind11::module m("_dem");
-
     export_params(m);
     export_NF_WCA_2D(m);
     export_NF_WCA_3D(m);
     export_NF_SWCA_2D(m);
     export_NF_SWCA_3D(m);
-
-    return m.ptr();
     }
 
 // Export all of the parameter wrapper objects to the python interface

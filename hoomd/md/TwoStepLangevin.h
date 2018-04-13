@@ -28,7 +28,7 @@
 
     \ingroup updaters
 */
-class TwoStepLangevin : public TwoStepLangevinBase
+class PYBIND11_EXPORT TwoStepLangevin : public TwoStepLangevinBase
     {
     public:
         //! Constructs the integration method and associates it with the system

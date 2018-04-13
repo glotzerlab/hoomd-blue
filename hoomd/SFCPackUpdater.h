@@ -46,7 +46,7 @@
 
     \ingroup updaters
 */
-class SFCPackUpdater : public Updater
+class PYBIND11_EXPORT SFCPackUpdater : public Updater
     {
     public:
         //! Constructor

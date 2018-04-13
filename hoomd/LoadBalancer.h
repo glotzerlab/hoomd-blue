@@ -43,7 +43,7 @@
  *
  * \ingroup updaters
  */
-class LoadBalancer : public Updater
+class PYBIND11_EXPORT LoadBalancer : public Updater
     {
     public:
         //! Constructor

@@ -62,7 +62,7 @@
 
     \ingroup updaters
 */
-class Integrator : public Updater
+class PYBIND11_EXPORT Integrator : public Updater
     {
     public:
         //! Constructor

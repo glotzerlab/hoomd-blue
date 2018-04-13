@@ -54,7 +54,7 @@
 
     \ingroup analyzers
 */
-class Analyzer
+class PYBIND11_EXPORT Analyzer
     {
     public:
         //! Constructs the analyzer and associates it with the ParticleData

@@ -69,7 +69,7 @@ template <class Real> struct SnapshotSystemData;
 
     \ingroup data_structs
 */
-class SystemDefinition
+class PYBIND11_EXPORT SystemDefinition
     {
     public:
         //! Constructs a NULL SystemDefinition

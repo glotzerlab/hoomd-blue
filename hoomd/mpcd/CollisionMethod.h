@@ -22,7 +22,7 @@ namespace mpcd
 {
 
 //! MPCD collision method
-class CollisionMethod
+class PYBIND11_EXPORT CollisionMethod
     {
     public:
         //! Constructor

@@ -143,7 +143,7 @@ namespace cereal
  * \ingroup data_structs
  */
 template <class Real>
-struct SnapshotParticleData {
+struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0), is_accel_set(false)
@@ -391,7 +391,7 @@ struct pdata_element
     is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
     valid flag.
 */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Construct with N particles in the given box

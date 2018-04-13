@@ -44,7 +44,7 @@ inline void Sleep(int msec)
     or better. Critical accessor methods are inlined for low overhead
     \ingroup utils
 */
-class ClockSource
+class PYBIND11_EXPORT ClockSource
     {
     public:
         //! Construct a ClockSource

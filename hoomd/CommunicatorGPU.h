@@ -33,7 +33,7 @@
 //! Class that handles MPI communication (GPU version)
 /*! CommunicatorGPU is the GPU implementation of the base communication class.
 */
-class CommunicatorGPU : public Communicator
+class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     {
     public:
         //! Constructor

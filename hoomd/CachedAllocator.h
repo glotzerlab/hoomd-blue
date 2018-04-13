@@ -20,7 +20,7 @@
 #include <cassert>
 
 //! CachedAllocator: a simple allocator for caching allocation requests
-class CachedAllocator
+class __attribute__((visibility("default"))) CachedAllocator
     {
     public:
          // needed by thrust

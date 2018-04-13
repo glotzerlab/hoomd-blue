@@ -28,7 +28,7 @@
     The angles which forces are computed on are accessed from ParticleData::getAngleData
     \ingroup computes
 */
-class CosineSqAngleForceCompute : public ForceCompute
+class PYBIND11_EXPORT CosineSqAngleForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute

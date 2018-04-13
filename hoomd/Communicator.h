@@ -149,7 +149,7 @@ struct rank_element
  * described above.
  * \ingroup communication
  */
-class Communicator
+class PYBIND11_EXPORT Communicator
     {
     public:
         //! Constructor

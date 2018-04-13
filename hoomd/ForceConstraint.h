@@ -25,7 +25,7 @@
 /*! See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
 */
-class ForceConstraint : public ForceCompute
+class PYBIND11_EXPORT ForceConstraint : public ForceCompute
     {
     public:
         //! Constructs the compute

@@ -33,7 +33,7 @@
 
     \ingroup computes
 */
-class HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
+class PYBIND11_EXPORT HarmonicImproperForceComputeGPU : public HarmonicImproperForceCompute
     {
     public:
         //! Constructs the compute

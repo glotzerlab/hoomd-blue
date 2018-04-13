@@ -25,7 +25,7 @@
 
     \ingroup computes
 */
-class NeighborListBinned : public NeighborList
+class PYBIND11_EXPORT NeighborListBinned : public NeighborList
     {
     public:
         //! Constructs the compute

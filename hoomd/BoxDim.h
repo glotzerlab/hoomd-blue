@@ -59,7 +59,7 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-struct BoxDim
+struct __attribute__((visibility("default"))) BoxDim
     {
     public:
         //! Constructs a useless box

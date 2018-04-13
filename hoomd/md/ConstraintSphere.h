@@ -25,7 +25,7 @@
 //! Applys a constraint force to keep a group of particles on a sphere
 /*! \ingroup computes
 */
-class ConstraintSphere : public ForceConstraint
+class PYBIND11_EXPORT ConstraintSphere : public ForceConstraint
     {
     public:
         //! Constructs the compute

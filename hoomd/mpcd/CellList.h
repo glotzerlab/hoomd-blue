@@ -33,7 +33,7 @@ namespace mpcd
 class Communicator;
 
 //! Computes the MPCD cell list on the CPU
-class CellList : public Compute
+class PYBIND11_EXPORT CellList : public Compute
     {
     public:
         //! Constructor

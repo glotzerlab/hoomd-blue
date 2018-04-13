@@ -88,10 +88,10 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_mpcd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_mpcd SHARED ${_mpcd_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_mpcd SHARED ${_mpcd_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
 
 # link the library to its dependencies
-target_link_libraries(_mpcd _hoomd _md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_mpcd PRIVATE _md ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -104,15 +104,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_mpcd PROPERTIES PREFIX "" OUTPUT_NAME "_mpcd")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_mpcd PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_mpcd)
 
 # install the library

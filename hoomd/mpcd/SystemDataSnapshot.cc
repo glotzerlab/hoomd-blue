@@ -24,7 +24,7 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
     L.z *= (Scalar) nz;
     m_global_box.setL(L);
 
-    particles.replicate(nx, ny, nz, old_box, m_global_box);
+    particles->replicate(nx, ny, nz, old_box, m_global_box);
     }
 
 /*!

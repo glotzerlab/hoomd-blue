@@ -58,7 +58,7 @@
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class Compute
+class PYBIND11_EXPORT Compute
     {
     public:
         //! Constructs the compute and associates it with the ParticleData

@@ -1,6 +1,6 @@
 # Maintainer: joaander
 
-include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
+include_directories(${PYTHON_INCLUDE_DIR})
 
 ################################
 ## Define common libraries used by every target in HOOMD

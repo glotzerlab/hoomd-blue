@@ -28,7 +28,7 @@
 #ifndef __ForceComposite_H__
 #define __ForceComposite_H__
 
-class ForceComposite : public MolecularForceCompute
+class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
     {
     public:
         //! Constructs the compute

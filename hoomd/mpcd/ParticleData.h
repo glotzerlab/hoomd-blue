@@ -68,7 +68,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Number constructor
@@ -81,7 +81,7 @@ class ParticleData
                      std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
 
         //! Snapshot constructor
-        ParticleData(mpcd::ParticleDataSnapshot& snapshot,
+        ParticleData(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot,
                      const BoxDim& global_box,
                      std::shared_ptr<const ExecutionConfiguration> exec_conf,
                      std::shared_ptr<DomainDecomposition> decomposition = std::shared_ptr<DomainDecomposition>());
@@ -90,14 +90,14 @@ class ParticleData
         ~ParticleData();
 
         //! Initialize the MPCD particle data from a snapshot
-        void initializeFromSnapshot(const mpcd::ParticleDataSnapshot& snapshot,
+        void initializeFromSnapshot(const std::shared_ptr<const ParticleDataSnapshot> snapshot,
                                     const BoxDim& global_box);
 
         //! Default initialize the MPCD particle data per rank
         void initializeRandom(unsigned int N, const BoxDim& local_box, Scalar kT, unsigned int seed, unsigned int ndimensions);
 
         //! Take a snapshot of the MPCD particle data
-        void takeSnapshot(mpcd::ParticleDataSnapshot& snapshot, const BoxDim& global_box) const;
+        void takeSnapshot(std::shared_ptr<mpcd::ParticleDataSnapshot> snapshot, const BoxDim& global_box) const;
 
         //! \name accessor methods
         //@{
@@ -379,10 +379,10 @@ class ParticleData
         SortSignal m_sort_signal;   //!< Signal triggered when particles are sorted
 
         //! Check for a valid snapshot
-        bool checkSnapshot(const mpcd::ParticleDataSnapshot& snapshot);
+        bool checkSnapshot(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot);
 
         //! Check if all particles lie within the box
-        bool checkInBox(const mpcd::ParticleDataSnapshot& snapshot, const BoxDim& box);
+        bool checkInBox(const std::shared_ptr<const mpcd::ParticleDataSnapshot> snapshot, const BoxDim& box);
 
         //! Set the global number of particles (for parallel simulations)
         void setNGlobal(unsigned int nglobal);

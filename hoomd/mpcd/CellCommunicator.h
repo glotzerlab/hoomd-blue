@@ -38,7 +38,7 @@ namespace mpcd
 {
 
 //! Communicates properties across the MPCD cell list
-class CellCommunicator
+class PYBIND11_EXPORT CellCommunicator
     {
     public:
         //! Constructor

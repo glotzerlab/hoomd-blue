@@ -49,7 +49,7 @@ namespace mpcd
  *
  * \ingroup data_structs
  */
-class ParticleDataSnapshot
+class PYBIND11_EXPORT ParticleDataSnapshot
     {
     public:
         //! Default constructor
@@ -74,21 +74,6 @@ class ParticleDataSnapshot
                        const BoxDim& old_box,
                        const BoxDim& new_box);
 
-        //! Get snapshot positions as a numpy array
-        pybind11::object getPosition();
-
-        //! Get snapshot velocities as a numpy array
-        pybind11::object getVelocity();
-
-        //! Get snapshot types as a numpy array
-        pybind11::object getType();
-
-        //! Get snapshot type names as a python list
-        pybind11::list getTypeNames();
-
-        //! Set snapshot type names from a python list
-        void setTypeNames(pybind11::list types);
-
         unsigned int size;                      //!< Number of particles
         std::vector< vec3<Scalar> > position;   //!< MPCD particle positions
         std::vector< vec3<Scalar> > velocity;   //!< MPCD particle velocities
@@ -99,6 +84,7 @@ class ParticleDataSnapshot
 
 namespace detail
 {
+
 //! Export mpcd::ParticleDataSnapshot to python
 void export_ParticleDataSnapshot(pybind11::module& m);
 } // end namespace detail

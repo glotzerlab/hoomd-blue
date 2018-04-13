@@ -28,7 +28,7 @@
 
     \ingroup computes
 */
-class NeighborListGPUBinned : public NeighborListGPU
+class PYBIND11_EXPORT NeighborListGPUBinned : public NeighborListGPU
     {
     public:
         //! Constructs the compute

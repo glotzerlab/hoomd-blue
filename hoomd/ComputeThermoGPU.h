@@ -23,7 +23,7 @@
 /*! ComputeThermoGPU is a GPU accelerated implementation of ComputeThermo
     \ingroup computes
 */
-class ComputeThermoGPU : public ComputeThermo
+class PYBIND11_EXPORT ComputeThermoGPU : public ComputeThermo
     {
     public:
         //! Constructs the compute

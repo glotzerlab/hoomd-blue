@@ -23,6 +23,7 @@ else(HOOMD_ROOT)
   find_package(PythonInterp)
 
   set(find_hoomd_script "
+from __future__ import print_function;
 import sys, os; sys.stdout = open(os.devnull, 'w')
 import hoomd
 print(os.path.dirname(hoomd.__file__), file=sys.stderr, end='')")
@@ -90,6 +91,8 @@ include (CMake_install_options)
 
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
+# setup numpy
+include (HOOMDNumpySetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 # Set default CFlags
@@ -103,13 +106,13 @@ include (HOOMDMacros)
 # setup MPI support
 include (HOOMDMPISetup)
 
-set(HOOMD_LIB ${HOOMD_ROOT}/_hoomd.so)
-set(HOOMD_MD_LIB ${HOOMD_ROOT}/md/_md.so)
-set(HOOMD_DEM_LIB ${HOOMD_ROOT}/dem/_dem.so)
-set(HOOMD_HPMC_LIB ${HOOMD_ROOT}/hpmc/_hpmc.so)
-set(HOOMD_CGCMM_LIB ${HOOMD_ROOT}/cgcmm/_cgcmm.so)
-set(HOOMD_METAL_LIB ${HOOMD_ROOT}/metal/_metal.so)
-set(HOOMD_DEPRECATED_LIB ${HOOMD_ROOT}/deprecated/_deprecated.so)
+set(HOOMD_LIB ${HOOMD_ROOT}/_hoomd${PYTHON_MODULE_EXTENSION})
+set(HOOMD_MD_LIB ${HOOMD_ROOT}/md/_md${PYTHON_MODULE_EXTENSION})
+set(HOOMD_DEM_LIB ${HOOMD_ROOT}/dem/_dem${PYTHON_MODULE_EXTENSION})
+set(HOOMD_HPMC_LIB ${HOOMD_ROOT}/hpmc/_hpmc${PYTHON_MODULE_EXTENSION})
+set(HOOMD_CGCMM_LIB ${HOOMD_ROOT}/cgcmm/_cgcmm${PYTHON_MODULE_EXTENSION})
+set(HOOMD_METAL_LIB ${HOOMD_ROOT}/metal/_metal${PYTHON_MODULE_EXTENSION})
+set(HOOMD_DEPRECATED_LIB ${HOOMD_ROOT}/deprecated/_deprecated${PYTHON_MODULE_EXTENSION})
 
 set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})
 set(HOOMD_LIBRARIES ${HOOMD_LIB} ${HOOMD_COMMON_LIBS})

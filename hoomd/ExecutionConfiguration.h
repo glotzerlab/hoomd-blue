@@ -63,7 +63,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration
+struct PYBIND11_EXPORT ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode

@@ -37,7 +37,7 @@
  *
  * \ingroup computes
  */
-class NeighborListTree : public NeighborList
+class PYBIND11_EXPORT NeighborListTree : public NeighborList
     {
     public:
         //! Constructs the compute

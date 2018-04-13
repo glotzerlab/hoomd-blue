@@ -24,7 +24,7 @@
 namespace mpcd
 {
 
-class SystemData
+class PYBIND11_EXPORT SystemData
     {
     public:
         //! Construct from MPCD ParticleData

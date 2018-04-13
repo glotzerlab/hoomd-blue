@@ -41,7 +41,7 @@
 
     \ingroup updaters
 */
-class IntegratorTwoStep : public Integrator
+class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     {
     public:
         //! Anisotropic integration mode: Automatic (detect whether

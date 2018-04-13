@@ -15,13 +15,11 @@
  create the hoomd python module and define the exports here.
  */
 
-PYBIND11_PLUGIN(_metal)
+PYBIND11_MODULE(_metal, m)
     {
-    pybind11::module m("_metal");
     export_EAMForceCompute(m);
 
 #ifdef ENABLE_CUDA
     export_EAMForceComputeGPU(m);
 #endif
-    return m.ptr();
     }
