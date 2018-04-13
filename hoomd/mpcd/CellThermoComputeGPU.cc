@@ -23,11 +23,9 @@ mpcd::CellThermoComputeGPU::CellThermoComputeGPU(std::shared_ptr<mpcd::SystemDat
     std::vector<unsigned int> valid_params;
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
-        int s = 1;
-        while (s <= m_exec_conf->dev_prop.warpSize)
+        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
             {
             valid_params.push_back(block_size * 10000 + s);
-            s *= 2;
             }
         }
 

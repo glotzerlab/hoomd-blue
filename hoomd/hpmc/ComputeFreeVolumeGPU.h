@@ -98,8 +98,7 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
     std::vector<unsigned int> valid_params;
     for (unsigned int block_size = 32; block_size <= 1024; block_size += 32)
         {
-        unsigned int s=1;
-        while (s <= (unsigned int) this->m_exec_conf->dev_prop.warpSize)
+        for (auto s : Autotuner::getTppListPow2(this->m_exec_conf->dev_prop.warpSize))
             {
             unsigned int stride = 1;
             while (stride <= this->m_exec_conf->dev_prop.warpSize/s)
@@ -113,7 +112,6 @@ ComputeFreeVolumeGPU< Shape >::ComputeFreeVolumeGPU(std::shared_ptr<SystemDefini
                     }
                 stride*=2;
                 }
-            s = s * 2;
             }
         }
     m_tuner_free_volume.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_free_volume", this->m_exec_conf));
