@@ -23,16 +23,8 @@ Software prerequisites on clusters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most cluster administrators provide versions of Git, Python, NumPy, MPI, and CUDA as modules.
-`glotzports <https://bitbucket.org/glotzer/glotzports>`_ will load these modules and build HOOMD (and other glotzer
-group developed tools) with a single command::
-
-    ./create-env /path/to/prefix "hoomd"
-
-glotzports supports a number of national supercomputing systems, such as OLCF Titan and XSEDE Comet. If you would
-like to configure your own module environment, you can reference
-`glotzports environments <https://bitbucket.org/glotzer/glotzports/src/master/system-config/>`_ as a starting point.
-For systems not supported by glotzports, you will need to consult the documentation or ask the system administrators
-for suggestions to load the appropriate modules.
+You will need to consult the documentation or ask the system administrators
+for instructions to load the appropriate modules.
 
 Prerequisites on workstations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
