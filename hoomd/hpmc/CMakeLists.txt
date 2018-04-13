@@ -101,10 +101,10 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hpmc_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module (_hpmc SHARED ${_hpmc_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
 
 # link the library to its dependencies
-target_link_libraries(_hpmc _hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hpmc PRIVATE ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -117,15 +117,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_hpmc PROPERTIES PREFIX "" OUTPUT_NAME "_hpmc")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_hpmc PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_hpmc)
 
 # install the library

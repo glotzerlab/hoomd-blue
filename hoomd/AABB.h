@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -90,7 +90,7 @@ namespace detail
     - overlap()
     - contains()
 */
-struct AABB
+struct __attribute__((visibility("default"))) AABB
     {
     #if defined(__AVX__) && !defined(SINGLE_PRECISION) && !defined(NVCC) && 0
     __m256d lower_v;    //!< Lower left corner (AVX data type)

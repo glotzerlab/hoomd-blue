@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -1371,20 +1371,20 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::Snapshot::setTy
     }
 
 //! Explicit template instantiations
-template class BondedGroupData<2, Bond, name_bond_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_bond_data>;
 template void export_BondedGroupData<BondData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<3, Angle, name_angle_data>;
+template class PYBIND11_EXPORT BondedGroupData<3, Angle, name_angle_data>;
 template void export_BondedGroupData<AngleData,Angle>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<4, Dihedral, name_dihedral_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_dihedral_data>;
 template void export_BondedGroupData<DihedralData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<4, Dihedral, name_improper_data>;
+template class PYBIND11_EXPORT BondedGroupData<4, Dihedral, name_improper_data>;
 template void export_BondedGroupData<ImproperData,Dihedral>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<2, Constraint, name_constraint_data, false>;
+template class PYBIND11_EXPORT BondedGroupData<2, Constraint, name_constraint_data, false>;
 template void export_BondedGroupData<ConstraintData,Constraint>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);
 
-template class BondedGroupData<2, Bond, name_pair_data>;
+template class PYBIND11_EXPORT BondedGroupData<2, Bond, name_pair_data>;
 template void export_BondedGroupData<PairData,Bond>(py::module& m, std::string name,std::string snapshot_name, bool export_struct);

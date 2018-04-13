@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -27,7 +27,7 @@
     seed.
     \ingroup data_structs
 */
-struct IntegratorVariables
+struct PYBIND11_EXPORT IntegratorVariables
     {
     std::string type;                   //!<The type of integrator (NVT, NPT, etc.)
     std::vector<Scalar> variable;       //!<Variables that define the integration state
@@ -61,7 +61,7 @@ namespace cereal
 
     \ingroup data_structs
 */
-class IntegratorData
+class PYBIND11_EXPORT IntegratorData
     {
     public:
         //! Constructs an empty list with no integrator variables

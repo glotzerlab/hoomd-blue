@@ -17,11 +17,7 @@ endmacro(run_python)
 
 if(NOT NUMPY_INCLUDE_DIR)
 
-if (PYTHON_VERSION VERSION_GREATER 3)
-    run_python("import numpy\; print(numpy.get_include())" NUMPY_INCLUDE_GUESS)
-else()
-    run_python("import numpy\; print numpy.get_include()" NUMPY_INCLUDE_GUESS)
-endif()
+run_python("import numpy\; print(numpy.get_include())" NUMPY_INCLUDE_GUESS)
 
 # We use the full path name (including numpy on the end), but
 # Double-check that all is well with that choice.

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape>
-class ExternalCallback : public ExternalFieldMono<Shape>
+class __attribute__ ((visibility ("hidden"))) ExternalCallback : public ExternalFieldMono<Shape>
     {
     public:
         ExternalCallback(std::shared_ptr<SystemDefinition> sysdef,
@@ -99,7 +99,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                 return false;
             }
 
-        // Compute the energy difference for a proposed move on a single particle 
+        // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,
                           const vec3<Scalar>& position_old,
                           const Shape& shape_old,

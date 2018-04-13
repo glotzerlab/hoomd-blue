@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -50,7 +50,7 @@
     f = (r - rmin) / dr - float(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
-class BondTablePotential : public ForceCompute
+class PYBIND11_EXPORT BondTablePotential : public ForceCompute
     {
     public:
         //! Constructs the compute

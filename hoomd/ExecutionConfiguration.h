@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -63,7 +63,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration
+struct PYBIND11_EXPORT ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode

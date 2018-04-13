@@ -520,7 +520,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar charge_i(m_charge_backup[i]);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             const unsigned int n_images = image_list.size();
@@ -554,7 +555,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 vec3<Scalar> r_ij = pos_j - pos_i_image;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     // the particle pair
                                     unsigned int new_tag_i;
@@ -723,7 +726,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         if (patch)
             {
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // compute V(r'-r)
@@ -764,7 +768,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 // check for excluded volume sphere overlap
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     auto p = std::make_pair(h_tag.data[i], new_tag_j);
 
@@ -835,7 +841,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(r_excl_i,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.0;
+            if (patch)
+                extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+
+            OverlapReal R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
@@ -877,7 +887,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 Scalar RaRb = r_excl_i + r_excl_j;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                bool interact_patch = patch && rsq_ij <= r_cut_patch*r_cut_patch;
+                                Scalar rcut_ij = 0.0;
+                                if (patch)
+                                    rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                bool interact_patch = patch && rsq_ij <= rcut_ij*rcut_ij;
 
                                 unsigned int err = 0;
 

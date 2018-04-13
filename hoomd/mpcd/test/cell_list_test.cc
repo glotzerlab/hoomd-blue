@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -23,7 +23,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     std::shared_ptr<SystemDefinition> sysdef(new SystemDefinition(snap, exec_conf));
 
     // initialize mpcd system
-    mpcd::ParticleDataSnapshot mpcd_snap(1);
+    auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
     auto pdata_1 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
 
     // define a system of different edge lengths
@@ -101,18 +101,18 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     // place each particle in a different cell, doubling the first cell
     std::shared_ptr<mpcd::ParticleData> pdata_9;
         {
-        mpcd::ParticleDataSnapshot mpcd_snap(9);
+        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(9);
 
-        mpcd_snap.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap.position[1] = vec3<Scalar>( 0.5, -0.5, -0.5);
-        mpcd_snap.position[2] = vec3<Scalar>(-0.5,  0.5, -0.5);
-        mpcd_snap.position[3] = vec3<Scalar>( 0.5,  0.5, -0.5);
-        mpcd_snap.position[4] = vec3<Scalar>(-0.5, -0.5,  0.5);
-        mpcd_snap.position[5] = vec3<Scalar>( 0.5, -0.5,  0.5);
-        mpcd_snap.position[6] = vec3<Scalar>(-0.5,  0.5,  0.5);
-        mpcd_snap.position[7] = vec3<Scalar>( 0.5,  0.5,  0.5);
+        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[1] = vec3<Scalar>( 0.5, -0.5, -0.5);
+        mpcd_snap->position[2] = vec3<Scalar>(-0.5,  0.5, -0.5);
+        mpcd_snap->position[3] = vec3<Scalar>( 0.5,  0.5, -0.5);
+        mpcd_snap->position[4] = vec3<Scalar>(-0.5, -0.5,  0.5);
+        mpcd_snap->position[5] = vec3<Scalar>( 0.5, -0.5,  0.5);
+        mpcd_snap->position[6] = vec3<Scalar>(-0.5,  0.5,  0.5);
+        mpcd_snap->position[7] = vec3<Scalar>( 0.5,  0.5,  0.5);
 
-        mpcd_snap.position[8] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[8] = vec3<Scalar>(-0.5, -0.5, -0.5);
         pdata_9 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
         }
 
@@ -264,8 +264,8 @@ void celllist_grid_shift_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<mpcd::ParticleData> pdata_1;
         {
-        mpcd::ParticleDataSnapshot mpcd_snap(1);
-        mpcd_snap.position[0] = vec3<Scalar>(0.1, 0.1, 0.1);
+        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(1);
+        mpcd_snap->position[0] = vec3<Scalar>(0.1, 0.1, 0.1);
         pdata_1 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
         }
 
@@ -363,15 +363,15 @@ void celllist_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
 
     std::shared_ptr<mpcd::ParticleData> pdata_8;
         {
-        mpcd::ParticleDataSnapshot mpcd_snap(8);
-        mpcd_snap.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap.position[1] = vec3<Scalar>( 0.5, -0.5, -0.5);
-        mpcd_snap.position[2] = vec3<Scalar>(-0.5,  0.5, -0.5);
-        mpcd_snap.position[3] = vec3<Scalar>( 0.5,  0.5, -0.5);
-        mpcd_snap.position[4] = vec3<Scalar>(-0.5, -0.5,  0.5);
-        mpcd_snap.position[5] = vec3<Scalar>( 0.5, -0.5,  0.5);
-        mpcd_snap.position[6] = vec3<Scalar>(-0.5,  0.5,  0.5);
-        mpcd_snap.position[7] = vec3<Scalar>( 0.5,  0.5,  0.5);
+        auto mpcd_snap = std::make_shared<mpcd::ParticleDataSnapshot>(8);
+        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[1] = vec3<Scalar>( 0.5, -0.5, -0.5);
+        mpcd_snap->position[2] = vec3<Scalar>(-0.5,  0.5, -0.5);
+        mpcd_snap->position[3] = vec3<Scalar>( 0.5,  0.5, -0.5);
+        mpcd_snap->position[4] = vec3<Scalar>(-0.5, -0.5,  0.5);
+        mpcd_snap->position[5] = vec3<Scalar>( 0.5, -0.5,  0.5);
+        mpcd_snap->position[6] = vec3<Scalar>(-0.5,  0.5,  0.5);
+        mpcd_snap->position[7] = vec3<Scalar>( 0.5,  0.5,  0.5);
 
         pdata_8 = std::make_shared<mpcd::ParticleData>(mpcd_snap, snap->global_box, exec_conf);
         }

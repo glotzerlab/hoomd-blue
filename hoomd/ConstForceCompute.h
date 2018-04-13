@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -25,13 +25,13 @@
 //! Adds a constant force to a number of particles
 /*! \ingroup computes
 */
-class ConstForceCompute : public ForceCompute
+class PYBIND11_EXPORT ConstForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
-        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz, 
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, Scalar fx, Scalar fy, Scalar fz,
                                                                     Scalar tx=0, Scalar ty=0, Scalar tz=0);
-        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz, 
+        ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz,
                                                                                                       Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Destructor

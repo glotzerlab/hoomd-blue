@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -127,8 +127,8 @@ void SnapshotSystemData<Real>::broadcast_all(unsigned int root, std::shared_ptr<
     }
 
 // instantiate both float and double snapshots
-template struct SnapshotSystemData<float>;
-template struct SnapshotSystemData<double>;
+template struct PYBIND11_EXPORT SnapshotSystemData<float>;
+template struct PYBIND11_EXPORT SnapshotSystemData<double>;
 
 void export_SnapshotSystemData(py::module& m)
     {

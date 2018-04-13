@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -33,7 +33,7 @@
     See Integrator for detailed documentation on constraint force implementation.
     \ingroup computes
 */
-class ForceDistanceConstraint : public MolecularForceCompute
+class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
     {
     public:
         //! Constructs the compute

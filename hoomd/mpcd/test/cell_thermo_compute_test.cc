@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -26,20 +26,20 @@ void cell_thermo_basic_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     // place each particle in a different cell, doubling the first cell
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
         {
-        mpcd::ParticleDataSnapshot& mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap.resize(5);
+        auto mpcd_snap = mpcd_sys_snap->particles;
+        mpcd_snap->resize(5);
 
-        mpcd_snap.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap.position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap.position[2] = vec3<Scalar>( 0.5,  0.5,  0.5);
-        mpcd_snap.position[3] = vec3<Scalar>( 0.5,  0.5,  0.5);
-        mpcd_snap.position[4] = vec3<Scalar>(-0.5,  0.5,  0.5);
+        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[2] = vec3<Scalar>( 0.5,  0.5,  0.5);
+        mpcd_snap->position[3] = vec3<Scalar>( 0.5,  0.5,  0.5);
+        mpcd_snap->position[4] = vec3<Scalar>(-0.5,  0.5,  0.5);
 
-        mpcd_snap.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
-        mpcd_snap.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
-        mpcd_snap.velocity[4] = vec3<Scalar>(1.0, -1.0, 4.0);
+        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+        mpcd_snap->velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+        mpcd_snap->velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+        mpcd_snap->velocity[4] = vec3<Scalar>(1.0, -1.0, 4.0);
         }
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
     std::shared_ptr<mpcd::ParticleData> pdata_5 = mpcd_sys->getParticleData();
@@ -227,18 +227,18 @@ void cell_thermo_embed_test(std::shared_ptr<ExecutionConfiguration> exec_conf)
     auto mpcd_sys_snap = std::make_shared<mpcd::SystemDataSnapshot>(sysdef);
         {
         // MPCD particles have same velocity, different masses though
-        mpcd::ParticleDataSnapshot& mpcd_snap = mpcd_sys_snap->particles;
-        mpcd_snap.resize(4);
+        auto mpcd_snap = mpcd_sys_snap->particles;
+        mpcd_snap->resize(4);
 
-        mpcd_snap.position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
-        mpcd_snap.position[1] = vec3<Scalar>(-0.5, -0.5,  0.5);
-        mpcd_snap.position[2] = vec3<Scalar>( 0.5, -0.5,  0.5);
-        mpcd_snap.position[3] = vec3<Scalar>( 0.5,  0.5,  0.5);
+        mpcd_snap->position[0] = vec3<Scalar>(-0.5, -0.5, -0.5);
+        mpcd_snap->position[1] = vec3<Scalar>(-0.5, -0.5,  0.5);
+        mpcd_snap->position[2] = vec3<Scalar>( 0.5, -0.5,  0.5);
+        mpcd_snap->position[3] = vec3<Scalar>( 0.5,  0.5,  0.5);
 
-        mpcd_snap.velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
-        mpcd_snap.velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
-        mpcd_snap.velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
-        mpcd_snap.velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
+        mpcd_snap->velocity[0] = vec3<Scalar>(2.0, 0.0, 0.0);
+        mpcd_snap->velocity[1] = vec3<Scalar>(1.0, 0.0, 0.0);
+        mpcd_snap->velocity[2] = vec3<Scalar>(0.0, -3.0, 0.0);
+        mpcd_snap->velocity[3] = vec3<Scalar>(0.0, 0.0, -5.0);
         }
     auto mpcd_sys = std::make_shared<mpcd::SystemData>(mpcd_sys_snap);
 

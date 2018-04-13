@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -69,7 +69,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
 
     // add an angle and check again
     // add type 0 bewtween angle formed by atom 0-1-2
-    sysdef_3->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2)); 
+    sysdef_3->getAngleData()->addBondedGroup(Angle(0, 0, 1, 2));
     fc_3->compute(1);
 
     // this time there should be a force, but it should be 0 because the angle
@@ -113,7 +113,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     pdata_3->setPosition(0, make_scalar3(0.0, 0.0, 0.0));
     pdata_3->setPosition(1, make_scalar3(1.0, 0.0, 0.0));
     pdata_3->setPosition(2, make_scalar3(1.0, 1.0, 0.0));
-    fc_3->compute(1); 
+    fc_3->compute(1);
     {
     GPUArray<Scalar4>& force_array_2 =  fc_3->getForceArray();
     GPUArray<Scalar>& virial_array_2 =  fc_3->getVirialArray();

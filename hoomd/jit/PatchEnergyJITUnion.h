@@ -20,6 +20,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
 
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
             m_rcut_type.resize(ntypes,0.0);
+            m_extent_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
@@ -55,13 +56,17 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             m_r_cut = rcut;
             }
 
-        //! Get the maximum cut-off
+        //! Get the cut-off for constituent particles
         virtual Scalar getRCut()
             {
-            float max_rcut = 0.0;
-            for (auto it = m_rcut_type.begin(); it != m_rcut_type.end(); ++it)
-                if (*it > max_rcut) max_rcut = *it;
-            return (Scalar)max_rcut;
+            return m_r_cut;
+            }
+
+        //! Get the maximum geometric extent, which is added to the cutoff, per type
+        virtual Scalar getAdditiveCutoff(unsigned int type)
+            {
+            assert(type <= m_extent_type.size());
+            return m_extent_type[type];
             }
 
         //! evaluate the energy of the patch interaction
@@ -92,6 +97,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
             {
             unsigned int ntypes = m_sysdef->getParticleData()->getNTypes();
             m_rcut_type.resize(ntypes,0.0);
+            m_extent_type.resize(ntypes,0.0);
             m_type.resize(ntypes);
             m_position.resize(ntypes);
             m_orientation.resize(ntypes);
@@ -104,6 +110,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         std::shared_ptr<SystemDefinition> m_sysdef;               // HOOMD's system definition
         std::vector<hpmc::detail::GPUTree> m_tree;                // The tree acceleration structure per particle type
         std::vector< float > m_rcut_type;                         // The per-type rcut
+        std::vector< float > m_extent_type;                       // The per-type geometric extent
         std::vector< std::vector<vec3<float> > > m_position;      // The positions of the constituent particles
         std::vector< std::vector<quat<float> > > m_orientation;   // The orientations of the constituent particles
         std::vector< std::vector<float> > m_diameter;             // The diameters of the constituent particles

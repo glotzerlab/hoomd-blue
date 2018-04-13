@@ -1,5 +1,7 @@
 # Maintainer: joaander
 
+add_subdirectory(extern)
+
 # configure the version information file
 configure_file (HOOMDVersion.h.in ${HOOMD_BINARY_DIR}/hoomd/include/HOOMDVersion.h)
 
@@ -59,8 +61,6 @@ set(_hoomd_sources Analyzer.cc
                    extern/mgpuutil.cc
                    extern/num_util.cc
                    extern/vmdsock.cc
-                   extern/xmlParser.cc
-                   extern/quickhull/QuickHull.cpp
                    )
 
 set(_hoomd_headers
@@ -188,12 +188,17 @@ if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+
+# add quick hull as its own library so that it's symbols can be public
+add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 
 # link the library to its dependencies
-target_link_libraries(_hoomd ${HOOMD_COMMON_LIBS})
+target_link_libraries(_hoomd PUBLIC quickhull)
+target_link_libraries(_hoomd PRIVATE ${HOOMD_COMMON_LIBS})
+set_target_properties(_hoomd PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR})
 
-set(HOOMD_LIBRARIES _hoomd ${HOOMD_COMMON_LIBS})
+set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -206,19 +211,13 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_hoomd PROPERTIES PREFIX "" OUTPUT_NAME "_hoomd")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_hoomd PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_hoomd)
 
 # install the library
 install(TARGETS _hoomd
+        LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
+        )
+install(TARGETS quickhull
         LIBRARY DESTINATION ${PYTHON_MODULE_BASE_DIR}
         )
 
@@ -290,8 +289,6 @@ endforeach()
 
 add_custom_target(copy_hoomd_headers ALL DEPENDS ${_hoomd_headers})
 endif()
-
-add_subdirectory(extern)
 
 if (BUILD_TESTING)
     add_subdirectory(test-py)
