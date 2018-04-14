@@ -27,6 +27,46 @@ namespace hpmc
 namespace detail
 {
 
+//! Wrapper around std::atomic_flag to allow use in a std::vector
+class my_atomic_flag
+    {
+    public:
+        //! Default constructor
+        my_atomic_flag()
+            {
+            f.clear();
+            }
+
+        //! Copy constructor
+        /*! \note this constructor doesn't really copy the value of its argument,
+            it just reset's the flag to zero
+         */
+        my_atomic_flag(const my_atomic_flag& other)
+            {
+            f.clear();
+            }
+
+        //! Assignment operator (non-atomic)
+        /*! \note this assignment operator doesn't really copy the value of its argument,
+            it just reset's the flag to zero
+         */
+        my_atomic_flag& operator =( const my_atomic_flag& other)
+            {
+            f.clear();
+            return *this;
+            }
+
+        //! Sets flag and returns old value
+        bool test_and_set()
+            {
+            return f.test_and_set();
+            }
+
+    private:
+        std::atomic_flag f;
+    };
+
+
 // Graph class represents a undirected graph
 // using adjacency list representation
 class Graph
@@ -53,24 +93,29 @@ class Graph
         tbb::concurrent_unordered_multimap<unsigned int, unsigned int> adj;
         #endif
 
-        // don't use a std::vector<bool> here bc it is not thread safe
+        #ifndef ENABLE_TBB
         std::vector<unsigned int> visited;
+        #else
+        std::vector<my_atomic_flag> visited;
+        #endif
 
+        #ifndef ENABLE_TBB
         // A function used by DFS
         inline void DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc);
+        #endif
 
         #ifdef ENABLE_TBB
         class DFSTask : public tbb::task
             {
             public:
-                DFSTask(unsigned int _root, std::vector<unsigned int>& _visited, tbb::concurrent_vector<unsigned int>& _cc,
+                DFSTask(unsigned int _root, std::vector<my_atomic_flag>& _visited,
+                    tbb::concurrent_vector<unsigned int>& _cc,
                     const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& _adj)
                     : root(_root), visited(_visited), cc(_cc), adj(_adj)
                     { }
 
                 tbb::task* execute()
                     {
-                    visited[root] = 1;
                     cc.push_back(root);
 
                     unsigned int count = 0;
@@ -82,7 +127,7 @@ class Graph
                     for (auto it = begin; it != end; ++it)
                         {
                         unsigned int neighbor = it->second;
-                        if (!visited[neighbor])
+                        if (!visited[neighbor].test_and_set())
                             {
                             if (count++ == 0)
                                 {
@@ -106,7 +151,7 @@ class Graph
 
             private:
                 unsigned int root;
-                std::vector<unsigned int> & visited;
+                std::vector<my_atomic_flag> & visited;
                 tbb::concurrent_vector<unsigned int>& cc;
                 const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& adj;
             };
@@ -121,12 +166,10 @@ void Graph::connectedComponents(std::vector<tbb::concurrent_vector<unsigned int>
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
 #endif
     {
-    std::fill(visited.begin(), visited.end(), 0);
-
     #ifdef ENABLE_TBB
     for (unsigned int v = 0; v < visited.size(); ++v)
         {
-        if (! visited[v])
+        if (! visited[v].test_and_set())
             {
             tbb::concurrent_vector<unsigned int> component;
             DFSTask& a = *new(tbb::task::allocate_root()) DFSTask(v, visited, component, adj);
@@ -135,6 +178,8 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
             }
         }
     #else
+    std::fill(visited.begin(), visited.end(), 0);
+
     // Depth first search
     for (unsigned int v=0; v<visited.size(); v++)
         {
@@ -148,6 +193,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
     #endif
     }
 
+#ifndef ENABLE_TBB
 void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc)
     {
     visited[v] = 1;
@@ -163,15 +209,25 @@ void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vec
             DFSUtil(i->second, visited, cur_cc);
         }
     }
-
+#endif
 Graph::Graph(unsigned int V)
     {
+    #ifndef ENABLE_TBB
     visited.resize(V, 0);
+    #else
+    visited.resize(V);
+    #endif
     }
 
 void Graph::resize(unsigned int V)
     {
+    #ifndef ENABLE_TBB
     visited.resize(V, 0);
+    #else
+    visited.clear();
+    visited.resize(V);
+    #endif
+
     adj.clear();
     }
 
