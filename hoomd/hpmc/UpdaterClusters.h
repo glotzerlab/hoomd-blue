@@ -486,7 +486,15 @@ class UpdaterClusters : public Updater
             Scalar nominal_width = m_mc->getMaxCoreDiameter();
             auto patch = m_mc->getPatchInteraction();
             if (patch)
-                nominal_width = std::max(nominal_width, patch->getRCut());
+                {
+                Scalar max_extent = 0.0;
+                for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+                    {
+                    max_extent = std::max(max_extent, patch->getAdditiveCutoff(typ));
+                    }
+
+                nominal_width = std::max(nominal_width, max_extent+patch->getRCut());
+                }
             return nominal_width;
             }
     };
