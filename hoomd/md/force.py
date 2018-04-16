@@ -208,7 +208,7 @@ class constant(_force):
 
     Examples::
 
-        force.constant(fx=1.0, fy=0.5, fz=0.25))
+        force.constant(fx=1.0, fy=0.5, fz=0.25)
         const = force.constant(fvec=(0.4,1.0,0.5))
         const = force.constant(fvec=(0.4,1.0,0.5),group=fluid)
         const = force.constant(fvec=(0.4,1.0,0.5), tvec=(0,0,1) ,group=fluid)
