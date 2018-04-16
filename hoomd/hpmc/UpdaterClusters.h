@@ -19,6 +19,7 @@
 
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
+#include <atomic>
 #endif
 
 namespace hpmc
@@ -27,6 +28,7 @@ namespace hpmc
 namespace detail
 {
 
+#ifdef ENABLE_TBB
 //! Wrapper around std::atomic_flag to allow use in a std::vector
 class my_atomic_flag
     {
@@ -65,7 +67,7 @@ class my_atomic_flag
     private:
         std::atomic_flag f;
     };
-
+#endif
 
 // Graph class represents a undirected graph
 // using adjacency list representation
