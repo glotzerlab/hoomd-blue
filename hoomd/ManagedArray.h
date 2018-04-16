@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #pragma once
@@ -150,7 +150,7 @@ class ManagedArray
 
             // align ptr to size of data type
             unsigned long int max_align_bytes = (sizeof(int) > sizeof(T) ? sizeof(int) : sizeof(T))-1;
-            char *ptr_align = (char *)((unsigned long int)(ptr + max_align_bytes) & ~((unsigned long int) max_align_bytes));
+            char *ptr_align = (char *)(((unsigned long int)ptr + max_align_bytes) & ~max_align_bytes);
 
             if (size_int*sizeof(int)+max_align_bytes > available_bytes)
                 return;
@@ -174,7 +174,7 @@ class ManagedArray
             // redirect data ptr
             if (tidx == 0)
                 {
-                data = (T *) ptr;
+                data = (T *) ptr_align;
                 }
 
             __syncthreads();

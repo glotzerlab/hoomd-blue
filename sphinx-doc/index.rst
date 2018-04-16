@@ -42,6 +42,7 @@ of the high performance network. Your cluster may also require a specific versio
    package-hoomd
    package-hpmc
    package-md
+   package-mpcd
    package-dem
 
 .. toctree::
@@ -50,6 +51,7 @@ of the high performance network. Your cluster may also require a specific versio
 
    package-cgcmm
    package-deprecated
+   package-jit
    package-metal
 
 .. toctree::

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -20,6 +20,10 @@
 #ifdef ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
+#endif
+
+#ifdef ENABLE_TBB
+#include <tbb/tbb.h>
 #endif
 
 #include "Messenger.h"
@@ -59,7 +63,7 @@ extern bool hoomd_launch_timing;
     GPU context and will error out on machines that do not have GPUs. isCUDAEnabled() is a convenience function to
     interpret the exec_mode and test if CUDA calls can be made or not.
 */
-struct ExecutionConfiguration
+struct PYBIND11_EXPORT ExecutionConfiguration
     {
     //! Simple enum for the execution modes
     enum executionMode
@@ -216,6 +220,25 @@ struct ExecutionConfiguration
         }
     #endif
 
+    #ifdef ENABLE_TBB
+    //! set number of TBB threads
+    void setNumThreads(unsigned int num_threads)
+        {
+        m_task_scheduler.reset(new tbb::task_scheduler_init(num_threads));
+        m_num_threads = num_threads;
+        }
+    #endif
+
+    //! Return the number of active threads
+    unsigned int getNumThreads() const
+        {
+        #ifdef ENABLE_TBB
+        return m_num_threads;
+        #else
+        return 0;
+        #endif
+        }
+
 
     #ifdef ENABLE_CUDA
     //! Returns the cached allocator for temporary allocations
@@ -264,6 +287,11 @@ private:
 
     #ifdef ENABLE_CUDA
     CachedAllocator *m_cached_alloc;       //!< Cached allocator for temporary allocations
+    #endif
+
+    #ifdef ENABLE_TBB
+    std::unique_ptr<tbb::task_scheduler_init> m_task_scheduler; //!< The TBB task scheduler
+    unsigned int m_num_threads;            //!<  The number of TBB threads used
     #endif
 
     //! Setup and print out stats on the chosen CPUs/GPUs

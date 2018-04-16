@@ -89,6 +89,7 @@ Jens Glaser, University of Michigan
  * pair.van_der_waals
  * hpmc interaction_matrix
  * special_pair framework
+ * TBB support
 
 Pavani Medapuram, University of Minnesota
  * Framework for external potentials
@@ -199,6 +200,9 @@ Lin Yang, Alex Travesset, Iowa State University
 Tim Moore, Vanderbilt University
   * angle.cosinesq
 
+Bradley Dice, Avisek Das, University of Michigan
+  * integrator.randomize_velocities()
+
 HPMC developers
 ---------------
 
@@ -222,6 +226,7 @@ Joshua Anderson, University of Michigan - Lead developer
  * Bounding box tree generation, query, and optimizations
  * BVH implementation of trial move processing
  * SSE and AVX intrinsics
+ * `jit.patch.user` user defined patchy interactions with LLVM runtime compiled code
 
 Eric Irrgang, University of Michigan
  * NPT updater
@@ -251,6 +256,8 @@ Jens Glaser, University of Michigan
  * Helped port the Sphinx overlap check
  * Dynamic number of particle types support
  * Implicit depletants
+ * `jit.patch.user_union` user defined patchy interactions with LLVM runtime compiled code
+ * Geometric Cluster Algorithm implementation
 
 Eric Harper, University of Michigan
  * Misc bug fixes to move size by particle type feature
@@ -274,9 +281,15 @@ Paul Dodd, Erin Teich, University of Michigan
  * Wall overlap checks
  * Lattice external potential
 
+ Erin Teich, University of Michigan
+ * Convex polyhedron union particle type
+
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
  * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
+
+William Zygmunt, Luis Rivera-Rivera, University of Michigan
+ * Patchy interaction support in HPMC CPU integrators
 
 DEM developers
 --------------
@@ -285,6 +298,18 @@ The following people contributed to the :py:mod:`hoomd.dem` package.
 
 Matthew Spellings, University of Michigan - Lead developer
 Ryan Marson, University of Michigan
+
+MPCD developers
+---------------
+
+The following people contributed to the :py:mod:`hoomd.mpcd` package.
+
+Michael P. Howard, Princeton University - **Lead developer**
+* Design
+* Cell list and properties
+* Particle and cell communication
+* Basic streaming method
+* SRD and AT collision rules
 
 Source code
 -----------

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "GetarInitializer.h"
@@ -22,21 +22,41 @@ namespace getardump{
 
     GetarInitializer::GetarInitializer(shared_ptr<const ExecutionConfiguration> exec_conf,
         const string &filename):
-        m_exec_conf(exec_conf), m_traj(filename, Read), m_knownRecords(), m_timestep(0)
+        m_exec_conf(exec_conf), m_traj(), m_knownRecords(), m_timestep(0)
         {
-        const vector<Record> allRecords(m_traj.getRecordTypes());
-
-        for(vector<Record>::const_iterator iter(allRecords.begin());
-            iter != allRecords.end(); ++iter)
+        try
             {
-            if(knownProperty(*iter))
-                m_knownRecords.push_back(*iter);
+#ifdef ENABLE_MPI
+        // don't open on non-0 MPI ranks
+            if (m_exec_conf->isRoot())
+#endif
+            m_traj.reset(new GTAR(filename, Read));
+            }
+        catch(runtime_error &error)
+            {
+            m_exec_conf->msg->error() << error.what() << endl;
+            throw;
+            }
+
+        if(m_traj.get())
+            {
+            const vector<Record> allRecords(m_traj->getRecordTypes());
+
+            for(vector<Record>::const_iterator iter(allRecords.begin());
+                iter != allRecords.end(); ++iter)
+                {
+                if(knownProperty(*iter))
+                    m_knownRecords.push_back(*iter);
+                }
             }
         }
 
     map<set<Record>, string> GetarInitializer::parseModes(py::dict &pyModes)
         {
         map<set<Record>, string> modes;
+
+        if(!m_traj.get())
+            return modes;
 
         for (auto item : pyModes)
             {
@@ -47,7 +67,12 @@ namespace getardump{
                 {
                 string name = pyKey[j].cast<string>();
                 if(!insertRecord(name, key))
-                    throw runtime_error(string("Can't find the requested property ") + name);
+                    {
+                    const string error_message(
+                        string("Can't find the requested property ") + name);
+                    m_exec_conf->msg->error() << error_message << endl;
+                    throw runtime_error(error_message);
+                    }
                 else if(name == "any")
                     {
                     for(set<Record>::const_iterator iter(key.begin());
@@ -103,11 +128,8 @@ namespace getardump{
     shared_ptr<SystemSnapshot> GetarInitializer::restoreSnapshot(shared_ptr<SystemSnapshot> &systemSnap,
         const map<set<Record>, string> &modes)
         {
-#ifdef ENABLE_MPI
-        // don't read on non-0 MPI ranks
-        if (!m_exec_conf->isRoot())
+        if(!m_traj.get())
             return systemSnap;
-#endif
 
         for(map<set<Record>, string>::const_iterator iter(modes.begin());
             iter != modes.end(); ++iter)
@@ -136,7 +158,11 @@ namespace getardump{
         unsigned int pdata_N(snapshot->particle_data.size);
 
         if(!pdata_N)
-            throw runtime_error("No per-particle properties found to restore");
+            {
+            const string error_message("No per-particle properties found to restore");
+            m_exec_conf->msg->error() << error_message << endl;
+            throw runtime_error(error_message);
+            }
 
         if(snapshot->particle_data.pos.size() != pdata_N)
             {
@@ -145,6 +171,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.pos.size() << " positions" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle positions with the value (0, 0, 0)" << endl;
@@ -158,6 +185,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.vel.size() << " velocities" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle velocities with the value (0, 0, 0)" << endl;
@@ -171,6 +199,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.accel.size() << " accelerations" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle accelerations with the value (0, 0, 0)" << endl;
@@ -184,6 +213,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.type.size() << " types" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle types with the value 0" << endl;
@@ -197,6 +227,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.mass.size() << " masses" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle masses with the value 1" << endl;
@@ -210,6 +241,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.charge.size() << " charges" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle charges with the value 0" << endl;
@@ -223,6 +255,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.diameter.size() << " diameters" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle diameters with the value 1" << endl;
@@ -236,6 +269,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.image.size() << " images" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle images with the value (0, 0, 0)" << endl;
@@ -249,6 +283,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.body.size() << " bodies" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle bodies with the value -1" << endl;
@@ -262,6 +297,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.orientation.size() << " orientations" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle orientations with the value (1, 0, 0, 0)" << endl;
@@ -275,6 +311,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.angmom.size() << " angular momenta" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle angular momenta with the value (0, 0, 0, 0)" << endl;
@@ -288,6 +325,7 @@ namespace getardump{
                 stringstream message;
                 message << "Expected to find " << pdata_N << " particles, but found " <<
                     snapshot->particle_data.inertia.size() << " moments of inertia" << endl;
+                m_exec_conf->msg->error() << message.str() << endl;
                 throw runtime_error(message.str());
                 }
             m_exec_conf->msg->notice(3) << "Filling particle moment of inertia with the value (1, 1, 1)" << endl;
@@ -308,6 +346,7 @@ namespace getardump{
             stringstream message;
             message << "Expected to find " << bond_N << " bonds, but found " <<
                 snapshot->bond_data.groups.size() << " (i, j) pairs" << endl;
+            m_exec_conf->msg->error() << message.str() << endl;
             throw runtime_error(message.str());
             }
 
@@ -328,6 +367,7 @@ namespace getardump{
             stringstream message;
             message << "Expected to find " << pair_N << " pairs, but found " <<
                 snapshot->pair_data.groups.size() << " (i, j) pairs" << endl;
+            m_exec_conf->msg->error() << message.str() << endl;
             throw runtime_error(message.str());
             }
 
@@ -349,6 +389,7 @@ namespace getardump{
             stringstream message;
             message << "Expected to find " << angle_N << " angles, but found " <<
                 snapshot->angle_data.groups.size() << " (i, j, k) triplets" << endl;
+            m_exec_conf->msg->error() << message.str() << endl;
             throw runtime_error(message.str());
             }
 
@@ -369,6 +410,7 @@ namespace getardump{
             stringstream message;
             message << "Expected to find " << dihedral_N << " dihedrals, but found " <<
                 snapshot->dihedral_data.groups.size() << " (i, j, k, l) quartets" << endl;
+            m_exec_conf->msg->error() << message.str() << endl;
             throw runtime_error(message.str());
             }
 
@@ -389,6 +431,7 @@ namespace getardump{
             stringstream message;
             message << "Expected to find " << improper_N << " impropers, but found " <<
                 snapshot->improper_data.groups.size() << " (i, j, k, l) quartets" << endl;
+            m_exec_conf->msg->error() << message.str() << endl;
             throw runtime_error(message.str());
             }
 
@@ -413,7 +456,7 @@ namespace getardump{
             {
             if(iter->getBehavior() == Discrete)
                 {
-                vector<string> recordFrames(m_traj.queryFrames(*iter));
+                vector<string> recordFrames(m_traj->queryFrames(*iter));
 
                 if(iter == records.begin())
                     {
@@ -459,6 +502,7 @@ namespace getardump{
                         msg << ", ";
                     }
 
+                m_exec_conf->msg->error() << msg.str() << endl;
                 throw runtime_error(msg.str());
                 }
             else
@@ -473,6 +517,7 @@ namespace getardump{
                         msg << ", ";
                     }
 
+                m_exec_conf->msg->error() << msg.str() << endl;
                 throw runtime_error(msg.str());
                 }
             }
@@ -504,7 +549,7 @@ namespace getardump{
             vector<unsigned int> data;
             if(rec.getFormat() == UInt32)
                 {
-                SharedArray<uint32_t> rawData(m_traj.readIndividual<uint32_t>(rec.getPath()));
+                SharedArray<uint32_t> rawData(m_traj->readIndividual<uint32_t>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<uint32_t, unsigned int> begin(rawData.begin());
                 TypecastIterator<uint32_t, unsigned int> end(rawData.end());
@@ -515,7 +560,7 @@ namespace getardump{
                 }
             else if(rec.getFormat() == UInt64)
                 {
-                SharedArray<uint64_t> rawData(m_traj.readIndividual<uint64_t>(rec.getPath()));
+                SharedArray<uint64_t> rawData(m_traj->readIndividual<uint64_t>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<uint64_t, unsigned int> begin(rawData.begin());
                 TypecastIterator<uint64_t, unsigned int> end(rawData.end());
@@ -523,11 +568,17 @@ namespace getardump{
                 data = vector<unsigned int>(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() == "dimensions")
@@ -600,6 +651,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -609,7 +661,7 @@ namespace getardump{
             vector<unsigned int> data;
             if(rec.getFormat() == Int32)
                 {
-                SharedArray<int32_t> rawData(m_traj.readIndividual<int32_t>(rec.getPath()));
+                SharedArray<int32_t> rawData(m_traj->readIndividual<int32_t>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<int32_t, unsigned int> begin(rawData.begin());
                 TypecastIterator<int32_t, unsigned int> end(rawData.end());
@@ -618,7 +670,7 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Int64)
                 {
-                SharedArray<int64_t> rawData(m_traj.readIndividual<int64_t>(rec.getPath()));
+                SharedArray<int64_t> rawData(m_traj->readIndividual<int64_t>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<int64_t, unsigned int> begin(rawData.begin());
                 TypecastIterator<int64_t, unsigned int> end(rawData.end());
@@ -626,11 +678,17 @@ namespace getardump{
                 data = vector<unsigned int>(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() ==  "body")
@@ -643,6 +701,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -652,13 +711,14 @@ namespace getardump{
             vector<int3> data;
             if(rec.getFormat() == Int32)
                 {
-                SharedArray<int32_t> rawData(m_traj.readIndividual<int32_t>(rec.getPath()));
+                SharedArray<int32_t> rawData(m_traj->readIndividual<int32_t>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 3)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -669,13 +729,14 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Int64)
                 {
-                SharedArray<int64_t> rawData(m_traj.readIndividual<int64_t>(rec.getPath()));
+                SharedArray<int64_t> rawData(m_traj->readIndividual<int64_t>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 3)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -685,11 +746,17 @@ namespace getardump{
                 data = vector<int3>(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() ==  "image")
@@ -702,6 +769,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -713,7 +781,7 @@ namespace getardump{
             vector<Scalar> data;
             if(rec.getFormat() == Float32)
                 {
-                SharedArray<float> rawData(m_traj.readIndividual<float>(rec.getPath()));
+                SharedArray<float> rawData(m_traj->readIndividual<float>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<float, Scalar> begin(rawData.begin());
                 TypecastIterator<float, Scalar> end(rawData.end());
@@ -722,7 +790,7 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Float64)
                 {
-                SharedArray<double> rawData(m_traj.readIndividual<double>(rec.getPath()));
+                SharedArray<double> rawData(m_traj->readIndividual<double>(rec.getPath()));
                 found = rawData.get();
                 TypecastIterator<double, Scalar> begin(rawData.begin());
                 TypecastIterator<double, Scalar> end(rawData.end());
@@ -770,6 +838,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg;
                 throw runtime_error(msg);
                 }
             }
@@ -782,13 +851,14 @@ namespace getardump{
             vector<vec3<Scalar> > data;
             if(rec.getFormat() == Float32)
                 {
-                SharedArray<float> rawData(m_traj.readIndividual<float>(rec.getPath()));
+                SharedArray<float> rawData(m_traj->readIndividual<float>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 3)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -799,13 +869,14 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Float64)
                 {
-                SharedArray<double> rawData(m_traj.readIndividual<double>(rec.getPath()));
+                SharedArray<double> rawData(m_traj->readIndividual<double>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 3)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 3";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -815,11 +886,17 @@ namespace getardump{
                 data = vector<vec3<Scalar> >(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() == "position")
@@ -847,6 +924,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -856,13 +934,14 @@ namespace getardump{
             vector<quat<Scalar> > data;
             if(rec.getFormat() == Float32)
                 {
-                SharedArray<float> rawData(m_traj.readIndividual<float>(rec.getPath()));
+                SharedArray<float> rawData(m_traj->readIndividual<float>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 4)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 4";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -873,13 +952,14 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Float64)
                 {
-                SharedArray<double> rawData(m_traj.readIndividual<double>(rec.getPath()));
+                SharedArray<double> rawData(m_traj->readIndividual<double>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 4)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 4";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -889,11 +969,17 @@ namespace getardump{
                 data = vector<quat<Scalar> >(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() == "angular_momentum_quat")
@@ -906,6 +992,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -915,13 +1002,14 @@ namespace getardump{
             vector<quat<Scalar> > data;
             if(rec.getFormat() == Float32)
                 {
-                SharedArray<float> rawData(m_traj.readIndividual<float>(rec.getPath()));
+                SharedArray<float> rawData(m_traj->readIndividual<float>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 4)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 4";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -932,13 +1020,14 @@ namespace getardump{
                 }
             else if(rec.getFormat() == Float64)
                 {
-                SharedArray<double> rawData(m_traj.readIndividual<double>(rec.getPath()));
+                SharedArray<double> rawData(m_traj->readIndividual<double>(rec.getPath()));
                 found = rawData.get();
 
                 if(rawData.size() % 4)
                     {
                     stringstream msg;
                     msg << "Data at " << rec.getPath() << " are not evenly divisible by 4";
+                    m_exec_conf->msg->error() << msg.str() << endl;
                     throw runtime_error(msg.str());
                     }
 
@@ -948,11 +1037,17 @@ namespace getardump{
                 data = vector<quat<Scalar> >(begin, end);
                 }
             else
-                throw runtime_error("Can't understand the format of the data at " + rec.getPath());
+                {
+                const string error_message("Can't understand the format of the data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
+                }
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             if(rec.getName() == "orientation")
@@ -965,6 +1060,7 @@ namespace getardump{
                 string msg("Failed to locate where to set the property at ");
                 msg += rec.getPath();
                 msg += " (programmer error)";
+                m_exec_conf->msg->error() << msg << endl;
                 throw runtime_error(msg);
                 }
             }
@@ -972,13 +1068,15 @@ namespace getardump{
             {
             vector<string> names;
 
-            SharedArray<char> rawData(m_traj.readBytes(rec.getPath()));
+            SharedArray<char> rawData(m_traj->readBytes(rec.getPath()));
             found = rawData.get();
             string data(rawData.get(), rawData.size());
 
             if(!found)
                 {
-                throw runtime_error("Found no data at " + rec.getPath());
+                const string error_message("Found no data at " + rec.getPath());
+                m_exec_conf->msg->error() << error_message << endl;
+                throw runtime_error(error_message);
                 }
 
             names = parseTypeNames(data);
@@ -1010,7 +1108,9 @@ namespace getardump{
             }
         else
             {
-            throw runtime_error("Unknown record with path " + rec.getPath());
+            const string error_message("Unknown record with path " + rec.getPath());
+            m_exec_conf->msg->error() << error_message << endl;
+            throw runtime_error(error_message);
             }
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -460,11 +460,13 @@ cudaError_t gpu_nlist_merge_particles(Scalar4 *d_tree_aabbs,
  * are identical, then the longest prefix of i and j is used as a tie breaker.
  */
 __device__ inline int delta(const uint32_t *d_morton_codes,
-                            unsigned int i,
-                            unsigned int j,
-                            int min_idx,
-                            int max_idx)
+                            const int i,
+                            const int j,
+                            const int min_idx,
+                            const int max_idx)
     {
+    assert(i >= min_idx && i <= max_idx);
+
     if (j > max_idx || j < min_idx)
         {
         return -1;
@@ -491,108 +493,67 @@ __device__ inline int delta(const uint32_t *d_morton_codes,
  * \param d_morton_codes Array of Morton codes
  * \param min_idx The smallest Morton code index considered "in range" (inclusive)
  * \param max_idx The last Morton code index considered "in range" (inclusive)
- * \param idx Current node (Morton code) index
+ * \param i Current node (Morton code) index
  *
  * \returns the minimum and maximum leafs covered by this node
  * \note This is a literal implementation of the Karras pseudocode, with no optimizations or refinement.
  *       Tero Karras, "Maximizing parallelism in the construction of BVHs, octrees, and k-d trees",
  *       High Performance Graphics (2012).
  */
-__device__ inline uint2 determineRange(const uint32_t *d_morton_codes,
-                                       const int min_idx,
-                                       const int max_idx,
-                                       const int idx)
+__device__ inline uint3 determineRangeSplit(const uint32_t *d_morton_codes,
+                                            const int min_idx,
+                                            const int max_idx,
+                                            const int i)
     {
-    int forward_prefix = delta(d_morton_codes, idx, idx+1, min_idx, max_idx);
-    int backward_prefix = delta(d_morton_codes, idx, idx-1, min_idx, max_idx);
+    const int forward_prefix = delta(d_morton_codes, i, i+1, min_idx, max_idx);
+    const int backward_prefix = delta(d_morton_codes, i, i-1, min_idx, max_idx);
 
     // get direction of the range based on sign
-    int d = ((forward_prefix - backward_prefix) > 0) ? 1 : -1;
+    const int d = (forward_prefix >= backward_prefix) ? 1 : -1;
 
     // get minimum prefix
-    int min_prefix = delta(d_morton_codes, idx, idx-d, min_idx, max_idx);
+    const int min_prefix = delta(d_morton_codes, i, i-d, min_idx, max_idx);
 
     // get maximum prefix by binary search
     int lmax = 2;
-    while( delta(d_morton_codes, idx, idx + d*lmax, min_idx, max_idx) > min_prefix)
+    while( delta(d_morton_codes, i, i + d*lmax, min_idx, max_idx) > min_prefix)
         {
         lmax = lmax << 1;
         }
-
-    unsigned int len = 0;
-    unsigned int step = lmax;
+    int l = 0; int t = lmax;
     do
         {
-        step = step >> 1;
-        unsigned int new_len = len + step;
-        if (delta(d_morton_codes, idx, idx + d*new_len, min_idx, max_idx) > min_prefix)
-            len = new_len;
+        t = t >> 1;
+        if (delta(d_morton_codes, i, i + (l+t)*d, min_idx, max_idx) > min_prefix)
+            l = l + t;
         }
-    while (step > 1);
-
-   // order range based on direction
-    uint2 range;
-    if (d > 0)
-        {
-        range.x = idx;
-        range.y = idx + len;
-        }
-    else
-        {
-        range.x = idx - len;
-        range.y = idx;
-        }
-    return range;
-    }
-
-//! Finds the split position in Morton codes covered by a range
-/*!
- * \param d_morton_codes Array of Morton codes
- * \param first First leaf node in the range
- * \param last Last leaf node in the range
- *
- * \returns the leaf index corresponding to the split in Morton codes
- * See determineRange for original source of algorithm.
- */
-__device__ inline unsigned int findSplit(const uint32_t *d_morton_codes,
-                                         const unsigned int first,
-                                         const unsigned int last)
-    {
-    uint32_t first_code = d_morton_codes[first];
-    uint32_t last_code = d_morton_codes[last];
-
-    // if codes match, then just split evenly
-    if (first_code == last_code)
-        return (first + last) >> 1;
+    while (t > 1);
+    const int j = i + l*d;
 
     // get the length of the common prefix
-    int common_prefix = __clz(first_code ^ last_code);
+    const int common_prefix = delta(d_morton_codes, i, j, min_idx, max_idx);
 
-    // assume split starts at first, and begin binary search
-    unsigned int split = first;
-    unsigned int step = last - first;
+    // binary search to find split position
+    int s = 0; t = l;
     do
         {
-        // exponential decrease (is factor of 2 best?)
-        step = (step + 1) >> 1;
-        unsigned int new_split = split + step;
-
+        t = (t + 1) >> 1;
         // if proposed split lies within range
-        if (new_split < last)
+        if (s+t < l)
             {
-            unsigned int split_code = d_morton_codes[new_split];
-            int split_prefix = __clz(first_code ^ split_code);
+            const int split_prefix = delta(d_morton_codes, i, i+(s+t)*d, min_idx, max_idx);
 
             // if new split shares a longer number of bits, accept it
             if (split_prefix > common_prefix)
                 {
-                split = new_split;
+                s = s + t;
                 }
             }
         }
-    while (step > 1);
+    while (t > 1);
+    const int split = i + s*d + min(d,0);
 
-    return split;
+    return make_uint3(min(i,j), max(i,j), split);
     }
 
 //! Kernel to generate the parent-child-sibling relationships between nodes
@@ -666,10 +627,10 @@ __global__ void gpu_nlist_gen_hierarchy_kernel(uint2 *d_tree_parent_sib,
         }
 
     // enact the magical split determining
-    uint2 range = determineRange(d_morton_codes, origin, end, node_idx);
-    unsigned int first = range.x;
-    unsigned int last = range.y;
-    unsigned int split = findSplit(d_morton_codes, first, last);
+    uint3 range_split = determineRangeSplit(d_morton_codes, origin, end, node_idx);
+    unsigned int first = range_split.x;
+    unsigned int last = range_split.y;
+    unsigned int split = range_split.z;
 
     uint2 children;
     // set the children, shifting ahead by nleafs - cur_type to account for leaf shifting

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -382,6 +382,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
+    // return early if there are no constraint forces
+    if (m_constraint_forces.size() == 0)
+        return;
+
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -389,10 +393,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_comm->updateNetForce(timestep);
         }
     #endif
-
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
-        return;
 
     // compute all the constraint forces next
     // constraint forces only apply a force, not a torque

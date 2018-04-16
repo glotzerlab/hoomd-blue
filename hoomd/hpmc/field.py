@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Apply external fields to HPMC simulations.
@@ -320,6 +320,12 @@ class wall(_external):
     to add a new spherical wall, :py:meth:`add_cylinder_wall` to add a new cylindrical wall, or
     :py:meth:`add_plane_wall` to add a new plane wall.
 
+    Specialized overlap checks have been written for supported combinations of wall types and particle shapes.
+    These combinations are:
+    * Sphere particles: sphere walls, cylinder walls, plane walls
+    * Convex polyhedron particles: sphere walls, cylinder walls, plane walls
+    * Convex spheropolyhedron particles: sphere walls
+
     Once initialized, the compute provides the following log quantities that can be logged via :py:class:`hoomd.analyze.log`:
 
     * **hpmc_wall_volume** : the volume associated with the intersection of implemented walls. This number is only meaningful
@@ -354,6 +360,8 @@ class wall(_external):
                 cls = _hpmc.WallSphere;
             elif isinstance(mc, integrate.convex_polyhedron):
                 cls = _hpmc.WallConvexPolyhedron;
+            elif isinstance(mc, integrate.convex_spheropolyhedron):
+                cls = _hpmc.WallSpheropolyhedron;
             else:
                 hoomd.context.msg.error("compute.wall: Unsupported integrator.\n");
                 raise RuntimeError("Error initializing compute.wall");

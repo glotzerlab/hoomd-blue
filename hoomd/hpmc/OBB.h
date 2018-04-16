@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -6,6 +6,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/AABB.h"
+#include "ShapeSphere.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -14,8 +15,8 @@
 #define __OBB_H__
 
 #ifndef NVCC
-#include "hoomd/extern/Eigen/Dense"
-#include "hoomd/extern/Eigen/Eigenvalues"
+#include "hoomd/extern/Eigen/Eigen/Dense"
+#include "hoomd/extern/Eigen/Eigen/Eigenvalues"
 
 #include "hoomd/extern/quickhull/QuickHull.hpp"
 #endif
@@ -132,7 +133,7 @@ struct OBB
         return OverlapReal(8.0)*lengths.x*lengths.y*lengths.z;
         }
 
-    } __attribute__((aligned(32)));
+    };
 
 //! Check if two OBBs overlap
 /*! \param a First OBB

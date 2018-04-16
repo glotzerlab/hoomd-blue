@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mspells
@@ -68,6 +68,7 @@ class DEM2DForceCompute : public ForceCompute
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::orientation] = 1;
+            flags[comm_flag::net_torque] = 1; // only used with rigid bodies
 
             flags |= ForceCompute::getRequestedCommFlags(timestep);
             return flags;

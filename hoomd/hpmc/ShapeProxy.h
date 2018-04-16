@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __SHAPE_PROXY_H__
@@ -110,11 +110,12 @@ ell_params make_ell_params(OverlapReal x, OverlapReal y, OverlapReal z, bool ign
     }
 //
 //! Helper function to build sph_params from python
-sph_params make_sph_params(OverlapReal radius, bool ignore_stats)
+sph_params make_sph_params(OverlapReal radius, bool ignore_stats, bool orientable)
     {
     sph_params result;
     result.ignore = ignore_stats;
     result.radius=radius;
+    result.isOriented = orientable;
     return result;
     }
 
@@ -531,6 +532,12 @@ public:
         std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
         return OverlapReal(2.0)*m_access(params[m_typeid]).radius;
         }
+
+    bool getOrientable()
+        {
+        std::vector<param_type, managed_allocator<param_type> > & params = m_mc->getParams();
+        return m_access(params[m_typeid]).isOriented;
+        }
 };
 
 template<class Shape, class AccessType = access<Shape> >
@@ -899,7 +906,7 @@ void export_shape_param_proxy(pybind11::module& m, const std::string& name)
     using detail::shape_param_proxy;
     pybind11::class_<shape_param_proxy<Shape, AccessType>, std::shared_ptr< shape_param_proxy<Shape, AccessType> > >(m, name.c_str())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<Shape> >, unsigned int>())
-    .def_property("ignore_statistics", &shape_param_proxy<Shape>::getIgnoreStatistics, &shape_param_proxy<Shape>::setIgnoreStatistics)
+    .def_property("ignore_statistics", &shape_param_proxy<Shape, AccessType>::getIgnoreStatistics, &shape_param_proxy<Shape, AccessType>::setIgnoreStatistics)
     ;
     }
 
@@ -916,6 +923,7 @@ void export_sphere_proxy(pybind11::module& m, const std::string& class_name)
     pybind11::class_<proxy_class, std::shared_ptr< proxy_class > >(m, class_name.c_str(), pybind11::base< proxy_base >())
     .def(pybind11::init<std::shared_ptr< IntegratorHPMCMono<ShapeType> >, unsigned int>())
     .def_property_readonly("diameter", &proxy_class::getDiameter)
+    .def_property_readonly("orientable", &proxy_class::getOrientable)
     ;
     }
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -409,7 +409,7 @@ class active(_force):
 
 
         # store metadata
-        self.metdata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
+        self.metadata_fields = ['group', 'seed', 'orientation_link', 'rotation_diff', 'constraint']
         self.group = group
         self.seed = seed
         self.orientation_link = orientation_link
@@ -449,7 +449,7 @@ class dipole(_force):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         # store metadata
-        self.metdata_fields = ['field_x', 'field_y', 'field_z']
+        self.metadata_fields = ['field_x', 'field_y', 'field_z']
         self.field_x = field_x
         self.field_y = field_y
         self.field_z = field_z

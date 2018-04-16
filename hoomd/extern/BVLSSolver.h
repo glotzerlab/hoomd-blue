@@ -29,7 +29,7 @@
 #ifndef BVLS_SRC_BVLS_SOLVER_H_
 #define BVLS_SRC_BVLS_SOLVER_H_
 
-#include "Eigen/Dense"
+#include "Eigen/Eigen/Dense"
 #include <vector>
 #include <stdexcept>
 

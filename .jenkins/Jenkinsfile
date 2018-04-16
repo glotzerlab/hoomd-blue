@@ -5,128 +5,260 @@ pipeline
 
     stages
         {
-        stage('unit-gcc49-py27-cd75')
+        stage('Unit and validation tests')
             {
-            agent { label 'gpu' }
-
-            environment
+            when { not { branch 'release' } }
+            failFast true
+            parallel
                 {
-                CC = '/usr/bin/gcc-4.9'
-                CXX = '/usr/bin/g++-4.9'
-                PYVER = '2.7'
-                CMAKE_BIN = '/usr/bin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'ON'
-                BUILD_VALIDATION = 'OFF'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda75.img'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
+                stage('unit-gcc49-py27-cd75')
                     {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
+                    agent { label 'gpu' }
 
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
+                    environment
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        CC = '/usr/bin/gcc-4.9'
+                        CXX = '/usr/bin/g++-4.9'
+                        PYVER = '2.7'
+                        CMAKE_BIN = '/usr/bin'
+                        ENABLE_CUDA = 'ON'
+                        ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'OFF'
+                        BUILD_VALIDATION = 'OFF'
+                        CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda75.img'
+                        BUILD_JIT = 'OFF'
                         }
 
-
-                    timeout(time: 1, unit: 'HOURS')
+                    steps
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
                         }
                     }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
+                stage('unit-clang38-py35-cd80')
                     {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
-                }
-            }
+                    agent { label 'gpu' }
 
-        stage('unit-clang38-py35-cd80')
-            {
-            agent { label 'gpu' }
-
-            environment
-                {
-                CC = '/usr/bin/clang'
-                CXX = '/usr/bin/clang++'
-                PYVER = '3.5'
-                CMAKE_BIN = '/usr/bin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'OFF'
-                BUILD_VALIDATION = 'OFF'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
-                    {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
-
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
+                    environment
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
+                        CC = '/usr/bin/clang'
+                        CXX = '/usr/bin/clang++'
+                        PYVER = '3.5'
+                        CMAKE_BIN = '/usr/bin'
+                        ENABLE_CUDA = 'ON'
+                        ENABLE_MPI = 'OFF'
+                        ENABLE_TBB = 'OFF'
+                        BUILD_VALIDATION = 'OFF'
+                        CONTAINER = '/nfs/glotzer/containers/ci-20171130-cuda80.img'
+                        BUILD_JIT = 'ON'
                         }
 
-                    timeout(time: 1, unit: 'HOURS')
+                    steps
                         {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
                         }
                     }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
+                stage('vld-gcc6-py36-mpi-tbb-cd90')
                     {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
+                    agent { label 'gpu' }
+
+                    environment
+                        {
+                        CC = '/usr/sbin/gcc-6'
+                        CXX = '/usr/sbin/g++-6'
+                        PYVER = '3.6'
+                        CMAKE_BIN = '/usr/sbin'
+                        ENABLE_CUDA = 'ON'
+                        ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'OFF'
+                        BUILD_VALIDATION = 'OFF'
+                        CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
+                        BUILD_JIT = 'ON'
+                        }
+
+                    steps
+                        {
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: 15, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
+                        }
                     }
+                stage('vld-clang50-py36-mpi-tbb')
+                    {
+                    agent { label 'linux-cpu' }
+
+                    environment
+                        {
+                        CC = '/usr/sbin/clang'
+                        CXX = '/usr/sbin/clang++'
+                        PYVER = '3.6'
+                        CMAKE_BIN = '/usr/sbin'
+                        ENABLE_CUDA = 'OFF'
+                        ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'ON'
+                        BUILD_VALIDATION = 'ON'
+                        CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
+                        BUILD_JIT = 'ON'
+                        }
+
+                    steps
+                        {
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: 15, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
+                        }
+                    }
+                
                 }
             }
 
         stage('conda-build-mac')
             {
             agent { label 'mac' }
+            when { anyOf { branch 'master'; branch 'maint'; branch 'release' } }
 
             environment
                 {
@@ -138,20 +270,20 @@ pipeline
                 {
                 sh 'echo ${CONDA_BLD_PATH}'
 
-                dir('code')
+                retry(5)
                     {
-                    checkout scm
-
-                    timeout(time: 2, unit: 'HOURS')
+                    dir('code')
                         {
-                        sh 'git submodule update --init'
+                        checkout scm
 
-                        sh '''
-                           conda build --python 2.7 conda-recipe
-                           conda build --python 3.4 conda-recipe
-                           conda build --python 3.5 conda-recipe
-                           conda build --python 3.6 conda-recipe
-                           '''
+                        timeout(time: 2, unit: 'HOURS')
+                            {
+                            sh 'git submodule update --init'
+
+                            sh '''
+                               conda build conda-recipe
+                               '''
+                            }
                         }
                     }
 
@@ -159,7 +291,7 @@ pipeline
                     {
                     if (env.BRANCH_NAME == 'release')
                         {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload conda-bld/linux-64/*.tar.bz2'
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
                         }
                     }
                 }
@@ -171,65 +303,5 @@ pipeline
                     }
                 }
             }
-
-        stage('vld-clang38-py35-mpi-cd80')
-            {
-            agent { label 'gpu' }
-
-            environment
-                {
-                CC = '/usr/bin/clang'
-                CXX = '/usr/bin/clang++'
-                PYVER = '3.5'
-                CMAKE_BIN = '/usr/bin'
-                ENABLE_CUDA = 'ON'
-                ENABLE_MPI = 'ON'
-                BUILD_VALIDATION = 'ON'
-                CONTAINER = '/nfs/glotzer/containers/ci-20170809-cuda80.img'
-                }
-
-            steps
-                {
-                sh 'echo ${NODE_NAME}'
-
-                dir('code')
-                    {
-                    checkout scm
-                    sh 'git submodule update --init'
-                    }
-
-                dir('build')
-                    {
-                    timeout(time: 1, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -GNinja
-                           '''
-
-                        sh 'singularity exec --nv ${CONTAINER} ninja -j 4'
-                        }
-
-                    timeout(time: 15, unit: 'HOURS')
-                        {
-                        sh '''
-                            singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
-                           '''
-                        }
-                    }
-
-                sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
-
-                junit 'test.xml'
-                }
-            post
-                {
-                always
-                    {
-                    archive 'build/Testing/**/Test.xml'
-                    deleteDir()
-                    }
-                }
-            }
-
         }
     }

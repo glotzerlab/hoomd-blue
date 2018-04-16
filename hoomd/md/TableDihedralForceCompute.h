@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -51,7 +51,7 @@
     f = (r - rmin) / dr - Scalar(i). And the linear interpolation can then be performed via V(r) ~= Vi + f * (Vi+1 - Vi)
     \ingroup computes
 */
-class TableDihedralForceCompute : public ForceCompute
+class PYBIND11_EXPORT TableDihedralForceCompute : public ForceCompute
     {
     public:
         //! Constructs the compute
@@ -85,6 +85,19 @@ class TableDihedralForceCompute : public ForceCompute
                 return flags;
             }
         #endif
+
+        //! Get table entry
+        /*! \param type type index
+            \param i index to access
+            \returns the table entries at the index
+
+            For unit testing
+        */
+        Scalar2 getEntry(unsigned int type, unsigned int i)
+            {
+            ArrayHandle<Scalar2> h_tables(m_tables, access_location::host, access_mode::read);
+            return h_tables.data[m_table_value(i, type)];
+            }
 
     protected:
         std::shared_ptr<DihedralData> m_dihedral_data;    //!< Bond data to use in computing dihedrals

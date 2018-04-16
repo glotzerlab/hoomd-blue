@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -25,6 +25,8 @@
 
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
+
+#include "HOOMDMPI.h"
 
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
@@ -103,6 +105,29 @@ const unsigned int NO_BODY = 0xffffffff;
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
+#ifdef ENABLE_MPI
+namespace cereal
+    {
+    //! Serialization of vec3<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, vec3<Real> & v, const unsigned int version)
+        {
+        ar & v.x;
+        ar & v.y;
+        ar & v.z;
+        }
+
+    //! Serialization of quat<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, quat<Real> & q, const unsigned int version)
+        {
+        // serialize both members
+        ar & q.s;
+        ar & q.v;
+        }
+    }
+#endif
+
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData
@@ -118,7 +143,7 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * \ingroup data_structs
  */
 template <class Real>
-struct SnapshotParticleData {
+struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0), is_accel_set(false)
@@ -142,6 +167,14 @@ struct SnapshotParticleData {
     /*! \returns true if the number of elements is consistent
      */
     bool validate() const;
+
+    #ifdef ENABLE_MPI
+    //! Broadcast the snapshot using MPI
+    /*! \param root the processor to send from
+        \param mpi_comm The MPI communicator
+     */
+    void bcast(unsigned int root, MPI_Comm mpi_comm);
+    #endif
 
     //! Replicate this snapshot
     /*! \param nx Number of times to replicate the system along the x direction
@@ -218,6 +251,9 @@ struct pdata_element
     Scalar4 angmom;            //!< Angular momentum
     Scalar3 inertia;           //!< Principal moments of inertia
     unsigned int tag;          //!< global tag
+    Scalar4 net_force;         //!< net force
+    Scalar4 net_torque;        //!< net torque
+    Scalar net_virial[6];      //!< net virial
     };
 
 //! Manages all of the data arrays for the particles
@@ -355,7 +391,7 @@ struct pdata_element
     is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
     valid flag.
 */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Construct with N particles in the given box
@@ -761,10 +797,8 @@ class ParticleData
         //! Get the angular momentum array
         const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
-        #ifdef ENABLE_MPI
         //! Get the communication flags array
         const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
-        #endif
 
         #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
@@ -1036,6 +1070,13 @@ class ParticleData
             m_global_box.wrap(m_origin, m_o_image);
             }
 
+        //! Set the origin and its image
+        void setOrigin(const Scalar3& origin, int3& img)
+            {
+            m_origin = origin;
+            m_o_image = img;
+            }
+
         //! Rest the box origin
         /*! \post The origin is 0,0,0
         */
@@ -1086,9 +1127,7 @@ class ParticleData
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
-        #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
-        #endif
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
@@ -1136,6 +1175,8 @@ class ParticleData
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
         #endif
+
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
@@ -42,6 +42,8 @@ class options:
         self.onelevel = None;
         self.autotuner_enable = True;
         self.autotuner_period = 100000;
+        self.single_mpi = False;
+        self.nthreads = None;
 
     def __repr__(self):
         tmp = dict(mode=self.mode,
@@ -58,7 +60,9 @@ class options:
                    ny=self.ny,
                    nz=self.nz,
                    linear=self.linear,
-                   onelevel=self.onelevel)
+                   onelevel=self.onelevel,
+                   single_mpi=self.single_mpi,
+                   nthreads=self.nthreads)
         return str(tmp);
 
 ## Parses command line options
@@ -81,7 +85,9 @@ def _parse_command_line(arg_string=None):
     parser.add_option("--nz", dest="nz", help="(MPI) Number of domains along the z-direction");
     parser.add_option("--linear", dest="linear", action="store_true", default=False, help="(MPI only) Force a slab (1D) decomposition along the z-direction");
     parser.add_option("--onelevel", dest="onelevel", action="store_true", default=False, help="(MPI only) Disable two-level (node-local) decomposition");
+    parser.add_option("--single-mpi", dest="single_mpi", action="store_true", help="Allow single-threaded HOOMD builds in MPI jobs");
     parser.add_option("--user", dest="user", help="User options");
+    parser.add_option("--nthreads", dest="nthreads", help="Number of TBB threads");
 
     input_args = None;
     if arg_string is not None:
@@ -146,6 +152,17 @@ def _parse_command_line(arg_string=None):
        except ValueError:
             parser.error('--nz must be an integer')
 
+    # Convert nthreads to an integer
+    if cmd_options.nthreads is not None:
+       if not _hoomd.is_TBB_available():
+            hoomd.context.msg.error("The --nthreads option is only avaible in TBB-enabled builds.\n");
+            raise RuntimeError('Error setting option');
+       try:
+            cmd_options.nthreads = int(cmd_options.nthreads);
+       except ValueError:
+            parser.error('--nthreads must be an integer')
+
+
     # copy command line options over to global options
     hoomd.context.options.mode = cmd_options.mode;
     hoomd.context.options.gpu = cmd_options.gpu;
@@ -158,6 +175,8 @@ def _parse_command_line(arg_string=None):
     hoomd.context.options.nz = cmd_options.nz;
     hoomd.context.options.linear = cmd_options.linear
     hoomd.context.options.onelevel = cmd_options.onelevel
+    hoomd.context.options.single_mpi = cmd_options.single_mpi
+    hoomd.context.options.nthreads = cmd_options.nthreads
 
     if cmd_options.notice_level is not None:
         hoomd.context.options.notice_level = cmd_options.notice_level;
@@ -258,6 +277,23 @@ def set_autotuner_params(enable=True, period=100000):
 
     hoomd.context.options.autotuner_period = period;
     hoomd.context.options.autotuner_enable = enable;
+
+def set_num_threads(num_threads):
+    R""" Set the number of CPU (TBB) threads HOOMD uses
+
+    Args:
+        num_threads (int): The number of threads
+
+    Note:
+        Overrides ``--nthreads`` on the command line.
+
+    """
+
+    if not _hoomd.is_TBB_available():
+        msg.warning("HOOMD was compiled without thread support, ignoring request to set number of threads.\n");
+    else:
+        hoomd.context.exec_conf.setNumThreads(int(num_threads));
+
 
 ## \internal
 # \brief Throw an error if the context is not initialized

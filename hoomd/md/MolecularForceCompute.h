@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -6,6 +6,10 @@
 
 #include "hoomd/ForceConstraint.h"
 #include "NeighborList.h"
+
+#ifdef ENABLE_CUDA
+#include "hoomd/Autotuner.h"
+#endif
 
 /*! \file MolecularForceCompute.h
     \brief Base class for ForceConstraints that depend on a molecular topology
@@ -38,7 +42,7 @@
 
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 
-class MolecularForceCompute : public ForceConstraint
+class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     {
     public:
         //! Constructs the compute
@@ -105,6 +109,23 @@ class MolecularForceCompute : public ForceConstraint
             return m_molecule_idx;
             }
 
+        #ifdef ENABLE_CUDA
+        //! Set autotuner parameters
+        /*! \param enable Enable/disable autotuning
+            \param period period (approximate) in time steps when returning occurs
+
+            Derived classes should override this to set the parameters of their autotuners.
+        */
+        virtual void setAutotunerParams(bool enable, unsigned int period)
+            {
+            if (m_exec_conf->isCUDAEnabled())
+                {
+                m_tuner_fill->setPeriod(period);
+                m_tuner_fill->setEnabled(enable);
+                }
+            }
+        #endif
+
     protected:
         GPUVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
@@ -114,6 +135,10 @@ class MolecularForceCompute : public ForceConstraint
         GPUVector<unsigned int> m_molecule_length;  //!< List of molecule lengths
         GPUVector<unsigned int> m_molecule_order;   //!< Order in molecule by local ptl idx
         GPUVector<unsigned int> m_molecule_idx;     //!< Reverse-lookup into molecule list
+
+        #ifdef ENABLE_CUDA
+        std::unique_ptr<Autotuner> m_tuner_fill;    //!< Autotuner for block size for filling the molecule table
+        #endif
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
 
@@ -126,6 +151,11 @@ class MolecularForceCompute : public ForceConstraint
 
         //! construct a list of local molecules
         virtual void initMolecules();
+
+        #ifdef ENABLE_CUDA
+        //! construct a list of local molecules on the GPU
+        virtual void initMoleculesGPU();
+        #endif
 
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         void checkParticlesSorted()

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #ifdef ENABLE_CUDA
 #include "IntegratorHPMCMonoGPU.h"
@@ -50,7 +52,11 @@ void export_convex_polyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeConvexPolyhedron >(m, "ComputeFreeVolumeConvexPolyhedron");
     export_AnalyzerSDF< ShapeConvexPolyhedron >(m, "AnalyzerSDFConvexPolyhedron");
     export_UpdaterMuVT< ShapeConvexPolyhedron >(m, "UpdaterMuVTConvexPolyhedron");
-    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron >(m, "UpdaterMuVTImplicitConvexPolyhedron");
+    export_UpdaterClusters< ShapeConvexPolyhedron >(m, "UpdaterClustersConvexPolyhedron");
+    export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitConvexPolyhedron");
+    export_UpdaterClustersImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterClustersImplicitNewConvexPolyhedron");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicit<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitConvexPolyhedron");
+    export_UpdaterMuVTImplicit< ShapeConvexPolyhedron, IntegratorHPMCMonoImplicitNew<ShapeConvexPolyhedron> >(m, "UpdaterMuVTImplicitNewConvexPolyhedron");
 
     export_ExternalFieldInterface<ShapeConvexPolyhedron >(m, "ExternalFieldConvexPolyhedron");
     export_LatticeField<ShapeConvexPolyhedron >(m, "ExternalFieldLatticeConvexPolyhedron");

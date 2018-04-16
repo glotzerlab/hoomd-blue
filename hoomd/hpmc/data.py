@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Shape data structures.
@@ -121,16 +121,15 @@ class sphere_params(_hpmc.sphere_param_proxy, _param):
     def __init__(self, mc, index):
         _hpmc.sphere_param_proxy.__init__(self, mc.cpp_integrator, index);
         _param.__init__(self, mc, index);
-        self._keys += ['diameter'];
+        self._keys += ['diameter','orientable'];
         self.make_fn = _hpmc.make_sph_params;
 
     def __str__(self):
         # should we put this in the c++ side?
         return "sphere(diameter = {})".format(self.diameter)
 
-    def make_param(self, diameter, ignore_statistics=False):
-        return self.make_fn(float(diameter)/2.0,
-                            ignore_statistics);
+    def make_param(self, diameter, ignore_statistics=False,orientable=False):
+        return self.make_fn(float(diameter)/2.0,ignore_statistics,orientable);
 
 class convex_polygon_params(_hpmc.convex_polygon_param_proxy, _param):
     def __init__(self, mc, index):
@@ -361,7 +360,7 @@ class sphere_union_params(_hpmc.sphere_union_param_proxy,_param):
         if overlap is None:
             overlap = [1 for c in centers]
 
-        members = [_hpmc.make_sph_params(float(d)/2.0, False) for d in diameters];
+        members = [_hpmc.make_sph_params(float(d)/2.0, False, False) for d in diameters];
         N = len(diameters)
         if len(centers) != N:
             raise RuntimeError("Lists of constituent particle parameters and centers must be equal length.")

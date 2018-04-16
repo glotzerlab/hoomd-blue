@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT_NEW_GPU_H__
@@ -243,6 +243,12 @@ IntegratorHPMCMonoImplicitNewGPU< Shape >::~IntegratorHPMCMonoImplicitNewGPU()
 template< class Shape >
 void IntegratorHPMCMonoImplicitNewGPU< Shape >::update(unsigned int timestep)
     {
+    if (this->m_patch && !this->m_patch_log)
+        {
+        this->m_exec_conf->msg->error() << "Depletant simulations with patches are unsupported." << std::endl;
+        throw std::runtime_error("Error during implicit depletant integration\n");
+        }
+
     IntegratorHPMC::update(timestep);
 
     // update poisson distributions

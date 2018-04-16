@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -285,6 +285,11 @@ class harmonic(force._force):
         data['dihedral_coeff'] = self.dihedral_coeff
         return data
 
+def _table_eval(theta, V, T, width):
+      dth = (2*math.pi) / float(width-1);
+      i = int(round((theta+math.pi)/dth))
+      return (V[i], T[i])
+
 class table(force._force):
     R""" Tabulated dihedral potential.
 
@@ -403,11 +408,11 @@ class table(force._force):
         Example::
 
             #t  V    T
-            -3.1414 2.0 -3.0
-            1.5707 3.0 - 4.0
+            -3.141592653589793 2.0 -3.0
+            -1.5707963267948966 3.0 -4.0
             0.0 2.0 -3.0
-            1.5707 3.0 -4.0
-            3.1414 2.0 -3.0
+            1.5707963267948966 3.0 -4.0
+            3.141592653589793 2.0 -3.0
 
         Note:
             The theta values are not used by the code.  It is assumed that a table that has N rows will start at :math:`-\pi`, end at :math:`\pi`
@@ -447,7 +452,7 @@ class table(force._force):
             T_table.append(values[2]);
 
         # validate input
-        if self.width != len(r_table):
+        if self.width != len(T_table):
             hoomd.context.msg.error("dihedral.table: file must have exactly " + str(self.width) + " rows\n");
             raise RuntimeError("Error reading table file");
 
@@ -455,10 +460,10 @@ class table(force._force):
         # check for even spacing
         dth = 2.0*math.pi / float(self.width-1);
         for i in range(0,self.width):
-            theta =  -math.pi+dnth * i;
+            theta =  -math.pi+dth * i;
             if math.fabs(theta - theta_table[i]) > 1e-3:
-                hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi");
-                raise RuntimeError("Error reading table file");
+                hoomd.context.msg.error("dihedral.table: theta must be monotonically increasing and evenly spaced, going from -pi to pi\n");
+                hoomd.context.msg.error("row: " + str(i) + " expected: " + str(theta) + " got: " + str(theta_table[i]) + "\n");
 
         hoomd.util.quiet_status();
         self.dihedral_coeff.set(dihedralname, func=_table_eval, coeff=dict(V=V_table, T=T_table, width=self.width))

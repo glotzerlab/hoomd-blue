@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -149,7 +149,7 @@ class _constraint_force(hoomd.meta._metadata):
     ## \internal
     # \brief Get metadata
     def get_metadata(self):
-        data = meta._metadata.get_metadata(self)
+        data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         if self.name is not "":
             data['name'] = self.name

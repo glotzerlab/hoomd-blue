@@ -25,7 +25,7 @@
 
 
 
-namespace num_util{
+namespace  num_util __attribute__((visibility("default"))) {
   //!
   /**
    *A free function that extracts a PyArrayObject from any sequential PyObject.
@@ -70,52 +70,52 @@ namespace num_util{
     //specializations for use by makeNum
 
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned char>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<signed char>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<short>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned short>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned int>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<int>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<unsigned long long>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<float>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<double>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<long double>(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<float> >(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<double> >(void);
 
-  template <>
+  template <> __attribute__((visibility("default")))
   NPY_TYPES getEnum<std::complex<long double> >(void);
 
 
@@ -193,7 +193,7 @@ namespace num_util{
    *@param expected_type an expected numpy type.
    *@return -----
    */
-  void check_type(PyObject *arr,
+  __attribute__((visibility("default"))) void check_type(PyObject *arr,
           NPY_TYPES expected_type);
 
   /**
@@ -209,14 +209,14 @@ namespace num_util{
    *@param expected_rank an expected rank of the numeric array.
    *@return -----
    */
-  void check_rank(PyObject *arr, int expected_rank);
+  __attribute__((visibility("default"))) void check_rank(PyObject *arr, int expected_rank);
 
   /**
    *A free function that returns the total size of the array.
    *@param arr a PythonArrayObject pointer.
    *@return an integer that indicates the total size of the array.
    */
-  intp size(PyObject *arr);
+  __attribute__((visibility("default"))) intp size(PyObject *arr);
 
   /**
    *Throw an exception if the actual total size of the array is not equal to
@@ -274,14 +274,14 @@ namespace num_util{
    *@param arr a PythonArrayObject pointer.
    *@return -----
   */
-  void check_contiguous(PyObject *arr);
+  __attribute__((visibility("default"))) void check_contiguous(PyObject *arr);
 
   /**
    *Returns a pointer to the data in the array.
    *@param arr a PythonArrayObject pointer.
    *@return a char pointer pointing at the first element of the array.
    */
-  void* data(PyObject *arr);
+  __attribute__((visibility("default"))) void* data(PyObject *arr);
 
   /**
    *Copies data into the array.

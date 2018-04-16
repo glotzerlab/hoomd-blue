@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: jglaser
@@ -39,7 +39,7 @@
 
     EvaluatorPairDLVO evaluates the function:
     \f{eqnarray*}
-    V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[ \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2} 
+    V_{\mathrm{DLVO}}(r)  = & - \frac{A}{6} \left[ \frac{2a_1a_2}{r^2 - (a_1+a_2)^2} + \frac{2a_1a_2}{r^2 - (a_1-a_2)^2}
                             + \log \left( \frac{r^2 - (a_1+a_2)^2}{r^2 - (a_1+a_2)^2} \right) \right] + \frac{r_1r_2}{r_1+r_2} Z e^{-\kappa(r - (a_1+a_2))} & r < (r_{\mathrm{cut}} + \Delta) \\
                          = & 0 & r \ge (r_{\mathrm{cut}} + \Delta) \\
     \f}

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -472,6 +472,9 @@ CommFlags AnisoPotentialPair< aniso_evaluator >::getRequestedCommFlags(unsigned 
 
     if (aniso_evaluator::needsDiameter())
         flags[comm_flag::diameter] = 1;
+
+    // with rigid bodies, include net torque
+    flags[comm_flag::net_torque] = 1;
 
     flags |= ForceCompute::getRequestedCommFlags(timestep);
 

@@ -53,6 +53,8 @@ if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
     # only attempt to update submodules if this is a git repository and we have a git executable
     if (UPDATE_SUBMODULES)
       message(STATUS "Updating git submodules")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
       execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     endif()
@@ -155,15 +157,14 @@ add_custom_target(copy_cmake ALL
 # set up unit tests
 enable_testing()
 option(BUILD_TESTING "Build unit tests" ON)
-if (BUILD_TESTING)
-     # add test_all to the ALL target
-     add_custom_target(test_all ALL)
-
-endif (BUILD_TESTING)
 
 ################################
 # set up long validation tests
 option(BUILD_VALIDATION "Build validation tests" OFF)
+if (BUILD_TESTING OR BUILD_VALIDATION)
+     # add test_all to the ALL target
+     add_custom_target(test_all ALL)
+endif (BUILD_TESTING OR BUILD_VALIDATION)
 
 ################################
 ## Process subdirectories

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -55,6 +55,8 @@ class ForceDistanceConstraintGPU : public ForceDistanceConstraint
         */
         virtual void setAutotunerParams(bool enable, unsigned int period)
             {
+            ForceDistanceConstraint::setAutotunerParams(enable, period);
+
             m_tuner_fill->setPeriod(period);
             m_tuner_force->setPeriod(period);
 

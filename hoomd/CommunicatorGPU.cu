@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -363,9 +363,7 @@ __global__ void gpu_make_ghost_exchange_plan_kernel(
 
     if (d_body[idx] != NO_BODY)
         {
-        ghost_fraction = make_scalar3(::max(ghost_fraction.x,s_body_ghost_fractions[type].x),
-                                      ::max(ghost_fraction.y,s_body_ghost_fractions[type].y),
-                                      ::max(ghost_fraction.z,s_body_ghost_fractions[type].z));
+        ghost_fraction += s_body_ghost_fractions[type];
         }
 
     Scalar3 f = box.makeFraction(pos);

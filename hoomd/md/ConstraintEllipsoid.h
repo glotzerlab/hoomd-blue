@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -24,7 +24,7 @@
 //! Applys a constraint force to keep a group of particles on a Ellipsoid
 /*! \ingroup computes
 */
-class ConstraintEllipsoid : public Updater
+class PYBIND11_EXPORT ConstraintEllipsoid : public Updater
     {
     public:
         //! Constructs the compute

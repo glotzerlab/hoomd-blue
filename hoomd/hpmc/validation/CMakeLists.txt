@@ -49,22 +49,31 @@ endmacro()
 
 # format: test_script user_min user_max
 set(TEST_LIST_CPU
-spheres_implicit.py 0 0
+spheres_implicit.py 0 1
 sphere_eos.py 0 0
 disk_eos.py 0 0
 )
 
+if(BUILD_JIT)
+set(TEST_LIST_CPU ${TEST_LIST_CPU}
+    wca_dumbbell.py 0 2
+    lj_spheres.py 0 5
+)
+endif(BUILD_JIT)
+
 set(TEST_LIST_GPU
-spheres_implicit.py 0 0
+spheres_implicit.py 0 1
 sphere_eos.py 0 0
 disk_eos.py 0 0
 )
 
 set(EXCLUDE_FROM_GPU_MPI
     spheres_implicit.py
+    wca_dumbbell.py
 )
 
 set(EXCLUDE_FROM_MPI
+    lj_spheres.py
 )
 
 list(LENGTH TEST_LIST_CPU _max_i)

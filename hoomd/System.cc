@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -501,7 +501,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
+                    {
+                    if (m_profiler) m_profiler->push("MPI sync");
                     MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    if (m_profiler) m_profiler->pop();
+                    }
                 #endif
 
                 if (timeout_end_run)
@@ -530,7 +534,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
+                    {
+                    if (m_profiler) m_profiler->push("MPI sync");
                     MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    if (m_profiler) m_profiler->pop();
+                    }
                 #endif
 
                 if (timeout_end_run)

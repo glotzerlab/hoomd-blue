@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -30,7 +30,7 @@
        with 0 being the current step.
     \ingroup utils
 */
-class Variant
+class PYBIND11_EXPORT Variant
     {
     public:
         //! Constructor
@@ -53,7 +53,7 @@ class Variant
 
 //! Constant variant
 /*! Specifies a value that is constant over all time */
-class VariantConst : public Variant
+class PYBIND11_EXPORT VariantConst : public Variant
     {
     public:
         //! Constructor
@@ -76,7 +76,7 @@ class VariantConst : public Variant
     requested is before or after the end of the specified points, the value at the beginning
     (or end) is returned.
 */
-class VariantLinear : public Variant
+class PYBIND11_EXPORT VariantLinear : public Variant
     {
     public:
         //! Constructs an empty variant
