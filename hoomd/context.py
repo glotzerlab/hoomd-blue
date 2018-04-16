@@ -242,21 +242,6 @@ def initialize(args=None):
     current = SimulationContext();
     return current
 
-## Get the current processor name
-#
-# platform.node() can spawn forked processes in some version of MPI.
-# This avoids that problem by using MPI information about the hostname directly
-# when it is available. MPI is initialized on module load if it is available,
-# so this data is accessible immediately.
-#
-# \returns String name for the current processor
-# \internal
-def _get_proc_name():
-    if _hoomd.is_MPI_available():
-        return _hoomd.get_mpi_proc_name()
-    else:
-        return platform.node()
-
 ## Initializes the execution configuration
 #
 # \internal
@@ -269,12 +254,7 @@ def _create_exec_conf():
 
     mpi_available = _hoomd.is_MPI_available();
 
-    # error out on nyx/flux if the auto mode is set
     if options.mode == 'auto':
-        host = _get_proc_name()
-        if "flux" in host or "nyx" in host:
-            msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
-            raise RuntimeError("Error initializing");
         exec_mode = _hoomd.ExecutionConfiguration.executionMode.AUTO;
     elif options.mode == "cpu":
         exec_mode = _hoomd.ExecutionConfiguration.executionMode.CPU;
