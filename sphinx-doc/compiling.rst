@@ -14,6 +14,7 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, clang 3.8, 5.0)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
+     * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
  * Useful developer tools
