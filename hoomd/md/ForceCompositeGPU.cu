@@ -63,7 +63,9 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
                                                  unsigned int window_size,
                                                  unsigned int thread_mask,
                                                  unsigned int n_bodies_per_block,
-                                                 bool zero_force)
+                                                 bool zero_force,
+                                                 unsigned int first_body,
+                                                 unsigned int nwork)
     {
     // determine which body (0 ... n_bodies_per_block-1) this thread is working on
     // assign threads 0, 1, 2, ... to body 0, n, n+1, n+2, ... to body 1, and so on.
@@ -91,9 +93,9 @@ __global__ void gpu_rigid_force_sliding_kernel(Scalar4* d_force,
         {
         // thread 0 for this body reads in the body id and orientation and stores them in shared memory
         int group_idx = blockIdx.x*n_bodies_per_block + m;
-        if (group_idx < n_mol)
+        if (group_idx < nwork)
             {
-            central_idx[m] = d_rigid_center[group_idx];
+            central_idx[m] = d_rigid_center[group_idx + first_body];
             mol_idx[m] = d_molecule_idx[central_idx[m]];
 
             if (d_tag[central_idx[m]] != d_body[central_idx[m]])
@@ -508,7 +510,9 @@ cudaError_t gpu_rigid_force(Scalar4* d_force,
             window_size,
             thread_mask,
             n_bodies_per_block,
-            zero_force);
+            zero_force,
+            range.first,
+            nwork);
         }
     return cudaSuccess;
     }
