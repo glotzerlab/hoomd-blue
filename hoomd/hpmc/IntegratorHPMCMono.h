@@ -1054,7 +1054,7 @@ float IntegratorHPMCMono<Shape>::computePatchEnergy(unsigned int timestep)
         [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
         for (unsigned int i = r.begin(); i != r.end(); ++i)
     #else
-    for (unsigned int cur_leaf_a = 0; cur_leaf_a < tree_a.getNumLeaves(); cur_leaf_a ++)
+    for (unsigned int i = 0; i < m_pdata->getN(); i++)
     #endif
         {
         // read in the current position and orientation
