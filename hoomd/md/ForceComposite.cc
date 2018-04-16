@@ -20,7 +20,10 @@ namespace py = pybind11;
 ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
         : MolecularForceCompute(sysdef), m_bodies_changed(false), m_ptls_added_removed(false),
          m_global_max_d(0.0),
-         m_comm_ghost_layer_connected(false), m_global_max_d_changed(true)
+         #ifdef ENABLE_MPI
+         m_comm_ghost_layer_connected(false),
+         #endif
+         m_global_max_d_changed(true)
     {
     // connect to the ParticleData to receive notifications when the number of types changes
     m_pdata->getNumTypesChangeSignal().connect<ForceComposite, &ForceComposite::slotNumTypesChange>(this);

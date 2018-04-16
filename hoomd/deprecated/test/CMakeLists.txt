@@ -39,7 +39,7 @@ endforeach (CUR_TEST)
 foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
     if (ENABLE_MPI)
-        add_test(NAME ${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} COMMAND $<TARGET_FILE:${CUR_TEST}>)
+        add_test(NAME ${CUR_TEST} COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:${CUR_TEST}>)
     else()
         add_test(NAME ${CUR_TEST} COMMAND $<TARGET_FILE:${CUR_TEST}>)
     endif()
