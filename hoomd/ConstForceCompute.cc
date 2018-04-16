@@ -24,7 +24,7 @@ using namespace std;
 ConstForceCompute::ConstForceCompute(std::shared_ptr<SystemDefinition> sysdef,
         Scalar fx, Scalar fy, Scalar fz,
         Scalar tx, Scalar ty, Scalar tz)
-        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz), m_tx(tx), m_ty(ty), m_tz(tz)
+        : ForceCompute(sysdef), m_fx(fx), m_fy(fy), m_fz(fz), m_tx(tx), m_ty(ty), m_tz(tz), m_need_rearrange_forces(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing ConstForceCompute" << endl;
 
@@ -106,29 +106,16 @@ void ConstForceCompute::setForce(Scalar fx, Scalar fy, Scalar fz, Scalar tx, Sca
 */
 void ConstForceCompute::setParticleForce(unsigned int tag, Scalar fx, Scalar fy, Scalar fz, Scalar tx, Scalar ty, Scalar tz)
     {
-    assert(m_pdata != NULL);
-    assert(tag < m_pdata->getNGlobal());
-
-    unsigned int idx = m_pdata->getRTag(tag);
-    bool ptl_local = (idx < m_pdata->getN());
-
-    if (ptl_local)
+    if (tag > m_pdata->getMaximumTag())
         {
-        ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::readwrite);
-        ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::readwrite);
-        assert(h_force.data);
-        assert(h_torque.data);
-
-        h_force.data[idx].x = fx;
-        h_force.data[idx].y = fy;
-        h_force.data[idx].z = fz;
-        h_force.data[idx].w = 0;
-
-        h_torque.data[idx].x = tx;
-        h_torque.data[idx].y = ty;
-        h_torque.data[idx].z = tz;
-        h_torque.data[idx].w = 0;
+        m_exec_conf->msg->error() << "Particle tag needs to be smaller or equal the maximum tag in the system." << std::endl;
+        throw std::runtime_error("Error setting particle forces.\n");
         }
+
+    m_forces[tag] = vec3<Scalar>(fx,fy,fz);
+    m_torques[tag] = vec3<Scalar>(tx,ty,tz);
+
+    m_need_rearrange_forces = true;
     }
 
 /*! \param group Group to set the force or torque for
@@ -188,11 +175,50 @@ void ConstForceCompute::setGroupForce(std::shared_ptr<ParticleGroup> group, Scal
 void ConstForceCompute::rearrangeForces()
     {
     if (m_group)
+        {
         // set force only on group of particles
         setGroupForce(m_group, m_fx, m_fy, m_fz, m_tx, m_ty, m_tz);
+        }
     else
+        {
         // set force on all particles
         setForce(m_fx, m_fy, m_fz, m_tx, m_ty, m_tz);
+        }
+
+    if (m_forces.size())
+        {
+        assert(m_forces.size() == m_torques.size());
+
+        ArrayHandle<Scalar4> h_force(m_force,access_location::host,access_mode::readwrite);
+        ArrayHandle<Scalar4> h_torque(m_torque,access_location::host,access_mode::readwrite);
+
+        assert(h_force.data);
+        assert(h_torque.data);
+
+        for (auto it = m_forces.begin(); it != m_forces.end(); ++it)
+            {
+            unsigned int tag = it->first;
+            unsigned int idx = m_pdata->getRTag(tag);
+            bool ptl_local = (idx < m_pdata->getN());
+            vec3<Scalar> f = it->second;
+            vec3<Scalar> t = m_torques[it->first];
+
+            if (ptl_local)
+                {
+                h_force.data[idx].x = f.x;
+                h_force.data[idx].y = f.y;
+                h_force.data[idx].z = f.z;
+                h_force.data[idx].w = 0;
+
+                h_torque.data[idx].x = t.x;
+                h_torque.data[idx].y = t.y;
+                h_torque.data[idx].z = t.z;
+                h_torque.data[idx].w = 0;
+                }
+            }
+        }
+
+    m_need_rearrange_forces = false;
     }
 
 /*! This function calls rearrangeForces() whenever the particles have been sorted
@@ -200,10 +226,11 @@ void ConstForceCompute::rearrangeForces()
 */
 void ConstForceCompute::computeForces(unsigned int timestep)
     {
-    if (m_particles_sorted==true) rearrangeForces();
+    if (m_particles_sorted || m_need_rearrange_forces)
+        rearrangeForces();
 
     // execute python callback to update the forces, if present
-    if (m_callback != py::none())
+    if (m_callback && m_callback != py::none())
         {
         m_callback(timestep);
         }
@@ -213,6 +240,7 @@ void ConstForceCompute::computeForces(unsigned int timestep)
 void export_ConstForceCompute(py::module& m)
     {
     py::class_< ConstForceCompute, std::shared_ptr<ConstForceCompute> >(m,"ConstForceCompute",py::base<ForceCompute>())
+    .def(py::init< std::shared_ptr<SystemDefinition>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def(py::init< std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>, Scalar, Scalar, Scalar, Scalar, Scalar, Scalar >())
     .def("setForce", &ConstForceCompute::setForce)
     .def("setGroupForce", &ConstForceCompute::setGroupForce)
