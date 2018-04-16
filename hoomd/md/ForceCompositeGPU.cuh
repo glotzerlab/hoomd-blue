@@ -78,3 +78,10 @@ void gpu_update_composite(unsigned int N,
     unsigned int block_size,
     uint2 *d_flag,
     const GPUPartition &gpu_partition);
+
+
+cudaError_t gpu_sort_rigid_bodies(const unsigned int *d_body,
+                                const unsigned int *d_tag,
+                                const unsigned int N,
+                                unsigned int *d_rigid_center,
+                                unsigned int &n_rigid);

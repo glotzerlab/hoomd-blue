@@ -7,6 +7,10 @@
 #include "hoomd/ParticleData.cuh"
 
 #include "ForceCompositeGPU.cuh"
+#include <thrust/copy.h>
+#include <thrust/device_ptr.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/zip_iterator.h>
 
 // Maintainer: jglaser
 
@@ -625,7 +629,7 @@ __global__ void gpu_update_composite_kernel(unsigned int N,
 
     if (idx >= nwork)
         return;
-    
+
     idx += offset;
 
     unsigned int central_tag = d_body[idx];
@@ -763,4 +767,34 @@ void gpu_update_composite(unsigned int N,
             global_box,
             d_flag);
         }
+    }
+
+struct is_center
+    {
+    __host__ __device__
+    bool operator()(const thrust::tuple<unsigned int, unsigned int>& t)
+        {
+        return t.get<0>() == t.get<1>();
+        }
+    };
+
+cudaError_t gpu_sort_rigid_bodies(const unsigned int *d_body,
+                                const unsigned int *d_tag,
+                                const unsigned int N,
+                                unsigned int *d_rigid_center,
+                                unsigned int &n_rigid)
+    {
+    thrust::device_ptr<const unsigned int> body(d_body);
+    thrust::device_ptr<const unsigned int> tag(d_tag);
+    thrust::device_ptr<unsigned int> rigid_center(d_rigid_center);
+    thrust::counting_iterator<unsigned int> count(0);
+    auto it = thrust::copy_if(count,
+                    count + N,
+                    thrust::make_zip_iterator(thrust::make_tuple(body, tag)),
+                    rigid_center,
+                    is_center());
+
+    n_rigid = it - rigid_center;
+
+    return cudaSuccess;
     }

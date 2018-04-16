@@ -130,6 +130,8 @@ class MolecularForceCompute : public ForceConstraint
         GlobalVector<unsigned int> m_molecule_tag;     //!< Molecule tag per particle tag
         unsigned int m_n_molecules_global;          //!< Global number of molecules
 
+        bool m_dirty;                               //!< True if we need to rebuild indices
+
         //! Helper function to check if particles have been sorted and rebuild indices if necessary
         virtual void checkParticlesSorted()
             {
@@ -152,8 +154,6 @@ class MolecularForceCompute : public ForceConstraint
         #endif
 
         Index2D m_molecule_indexer;                 //!< Index of the molecule table
-
-        bool m_dirty;                               //!< True if we need to rebuild indices
 
         void setDirty()
             {

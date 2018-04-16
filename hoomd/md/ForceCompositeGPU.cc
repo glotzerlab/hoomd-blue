@@ -308,6 +308,26 @@ void ForceCompositeGPU::updateCompositeParticles(unsigned int timestep)
         m_prof->pop(m_exec_conf);
     }
 
+void ForceCompositeGPU::sortRigidBodies()
+    {
+    ArrayHandle<unsigned int> d_tag(m_pdata->getTags(), access_location::device, access_mode::read);
+    ArrayHandle<unsigned int> d_body(m_pdata->getBodies(), access_location::device, access_mode::read);
+
+    m_rigid_center.resize(m_pdata->getN());
+
+    ArrayHandle<unsigned int> d_rigid_center(m_rigid_center, access_location::device, access_mode::read);
+
+    unsigned int n_rigid = 0;
+    gpu_sort_rigid_bodies(d_body.data,
+                        d_tag.data,
+                        m_pdata->getN(),
+                        d_rigid_center.data,
+                        n_rigid);
+
+    m_gpu_partition = GPUPartition(m_exec_conf->getGPUIds());
+    m_gpu_partition.setN(n_rigid);
+    }
+
 void export_ForceCompositeGPU(py::module& m)
     {
     py::class_< ForceCompositeGPU, std::shared_ptr<ForceCompositeGPU> >(m, "ForceCompositeGPU", py::base<ForceComposite>())

@@ -98,7 +98,7 @@ class ForceComposite : public MolecularForceCompute
         GlobalVector<unsigned int> m_rigid_center;  //!< Contains particle indices of all central particles
 
         //! Helper function to identify center particle indices
-        void sortRigidBodies();
+        virtual void sortRigidBodies();
         #endif
 
         //! Helper function to be called when the number of types changes
