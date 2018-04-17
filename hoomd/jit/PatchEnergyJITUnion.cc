@@ -80,7 +80,6 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
         }
 
     // set the diameter
-    m_rcut_type[type] = extent_i + m_r_cut;
     m_extent_type[type] = extent_i;
 
     // build tree and store proxy structure
@@ -123,10 +122,10 @@ float PatchEnergyJITUnion::compute_leaf_leaf_energy(vec3<float> dr,
             vec3<float> r_ij = m_position[type_b][jleaf] - pos_i;
 
             float rsq = dot(r_ij,r_ij);
-            if (rsq <= m_r_cut*m_r_cut)
+            if (rsq <= m_rcut_union*m_rcut_union)
                 {
                 // evaluate energy via JIT function
-                energy += m_eval(r_ij,
+                energy += m_eval_union(r_ij,
                     type_i,
                     orientation_i,
                     m_diameter[type_a][ileaf],
@@ -155,14 +154,16 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
     const hpmc::detail::GPUTree& tree_a = m_tree[type_i];
     const hpmc::detail::GPUTree& tree_b = m_tree[type_j];
 
-    #ifndef ENABLE_TBB
     float energy = 0.0;
-    #endif
+
+    // evaluate isotropic part if necessary
+    if (m_r_cut >= 0.0)
+        energy += m_eval(r_ij, type_i, q_i, d_i, charge_i, type_j, q_j, d_j, charge_j);
 
     if (tree_a.getNumLeaves() <= tree_b.getNumLeaves())
         {
         #ifdef ENABLE_TBB
-        return tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
+        energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_a.getNumLeaves()),
             0.0f,
             [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
             for (unsigned int cur_leaf_a = r.begin(); cur_leaf_a != r.end(); ++cur_leaf_a)
@@ -174,9 +175,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_a = tree_a.getOBB(cur_node_a);
 
             // add range of interaction
-            obb_a.lengths.x += m_r_cut;
-            obb_a.lengths.y += m_r_cut;
-            obb_a.lengths.z += m_r_cut;
+            obb_a.lengths.x += m_rcut_union;
+            obb_a.lengths.y += m_rcut_union;
+            obb_a.lengths.z += m_rcut_union;
 
             // rotate and translate a's obb into b's body frame
             obb_a.affineTransform(conj(q_j)*q_i, rotate(conj(q_j),-r_ij));
@@ -197,7 +198,7 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
     else
         {
         #ifdef ENABLE_TBB
-        return tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
+        energy += tbb::parallel_reduce(tbb::blocked_range<unsigned int>(0, tree_b.getNumLeaves()),
             0.0f,
             [&](const tbb::blocked_range<unsigned int>& r, float energy)->float {
             for (unsigned int cur_leaf_b = r.begin(); cur_leaf_b != r.end(); ++cur_leaf_b)
@@ -209,9 +210,9 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
             hpmc::detail::OBB obb_b = tree_b.getOBB(cur_node_b);
 
             // add range of interaction
-            obb_b.lengths.x += m_r_cut;
-            obb_b.lengths.y += m_r_cut;
-            obb_b.lengths.z += m_r_cut;
+            obb_b.lengths.x += m_rcut_union;
+            obb_b.lengths.y += m_rcut_union;
+            obb_b.lengths.z += m_rcut_union;
 
             // rotate and translate b's obb into a's body frame
             obb_b.affineTransform(conj(q_i)*q_j, rotate(conj(q_i),r_ij));
@@ -230,9 +231,7 @@ float PatchEnergyJITUnion::energy(const vec3<float>& r_ij,
         #endif
         }
 
-    #ifndef ENABLE_TBB
     return energy;
-    #endif
     }
 
 void export_PatchEnergyJITUnion(pybind11::module &m)
@@ -240,8 +239,8 @@ void export_PatchEnergyJITUnion(pybind11::module &m)
     pybind11::class_<PatchEnergyJITUnion, std::shared_ptr<PatchEnergyJITUnion> >(m, "PatchEnergyJITUnion", pybind11::base< PatchEnergyJIT >())
             .def(pybind11::init< std::shared_ptr<SystemDefinition>,
                                  std::shared_ptr<ExecutionConfiguration>,
-                                 const std::string&,
-                                 Scalar>())
+                                 const std::string&, Scalar,
+                                 const std::string&, Scalar>())
             .def("setParam",&PatchEnergyJITUnion::setParam)
             ;
     }
