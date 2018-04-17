@@ -35,6 +35,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include <memory>
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 #endif
 
 #include <stack>
@@ -215,12 +216,12 @@ class BondedGroupData
             #endif
 
             //! Get type as a numpy array
-            pybind11::object getTypeNP();
+            static pybind11::object getTypeNP(pybind11::object self);
             //! Get value as a numpy array
-            pybind11::object getValueNP();
+            static pybind11::object getValueNP(pybind11::object self);
 
             //! Get bonded tags as a numpy array
-            pybind11::object getBondedTagsNP();
+            static pybind11::object getBondedTagsNP(pybind11::object self);
             //! Get the type names for python
             pybind11::list getTypes();
             //! Set the type names from python
