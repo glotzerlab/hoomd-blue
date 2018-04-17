@@ -84,7 +84,9 @@ void TwoStepNVTMTKGPU::integrateStepOne(unsigned int timestep)
 
     // profile this step
     if (m_prof)
+        {
         m_prof->push(m_exec_conf, "NVT MTK step 1");
+        }
 
         {
         // access all the needed data
