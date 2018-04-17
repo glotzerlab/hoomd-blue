@@ -148,7 +148,9 @@ class PYBIND11_EXPORT ForceComposite : public MolecularForceCompute
         Scalar getBodyDiameter(unsigned int body_type);
 
     private:
+        #ifdef ENABLE_MPI
         bool m_comm_ghost_layer_connected; //!< Track if we have already connected ghost layer width requests
+        #endif
         bool m_global_max_d_changed;       //!< True if we updated any rigid body
     };
 

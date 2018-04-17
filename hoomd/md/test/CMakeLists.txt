@@ -88,25 +88,21 @@ endforeach (CUR_TEST)
 # add non-MPI tests to test list first
 foreach (CUR_TEST ${TEST_LIST})
     # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
-
     if (ENABLE_MPI)
-        add_test(${CUR_TEST} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_TEST_EXE})
+        add_test(NAME ${CUR_TEST} COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:${CUR_TEST}>)
     else()
-        add_test(${CUR_TEST} ${CUR_TEST_EXE})
+        add_test(NAME ${CUR_TEST} COMMAND $<TARGET_FILE:${CUR_TEST}>)
     endif()
 endforeach(CUR_TEST)
 
 # add MPI tests
 foreach (CUR_TEST ${MPI_TEST_LIST})
     # add it to the unit test list
-    get_target_property(CUR_TEST_EXE ${CUR_TEST} LOCATION)
-
     # add mpi- prefix to distinguish these tests
     set(MPI_TEST_NAME mpi-${CUR_TEST})
 
-    add_test(${MPI_TEST_NAME}
+    add_test(NAME ${MPI_TEST_NAME} COMMAND
              ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
              ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-             ${CUR_TEST_EXE})
+             $<TARGET_FILE:${CUR_TEST}>)
 endforeach(CUR_TEST)
