@@ -19,8 +19,11 @@ Then add the `glotzer` channel and install HOOMD-blue:
 
 ```bash
 $ conda config --add channels glotzer
-$ conda install hoomd
+$ conda install hoomd cudatoolkit=8.0
 ```
+
+Conda does not properly pin the CUDA toolkit version in the dependencies, so you must explicitly request
+`cudatoolkit=8.0`.
 
 ## Compiling HOOMD-blue
 
