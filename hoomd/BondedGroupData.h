@@ -35,7 +35,6 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include <memory>
 #ifndef NVCC
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
-#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 #endif
 
 #include <stack>

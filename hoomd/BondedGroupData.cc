@@ -13,6 +13,8 @@
 #include "ParticleData.h"
 #include "Index1D.h"
 
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
+
 #ifdef ENABLE_CUDA
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
