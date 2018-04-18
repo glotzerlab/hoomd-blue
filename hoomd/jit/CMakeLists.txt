@@ -26,10 +26,6 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              KaleidoscopeJIT.h
    )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_${PACKAGE_NAME}_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-set_source_files_properties(${_${PACKAGE_NAME}_llvm_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 pybind11_add_module (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 

@@ -528,14 +528,6 @@ ModernGPU source code is embedded in HOOMD's package and is used for various tas
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-num_util is embedded in HOOMD's package::
-
-    Copyright 2006  Phil Austin (http://www.eos.ubc.ca/personal/paustin)
-    Distributed under the Boost Software License, Version 1.0. (See
-    accompanying file LICENSE_1_0.txt or copy at
-    http://www.boost.org/LICENSE_1_0.txt)
-    \endverbatim
-
 CUB 1.4.1 source code is embedded in HOOMD's package and is used for various tasks: http://nvlabs.github.io/cub/::
 
     Copyright (c) 2011, Duane Merrill.  All rights reserved.
