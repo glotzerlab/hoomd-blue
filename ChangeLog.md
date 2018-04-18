@@ -46,6 +46,8 @@ Not yet released
 Node local parallelism is still under development. It is not enabled in builds by default and only a few methods utilize
 multiple threads. In future versions, additional methods in HOOMD may support multiple threads.
 
+To ensure future workflow compatibility as future versions enable threading in more components, explicitly set --nthreads=1.
+
 *Bug fixes*
 
 * Fixed a problem with periodic boundary conditions and implicit depletants when `depletant_mode=circumsphere`
