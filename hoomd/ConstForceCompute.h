@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -8,6 +8,7 @@
 #include "ParticleGroup.h"
 
 #include <memory>
+#include <map>
 
 /*! \file ConstForceCompute.h
     \brief Declares a class for computing constant forces
@@ -41,10 +42,16 @@ class PYBIND11_EXPORT ConstForceCompute : public ForceCompute
         void setForce(Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Set the force for an individual particle
-        void setParticleForce(unsigned int i, Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
+        void setParticleForce(unsigned int tag, Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
 
         //! Set force for a particle group
         void setGroupForce(std::shared_ptr<ParticleGroup> group, Scalar fx, Scalar fy, Scalar fz, Scalar tx=0, Scalar ty=0, Scalar tz=0);
+
+        //! Set the python callback
+        void setCallback(pybind11::object py_callback)
+            {
+            m_callback = py_callback;
+            }
 
     protected:
 
@@ -65,6 +72,17 @@ class PYBIND11_EXPORT ConstForceCompute : public ForceCompute
 
         //! Group of particles to apply force to
         std::shared_ptr<ParticleGroup> m_group;
+
+        bool m_need_rearrange_forces;       //!< True if forces need to be rearranged
+
+        //! List of particle tags and corresponding forces
+        std::map<unsigned int, vec3<Scalar> > m_forces;
+
+        //! List of particle tags and corresponding forces
+        std::map<unsigned int, vec3<Scalar> > m_torques;
+
+        //! A python callback when the force is updated
+        pybind11::object m_callback;
     };
 
 //! Exports the ConstForceComputeClass to python

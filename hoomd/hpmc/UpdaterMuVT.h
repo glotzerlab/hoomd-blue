@@ -555,7 +555,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 }
             else
                 {
-                MPI_Status(stat);
+                MPI_Status stat;
                 MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator());
                 MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, m_exec_conf->getHOOMDWorldMPICommunicator(), &stat);
                 }
@@ -1354,9 +1354,12 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
         ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
         // Check particle against AABB tree for neighbors
-        Scalar r_cut_patch = patch->getRCut();
+        Scalar r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+
         OverlapReal R_query = std::max(0.0,r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
         detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
+
+        Scalar r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
 
         const unsigned int n_images = image_list.size();
         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1367,7 +1370,7 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                 {
                 vec3<Scalar> r_ij = pos - pos_image;
                 // self-energy
-                if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                if (dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
                     {
                     lnboltzmann += patch->energy(r_ij,
                         type,
@@ -1407,7 +1410,9 @@ bool UpdaterMuVT<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int t
                             // we computed the self-interaction above
                             if (h_tag.data[j] == tag) continue;
 
-                            if (dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                            Scalar r_cut_ij = r_cut_patch + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                            if (dot(r_ij,r_ij) <= r_cut_ij*r_cut_ij)
                                 {
                                 lnboltzmann += patch->energy(r_ij,
                                     type,
@@ -1484,7 +1489,13 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
         Shape shape(orientation, params[type]);
 
         OverlapReal r_cut_patch(0.0);
-        if (patch) r_cut_patch = patch->getRCut();
+        Scalar r_cut_self(0.0);
+
+        if (patch)
+            {
+            r_cut_patch = patch->getRCut() + 0.5*patch->getAdditiveCutoff(type);
+            r_cut_self = r_cut_patch + 0.5*patch->getAdditiveCutoff(type);
+            }
 
         unsigned int err_count = 0;
 
@@ -1506,7 +1517,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                     }
 
                 // self-energy
-                if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                if (patch && dot(r_ij,r_ij) <= r_cut_self*r_cut_self)
                     {
                     lnboltzmann -= patch->energy(r_ij,
                         type,
@@ -1528,7 +1539,8 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
             // Check particle against AABB tree for neighbors
             const detail::AABBTree& aabb_tree = m_mc->buildAABBTree();
 
-            OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0), r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
+            OverlapReal R_query = std::max(shape.getCircumsphereDiameter()/OverlapReal(2.0),
+                r_cut_patch - m_mc->getMinCoreDiameter()/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
@@ -1560,6 +1572,10 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
                                 Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
+                                Scalar r_cut_ij(0.0);
+                                if (patch)
+                                    r_cut_ij = r_cut_patch + 0.5*patch->getAdditiveCutoff(typ_j);
+
                                 if (h_overlaps.data[overlap_idx(type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape, shape_j)
                                     && test_overlap(r_ij, shape, shape_j, err_count))
@@ -1567,7 +1583,7 @@ bool UpdaterMuVT<Shape>::tryInsertParticle(unsigned int timestep, unsigned int t
                                     overlap = 1;
                                     break;
                                     }
-                                else if (patch && dot(r_ij,r_ij) <= r_cut_patch*r_cut_patch)
+                                else if (patch && dot(r_ij,r_ij) <= r_cut_ij*r_cut_ij)
                                     {
                                     lnboltzmann -= patch->energy(r_ij,
                                         type,

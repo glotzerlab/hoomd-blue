@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -136,7 +136,9 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         Scalar dfs(unsigned int iconstraint, unsigned int molecule, std::vector<int>& visited,
             unsigned int *label, std::vector<ConstraintData::members_t>& groups, std::vector<Scalar>& length);
 
+        #ifdef ENABLE_MPI
         bool m_comm_ghost_layer_connected = false; //!< Track if we have already connected to ghost layer width requests
+        #endif
 
     };
 

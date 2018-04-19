@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -24,7 +24,7 @@ void mpcd::SystemDataSnapshot::replicate(unsigned int nx, unsigned int ny, unsig
     L.z *= (Scalar) nz;
     m_global_box.setL(L);
 
-    particles.replicate(nx, ny, nz, old_box, m_global_box);
+    particles->replicate(nx, ny, nz, old_box, m_global_box);
     }
 
 /*!

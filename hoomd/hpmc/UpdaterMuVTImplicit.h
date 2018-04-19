@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_IMPLICIT_H__
@@ -403,10 +403,10 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
         lnboltzmann += lnb;
         }
 
+    #ifdef ENABLE_MPI
+
     // number of depletants to insert
     unsigned int n_insert = 0;
-
-    #ifdef ENABLE_MPI
 
     // zero overlapping depletants after removal
     unsigned int n_overlap = 0;
@@ -433,6 +433,7 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
     // only if the particle to be removed actually exists
     if (tag != UINT_MAX)
         {
+        #ifdef ENABLE_MPI
         // old type
         unsigned int type = this->m_pdata->getType(tag);
 
@@ -450,8 +451,6 @@ bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int times
             Shape shape_old(o, params[type]);
             d_colloid_old = shape_old.getCircumsphereDiameter();
             }
-
-        #ifdef ENABLE_MPI
 
         if (this->m_gibbs)
             {

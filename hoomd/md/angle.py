@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Angle potentials.
@@ -276,7 +276,7 @@ class harmonic(force._force):
 class cosinesq(force._force):
     R""" Cosine squared angle potential.
 
-    The command angle.cosinesq specifies a cosine squared potential energy 
+    The command angle.cosinesq specifies a cosine squared potential energy
     between every triplet of particles with an angle specified between them.
 
     .. math::
@@ -293,10 +293,10 @@ class cosinesq(force._force):
     - :math:`\theta_0` - rest angle  ``t0`` (in radians)
     - :math:`k` - potential constant ``k`` (in units of energy)
 
-    Coefficients :math:`k` and :math:`\theta_0` must be set for each type of 
+    Coefficients :math:`k` and :math:`\theta_0` must be set for each type of
     angle in the simulation using the method :py:meth:`angle_coeff.set() <coeff.set()>`.
     Note that the value of :math:`k` for this angle potential is not comparable to
-    the value of :math:`k` for harmonic angles, as they have different units.  
+    the value of :math:`k` for harmonic angles, as they have different units.
 
     Examples::
 

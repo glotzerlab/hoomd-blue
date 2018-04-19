@@ -11,24 +11,53 @@ Not yet released
 * General:
     * Store `BUILD_*` CMake variables in the hoomd cmake cache for use in external plugins.
     * `init.read_gsd` and `data.gsd_snapshot` now accept negative frame indices to index from the end of the trajectory.
+    * Faster reinitialization from snapshots when done frequently.
+    * New command line option `--single-mpi` allows non-mpi builds of hoomd to launch within mpirun (i.e. for use with mpi4py managed pools of jobs)
+    * For users of the University of Michigan Flux system: A `--mode` option is no longer required to run hoomd.
 
 * MD:
     * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
+    * New command `integrator.randomize_velocities()` sets a particle group's linear and angular velocities to random values consistent with a given kinetic temperature.
 
 * HPMC:
     * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
     * Support patchy energetic interactions between particles (CPU only)
+    * New command `hpmc.update.clusters()` supports geometric cluster moves with anisotropic particles and/or depletants and/or patch potentials. Supported move types: pivot and line reflection (geometric), and AB type swap.
 
 * JIT:
     * Add new experimental `jit` module that uses LLVM to compile and execute user provided C++ code at runtime. (CPU only)
     * Add `jit.patch.user`: Compute arbitrary patch energy between particles in HPMC (CPU only)
     * Add `jit.patch.user_union`: Compute arbitrary patch energy between rigid unions of points in HPMC (CPU only)
+    * Patch energies operate with implicit depletant and normal HPMC integration modes.
+    * `jit.patch.user_union` operates efficiently with additive contributions to the cutoff.
 
-*Deprecated*
+* MPCD:
+    * The `mpcd` component adds support for simulating hydrodynamics using the multiparticle collision dynamics method.
+
+*Beta feature*
+
+* Node local parallelism (optional, build with `ENABLE_TBB=on`):
+    * The command line option `--nthreads` limits the number of threads HOOMD will use. The default is all CPU cores in the system.
+    * Only the following methods in HOOMD will take advantage of multiple threads:
+        * `hpmc.update.clusters()`
+        * HPMC integrators with implicit depletants enabled
+        * `jit.patch.user_union`
+
+Node local parallelism is still under development. It is not enabled in builds by default and only a few methods utilize
+multiple threads. In future versions, additional methods in HOOMD may support multiple threads.
+
+To ensure future workflow compatibility as future versions enable threading in more components, explicitly set --nthreads=1.
+
+*Bug fixes*
+
+* Fixed a problem with periodic boundary conditions and implicit depletants when `depletant_mode=circumsphere`
+* Fixed a rare segmentation fault with `hpmc.integrate.*_union()` and `hpmc.integrate.polyhedron`
+* `md.force.active` and `md.force.dipole` now record metadata properly.
 
 *Other changes*
 
 * Eigen is now provided as a submodule. Plugins that use Eigen headers need to update include paths.
+* HOOMD now builds with pybind 2.2. Minor changes to source and cmake scripts in plugins may be necessary. See the updated example plugin.
 
 ## v2.2.4
 

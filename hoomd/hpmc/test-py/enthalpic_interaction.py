@@ -159,6 +159,38 @@ class enthalpic_dipole_interaction(unittest.TestCase):
            hoomd.run(2, quiet=True);
            self.assertEqual(self.log.query('hpmc_patch_energy'), 0);
 
+        # test the isotropic part of patch.user_union
+        def test_head_to_tail_parallel_union(self):
+            self.snapshot.particles.position[0,:]    = (0,0,0);
+            self.snapshot.particles.position[1,:]    = (self.diameter,0,0);
+            self.snapshot.particles.orientation[0,:] = (1,0,0,0);
+            self.snapshot.particles.orientation[1,:] = (1,0,0,0);
+            init.read_snapshot(self.snapshot);
+            self.mc = hpmc.integrate.sphere(seed=10,a=0,d=0);
+            self.mc.shape_param.set('A', diameter=self.diameter,orientable=True);
+            self.patch = jit.patch.user_union(mc=self.mc,r_cut_iso=self.r_cut, code_iso=self.dipole_dipole,
+                r_cut=0.0, code='return 0.0;');
+            self.log = analyze.log(filename=None, quantities=['hpmc_patch_energy'],period=0,overwrite=True);
+            hoomd.run(0, quiet=True);
+            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
+
+            # Disable patch with log = True and check logged energy is correct
+            self.patch.disable(log=True);
+            hoomd.run(2, quiet=True);
+            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
+
+            # Re-enable patch and check energy is correct again
+            self.patch.enable();
+            hoomd.run(2, quiet=True);
+            self.assertEqual(self.log.query('hpmc_patch_energy'), -self.lamb);
+
+            # Disable patch w/o log option and check energy is 0
+            self.patch.disable();
+            hoomd.run(2, quiet=True);
+            self.assertEqual(self.log.query('hpmc_patch_energy'), 0);
+
+
+
         def tearDown(self):
             del self.mc;
             del self.patch;

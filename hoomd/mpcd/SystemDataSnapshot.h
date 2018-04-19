@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -31,7 +31,9 @@ class PYBIND11_EXPORT SystemDataSnapshot
         SystemDataSnapshot(std::shared_ptr<::SystemDefinition> sysdef)
             : m_sysdef(sysdef), m_hoomd_pdata(m_sysdef->getParticleData()),
               m_global_box(m_hoomd_pdata->getGlobalBox())
-            { }
+            {
+            particles = std::make_shared<mpcd::ParticleDataSnapshot>();
+            }
 
         //! Replicate the snapshot
         void replicate(unsigned int nx, unsigned int ny, unsigned int nz);
@@ -70,7 +72,7 @@ class PYBIND11_EXPORT SystemDataSnapshot
             #endif // ENABLE_MPI
             }
 
-        mpcd::ParticleDataSnapshot particles;   //!< MPCD particle data snapshot
+        std::shared_ptr<mpcd::ParticleDataSnapshot> particles;   //!< MPCD particle data snapshot
 
     private:
         std::shared_ptr<::SystemDefinition> m_sysdef;   //!< HOOMD system definition
