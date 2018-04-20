@@ -276,7 +276,7 @@ class UpdaterClusters : public Updater
             if (quantity == "hpmc_clusters_moves")
                 {
                 hpmc_clusters_counters_t counters_total = getCounters(0);
-                return double(counters_total.getNMoves()) / double(m_pdata->getNGlobal());
+                return double(counters_total.getNParticlesMoved()) / double(m_pdata->getNGlobal());
                 }
             else if (quantity == "hpmc_clusterd_pivot_acceptance")
                 {
@@ -289,6 +289,10 @@ class UpdaterClusters : public Updater
             else if (quantity == "hpmc_clusters_swap_acceptance")
                 {
                 return counters.getSwapAcceptance();
+                }
+            else if (quantity == "hpmc_clusters_avg_size")
+                {
+                return counters.getAverageClusterSize();
                 }
             return Scalar(0.0);
             }
@@ -305,6 +309,7 @@ class UpdaterClusters : public Updater
             result.push_back("hpmc_clusters_pivot_acceptance");
             result.push_back("hpmc_clusters_reflection_acceptance");
             result.push_back("hpmc_clusters_swap_acceptance");
+            result.push_back("hpmc_clusters_avg_size");
             return result;
             }
 
@@ -375,7 +380,9 @@ class UpdaterClusters : public Updater
                 {
                 m_exec_conf->msg->notice(2) << "Average swap acceptance:       " << counters.getSwapAcceptance() << std::endl;
                 }
-            m_exec_conf->msg->notice(2) <<     "Total cluster moves:           " << counters.getNMoves() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Total particles in clusters:   " << counters.getNParticlesInClusters() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Total particles moved:         " << counters.getNParticlesMoved() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Average cluster size:          " << counters.getAverageClusterSize() << std::endl;
             }
 
             /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -401,6 +408,8 @@ class UpdaterClusters : public Updater
                     bcast(result.pivot_reject_count,0,m_exec_conf->getMPICommunicator());
                     bcast(result.reflection_reject_count,0,m_exec_conf->getMPICommunicator());
                     bcast(result.swap_reject_count,0,m_exec_conf->getMPICommunicator());
+                    bcast(result.n_clusters,0,m_exec_conf->getMPICommunicator());
+                    bcast(result.n_particles_in_clusters,0,m_exec_conf->getMPICommunicator());
                     }
                 #endif
 
@@ -1636,9 +1645,14 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (this->m_prof) this->m_prof->pop();
 
         if (this->m_prof) this->m_prof->push("reject");
+
         // move every cluster independently
+        m_count_total.n_clusters += m_clusters.size();
+
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
             {
+            m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
+
             // if any particle in the cluster is rejected, the cluster is not transformed
             bool reject = false;
             for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
@@ -1824,7 +1838,8 @@ inline void export_hpmc_clusters_counters(pybind11::module &m)
         .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
         .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
         .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
-        .def("getNMoves", &hpmc_clusters_counters_t::getNMoves);
+        .def("getNParticlesMoved", &hpmc_clusters_counters_t::getNParticlesMoved)
+        .def("getNParticlesInClusters", &hpmc_clusters_counters_t::getNParticlesInClusters);
     }
 
 } // end namespace hpmc
