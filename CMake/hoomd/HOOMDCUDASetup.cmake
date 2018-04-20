@@ -63,7 +63,7 @@ if (ENABLE_CUDA)
         message(SEND_ERROR "SM1x builds are not supported")
     endif ()
     
-    if (_cuda_max_arch GREATER_EQUAL 70)
+    if (_cuda_max_arch GREATER 69)
         message(SEND_ERROR "HOOMD does not support SM7x builds")
     endif ()
 
