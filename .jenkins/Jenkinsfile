@@ -144,7 +144,7 @@ pipeline
                         ENABLE_CUDA = 'ON'
                         ENABLE_MPI = 'ON'
                         ENABLE_TBB = 'OFF'
-                        BUILD_VALIDATION = 'OFF'
+                        BUILD_VALIDATION = 'ON'
                         CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
                         BUILD_JIT = 'ON'
                         }
