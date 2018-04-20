@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.2.5
+
+Released 2018/04/20
+
+*Bug fixes*
+
+* Pin cuda compatible version in conda package to resolve `libcu*.so` not found errors in conda installations.
+
 ## v2.2.4
 
 Released 2018/03/05
