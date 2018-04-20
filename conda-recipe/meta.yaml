@@ -1,5 +1,5 @@
 {% set name = "hoomd" %}
-{% set version = "2.2.4" %}
+{% set version = "2.2.5" %}
 
 package:
   name: {{ name }}
@@ -9,7 +9,7 @@ source:
   path: ../
 
 build:
-  number: 0
+  number: 1
 
   rpaths:
     - lib/
