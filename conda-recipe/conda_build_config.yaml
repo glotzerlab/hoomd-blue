@@ -7,7 +7,7 @@ cuda:
     - 8.0
 
 pin_run_as_build:
-    cuda:
+    cudatoolkit:
         max_pin: x.x
 
 ignore_version:
