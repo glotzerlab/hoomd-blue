@@ -59,7 +59,6 @@ set(_hoomd_sources Analyzer.cc
                    extern/kiss_fft.cc
                    extern/kiss_fftnd.cc
                    extern/mgpuutil.cc
-                   extern/num_util.cc
                    extern/vmdsock.cc
                    )
 
@@ -180,9 +179,6 @@ list(APPEND HOOMD_COMMON_LIBS ${GETAR_LIBS})
 if(CMAKE_COMPILER_IS_GNUCXX OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
     set_source_files_properties("extern/libgetar/vogl_miniz/vogl_miniz.cpp" PROPERTIES COMPILE_FLAGS "-Wno-strict-aliasing")
 endif()
-
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_hoomd_sources} ${_hoomd_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
 
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_hoomd_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)

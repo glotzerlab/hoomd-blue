@@ -19,9 +19,6 @@ set(_${PACKAGE_NAME}_cu_sources
      EAMForceGPU.cu
    )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_${PACKAGE_NAME}_sources} ${_${PACKAGE_NAME}_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${PACKAGE_NAME}_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)

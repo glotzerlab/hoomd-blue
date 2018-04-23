@@ -7,9 +7,6 @@ set(TEST_LIST
     )
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
-    # Need to define NO_IMPORT_ARRAY in every file but hoomd_module.cc
-    set_source_files_properties(${CUR_TEST}.cc PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
     # add and link the unit test executable
     if(ENABLE_CUDA AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         CUDA_COMPILE(_CUDA_GENERATED_FILES ${CUR_TEST}.cu OPTIONS ${CUDA_ADDITIONAL_OPTIONS})

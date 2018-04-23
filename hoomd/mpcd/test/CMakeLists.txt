@@ -34,8 +34,6 @@ if(ENABLE_MPI)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
-    # set_source_files_properties(${TEST_SRC} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
     add_dependencies(test_all ${TEST_EXE})
