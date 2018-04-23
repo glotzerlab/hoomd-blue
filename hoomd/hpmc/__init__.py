@@ -55,6 +55,7 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 - ``hpmc_clusters_pivot_acceptance`` - Fraction of pivot moves accepted
 - ``hpmc_clusters_reflection_acceptance`` - Fraction of reflection moves accepted
 - ``hpmc_clusters_swap_acceptance`` - Fraction of swap moves accepted
+- ``hpmc_clusters_avg_size`` - Average cluster size
 
 .. rubric:: Timestep definition
 
