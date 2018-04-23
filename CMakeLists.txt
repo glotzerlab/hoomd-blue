@@ -23,6 +23,26 @@ include (CMake_build_options.cmake)
 include (CMake_install_options.cmake)
 
 #################################
+## update submodules
+set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
+
+if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
+    # only attempt to update submodules if this is a git repository and we have a git executable
+    if (UPDATE_SUBMODULES)
+      message(STATUS "Updating git submodules")
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+else()
+    if (UPDATE_SUBMODULES)
+    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
+                   "The source directory is not a git clone or the git executable is not available.")
+    endif()
+endif()
+
+#################################
 ## setup python library and executable
 # setup MPI support
 include (HOOMDMPISetup)
@@ -42,24 +62,6 @@ include (HOOMDMacros)
 include (CMake_src_setup.cmake)
 # preprocessor flags
 include (CMake_preprocessor_flags.cmake)
-
-set (UPDATE_SUBMODULES 1 CACHE BOOL "Update git submodules for dependency projects")
-
-if ((EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git) AND GIT_EXECUTABLE)
-    # only attempt to update submodules if this is a git repository and we have a git executable
-    if (UPDATE_SUBMODULES)
-      message(STATUS "Updating git submodules")
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule --quiet sync
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-      execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    endif()
-else()
-    if (UPDATE_SUBMODULES)
-    message(STATUS "UPDATE_SUBMODULES is set, but cmake cannot automatically update the submodules. "
-                   "The source directory is not a git clone or the git executable is not available.")
-    endif()
-endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/libgetar)
 

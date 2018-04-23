@@ -11,6 +11,6 @@ endif()
 # it will not override hoomd's cflags
 set(CMAKE_CXX_STANDARD 11)
 
-# hoomd's clfags setup script will take care of proper cxx flags settings
+# hoomd's cflags setup script will take care of proper cxx flags settings
 
 include(pybind11Tools)
