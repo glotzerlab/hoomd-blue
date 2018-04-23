@@ -18,6 +18,7 @@ Not yet released
 * MD:
     * Improve performance with `md.constrain.rigid` in multi-GPU simulations.
     * New command `integrator.randomize_velocities()` sets a particle group's linear and angular velocities to random values consistent with a given kinetic temperature.
+    * `md.force.constant()` now supports setting the force per particle and inside a callback
 
 * HPMC:
     * Enabled simulations involving spherical walls and convex spheropolyhedral particle shapes.
@@ -37,6 +38,7 @@ Not yet released
 *Beta feature*
 
 * Node local parallelism (optional, build with `ENABLE_TBB=on`):
+    * The Intel TBB library is required to enable this feature.
     * The command line option `--nthreads` limits the number of threads HOOMD will use. The default is all CPU cores in the system.
     * Only the following methods in HOOMD will take advantage of multiple threads:
         * `hpmc.update.clusters()`
@@ -53,11 +55,16 @@ To ensure future workflow compatibility as future versions enable threading in m
 * Fixed a problem with periodic boundary conditions and implicit depletants when `depletant_mode=circumsphere`
 * Fixed a rare segmentation fault with `hpmc.integrate.*_union()` and `hpmc.integrate.polyhedron`
 * `md.force.active` and `md.force.dipole` now record metadata properly.
+* Fixed a bug where HPMC restore state did not set ignore flags properly.
+* `hpmc_boxmc_ln_volume_acceptance` is now available for logging.
 
 *Other changes*
 
 * Eigen is now provided as a submodule. Plugins that use Eigen headers need to update include paths.
 * HOOMD now builds with pybind 2.2. Minor changes to source and cmake scripts in plugins may be necessary. See the updated example plugin.
+* HOOMD now builds without compiler warnings on modern compilers (gcc6, gcc7, clang5, clang6).
+* HOOMD now uses pybind11 for numpy arrays instead of `num_util`.
+* HOOMD versions v2.3.x will be the last available on the anaconda channel `glotzer`.
 
 ## v2.2.5
 
