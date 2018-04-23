@@ -39,6 +39,7 @@ With non-interacting depletant (**implicit=True**), the following log quantities
 
 - ``hpmc_boxmc_trial_count`` - Number of box changes attempted since the start of the boxmc updater
 - ``hpmc_boxmc_volume_acceptance`` - Fraction of volume/length change trials accepted (averaged from the start of the last run)
+- ``hpmc_boxmc_ln_volume_acceptance`` - Fraction of log(volume) change trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_shear_acceptance`` - Fraction of shear trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_aspect_acceptance`` - Fraction of aspect trials accepted (averaged from the start of the last run)
 - ``hpmc_boxmc_betaP`` Current value of the :math:`\beta p` value of the boxmc updater
