@@ -114,6 +114,7 @@ jobs:
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
+      OMP_NUM_THREADS: 3
     <<: *build_and_test
 
   gcc48-py27-mpi-cd80:
