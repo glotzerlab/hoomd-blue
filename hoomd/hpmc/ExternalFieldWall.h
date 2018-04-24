@@ -426,7 +426,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Spheres[i], shape_new, position_new, origin, box))
                     {
-                    return INFINITY;
+                    return -INFINITY;
                     }
                 }
 
@@ -435,7 +435,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 set_cylinder_wall_verts(m_Cylinders[i], shape_new);
                 if(!test_confined(m_Cylinders[i], shape_new, position_new, origin, box))
                     {
-                    return INFINITY;
+                    return -INFINITY;
                     }
                 }
 
@@ -443,7 +443,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Planes[i], shape_new, position_new, origin, box))
                     {
-                    return INFINITY;
+                    return -INFINITY;
                     }
                 }
 
