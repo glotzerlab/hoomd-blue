@@ -32,7 +32,6 @@ struct SphereWall
         verts->diameter = r+r;
         verts->sweep_radius = r;
         verts->ignore = 0;
-        // verts->x[0] = verts->y[0] = verts->z[0] = OverlapReal(0);
     }
     SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::poly3d_verts(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
@@ -68,15 +67,6 @@ struct CylinderWall
         verts->N = 2;
         verts->sweep_radius = r;
         verts->ignore = 0;
-
-        // set all vertex values to 0 to ensure no memory initialization issues
-        // only need to do this for the first 2 vertices, due to the way
-        // ShapeConvexPolyhedron.h finds support vectors
-
-        // for (unsigned int i = 0; i < 2; i++)
-        // {
-        //     verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-        // }
 
         }
     CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::poly3d_verts(*src.verts)) {}
@@ -152,7 +142,7 @@ DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall
     }
 
 // Spherical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -195,22 +185,11 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
         else
             {
             // build a sphero-polyhedron and for the wall and the convex polyhedron
-
             quat<OverlapReal> q; // default is (1, 0, 0, 0)
             unsigned int err = 0;
             ShapeSpheropolyhedron wall_shape(q, *wall.verts);
             ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
 
-/*
-            vec3<OverlapReal> dr = shifted_pos;
-            OverlapReal DaDb = wall_shape.getCircumsphereDiameter() + part_shape.getCircumsphereDiameter();
-            accept = !xenocollide_3d(detail::SupportFuncSpheropolyhedron(wall_shape.verts),
-                                  detail::SupportFuncSpheropolyhedron(part_shape.verts),
-                                  rotate(conj(quat<OverlapReal>(wall_shape.orientation)),dr),
-                                  conj(quat<OverlapReal>(wall_shape.orientation)) * quat<OverlapReal>(part_shape.orientation),
-                                  DaDb/2.0,
-                                  err);
-*/
             accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
             }
         }
@@ -218,7 +197,7 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
     }
 
 // Spherical Walls and Convex Spheropolyhedra
-DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -263,7 +242,6 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhe
         else
             {
             // build a sphero-polyhedron and for the wall and the convex polyhedron
-
             quat<OverlapReal> q; // default is (1, 0, 0, 0)
             unsigned int err = 0;
             ShapeSpheropolyhedron wall_shape(q, *wall.verts);
@@ -305,7 +283,7 @@ DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& 
     }
 
 // Cylindrical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <CylinderWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -375,7 +353,7 @@ DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall, 
     }
 
 // Plane Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <PlaneWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -470,7 +448,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             unsigned int numOverlaps = countOverlaps(0, false);
             if(numOverlaps > 0)
                 {
-                return INFINITY;
+                return -INFINITY;
                 }
             else
                 {
@@ -478,7 +456,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 }
             }
 
-        // assumes CUBIC box
+        // assumes cubic box
         void scaleWalls()
             {
             BoxDim newBox = m_pdata->getGlobalBox();
@@ -704,7 +682,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                           const Shape& shape_new)
             {
             double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
-            return (energy == INFINITY);
+            return (energy == -INFINITY);
             }
 
         unsigned int countOverlaps(unsigned int timestep, bool early_exit = false)
