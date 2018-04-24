@@ -91,8 +91,6 @@ include (CMake_install_options)
 
 # Find the python executable and libraries
 include (HOOMDPythonSetup)
-# setup numpy
-include (HOOMDNumpySetup)
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 # Set default CFlags

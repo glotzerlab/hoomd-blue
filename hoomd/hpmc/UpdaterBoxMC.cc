@@ -79,6 +79,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     // then add ours
     result.push_back("hpmc_boxmc_trial_count");
     result.push_back("hpmc_boxmc_volume_acceptance");
+    result.push_back("hpmc_boxmc_ln_volume_acceptance");
     result.push_back("hpmc_boxmc_shear_acceptance");
     result.push_back("hpmc_boxmc_aspect_acceptance");
     result.push_back("hpmc_boxmc_betaP");

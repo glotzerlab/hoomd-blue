@@ -235,9 +235,6 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
               CosineSqAngleForceGPU.cu
                       )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_md_sources} ${_md_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)

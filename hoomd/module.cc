@@ -65,7 +65,6 @@
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
-#include "hoomd/extern/num_util.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
@@ -90,26 +89,6 @@ The following #defines help get around this
 
 #if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
 #error HOOMD-blue requires pybind11 2.2.x
-#endif
-
-#if PY_VERSION_HEX >= 0x03000000
-#define MY_PY_VER_3x
-#else
-#define MY_PY_VER_2x
-#endif
-
-#ifdef MY_PY_VER_3x
-void *my_import_array()
-    {
-    import_array();
-    return NULL;
-    }
-#endif
-#ifdef MY_PY_VER_2x
-void my_import_array()
-    {
-    import_array();
-    }
 #endif
 
 //! Method for getting the current version of HOOMD
@@ -327,7 +306,7 @@ PYBIND11_MODULE(_hoomd, m)
     #endif
 
     // setup needed for numpy
-    my_import_array();
+    // my_import_array();
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
