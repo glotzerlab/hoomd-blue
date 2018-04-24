@@ -223,7 +223,6 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhe
 
     bool check_verts = wall.inside ? (wall.rsq <= max_dist*max_dist) : (wall.rsq >= max_dist*max_dist); // condition to check vertices, dependent on inside or outside container
 
-
     if (check_verts)
         {
         if(wall.inside)
@@ -236,7 +235,7 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhe
                 rxyz_sq = rotated_pos.x*rotated_pos.x + rotated_pos.y*rotated_pos.y + rotated_pos.z*rotated_pos.z;
                 OverlapReal tot_rxyz = sqrt(rxyz_sq) + shape.verts.sweep_radius;
                 OverlapReal tot_rxyz_sq = tot_rxyz*tot_rxyz;
-                accept = wall.inside ? (wall.rsq > tot_rxyz_sq) : (wall.rsq < tot_rxyz_sq);
+                accept = wall.rsq > tot_rxyz_sq;
                 }
             }
         else
@@ -404,7 +403,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Spheres[i], shape_new, position_new, origin, box))
                     {
-                    return -INFINITY;
+                    return INFINITY;
                     }
                 }
 
@@ -413,7 +412,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 set_cylinder_wall_verts(m_Cylinders[i], shape_new);
                 if(!test_confined(m_Cylinders[i], shape_new, position_new, origin, box))
                     {
-                    return -INFINITY;
+                    return INFINITY;
                     }
                 }
 
@@ -421,7 +420,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 {
                 if(!test_confined(m_Planes[i], shape_new, position_new, origin, box))
                     {
-                    return -INFINITY;
+                    return INFINITY;
                     }
                 }
 
@@ -448,7 +447,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
             unsigned int numOverlaps = countOverlaps(0, false);
             if(numOverlaps > 0)
                 {
-                return -INFINITY;
+                return INFINITY;
                 }
             else
                 {
@@ -682,7 +681,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                           const Shape& shape_new)
             {
             double energy = energydiff(index, position_old, shape_old, position_new, shape_new);
-            return (energy == -INFINITY);
+            return (energy == INFINITY);
             }
 
         unsigned int countOverlaps(unsigned int timestep, bool early_exit = false)
