@@ -386,6 +386,36 @@ DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhed
     return accept;
     }
 
+// Plane Walls and Convex Spheropolyhedra
+DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
+    {
+    bool accept = true;
+    Scalar3 t = vec_to_scalar3(position - box_origin);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
+    OverlapReal max_dist = dot(wall.normal, shifted_pos) + wall.d; // proj onto unit normal. (signed distance)
+    accept = OverlapReal(0.0) < max_dist; // center is on the correct side of the plane.
+    if(accept && (max_dist <= shape.getCircumsphereDiameter()/OverlapReal(2.0)))
+        {
+        if (shape.verts.N)
+            {
+            for(size_t v = 0; v < shape.verts.N && accept; v++)
+                {
+                vec3<OverlapReal> pos(shape.verts.x[v], shape.verts.y[v], shape.verts.z[v]);
+                vec3<OverlapReal> rotated_pos = rotate(quat<OverlapReal>(shape.orientation), pos);
+                rotated_pos += shifted_pos;
+                max_dist = dot(wall.normal, rotated_pos) + wall.d;  // proj onto unit normal. (signed distance)
+                accept = OverlapReal(shape.verts.sweep_radius) < max_dist;            // vert is on the correct side of the plane.
+                }
+            }
+        // Pure sphere
+        else
+            {
+                accept = OverlapReal(shape.verts.sweep_radius) < max_dist;
+            }
+        }
+    return accept;
+    }
+
 template< class Shape >
 class ExternalFieldWall : public ExternalFieldMono<Shape>
     {
