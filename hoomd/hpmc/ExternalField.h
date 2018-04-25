@@ -38,7 +38,9 @@ class ExternalField : public Compute
             pacc = min(1, bw2/bw1);
         */
         virtual Scalar calculateBoltzmannWeight(unsigned int timestep){return 0;}
-        //! calculate deltaE for the whole system
+        /*! Calculate deltaE for the whole system
+            Used for box resizing
+        */
         virtual double calculateDeltaE(const Scalar4 * const  position_old,
                                                 const Scalar4 * const  orientation_old,
                                                 const BoxDim * const  box_old
@@ -71,9 +73,6 @@ class ExternalFieldMono : public ExternalField
         virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
         virtual void reset(unsigned int timestep) {}
-
-    protected:
-        /* Nothing yet */
     };
 
 

@@ -48,7 +48,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             return exp(-energy);
             }
 
-        //! Compute -DeltaU = Uold-Unew of a trial box resize
+        //! Compute DeltaU = Unew-Uold
         /*! \param position_old_arg Old (local) positions
             \param orientation_old_arg Old (local) orientations
             \param box_old_arg Old (global) box
@@ -77,7 +77,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
                     snap->particle_data.orientation[snap_idx] = quat<Scalar>(orientation_old_arg[i]);
                 }
             double energy_old = getEnergy(snap);
-            return energy_old-energy_new;
+            return energy_new-energy_old;
             }
 
         // does nothing
@@ -92,7 +92,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
                     hoomd::detail::Saru& rng)
             {
             // calc boltzmann factor from the external potential
-            double boltz = fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new));
+            double boltz = fast::exp(-energydiff(index, position_old, shape_old, position_new, shape_new));
             if(rng.d() < boltz)
                 return true;
             else
@@ -128,7 +128,7 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
             snap->particle_data.orientation[snap_idx] = shape_new.orientation;
             double energy_new = getEnergy(snap);
 
-            return energy_old-energy_new;
+            return energy_new-energy_old;
             }
 
     protected:

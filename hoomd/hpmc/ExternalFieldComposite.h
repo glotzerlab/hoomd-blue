@@ -43,7 +43,7 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
         bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
             {
             // calc boltzmann factor from springs
-            double boltz = fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new));
+            double boltz = fast::exp(-energydiff(index, position_old, shape_old, position_new, shape_new));
             bool reject = false;
             if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
                 reject = false;
