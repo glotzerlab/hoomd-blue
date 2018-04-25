@@ -205,6 +205,53 @@ class sphere_wall_convex_spheropolyhedron_test(unittest.TestCase):
         del self.ext_wall
         context.initialize();
 
+class sphere_wall_convex_spheropolyhedron_sphere_test(unittest.TestCase):
+    """Test that pure spheres work for the spheropolyhedron integrator"""
+    def setUp(self):
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.mc = hpmc.integrate.convex_spheropolyhedron(seed=10);
+        self.mc.shape_param.set('A', vertices = [], sweep_radius=1)
+
+        self.ext_wall = hpmc.field.wall(self.mc);
+        self.ext_wall.add_sphere_wall(5.0, origin=[0,0,0], inside=True);
+
+
+    def test(self):
+        run(1, quiet=True);
+        # 1. first test a particle within the wall, far from the boundary
+        self.system.particles[0].position = (0,0,0);
+        self.system.particles[0].orientation = (1,0,0,0);
+        # a. inside = True: then there should be no overlaps
+        self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+
+        # Now have the particle overlapping the wall
+        self.system.particles[0].position = (4.5,0,0);
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        # Need allclose since 4.5 can run into floating point issues
+        self.assertTrue(
+                np.allclose(
+                    self.system.particles[0].position,
+                        (4.5,0,0)
+                        )
+                )
+
+        # b. inside=False: then there should be an overlap
+        self.system.particles[0].position = (0,0,0);
+        self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=False)
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
+
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        del self.ext_wall
+        context.initialize();
+
 class cylinder_wall_sphere_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
