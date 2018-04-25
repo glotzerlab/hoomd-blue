@@ -30,17 +30,32 @@ class sphere_wall_sphere_test(unittest.TestCase):
         self.system.particles[0].position = (0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
+
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=False)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+
+        run(100)
 
         # 2. test a particle outside the wall
         self.system.particles[0].position = (10,0,0);
         # a. inside=False
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (10,0,0));
+        self.system.particles[0].position = (10,0,0);
+
         # b. inside=True
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=True)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (10,0,0));
 
 
     def tearDown(self):
@@ -73,9 +88,15 @@ class sphere_wall_convex_polyhedron_test(unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=False)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle just overlapping the wall
         # a. inside=False: this is a pathological case wherein all vertices lie outside the sphere, but
@@ -139,9 +160,14 @@ class sphere_wall_convex_spheropolyhedron_test(unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_sphere_wall(0, 5.0, origin=[0,0,0], inside=False)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle just overlapping the wall
         # a. inside=False: this is a pathological case wherein all vertices lie outside the sphere, but
@@ -195,9 +221,14 @@ class cylinder_wall_sphere_test(unittest.TestCase):
         self.system.particles[0].position = (0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_cylinder_wall(0, 5.0, [0,0,0], [0,0,1], inside=False)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle outside the wall
         self.system.particles[0].position = (10,0,0);
@@ -238,9 +269,14 @@ class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_cylinder_wall(0, 5.0, [0,0,0], [0,0,1], inside=False)
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle just overlapping the wall
         # a. inside=False: this is a pathological case wherein all vertices lie outside the cylinder, but
@@ -299,9 +335,14 @@ class plane_wall_sphere_test(unittest.TestCase):
         self.system.particles[0].position = (0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_plane_wall(0, [1,0,0], [5,0,0])
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle outside the wall
         self.system.particles[0].position = (10,0,0);
@@ -346,9 +387,14 @@ class plane_wall_convex_polyhedron_test(unittest.TestCase):
         self.system.particles[0].orientation = (1,0,0,0);
         # a. inside = True: then there should be no overlaps
         self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
         # b. inside=False: then there should be an overlap
         self.ext_wall.set_plane_wall(0, [1,0,0], [5,0,0])
         self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
 
         # 2. test a particle just overlapping the wall
         self.system.particles[0].position = (5.49,0,0);
