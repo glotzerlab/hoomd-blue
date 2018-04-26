@@ -361,7 +361,6 @@ class cylinder_wall_convex_polyhedron_test(unittest.TestCase):
         del self.ext_wall
         context.initialize();
 
-
 class plane_wall_sphere_test(unittest.TestCase):
     def setUp(self):
         self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
@@ -467,6 +466,92 @@ class plane_wall_convex_polyhedron_test(unittest.TestCase):
         self.ext_wall.set_plane_wall(0, [-1,0,0],[5,0,0])
         self.assertEqual(self.ext_wall.count_overlaps(), 1)
 
+
+    def tearDown(self):
+        del self.mc
+        del self.system
+        del self.ext_wall
+        context.initialize();
+
+class plane_wall_convex_spheropolyhedron_test(unittest.TestCase):
+    def setUp(self):
+        self.system = create_empty(N=1, box=data.boxdim(L=30, dimensions=3), particle_types=['A']);
+        self.mc = hpmc.integrate.convex_spheropolyhedron(seed=10);
+        self.mc.shape_param.set('A', vertices = [(-0.5,-0.5,-0.5),
+                                                (-0.5,0.5,-0.5),
+                                                (-0.5,-0.5,0.5),
+                                                (-0.5,0.5,0.5),
+                                                (0.5,-0.5,-0.5),
+                                                (0.5,0.5,-0.5),
+                                                (0.5,-0.5,0.5),
+                                                (0.5,0.5,0.5)],
+                                                sweep_radius=0.5)
+
+        self.ext_wall = hpmc.field.wall(self.mc);
+        # this establishes the planar wall parallel to the yz plane, centered at (5,0,0).
+        # the normal vector pointing along the (-) x axis means that
+        # a particle to the left of the wall will be "inside" it, and
+        # a particle to the right of the wall will be "outside" it.
+        self.ext_wall.add_plane_wall([-1,0,0],[5,0,0]);
+
+
+    def test(self):
+        run(1, quiet=True);
+        # 1. first test a particle within the wall, far from the boundary
+        self.system.particles[0].position = (0,0,0);
+        self.system.particles[0].orientation = (1,0,0,0);
+        # a. inside = True: then there should be no overlaps
+        self.assertEqual(self.ext_wall.count_overlaps(), 0);
+        run(100)
+        self.assertTrue(self.system.particles[0].position != (0,0,0));
+        self.system.particles[0].position = (0,0,0);
+        # b. inside=False: then there should be an overlap
+        self.ext_wall.set_plane_wall(0, [1,0,0], [5,0,0])
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(self.system.particles[0].position == (0,0,0));
+
+        # Test a particle that would overlap as just polyhedra
+        self.system.particles[0].position = (5.49,0,0);
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(
+                np.allclose(
+                    self.system.particles[0].position,
+                    (5.49,0,0)
+                    )
+                );
+        # Now test a particle that only overlaps with sweep radius
+        self.system.particles[0].position = (5.99,0,0);
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(
+                np.allclose(
+                    self.system.particles[0].position,
+                    (5.99,0,0)
+                    )
+                );
+        # b. inside=True: this should return an overlap.
+        self.system.particles[0].position = (4.51,0,0);
+        self.ext_wall.set_plane_wall(0, [-1,0,0],[5,0,0])
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(
+                np.allclose(
+                    self.system.particles[0].position,
+                    (4.51,0,0)
+                    )
+                );
+
+        self.system.particles[0].position = (4.01,0,0);
+        self.assertEqual(self.ext_wall.count_overlaps(), 1);
+        run(100)
+        self.assertTrue(
+                np.allclose(
+                    self.system.particles[0].position,
+                    (4.01,0,0)
+                    )
+                );
 
     def tearDown(self):
         del self.mc
