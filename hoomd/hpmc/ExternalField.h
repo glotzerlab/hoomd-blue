@@ -66,9 +66,6 @@ class ExternalFieldMono : public ExternalField
         //! needed for Compute. currently not used.
         virtual void compute(unsigned int timestep) {}
 
-        //! method to accept or reject the proposed move used by the integrator.
-        virtual bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng){return 0;}
-
         //! method to calculate the energy difference for the proposed move.
         virtual double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new){return 0;}
 
@@ -82,7 +79,6 @@ void export_ExternalFieldInterface(pybind11::module& m, std::string name)
    pybind11::class_< ExternalFieldMono<Shape>, std::shared_ptr< ExternalFieldMono<Shape> > >(m, (name + "Interface").c_str(), pybind11::base<Compute>())
     .def(pybind11::init< std::shared_ptr<SystemDefinition> >())
     .def("compute", &ExternalFieldMono<Shape>::compute)
-    .def("accept", &ExternalFieldMono<Shape>::accept)
     .def("energydiff", &ExternalFieldMono<Shape>::energydiff)
     .def("calculateBoltzmannWeight", &ExternalFieldMono<Shape>::calculateBoltzmannWeight)
     .def("calculateDeltaE", &ExternalFieldMono<Shape>::calculateDeltaE)

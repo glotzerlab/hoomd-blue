@@ -83,22 +83,6 @@ class __attribute__ ((visibility ("hidden"))) ExternalCallback : public External
         // does nothing
         void compute(unsigned int timestep) { }
 
-        //! Return true if a particle trial move is accepted
-        bool accept(const unsigned int& index,
-                    const vec3<Scalar>& position_old,
-                    const Shape& shape_old,
-                    const vec3<Scalar>& position_new,
-                    const Shape& shape_new,
-                    hoomd::detail::Saru& rng)
-            {
-            // calc boltzmann factor from the external potential
-            double boltz = fast::exp(-energydiff(index, position_old, shape_old, position_new, shape_new));
-            if(rng.d() < boltz)
-                return true;
-            else
-                return false;
-            }
-
         // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,
                           const vec3<Scalar>& position_old,

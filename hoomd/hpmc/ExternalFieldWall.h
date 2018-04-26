@@ -432,11 +432,6 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this);
           }
 
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru&)
-            {
-            return fabs(fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0))) < SMALL;
-            }
-
         double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
             const BoxDim& box = this->m_pdata->getGlobalBox();
