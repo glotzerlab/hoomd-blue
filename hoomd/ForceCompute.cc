@@ -44,7 +44,7 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(s
 
     m_virial_pitch = m_virial.getPitch();
 
-    // connect to the ParticleData to recieve notifications when particles change order in memory
+    // connect to the ParticleData to receive notifications when particles change order in memory
      m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes
@@ -227,7 +227,7 @@ Scalar3 ForceCompute::getForce(unsigned int tag)
 
 /*! \param tag Global particle tag
     \param component Virial component (0=xx, 1=xy, 2=xz, 3=yy, 4=yz, 5=zz)
-    \returns Force of particle referenced by tag
+    \returns Virial of particle referenced by tag
  */
 Scalar ForceCompute::getVirial(unsigned int tag, unsigned int component)
     {

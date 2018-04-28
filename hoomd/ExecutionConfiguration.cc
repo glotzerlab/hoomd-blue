@@ -710,27 +710,27 @@ void export_ExecutionConfiguration(py::module& m)
     {
     py::class_<ExecutionConfiguration, std::shared_ptr<ExecutionConfiguration> > executionconfiguration(m,"ExecutionConfiguration");
     executionconfiguration.def(py::init< ExecutionConfiguration::executionMode, int, bool, bool, std::shared_ptr<Messenger>, unsigned int >())
-         .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
-         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
-         .def("getGPUName", &ExecutionConfiguration::getGPUName)
-         .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
-         .def_readonly("msg", &ExecutionConfiguration::msg)
+        .def("isCUDAEnabled", &ExecutionConfiguration::isCUDAEnabled)
+        .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
+        .def("getGPUName", &ExecutionConfiguration::getGPUName)
+        .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
+        .def_readonly("msg", &ExecutionConfiguration::msg)
 #ifdef ENABLE_CUDA
-         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
+        .def("getComputeCapability", &ExecutionConfiguration::getComputeCapabilityAsString)
 #endif
 #ifdef ENABLE_MPI
-         .def("getPartition", &ExecutionConfiguration::getPartition)
-         .def("getNRanks", &ExecutionConfiguration::getNRanks)
-         .def("getRank", &ExecutionConfiguration::getRank)
-         .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-         .def("barrier", &ExecutionConfiguration::barrier)
-         .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-         .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
+        .def("getPartition", &ExecutionConfiguration::getPartition)
+        .def("getNRanks", &ExecutionConfiguration::getNRanks)
+        .def("getRank", &ExecutionConfiguration::getRank)
+        .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
+        .def("barrier", &ExecutionConfiguration::barrier)
+        .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
+        .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
 #endif
 #ifdef ENABLE_TBB
         .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
 #endif
-        .def("getNumThreads", &ExecutionConfiguration::getNumThreads);
+        .def("getNumThreads", &ExecutionConfiguration::getNumThreads)
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")
