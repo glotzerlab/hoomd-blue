@@ -739,7 +739,7 @@ void NeighborListGPUTree::updateImageVectors()
                     // skip any periodic images if we don't have periodicity
                     if (i != 0 && !periodic.x) continue;
                     if (j != 0 && !periodic.y) continue;
-                    if (!sys3d || (k != 0 && !periodic.z)) continue;
+                    if (k != 0 && (!sys3d || !periodic.z)) continue;
 
                     h_image_list.data[n_images] = Scalar(i) * latt_a + Scalar(j) * latt_b + Scalar(k) * latt_c;
                     ++n_images;
