@@ -194,6 +194,67 @@ pipeline
                             }
                         }
                     }
+                stage('vld-clang50-py36-mpi')
+                    {
+                    agent { label 'linux-cpu' }
+
+                    environment
+                        {
+                        CC = '/usr/sbin/clang'
+                        CXX = '/usr/sbin/clang++'
+                        PYVER = '3.6'
+                        CMAKE_BIN = '/usr/sbin'
+                        ENABLE_CUDA = 'OFF'
+                        ENABLE_MPI = 'ON'
+                        ENABLE_TBB = 'OFF'
+                        BUILD_VALIDATION = 'ON'
+                        CONTAINER = '/nfs/glotzer/containers/ci-20171206-arch-2.img'
+                        BUILD_JIT = 'ON'
+                        OMP_NUM_THREADS = '1'
+                        }
+
+                    steps
+                        {
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: 15, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
+                        }
+                    }
                 stage('vld-clang50-py36-mpi-tbb1')
                     {
                     agent { label 'linux-cpu' }
