@@ -380,9 +380,6 @@ void CellList::initializeMemory()
             if (! m_idx.isNull())
                 cudaMemAdvise(m_idx.get(), m_idx.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
 
-            if (! m_cell_adj.isNull())
-                cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
-
             cudaMemAdvise(m_xyzf.get(), m_xyzf.getNumElements()*sizeof(Scalar4), cudaMemAdviseSetAccessedBy, gpu_map[idev]);
 
             if (! m_tdb.isNull())
@@ -464,6 +461,24 @@ void CellList::initializeCellAdj()
                 copy(adj.begin(), adj.end(), &h_cell_adj.data[m_cell_adj_indexer(0, cur_cell)]);
                 }
 
+    #ifdef ENABLE_CUDA
+    if(m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() >1)
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+            {
+            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+            if (!dev_prop.concurrentManagedAccess)
+                continue;
+
+            // pin to that device by prefetching
+            cudaMemAdvise(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), cudaMemAdviseSetReadMostly, gpu_map[idev]);
+            cudaMemPrefetchAsync(m_cell_adj.get(), m_cell_adj.getNumElements()*sizeof(unsigned int), gpu_map[idev]);
+            }
+        CHECK_CUDA_ERROR();
+        }
+    #endif
     if (m_prof)
         m_prof->pop();
     }
