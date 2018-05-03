@@ -25,9 +25,9 @@ namespace py = pybind11;
 /*! \param sysdef SystemDefinition containing the ParticleData to compute forces on
 */
 MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> sysdef)
-    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0),
+    : ForceConstraint(sysdef), m_molecule_tag(m_exec_conf), m_n_molecules_global(0), m_dirty(true),
       m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
-      m_dirty(true), m_molecule_idx(m_exec_conf)
+      m_molecule_idx(m_exec_conf)
     {
     // connect to the ParticleData to recieve notifications when particles change order in memory
     m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
@@ -138,6 +138,38 @@ void MolecularForceCompute::initMoleculesGPU()
 
         m_tuner_fill->end();
         }
+
+    #ifdef ENABLE_CUDA
+    if (m_exec_conf->isCUDAEnabled())
+        {
+        auto gpu_map = m_exec_conf->getGPUIds();
+
+        if (m_exec_conf->getNumActiveGPUs() > 1)
+            {
+            // unset previous hints
+            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
+                {
+                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
+
+                if (!dev_prop.concurrentManagedAccess)
+                    continue;
+
+                auto range = m_pdata->getGPUPartition().getRange(idev);
+                unsigned int nelem =  range.second - range.first;
+
+                // skip if no hint set
+                if (!nelem)
+                    continue;
+
+                cudaMemAdvise(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseSetPreferredLocation, gpu_map[idev]);
+                cudaMemPrefetchAsync(m_molecule_idx.get()+range.first, sizeof(unsigned int)*nelem, gpu_map[idev]);
+                }
+
+            CHECK_CUDA_ERROR();
+            }
+        }
+    #endif
+
 
     if (m_prof) m_prof->pop(m_exec_conf);
     }
