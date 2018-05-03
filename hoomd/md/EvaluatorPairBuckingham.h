@@ -38,7 +38,7 @@
     \f[ V_{\mathrm{Buckingham}}(r) = A \exp\left( \frac{-r}{\rho} \right) -
                                             \frac{C}{r^{6}} \f]
    Split into:
-   \f[ V_{\mathrm{Buckingham}}(r) = Exp_factor - \frac{C}{r^6}
+   \f[ V_{\mathrm{Buckingham}}(r) = Exp_factor - \frac{C}{r^6} \f]
 
    Similarly,
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{Buckingham}}}{\partial r} = \frac{Exp_factor}{\rho \cdot r} -
