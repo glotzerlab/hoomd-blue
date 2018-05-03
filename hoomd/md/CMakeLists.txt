@@ -240,6 +240,7 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS 
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES} NO_EXTRAS)
+set_target_properties(_md PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR})
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
