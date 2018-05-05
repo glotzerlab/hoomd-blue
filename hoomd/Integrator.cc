@@ -60,6 +60,14 @@ void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     fc->setDeltaT(m_deltaT);
     }
 
+/*! \param hook SSAGESHook to set
+*/
+void Integrator::setSSAGESHook(std::shared_ptr<SSAGESHook> hook)
+    {
+    assert(hook);
+    m_ssages = hook;
+    }
+
 /*! Call removeForceComputes() to completely wipe out the list of force computes
     that the integrator uses to sum forces.
 */
@@ -67,6 +75,13 @@ void Integrator::removeForceComputes()
     {
     m_forces.clear();
     m_constraint_forces.clear();
+    }
+
+/*! Call removeSSAGESHook() to unset the integrator's SSAGES hook
+*/
+void Integrator::removeSSAGESHook()
+    {
+    m_ssages.reset();
     }
 
 /*! \param deltaT New time step to set
@@ -382,8 +397,8 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
+    // return early if there are no constraint forces or SSAGES
+    if (m_constraint_forces.size() == 0 && !m_ssages)
         return;
 
     #ifdef ENABLE_MPI
@@ -465,6 +480,13 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         m_prof->pop();
         }
+
+    // Call SSAGES hook
+    if (m_ssages)
+        {
+        m_ssages->post_force();
+        }
+
     }
 
 #ifdef ENABLE_CUDA
@@ -655,8 +677,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         }
 
-    // return early if there are no constraint forces
-    if (m_constraint_forces.size() == 0)
+    // return early if there are no constraint forces or SSAGES
+    if (m_constraint_forces.size() == 0 && !m_ssages)
         return;
 
     #ifdef ENABLE_MPI
@@ -814,6 +836,13 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         m_prof->pop(m_exec_conf);
         }
+
+    // Call SSAGES hook
+    if (m_ssages)
+        {
+        m_ssages->post_force();
+        }
+
     }
 #endif
 
@@ -911,7 +940,9 @@ void export_Integrator(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
+    .def("setSSAGESHook", &Integrator::setSSAGESHook)
     .def("removeForceComputes", &Integrator::removeForceComputes)
+    .def("removeSSAGESHook", &Integrator::removeSSAGESHook)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
     .def("getRotationalNDOF", &Integrator::getRotationalNDOF)

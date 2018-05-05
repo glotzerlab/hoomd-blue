@@ -126,6 +126,7 @@ set(_hoomd_headers
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
+    SSAGESHook.h
     SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
