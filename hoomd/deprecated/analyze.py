@@ -57,7 +57,7 @@ class msd(_analyzer):
     See group for a list.
 
     By default, columns in the file are separated by tabs, suitable for importing as a
-    tab-delimited spreadsheet. The delimiter can be changed to any string using :py:meth`set_params()`.
+    tab-delimited spreadsheet. The delimiter can be changed to any string using :py:meth:`set_params()`.
 
     The *header_prefix* can be used in a number of ways. It specifies a simple string that
     will be printed before the header line of the output file. One handy way to use this
