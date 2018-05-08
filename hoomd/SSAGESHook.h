@@ -20,17 +20,8 @@ class SSAGESHook
         // Set SystemDefinition.
         virtual void setSystemDefinition(std::shared_ptr<SystemDefinition> sysdef) = 0;
 
-        // Setup for presimulation call.
-        virtual void setup() = 0;
-
-        // Post force where the synchronization occurs.
-        virtual void post_force() = 0;
-
-        // Post-run for post-simulation call.
-        virtual void post_run() = 0;
-
-        // Post-step for post-step call.
-        virtual void end_of_step() = 0;
+        // Synchronize snapshot with SSAGES after computing forces
+        virtual void updateSSAGES() = 0;
 
         virtual ~SSAGESHook() {};
 };

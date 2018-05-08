@@ -484,7 +484,7 @@ void Integrator::computeNetForce(unsigned int timestep)
     // Call SSAGES hook
     if (m_ssages)
         {
-        m_ssages->post_force();
+        m_ssages->updateSSAGES();
         }
 
     }
@@ -840,7 +840,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     // Call SSAGES hook
     if (m_ssages)
         {
-        m_ssages->post_force();
+        m_ssages->updateSSAGES();
         }
 
     }
