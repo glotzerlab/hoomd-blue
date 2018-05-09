@@ -9,7 +9,7 @@ can be defined in a single simulation. The net force on each particle due to
 all types of pair forces is summed.
 
 Pair forces require that parameters be set for each unique type pair. Coefficients
-are set through the aid of the :py:class:`coeff` class. To set this coefficients, specify
+are set through the aid of the :py:class:`coeff` class. To set these coefficients, specify
 a pair force and save it in a variable::
 
     my_force = pair.some_pair_force(arguments...)

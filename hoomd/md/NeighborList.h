@@ -75,7 +75,7 @@
     \b Algorithms:
 
     This base class supplys no build algorithm for generating this list, it must be overridden by deriving classes.
-    Derived classes implement O(N) efficient straetegies using a CellList or a BVH tree.
+    Derived classes implement O(N) efficient strategies using a CellList or a BVH tree.
 
     <b>Needs update check:</b>
 

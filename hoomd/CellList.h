@@ -29,9 +29,9 @@
 
 //! Computes a cell list from the particles in the system
 /*! \b Overview:
-    Cell lists are useful data structures when working with locality queries on particles. The most notable useage of
-    cell lists in HOOMD is as an auxilliary data structure used when building the neighbor list. The data layout design
-    decisions for CellList were made to optimize the performance of the neighbor list build as deteremined by
+    Cell lists are useful data structures when working with locality queries on particles. The most notable usage of
+    cell lists in HOOMD is as an auxiliary data structure used when building the neighbor list. The data layout design
+    decisions for CellList were made to optimize the performance of the neighbor list build as determined by
     microbenchmarking. However, CellList is written as generally as possible so that it can be used throughout the code
     in other locations where a cell list is needed.
 

@@ -85,12 +85,12 @@ struct Index2D
 struct Index3D
     {
     public:
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the square 3D array
         */
         HOSTDEVICE inline Index3D(unsigned int w=0) : m_w(w), m_h(w), m_d(w) {}
 
-        //! Contstructor
+        //! Constructor
         /*! \param w Width of the rectangular 3D array
             \param h Height of the rectangular 3D array
             \param d Depth of the rectangular 3D array
