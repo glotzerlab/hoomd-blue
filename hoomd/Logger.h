@@ -40,7 +40,7 @@
     log. Every call to analyze() will result in the computes for the
     logged quantities being called.
 
-    The removeAll method can be used to clear all registered computes and updaters. hoomd_script will
+    The removeAll method can be used to clear all registered computes and updaters. hoomd will
     removeAll() and re-register all active computes and updaters before every run()
 
     \ingroup analyzers

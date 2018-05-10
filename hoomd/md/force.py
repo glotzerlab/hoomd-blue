@@ -14,8 +14,8 @@ import hoomd;
 ## \internal
 # \brief Base class for forces
 #
-# A force in hoomd_script reflects a ForceCompute in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# A force in hoomd reflects a ForceCompute in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ analyzer itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle
@@ -71,7 +71,7 @@ class _force(hoomd.meta._metadata):
     def check_initialization(self):
         # check that we have been initialized properly
         if self.cpp_force is None:
-            hoomd.context.msg.error('Bug in hoomd_script: cpp_force not set, please report\n');
+            hoomd.context.msg.error('Bug in hoomd: cpp_force not set, please report\n');
             raise RuntimeError();
 
     def disable(self, log=False):

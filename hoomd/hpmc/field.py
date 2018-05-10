@@ -13,8 +13,8 @@ import hoomd
 ## \internal
 # \brief Base class for external fields
 #
-# An external in hoomd_script reflects an ExternalField in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# An external in hoomd reflects an ExternalField in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ external itself is tracked optionally passed
 # to the hpmc integrator. While external fields are Compute types and are added
 # to the System they will not be enforced unless they are added to the integrator.

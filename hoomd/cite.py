@@ -388,7 +388,7 @@ _extra_default_entries = []
 # \brief Ensures that the global bibliography is properly initialized
 # \returns Global bibliography
 #
-# Citations generated in hoomd_script should always attach to a single global bibliography. This makes %bibliography
+# Citations generated in HOOMD should always attach to a single global bibliography. This makes %bibliography
 # generation invisible to the HOOMD users (that is, they should never actually instantiate a bibliography themselves).
 # This function provides a convenient way to get the global bibliography while ensuring that it exists: if hoomd.context.bib
 # already exists, it returns it. Otherwise, hoomd.context.bib is first created and then returned. Any %bibliography in HOOMD

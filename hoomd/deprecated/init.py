@@ -35,7 +35,7 @@ def read_xml(filename, restart = None, time_step = None, wrap_coordinates = Fals
     All particles, bonds, etc...  are read from the given XML file,
     setting the initial condition of the simulation.
     After this command completes, the system is initialized allowing
-    other commands in hoomd_script to be run.
+    other commands in hoomd to be run.
 
     For restartable jobs, specify the initial condition in *filename* and the restart file in *restart*.
     init.read_xml will read the restart file if it exists, otherwise it will read *filename*.

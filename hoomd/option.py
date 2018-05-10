@@ -68,7 +68,7 @@ class options:
 ## Parses command line options
 #
 # \internal
-# Parses all hoomd_script command line options into the module variable cmd_options
+# Parses all hoomd command line options into the module variable cmd_options
 def _parse_command_line(arg_string=None):
     parser = OptionParser();
     parser.add_option("--mode", dest="mode", help="Execution mode (cpu or gpu)", default='auto');

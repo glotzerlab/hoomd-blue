@@ -193,8 +193,8 @@ class coeff:
 ## \internal
 # \brief Base class for bond potentials
 #
-# A bond in hoomd_script reflects a PotentialBond in c++. It is responsible
-# for all high-level management that happens behind the scenes for hoomd_script
+# A bond in hoomd reflects a PotentialBond in c++. It is responsible
+# for all high-level management that happens behind the scenes for hoomd
 # writers. 1) The instance of the c++ bond force itself is tracked and added to the
 # System 2) methods are provided for disabling the force from being added to the
 # net force on each particle

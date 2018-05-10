@@ -73,7 +73,7 @@ class Communicator;
     Thermodynamic properties on given groups are computed by ComputeThermo. See the documentation of ComputeThermo for
     its design and logging capabilities. To compute temperature properly, ComputeThermo needs the number of degrees of
     freedom. Only the Integrator can know that as it is the integrator that grants degrees of freedom to the particles.
-    hoomd_script will break the dependency requirement. At the start of every run, hoomd_script will ask for an updated
+    hoomd will break the dependency requirement. At the start of every run, hoomd will ask for an updated
     NDOF for every ComputeThermo group and set it.
 
     For IntegratorTwoStep, each IntegrationMethodTwoStep will compute its own contribution to the degrees of freedom

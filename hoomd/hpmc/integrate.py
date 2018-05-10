@@ -432,7 +432,7 @@ class mode_hpmc(_integrator):
         hoomd.util.print_status_line();
         # check that proper initialization has occurred
         if self.cpp_integrator == None:
-            hoomd.context.msg.error("Bug in hoomd_script: cpp_integrator not set, please report\n");
+            hoomd.context.msg.error("Bug in hoomd: cpp_integrator not set, please report\n");
             raise RuntimeError('Error updating forces');
 
         # change the parameters

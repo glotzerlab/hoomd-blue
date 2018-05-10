@@ -410,7 +410,7 @@ class pair(force._force):
                 raise RuntimeError("Error changing parameters in pair force");
 
     def process_coeff(self, coeff):
-        hoomd.context.msg.error("Bug in hoomd_script, please report\n");
+        hoomd.context.msg.error("Bug in hoomd, please report\n");
         raise RuntimeError("Error processing coefficients");
 
     def update_coeffs(self):
