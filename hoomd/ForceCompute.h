@@ -28,7 +28,7 @@
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
-#ifndef 
+#ifndef __FORCECOMPUTE_H__
 #define __FORCECOMPUTE_H__
 
 //! Handy structure for passing the force arrays around
