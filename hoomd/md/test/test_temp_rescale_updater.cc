@@ -106,7 +106,7 @@ UP_TEST( TempRescaleUpdater_basic )
     h_vel.data[1].x = 4.0; h_vel.data[1].y = 5.0; h_vel.data[1].z = 6.0;
     }
 
-    // construct a Computethermo for the updater
+    // construct a ComputeThermo for the updater
     std::shared_ptr<ParticleSelector> selector_all(new ParticleSelectorTag(sysdef, 0, pdata->getN()-1));
     std::shared_ptr<ParticleGroup> group_all(new ParticleGroup(sysdef, selector_all));
     std::shared_ptr<ComputeThermo> tc(new ComputeThermo(sysdef, group_all));

@@ -78,7 +78,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     }
 
     // add an dihedrals and check again
-    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral bewtween atoms 0-1-2-3
+    sysdef_4->getDihedralData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 dihedral between atoms 0-1-2-3
     fc_4->compute(1);
 
     {
@@ -179,7 +179,7 @@ void dihedral_force_basic_tests(dihedralforce_creator tf_creator, std::shared_pt
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 8 particle system with particles across each boundary
     // also test more than one type of dihedral
     std::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 2, 0, exec_conf));

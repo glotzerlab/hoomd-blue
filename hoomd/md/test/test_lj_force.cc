@@ -37,17 +37,17 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<PotentialPairLJ> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test the ability of the lj force compute to actually calculate forces
 void lj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
-    // such that 2 is inside the cuttoff radius of 1 and 3, but 1 and 3 are outside the cuttoff
+    // such that 2 is inside the cutoff radius of 1 and 3, but 1 and 3 are outside the cutoff
     // of course, the buffer will be set on the neighborlist so that 3 is included in it
     // thus, this case tests the ability of the force summer to sum more than one force on
     // a particle and ignore a particle outside the radius
 
-    // periodic boundary conditions will be handeled in another test
+    // periodic boundary conditions will be handled in another test
     std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
     pdata_3->setFlags(~PDataFlags(0));
@@ -182,7 +182,7 @@ void lj_force_periodic_test(ljforce_creator lj_creator, std::shared_ptr<Executio
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles across each boundary
     // also test the ability of the force compute to use different particle types
 

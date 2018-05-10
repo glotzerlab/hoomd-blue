@@ -41,7 +41,7 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<AnisoPotentialPairGB> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> gbforce_creator;
 
-//! Test the ability of the Gay Berne force compute to actually calucate forces
+//! Test the ability of the Gay Berne force compute to actually calculate forces
 void gb_force_particle_test(gbforce_creator gb_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));

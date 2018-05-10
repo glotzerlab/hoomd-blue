@@ -37,7 +37,7 @@ HOOMD_UP_MAIN();
 typedef std::function<std::shared_ptr<PotentialPairForceShiftedLJ> (std::shared_ptr<SystemDefinition> sysdef,
                                                      std::shared_ptr<NeighborList> nlist)> ljforce_creator;
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test the ability of the lj force compute to actually calculate forces
 void fslj_force_particle_test(ljforce_creator lj_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     std::shared_ptr<SystemDefinition> sysdef_2(new SystemDefinition(2, BoxDim(1000.0), 1, 0, 0, 0, 0, exec_conf));

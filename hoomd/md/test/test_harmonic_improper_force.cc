@@ -92,7 +92,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     }
 
     // add an impropers and check again
-    sysdef_4->getImproperData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 improper bewtween atoms 0-1-2-3
+    sysdef_4->getImproperData()->addBondedGroup(Dihedral(0,0,1,2,3)); // add type 0 improper between atoms 0-1-2-3
     fc_4->compute(1);
     /*
      FORCE 1: fx = 0.024609  fy = -0.178418  fz = -0.221484
@@ -193,7 +193,7 @@ void improper_force_basic_tests(improperforce_creator tf_creator, std::shared_pt
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 8 particle system with particles across each boundary
     // also test more than one type of impropers
     std::shared_ptr<SystemDefinition> sysdef_8(new SystemDefinition(8, BoxDim(60.0, 70.0, 80.0), 1, 0, 0, 0, 2, exec_conf));
@@ -421,7 +421,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
                                      improperforce_creator tf_creator2,
                                      std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
-    // INTERESTING NOTE: the code will depending on the number of ramdom particles
+    // INTERESTING NOTE: the code will depending on the number of random particles
     // even 1000 will make the code blow up, 500 is used for safety... hope it works!
     const unsigned int N = 500;
 
@@ -437,7 +437,7 @@ void improper_force_comparison_tests(improperforce_creator tf_creator1,
     fc1->setParams(0, Scalar(2.0), Scalar(3.0));
     fc2->setParams(0, Scalar(2.0), Scalar(3.0));
 
-    // add improperrs
+    // add impropers
     for (unsigned int i = 0; i < N-3; i++)
         {
         sysdef->getImproperData()->addBondedGroup(Dihedral(0, i, i+1,i+2, i+3));

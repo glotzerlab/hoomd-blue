@@ -101,7 +101,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
     nve_up->addForceCompute(fc);
     nve_up->prepRun(0);
 
-    // verify that the atoms leave the xy plane if no contstraints are present
+    // verify that the atoms leave the xy plane if no constraints are present
     // and random forces are added (due to roundoff error in a long simulation)s
     unsigned int np = pdata->getN();
 
@@ -147,7 +147,7 @@ void enforce2d_basic_test(enforce2d_creator creator, std::shared_ptr<ExecutionCo
 
     std::shared_ptr<Enforce2DUpdater> enforce2d = creator(sysdef);
 
-    // verify that the atoms never leave the xy plane if contstraint is present:
+    // verify that the atoms never leave the xy plane if constraint is present:
     for (int t = 0; t < 1000; t++)
         {
         if (t%100 == 0) {

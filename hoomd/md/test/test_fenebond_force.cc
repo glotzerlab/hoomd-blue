@@ -128,7 +128,7 @@ void bond_force_basic_tests(bondforce_creator bf_creator, std::shared_ptr<Execut
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
     std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 3, 0, 0, 0, exec_conf));

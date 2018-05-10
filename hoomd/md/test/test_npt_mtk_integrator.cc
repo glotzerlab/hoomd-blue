@@ -60,7 +60,7 @@ typedef struct
     unsigned int flags;
     } args_t;
 
-//! Typedef'd NPTMTKUpdator class factory
+//! Typedef'd NPTMTKUpdater class factory
 typedef std::function<std::shared_ptr<TwoStepNPTMTK> (args_t args) > twostep_npt_mtk_creator;
 
 //! Basic functionality test of a generic TwoStepNPTMTK
@@ -184,7 +184,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
         npt_mtk->addIntegrationMethod(two_step_npt_mtk);
         npt_mtk->prepRun(0);
 
-        // step for a 10,000 timesteps to relax pessure and temperature
+        // step for a 10,000 timesteps to relax pressure and temperature
         // before computing averages
 
         std::cout << "Equilibrating 10,000 steps... " << std::endl;
@@ -455,7 +455,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     nph->addForceCompute(fc);
     nph->prepRun(0);
 
-    // step for a 10,000 timesteps to relax pessure and tempreratue
+    // step for a 10,000 timesteps to relax pressure and temperature
     // before computing averages
 
     for (int i = 0; i < 10000; i++)
@@ -646,7 +646,7 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
 
         npt_mtk->prepRun(0);
 
-        // step for a 10,000 timesteps to relax pessure and temperature
+        // step for a 10,000 timesteps to relax pressure and temperature
         // before computing averages
 
         unsigned int n_equil_steps = 1500;

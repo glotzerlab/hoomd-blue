@@ -73,7 +73,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     }
 
     // add an angle and check again
-    sysdef_3->getAngleData()->addBondedGroup(Angle(0,0,1,2)); // add type 0 bewtween angle formed by atom 0-1-2
+    sysdef_3->getAngleData()->addBondedGroup(Angle(0,0,1,2)); // add type 0 between angle formed by atom 0-1-2
     fc_3->compute(1);
 
     // this time there should be a force
@@ -142,7 +142,7 @@ void angle_force_basic_tests(angleforce_creator af_creator, std::shared_ptr<Exec
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles across each boundary
     // also test more than one type of bond
     unsigned int num_angles_to_test = 3;

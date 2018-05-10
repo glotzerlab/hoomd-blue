@@ -39,7 +39,7 @@ using namespace std::placeholders;
 #include "hoomd/test/upp11_config.h"
 HOOMD_UP_MAIN();
 
-//! Typedef'd NVEUpdator class factory
+//! Typedef'd NVEUpdater class factory
 typedef std::function<std::shared_ptr<TwoStepNVE> (std::shared_ptr<SystemDefinition> sysdef,
                                                        std::shared_ptr<ParticleGroup> group)> twostepnve_creator;
 
@@ -193,7 +193,7 @@ void nve_updater_boundary_tests(twostepnve_creator nve_creator, std::shared_ptr<
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles set to move across each boundary
     std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_6 = sysdef_6->getParticleData();

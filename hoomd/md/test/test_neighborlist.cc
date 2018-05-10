@@ -96,7 +96,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
     ////////////////////////////////////////////////////////////////////
     // now, lets do a more thorough test and include boundary conditions
     // there are way too many permutations to test here, so I will simply
-    // test +x, -x, +y, -y, +z, and -z independantly
+    // test +x, -x, +y, -y, +z, and -z independently
     // build a 6 particle system with particles across each boundary
 
     std::shared_ptr<SystemDefinition> sysdef_6(new SystemDefinition(6, BoxDim(20.0, 40.0, 60.0), 1, 0, 0, 0, 0, exec_conf));
@@ -125,7 +125,7 @@ void neighborlist_basic_tests(std::shared_ptr<ExecutionConfiguration> exec_conf)
         ArrayHandle<unsigned int> h_nlist(nlist_6->getNListArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_head_list(nlist_6->getHeadList(), access_location::host, access_mode::read);
 
-        // check for right number of nbrs
+        // check for right number of neighbors
         CHECK_EQUAL_UINT(h_n_neigh.data[0], 1);
         CHECK_EQUAL_UINT(h_n_neigh.data[1], 1);
         CHECK_EQUAL_UINT(h_n_neigh.data[2], 1);

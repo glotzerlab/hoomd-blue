@@ -35,14 +35,14 @@ HOOMD_UP_MAIN();
 //! Typedef'd LJForceCompute factory
 typedef std::function<std::shared_ptr<PotentialExternalPeriodic> (std::shared_ptr<SystemDefinition> sysdef)> periodicforce_creator;
 
-//! Test the ability of the lj force compute to actually calucate forces
+//! Test the ability of the lj force compute to actually calculate forces
 void periodic_force_particle_test(periodicforce_creator periodic_creator, std::shared_ptr<ExecutionConfiguration> exec_conf)
     {
     // this 3-particle test subtly checks several conditions
     // the particles are arranged on the x axis,  1   2   3
     // types of the particles : 0, 1, 0
 
-    // periodic boundary conditions will be handeled in another test
+    // periodic boundary conditions will be handled in another test
     std::shared_ptr<SystemDefinition> sysdef_3(new SystemDefinition(3, BoxDim(5.0), 2, 0, 0, 0, 0, exec_conf));
     std::shared_ptr<ParticleData> pdata_3 = sysdef_3->getParticleData();
 
