@@ -29,7 +29,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
   \param nlist Neighborlist to use for computing the forces
-  \param r_cut Cuttoff radius beyond which the force is 0
+  \param r_cut Cutoff radius beyond which the force is 0
   \param potential Global potential parameters for the interaction
   \post memory is allocated.
 */
@@ -79,7 +79,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::setParams(
     if (type >= m_pdata->getNTypes())
         {
         m_exec_conf->msg->error() <<
-            "dem: Trying to set params for a non existant type! " << type << endl;
+            "dem: Trying to set params for a non existent type! " << type << endl;
         throw runtime_error("Error setting parameters in DEM3DForceCompute");
         }
 
@@ -572,7 +572,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
-    // create a temporary copy of r_cut sqaured
+    // create a temporary copy of r_cut squared
     Scalar r_cut_sq = m_r_cut * m_r_cut;
 
     // tally up the number of forces calculated
@@ -652,7 +652,7 @@ void DEM3DForceCompute<Real, Real4, Potential>::computeForces(unsigned int times
             // calculate r squared (FLOPS: 5)
             Real rsq = dot(dx, dx);
 
-            // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
+            // only compute the force if the particles are closer than the cutoff (FLOPS: 1)
             if (m_evaluator.withinCutoff(rsq,r_cut_sq))
                 {
                 // local forces and torques for particles i and j

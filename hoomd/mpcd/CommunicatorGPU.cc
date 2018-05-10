@@ -30,7 +30,7 @@ mpcd::CommunicatorGPU::CommunicatorGPU(std::shared_ptr<mpcd::SystemData> system_
       m_comm_mask(0),
       m_tmp_keys(m_exec_conf)
     {
-    // initialize communciation stages
+    // initialize communication stages
     initializeCommunicationStages();
 
     GPUArray<unsigned int> neigh_send(neigh_max,m_exec_conf);
@@ -66,7 +66,7 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
         m_max_stages = 3;
         }
 
-    // accesss neighbors and adjacency  array
+    // access neighbors and adjacency  array
     ArrayHandle<unsigned int> h_adj_mask(m_adj_mask, access_location::host, access_mode::read);
 
     Index3D di= m_decomposition->getDomainIndexer();
@@ -154,7 +154,7 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
             }
         }
 
-    m_exec_conf->msg->notice(4) << "MPCD ComunicatorGPU: Using " << m_num_stages
+    m_exec_conf->msg->notice(4) << "MPCD CommunicatorGPU: Using " << m_num_stages
         << " communication stage(s)." << std::endl;
     }
 

@@ -396,7 +396,7 @@ UP_TEST( getter_setter_tests )
     cout << "First run: no profiling, statsPeriod = 10 s" << endl;
     sys.run(100);
 
-    cout << "Second run: no prilfing, statsPeriod = 1.0 s" << endl;
+    cout << "Second run: no profiling, statsPeriod = 1.0 s" << endl;
     sys.setStatsPeriod(1);
     sys.run(100);
 

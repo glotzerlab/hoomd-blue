@@ -145,7 +145,7 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
-        //! Initalize Poisson distribution parameters
+        //! Initialize Poisson distribution parameters
         virtual void updatePoissonParameters();
 
         //! Initialize the Poisson distributions
@@ -790,7 +790,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         V = Vcap_i + Vcap_j;
                         }
 
-                    // chooose the number of depletants in the intersection volume
+                    // choose the number of depletants in the intersection volume
                     std::poisson_distribution<unsigned int> poisson(m_n_R*V);
                     #ifdef ENABLE_TBB
                     std::mt19937& rng_poisson = rng_parallel_mt.local();
@@ -1084,7 +1084,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
                         Scalar d = sqrt(dot(rij,rij));
 
-                        // whether the interesection is the entire (smaller) sphere
+                        // whether the intersection is the entire (smaller) sphere
                         bool sphere = false;
                         Scalar V;
                         Scalar Vcap_i(0.0);
@@ -1111,7 +1111,7 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                             V = Vcap_i + Vcap_j;
                             }
 
-                        // chooose the number of depletants in the intersection volume
+                        // choose the number of depletants in the intersection volume
                         std::poisson_distribution<unsigned int> poisson(m_n_R*V);
                         #ifdef ENABLE_TBB
                         std::mt19937& rng_poisson = rng_parallel_mt.local();

@@ -156,7 +156,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         assert(dihedral.tag[2] <= m_pdata->getMaximumTag());
         assert(dihedral.tag[3] <= m_pdata->getMaximumTag());
 
-        // transform a, b, and c into indicies into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
         unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
@@ -303,7 +303,7 @@ void HarmonicDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar ffcz = -sz2 - ffdz;
 
         // Now, apply the force to each individual atom a,b,c,d
-        // and accumlate the energy/virial
+        // and accumulate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         //Scalar dihedral_eng = p*m_K[dihedral.type]*Scalar(1.0/4.0);
         Scalar dihedral_eng = p*m_K[dihedral_type]*Scalar(0.125);  // the .125 term is (1/2)K * 1/4

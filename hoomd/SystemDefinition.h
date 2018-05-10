@@ -29,7 +29,7 @@ class Communicator;
 #endif
 
 
-//! Forward declaration of SnapshotSytemData
+//! Forward declaration of SnapshotSystemData
 template <class Real> struct SnapshotSystemData;
 
 //! Container class for all data needed to define the MD system
@@ -74,7 +74,7 @@ class PYBIND11_EXPORT SystemDefinition
     public:
         //! Constructs a NULL SystemDefinition
         SystemDefinition();
-        //! Conctructs a SystemDefinition with a simply initialized ParticleData
+        //! Constructs a SystemDefinition with a simply initialized ParticleData
         SystemDefinition(unsigned int N,
                          const BoxDim &box,
                          unsigned int n_types=1,

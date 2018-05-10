@@ -84,8 +84,8 @@
 
     After a set call is made to adjust a parameter, changes do not take effect until the next call to compute().
 
-    <b>Overvlow and error flag handling:</b>
-    For easy support of derived GPU classes to implement overvlow detection and error handling, all error flags are
+    <b>Overflow and error flag handling:</b>
+    For easy support of derived GPU classes to implement overflow detection and error handling, all error flags are
     stored in the GPUArray \a d_conditions.
      - 0: Maximum cell size (implementations are free to write to this element only in overflow conditions if they
           choose.)
@@ -281,7 +281,7 @@ class PYBIND11_EXPORT CellList : public Compute
             return m_xyzf;
             }
 
-        //! Get the cell list containting t,d,b
+        //! Get the cell list containing t,d,b
         const GPUArray<Scalar4>& getTDBArray() const
             {
             return m_tdb;
@@ -334,7 +334,7 @@ class PYBIND11_EXPORT CellList : public Compute
         bool m_flag_type;            //!< true if the flag should be set to type, it will be index otherwise
         bool m_params_changed;       //!< Set to true when parameters are changed
         bool m_particles_sorted;     //!< Set to true when the particles have been sorted
-        bool m_box_changed;          //!< Set to ttrue when the box size has changed
+        bool m_box_changed;          //!< Set to true when the box size has changed
         unsigned int m_multiple;     //!< Round cell dimensions down to a multiple of this value
 
         // parameters determined by initialize

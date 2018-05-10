@@ -214,32 +214,32 @@ class UpdaterBoxMC : public Updater
 
         //! Perform box update in NpT box length distribution
         /*! \param timestep timestep at which update is being evaluated
-            \param rng psueudo random number generator instance
+            \param rng pseudo random number generator instance
         */
         void update_L(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform box update in NpT volume distribution
         /*! \param timestep timestep at which update is being evaluated
-            \param rng psueudo random number generator instance
+            \param rng pseudo random number generator instance
         */
         void update_V(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform box update in NpT ln(V) distribution
         /*! \param timestep timestep at which update is being evaluated
-            \param rng psueudo random number generator instance
+            \param rng pseudo random number generator instance
         */
         void update_lnV(unsigned int timestep, hoomd::detail::Saru& rng);
 
 
         //! Perform box update in NpT shear distribution
         /*! \param timestep timestep at which update is being evaluated
-            \param rng psueudo random number generator instance
+            \param rng pseudo random number generator instance
         */
         void update_shear(unsigned int timestep, hoomd::detail::Saru& rng);
 
         //! Perform non-thermodynamic MC move in aspect ratio.
         /*! \param timestep timestep at which update is being evaluated
-            \param rng psueudo random number generator instance
+            \param rng pseudo random number generator instance
         */
         void update_aspect(unsigned int timestep, hoomd::detail::Saru& rng);
 

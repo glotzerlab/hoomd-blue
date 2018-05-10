@@ -40,7 +40,7 @@
         -m_L.x/2 + (xz-xy*yz)*z + xy*y <= x <= m_L.x/2 + (xz-xy*yz)*z + xy*y
 
     Boxes constructed via length default to periodic in all 3 directions. Any direction may be made non-periodic with
-    setPeriodic(). Boxes constructed via lo and hi must be explicity given periodic flags for each direction.
+    setPeriodic(). Boxes constructed via lo and hi must be explicitly given periodic flags for each direction.
     The lo value \b must equal the negative for the high value for any direction that is set periodic. This is due to
     performance optimizations used in the minimum image convention. Callers that specify lo and hi directly must be
     aware of this fact. BoxDim does not check for erroneous input regarding \a lo, \a hi and the periodic flags.
@@ -49,7 +49,7 @@
     setL() can be used to update boxes where lo == -hi in all directions. setLoHi() can be used to update boxes where
     this is not the case.
 
-    BoxDim comes with several analysis/computaiton methods to aid in working with vectors in boxes.
+    BoxDim comes with several analysis/computation methods to aid in working with vectors in boxes.
      - makeFraction() takes a vector in a box and computes a vector where all components are between 0 and 1. 0,0,0 is
        lo and 1,1,1 is hi with a linear interpolation between.
      - minImage() takes a vector and wraps it back into the box following the minimum image convention, but only for

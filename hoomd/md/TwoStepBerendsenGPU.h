@@ -24,7 +24,7 @@
 class PYBIND11_EXPORT TwoStepBerendsenGPU : public TwoStepBerendsen
     {
     public:
-        //! Cosntructor
+        //! Constructor
         TwoStepBerendsenGPU(std::shared_ptr< SystemDefinition > sysdef,
                             std::shared_ptr< ParticleGroup > group,
                             std::shared_ptr< ComputeThermo > thermo,

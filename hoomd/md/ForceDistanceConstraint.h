@@ -86,7 +86,7 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
         //! Compute the forces
         virtual void computeForces(unsigned int timestep);
 
-        //! Populate the quantities in the constraint-force equatino
+        //! Populate the quantities in the constraint-force equation
         virtual void fillMatrixVector(unsigned int timestep);
 
         //! Check violation of constraints
@@ -124,7 +124,7 @@ class PYBIND11_EXPORT ForceDistanceConstraint : public MolecularForceCompute
 
             if (!m_comm_ghost_layer_connected)
                 {
-                // register this class with the communciator
+                // register this class with the communicator
                 m_comm->getGhostLayerWidthRequestSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::askGhostLayerWidth>(this);
                 m_comm_ghost_layer_connected = true;
                 }

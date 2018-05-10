@@ -65,7 +65,7 @@ class _integrator(hoomd.meta._metadata):
     #
     # This doesn't really do much bet set some member variables to None
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create integrator before initialization\n");
             raise RuntimeError('Error creating integrator');
@@ -179,7 +179,7 @@ class _integrator(hoomd.meta._metadata):
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def restore_state(self):
-        """ Resore the state information from the file used to initialize the simulations
+        """ Restore the state information from the file used to initialize the simulations
         """
         hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_integrator, "restoreStateGSD"):
@@ -206,7 +206,7 @@ class _integration_method(hoomd.meta._metadata):
     #
     # Initializes the cpp_method to None.
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create an integration method before initialization\n");
             raise RuntimeError('Error creating integration method');

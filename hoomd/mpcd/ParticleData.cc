@@ -771,7 +771,7 @@ std::string mpcd::ParticleData::getNameByType(unsigned int type) const
     // check for an invalid request
     if (type >= m_type_mapping.size())
         {
-        m_exec_conf->msg->error() << "Requesting name for non-existant MPCD particle type " << type << endl;
+        m_exec_conf->msg->error() << "Requesting name for non-existent MPCD particle type " << type << endl;
         throw runtime_error("Error mapping MPCD type name");
         }
 

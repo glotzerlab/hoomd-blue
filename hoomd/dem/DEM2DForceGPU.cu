@@ -155,7 +155,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
 
     // zero the calculated force, torque, and virial for this particle
     // in this thread. Note that localForceTorque is (force.x,
-    // force.y, torque.z, potentialEnegy).
+    // force.y, torque.z, potentialEnergy).
     Real4 localForceTorque(make_scalar4(0.0f, 0.0f, 0.0f, 0.0f));
     Real localVirial[6];
     for(size_t i(0); i < 6; ++i)
@@ -181,7 +181,7 @@ __global__ void gpu_compute_dem2d_forces_kernel(const Scalar4 *d_pos,
         if (Evaluator::needsDiameter())
             di = texFetchScalar(d_diam, pdata_diam_tex, partIdx);
         else
-            di += 1.0f; //shut up compiler warning. Vestigal from HOOMD
+            di += 1.0f; //shut up compiler warning. Vestigial from HOOMD
 
         vec3<Scalar> vi;
         if (Evaluator::needsVelocity())

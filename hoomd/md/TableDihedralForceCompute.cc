@@ -66,7 +66,7 @@ TableDihedralForceCompute::~TableDihedralForceCompute()
 /*! \param type Type of the dihedral to set parameters for
     \param V Table for the potential V
     \param T Table for the potential T (must be - dV / dphi)
-    \post Values from \a V and \a T are copied into the interal storage for type pair (type)
+    \post Values from \a V and \a T are copied into the internal storage for type pair (type)
 */
 void TableDihedralForceCompute::setTable(unsigned int type,
                               const std::vector<Scalar> &V,
@@ -167,7 +167,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         assert(dihedral.tag[2] <= m_pdata->getMaximumTag());
         assert(dihedral.tag[3] <= m_pdata->getMaximumTag());
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[dihedral.tag[0]];
         unsigned int idx_b = h_rtag.data[dihedral.tag[1]];
@@ -306,7 +306,7 @@ void TableDihedralForceCompute::computeForces(unsigned int timestep)
         Scalar3 f_d = T*b2mag/Bsq*vec_to_scalar3(B);
 
         // Now, apply the force to each individual atom a,b,c,d
-        // and accumlate the energy/virial
+        // and accumulate the energy/virial
         // compute 1/4 of the energy, 1/4 for each atom in the dihedral
         Scalar dihedral_eng = V*Scalar(0.25);  // the .125 term comes from distributing over the four particles
 

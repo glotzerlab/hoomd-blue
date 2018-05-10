@@ -87,9 +87,9 @@ class PYBIND11_EXPORT VariantLinear : public Variant
         void setPoint(unsigned int timestep, double val);
 
     private:
-        std::map<unsigned int, double> m_values;    //!< Values to interpoloate
+        std::map<unsigned int, double> m_values;    //!< Values to interpolate
         std::map<unsigned int, double>::iterator    m_a,    //!< First point in the pair to interpolate
-        m_b;    //!< Second point in the pair to inerpolate
+        m_b;    //!< Second point in the pair to interpolate
     };
 
 //! Exports Variant* classes to python

@@ -102,7 +102,7 @@ RandomInitializer::RandomInitializer(unsigned int N, Scalar phi_p, Scalar min_di
     Two RandomInitializers with the same random seen should produce the same
     particle positions.
 
-    \warning setSeed is guarunteed to work properly if and only if
+    \warning setSeed is guaranteed to work properly if and only if
     there are no methods that might call random() called between
     the setSeed and the construction of the ParticleData.
 */
@@ -126,7 +126,7 @@ std::shared_ptr< SnapshotSystemData<Scalar> > RandomInitializer::getSnapshot() c
     Scalar L = m_box.getL().x;
     for (unsigned int i = 0; i < m_N; i++)
         {
-        // generate random particles until we find a suitable one meating the min_dist
+        // generate random particles until we find a suitable one meeting the min_dist
         // criteria
         bool done = false;
         unsigned int tries = 0;

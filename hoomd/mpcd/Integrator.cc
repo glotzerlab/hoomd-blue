@@ -32,7 +32,7 @@ mpcd::Integrator::~Integrator()
 
 /*!
  * \param prof The profiler to set
- * Sets the profiler both for this class and all of the containted integration methods
+ * Sets the profiler both for this class and all of the contained integration methods
  */
 void mpcd::Integrator::setProfiler(std::shared_ptr<Profiler> prof)
     {

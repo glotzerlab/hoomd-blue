@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMath.h"
 
 /*! \file EvaluatorSpecialPairLJ.h
-    \brief Defines the bond evaluator class for LJ interactinos
+    \brief Defines the bond evaluator class for LJ interactions
 
     The LJ bond represents a means of injecting specified pairs of particles
     into the force computation, e.g. based on topology. This is designed
@@ -40,7 +40,7 @@ class EvaluatorSpecialPairLJ
         typedef Scalar3 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance beteen the particles
+        /*! \param _rsq Squared distance between the particles
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorSpecialPairLJ(Scalar _rsq, const param_type& _params)

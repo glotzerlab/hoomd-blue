@@ -76,7 +76,7 @@ class mpi_io : public std::streambuf
         virtual int overflow( int ch );
 
     private:
-        MPI_Comm m_mpi_comm;        //!< The MPI communciator
+        MPI_Comm m_mpi_comm;        //!< The MPI communicator
         MPI_File m_file;            //!< The file handle
         bool m_file_open;           //!< Whether the file is open
     };
@@ -108,7 +108,7 @@ Messenger::Messenger()
     m_shared_filename = "";
 #endif
 
-    // preliminarily initialize rank and partiton
+    // preliminarily initialize rank and partition
     #ifdef ENABLE_MPI
     setRank(ExecutionConfiguration::getRankGlobal(),0);
     #else
@@ -338,7 +338,7 @@ void Messenger::noticeStr(unsigned int level, const std::string& msg) const
     }
 
 /*! \param fname File name
-    The file is ovewritten if it exists. If there is an error opening the file, all level's streams are left
+    The file is overwritten if it exists. If there is an error opening the file, all level's streams are left
     as is and an error() is issued.
 */
 void Messenger::openFile(const std::string& fname)

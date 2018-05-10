@@ -188,15 +188,15 @@ cudaError_t srd_draw_vectors(double3 *d_rotvec,
 
     if (d_factors != NULL)
         {
-        static unsigned int max_block_themostat = UINT_MAX;
-        if (max_block_themostat == UINT_MAX)
+        static unsigned int max_block_thermostat = UINT_MAX;
+        if (max_block_thermostat == UINT_MAX)
             {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<true>);
-            max_block_themostat = attr.maxThreadsPerBlock;
+            max_block_thermostat = attr.maxThreadsPerBlock;
             }
 
-        unsigned int run_block_size = min(block_size, max_block_themostat);
+        unsigned int run_block_size = min(block_size, max_block_thermostat);
 
         const unsigned int Ncell = ci.getNumElements();
         dim3 grid(Ncell / run_block_size + 1);
@@ -215,15 +215,15 @@ cudaError_t srd_draw_vectors(double3 *d_rotvec,
         }
     else
         {
-        static unsigned int max_block_nothemostat = UINT_MAX;
-        if (max_block_nothemostat == UINT_MAX)
+        static unsigned int max_block_nothermostat = UINT_MAX;
+        if (max_block_nothermostat == UINT_MAX)
             {
             cudaFuncAttributes attr;
             cudaFuncGetAttributes(&attr, (const void*)mpcd::gpu::kernel::srd_draw_vectors<false>);
-            max_block_nothemostat = attr.maxThreadsPerBlock;
+            max_block_nothermostat = attr.maxThreadsPerBlock;
             }
 
-        unsigned int run_block_size = min(block_size, max_block_nothemostat);
+        unsigned int run_block_size = min(block_size, max_block_nothermostat);
 
         const unsigned int Ncell = ci.getNumElements();
         dim3 grid(Ncell / run_block_size + 1);

@@ -193,7 +193,7 @@ class _analyzer(hoomd.meta._metadata):
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def restore_state(self):
-        """ Resore the state information from the file used to initialize the simulations
+        """ Restore the state information from the file used to initialize the simulations
         """
         hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_analyzer, "restoreStateGSD"):
@@ -277,7 +277,7 @@ class log(_analyzer):
     Quantities that can be logged at any time:
 
     - **volume** - Volume of the simulation box (in volume units)
-    - **N** - Particle nubmer (dimensionless)
+    - **N** - Particle number (dimensionless)
     - **lx** - Box length in x direction (in length units)
     - **ly** - Box length in y direction (in length units)
     - **lz** - Box length in z direction (in length units)
@@ -362,8 +362,8 @@ class log(_analyzer):
       - **npt_thermostat_energy** (:py:class:`hoomd.md.integrate.npt`) - Energy of the NPT thermostat
       - **npt_barostat_energy** (:py:class:`hoomd.md.integrate.npt` & :py:class:`hoomd.md.integrate.nph`) - Energy of the NPT (or NPH) barostat
 
-    Additionally, all pair and bond poetentials can be provided user-defined names that are appended as suffixes to the
-    logged quantitiy (e.g. with ``pair.lj(r_cut=2.5, name="alpha")``, the logged quantity would be pair_lj_energy_alpha):
+    Additionally, all pair and bond potentials can be provided user-defined names that are appended as suffixes to the
+    logged quantity (e.g. with ``pair.lj(r_cut=2.5, name="alpha")``, the logged quantity would be pair_lj_energy_alpha):
 
     By specifying a force, disabling it with the *log=True* option, and then logging it, different energy terms can
     be computed while only a subset of them actually drive the simulation. Common use-cases of this capability

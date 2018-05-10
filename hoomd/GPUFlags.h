@@ -185,7 +185,7 @@ a = b;
 b = c;
     \endcode
 
-    But it will be done in a super-efficent way by just swapping the internal pointers, thus avoiding all the expensive
+    But it will be done in a super-efficient way by just swapping the internal pointers, thus avoiding all the expensive
     memory deallocations/allocations and copies using the copy constructor and assignment operator.
 */
 template<class T> void GPUFlags<T>::swap(GPUFlags& from)
@@ -333,7 +333,7 @@ template<class T> void GPUFlags<T>::memclear()
     }
 
 /*! \returns Current value of the flags
-    \note readFlags implicitly syncrhonizes with the GPU execution stream. If there are any previous asynch kernel
+    \note readFlags implicitly synchronizes with the GPU execution stream. If there are any previous asynch kernel
     launches that may set the flags, readFlags() will wait until they complete and will return any flags possibly
     set by those kernels.
 */

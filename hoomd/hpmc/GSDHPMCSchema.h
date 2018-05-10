@@ -64,7 +64,7 @@ struct gsd_schema_hpmc : public gsd_schema_hpmc_base
             }
     #endif
         if(!d.size())
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+            throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             data[i] = d[i];
@@ -129,7 +129,7 @@ struct gsd_shape_schema<hpmc::sph_params>: public gsd_schema_hpmc_base
             }
     #endif
         if(!data.size()) // adding this sanity check but can remove.
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+            throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
         for(unsigned int i = 0; i < Ntypes; i++)
             {
             shape[i].radius = data[i];
@@ -193,7 +193,7 @@ struct gsd_shape_schema<hpmc::ell_params>: public gsd_schema_hpmc_base
         #endif
 
         if(!a.size() || !b.size() || !c.size()) // adding this sanity check but can remove.
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+            throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         for(unsigned int i = 0; i < Ntypes; i++)
             {
@@ -278,7 +278,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             }
     #endif
         if(!N.size() || !vertices.size() || !sweep_radius.size()) // adding this sanity check but can remove.
-            throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+            throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)
@@ -296,7 +296,7 @@ struct gsd_shape_schema< hpmc::detail::poly3d_verts > : public gsd_schema_hpmc_b
             result.diameter = 2.0*(sqrt(dsq)+result.sweep_radius);
             result.N = N[i];
             result.sweep_radius = sweep_radius[i];
-            shape[i] = result; // Can we avoid a full copy of the data (move semanitcs?)
+            shape[i] = result; // Can we avoid a full copy of the data (move semantics?)
             shape[i].ignore = 0;
             }
         return success;
@@ -372,7 +372,7 @@ struct gsd_shape_schema< hpmc::detail::poly2d_verts >: public gsd_schema_hpmc_ba
                 }
         #endif
             if(!N.size() || !vertices.size() || !sweep_radius.size()) // adding this sanity check but can remove.
-                throw std::runtime_error("Error occured while attempting to restore from gsd file.");
+                throw std::runtime_error("Error occurred while attempting to restore from gsd file.");
 
         count = 0;
         for (unsigned int i = 0; i < Ntypes; i++)

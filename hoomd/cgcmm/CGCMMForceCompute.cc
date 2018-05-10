@@ -14,7 +14,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param r_cut Cuttoff radius beyond which the force is 0
+    \param r_cut Cutoff radius beyond which the force is 0
     \post memory is allocated and all parameters ljX are set to 0.0
 */
 CGCMMForceCompute::CGCMMForceCompute(std::shared_ptr<SystemDefinition> sysdef,
@@ -128,7 +128,7 @@ CGCMMForceCompute::~CGCMMForceCompute()
     - \a lj4 = 0.0
 
     Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
-    is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
+    is no need to call this function for symmetric pairs. Any pairs that this function is not called
     for will have lj12 through lj4 set to 0.0.
 
     \param typ1 Specifies one type of the pair
@@ -142,7 +142,7 @@ void CGCMMForceCompute::setParams(unsigned int typ1, unsigned int typ2, Scalar l
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existent type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("Error setting parameters in CGCMMForceCompute");
         }
 
@@ -229,7 +229,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
     // get a local copy of the simulation box too
     const BoxDim& box = m_pdata->getBox();
 
-    // create a temporary copy of r_cut sqaured
+    // create a temporary copy of r_cut squared
     Scalar r_cut_sq = m_r_cut * m_r_cut;
 
     // tally up the number of forces calculated
@@ -286,7 +286,7 @@ void CGCMMForceCompute::computeForces(unsigned int timestep)
             // calculate r squared (FLOPS: 5)
             Scalar rsq = dot(dx, dx);
 
-            // only compute the force if the particles are closer than the cuttoff (FLOPS: 1)
+            // only compute the force if the particles are closer than the cutoff (FLOPS: 1)
             if (rsq < r_cut_sq)
                 {
                 // compute the force magnitude/r in forcemag_divr (FLOPS: 14)

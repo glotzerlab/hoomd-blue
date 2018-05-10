@@ -90,7 +90,7 @@ PotentialBond< evaluator >::~PotentialBond()
     }
 
 /*! \param type Type of the bond to set parameters for
-    \param param Parmeter to set
+    \param param Parameter to set
 
     Sets the parameters for the potential of a particular bond type
 */
@@ -196,7 +196,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
         assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
         assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.tag[0]];
         unsigned int idx_b = h_rtag.data[bond.tag[1]];
@@ -225,7 +225,7 @@ void PotentialBond< evaluator >::computeForces(unsigned int timestep)
             diameter_b = h_diameter.data[idx_b];
             }
 
-        // acesss charge (if needed)
+        // access charge (if needed)
         Scalar charge_a = Scalar(0.0);
         Scalar charge_b = Scalar(0.0);
         if (evaluator::needsCharge())
@@ -328,7 +328,7 @@ CommFlags PotentialBond< evaluator >::getRequestedCommFlags(unsigned int timeste
 
 //! Exports the PotentialBond class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instatiated PotentialBOnd class template.
+    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
 */
 template < class T > void export_PotentialBond(pybind11::module& m, const std::string& name)
     {

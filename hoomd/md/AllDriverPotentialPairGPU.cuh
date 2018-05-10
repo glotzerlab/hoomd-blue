@@ -76,7 +76,7 @@ cudaError_t gpu_compute_mie_forces(const pair_args_t & args,
 cudaError_t gpu_compute_reaction_field_forces(const pair_args_t & args,
                                                 const Scalar3 *d_params);
 
-//! Compute buckinghham pair forces on the GPU with PairEvaluatorBuckingham
+//! Compute buckingham pair forces on the GPU with PairEvaluatorBuckingham
 cudaError_t gpu_compute_buckingham_forces(const pair_args_t& pair_args,
                                       const Scalar4 *d_params);
 

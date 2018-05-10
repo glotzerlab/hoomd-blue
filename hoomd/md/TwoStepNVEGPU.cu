@@ -18,7 +18,7 @@
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT timestep
@@ -60,7 +60,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
         // r(t+deltaT) = r(t) + v(t)*deltaT + (1/2)a(t)*deltaT^2
         // v(t+deltaT/2) = v(t) + (1/2)a*deltaT
 
-        // read the particle's posision (MEM TRANSFER: 16 bytes)
+        // read the particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 postype = d_pos[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -106,7 +106,7 @@ void gpu_nve_step_one_kernel(Scalar4 *d_pos,
     \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for periodic boundary condition handling
     \param deltaT timestep
@@ -155,7 +155,7 @@ cudaError_t gpu_nve_step_one(Scalar4 *d_pos,
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param deltaT timestep
 */
@@ -276,7 +276,7 @@ __global__ void gpu_nve_angular_step_one_kernel(Scalar4 *d_orientation,
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param deltaT timestep
 */
@@ -304,7 +304,7 @@ cudaError_t gpu_nve_angular_step_one(Scalar4 *d_orientation,
 //! Takes the second half-step forward in the velocity-verlet NVE integration on a group of particles
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
@@ -378,7 +378,7 @@ void gpu_nve_step_two_kernel(
 
 /*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Net force on each particle
     \param deltaT Amount of real time to step forward in one time step
@@ -433,7 +433,7 @@ cudaError_t gpu_nve_step_two(Scalar4 *d_vel,
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param deltaT timestep
 */
@@ -485,7 +485,7 @@ __global__ void gpu_nve_angular_step_two_kernel(const Scalar4 *d_orientation,
     \param d_angmom array of particle conjugate quaternions
     \param d_inertia array of moments of inertia
     \param d_net_torque array of net torques
-    \param d_group_members Device array listing the indicies of the mebers of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param deltaT timestep
 */

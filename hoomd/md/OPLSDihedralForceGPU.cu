@@ -16,7 +16,7 @@
 //! Texture for reading dihedral parameters
 scalar4_tex_t dihedral_params_tex;
 
-//! Kernel for caculating OPLS dihedral forces on the GPU
+//! Kernel for calculating OPLS dihedral forces on the GPU
 /*! \param d_force Device memory to write computed forces
     \param d_virial Device memory to write computed virials
     \param virial_pitch pitch of 2D virial array

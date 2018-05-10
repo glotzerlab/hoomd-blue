@@ -45,7 +45,7 @@
 
     The base class just defines an update method. Since updaters can reference Compute's, the timestep
     is passed in so that it can be forwarded on to the Compute. Of course, the timestep can also be used
-    for time dependant updaters, such as a moving temperature set point. Of course, when an updater is changing
+    for time dependent updaters, such as a moving temperature set point. Of course, when an updater is changing
     particle positions/velocities etc... the line between when a timestep begins and ends blurs. See the System class
     for a clear definition.
 

@@ -44,7 +44,7 @@ ForceCompute::ForceCompute(std::shared_ptr<SystemDefinition> sysdef) : Compute(s
 
     m_virial_pitch = m_virial.getPitch();
 
-    // connect to the ParticleData to recieve notifications when particles change order in memory
+    // connect to the ParticleData to receive notifications when particles change order in memory
      m_pdata->getParticleSortSignal().connect<ForceCompute, &ForceCompute::setParticlesSorted>(this);
 
     // connect to the ParticleData to receive notifications when the maximum number of particles changes

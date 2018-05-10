@@ -356,9 +356,9 @@ class npt(_integration_method):
 
     For example:
 
-    - Specifying xyz copulings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
+    - Specifying xyz couplings and x, y, and z degrees of freedom amounts to cubic symmetry (default)
     - Specifying xy couplings and x, y, and z degrees of freedom amounts to tetragonal symmetry.
-    - Specifing no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
+    - Specifying no couplings and all degrees of freedom amounts to a fully deformable triclinic unit cell
 
     :py:class:`npt` Can also apply a constant stress to the simulation box. To do so, specify the symmetric
     stress tensor *S* instead of an isotropic pressure *P*.

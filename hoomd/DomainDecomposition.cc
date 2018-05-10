@@ -326,7 +326,7 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks, const Scalar3 L
     assert(L.y > 0);
     assert(L.z > 0);
 
-    // Calulate the number of sub-domains in every direction
+    // Calculate the number of sub-domains in every direction
     // by minimizing the surface area between domains at constant number of domains
     double min_surface_area = L.x*L.y*(double)(nranks-1);
 
@@ -370,7 +370,7 @@ bool DomainDecomposition::findDecomposition(unsigned int nranks, const Scalar3 L
     return found_decomposition;
     }
 
-//! Find a two-level decompositon of the global grid
+//! Find a two-level decomposition of the global grid
 void DomainDecomposition::subdivide(unsigned int n_node_ranks, Scalar3 L,
     unsigned int nx, unsigned int ny, unsigned int nz,
     unsigned int& nx_intra, unsigned int &ny_intra, unsigned int& nz_intra)

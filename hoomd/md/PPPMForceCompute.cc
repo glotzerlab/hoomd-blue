@@ -102,7 +102,7 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
             {
             m_exec_conf->msg->error()
                 << "The number of mesh points along the x-direction ("<< nx <<") is not" << std::endl
-                << "a multiple of the width (" << didx.getW() << ") of the processsor grid!" << std::endl
+                << "a multiple of the width (" << didx.getW() << ") of the processor grid!" << std::endl
                 << std::endl;
             throw std::runtime_error("Error initializing charge.pppm");
             }
@@ -110,7 +110,7 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
             {
             m_exec_conf->msg->error()
                 << "The number of mesh points along the y-direction ("<< ny <<") is not" << std::endl
-                << "a multiple of the height (" << didx.getH() << ") of the processsor grid!" << std::endl
+                << "a multiple of the height (" << didx.getH() << ") of the processor grid!" << std::endl
                 << std::endl;
             throw std::runtime_error("Error initializing charge.pppm");
             }
@@ -118,7 +118,7 @@ void PPPMForceCompute::setParams(unsigned int nx, unsigned int ny, unsigned int 
             {
             m_exec_conf->msg->error()
                 << "The number of mesh points along the z-direction ("<< nz <<") is not" << std::endl
-                << "a multiple of the depth (" << didx.getD() << ") of the processsor grid!" << std::endl
+                << "a multiple of the depth (" << didx.getD() << ") of the processor grid!" << std::endl
                 << std::endl;
             throw std::runtime_error("Error initializing charge.pppm");
             }
@@ -161,7 +161,7 @@ PPPMForceCompute::~PPPMForceCompute()
     m_pdata->getBoxChangeSignal().disconnect<PPPMForceCompute, &PPPMForceCompute::setBoxChange>(this);
     }
 
-//! Compute auxillary table for influence function
+//! Compute auxiliary table for influence function
 void PPPMForceCompute::compute_gf_denom()
     {
     int k,l,m;
@@ -407,7 +407,7 @@ uint3 PPPMForceCompute::computeGhostCellNum()
         }
     #endif
 
-    // extra ghost cells to accomodate skin layer (max 1/2 ghost layer width)
+    // extra ghost cells to accommodate skin layer (max 1/2 ghost layer width)
     #ifdef ENABLE_MPI
     if (m_comm)
         {
@@ -997,7 +997,7 @@ void PPPMForceCompute::interpolateForces()
     ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
     ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
 
-    // access inverse Fourier tranform mesh
+    // access inverse Fourier transform mesh
     ArrayHandle<kiss_fft_cpx> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x, access_location::host, access_mode::read);
     ArrayHandle<kiss_fft_cpx> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y, access_location::host, access_mode::read);
     ArrayHandle<kiss_fft_cpx> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z, access_location::host, access_mode::read);

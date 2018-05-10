@@ -121,7 +121,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -300,7 +300,7 @@ class lj(_special_pair):
     def __init__(self,name=None):
         hoomd.util.print_status_line();
 
-        # initiailize the base class
+        # initialize the base class
         _special_pair.__init__(self);
 
         # check that some bonds are defined

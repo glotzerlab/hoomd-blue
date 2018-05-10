@@ -146,7 +146,7 @@ class group(hoomd.meta._metadata):
         return result;
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return group.group_iterator(self);
 

@@ -28,7 +28,7 @@ ZeroMomentumUpdater::ZeroMomentumUpdater(std::shared_ptr<SystemDefinition> sysde
 
 ZeroMomentumUpdater::~ZeroMomentumUpdater()
     {
-    m_exec_conf->msg->notice(5) << "Destroyinging ZeroMomentumUpdater" << endl;
+    m_exec_conf->msg->notice(5) << "Destroying ZeroMomentumUpdater" << endl;
     }
 
 /*! Perform the needed calculations to zero the system's momentum
@@ -80,7 +80,7 @@ void ZeroMomentumUpdater::update(unsigned int timestep)
     Scalar avg_py = sum_py / Scalar(n);
     Scalar avg_pz = sum_pz / Scalar(n);
 
-    // subtract this momentum from every free partcile
+    // subtract this momentum from every free particle
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
         if (h_body.data[i] == NO_BODY || h_body.data[i] == h_tag.data[i])

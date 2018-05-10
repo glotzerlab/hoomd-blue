@@ -49,9 +49,9 @@ class log(hoomd.analyze._analyzer):
 
     Args:
         h5file(:py:class:`hoomd.hdf5.File`): Instance describing the opened h5file.
-        period(int):  Quantities are loggged every *period* time steps
+        period(int):  Quantities are logged every *period* time steps
         quantities(list): Quantities to log.
-        matriy_quantities(list): Matrix quantities to log.
+        matrix(list): Matrix quantities to log.
         overwrite(bool): When False (the default) the existing log will be append. When True the file will be overwritten.
         phase(int): When -1, start on the current time step. When >= 0 execute on steps where *(step +phase) % period == 0*.
 
@@ -286,7 +286,7 @@ class log(hoomd.analyze._analyzer):
         matrix_quantities = self.cpp_analyzer.getLoggedMatrixQuantities()
 
         for q in matrix_quantities:
-            # Obtain the numpy arrray from cpp class.
+            # Obtain the numpy array from cpp class.
             try:
                 # This is called on every rank, but only root rank returns "correct data"
                 new_matrix = self.cpp_analyzer.getMatrixQuantity(q, timestep)
@@ -294,7 +294,7 @@ class log(hoomd.analyze._analyzer):
                 hoomd.context.msg.error("For quantity " + q + " no python type obtainable.")
                 raise RuntimeError("Error writing matrix quantity " + q)
 
-            if f is not None:  # Only the root rank further process the recieved data
+            if f is not None:  # Only the root rank further process the received data
 
                 # Check the returned object
                 if not isinstance(new_matrix, numpy.ndarray):
@@ -319,7 +319,7 @@ class log(hoomd.analyze._analyzer):
                         msg = "Trying to log matrix " + q + ", but dimensions are incompatible with "
                         msg += "dimensions in file."
                         hoomd.context.msg.error(msg)
-                        raise RuntimeError("Error writing matrix quntity " + q)
+                        raise RuntimeError("Error writing matrix quantity " + q)
 
                     for i in range(len(new_matrix.shape)):
                         if data_set.shape[i + 1] != new_matrix.shape[i]:
@@ -347,7 +347,7 @@ class log(hoomd.analyze._analyzer):
                         for key in data_set.attrs.keys():
                             del data_set.attrs[key]
                     else:
-                        hoomd.context.msg.error("Changing the number of logged quantites is impossible"
+                        hoomd.context.msg.error("Changing the number of logged quantities is impossible"
                                                 " if there are already logged quantities.")
                         raise RuntimeError("Error updating quantities with log_hdf5.")
             else:

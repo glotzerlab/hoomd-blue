@@ -15,16 +15,16 @@
 // First, the kernel code for the Berendsen thermostat
 //! Kernel that applies the first step of a Berendsen integration to a group of particles
 /*! \param d_pos array of particle positions
-    \param d_vel array of particle velocties
+    \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
     \param d_image array of particle images
-    \param d_group_members Device array listing the indicies of the members of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param box Box dimensions for applying periodic boundary conditions
     \param lambda Intermediate variable computed on the host and used in integrating the velocity
     \param deltaT Length of one timestep
 
-    This kernel executes one thread per particle and applies the theromstat to each each. It can be
+    This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__
@@ -72,14 +72,14 @@ void gpu_berendsen_step_one_kernel(Scalar4 *d_pos,
     }
 
 //! Kernel that applies the first step of a Berendsen integration to a group of particles
-/*! \param d_vel array of particle velocties
+/*! \param d_vel array of particle velocities
     \param d_accel array of particle accelerations
-    \param d_group_members Device array listing the indicies of the members of the group to integrate
+    \param d_group_members Device array listing the indices of the members of the group to integrate
     \param group_size Number of members in the group
     \param d_net_force Current net force on the particles
     \param deltaT Length of one timestep
 
-    This kernel executes one thread per particle and applies the theromstat to each each. It can be
+    This kernel executes one thread per particle and applies the thermostat to each each. It can be
     run with any 1D block size as long as block_size * num_blocks is >= the number of particles.
 */
 extern "C" __global__

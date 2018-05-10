@@ -15,7 +15,7 @@ import hoomd
 #
 # An external in hoomd_script reflects an ExternalField in c++. It is responsible
 # for all high-level management that happens behind the scenes for hoomd_script
-# writers. 1) The instance of the c++ extrnal itself is tracked optionally passed
+# writers. 1) The instance of the c++ external itself is tracked optionally passed
 # to the hpmc integrator. While external fields are Compute types and are added
 # to the System they will not be enforced unless they are added to the integrator.
 # Only one external field can be held by the integrator so if multiple fields are

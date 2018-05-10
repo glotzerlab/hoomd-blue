@@ -1432,7 +1432,7 @@ cudaError_t gpu_nlist_traverse_tree(unsigned int *d_nlist,
     return cudaSuccess;
     }
 
-//! Kernel to find divisons between particle types in sorted order
+//! Kernel to find divisions between particle types in sorted order
 /*!
  * \param d_type_head Index to first type in leaf ordered particles by type
  * \param d_pos Particle positions

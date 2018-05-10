@@ -215,7 +215,7 @@ class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
         //! computes coefficients for assigning charges to grid points
         void compute_rho_coeff();
 
-        //! computes auxillary table for optimized influence function
+        //! computes auxiliary table for optimized influence function
         void compute_gf_denom();
 
         //! computes coefficients for the Green's function

@@ -235,7 +235,7 @@ struct LessThan
  * \param d_order Compacted MPCD particle indexes in cell-list order (output)
  * \param d_num_select Number of particles in the compaction (output)
  * \param d_tmp_storage Temporary storage for CUB (output)
- * \param tmp_storage_btyes Number of bytes in \a d_tmp_storage (input/output)
+ * \param tmp_storage_bytes Number of bytes in \a d_tmp_storage (input/output)
  * \param d_cell_list Cell list array to compact
  * \param num_items Number of items in the cell list
  * \param N_mpcd Number of MPCD particles

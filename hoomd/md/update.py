@@ -59,7 +59,7 @@ class rescale_temp(_updater):
         self.cpp_updater = _md.TempRescaleUpdater(hoomd.context.current.system_definition, thermo.cpp_compute, kT.cpp_variant);
         self.setupUpdater(period, phase);
 
-        # store metadta
+        # store metadata
         self.kT = kT
         self.period = period
         self.metadata_fields = ['kT','period']
@@ -217,8 +217,8 @@ class mueller_plathe_flow(_updater):
 
     The simulation box is divided in a number of slabs.
     Two distinct slabs of those are chosen. The "max" slab searched for the
-    max. velocity componend in flow direction, the "min" is searched for the min. velocity component.
-    Afterwards, both velocity components are swapped.
+    max. velocity component in flow direction, the "min" is searched for the min. velocity component.
+    Afterward, both velocity components are swapped.
 
     This introduces a momentum flow, which drives the flow. The strength of this flow,
     can be controlled by the flow_target variant, which defines the integrated target momentum
@@ -227,7 +227,7 @@ class mueller_plathe_flow(_updater):
 
     Args:
         group (:py:mod:`hoomd.group`): Group for which the update will be set
-        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretisation dt x :math:`\mathcal{\tau}`.
+        flow_target (:py:mod:`hoomd.variant`): Integrated target flow. The unit is the in the natural units of the simulation: [flow_target] = [timesteps] x :math:`\mathcal{M}` x :math:`\frac{\mathcal{D}}{\tau}`. The unit of [timesteps] is your discretization dt x :math:`\mathcal{\tau}`.
         slab_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction perpendicular to the slabs..
         flow_direction (:py:attr:`X`, :py:attr:`Y`, or :py:attr:`Z`): Direction of the flow..
         n_slabs (int): Number of slabs. You want as many as possible for small disturbed volume, where the unphysical swapping is done. But each slab has to contain a sufficient number of particle.

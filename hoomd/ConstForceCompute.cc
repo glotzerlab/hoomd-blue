@@ -57,7 +57,7 @@ ConstForceCompute::~ConstForceCompute()
 /*! \param fx x-component of the force
     \param fy y-component of the force
     \param fz z-component of the force
-    \param tx x-compenent of the torque vector
+    \param tx x-component of the torque vector
     \param ty y-component of the torque vector
     \param tz z-component of the torque vector
 */

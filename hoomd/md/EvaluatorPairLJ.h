@@ -15,7 +15,7 @@
 
 /*! \file EvaluatorPairLJ.h
     \brief Defines the pair evaluator class for LJ potentials
-    \details As the prototypical example of a MD pair potential, this also serves as the primary documetnation and
+    \details As the prototypical example of a MD pair potential, this also serves as the primary documentation and
     base reference for the implementation of pair evaluators.
 */
 
@@ -33,19 +33,19 @@
     EvaluatorPairLJ is a low level computation class that computes the LJ pair potential V(r). As the standard
     MD potential, it also serves as a well documented example of how to write additional pair potentials. "Standard"
     pair potentials in hoomd are all handled via the template class PotentialPair. PotentialPair takes a potential
-    evaluator as a template argument. In this way, all the complicated data mangament and other details of computing
+    evaluator as a template argument. In this way, all the complicated data management and other details of computing
     the pair force and potential on every single particle is only written once in the template class and the difference
     V(r) potentials that can be calculated are simply handled with various evaluator classes. Template instantiation is
     equivalent to inlining code, so there is no performance loss.
 
     In hoomd, a "standard" pair potential is defined as V(rsq, rcutsq, params, di, dj, qi, qj), where rsq is the squared
-    distance between the two particles, rcutsq is the cuttoff radius at which the potential goes to 0, params is any
+    distance between the two particles, rcutsq is the cutoff radius at which the potential goes to 0, params is any
     number of per type-pair parameters, di, dj are the diameters of particles i and j, and qi, qj are the charges of
     particles i and j respectively.
 
     Diameter and charge are not always needed by a given pair evaluator, so it must provide the functions
     needsDiameter() and needsCharge() which return boolean values signifying if they need those quantities or not. A
-    false return value notifies PotentialPair that it need not even load those valuse from memory, boosting performance.
+    false return value notifies PotentialPair that it need not even load those values from memory, boosting performance.
 
     If needsDiameter() returns true, a setDiameter(Scalar di, Scalar dj) method will be called to set the two diameters.
     Similarly, if needsCharge() returns true, a setCharge(Scalar qi, Scalar qj) method will be called to set the two
@@ -64,7 +64,7 @@
     variables.
 
     evalForceAndEnergy() makes the necessary computations and sets the out parameters with the computed values.
-    Specifically after the method complets, \a force_divr must be set to the value
+    Specifically after the method completes, \a force_divr must be set to the value
     \f$ -\frac{1}{r}\frac{\partial V}{\partial r}\f$ and \a pair_eng must be set to the value \f$ V(r) \f$ if \a energy_shift is false or
     \f$ V(r) - V(r_{\mathrm{cut}}) \f$ if \a energy_shift is true.
 
@@ -100,8 +100,8 @@ class EvaluatorPairLJ
         typedef Scalar2 param_type;
 
         //! Constructs the pair potential evaluator
-        /*! \param _rsq Squared distance beteen the particles
-            \param _rcutsq Sqauared distance at which the potential goes to 0
+        /*! \param _rsq Squared distance between the particles
+            \param _rcutsq Squared distance at which the potential goes to 0
             \param _params Per type pair parameters of this potential
         */
         DEVICE EvaluatorPairLJ(Scalar _rsq, Scalar _rcutsq, const param_type& _params)
@@ -132,7 +132,7 @@ class EvaluatorPairLJ
             \note There is no need to check if rsq < rcutsq in this method. Cutoff tests are performed
                   in PotentialPair.
 
-            \return True if they are evaluated or false if they are not because we are beyond the cuttoff
+            \return True if they are evaluated or false if they are not because we are beyond the cutoff
         */
         DEVICE bool evalForceAndEnergy(Scalar& force_divr, Scalar& pair_eng, bool energy_shift)
             {

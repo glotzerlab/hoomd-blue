@@ -17,7 +17,7 @@
 
 #include <signal.h>
 
-//! Value set to non-zero if SIGINT has occured
+//! Value set to non-zero if SIGINT has occurred
 /*! Any method that reads this value as non-zero should immediately reset it to 0
     and return.
 */

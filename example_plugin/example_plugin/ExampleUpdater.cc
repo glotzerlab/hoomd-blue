@@ -75,7 +75,7 @@ void ExampleUpdaterGPU::update(unsigned int timestep)
     // access the particle data arrays for writing on the GPU
     ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(), access_location::device, access_mode::readwrite);
 
-    // call the kernel devined in ExampleUpdater.cu
+    // call the kernel defined in ExampleUpdater.cu
     gpu_zero_velocities(d_vel.data, m_pdata->getN());
 
     // check for error codes from the GPU if error checking is enabled

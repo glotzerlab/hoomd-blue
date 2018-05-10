@@ -154,13 +154,13 @@ __device__ float myAtomicAdd(float* address, float val)
     \param d_ronsq ron squared, stored per type pair
     \param ntypes Number of types in the simulation
 
-    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangler(typei, typej) to access the
+    \a d_params, \a d_rcutsq, and \a d_ronsq must be indexed with an Index2DUpperTriangular(typei, typej) to access the
     unique value for that type pair. These values are all cached into shared memory for quick access, so a dynamic
-    amount of shared memory must be allocatd for this kernel launch. The amount is
+    amount of shared memory must be allocated for this kernel launch. The amount is
     (2*sizeof(Scalar) + sizeof(typename evaluator::param_type)) * typpair_idx.getNumElements()
 
     Certain options are controlled via template parameters to avoid the performance hit when they are not enabled.
-    \tparam evaluator EvaluatorPair class to evualuate V(r) and -delta V(r)/r
+    \tparam evaluator EvaluatorPair class to evaluate V(r) and -delta V(r)/r
     \tparam use_gmem_nlist When non-zero, the neighbor list is read out of global memory. When zero, textures or __ldg
                            is used depending on architecture.
 
@@ -702,7 +702,7 @@ __global__ void gpu_zero_forces_kernel(Scalar4 *d_force,
     }
 
 //! Kernel driver that computes the three-body forces
-/*! \param pair_args Other arugments to pass onto the kernel
+/*! \param pair_args Other arguments to pass onto the kernel
     \param d_params Parameters for the potential, stored per type pair
 
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.

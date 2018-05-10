@@ -366,7 +366,7 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
         m_alpha = m_alpha_start;
         m_n_since_negative = 0;
 
-        m_exec_conf->msg->notice(6) << "FIRE zero velociies" << std::endl;
+        m_exec_conf->msg->notice(6) << "FIRE zero velocities" << std::endl;
 
         for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
             {

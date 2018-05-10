@@ -22,7 +22,7 @@ option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 if(ENABLE_TBB)
     find_package(TBB 4.3)
 
-    # Detect clang and fix incompatiblity with TBB
+    # Detect clang and fix incompatibility with TBB
     # https://github.com/wjakob/tbb/blob/master/CMakeLists.txt
     if (NOT TBB_USE_GLIBCXX_VERSION AND UNIX AND NOT APPLE)
       if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

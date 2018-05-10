@@ -29,7 +29,7 @@ class _force(hoomd.meta._metadata):
     # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
     def __init__(self, name=None):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating force');

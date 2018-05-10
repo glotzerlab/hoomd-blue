@@ -240,7 +240,7 @@ void HarmonicAngleForceCompute::computeForces(unsigned int timestep)
         angle_virial[4] = Scalar(1./3.) * ( dab.z*fab[1] + dcb.z*fcb[1] );
         angle_virial[5] = Scalar(1./3.) * ( dab.z*fab[2] + dcb.z*fcb[2] );
 
-        // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {

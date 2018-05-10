@@ -28,7 +28,7 @@ namespace hpmc
 namespace detail
 {
 
-//! Local helper function to test ovelap of two particles with scale
+//! Local helper function to test overlap of two particles with scale
 template < class Shape >
 bool test_scaled_overlap(const vec3<Scalar>& r_ij,
                          const quat<Scalar>& orientation_i,
@@ -70,7 +70,7 @@ bool test_scaled_overlap(const vec3<Scalar>& r_ij,
     \b Computing \f$ \lambda \f$ <br>
 
     In the initial version of the code, a completely general way of computing *\f$ \lambda \f$* is implemented.
-    It uses a binary search tree and the existing test_overlap code to find wich bin a given pair of particles sits in.
+    It uses a binary search tree and the existing test_overlap code to find which bin a given pair of particles sits in.
     Future versions of the code may use shape specific data to compute *\f$ \lambda \f$* directly.
 
     Outside of that AnalyzerSDF is a pretty basic histogramming code. The only other notable features in the design
@@ -305,7 +305,7 @@ void AnalyzerSDF<Shape>::writeOutput(unsigned int timestep)
     if (!m_file.good())
         {
         m_exec_conf->msg->error() << "analyze.sdf: I/O error while writing data file" << std::endl;
-        throw std::runtime_error("Error writting data file");
+        throw std::runtime_error("Error writing data file");
         }
     }
 

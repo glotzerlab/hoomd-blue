@@ -196,7 +196,7 @@ class _updater(hoomd.meta._metadata):
             raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
 
     def restore_state(self):
-        """ Resore the state information from the file used to initialize the simulations
+        """ Restore the state information from the file used to initialize the simulations
         """
         hoomd.util.print_status_line();
         if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_updater, "restoreStateGSD"):

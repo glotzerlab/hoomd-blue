@@ -132,7 +132,7 @@ class coeff:
 
         # update each of the values provided
         if len(coeffs) == 0:
-            hoomd.context.msg.error("No coefficents specified\n");
+            hoomd.context.msg.error("No coefficients specified\n");
         for name, val in coeffs.items():
             self.values[type][name] = val;
 
@@ -327,7 +327,7 @@ class table(force._force):
     .. rubric:: Set a table from a file
 
     When you have no function for for *V* or *T*, or you otherwise have the data listed in a file, dihedral.table can use the given
-    values direcly. You must first specify the number of rows in your tables when initializing :py:class:`table`. Then use
+    values directly. You must first specify the number of rows in your tables when initializing :py:class:`table`. Then use
     :py:meth:`set_from_file()` to read the file.
 
         dtable = dihedral.table(width=1000)
@@ -349,7 +349,7 @@ class table(force._force):
 
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
 
-        # setup the coefficent matrix
+        # setup the coefficient matrix
         self.dihedral_coeff = coeff();
 
         # stash the width for later use
@@ -377,7 +377,7 @@ class table(force._force):
 
 
     def update_coeffs(self):
-        # check that the dihedral coefficents are valid
+        # check that the dihedral coefficients are valid
         if not self.dihedral_coeff.verify(["func", "coeff"]):
             hoomd.context.msg.error("Not all dihedral coefficients are set for dihedral.table\n");
             raise RuntimeError("Error updating dihedral coefficients");

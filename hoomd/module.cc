@@ -229,7 +229,7 @@ void initialize_mpi()
         hoomd_launch_timing = true;
         }
 
-    // initalize MPI
+    // initialize MPI
     MPI_Init(0, (char ***) NULL);
 
     if (hoomd_launch_timing)

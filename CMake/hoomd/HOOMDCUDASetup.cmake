@@ -52,7 +52,7 @@ if (ENABLE_CUDA)
         list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_arch},code=sm_${_cuda_arch}")
     endforeach (_cuda_arch)
 
-    # need to know the minumum supported CUDA_ARCH
+    # need to know the minimum supported CUDA_ARCH
     set(_cuda_arch_list_sorted ${CUDA_ARCH_LIST})
     list(SORT _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_min_arch)
@@ -67,7 +67,7 @@ if (ENABLE_CUDA)
         message(SEND_ERROR "HOOMD does not support SM7x builds")
     endif ()
 
-    # only generage ptx code for the maximum supported CUDA_ARCH (saves on file size)
+    # only generate ptx code for the maximum supported CUDA_ARCH (saves on file size)
     list(REVERSE _cuda_arch_list_sorted)
     list(GET _cuda_arch_list_sorted 0 _cuda_max_arch)
     list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_${_cuda_max_arch},code=compute_${_cuda_max_arch}")

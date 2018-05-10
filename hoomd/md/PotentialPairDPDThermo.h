@@ -26,12 +26,12 @@
 
     PotentialPairDPDThermo computes a dpd thermostat and Lennard Jones pair potentials (and forces) between all particle pairs in the simulation. It
     employs the use of a neighbor list to limit the number of computations done to only those particles with the
-    cuttoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
-    by an evaluator class (e.g. EvaluatorPairDPDLJThermo) which is passed in as a template parameter so the compuations
+    cutoff radius of each other. The computation of the actual V(r) is not performed directly by this class, but
+    by an evaluator class (e.g. EvaluatorPairDPDLJThermo) which is passed in as a template parameter so the computations
     are performed as efficiently as possible.
 
     PotentialPairDPDThermo handles most of the gory internal details common to all standard pair potentials.
-     - A cuttoff radius to be specified per particle type pair for the conservative and stochastic potential
+     - A cutoff radius to be specified per particle type pair for the conservative and stochastic potential
      - A RNG seed is stored.
      - Per type pair parameters are stored and a set method is provided
      - Logging methods are provided for the energy

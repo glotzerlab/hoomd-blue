@@ -25,7 +25,7 @@ ForceDistanceConstraint::ForceDistanceConstraint(std::shared_ptr<SystemDefinitio
     {
     m_constraint_violated.resetFlags(0);
 
-    // connect to the ConstraintData to recieve notifications when constraints change order in memory
+    // connect to the ConstraintData to receive notifications when constraints change order in memory
     m_cdata->getGroupReorderSignal().connect<ForceDistanceConstraint, &ForceDistanceConstraint::slotConstraintReorder>(this);
 
     // connect to ConstraintData to receive notifications when global constraint topology changes
@@ -127,7 +127,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
         assert(constraint.tag[0] <= m_pdata->getMaximumTag());
         assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
@@ -163,7 +163,7 @@ void ForceDistanceConstraint::fillMatrixVector(unsigned int timestep)
             assert(constraint_m.tag[0] <= m_pdata->getMaximumTag());
             assert(constraint_m.tag[1] <= m_pdata->getMaximumTag());
 
-            // transform a and b into indicies into the particle data arrays
+            // transform a and b into indices into the particle data arrays
             // (MEM TRANSFER: 4 integers)
             unsigned int idx_m_a = h_rtag.data[constraint_m.tag[0]];
             unsigned int idx_m_b = h_rtag.data[constraint_m.tag[1]];
@@ -388,7 +388,7 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
 
     unsigned int n_ptl = m_pdata->getN();
 
-    // reset force arrray
+    // reset force array
     memset(h_force.data,0,sizeof(Scalar4)*n_ptl);
     memset(h_virial.data,0,sizeof(Scalar)*6*m_virial_pitch);
 
@@ -402,7 +402,7 @@ void ForceDistanceConstraint::computeConstraintForces(unsigned int timestep)
         assert(constraint.tag[0] <= m_pdata->getMaximumTag());
         assert(constraint.tag[1] <= m_pdata->getMaximumTag());
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         unsigned int idx_a = h_rtag.data[constraint.tag[0]];
         unsigned int idx_b = h_rtag.data[constraint.tag[1]];
         assert(idx_a < m_pdata->getN()+m_pdata->getNGhosts());

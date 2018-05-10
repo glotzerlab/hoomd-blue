@@ -19,7 +19,7 @@ using namespace std;
 
 /*! \param sysdef System to compute forces on
     \param nlist Neighborlist to use for computing the forces
-    \param r_cut Cuttoff radius beyond which the force is 0
+    \param r_cut Cutoff radius beyond which the force is 0
 
     \post memory is allocated and all parameters ljX are set to 0.0
 
@@ -58,7 +58,7 @@ void CGCMMForceComputeGPU::slotNumTypesChange()
     }
 
 /*! \param block_size Size of the block to run on the device
-    Performance of the code may be dependant on the block size run
+    Performance of the code may be dependent on the block size run
     on the GPU. \a block_size should be set to be a multiple of 32.
 */
 void CGCMMForceComputeGPU::setBlockSize(int block_size)
@@ -89,7 +89,7 @@ void CGCMMForceComputeGPU::setBlockSize(int block_size)
     - \a lj4 = 0.0
 
     Setting the parameters for typ1,typ2 automatically sets the same parameters for typ2,typ1: there
-    is no need to call this funciton for symmetric pairs. Any pairs that this function is not called
+    is no need to call this function for symmetric pairs. Any pairs that this function is not called
     for will have lj12 through lj4 set to 0.0.
 
     \param typ1 Specifies one type of the pair
@@ -103,7 +103,7 @@ void CGCMMForceComputeGPU::setParams(unsigned int typ1, unsigned int typ2, Scala
     {
     if (typ1 >= m_ntypes || typ2 >= m_ntypes)
         {
-        m_exec_conf->msg->error() << "pair.cgccm: Trying to set params for a non existant type! " << typ1 << "," << typ2 << endl;
+        m_exec_conf->msg->error() << "pair.cgcmm: Trying to set params for a non existent type! " << typ1 << "," << typ2 << endl;
         throw runtime_error("CGCMMForceComputeGpu::setParams argument error");
         }
 

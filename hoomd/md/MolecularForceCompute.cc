@@ -29,7 +29,7 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
       m_molecule_list(m_exec_conf), m_molecule_length(m_exec_conf), m_molecule_order(m_exec_conf),
       m_molecule_idx(m_exec_conf), m_dirty(true)
     {
-    // connect to the ParticleData to recieve notifications when particles change order in memory
+    // connect to the ParticleData to receive notifications when particles change order in memory
     m_pdata->getParticleSortSignal().connect<MolecularForceCompute, &MolecularForceCompute::setDirty>(this);
 
     #ifdef ENABLE_CUDA
@@ -105,7 +105,7 @@ void MolecularForceCompute::initMoleculesGPU()
     m_molecule_indexer = Index2D(n_local_molecules, nmax);
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute: " << n_local_molecules << " molecules, "
-        << n_local_ptls_in_molecules << " particles in molceules " << std::endl;
+        << n_local_ptls_in_molecules << " particles in molecules " << std::endl;
 
     // resize molecule list
     m_molecule_list.resize(m_molecule_indexer.getNumElements());

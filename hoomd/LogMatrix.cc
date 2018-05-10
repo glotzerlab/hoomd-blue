@@ -115,7 +115,7 @@ void LogMatrix::removeAll(void)
 
 /*! \param quantities A list of quantities to log
 
-    When analyze() is called, each matrix quantitiy in the list will, in order, be requested
+    When analyze() is called, each matrix quantity in the list will, in order, be requested
     from the matching registered compute or updater.
 */
 void LogMatrix::setLoggedMatrixQuantities(const std::vector< std::string >& quantities)

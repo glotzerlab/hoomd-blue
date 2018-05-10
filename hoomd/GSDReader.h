@@ -24,7 +24,7 @@
 #define __GSD_INITIALIZER_H__
 
 //! Forward declarations
-class ExecutionConfiguation;
+class ExecutionConfiguration;
 template <class Real> struct SnapshotSystemData;
 
 //! Reads a GSD input file

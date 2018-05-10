@@ -14,7 +14,7 @@
     \brief Defines GPU kernel code for calculating ellipsoid constraint forces. Used by ConstraintEllipsoidGPU.
 */
 
-//! Kernel for caculating ellipsoid constraint forces on the GPU
+//! Kernel for calculating ellipsoid constraint forces on the GPU
 /*! \param d_group_members List of members in the group
     \param group_size number of members in the group
     \param N number of particles in system
@@ -61,7 +61,7 @@ void gpu_compute_constraint_ellipsoid_constraint_kernel(const unsigned int *d_gr
 
 /*! \param d_group_members List of members in the group
     \param group_size number of members in the group
-    \param N nunmber of particles
+    \param N number of particles
     \param d_pos particle positions on the device
     \param P Position of the ellipsoid
     \param rx radius of the ellipsoid in x direction

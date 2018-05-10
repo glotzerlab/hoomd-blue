@@ -51,7 +51,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
         //! Set the per-type constituent particles
         /*! \param type The particle type to set the constituent particles for
             \param rcut The maximum cutoff over all constituent particles for this type
-            \param types The type IDs for every constitutent particle
+            \param types The type IDs for every constituent particle
             \param positions The positions
             \param orientations The orientations
             \param leaf_capacity Number of particles in OBB tree leaf
@@ -138,7 +138,7 @@ class PatchEnergyJITUnion : public PatchEnergyJIT
                                      unsigned int cur_node_a,
                                      unsigned int cur_node_b);
 
-        std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaulator function, for constituent ptls
+        std::shared_ptr<EvalFactory> m_factory_union;            //!< The factory for the evaluator function, for constituent ptls
         EvalFactory::EvalFnPtr m_eval_union;                     //!< Pointer to evaluator function inside the JIT module
         Scalar m_rcut_union;                                     //!< Cutoff on constituent particles
     };

@@ -425,7 +425,7 @@ typename ShapeUnion<Shape>::param_type make_union_params(pybind11::list _members
 
     std::vector<std::vector<vec3<OverlapReal> > > internal_coordinates;
 
-    // extract member parameters, posistions, and orientations and compute the radius along the way
+    // extract member parameters, positions, and orientations and compute the radius along the way
     OverlapReal diameter = OverlapReal(0.0);
     for (unsigned int i = 0; i < result.N; i++)
         {

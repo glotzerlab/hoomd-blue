@@ -76,7 +76,7 @@ PotentialSpecialPair< evaluator >::PotentialSpecialPair(std::shared_ptr<SystemDe
     m_exec_conf->msg->notice(5) << "Constructing PotentialSpecialPair<" << evaluator::getName() << ">" << std::endl;
     assert(m_pdata);
 
-    // access the apir data for later use
+    // access the pair data for later use
     m_pair_data = m_sysdef->getPairData();
     m_log_name = std::string("special_pair_") + evaluator::getName() + std::string("_energy") + log_suffix;
     m_prof_name = std::string("Special pair ") + evaluator::getName();
@@ -93,7 +93,7 @@ PotentialSpecialPair< evaluator >::~PotentialSpecialPair()
     }
 
 /*! \param type Type of the pair to set parameters for
-    \param param Parmeter to set
+    \param param Parameter to set
 
     Sets the parameters for the potential of a particular pair type
 */
@@ -199,7 +199,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
         assert(bond.tag[0] < m_pdata->getMaximumTag()+1);
         assert(bond.tag[1] < m_pdata->getMaximumTag()+1);
 
-        // transform a and b into indicies into the particle data arrays
+        // transform a and b into indices into the particle data arrays
         // (MEM TRANSFER: 4 integers)
         unsigned int idx_a = h_rtag.data[bond.tag[0]];
         unsigned int idx_b = h_rtag.data[bond.tag[1]];
@@ -228,7 +228,7 @@ void PotentialSpecialPair< evaluator >::computeForces(unsigned int timestep)
             diameter_b = h_diameter.data[idx_b];
             }
 
-        // acesss charge (if needed)
+        // access charge (if needed)
         Scalar charge_a = Scalar(0.0);
         Scalar charge_b = Scalar(0.0);
         if (evaluator::needsCharge())
@@ -331,7 +331,7 @@ CommFlags PotentialSpecialPair< evaluator >::getRequestedCommFlags(unsigned int 
 
 //! Exports the PotentialSpecialPair class to python
 /*! \param name Name of the class in the exported python module
-    \tparam T class type to export. \b Must be an instatiated PotentialBOnd class template.
+    \tparam T class type to export. \b Must be an instantiated PotentialBOnd class template.
 */
 template < class T > void export_PotentialSpecialPair(pybind11::module& m, const std::string& name)
     {

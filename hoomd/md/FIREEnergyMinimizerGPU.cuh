@@ -11,7 +11,7 @@
 #define __FIRE_ENERGY_MINIMIZER_GPU_CUH__
 
 /*! \file FIREEnergyMinimizerGPU.cuh
-    \brief Defines the interace to GPU kernal drivers used by FIREEnergyMinimizerGPU.
+    \brief Defines the interface to GPU kernel drivers used by FIREEnergyMinimizerGPU.
 */
 
 //! Kernel driver for zeroing velocities called by FIREEnergyMinimizerGPU

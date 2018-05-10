@@ -17,7 +17,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
     {
     if (type >= m_sysdef->getParticleData()->getNTypes())
         {
-        throw std::runtime_error("Trying to set parameters for non-existant type.");
+        throw std::runtime_error("Trying to set parameters for non-existent type.");
         }
     if (len(positions) != len(types))
         {
@@ -40,7 +40,7 @@ void PatchEnergyJITUnion::setParam(unsigned int type,
 
     hpmc::detail::OBB *obbs = new hpmc::detail::OBB[N];
 
-    // extract member parameters, posistions, and orientations and compute the rcut along the way
+    // extract member parameters, positions, and orientations and compute the rcut along the way
     float extent_i = 0.0;
 
     // resize data structures

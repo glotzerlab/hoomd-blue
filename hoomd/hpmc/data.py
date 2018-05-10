@@ -71,7 +71,7 @@ class param_dict(dict):
 
 
         Note:
-            Single parameters can not be updated. If both *diameter* and *length* are requred for a particle type,
+            Single parameters can not be updated. If both *diameter* and *length* are required for a particle type,
             then executing coeff.set('A', diameter=1.5) will fail one must call coeff.set('A', diameter=1.5, length=2.0)
 
         """
@@ -108,7 +108,7 @@ class _param(object):
     def set(self, **params):
         self.is_set = True;
 
-        # backwards compatbility
+        # backwards compatibility
         if 'ignore_overlaps' in params:
             # ugly workaround
             super(_param,self).__setattr__('ignore_overlaps',params['ignore_overlaps'])

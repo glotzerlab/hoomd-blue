@@ -77,7 +77,7 @@ given number of steps, independent of the number of submissions needed to reach 
 Use restart capable commands
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Most commands in hoomd that ouput to files are capable of appending to the end of a file so that restarted jobs
+Most commands in hoomd that output to files are capable of appending to the end of a file so that restarted jobs
 continue adding data to the file as if the job had never been restarted.
 
 However, not all features in hoomd are capable of restarting. Some are not even capable of appending to files. See the

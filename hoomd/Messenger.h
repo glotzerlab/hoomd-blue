@@ -36,7 +36,7 @@ struct PYBIND11_EXPORT nullstream: std::ostream
     };
 
 //! Utility class for controlling message printing
-/*! Large code projects need something more inteligent than just cout's for warning and
+/*! Large code projects need something more intelligent than just cout's for warning and
     notices and cerr for errors. To aid in user debugging, multiple levels of notice messages are required. Not all
     notice levels need to be printed in every run. A notice level can be set to control how much information is printed.
     Furthermore, in MPI runs not all processes need to print messages or one may wan to log the output of every rank to
@@ -61,10 +61,10 @@ struct PYBIND11_EXPORT nullstream: std::ostream
     notice(5): Info that nobody cares about, unless they are debugging
     \endcode
 
-    Messenger is copyable. This enables use cases where one global Messegner (possibly even having an open file)
+    Messenger is copyable. This enables use cases where one global Messenger (possibly even having an open file)
     is copied into a local class and local settings changes applied.
 
-    \b Implemntation
+    \b Implementation
 
      - Errors and warnings are always printed.
      - Notice messages are printed when n <= the notice level.
@@ -82,7 +82,7 @@ struct PYBIND11_EXPORT nullstream: std::ostream
     simplify the typing??? Need to debate that.
 
     The following notice levels will be used:
-    - Error: Any condtition that is erroneous and will prevent the run from continuing
+    - Error: Any condition that is erroneous and will prevent the run from continuing
         - Generally followed by a thrown exception
     - Warning: Out of bounds parameters, settings that will use a lot of memory, etc... Things that won't prevent
       continued execution, but that may lead to incorrect behavior.
@@ -96,7 +96,7 @@ struct PYBIND11_EXPORT nullstream: std::ostream
     - 3,4: Additional details on top of 2.
     - 5-10: Varying debug messages, number chosen arbitrarily based on how often the message is likely to print
         - Some examples for consistency
-        - 5 construction/desctruction messages from every major class
+        - 5 construction/destruction messages from every major class
         - 6 memory allocation/reallocation notices from every major class
         - 7 memory allocation/reallocation notices from GPUArray
     - 10: Trace messages that may print many times per time step.
@@ -257,7 +257,7 @@ class PYBIND11_EXPORT Messenger
 
         //! Set the error prefix
         /*! \param prefix Prefix to apply to error messages
-            \note ": " is appened to the end of the prefix
+            \note ": " is appended to the end of the prefix
         */
         void setErrorPrefix(const std::string& prefix)
             {
@@ -274,7 +274,7 @@ class PYBIND11_EXPORT Messenger
 
         //! Set the warning prefix
         /*! \param prefix Prefix to apply to warning messages
-            \note ": " is appened to the end of the prefix
+            \note ": " is appended to the end of the prefix
         */
         void setWarningPrefix(const std::string& prefix)
             {
@@ -291,7 +291,7 @@ class PYBIND11_EXPORT Messenger
 
         //! Set the notice prefix
         /*! \param prefix Prefix to apply to notice messages
-            \note "(level): " is appened to the end of the prefix when level > 1
+            \note "(level): " is appended to the end of the prefix when level > 1
         */
         void setNoticePrefix(const std::string& prefix)
             {

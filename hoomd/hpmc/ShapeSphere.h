@@ -125,7 +125,7 @@ struct param_base
 
 
 //! Sphere shape template
-/*! ShapeSphere implements IntegragorHPMC's shape protocol. It serves at the simplest example of a shape for HPMC
+/*! ShapeSphere implements IntegratorHPMC's shape protocol. It serves at the simplest example of a shape for HPMC
 
     The parameter defining a sphere is just a single Scalar, the sphere radius.
 

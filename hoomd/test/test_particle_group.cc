@@ -86,7 +86,7 @@ std::shared_ptr<SystemDefinition> create_sysdef()
     return sysdef;
     }
 
-//! Checks that ParticleGroup can sucessfully initialize
+//! Checks that ParticleGroup can successfully initialize
 UP_TEST( ParticleGroup_basic_test )
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();
@@ -146,7 +146,7 @@ UP_TEST( ParticleGroup_copy_test )
         }
     }
 
-//! Checks that ParticleGroup can sucessfully handle particle resorts
+//! Checks that ParticleGroup can successfully handle particle resorts
 UP_TEST( ParticleGroup_sort_test )
     {
     std::shared_ptr<SystemDefinition> sysdef = create_sysdef();

@@ -331,7 +331,7 @@ void TwoStepNPTMTK::integrateStepOne(unsigned int timestep)
             box.wrap(h_pos.data[j], h_image.data[j]);
         }
 
-    // Integration of angular degrees of freedom using sympletic and
+    // Integration of angular degrees of freedom using symplectic and
     // time-reversal symmetric integration scheme of Miller et al., extended by thermostat
     if (m_aniso)
         {

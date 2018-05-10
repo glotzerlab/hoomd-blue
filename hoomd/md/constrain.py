@@ -42,7 +42,7 @@ class _constraint_force(hoomd.meta._metadata):
     # If specified, assigns a name to the instance
     # Assigns a name to the force in force_name;
     def __init__(self):
-        # check if initialization has occured
+        # check if initialization has occurred
         if not hoomd.init.is_initialized():
             hoomd.context.msg.error("Cannot create force before initialization\n");
             raise RuntimeError('Error creating constraint force');
@@ -299,7 +299,7 @@ class rigid(_constraint_force):
                                     orientation = [[1, 0, 0, 0]]);
         system = hoomd.init.create_lattice(unitcell=uc, n=[2,18,18]);
 
-        # Add consituent particles of type A and create the rods
+        # Add constituent particles of type A and create the rods
         system.particles.types.add('A');
         rigid = hoomd.md.constrain.rigid();
         rigid.set_param('R',
@@ -386,7 +386,7 @@ class rigid(_constraint_force):
 
         Example::
 
-            rigid = constrain.rigd()
+            rigid = constrain.rigid()
             rigid.set_param('A', types = ['A_const', 'A_const'], positions = [(0,0,1),(0,0,-1)])
             rigid.set_param('B', types = ['B_const', 'B_const'], positions = [(0,0,.5),(0,0,-.5)])
 

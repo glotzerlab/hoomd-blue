@@ -173,7 +173,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
 
-        //! Initalize Poisson distribution parameters
+        //! Initialize Poisson distribution parameters
         virtual void updatePoissonParameters();
 
         //! Initialize the Poisson distributions
@@ -886,7 +886,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         // Number of allowed insertion trials (those which overlap with colloid at old position)
                         unsigned int n_overlap_shape_new = 0;
 
-                        // diameter (around origin) in which we are guaruanteed to intersect with the shape
+                        // diameter (around origin) in which we are guaranteed to intersect with the shape
                         Scalar delta_insphere = Scalar(2.0)*shape_i.getInsphereRadius();
 
                         // same for old reverse move. Because we have already sampled one successful insertion
@@ -978,7 +978,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 implicit_counters.overlap_count += overlap_count;
                 implicit_counters.reinsert_count += reinsert_count;
 
-                // apply acceptance criterium
+                // apply acceptance criterion
                 if (!zero)
                     {
                     accept = rng_i.f() < exp(lnb);
@@ -1136,7 +1136,7 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletantRestricted(RNG& 
     bool do_rotate = false;
     if (d > Scalar(0.0) && delta_other > Scalar(0.0))
         {
-        // draw a random direction in the bounded sphereical shell
+        // draw a random direction in the bounded spherical shell
         Scalar ctheta = (delta_other*delta_other+Scalar(4.0)*d*d-delta*delta)/(Scalar(4.0)*delta_other*d);
         if (ctheta >= Scalar(-1.0) && ctheta < Scalar(1.0))
             {
@@ -1355,7 +1355,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos
 
                             if (j == idx)
                                 {
-                                // we have already exclued overlap with the moved particle above
+                                // we have already excluded overlap with the moved particle above
                                 continue;
                                 }
 

@@ -35,7 +35,7 @@ extern "C" void sigint_handler(int sig)
     }
 
 /*! Call only once at the start of program execution. This method
-    installs a signal handler for SIGING that will set \c g_sigint_recvd
+    installs a signal handler for SIGINT that will set \c g_sigint_recvd
     to 1. It will also call the previously set signal handler.
 */
 void InstallSIGINTHandler()

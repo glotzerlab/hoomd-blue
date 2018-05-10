@@ -70,7 +70,7 @@ class SupportFuncSpheropolygon
 //! Spheropolygon shape template
 /*! ShapeSpheropolygon represents a convex polygon swept out by a sphere. For simplicity, it uses the same poly2d_verts
     struct as ShapeConvexPolygon. ShapeSpheropolygon interprets two fields in that struct that ShapeConvexPolygon
-    ignores. The first is sweep_radius which defines the radius of the sphere to sweep around the polyong. The 2nd
+    ignores. The first is sweep_radius which defines the radius of the sphere to sweep around the polygon. The 2nd
     is ignore. When two shapes are checked for overlap, if both of them have ignore set to true (non-zero) then
     there is assumed to be no collision. This is intended for use with the penetrable hard-sphere model for depletants,
     but could be useful in other cases.

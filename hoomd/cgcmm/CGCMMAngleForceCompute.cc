@@ -213,7 +213,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         assert(angle.tag[1] <= m_pdata->getMaximumTag());
         assert(angle.tag[1] <= m_pdata->getMaximumTag());
 
-        // transform a, b, and c into indicies into the particle data arrays
+        // transform a, b, and c into indices into the particle data arrays
         // MEM TRANSFER: 6 ints
         unsigned int idx_a = h_rtag.data[angle.tag[0]];
         unsigned int idx_b = h_rtag.data[angle.tag[1]];
@@ -338,7 +338,7 @@ void CGCMMAngleForceCompute::computeForces(unsigned int timestep)
         for (unsigned int k=0; k < 6; k++)
             virial[k] = angle_virial[k] + Scalar(1./3.)*vac[k];
 
-        // Now, apply the force to each individual atom a,b,c, and accumlate the energy/virial
+        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
         // only apply force to local particles
         if (idx_a < m_pdata->getN())
             {

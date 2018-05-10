@@ -65,7 +65,7 @@ std::vector< std::string > TwoStepLangevin::getProvidedLogQuantities()
 
 /*! \param quantity Name of the log quantity to get
     \param timestep Current time step of the simulation
-    \param my_quantity_flag passed as false, changed to true if quanity logged here
+    \param my_quantity_flag passed as false, changed to true if quantity logged here
 */
 
 Scalar TwoStepLangevin::getLogValue(const std::string& quantity, unsigned int timestep, bool &my_quantity_flag)
@@ -314,7 +314,7 @@ void TwoStepLangevin::integrateStepTwo(unsigned int timestep)
         h_vel.data[j].y += Scalar(1.0/2.0)*h_accel.data[j].y*m_deltaT;
         h_vel.data[j].z += Scalar(1.0/2.0)*h_accel.data[j].z*m_deltaT;
 
-        // tally the energy transfer from the bd thermal reservor to the particles
+        // tally the energy transfer from the bd thermal reservoir to the particles
         if (m_tally) bd_energy_transfer += bd_fx * h_vel.data[j].x + bd_fy * h_vel.data[j].y + bd_fz * h_vel.data[j].z;
 
         // rotational updates

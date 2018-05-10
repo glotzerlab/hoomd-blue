@@ -49,7 +49,7 @@ double VariantLinear::getValue(unsigned int timestep)
         throw runtime_error("Error: No points specified to VariantLinear");
         }
 
-    // handle the degernate case that there is only one value in the variant
+    // handle the degenerate case that there is only one value in the variant
     if (m_values.size() == 1)
         return m_values.begin()->second;
 

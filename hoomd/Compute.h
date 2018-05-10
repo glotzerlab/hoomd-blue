@@ -50,8 +50,8 @@
     any data structures that it may need.
 
     Computes may be referenced more than once and may reference other computes. To prevent
-    uneeded data from being calculated, the time step will be passed into the compute
-    method so that it can skip caculations if they have already been done this timestep.
+    unneeded data from being calculated, the time step will be passed into the compute
+    method so that it can skip calculations if they have already been done this timestep.
     For convenience, the base class will provide a shouldCompute() method that implements
     this behaviour. Derived classes can override if more complicated behavior is needed.
 

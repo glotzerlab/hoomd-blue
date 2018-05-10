@@ -71,7 +71,7 @@ class EvaluatorExternalElectricField
         */
         DEVICE void setCharge(Scalar qi) { m_qi = qi; }
 
-        //! Declares additional virial cotribututions are needed for the external field
+        //! Declares additional virial contributions are needed for the external field
         /*! No contribution
         */
         DEVICE static bool requestFieldVirialTerm() { return true; }

@@ -444,7 +444,7 @@ To add a constraint of length 1.5 between particles 0 and 1::
 
 To remove it again::
 
-    >>> system.contraints.remove(t)
+    >>> system.constraints.remove(t)
 
 .. rubric:: Forces
 
@@ -734,7 +734,7 @@ class system_data(hoomd.meta._metadata):
         particles (:py:class:`hoomd.data.particle_data_proxy`)
         bonds (:py:class:`hoomd.data.bond_data_proxy`)
         angles (:py:class:`hoomd.data.angle_data_proxy`)
-        diehdrals (:py:class:`hoomd.data.dihedral_data_proxy`)
+        dihedrals (:py:class:`hoomd.data.dihedral_data_proxy`)
         impropers (:py:class:`hoomd.data.dihedral_data_proxy`)
         constraint (:py:class:`hoomd.data.constraint_data_proxy`)
         pairs (:py:class:`hoomd.data.bond_data_proxy`)
@@ -873,7 +873,7 @@ class system_data(hoomd.meta._metadata):
 
         Example use cases in which a simulation may be restarted from a snapshot include python-script-level
         Monte-Carlo schemes, where the system state is stored after a move has been accepted (according to
-        some criterium), and where the system is re-initialized from that same state in the case
+        some criterion), and where the system is re-initialized from that same state in the case
         when a move is not accepted.
 
         Example::
@@ -1008,7 +1008,7 @@ class pdata_types_proxy(object):
         return result
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return pdata_types_proxy.pdata_types_iterator(self);
 
@@ -1149,7 +1149,7 @@ class particle_data_proxy(object):
     See :py:mod:`hoomd.data` for examples.
 
     Attributes:
-        tag (int): A uniqe name for the particle in the system. Tags run from 0 to N-1.
+        tag (int): A unique name for the particle in the system. Tags run from 0 to N-1.
         acceleration (tuple): A 3-tuple of floats (x, y, z). Acceleration is a calculated quantity and cannot be set. (in acceleration units)
         typeid (int): The type id of the particle.
         position (tuple): (x, y, z) (float, in distance units).
@@ -1433,7 +1433,7 @@ class force_data(object):
         return result
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return force_data.force_data_iterator(self);
 
@@ -1597,7 +1597,7 @@ class bond_data(hoomd.meta._metadata):
         return result
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return bond_data.bond_data_iterator(self);
 
@@ -1733,7 +1733,7 @@ class constraint_data(hoomd.meta._metadata):
         return constraint_data_proxy(self.cdata, tag);
 
     ## \internal
-    # \brief Get a constriant_data_proxy reference to the bond with tag \a tag
+    # \brief Get a constraint_data_proxy reference to the bond with tag \a tag
     # \param tag Bond tag to access
     def get(self, tag):
         if tag > self.cdata.getMaximumTag() or tag < 0:
@@ -1768,7 +1768,7 @@ class constraint_data(hoomd.meta._metadata):
         return result
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return constraint_data.constraint_data_iterator(self);
 
@@ -1868,7 +1868,7 @@ class angle_data(hoomd.meta._metadata):
     # \param type Type name of the angle to add
     # \param a Tag of the first particle in the angle
     # \param b Tag of the second particle in the angle
-    # \param c Tag of the thrid particle in the angle
+    # \param c Tag of the third particle in the angle
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c):
         typeid = self.adata.getTypeByName(type);
@@ -1931,7 +1931,7 @@ class angle_data(hoomd.meta._metadata):
         return result;
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return angle_data.angle_data_iterator(self);
 
@@ -2051,7 +2051,7 @@ class dihedral_data(hoomd.meta._metadata):
     # \param type Type name of the dihedral to add
     # \param a Tag of the first particle in the dihedral
     # \param b Tag of the second particle in the dihedral
-    # \param c Tag of the thrid particle in the dihedral
+    # \param c Tag of the third particle in the dihedral
     # \param d Tag of the fourth particle in the dihedral
     # \returns Unique tag identifying this bond
     def add(self, type, a, b, c, d):
@@ -2115,7 +2115,7 @@ class dihedral_data(hoomd.meta._metadata):
         return result;
 
     ## \internal
-    # \brief Return an interator
+    # \brief Return an iterator
     def __iter__(self):
         return dihedral_data.dihedral_data_iterator(self);
 
