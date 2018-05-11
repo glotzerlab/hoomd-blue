@@ -2,6 +2,20 @@
 
 [TOC]
 
+## v2.3.1
+
+Not yet released.
+
+*Buf fixes*
+
+* Fix doxygen documentation syntax errors
+* Fix libquickhull.so not found error on some platforms
+* HPMC: Fix bug that allowed particles to pas through walls
+* HPMC: Check spheropolyhedra with 0 vertices against walls correctly
+* HPMC: Fix plane wall/spheropolyhedra overlap test
+* HPMC: Restore detailed balance in implicit depletant integrator
+* MD: Fix image list for tree neighbor lists in 2d
+
 ## v2.3.0
 
 Released 2018/04/25
