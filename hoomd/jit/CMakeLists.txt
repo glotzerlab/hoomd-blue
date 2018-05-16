@@ -57,7 +57,7 @@ target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
 target_link_libraries(_${PACKAGE_NAME} PRIVATE _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
 
 # set installation RPATH
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME}/)
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME};${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}")
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # if we are compiling with MPI support built in, set appropriate

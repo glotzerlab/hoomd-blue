@@ -2641,7 +2641,9 @@ void CommunicatorGPU::beginUpdateGhosts(unsigned int timestep)
 
         // total up ghosts received thus far
         for (unsigned int istage = 0; istage < stage; ++istage)
+            {
             first_idx += m_n_recv_ghosts_tot[istage];
+            }
 
             {
             unsigned int offs = 0;
@@ -3084,7 +3086,9 @@ void CommunicatorGPU::updateNetForce(unsigned int timestep)
 
         // total up ghosts received thus far
         for (unsigned int istage = 0; istage < stage; ++istage)
+            {
             first_idx += m_n_recv_ghosts_tot[istage];
+            }
 
             {
             unsigned int offs = 0;
