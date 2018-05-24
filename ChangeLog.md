@@ -14,6 +14,8 @@ Not yet released.
 * HPMC: Check spheropolyhedra with 0 vertices against walls correctly
 * HPMC: Fix plane wall/spheropolyhedra overlap test
 * HPMC: Restore detailed balance in implicit depletant integrator
+* HPMC: Correctly choose between volume and lnV moves in `hpmc.update.boxmc`
+* HPMC: Fix name of log quantity `hpmc_clusters_pivot_acceptance`
 * MD: Fix image list for tree neighbor lists in 2d
 
 ## v2.3.0
