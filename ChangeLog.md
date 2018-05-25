@@ -6,7 +6,7 @@
 
 Released 2018/05/25
 
-*Buf fixes*
+*Bug fixes*
 
 * Fix doxygen documentation syntax errors
 * Fix libquickhull.so not found error on some platforms
