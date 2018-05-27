@@ -19,6 +19,7 @@
 
 #ifdef ENABLE_TBB
 #include <tbb/tbb.h>
+#include <atomic>
 #endif
 
 namespace hpmc
@@ -26,6 +27,47 @@ namespace hpmc
 
 namespace detail
 {
+
+#ifdef ENABLE_TBB
+//! Wrapper around std::atomic_flag to allow use in a std::vector
+class my_atomic_flag
+    {
+    public:
+        //! Default constructor
+        my_atomic_flag()
+            {
+            f.clear();
+            }
+
+        //! Copy constructor
+        /*! \note this constructor doesn't really copy the value of its argument,
+            it just reset's the flag to zero
+         */
+        my_atomic_flag(const my_atomic_flag& other)
+            {
+            f.clear();
+            }
+
+        //! Assignment operator (non-atomic)
+        /*! \note this assignment operator doesn't really copy the value of its argument,
+            it just reset's the flag to zero
+         */
+        my_atomic_flag& operator =( const my_atomic_flag& other)
+            {
+            f.clear();
+            return *this;
+            }
+
+        //! Sets flag and returns old value
+        bool test_and_set()
+            {
+            return f.test_and_set();
+            }
+
+    private:
+        std::atomic_flag f;
+    };
+#endif
 
 // Graph class represents a undirected graph
 // using adjacency list representation
@@ -53,24 +95,29 @@ class Graph
         tbb::concurrent_unordered_multimap<unsigned int, unsigned int> adj;
         #endif
 
-        // don't use a std::vector<bool> here bc it is not thread safe
+        #ifndef ENABLE_TBB
         std::vector<unsigned int> visited;
+        #else
+        std::vector<my_atomic_flag> visited;
+        #endif
 
+        #ifndef ENABLE_TBB
         // A function used by DFS
         inline void DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc);
+        #endif
 
         #ifdef ENABLE_TBB
         class DFSTask : public tbb::task
             {
             public:
-                DFSTask(unsigned int _root, std::vector<unsigned int>& _visited, tbb::concurrent_vector<unsigned int>& _cc,
+                DFSTask(unsigned int _root, std::vector<my_atomic_flag>& _visited,
+                    tbb::concurrent_vector<unsigned int>& _cc,
                     const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& _adj)
                     : root(_root), visited(_visited), cc(_cc), adj(_adj)
                     { }
 
                 tbb::task* execute()
                     {
-                    visited[root] = 1;
                     cc.push_back(root);
 
                     unsigned int count = 0;
@@ -82,7 +129,7 @@ class Graph
                     for (auto it = begin; it != end; ++it)
                         {
                         unsigned int neighbor = it->second;
-                        if (!visited[neighbor])
+                        if (!visited[neighbor].test_and_set())
                             {
                             if (count++ == 0)
                                 {
@@ -106,7 +153,7 @@ class Graph
 
             private:
                 unsigned int root;
-                std::vector<unsigned int> & visited;
+                std::vector<my_atomic_flag> & visited;
                 tbb::concurrent_vector<unsigned int>& cc;
                 const tbb::concurrent_unordered_multimap<unsigned int, unsigned int>& adj;
             };
@@ -121,12 +168,10 @@ void Graph::connectedComponents(std::vector<tbb::concurrent_vector<unsigned int>
 void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
 #endif
     {
-    std::fill(visited.begin(), visited.end(), 0);
-
     #ifdef ENABLE_TBB
     for (unsigned int v = 0; v < visited.size(); ++v)
         {
-        if (! visited[v])
+        if (! visited[v].test_and_set())
             {
             tbb::concurrent_vector<unsigned int> component;
             DFSTask& a = *new(tbb::task::allocate_root()) DFSTask(v, visited, component, adj);
@@ -135,6 +180,8 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
             }
         }
     #else
+    std::fill(visited.begin(), visited.end(), 0);
+
     // Depth first search
     for (unsigned int v=0; v<visited.size(); v++)
         {
@@ -148,6 +195,7 @@ void Graph::connectedComponents(std::vector<std::vector<unsigned int> >& cc)
     #endif
     }
 
+#ifndef ENABLE_TBB
 void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vector<unsigned int>& cur_cc)
     {
     visited[v] = 1;
@@ -163,15 +211,25 @@ void Graph::DFSUtil(unsigned int v, std::vector<unsigned int>& visited, std::vec
             DFSUtil(i->second, visited, cur_cc);
         }
     }
-
+#endif
 Graph::Graph(unsigned int V)
     {
+    #ifndef ENABLE_TBB
     visited.resize(V, 0);
+    #else
+    visited.resize(V);
+    #endif
     }
 
 void Graph::resize(unsigned int V)
     {
+    #ifndef ENABLE_TBB
     visited.resize(V, 0);
+    #else
+    visited.clear();
+    visited.resize(V);
+    #endif
+
     adj.clear();
     }
 
@@ -218,9 +276,9 @@ class UpdaterClusters : public Updater
             if (quantity == "hpmc_clusters_moves")
                 {
                 hpmc_clusters_counters_t counters_total = getCounters(0);
-                return double(counters_total.getNMoves()) / double(m_pdata->getNGlobal());
+                return double(counters_total.getNParticlesMoved()) / double(m_pdata->getNGlobal());
                 }
-            else if (quantity == "hpmc_clusterd_pivot_acceptance")
+            else if (quantity == "hpmc_clusters_pivot_acceptance")
                 {
                 return counters.getPivotAcceptance();
                 }
@@ -231,6 +289,10 @@ class UpdaterClusters : public Updater
             else if (quantity == "hpmc_clusters_swap_acceptance")
                 {
                 return counters.getSwapAcceptance();
+                }
+            else if (quantity == "hpmc_clusters_avg_size")
+                {
+                return counters.getAverageClusterSize();
                 }
             return Scalar(0.0);
             }
@@ -247,6 +309,7 @@ class UpdaterClusters : public Updater
             result.push_back("hpmc_clusters_pivot_acceptance");
             result.push_back("hpmc_clusters_reflection_acceptance");
             result.push_back("hpmc_clusters_swap_acceptance");
+            result.push_back("hpmc_clusters_avg_size");
             return result;
             }
 
@@ -317,7 +380,9 @@ class UpdaterClusters : public Updater
                 {
                 m_exec_conf->msg->notice(2) << "Average swap acceptance:       " << counters.getSwapAcceptance() << std::endl;
                 }
-            m_exec_conf->msg->notice(2) <<     "Total cluster moves:           " << counters.getNMoves() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Total particles in clusters:   " << counters.getNParticlesInClusters() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Total particles moved:         " << counters.getNParticlesMoved() << std::endl;
+            m_exec_conf->msg->notice(2) <<     "Average cluster size:          " << counters.getAverageClusterSize() << std::endl;
             }
 
             /*! \param mode 0 -> Absolute count, 1 -> relative to the start of the run, 2 -> relative to the last executed step
@@ -343,6 +408,8 @@ class UpdaterClusters : public Updater
                     bcast(result.pivot_reject_count,0,m_exec_conf->getMPICommunicator());
                     bcast(result.reflection_reject_count,0,m_exec_conf->getMPICommunicator());
                     bcast(result.swap_reject_count,0,m_exec_conf->getMPICommunicator());
+                    bcast(result.n_clusters,0,m_exec_conf->getMPICommunicator());
+                    bcast(result.n_particles_in_clusters,0,m_exec_conf->getMPICommunicator());
                     }
                 #endif
 
@@ -430,7 +497,15 @@ class UpdaterClusters : public Updater
             Scalar nominal_width = m_mc->getMaxCoreDiameter();
             auto patch = m_mc->getPatchInteraction();
             if (patch)
-                nominal_width = std::max(nominal_width, patch->getRCut());
+                {
+                Scalar max_extent = 0.0;
+                for (unsigned int typ = 0; typ < this->m_pdata->getNTypes(); typ++)
+                    {
+                    max_extent = std::max(max_extent, patch->getAdditiveCutoff(typ));
+                    }
+
+                nominal_width = std::max(nominal_width, max_extent+patch->getRCut());
+                }
             return nominal_width;
             }
     };
@@ -520,7 +595,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar charge_i(m_charge_backup[i]);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             const unsigned int n_images = image_list.size();
@@ -554,7 +630,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 vec3<Scalar> r_ij = pos_j - pos_i_image;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     // the particle pair
                                     unsigned int new_tag_i;
@@ -723,7 +801,8 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
         if (patch)
             {
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(0.0,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+            OverlapReal R_query = std::max(0.0,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_local = detail::AABB(vec3<Scalar>(0,0,0),R_query);
 
             // compute V(r'-r)
@@ -764,7 +843,9 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 // check for excluded volume sphere overlap
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                if (rsq_ij <= r_cut_patch*r_cut_patch)
+                                Scalar rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                if (rsq_ij <= rcut_ij*rcut_ij)
                                     {
                                     auto p = std::make_pair(h_tag.data[i], new_tag_j);
 
@@ -835,7 +916,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
             Scalar r_excl_i = shape_i.getCircumsphereDiameter()/Scalar(2.0);
 
             // subtract minimum AABB extent from search radius
-            OverlapReal R_query = std::max(r_excl_i,r_cut_patch-min_core_diameter/(OverlapReal)2.0);
+            Scalar extent_i = 0.0;
+            if (patch)
+                extent_i = 0.5*patch->getAdditiveCutoff(typ_i);
+
+            OverlapReal R_query = std::max(r_excl_i,r_cut_patch+extent_i-min_core_diameter/(OverlapReal)2.0);
             detail::AABB aabb_i = detail::AABB(pos_i_new,R_query);
 
             // All image boxes (including the primary)
@@ -877,7 +962,11 @@ void UpdaterClusters<Shape>::findInteractions(unsigned int timestep, vec3<Scalar
                                 Scalar RaRb = r_excl_i + r_excl_j;
                                 Scalar rsq_ij = dot(r_ij, r_ij);
 
-                                bool interact_patch = patch && rsq_ij <= r_cut_patch*r_cut_patch;
+                                Scalar rcut_ij = 0.0;
+                                if (patch)
+                                    rcut_ij = r_cut_patch + extent_i + 0.5*patch->getAdditiveCutoff(typ_j);
+
+                                bool interact_patch = patch && rsq_ij <= rcut_ij*rcut_ij;
 
                                 unsigned int err = 0;
 
@@ -945,7 +1034,7 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<Scalar> h_diameter(m_pdata->getDiameters(), access_location::host, access_mode::read);
-        ArrayHandle<Scalar> h_charge(m_pdata->getDiameters(), access_location::host, access_mode::read);
+        ArrayHandle<Scalar> h_charge(m_pdata->getCharges(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
@@ -1556,9 +1645,14 @@ void UpdaterClusters<Shape>::update(unsigned int timestep)
         if (this->m_prof) this->m_prof->pop();
 
         if (this->m_prof) this->m_prof->push("reject");
+
         // move every cluster independently
+        m_count_total.n_clusters += m_clusters.size();
+
         for (unsigned int icluster = 0; icluster < m_clusters.size(); icluster++)
             {
+            m_count_total.n_particles_in_clusters += m_clusters[icluster].size();
+
             // if any particle in the cluster is rejected, the cluster is not transformed
             bool reject = false;
             for (auto it = m_clusters[icluster].begin(); it != m_clusters[icluster].end(); ++it)
@@ -1744,7 +1838,8 @@ inline void export_hpmc_clusters_counters(pybind11::module &m)
         .def("getPivotAcceptance", &hpmc_clusters_counters_t::getPivotAcceptance)
         .def("getReflectionAcceptance", &hpmc_clusters_counters_t::getReflectionAcceptance)
         .def("getSwapAcceptance", &hpmc_clusters_counters_t::getSwapAcceptance)
-        .def("getNMoves", &hpmc_clusters_counters_t::getNMoves);
+        .def("getNParticlesMoved", &hpmc_clusters_counters_t::getNParticlesMoved)
+        .def("getNParticlesInClusters", &hpmc_clusters_counters_t::getNParticlesInClusters);
     }
 
 } // end namespace hpmc

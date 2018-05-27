@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -39,18 +39,6 @@ class ExternalFieldMonoComposite : public ExternalFieldMono<Shape>
             {
                 throw(std::runtime_error("ExternalFieldMonoComposite::calculateDeltaE is not implemented"));
                 return double(0.0);
-            }
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
-            {
-            // calc boltzmann factor from springs
-            double boltz = fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new));
-            bool reject = false;
-            if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
-                reject = false;
-            else
-                reject = true;
-
-            return !reject;
             }
 
         double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)

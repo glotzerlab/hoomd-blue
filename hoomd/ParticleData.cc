@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -19,7 +19,7 @@
 #include "GPUPartition.cuh"
 #endif
 
-#include "hoomd/extern/num_util.h"
+#include "hoomd/extern/pybind/include/pybind11/numpy.h"
 
 #include <iostream>
 #include <cassert>
@@ -3274,165 +3274,177 @@ void SnapshotParticleData<Real>::replicate(unsigned int nx, unsigned int ny, uns
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getPosNP()
+py::object SnapshotParticleData<Real>::getPosNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&pos[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->pos[0], self);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getVelNP()
+py::object SnapshotParticleData<Real>::getVelNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&vel[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->vel[0], self);
     }
 
 /*! \returns a numpy array that wraps the pos data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getAccelNP()
+py::object SnapshotParticleData<Real>::getAccelNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&accel[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->accel[0], self);
     }
 
 /*! \returns a numpy array that wraps the type data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getTypeNP()
+py::object SnapshotParticleData<Real>::getTypeNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    return py::object(num_util::makeNumFromData(&type[0], type.size()), false);
+    return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
     }
 
 /*! \returns a numpy array that wraps the mass data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getMassNP()
+py::object SnapshotParticleData<Real>::getMassNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    return py::object(num_util::makeNumFromData(&mass[0], mass.size()), false);
+    return pybind11::array(self_cpp->mass.size(), &self_cpp->mass[0], self);
     }
 
 /*! \returns a numpy array that wraps the charge data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getChargeNP()
+py::object SnapshotParticleData<Real>::getChargeNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    return py::object(num_util::makeNumFromData(&charge[0], charge.size()), false);
+    return pybind11::array(self_cpp->charge.size(), &self_cpp->charge[0], self);
     }
 
 /*! \returns a numpy array that wraps the diameter data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getDiameterNP()
+py::object SnapshotParticleData<Real>::getDiameterNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    return py::object(num_util::makeNumFromData(&diameter[0], diameter.size()), false);
+    return pybind11::array(self_cpp->diameter.size(), &self_cpp->diameter[0], self);
     }
 
 /*! \returns a numpy array that wraps the image data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getImageNP()
+py::object SnapshotParticleData<Real>::getImageNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((int*)&image[0], dims), false);
+    return pybind11::array(dims, (int*)&self_cpp->image[0], self);
     }
 
 /*! \returns a numpy array that wraps the body data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getBodyNP()
+py::object SnapshotParticleData<Real>::getBodyNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    return py::object(num_util::makeNumFromData(&body[0], body.size()), false);
+    return pybind11::array(self_cpp->body.size(), &self_cpp->body[0], self);
     }
 
 /*! \returns a numpy array that wraps the orientation data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getOrientationNP()
+py::object SnapshotParticleData<Real>::getOrientationNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = pos.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->pos.size();
     dims[1] = 4;
-    return py::object(num_util::makeNumFromData((Real*)&orientation[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->orientation[0], self);
     }
 
 /*! \returns a numpy array that wraps the moment of inertia data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getMomentInertiaNP()
+py::object SnapshotParticleData<Real>::getMomentInertiaNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = inertia.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->inertia.size();
     dims[1] = 3;
-    return py::object(num_util::makeNumFromData((Real*)&inertia[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->inertia[0], self);
     }
 
 /*! \returns a numpy array that wraps the angular momentum data element.
     The raw data is referenced by the numpy array, modifications to the numpy array will modify the snapshot
 */
 template <class Real>
-py::object SnapshotParticleData<Real>::getAngmomNP()
+py::object SnapshotParticleData<Real>::getAngmomNP(pybind11::object self)
     {
+    auto self_cpp = self.cast<SnapshotParticleData<Real> *>();
     // mark as dirty when accessing internal data
-    is_accel_set = false;
+    self_cpp->is_accel_set = false;
 
-    std::vector<intp> dims(2);
-    dims[0] = angmom.size();
+    std::vector<size_t> dims(2);
+    dims[0] = self_cpp->angmom.size();
     dims[1] = 4;
-    return py::object(num_util::makeNumFromData((Real*)&angmom[0], dims), false);
+    return pybind11::array(dims, (Real*)&self_cpp->angmom[0], self);
     }
 
 /*! \returns A python list of type names
@@ -3494,18 +3506,18 @@ void export_SnapshotParticleData(py::module& m)
     {
     py::class_<SnapshotParticleData<float>, std::shared_ptr<SnapshotParticleData<float> > >(m,"SnapshotParticleData_float")
     .def(py::init<unsigned int>())
-    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("position", &SnapshotParticleData<float>::getPosNP)
+    .def_property_readonly("velocity", &SnapshotParticleData<float>::getVelNP)
+    .def_property_readonly("acceleration", &SnapshotParticleData<float>::getAccelNP)
+    .def_property_readonly("typeid", &SnapshotParticleData<float>::getTypeNP)
+    .def_property_readonly("mass", &SnapshotParticleData<float>::getMassNP)
+    .def_property_readonly("charge", &SnapshotParticleData<float>::getChargeNP)
+    .def_property_readonly("diameter", &SnapshotParticleData<float>::getDiameterNP)
+    .def_property_readonly("image", &SnapshotParticleData<float>::getImageNP)
+    .def_property_readonly("body", &SnapshotParticleData<float>::getBodyNP)
+    .def_property_readonly("orientation", &SnapshotParticleData<float>::getOrientationNP)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<float>::getMomentInertiaNP)
+    .def_property_readonly("angmom", &SnapshotParticleData<float>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<float>::getTypes, &SnapshotParticleData<float>::setTypes)
     .def_readonly("N", &SnapshotParticleData<float>::size)
     .def("resize", &SnapshotParticleData<float>::resize)
@@ -3515,18 +3527,18 @@ void export_SnapshotParticleData(py::module& m)
 
     py::class_<SnapshotParticleData<double>, std::shared_ptr<SnapshotParticleData<double> > >(m,"SnapshotParticleData_double")
     .def(py::init<unsigned int>())
-    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP, py::return_value_policy::take_ownership)
-    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP, py::return_value_policy::take_ownership)
+    .def_property_readonly("position", &SnapshotParticleData<double>::getPosNP)
+    .def_property_readonly("velocity", &SnapshotParticleData<double>::getVelNP)
+    .def_property_readonly("acceleration", &SnapshotParticleData<double>::getAccelNP)
+    .def_property_readonly("typeid", &SnapshotParticleData<double>::getTypeNP)
+    .def_property_readonly("mass", &SnapshotParticleData<double>::getMassNP)
+    .def_property_readonly("charge", &SnapshotParticleData<double>::getChargeNP)
+    .def_property_readonly("diameter", &SnapshotParticleData<double>::getDiameterNP)
+    .def_property_readonly("image", &SnapshotParticleData<double>::getImageNP)
+    .def_property_readonly("body", &SnapshotParticleData<double>::getBodyNP)
+    .def_property_readonly("orientation", &SnapshotParticleData<double>::getOrientationNP)
+    .def_property_readonly("moment_inertia", &SnapshotParticleData<double>::getMomentInertiaNP)
+    .def_property_readonly("angmom", &SnapshotParticleData<double>::getAngmomNP)
     .def_property("types", &SnapshotParticleData<double>::getTypes, &SnapshotParticleData<double>::setTypes)
     .def_readonly("N", &SnapshotParticleData<double>::size)
     .def("resize", &SnapshotParticleData<double>::resize)

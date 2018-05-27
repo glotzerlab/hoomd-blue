@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -195,7 +195,9 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
     ArrayHandle<Scalar4> h_vel(m_pdata->getVelocities(), access_location::host, access_mode::readwrite);
     ArrayHandle<Scalar3> h_accel(m_pdata->getAccelerations(), access_location::host, access_mode::readwrite);
 
+    #ifdef ENABLE_MPI
     bool aniso = false;
+    #endif
 
     for (auto method = m_methods.begin(); method != m_methods.end(); ++method)
         {
@@ -211,7 +213,9 @@ void FIREEnergyMinimizer::update(unsigned int timestep)
 
         if ((*method)->getAnisotropic())
             {
+            #ifdef ENABLE_MPI
             aniso = true;
+            #endif
 
             ArrayHandle<Scalar4> h_net_torque(m_pdata->getNetTorqueArray(), access_location::host, access_mode::read);
             ArrayHandle<Scalar4> h_orientation(m_pdata->getOrientationArray(), access_location::host, access_mode::read);

@@ -37,17 +37,15 @@ if (ENABLE_CUDA)
     endforeach()
 endif(ENABLE_CUDA)
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_dem_sources} ${_dem_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_dem_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)
 
-add_library (_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES})
+pybind11_add_module(_dem SHARED ${_dem_sources} ${_CUDA_GENERATED_FILES} NO_EXTRAS)
+set_target_properties(_dem PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR};${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/md")
 
 # link the library to its dependencies
-target_link_libraries(_dem _hoomd _md ${HOOMD_COMMON_LIBS})
+target_link_libraries(_dem PRIVATE _md ${HOOMD_LIBRARIES})
 
 # if we are compiling with MPI support built in, set appropriate
 # compiler/linker flags
@@ -60,15 +58,6 @@ if (ENABLE_MPI)
    endif(MPI_LINK_FLAGS)
 endif(ENABLE_MPI)
 
-##################################
-# change the name of the library to be a valid python module
-# tweak the properties of the output to make a functional python module
-set_target_properties(_dem PROPERTIES PREFIX "" OUTPUT_NAME "_dem")
-
-# .dylib is not recognized as a python module by python on Mac OS X
-if(APPLE)
-    set_target_properties(_dem PROPERTIES SUFFIX ".so")
-endif(APPLE)
 fix_cudart_rpath(_dem)
 
 # install the library

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -43,7 +43,7 @@ struct flow_enum
 //! By exchanging velocities based on their spatial position a flow is created.
 /*! \ingroup computes
 */
-class MuellerPlatheFlow : public Updater
+class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
     {
     public:
         //! Constructs the compute
@@ -148,7 +148,7 @@ class MuellerPlatheFlow : public Updater
         //! Verify that the box is orthorhombic.
         //!
         //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
-        void verify_orthorhombic_box(void) throw(std::runtime_error);
+        void verify_orthorhombic_box(void);
 #ifdef ENABLE_MPI
         struct MPI_SWAP{
             MPI_Comm comm;

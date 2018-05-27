@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "UpdaterBoxMC.h"
@@ -79,6 +79,7 @@ std::vector< std::string > UpdaterBoxMC::getProvidedLogQuantities()
     // then add ours
     result.push_back("hpmc_boxmc_trial_count");
     result.push_back("hpmc_boxmc_volume_acceptance");
+    result.push_back("hpmc_boxmc_ln_volume_acceptance");
     result.push_back("hpmc_boxmc_shear_acceptance");
     result.push_back("hpmc_boxmc_aspect_acceptance");
     result.push_back("hpmc_boxmc_betaP");
@@ -431,7 +432,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    if (move_type_select < m_Volume_weight + m_lnVolume_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;

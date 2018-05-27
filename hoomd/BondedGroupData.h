@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -215,12 +215,12 @@ class BondedGroupData
             #endif
 
             //! Get type as a numpy array
-            pybind11::object getTypeNP();
+            static pybind11::object getTypeNP(pybind11::object self);
             //! Get value as a numpy array
-            pybind11::object getValueNP();
+            static pybind11::object getValueNP(pybind11::object self);
 
             //! Get bonded tags as a numpy array
-            pybind11::object getBondedTagsNP();
+            static pybind11::object getBondedTagsNP(pybind11::object self);
             //! Get the type names for python
             pybind11::list getTypes();
             //! Set the type names from python

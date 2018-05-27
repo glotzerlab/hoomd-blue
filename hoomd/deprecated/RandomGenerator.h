@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -40,7 +40,7 @@
     After all particles are placed in GeneratedParticles, RandomGenerator will
     then translate that data over to ParticleData in the initializer.
 */
-class GeneratedParticles
+class PYBIND11_EXPORT GeneratedParticles
     {
     public:
         //! Stores a single particle in GeneratedParticles
@@ -127,7 +127,7 @@ class GeneratedParticles
     on each call to generateParticles() (i.e. a single polymer or a small cluster of particles).
     Larger systems are to be built from multiple calls of generateParticles() by RandomGenerator.
 */
-class ParticleGenerator
+class PYBIND11_EXPORT ParticleGenerator
     {
     public:
         //! Destructor
@@ -160,7 +160,7 @@ class ParticleGenerator
     This ParticleGenerator can be used to generate systems of bead-spring polymers of any combination of
     partile types specified in an array.
 */
-class PolymerParticleGenerator : public ParticleGenerator
+class PYBIND11_EXPORT PolymerParticleGenerator : public ParticleGenerator
     {
     public:
         //! Constructor
@@ -219,7 +219,7 @@ class PolymerParticleGenerator : public ParticleGenerator
      -# Construct and add any number of ParticleGenerator instances to the RandomGenerator
      -# Call generate() to actually place the particles
 */
-class RandomGenerator
+class PYBIND11_EXPORT RandomGenerator
     {
     public:
         //! Set the parameters

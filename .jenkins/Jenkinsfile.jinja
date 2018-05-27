@@ -27,6 +27,7 @@ pipeline
                         BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
                         CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
                         BUILD_JIT = '{{ test.BUILD_JIT }}'
+                        OMP_NUM_THREADS = '{{ test.OMP_NUM_THREADS }}'
                         }
 
                     steps

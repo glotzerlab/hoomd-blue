@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -59,7 +59,7 @@
 
     \note minImage() and wrap() only work for particles that have moved up to 1 box image out of the box.
 */
-struct BoxDim
+struct __attribute__((visibility("default"))) BoxDim
     {
     public:
         //! Constructs a useless box

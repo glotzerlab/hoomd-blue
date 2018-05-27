@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -15,8 +15,8 @@ HOOMD_UP_MAIN()
  * When drawing uniformly on a sphere, the pdf should satisfy:
  *
  * \f[
- *    \int f(\omega) d\omega = 1 = \int d\theta \dphi f(\theta, \phi).
- * \f ]
+ *    \int f(\omega) d\omega = 1 = \int d\theta d\phi f(\theta, \phi).
+ * \f]
  *
  * The proper distribution satisfying this is:
  *

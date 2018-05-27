@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "hoomd/HOOMDMath.h"
@@ -340,7 +340,7 @@ void MuellerPlatheFlow::update_min_max_velocity(void)
     if(m_prof) m_prof->pop();
     }
 
-void MuellerPlatheFlow::verify_orthorhombic_box(void) throw(runtime_error)
+void MuellerPlatheFlow::verify_orthorhombic_box(void)
     {
     bool valid = true;
     const BoxDim box = m_pdata->getGlobalBox();

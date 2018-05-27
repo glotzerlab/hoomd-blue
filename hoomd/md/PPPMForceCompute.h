@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __PPPM_FORCE_COMPUTE_H__
@@ -24,7 +24,7 @@ const unsigned int PPPM_MAX_ORDER = 7;
 
 /*! Compute the long-ranged part of the particle-particle particle-mesh Ewald sum (PPPM)
  */
-class PPPMForceCompute : public ForceCompute
+class PYBIND11_EXPORT PPPMForceCompute : public ForceCompute
     {
     public:
         //! Constructor

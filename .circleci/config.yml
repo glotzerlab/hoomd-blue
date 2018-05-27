@@ -114,6 +114,7 @@ jobs:
       ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
+      OMP_NUM_THREADS: 3
     <<: *build_and_test
 
   gcc48-py27-mpi-cd80:
@@ -154,20 +155,6 @@ jobs:
       ENABLE_MPI: ON
       ENABLE_TBB: OFF
       ENABLE_CUDA: ON
-      BUILD_VALIDATION: OFF
-      BUILD_JIT: OFF
-    <<: *native_build
-
-  clang34-py34-cm28-mpi:
-    <<: *test_container_config-cuda70
-    environment:
-      CC: /usr/bin/clang
-      CXX: /usr/bin/clang++
-      PYVER: "3.4"
-      CMAKE_BIN: /usr/bin
-      ENABLE_MPI: ON
-      ENABLE_TBB: OFF
-      ENABLE_CUDA: OFF
       BUILD_VALIDATION: OFF
       BUILD_JIT: OFF
     <<: *native_build
@@ -269,10 +256,6 @@ workflows:
             branches:
               ignore: release
       - gcc48-py34-cm28-mpi-cd70:
-          filters:
-            branches:
-              ignore: release
-      - clang34-py34-cm28-mpi:
           filters:
             branches:
               ignore: release

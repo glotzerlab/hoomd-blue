@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -146,7 +146,7 @@ namespace cereal
  * \ingroup data_structs
  */
 template <class Real>
-struct SnapshotParticleData {
+struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0), is_accel_set(false)
@@ -190,29 +190,29 @@ struct SnapshotParticleData {
         const BoxDim& old_box, const BoxDim& new_box);
 
     //! Get pos as a Python object
-    pybind11::object getPosNP();
+    static pybind11::object getPosNP(pybind11::object self);
     //! Get vel as a Python object
-    pybind11::object getVelNP();
+    static pybind11::object getVelNP(pybind11::object self);
     //! Get accel as a Python object
-    pybind11::object getAccelNP();
+    static pybind11::object getAccelNP(pybind11::object self);
     //! Get type as a Python object
-    pybind11::object getTypeNP();
+    static pybind11::object getTypeNP(pybind11::object self);
     //! Get mass as a Python object
-    pybind11::object getMassNP();
+    static pybind11::object getMassNP(pybind11::object self);
     //! Get charge as a Python object
-    pybind11::object getChargeNP();
+    static pybind11::object getChargeNP(pybind11::object self);
     //! Get diameter as a Python object
-    pybind11::object getDiameterNP();
+    static pybind11::object getDiameterNP(pybind11::object self);
     //! Get image as a Python object
-    pybind11::object getImageNP();
+    static pybind11::object getImageNP(pybind11::object self);
     //! Get body as a Python object
-    pybind11::object getBodyNP();
+    static pybind11::object getBodyNP(pybind11::object self);
     //! Get orientation as a Python object
-    pybind11::object getOrientationNP();
+    static pybind11::object getOrientationNP(pybind11::object self);
     //! Get moment of inertia as a numpy array
-    pybind11::object getMomentInertiaNP();
+    static pybind11::object getMomentInertiaNP(pybind11::object self);
     //! Get angular momentum as a numpy array
-    pybind11::object getAngmomNP();
+    static pybind11::object getAngmomNP(pybind11::object self);
 
     //! Get the type names for python
     pybind11::list getTypes();
@@ -394,7 +394,7 @@ struct pdata_element
     is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
     valid flag.
 */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Construct with N particles in the given box

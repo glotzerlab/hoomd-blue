@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "IntegratorHPMC.h"
@@ -21,9 +21,11 @@ IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef,
                                unsigned int seed)
     : Integrator(sysdef, 0.005), m_seed(seed),  m_move_ratio(32768), m_nselect(4),
       m_nominal_width(1.0), m_extra_ghost_width(0), m_external_base(NULL), m_patch_log(false),
-      m_past_first_run(false),
-      m_communicator_ghost_width_connected(false),
+      m_past_first_run(false)
+      #ifdef ENABLE_MPI
+      ,m_communicator_ghost_width_connected(false),
       m_communicator_flags_connected(false)
+      #endif
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 

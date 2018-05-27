@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -46,7 +46,7 @@
     The base class isSelected() method will simply reject all particles. Derived classes will implement specific
     selection semantics.
 */
-class ParticleSelector
+class PYBIND11_EXPORT ParticleSelector
     {
     public:
         //! constructs a ParticleSelector
@@ -63,7 +63,7 @@ class ParticleSelector
     };
 
 //! Select all particles
-class ParticleSelectorAll : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorAll : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -76,7 +76,7 @@ class ParticleSelectorAll : public ParticleSelector
 
 
 //! Select particles based on their tag
-class ParticleSelectorTag : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorTag : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -91,7 +91,7 @@ class ParticleSelectorTag : public ParticleSelector
     };
 
 //! Select particles based on their type
-class ParticleSelectorType : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorType : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -106,7 +106,7 @@ class ParticleSelectorType : public ParticleSelector
     };
 
 //! Select particles in the space defined by a cuboid
-class ParticleSelectorCuboid : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorCuboid : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -121,7 +121,7 @@ class ParticleSelectorCuboid : public ParticleSelector
     };
 
 //! Select particles based on their rigid body
-class ParticleSelectorRigid : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorRigid : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -134,7 +134,7 @@ class ParticleSelectorRigid : public ParticleSelector
         bool m_rigid;   //!< true if we should select rigid boides, false if we should select non-rigid particles
     };
 
-class ParticleSelectorRigidCenter : public ParticleSelector
+class PYBIND11_EXPORT ParticleSelectorRigidCenter : public ParticleSelector
     {
     public:
         //! Constructs the selector
@@ -185,7 +185,7 @@ class ParticleSelectorRigidCenter : public ParticleSelector
 
     \ingroup data_structs
 */
-class ParticleGroup
+class PYBIND11_EXPORT ParticleGroup
     {
     public:
         //! \name Initialization methods

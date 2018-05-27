@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -65,7 +65,6 @@
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
-#include "hoomd/extern/num_util.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
@@ -88,28 +87,8 @@ lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
 The following #defines help get around this
 */
 
-#if (PYBIND11_VERSION_MAJOR) != 1 || (PYBIND11_VERSION_MINOR) != 8
-#error HOOMD-blue requires pybind11 1.8.x
-#endif
-
-#if PY_VERSION_HEX >= 0x03000000
-#define MY_PY_VER_3x
-#else
-#define MY_PY_VER_2x
-#endif
-
-#ifdef MY_PY_VER_3x
-void *my_import_array()
-    {
-    import_array();
-    return NULL;
-    }
-#endif
-#ifdef MY_PY_VER_2x
-void my_import_array()
-    {
-    import_array();
-    }
+#if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
+#error HOOMD-blue requires pybind11 2.2.x
 #endif
 
 //! Method for getting the current version of HOOMD
@@ -305,10 +284,8 @@ std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfigu
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_hoomd)
+PYBIND11_MODULE(_hoomd, m)
     {
-    pybind11::module m("_hoomd");
-
     #ifdef ENABLE_MPI
     // initialize MPI early
     initialize_mpi();
@@ -319,7 +296,7 @@ PYBIND11_PLUGIN(_hoomd)
     #endif
 
     // setup needed for numpy
-    my_import_array();
+    // my_import_array();
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
@@ -343,12 +320,12 @@ PYBIND11_PLUGIN(_hoomd)
     m.def("cuda_profile_start", &cuda_profile_start);
     m.def("cuda_profile_stop", &cuda_profile_stop);
 
-    pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
-    pybind11::bind_vector<string>(m,"std_vector_string");
-    pybind11::bind_vector<unsigned int>(m,"std_vector_uint");
-    pybind11::bind_vector<int>(m,"std_vector_int");
-    pybind11::bind_vector<Scalar3>(m,"std_vector_scalar3");
-    pybind11::bind_vector<Scalar4>(m,"std_vector_scalar4");
+    pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
+    pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
+    pybind11::bind_vector< std::vector<unsigned int> >(m,"std_vector_uint");
+    pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
+    pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
+    pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
 
     InstallSIGINTHandler();
 
@@ -429,6 +406,4 @@ PYBIND11_PLUGIN(_hoomd)
 
     // messenger
     export_Messenger(m);
-
-    return m.ptr();
     }

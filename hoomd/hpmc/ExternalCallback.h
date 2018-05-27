@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_CALLBACK_H_
@@ -23,7 +23,7 @@ namespace hpmc
 {
 
 template< class Shape>
-class ExternalCallback : public ExternalFieldMono<Shape>
+class __attribute__ ((visibility ("hidden"))) ExternalCallback : public ExternalFieldMono<Shape>
     {
     public:
         ExternalCallback(std::shared_ptr<SystemDefinition> sysdef,
@@ -48,7 +48,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             return exp(-energy);
             }
 
-        //! Compute -DeltaU = Uold-Unew of a trial box resize
+        //! Compute DeltaU = Unew-Uold
         /*! \param position_old_arg Old (local) positions
             \param orientation_old_arg Old (local) orientations
             \param box_old_arg Old (global) box
@@ -77,29 +77,13 @@ class ExternalCallback : public ExternalFieldMono<Shape>
                     snap->particle_data.orientation[snap_idx] = quat<Scalar>(orientation_old_arg[i]);
                 }
             double energy_old = getEnergy(snap);
-            return energy_old-energy_new;
+            return energy_new-energy_old;
             }
 
         // does nothing
         void compute(unsigned int timestep) { }
 
-        //! Return true if a particle trial move is accepted
-        bool accept(const unsigned int& index,
-                    const vec3<Scalar>& position_old,
-                    const Shape& shape_old,
-                    const vec3<Scalar>& position_new,
-                    const Shape& shape_new,
-                    hoomd::detail::Saru& rng)
-            {
-            // calc boltzmann factor from the external potential
-            double boltz = fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new));
-            if(rng.d() < boltz)
-                return true;
-            else
-                return false;
-            }
-
-        // Compute the energy difference for a proposed move on a single particle 
+        // Compute the energy difference for a proposed move on a single particle
         double energydiff(const unsigned int& index,
                           const vec3<Scalar>& position_old,
                           const Shape& shape_old,
@@ -128,7 +112,7 @@ class ExternalCallback : public ExternalFieldMono<Shape>
             snap->particle_data.orientation[snap_idx] = shape_new.orientation;
             double energy_new = getEnergy(snap);
 
-            return energy_old-energy_new;
+            return energy_new-energy_old;
             }
 
     protected:

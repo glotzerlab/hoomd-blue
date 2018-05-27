@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_WALL_H_
@@ -32,7 +32,6 @@ struct SphereWall
         verts->diameter = r+r;
         verts->sweep_radius = r;
         verts->ignore = 0;
-        // verts->x[0] = verts->y[0] = verts->z[0] = OverlapReal(0);
     }
     SphereWall(const SphereWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), verts(new detail::poly3d_verts(*src.verts)) {}
     // scale all distances associated with the sphere wall by some factor alpha
@@ -68,15 +67,6 @@ struct CylinderWall
         verts->N = 2;
         verts->sweep_radius = r;
         verts->ignore = 0;
-
-        // set all vertex values to 0 to ensure no memory initialization issues
-        // only need to do this for the first 2 vertices, due to the way
-        // ShapeConvexPolyhedron.h finds support vectors
-
-        // for (unsigned int i = 0; i < 2; i++)
-        // {
-        //     verts.x[i] = verts.y[i] = verts.z[i] = OverlapReal(0);
-        // }
 
         }
     CylinderWall(const CylinderWall& src) : rsq(src.rsq), inside(src.inside), origin(src.origin), orientation(src.orientation), verts(new detail::poly3d_verts(*src.verts)) {}
@@ -152,7 +142,7 @@ DEVICE inline bool test_confined<SphereWall, ShapeSphere>(const SphereWall& wall
     }
 
 // Spherical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -195,22 +185,11 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
         else
             {
             // build a sphero-polyhedron and for the wall and the convex polyhedron
-
             quat<OverlapReal> q; // default is (1, 0, 0, 0)
             unsigned int err = 0;
             ShapeSpheropolyhedron wall_shape(q, *wall.verts);
             ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
 
-/*
-            vec3<OverlapReal> dr = shifted_pos;
-            OverlapReal DaDb = wall_shape.getCircumsphereDiameter() + part_shape.getCircumsphereDiameter();
-            accept = !xenocollide_3d(detail::SupportFuncSpheropolyhedron(wall_shape.verts),
-                                  detail::SupportFuncSpheropolyhedron(part_shape.verts),
-                                  rotate(conj(quat<OverlapReal>(wall_shape.orientation)),dr),
-                                  conj(quat<OverlapReal>(wall_shape.orientation)) * quat<OverlapReal>(part_shape.orientation),
-                                  DaDb/2.0,
-                                  err);
-*/
             accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
             }
         }
@@ -218,7 +197,7 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeConvexPolyhe
     }
 
 // Spherical Walls and Convex Spheropolyhedra
-DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <SphereWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -228,48 +207,59 @@ DEVICE inline bool test_confined(const SphereWall& wall, const ShapeSpheropolyhe
     vec3<OverlapReal> shifted_pos(box.minImage(t));
 
     OverlapReal rxyz_sq = shifted_pos.x*shifted_pos.x + shifted_pos.y*shifted_pos.y + shifted_pos.z*shifted_pos.z;
-    OverlapReal max_dist = (sqrt(rxyz_sq) + shape.getCircumsphereDiameter()/OverlapReal(2.0));
+    OverlapReal max_dist;
     if (!wall.inside)
-      {
-      // if we must be outside the wall, subtract particle radius from min_dist
-      max_dist = sqrt(rxyz_sq) - (shape.getCircumsphereDiameter()/OverlapReal(2.0));
-      // if the particle radius is larger than the distance between the particle
-      // and the container, however, then ALWAYS check verts. this is equivalent
-      // to two particle circumspheres overlapping.
-      if (max_dist < 0)
         {
-        max_dist = OverlapReal(0);
+        // if we must be outside the wall, subtract particle radius from min_dist
+        max_dist = sqrt(rxyz_sq) - (shape.getCircumsphereDiameter()/OverlapReal(2.0));
+        // if the particle radius is larger than the distance between the particle
+        // and the container, however, then ALWAYS check verts. this is equivalent
+        // to two particle circumspheres overlapping.
+        if (max_dist < 0)
+            {
+            max_dist = OverlapReal(0);
+            }
         }
-      }
+    else
+        {
+        max_dist = sqrt(rxyz_sq) + shape.getCircumsphereDiameter()/OverlapReal(2.0);
+        }
 
     bool check_verts = wall.inside ? (wall.rsq <= max_dist*max_dist) : (wall.rsq >= max_dist*max_dist); // condition to check vertices, dependent on inside or outside container
 
-
     if (check_verts)
         {
-        if(wall.inside)
+        if (shape.verts.N)
             {
-            for(size_t v = 0; v < shape.verts.N && accept; v++)
+            if(wall.inside)
                 {
-                vec3<OverlapReal> pos(shape.verts.x[v], shape.verts.y[v], shape.verts.z[v]);
-                vec3<OverlapReal> rotated_pos = rotate(quat<OverlapReal>(shape.orientation), pos);
-                rotated_pos += shifted_pos;
-                rxyz_sq = rotated_pos.x*rotated_pos.x + rotated_pos.y*rotated_pos.y + rotated_pos.z*rotated_pos.z;
-                OverlapReal tot_rxyz = sqrt(rxyz_sq) + shape.verts.sweep_radius;
-                OverlapReal tot_rxyz_sq = tot_rxyz*tot_rxyz;
-                accept = wall.inside ? (wall.rsq > tot_rxyz_sq) : (wall.rsq < tot_rxyz_sq);
+                for(size_t v = 0; v < shape.verts.N && accept; v++)
+                    {
+                    vec3<OverlapReal> pos(shape.verts.x[v], shape.verts.y[v], shape.verts.z[v]);
+                    vec3<OverlapReal> rotated_pos = rotate(quat<OverlapReal>(shape.orientation), pos);
+                    rotated_pos += shifted_pos;
+                    rxyz_sq = rotated_pos.x*rotated_pos.x + rotated_pos.y*rotated_pos.y + rotated_pos.z*rotated_pos.z;
+                    OverlapReal tot_rxyz = sqrt(rxyz_sq) + shape.verts.sweep_radius;
+                    OverlapReal tot_rxyz_sq = tot_rxyz*tot_rxyz;
+                    accept = wall.rsq > tot_rxyz_sq;
+                    }
+                }
+            else
+                {
+                // build a sphero-polyhedron and for the wall and the convex polyhedron
+                quat<OverlapReal> q; // default is (1, 0, 0, 0)
+                unsigned int err = 0;
+                ShapeSpheropolyhedron wall_shape(q, *wall.verts);
+                ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
+
+                accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
                 }
             }
+        // Edge case; pure sphere. In this case, check_verts implies that the
+        // sphere will be outside.
         else
             {
-            // build a sphero-polyhedron and for the wall and the convex polyhedron
-
-            quat<OverlapReal> q; // default is (1, 0, 0, 0)
-            unsigned int err = 0;
-            ShapeSpheropolyhedron wall_shape(q, *wall.verts);
-            ShapeSpheropolyhedron part_shape(shape.orientation, shape.verts);
-
-            accept = !test_overlap(shifted_pos, wall_shape, part_shape, err);
+            accept = false;
             }
         }
     return accept;
@@ -305,7 +295,7 @@ DEVICE inline bool test_confined<CylinderWall, ShapeSphere>(const CylinderWall& 
     }
 
 // Cylindrical Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <CylinderWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const CylinderWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -375,7 +365,7 @@ DEVICE inline bool test_confined<PlaneWall, ShapeSphere>(const PlaneWall& wall, 
     }
 
 // Plane Walls and Convex Polyhedra
-DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box) // <PlaneWall, ShapeConvexPolyhedron<max_verts> >
+DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
     {
     bool accept = true;
     Scalar3 t = vec_to_scalar3(position - box_origin);
@@ -396,6 +386,36 @@ DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeConvexPolyhed
     return accept;
     }
 
+// Plane Walls and Convex Spheropolyhedra
+DEVICE inline bool test_confined(const PlaneWall& wall, const ShapeSpheropolyhedron& shape, const vec3<Scalar>& position, const vec3<Scalar>& box_origin, const BoxDim& box)
+    {
+    bool accept = true;
+    Scalar3 t = vec_to_scalar3(position - box_origin);
+    vec3<OverlapReal> shifted_pos(box.minImage(t));
+    OverlapReal max_dist = dot(wall.normal, shifted_pos) + wall.d; // proj onto unit normal. (signed distance)
+    accept = OverlapReal(0.0) < max_dist; // center is on the correct side of the plane.
+    if(accept && (max_dist <= shape.getCircumsphereDiameter()/OverlapReal(2.0)))
+        {
+        if (shape.verts.N)
+            {
+            for(size_t v = 0; v < shape.verts.N && accept; v++)
+                {
+                vec3<OverlapReal> pos(shape.verts.x[v], shape.verts.y[v], shape.verts.z[v]);
+                vec3<OverlapReal> rotated_pos = rotate(quat<OverlapReal>(shape.orientation), pos);
+                rotated_pos += shifted_pos;
+                max_dist = dot(wall.normal, rotated_pos) + wall.d;  // proj onto unit normal. (signed distance)
+                accept = OverlapReal(shape.verts.sweep_radius) < max_dist;            // vert is on the correct side of the plane.
+                }
+            }
+        // Pure sphere
+        else
+            {
+                accept = OverlapReal(shape.verts.sweep_radius) < max_dist;
+            }
+        }
+    return accept;
+    }
+
 template< class Shape >
 class ExternalFieldWall : public ExternalFieldMono<Shape>
     {
@@ -411,11 +431,6 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
           {
           m_pdata->getBoxChangeSignal().template disconnect<ExternalFieldWall<Shape>, &ExternalFieldWall<Shape>::scaleWalls>(this);
           }
-
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru&)
-            {
-            return fabs(fast::exp(energydiff(index, position_old, shape_old, position_new, shape_new) - Scalar(1.0))) < SMALL;
-            }
 
         double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
@@ -478,7 +493,7 @@ class ExternalFieldWall : public ExternalFieldMono<Shape>
                 }
             }
 
-        // assumes CUBIC box
+        // assumes cubic box
         void scaleWalls()
             {
             BoxDim newBox = m_pdata->getGlobalBox();
