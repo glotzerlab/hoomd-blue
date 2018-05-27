@@ -45,6 +45,13 @@ ForceComposite::ForceComposite(std::shared_ptr<SystemDefinition> sysdef)
     GlobalArray<unsigned int> body_len(m_pdata->getNTypes(), m_exec_conf);
     m_body_len.swap(body_len);
 
+    // reset elements to zero
+    ArrayHandle<unsigned int> h_body_len(m_body_len, access_location::host, access_mode::readwrite);
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        h_body_len.data[i] = 0;
+        }
+
     #ifdef ENABLE_CUDA
     GlobalVector<unsigned int> rigid_center(m_exec_conf);
     m_rigid_center.swap(rigid_center);
