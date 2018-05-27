@@ -208,9 +208,6 @@ void NeighborListGPU::buildHeadList()
 
     if (m_prof) m_prof->push(exec_conf, "head-list");
 
-    // with the old head list, unset previous memory advice
-    unsetMemoryMapping();
-
         {
         ArrayHandle<unsigned int> d_head_list(m_head_list, access_location::device, access_mode::overwrite);
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

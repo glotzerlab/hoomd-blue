@@ -1528,57 +1528,6 @@ bool NeighborList::peekUpdate(unsigned int timestep)
 #endif
 
 #ifdef ENABLE_CUDA
-void NeighborList::unsetMemoryMapping()
-    {
-    if (m_exec_conf->isCUDAEnabled() && m_exec_conf->getNumActiveGPUs() > 1)
-        {
-        auto gpu_map = m_exec_conf->getGPUIds();
-
-        // reset old usage hints
-            {
-            ArrayHandle<unsigned int> h_head_list(m_head_list, access_location::host, access_mode::read);
-
-            for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-                {
-                cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-                if (!dev_prop.concurrentManagedAccess)
-                    continue;
-
-                auto range = m_last_gpu_partition.getRange(idev);
-
-                unsigned int start = h_head_list.data[range.first];
-                unsigned int end = (range.second == m_pdata->getN()) ? m_nlist.getNumElements() : h_head_list.data[range.second];
-
-                if (end - start > 0)
-                    cudaMemAdvise(m_nlist.get()+h_head_list.data[range.first], sizeof(unsigned int)*(end-start),
-                        cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-                }
-            }
-        CHECK_CUDA_ERROR();
-
-        for (unsigned int idev = 0; idev < m_exec_conf->getNumActiveGPUs(); ++idev)
-            {
-            cudaDeviceProp dev_prop = m_exec_conf->getDeviceProperties(idev);
-
-            if (!dev_prop.concurrentManagedAccess)
-                continue;
-
-            // set preferred location
-            auto range = m_last_gpu_partition.getRange(idev);
-            unsigned int nelem =  range.second - range.first;
-
-            if (!nelem)
-                continue;
-
-            cudaMemAdvise(m_head_list.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_n_neigh.get()+range.first, sizeof(unsigned int)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            cudaMemAdvise(m_last_pos.get()+range.first, sizeof(Scalar4)*nelem, cudaMemAdviseUnsetPreferredLocation, gpu_map[idev]);
-            }
-        CHECK_CUDA_ERROR();
-        }
-    }
-
 //! Update GPU memory locality
 void NeighborList::updateMemoryMapping()
     {
