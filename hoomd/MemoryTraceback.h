@@ -13,7 +13,7 @@
 
 #include "Messenger.h"
 
-class MemoryTraceback
+class PYBIND11_EXPORT MemoryTraceback
     {
     public:
         //! Constructor
