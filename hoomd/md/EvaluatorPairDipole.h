@@ -168,7 +168,7 @@ class EvaluatorPairDipole
                 Scalar pre2 = prefactor*q_j*r3inv;
                 Scalar pre3 = prefactor*q_j*r3inv*pidotr*kappa*rinv;
 
-                f += pre2*p_i - pre1*rvec + pre3*rvec;
+                f += pre2*p_i - pre1*rvec - pre3*rvec;
 
                 t_i += pre2*cross(p_i, rvec);
 
@@ -182,7 +182,7 @@ class EvaluatorPairDipole
                 Scalar pre2 = prefactor*q_i*r3inv;
                 Scalar pre3 = prefactor*q_i*r3inv*pjdotr*kappa*rinv;
 
-                f += pre1*rvec - pre2*p_j - pre3*rvec;
+                f += pre1*rvec - pre2*p_j + pre3*rvec;
 
                 t_j += -pre2*cross(p_j, rvec);
 
