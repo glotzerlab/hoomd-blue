@@ -7,6 +7,8 @@
 #include "IntegratorHPMCMonoGPU.cuh"
 #include "hoomd/Autotuner.h"
 
+#include <cuda_runtime.h>
+
 /*! \file IntegratorHPMCMonoGPU.h
     \brief Defines the template class for HPMC on the GPU
     \note This header cannot be compiled by nvcc
@@ -34,7 +36,7 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
                               std::shared_ptr<CellList> cl,
                               unsigned int seed);
         //! Destructor
-        virtual ~IntegratorHPMCMonoGPU() { };
+        virtual ~IntegratorHPMCMonoGPU();
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -53,6 +55,13 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
             m_tuner_excell_block_size->setEnabled(enable);
             }
 
+        //! Enable deterministic simulations
+        virtual void setDeterministic(bool deterministic)
+            {
+            this->m_exec_conf->msg->notice(2) << "hpmc: Sorting cell list to enable deterministic simulations." << std::endl;
+            m_cl->setSortCellList(deterministic);
+            }
+
     protected:
         std::shared_ptr<CellList> m_cl;           //!< Cell list
         GPUArray<unsigned int> m_cell_sets;   //!< List of cells active during each subsweep
@@ -67,6 +76,8 @@ class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Shape>
 
         std::unique_ptr<Autotuner> m_tuner_update;             //!< Autotuner for the update step group and block sizes
         std::unique_ptr<Autotuner> m_tuner_excell_block_size;  //!< Autotuner for excell block_size
+
+        cudaStream_t m_stream;                //!< CUDA stream for update kernel
 
         //! Take one timestep forward
         virtual void update(unsigned int timestep);
@@ -118,15 +129,16 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
             while (s <= (unsigned int)dev_prop.warpSize)
                 {
                 unsigned int stride = 1;
-                while (stride <=dev_prop.warpSize/s)
+                while (stride <= block_size)
                     {
                     // for parallel overlap checks, use 3d-layout where blockDim.z is limited
-                    if (block_size/s/stride <= (unsigned int) dev_prop.maxThreadsDim[2])
+                    if (block_size % (s*stride) == 0 && block_size/(s*stride) <= (unsigned int) dev_prop.maxThreadsDim[2])
                         valid_params.push_back(block_size*1000000 + stride*100 + s);
 
-                    stride*=2;
+                    // increment stride in powers of two
+                    stride *= 2;
                     }
-                s = s * 2;
+                s++;
                 }
             }
         }
@@ -148,6 +160,19 @@ IntegratorHPMCMonoGPU< Shape >::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefi
 
     m_tuner_update.reset(new Autotuner(valid_params, 5, 1000000, "hpmc_update", this->m_exec_conf));
     m_tuner_excell_block_size.reset(new Autotuner(dev_prop.warpSize, dev_prop.maxThreadsPerBlock, dev_prop.warpSize, 5, 1000000, "hpmc_excell_block_size", this->m_exec_conf));
+
+    // create a CUDA stream
+    // streams are used to ensure memory coherency until concurrent host-gpu access is fully supported (such as for compute 6.x devices
+    // with appropriate kernel drivers)
+    cudaStreamCreate(&m_stream);
+    CHECK_CUDA_ERROR();
+    }
+
+template< class Shape >
+IntegratorHPMCMonoGPU< Shape>::~IntegratorHPMCMonoGPU()
+    {
+    cudaStreamDestroy(m_stream);
+    CHECK_CUDA_ERROR();
     }
 
 template< class Shape >
@@ -178,7 +203,7 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     if (this->m_prof) this->m_prof->push(this->m_exec_conf, "HPMC");
 
     // rng for shuffle and grid shift
-    Saru rng(this->m_seed, timestep, 0xf4a3210e);
+    hoomd::detail::Saru rng(this->m_seed, timestep, 0xf4a3210e);
 
     // if the cell list is a different size than last time, reinitialize the cell sets list
     uint3 cur_dim = this->m_cl->getDim();
@@ -228,7 +253,8 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
     ArrayHandle<hpmc_counters_t> d_counters(this->m_count_total, access_location::device, access_mode::readwrite);
 
     // access the parameters and interaction matrix
-    ArrayHandle<typename Shape::param_type> d_params(this->m_params, access_location::device, access_mode::read);
+    const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->getParams();
+
     ArrayHandle<unsigned int> d_overlaps(this->m_overlaps, access_location::device, access_mode::read);
 
     // access the move sizes by type
@@ -259,6 +285,9 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
         CHECK_CUDA_ERROR();
 
     this->m_tuner_excell_block_size->end();
+
+    // on the first iteration, shape parameters are updated
+    bool first = true;
 
     // loop over cell sets in a shuffled order
     this->m_cell_set_order.shuffle(timestep);
@@ -307,13 +336,17 @@ void IntegratorHPMCMonoGPU< Shape >::update(unsigned int timestep)
                                                                 group_size,
                                                                 this->m_hasOrientation,
                                                                 this->m_pdata->getMaxN(),
-                                                                this->m_exec_conf->dev_prop),
-                                            d_params.data);
+                                                                this->m_exec_conf->dev_prop,
+                                                                first,
+                                                                m_stream),
+                                            params.data());
 
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 
             this->m_tuner_update->end();
+
+            first = false;
             }
         }
 
@@ -424,6 +457,21 @@ void IntegratorHPMCMonoGPU< Shape >::updateCellWidth()
 
     this->m_nominal_width = this->getMaxDiameter();
     this->m_cl->setNominalWidth(this->m_nominal_width);
+
+    // attach the parameters to the kernel stream so that they are visible
+    // when other kernels are called
+    cudaStreamAttachMemAsync(m_stream, this->m_params.data(), 0, cudaMemAttachSingle);
+    CHECK_CUDA_ERROR();
+    #if (CUDART_VERSION >= 8000)
+    cudaMemAdvise(this->m_params.data(), this->m_params.size()*sizeof(typename Shape::param_type), cudaMemAdviseSetReadMostly, 0);
+    CHECK_CUDA_ERROR();
+    #endif
+
+    for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
+        {
+        // attach nested memory regions
+        this->m_params[i].attach_to_stream(m_stream);
+        }
     }
 
 //! Export this hpmc integrator to python

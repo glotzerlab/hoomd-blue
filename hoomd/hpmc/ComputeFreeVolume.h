@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __COMPUTE_FREE_VOLUME__H__
@@ -100,6 +100,12 @@ ComputeFreeVolume< Shape >::ComputeFreeVolume(std::shared_ptr<SystemDefinition> 
     {
     this->m_exec_conf->msg->notice(5) << "Constructing ComputeFreeVolume" << std::endl;
 
+    // broadcast the seed from rank 0 to all other ranks.
+    #ifdef ENABLE_MPI
+        if(this->m_pdata->getDomainDecomposition())
+            bcast(m_seed, 0, this->m_exec_conf->getMPICommunicator());
+    #endif
+
     this->m_cl->setRadius(1);
     this->m_cl->setComputeTDB(false);
     this->m_cl->setFlagType();
@@ -147,9 +153,9 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         const BoxDim& box = m_pdata->getBox();
 
         // access parameters and interaction matrix
-        ArrayHandle<typename Shape::param_type> h_params(m_mc->getParams(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = m_mc->getParams();
 
+        ArrayHandle<unsigned int> h_overlaps(m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D& overlap_idx = m_mc->getOverlapIndexer();
 
         // generate n_sample random test depletants in the global box
@@ -162,7 +168,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
         for (unsigned int i = 0; i < n_sample; i++)
             {
             // select a random particle coordinate in the box
-            Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
+            hoomd::detail::Saru rng_i(i, m_seed + m_exec_conf->getRank(), timestep);
 
             Scalar xrand = rng_i.f();
             Scalar yrand = rng_i.f();
@@ -171,7 +177,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
             Scalar3 f = make_scalar3(xrand, yrand, zrand);
             vec3<Scalar> pos_i = vec3<Scalar>(box.makeCoordinates(f));
 
-            Shape shape_i(quat<Scalar>(), h_params.data[m_type]);
+            Shape shape_i(quat<Scalar>(), params[m_type]);
             if (shape_i.hasOrientation())
                 {
                 shape_i.orientation = generateRandomOrientation(rng_i);
@@ -212,7 +218,7 @@ void ComputeFreeVolume<Shape>::computeFreeVolume(unsigned int timestep)
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(m_type, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_i, shape_j)

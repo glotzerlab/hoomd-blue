@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: jglaser / All Developers are free to add commands for new features
@@ -105,8 +105,7 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(type, str):
-            type = [type];
+        type = hoomd.util.listify(type)
 
         for typei in type:
             self.set_single(typei, coeffs);
@@ -329,6 +328,78 @@ class lj(_special_pair):
 
         lj1 = 4.0 * epsilon * math.pow(sigma, 12.0);
         lj2 = alpha * 4.0 * epsilon * math.pow(sigma, 6.0);
-        return _hoomd.make_scalar3(lj1, lj2,r_cut);
+        r_cut_squared = r_cut * r_cut
+        return _hoomd.make_scalar3(lj1, lj2, r_cut_squared);
 
+
+class coulomb(_special_pair):
+    R""" Coulomb special pair potential.
+
+    Args:
+        name (str): Name of the special_pair instance.
+
+    :py:class:`coulomb` specifies a Coulomb potential energy between the two particles in each defined pair.
+
+    This is useful for implementing e.g. special 1-4 interactions in all-atom force fields. It uses a standard Coulomb interaction with a scaling parameter. This allows for using this for scaled 1-4 interactions like in OPLS where both the 1-4 LJ and Coulomb interactions are scaled by 0.5.
+
+    .. math::
+        :nowrap:
+
+        \begin{eqnarray*}
+        V_{\mathrm{Coulomb}}(r)  = & \alpha \cdot \left[ \frac{q_{a}q_{b}}{r} \right] & r < r_{\mathrm{cut}} \\
+                            = & 0 & r \ge r_{\mathrm{cut}} \\
+        \end{eqnarray*}
+
+    where :math:`\vec{r}` is the vector pointing from one particle to the other in the bond.
+
+    Coefficients:
+
+    - :math:`\alpha` - Coulomb scaling factor (defaults to 1.0)
+    - :math:`\q_{a}` - charge of particle a (in hoomd charge units)
+    - :math:`\q_{b}` - charge of particle b (in hoomd charge units)
+    - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
+
+    Example::
+
+        coul = special_pair.coulomb(name="myOPLS_style")
+        coul.pair_coeff.set('pairtype_1', alpha=0.5, r_cut=1.1)
+
+    Note:
+        The energy of special pair interactions is reported in a log quantity **special_pair_coul_energy**, which
+        is separate from those of other non-bonded interactions. Therefore, the total energy of non-bonded interactions
+        is obtained by adding that of standard and special interactions.
+
+    .. versionadded:: 2.2
+    .. versionchanged:: 2.2
+
+    """
+    def __init__(self, name=None):
+        hoomd.util.print_status_line();
+
+        # initialize the base class
+        _special_pair.__init__(self);
+
+        # check that some bonds are defined
+        if hoomd.context.current.system_definition.getPairData().getNGlobal() == 0:
+            hoomd.context.msg.error("No pairs are defined.\n");
+            raise RuntimeError("Error creating special pair forces");
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.PotentialSpecialPairCoulomb(hoomd.context.current.system_definition,self.name);
+        else:
+            self.cpp_force = _md.PotentialSpecialPairCoulombGPU(hoomd.context.current.system_definition,self.name);
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        # setup the coefficient options
+        self.required_coeffs = ['alpha', 'r_cut'];
+        self.pair_coeff.set_default_coeff('alpha', 1.0);
+
+    def process_coeff(self, coeff):
+        r_cut = coeff['r_cut'];
+        alpha = coeff['alpha'];
+
+        r_cut_squared = r_cut * r_cut;
+        return _hoomd.make_scalar2(alpha, r_cut_squared);
 

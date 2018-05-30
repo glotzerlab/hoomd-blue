@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
@@ -12,6 +12,7 @@ the MPI configuration for the job, etc...
 import os
 import hoomd
 from hoomd import _hoomd
+from hoomd import cite
 import socket
 import getpass
 import platform
@@ -150,6 +151,9 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
+        ## Stored reference to the reader that was used to initialize the system
+        self.state_reader = None;
+
     def set_current(self):
         R""" Force this to be the current context
         """
@@ -200,7 +204,6 @@ def initialize(args=None):
 
     """
     global exec_conf, msg, options, current, _prev_args
-    _prev_args = args;
 
     if exec_conf is not None:
         if args != _prev_args:
@@ -208,8 +211,16 @@ def initialize(args=None):
         current = SimulationContext();
         return current
 
+    _prev_args = args;
+
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
+
+    # output the version info on initialization
+    msg.notice(1, _hoomd.output_version_info())
+
+    # ensure creation of global bibliography to print HOOMD base citations
+    cite._ensure_global_bib()
 
     _create_exec_conf();
 

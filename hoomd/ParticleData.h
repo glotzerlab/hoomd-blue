@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -121,7 +121,7 @@ template <class Real>
 struct SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
-        : size(0)
+        : size(0), is_accel_set(false)
         {
         }
 
@@ -198,6 +198,8 @@ struct SnapshotParticleData {
 
     unsigned int size;                         //!< number of particles in this snapshot
     std::vector<std::string> type_mapping;     //!< Mapping between particle type ids and names
+
+    bool is_accel_set;                         //!< Flag indicating if accel is set
     };
 
 //! Structure to store packed particle data
@@ -216,6 +218,9 @@ struct pdata_element
     Scalar4 angmom;            //!< Angular momentum
     Scalar3 inertia;           //!< Principal moments of inertia
     unsigned int tag;          //!< global tag
+    Scalar4 net_force;         //!< net force
+    Scalar4 net_torque;        //!< net torque
+    Scalar net_virial[6];      //!< net virial
     };
 
 //! Manages all of the data arrays for the particles
@@ -319,6 +324,10 @@ struct pdata_element
     torque with getTorqueArray(). Individual inertia tensor values can be accessed with getMomentsOfInertia() and
     setMomentsOfInertia()
 
+    The current maximum diameter of all composite particles is stored in ParticleData and can be requested
+    by the NeighborList or other classes to compute rigid body interactions correctly. The maximum value
+    is updated by querying all classes that compute rigid body forces for updated values whenever needed.
+
     ## Origin shifting
 
     Parallel MC simulations randomly translate all particles by a fixed vector at periodic intervals. This motion
@@ -333,6 +342,21 @@ struct pdata_element
     Two routines support this: translateOrigin() and resetOrigin(). The position of the origin is tracked by
     ParticleData internally. translateOrigin() moves it by a given vector. resetOrigin() zeroes it. TODO: This might
     not be sufficient for simulations where the box size changes. We'll see in testing.
+
+    ## Acceleration data
+
+    Most initialization routines do not provide acceleration data. In this case, the integrator needs to compute
+    appropriate acceleration data before time step 0 for integration to be correct.
+
+    However, the acceleration data is valid on taking/restoring a snapshot or executing additional run() commands
+    and there is no need for the integrator to provide acceleration. Doing so produces incorrect results
+    with some integrators (see issue #252). Future updates to gsd may enable restarting with acceleration data from
+    a file.
+
+    The solution is to store a flag in the particle data (and in the snapshot) indicating if the acceleration data
+    is valid. When it is not valid, the integrator will compute accelerations and make it valid in prepRun(). When it
+    is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
+    valid flag.
 */
 class ParticleData
     {
@@ -418,6 +442,20 @@ class ParticleData
          */
         void setNGlobal(unsigned int nglobal);
 
+        //! Get the accel set flag
+        /*! \returns true if the acceleration has already been set
+        */
+        inline bool isAccelSet()
+            {
+            return m_accel_set;
+            }
+
+        //! Set the accel set flag to true
+        inline void notifyAccelSet()
+            {
+            m_accel_set = true;
+            }
+
         //! Get the number of particle types
         /*! \return Number of particle types
             \note Particle types are indexed from 0 to NTypes-1
@@ -486,6 +524,19 @@ class ParticleData
                 }
             #endif
             return has_bodies;
+            }
+
+        //! Return the maximum diameter of all registered composite particles
+        Scalar getMaxCompositeParticleDiameter()
+            {
+            Scalar d_max = 0.0;
+            m_composite_particles_signal.emit_accumulate([&](Scalar d)
+                                                            {
+                                                            if (d > d_max) d_max = d;
+                                                            }
+                                                        );
+
+            return d_max;
             }
 
         //! Return positions and types
@@ -678,6 +729,14 @@ class ParticleData
             return m_num_types_signal;
             }
 
+        //! Connects a funtion to be called every time the maximum diameter of composite particles is needed
+        /*! The signal slot returns the maximum diameter
+         */
+        Nano::Signal< Scalar()>& getCompositeParticlesSignal()
+            {
+            return m_composite_particles_signal;
+            }
+
         //! Gets the particle type index given a name
         unsigned int getTypeByName(const std::string &name) const;
 
@@ -795,6 +854,9 @@ class ParticleData
 
         //! Get the net torque on a given particle
         Scalar4 getNetTorque(unsigned int tag) const;
+
+        //! Get the net virial for a given particle
+        Scalar getPNetVirial(unsigned int tag, unsigned int component) const;
 
         //! Set the current position of a particle
         /*! \param move If true, particle is automatically placed into correct domain
@@ -1002,6 +1064,7 @@ class ParticleData
         Nano::Signal<void ()> m_ghost_particles_removed_signal; //!< Signal that is triggered when ghost particles are removed
         Nano::Signal<void ()> m_global_particle_num_signal; //!< Signal that is triggered when the global number of particles changes
         Nano::Signal<void ()> m_num_types_signal;  //!< Signal that is triggered when the number of types changes
+        Nano::Signal<Scalar ()> m_composite_particles_signal;  //!< Signal that is triggered when the maximum diameter of a composite particle is needed
 
         #ifdef ENABLE_MPI
         Nano::Signal<void (unsigned int, unsigned int, unsigned int)> m_ptl_move_signal; //!< Signal when particle moves between domains
@@ -1011,6 +1074,7 @@ class ParticleData
         unsigned int m_nghosts;                     //!< number of ghost particles
         unsigned int m_max_nparticles;              //!< maximum number of particles
         unsigned int m_nglobal;                     //!< global number of particles
+        bool m_accel_set;                           //!< Flag to tell if acceleration data has been set
 
         // per-particle data
         GPUArray<Scalar4> m_pos;                    //!< particle positions and types

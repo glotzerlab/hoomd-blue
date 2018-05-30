@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -76,6 +76,12 @@ class mode_standard(_integrator):
 
         integrate.mode_standard(dt=0.005)
         integrator_mode = integrate.mode_standard(dt=0.001)
+
+    Some integration methods (notable :py:class:`nvt`, :py:class:`npt` and :py:class:`nph` maintain state between
+    different :py:func:`hoomd.run()` commands, to allow for restartable simulations. After adding or removing particles, however,
+    a new :py:func:`hoomd.run()` will continue from the old state and the integrator variables will re-equilibrate.
+    To ensure equilibration from a unique reference state (such as all integrator variables set to zero),
+    the method :py:method:reset_methods() can be use to re-initialize the variables.
     """
     def __init__(self, dt, aniso=None):
         hoomd.util.print_status_line();
@@ -136,6 +142,23 @@ class mode_standard(_integrator):
             self.aniso = aniso
             self.cpp_integrator.setAnisotropicMode(anisoMode)
 
+    def reset_methods(self):
+        R""" (Re-)initialize the integrator variables in all integration methods
+        ..versionadded:: v2.2
+
+        Examples::
+
+            run(100)
+            # .. modify the system state, e.g. add particles ..
+            integrator_mode.reset_methods()
+            run(100)
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+        self.cpp_integrator.initializeIntegrationMethods();
+
+
 class nvt(_integration_method):
     R""" NVT Integration via the Nosé-Hoover thermostat.
 
@@ -160,9 +183,9 @@ class nvt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -216,13 +239,13 @@ class nvt(_integration_method):
         R""" Changes parameters of an existing integrator.
 
         Args:
-            T (float): New temperature (if set) (in energy units)
+            kT (float): New temperature (if set) (in energy units)
             tau (float): New coupling constant (if set) (in time units)
 
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(tau=0.7, T=2.0)
+            integrator.set_params(tau=0.7, kT=2.0)
 
         """
         hoomd.util.print_status_line();
@@ -259,6 +282,7 @@ class npt(_integration_method):
         all (bool): if True, rescale all lengths and tilt factors and components of particle coordinates and velocities
         nph (bool): if True, integrate without a thermostat, i.e. in the NPH ensemble
         rescale_all (bool): if True, rescale all particles, not only those in the group
+        gamma: (:py:obj:`float`): Dimensionless damping factor for the box degrees of freedom (default: 0)
 
     :py:class:`npt` performs constant pressure, constant temperature simulations, allowing for a fully deformable
     simulation box.
@@ -333,7 +357,7 @@ class npt(_integration_method):
     * `T. Yu et. al. 2010 <http://dx.doi.org/10.1016/j.chemphys.2010.02.014>`_
     * Glaser et. al (2013), to be published
 
-    Both *T* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
+    Both *kT* and *P* can be variant types, allowing for temperature/pressure ramps in simulation runs.
 
     :math:`\tau` is related to the Nosé mass :math:`Q` by
 
@@ -341,7 +365,7 @@ class npt(_integration_method):
 
         \tau = \sqrt{\frac{Q}{g k_B T_0}}
 
-    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*T* above).
+    where :math:`g` is the number of degrees of freedom, and :math:`k_B T_0` is the set point (*kT* above).
 
     A :py:class:`hoomd.compute.thermo` is automatically specified and associated with *group*.
 
@@ -356,7 +380,7 @@ class npt(_integration_method):
         # triclinic symmetry
         integrator = integrate.npt(group=all, tau=1.0, kT=0.65, tauP = 1.2, P=2.0, couple="none", rescale_all=True)
     """
-    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None):
+    def __init__(self, group, kT=None, tau=None, S=None, P=None, tauP=None, couple="xyz", x=True, y=True, z=True, xy=False, xz=False, yz=False, all=False, nph=False, rescale_all=None, gamma=None):
         hoomd.util.print_status_line();
 
         # check the input
@@ -369,6 +393,10 @@ class npt(_integration_method):
                 kT=1.0
                 tau=1.0
 
+        if (tauP is None):
+                hoomd.context.msg.error("integrate.npt: Need barostat time scale tauP.\n");
+                raise RuntimeError("Error setting up NPT integration.");
+
         # initialize base class
         _integration_method.__init__(self);
 
@@ -380,7 +408,7 @@ class npt(_integration_method):
             self.S = [P,P,P,0,0,0]
         else:
             # S is a stress, should be [xx, yy, zz, yz, xz, xy]
-            if (len(S)==6):
+            if S is not None and len(S)==6:
                 self.S = S
             else:
                 raise RuntimeError("Unrecognized stress tensor form");
@@ -483,6 +511,9 @@ class npt(_integration_method):
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
 
+        if gamma is not None:
+            self.cpp_method.setGamma(gamma)
+
         self.cpp_method.validateGroup()
 
         # store metadata
@@ -501,7 +532,7 @@ class npt(_integration_method):
         self.yz = yz
         self.nph = nph
 
-    def set_params(self, kT=None, tau=None, S=None, P=None, tauP=None, rescale_all=None):
+    def set_params(self, kT=None, tau=None, S=None, P=None, tauP=None, rescale_all=None, gamma=None):
         R""" Changes parameters of an existing integrator.
 
         Args:
@@ -515,7 +546,7 @@ class npt(_integration_method):
         Examples::
 
             integrator.set_params(tau=0.6)
-            integrator.set_params(dt=3e-3, T=2.0, P=1.0)
+            integrator.set_params(dt=3e-3, kT=2.0, P=1.0)
 
         """
         hoomd.util.print_status_line();
@@ -553,6 +584,8 @@ class npt(_integration_method):
         if rescale_all is not None:
             self.cpp_method.setRescaleAll(rescale_all)
             self.rescale_all = rescale_all
+        if gamma is not None:
+            self.cpp_method.setGamma(gamma)
 
     ## \internal
     # \brief Return information about this integration method
@@ -592,19 +625,20 @@ class nph(npt):
 
     Args:
         params: keyword arguments passed to :py:class:`npt`.
+        gamma: (:py:obj:`float`, units of energy): Damping factor for the box degrees of freedom
 
     :py:class:`nph` performs constant pressure (NPH) simulations using a Martyna-Tobias-Klein barostat, an
     explicitly reversible and measure-preserving integration scheme. It allows for fully deformable simulation
     cells and uses the same underlying integrator as :py:class:`npt` (with *nph=True*).
 
-    The available options are identical to those of :py:class:`npt`, except that *T* cannot be specified.
+    The available options are identical to those of :py:class:`npt`, except that *kT* cannot be specified.
     For further information, refer to the documentation of :py:class:`npt`.
 
     Note:
-         A time scale *tau_p* for the relaxation of the barostat is required. This is defined as the
+         A time scale *tauP* for the relaxation of the barostat is required. This is defined as the
          relaxation time the barostat would have at an average temperature *T_0 = 1*, and it
          is related to the internally used (Andersen) Barostat mass :math:`W` via
-         :math:`W=d N T_0 \tau_p^2`, where :math:`d` is the dimensionality and :math:`N` the number
+         :math:`W=d N T_0 \tauP^2`, where :math:`d` is the dimensionality and :math:`N` the number
          of particles.
 
     :py:class:`nph` is an integration method and must be used with :py:class:`mode_standard`.
@@ -612,9 +646,11 @@ class nph(npt):
     Examples::
 
         # Triclinic unit cell
-        nph=integrate.nph(group=all, P=2.0, tau_p=1.0, couple="none", all=True)
+        nph=integrate.nph(group=all, P=2.0, tauP=1.0, couple="none", all=True)
         # Cubic unit cell
-        nph = integrate.nph(group=all, P=2.0, tau_p=1.0)
+        nph = integrate.nph(group=all, P=2.0, tauP=1.0)
+        # Relax the box
+        nph = integrate.nph(group=all, P=0, tauP=1.0, gamma=0.1)
     """
     def __init__(self, **params):
         hoomd.util.print_status_line();
@@ -759,6 +795,8 @@ class langevin(_integration_method):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     Langevin dynamics includes the acceleration term in the Langevin equation and is useful for gently thermalizing
     systems using a small gamma. This assumption is valid when underdamped: :math:`\frac{m}{\gamma} \gg \delta t`.
     Use :py:class:`brownian` if your system is not underdamped.
@@ -775,7 +813,7 @@ class langevin(_integration_method):
 
     :py:class:`langevin` must be used with :py:class:`mode_standard`.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -976,6 +1014,8 @@ class brownian(_integration_method):
         Change the seed if you reset the simulation time step to 0. If you keep the same seed, the simulation
         will continue with the same sequence of random numbers used previously and may cause unphysical correlations.
 
+        For MPI runs: all ranks other than 0 ignore the seed input and use the value of rank 0.
+
     :py:class:`brownian` uses the integrator from `I. Snook, The Langevin and Generalised Langevin Approach to the Dynamics of
     Atomic, Polymeric and Colloidal Systems, 2007, section 6.2.5 <http://dx.doi.org/10.1016/B978-0-444-52129-3.50028-6>`_,
     with the exception that :math:`\vec{F}_\mathrm{R}` is drawn from a uniform random number distribution.
@@ -996,7 +1036,7 @@ class brownian(_integration_method):
 
     :py:class:`brownian` must be used with integrate.mode_standard.
 
-    *T* can be a variant type, allowing for temperature ramps in simulation runs.
+    *kT* can be a variant type, allowing for temperature ramps in simulation runs.
 
     A :py:class:`hoomd.compute.thermo` is automatically created and associated with *group*.
 
@@ -1060,7 +1100,7 @@ class brownian(_integration_method):
 
         Examples::
 
-            integrator.set_params(T=2.0)
+            integrator.set_params(kT=2.0)
 
         """
         hoomd.util.print_status_line();
@@ -1144,15 +1184,25 @@ class mode_minimize_fire(_integrator):
 
     Args:
         group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
+          Deprecated in version v2.2:
+          :py:class:`hoomd.md.integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`hoomd.md.integrate.nve()`
+          and :py:class:`hoomd.md.integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
+          automatically :py:class:`hoomd.md.integrate.nve()` will be used for integration
         dt (float): This is the maximum step size the minimizer is permitted to use.  Consider the stability of the system when setting. (in time units)
         Nmin (int): Number of steps energy change is negative before allowing :math:`\alpha` and :math:`\delta t` to adapt.
         finc (float): Factor to increase :math:`\delta t` by
         fdec (float): Factor to decrease :math:`\delta t` by
         alpha_start (float): Initial (and maximum) :math:`\alpha`
         falpha (float): Factor to decrease :math:`\alpha t` by
-        ftol (float): force convergence criteria (in force units)
+        ftol (float): force convergence criteria (in units of force over mass)
+        wtol (float): angular momentum convergence criteria (in units of angular momentum)
         Etol (float): energy convergence criteria (in energy units)
         min_steps (int): A minimum number of attempts before convergence criteria are considered
+        aniso (bool): Whether to integrate rotational degrees of freedom (bool), default None (autodetect).
+          Added in version v2.2
+
+    .. versionadded:: v2.1
+    .. versionchanged:: v2.2
 
     :py:class:`mode_minimize_fire` uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
     for a group of particles while keeping all other particles fixed.  This method is published in
@@ -1184,12 +1234,24 @@ class mode_minimize_fire(_integrator):
     If the minimization is acted over a subset of all the particles in the system, the "other" particles will be kept
     frozen but will still interact with the particles being moved.
 
-    Example::
+    Examples::
 
-        fire=integrate.mode_minimize_fire( group=group.all(), dt=0.05, ftol=1e-2, Etol=1e-7)
+        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
+        nve=integrate.nve(group=group.all())
         while not(fire.has_converged()):
            run(100)
 
+    Examples::
+
+        fire=integrate.mode_minimize_fire(dt=0.05, ftol=1e-2, Etol=1e-7)
+        nph=integrate.nph(group=group.all(),P=0.0,gamma=.5)
+        while not(fire.has_converged()):
+           run(100)
+
+    Note:
+        The algorithm requires a base integrator to update the particle position and velocities.
+        Usually this will be either NVE (to minimize energy) or NPH (to minimize energy and relax the box).
+        The quantity minimized is in any case the energy (not the enthalpy or any other quantity).
 
     Note:
         As a default setting, the algorithm will start with a :math:`\delta t = \frac{1}{10} \delta t_{max}` and
@@ -1197,38 +1259,40 @@ class mode_minimize_fire(_integrator):
         aggressive a first step, but also from quitting before having found a good search direction. The minimum number of
         attempts can be set by the user.
 
-    Warning:
-        All other integration methods must be disabled before using the FIRE energy minimizer.
-
     .. attention::
         :py:class:`mode_minimize_fire` does not function with MPI parallel simulations.
 
     """
-    def __init__(self, group, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, Etol= 1e-5, min_steps=10):
+    def __init__(self, dt, Nmin=5, finc=1.1, fdec=0.5, alpha_start=0.1, falpha=0.99, ftol = 1e-1, wtol=1e-1, Etol= 1e-5, min_steps=10, group=None, aniso=None):
         hoomd.util.print_status_line();
-
-        # Error out in MPI simulations
-        if (_hoomd.is_MPI_available()):
-            if hoomd.context.current.system_definition.getParticleData().getDomainDecomposition():
-                hoomd.context.msg.error("mode_minimize_fire is not supported in multi-processor simulations.\n\n")
-                raise RuntimeError("Error setting up integration mode.")
 
         # initialize base class
         _integrator.__init__(self);
 
         # initialize the reflected c++ class
         if not hoomd.context.exec_conf.isCUDAEnabled():
-            self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, group.cpp_group, dt);
+            self.cpp_integrator = _md.FIREEnergyMinimizer(hoomd.context.current.system_definition, dt);
         else:
-            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, group.cpp_group, dt);
+            self.cpp_integrator = _md.FIREEnergyMinimizerGPU(hoomd.context.current.system_definition, dt);
 
-        self.supports_methods = False;
+        self.supports_methods = True;
 
         hoomd.context.current.system.setIntegrator(self.cpp_integrator);
 
+        if group is not None:
+            hoomd.context.msg.warning("group is deprecated. Creating default integrate.nve().\n")
+            integrate_nve = nve(group=group)
+
+        self.aniso = aniso
+
+        hoomd.util.quiet_status();
+        if aniso is not None:
+            self.set_params(aniso=aniso)
+        hoomd.util.unquiet_status();
+
         # change the set parameters if not None
         self.dt = dt
-        self.metadata_fields = ['dt']
+        self.metadata_fields = ['dt','aniso']
 
         self.cpp_integrator.setNmin(Nmin);
         self.Nmin = Nmin
@@ -1254,6 +1318,10 @@ class mode_minimize_fire(_integrator):
         self.ftol = ftol
         self.metadata_fields.append(ftol)
 
+        self.cpp_integrator.setWtol(wtol);
+        self.wtol = wtol
+        self.metadata_fields.append(wtol)
+
         self.cpp_integrator.setEtol(Etol);
         self.Etol = Etol
         self.metadata_fields.append(Etol)
@@ -1261,6 +1329,43 @@ class mode_minimize_fire(_integrator):
         self.cpp_integrator.setMinSteps(min_steps);
         self.min_steps = min_steps
         self.metadata_fields.append(min_steps)
+
+    ## \internal
+    #  \brief Cached set of anisotropic mode enums for ease of access
+    _aniso_modes = {
+        None: _md.IntegratorAnisotropicMode.Automatic,
+        True: _md.IntegratorAnisotropicMode.Anisotropic,
+        False: _md.IntegratorAnisotropicMode.Isotropic}
+
+    def get_energy(self):
+        R""" Returns the energy after the last iteration of the minimizer
+        """
+        hoomd.util.print_status_line()
+        self.check_initialization();
+        return self.cpp_integrator.getEnergy()
+
+    def set_params(self, aniso=None):
+        R""" Changes parameters of an existing integration mode.
+
+        Args:
+            aniso (bool): Anisotropic integration mode (bool), default None (autodetect).
+
+        Examples::
+
+            integrator_mode.set_params(aniso=False)
+
+        """
+        hoomd.util.print_status_line();
+        self.check_initialization();
+
+        if aniso is not None:
+            if aniso in self._aniso_modes:
+                anisoMode = self._aniso_modes[aniso]
+            else:
+                hoomd.context.msg.error("integrate.mode_standard: unknown anisotropic mode {}.\n".format(aniso));
+                raise RuntimeError("Error setting anisotropic integration mode.");
+            self.aniso = aniso
+            self.cpp_integrator.setAnisotropicMode(anisoMode)
 
     def has_converged(self):
         R""" Test if the energy minimizer has converged.
@@ -1270,6 +1375,12 @@ class mode_minimize_fire(_integrator):
         """
         self.check_initialization();
         return self.cpp_integrator.hasConverged()
+
+    def reset(self):
+        R""" Reset the minimizer to its initial state.
+        """
+        self.check_initialization();
+        return self.cpp_integrator.reset()
 
 class berendsen(_integration_method):
     R""" Applies the Berendsen thermostat.
@@ -1289,6 +1400,9 @@ class berendsen(_integration_method):
 
     .. attention::
         :py:class:`berendsen` does not function with MPI parallel simulations.
+
+    .. attention::
+        :py:class:`berendsen` does not integrate rotational degrees of freedom.
     """
     def __init__(self, group, kT, tau):
         hoomd.util.print_status_line();

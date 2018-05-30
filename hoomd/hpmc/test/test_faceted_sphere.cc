@@ -1,6 +1,5 @@
-
 #include "hoomd/ExecutionConfiguration.h"
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
@@ -25,7 +24,7 @@ UP_TEST( construction )
     o = o * (Scalar)(Scalar(1.0)/sqrt(norm2(o)));
     Scalar radius = 1.25;
 
-    detail::faceted_sphere_params p;
+    detail::faceted_sphere_params p(0, false);
     p.N = 0;
     p.diameter = 2.0*radius;
     p.ignore = 0;
@@ -61,8 +60,7 @@ UP_TEST( overlap )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p;
-    p.N = 0;
+    detail::faceted_sphere_params p(0, false);
     p.diameter = 2.0*1.25;
     p.ignore = 0;
     p.insphere_radius = 0;
@@ -73,8 +71,7 @@ UP_TEST( overlap )
     ShapeFacetedSphere a(o, p);
     r_i = vec3<Scalar>(1,2,3);
 
-    detail::faceted_sphere_params p2;
-    p2.N = 0;
+    detail::faceted_sphere_params p2(0, false);
     p2.diameter = 2*1.75;
     p2.ignore = 0;
     p2.insphere_radius = 0;
@@ -114,8 +111,7 @@ UP_TEST( overlap_boundaries )
     vec3<Scalar> rij = pos_b - pos_a;
     rij = vec3<Scalar>(box.minImage(vec_to_scalar3(rij)));
 
-    detail::faceted_sphere_params p;
-    p.N = 0;
+    detail::faceted_sphere_params p(0, false);
     p.diameter = 2.0*1.00;
     p.ignore = 0;
     p.insphere_radius = 0;
@@ -145,8 +141,7 @@ UP_TEST( overlap_faceted )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p;
-    p.N = 1;
+    detail::faceted_sphere_params p(1, false);
     p.diameter = 1.0;
     p.n[0] = vec3<OverlapReal>(1,0,0);
     p.offset[0] = -.3;
@@ -158,15 +153,13 @@ UP_TEST( overlap_faceted )
 
     ShapeFacetedSphere a(o, p);
 
-    detail::faceted_sphere_params p2;
+    detail::faceted_sphere_params p2(1, false);
     p2.N = 0;
     p2.diameter = 1.0;
     p2.ignore = 0;
     p2.insphere_radius = 0;
-    p2.offset[0] = 0;
     p2.verts.N = 0;
     p2.additional_verts.N = 0;
-
 
     ShapeFacetedSphere b(o, p2);
     vec3<Scalar> r_ij = vec3<Scalar>(2,0,0);
@@ -254,8 +247,7 @@ UP_TEST( overlap_faceted_twofacets )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p;
-    p.N = 2;
+    detail::faceted_sphere_params p(2, false);
     p.diameter = 1.0;
     p.ignore = 0;
     p.insphere_radius = 0;
@@ -264,21 +256,15 @@ UP_TEST( overlap_faceted_twofacets )
     p.verts.diameter = 1.0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
     // this shape has two facets intersecting inside the sphere
     p.n[0] = vec3<OverlapReal>(1/sqrt(2),1/sqrt(2),0);
     p.offset[0] = -0.9*1/(2*sqrt(2));
     p.n[1] = vec3<OverlapReal>(1/sqrt(2),-1/sqrt(2),0);
     p.offset[1] = -0.9*1/(2*sqrt(2));
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
     ShapeFacetedSphere a(o, p);
 
-    detail::faceted_sphere_params p2;
-    p2.N = 0;
+    detail::faceted_sphere_params p2(0, false);
     p2.diameter = 1.0;
     p2.ignore = 0;
     p2.insphere_radius = 0;
@@ -314,8 +300,7 @@ UP_TEST( overlap_faceted_threefacets )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p;
-    p.N = 3;
+    detail::faceted_sphere_params p(3, false);
     p.diameter = 1.0;
     p.ignore = 0;
     p.insphere_radius = 0;
@@ -331,23 +316,17 @@ UP_TEST( overlap_faceted_threefacets )
     p.n[2] = vec3<OverlapReal>(sin(theta)*cos(2*phi),sin(theta)*sin(2*phi),cos(theta));
     p.offset[2] = -0.9*cos(theta)/2;
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
-    p.verts.N = 1;
+    p.verts = detail::poly3d_verts(1,false);
     p.verts.diameter = 1.0;
     p.verts.x[0] = 0;
     p.verts.y[0] = 0;
     p.verts.z[0] = 0.9/2;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     ShapeFacetedSphere a(o, p);
 
-    detail::faceted_sphere_params p2;
-    p2.N = 0;
+    detail::faceted_sphere_params p2(0, false);
     p2.diameter = 1.0;
     p2.ignore = 0;
     p2.insphere_radius = 0;
@@ -392,8 +371,7 @@ UP_TEST( overlap_faceted_offset )
     BoxDim box(100);
 
     // place test spheres
-    detail::faceted_sphere_params p;
-    p.N = 1;
+    detail::faceted_sphere_params p(1, false);
     p.diameter = 1.0;
     p.n[0] = vec3<OverlapReal>(1,0,0);
     p.ignore = 0;
@@ -405,8 +383,7 @@ UP_TEST( overlap_faceted_offset )
 
     ShapeFacetedSphere a(o, p);
 
-    detail::faceted_sphere_params p2;
-    p2.N = 0;
+    detail::faceted_sphere_params p2(0, false);
     p2.diameter = 1.0;
     p2.ignore = 0;
     p2.insphere_radius = 0;
@@ -445,21 +422,15 @@ UP_TEST( overlap_faceted_offset )
     UP_ASSERT(test_overlap(-r_ij, b,a,err_count));
     }
 
-#include "hoomd/extern/saruprng.h"
 UP_TEST( random_support_test )
     {
-    detail::faceted_sphere_params p;
+    detail::faceted_sphere_params p(6, false);
     p.diameter = 1.0;
     p.ignore = 0;
     p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
-
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
 
     // this shape has three facets coming together in a corner inside the sphere
     unsigned int n = 6;
@@ -475,9 +446,9 @@ UP_TEST( random_support_test )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
-    Saru rng;
+    hoomd::detail::Saru rng;
 
     detail::SupportFuncFacetedSphere support(p);
     for (unsigned int i = 0; i < 10000; ++i)
@@ -497,7 +468,7 @@ UP_TEST( random_support_test )
 
 UP_TEST( random_support_test_2 )
     {
-    detail::faceted_sphere_params p;
+    detail::faceted_sphere_params p(2, false);
     p.diameter = 1.0;
     p.ignore = 0;
     p.insphere_radius = 0;
@@ -505,12 +476,6 @@ UP_TEST( random_support_test_2 )
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
 
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
-
-    // this shape has three facets coming together in a corner inside the sphere
     unsigned int n = 2;
     p.N = n;
     OverlapReal phi(M_PI*20.0/180.0);
@@ -523,9 +488,9 @@ UP_TEST( random_support_test_2 )
     //p.n[n] = vec3<OverlapReal>(0,0,1);
     //p.offset[n] = -0.35;
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
-    Saru rng;
+    hoomd::detail::Saru rng;
 
     detail::SupportFuncFacetedSphere support(p);
     for (unsigned int i = 0; i < 10000; ++i)
@@ -548,18 +513,13 @@ UP_TEST( overlap_special_case )
     // parameters
     BoxDim box(100);
 
-    detail::faceted_sphere_params p;
+    detail::faceted_sphere_params p(2, false);
     p.diameter = 1.0;
     p.ignore = 0;
     p.insphere_radius = 0;
     p.verts.N = 0;
     p.additional_verts.N = 0;
     p.origin = vec3<OverlapReal>(0,0,0);
-
-    for (unsigned int i = 0; i < detail::MAX_FPOLY3D_VERTS;++i)
-        {
-        p.verts.x[i] = p.verts.y[i] = p.verts.z[i] = 0;
-        }
 
     unsigned int n = 2;
     p.N = n;
@@ -571,7 +531,7 @@ UP_TEST( overlap_special_case )
         p.offset[i] = 0;
         }
 
-    ShapeFacetedSphere::initializeVertices(p);
+    ShapeFacetedSphere::initializeVertices(p,false);
 
     // place test spheres
     ShapeFacetedSphere a(quat<Scalar>(.3300283551216,vec3<Scalar>(0.01934501715004,-0.9390037059784, 0.09475778788328)),p);

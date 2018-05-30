@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Angle potentials.
@@ -101,8 +101,7 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(type, str):
-            type = [type];
+        type = hoomd.util.listify(type)
 
         for typei in type:
             self.set_single(typei, coeffs);
@@ -272,6 +271,100 @@ class harmonic(force._force):
 
         data['angle_coeff'] = self.angle_coeff
         return data
+
+
+class cosinesq(force._force):
+    R""" Cosine squared angle potential.
+
+    The command angle.cosinesq specifies a cosine squared potential energy 
+    between every triplet of particles with an angle specified between them.
+
+    .. math::
+
+        V(\theta) = \frac{1}{2} k \left( \cos\theta - \cos\theta_0 \right)^2
+
+    where :math:`\theta` is the angle between the triplet of particles.
+    This angle style is also known as g96, since they were used in the
+    gromos96 force field. These are also the types of angles used with the
+    coarse-grained MARTINI force field.
+
+    Coefficients:
+
+    - :math:`\theta_0` - rest angle  ``t0`` (in radians)
+    - :math:`k` - potential constant ``k`` (in units of energy)
+
+    Coefficients :math:`k` and :math:`\theta_0` must be set for each type of 
+    angle in the simulation using the method :py:meth:`angle_coeff.set() <coeff.set()>`.
+    Note that the value of :math:`k` for this angle potential is not comparable to
+    the value of :math:`k` for harmonic angles, as they have different units.  
+
+    Examples::
+
+        cosinesq = angle.cosinesq()
+        cosinesq.angle_coeff.set('polymer', k=3.0, t0=0.7851)
+        cosinesq.angle_coeff.set('backbone', k=100.0, t0=1.0)
+
+    """
+    def __init__(self):
+        hoomd.util.print_status_line();
+        # check that some angles are defined
+        if hoomd.context.current.system_definition.getAngleData().getNGlobal() == 0:
+            hoomd.context.msg.error("No angles are defined.\n");
+            raise RuntimeError("Error creating angle forces");
+
+        # initialize the base class
+        force._force.__init__(self);
+
+        # setup the coefficient vector
+        self.angle_coeff = coeff();
+
+        # create the c++ mirror class
+        if not hoomd.context.exec_conf.isCUDAEnabled():
+            self.cpp_force = _md.CosineSqAngleForceCompute(
+                    hoomd.context.current.system_definition);
+        else:
+            self.cpp_force = _md.CosineSqAngleForceComputeGPU(
+                    hoomd.context.current.system_definition);
+
+        hoomd.context.current.system.addCompute(self.cpp_force, self.force_name);
+
+        self.required_coeffs = ['k', 't0'];
+
+    ## \internal
+    # \brief Update coefficients in C++
+    def update_coeffs(self):
+        coeff_list = self.required_coeffs;
+        # check that the force coefficients are valid
+        if not self.angle_coeff.verify(coeff_list):
+           hoomd.context.msg.error("Not all force coefficients are set\n");
+           raise RuntimeError("Error updating force coefficients");
+
+        # set all the params
+        ntypes = hoomd.context.current.system_definition.getAngleData().getNTypes();
+        type_list = [];
+        for i in range(0,ntypes):
+            type_list.append(
+                    hoomd.context.current.system_definition.getAngleData().getNameByType(i));
+
+        for i in range(0, ntypes):
+            # build a dict of the coeffs to pass to proces_coeff
+            coeff_dict = {};
+            for name in coeff_list:
+                coeff_dict[name] = self.angle_coeff.get(type_list[i], name);
+
+            self.cpp_force.setParams(i, coeff_dict['k'], coeff_dict['t0']);
+
+    ## \internal
+    # \brief Get metadata
+    def get_metadata(self):
+        data = force._force.get_metadata(self)
+
+        # make sure coefficients are up-to-date
+        self.update_coeffs()
+
+        data['angle_coeff'] = self.angle_coeff
+        return data
+
 
 def _table_eval(theta, V, T, width):
       dth = (math.pi) / float(width-1);

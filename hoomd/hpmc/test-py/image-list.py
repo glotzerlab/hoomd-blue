@@ -74,7 +74,7 @@ def rand_equiv_lattice(a1=[1.,0.,0.], a2=[0.,1.,0.], a3=[0.,0.,1.], ndim=3, iter
         # pick a lattice vector and direction by which to shear box and apply to remaining lattice vectors
         i = random.randint(0, ndim-1)
         e = a[i] * random.choice([-1,1])
-        a[np.arange(ndim) != i] += e
+        a[np.where(np.arange(ndim) != i)] += e
     b1, b2, b3 = a[0:3]
     return b1, b2, b3
 
@@ -396,7 +396,7 @@ class imagelist3d_test3 (unittest.TestCase):
             self.system.particles[0].orientation = q
 
             verts = np.array(poly)
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected
@@ -420,7 +420,7 @@ class imagelist3d_test3 (unittest.TestCase):
             self.system.particles[0].orientation = q
 
             verts = np.array(poly)
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected
@@ -452,7 +452,7 @@ class imagelist3d_test4 (unittest.TestCase):
             self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             self.verts = verts
@@ -487,7 +487,7 @@ class imagelist3d_test5 (unittest.TestCase):
             self.system = create_empty(N=1, box=box, particle_types=['A'])
             self.system.particles[0].orientation = q
 
-            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0,max_verts=8);
+            self.mc = hpmc.integrate.convex_polyhedron(seed=10, d=0.0);
             self.mc.shape_param.set("A", vertices=verts);
 
             # verify that overlaps are detected

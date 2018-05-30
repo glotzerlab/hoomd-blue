@@ -3,7 +3,6 @@
 
 from hoomd import *
 from hoomd import md;
-from hoomd import deprecated
 context.initialize()
 import unittest
 import os
@@ -12,7 +11,7 @@ import os
 class integrate_nvt_tests (unittest.TestCase):
     def setUp(self):
         print
-        deprecated.init.create_random(N=100, phi_p=0.05);
+        init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
         md.force.constant(fx=0.1, fy=0.1, fz=0.1)
 
         context.current.sorter.set_params(grid=8)
@@ -30,6 +29,13 @@ class integrate_nvt_tests (unittest.TestCase):
         nvt = md.integrate.nvt(all, kT=1.2, tau=0.5);
         nvt.set_params(kT=1.3);
         nvt.set_params(tau=0.6);
+
+    # test re-initialization of integrator variables
+    def test_reinit(self):
+        all = group.all()
+        integrator = md.integrate.mode_standard(dt=0.005);
+        nvt = md.integrate.nvt(all, kT=1.0, tau=0.5)
+        integrator.reset_methods()
 
     # test w/ empty group
     def test_empty(self):

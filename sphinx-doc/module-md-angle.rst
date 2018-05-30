@@ -9,6 +9,7 @@ md.angle
     :nosignatures:
 
     md.angle.harmonic
+    md.angle.cosinesq
     md.angle.table
 
 .. rubric:: Details

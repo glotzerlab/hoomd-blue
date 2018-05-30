@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __HPMC_MONO_IMPLICIT__H__
@@ -8,6 +8,7 @@
 #include "hoomd/Autotuner.h"
 
 #include <random>
+#include <cfloat>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -150,7 +151,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         void slotNumTypesChange();
 
     protected:
-        Scalar m_n_R;                                            //!< Averge depletant number density in free volume
+        Scalar m_n_R;                                            //!< Average depletant number density in free volume
         unsigned int m_type;                                     //!< Type of depletant particle to generate
 
         GPUArray<hpmc_implicit_counters_t> m_implicit_count;     //!< Counter of active cell cluster moves
@@ -163,7 +164,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
 
-        std::vector<Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
+        std::vector<hoomd::detail::Saru> m_rng_depletant;                       //!< RNGs for depletant insertion
         bool m_rng_initialized;                                  //!< True if RNGs have been initialized
         unsigned int m_n_trial;                                 //!< Number of trial re-insertions per depletant
 
@@ -196,7 +197,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
 
         //! Try inserting a depletant in a configuration such that it overlaps with the particle in the old (new) configuration
         inline bool insertDepletant(vec3<Scalar>& pos_depletant, const Shape& shape_depletant, unsigned int idx,
-            typename Shape::param_type *h_params, unsigned int *h_overlaps, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation,
+            typename Shape::param_type *params, unsigned int *h_overlaps, unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation,
             vec3<Scalar>  pos_new, quat<Scalar>& orientation_new, const typename Shape::param_type& params_new,
             unsigned int &overlap_checks, unsigned int &overlap_err_count, bool &overlap_shape, bool new_config);
     };
@@ -226,11 +227,6 @@ IntegratorHPMCMonoImplicit< Shape >::IntegratorHPMCMonoImplicit(std::shared_ptr<
     m_d_max.swap(d_max);
 
     m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
-
-    if (this->m_sysdef->getNDimensions() == 2)
-        {
-        throw std::runtime_error("2D runs not supported for this integrator.");
-        }
     }
 
 //! Destructor
@@ -259,11 +255,9 @@ void IntegratorHPMCMonoImplicit<Shape>::slotNumTypesChange()
 template< class Shape >
 void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
     {
-    ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
-
     // Depletant diameter
     quat<Scalar> o;
-    Shape shape_depletant(o, h_params.data[this->m_type]);
+    Shape shape_depletant(o, this->m_params[this->m_type]);
     m_d_dep = shape_depletant.getCircumsphereDiameter();
 
     // access GPUArrays
@@ -273,7 +267,7 @@ void IntegratorHPMCMonoImplicit< Shape >::updatePoissonParameters()
     for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
         {
         // test sphere diameter and volume
-        Shape shape_i(quat<Scalar>(), h_params.data[i_type]);
+        Shape shape_i(quat<Scalar>(), this->m_params[i_type]);
         Scalar delta = shape_i.getCircumsphereDiameter()+m_d_dep;
         h_d_max.data[i_type] = delta;
 
@@ -321,9 +315,8 @@ void IntegratorHPMCMonoImplicit< Shape >::updateCellWidth()
     if (m_n_R > Scalar(0.0))
         {
         // add range of depletion interaction
-        ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[m_type]);
+        Shape tmp(o, this->m_params[m_type]);
         this->m_nominal_width += tmp.getCircumsphereDiameter();
         }
 
@@ -355,7 +348,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         // initialize a set of random number generators
         for (unsigned int i = 0; i < n_omp_threads; ++i)
             {
-            m_rng_depletant.push_back(Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
+            m_rng_depletant.push_back(hoomd::detail::Saru(timestep,this->m_seed+this->m_exec_conf->getRank(), i));
             }
         m_rng_initialized = true;
         }
@@ -412,8 +405,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::readwrite);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::readwrite);
 
-        // access parameters and interaction matrix
-        ArrayHandle<typename Shape::param_type> h_params(this->m_params, access_location::host, access_mode::read);
+        // access interaction matrix
         ArrayHandle<unsigned int> h_overlaps(this->m_overlaps, access_location::host, access_mode::read);
 
         //access move sizes
@@ -440,9 +432,9 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
             #endif
 
             // make a trial move for i
-            Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
+            hoomd::detail::Saru rng_i(i, this->m_seed + this->m_exec_conf->getRank()*this->m_nselect + i_nselect, timestep);
             int typ_i = __scalar_as_int(postype_i.w);
-            Shape shape_i(quat<Scalar>(orientation_i), h_params.data[typ_i]);
+            Shape shape_i(quat<Scalar>(orientation_i), this->m_params[typ_i]);
             unsigned int move_type_select = rng_i.u32() & 0xffff;
             bool move_type_translate = !shape_i.hasOrientation() || (move_type_select < this->m_move_ratio);
 
@@ -517,7 +509,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_i_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
 
                                 counters.overlap_checks++;
 
@@ -603,8 +595,8 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                     #endif
 
                     generateDepletant(m_rng_depletant[thread_idx], pos_i, h_d_max.data[typ_i], h_d_min.data[typ_i], pos_test,
-                        orientation_test, h_params.data[m_type]);
-                    Shape shape_test(orientation_test, h_params.data[m_type]);
+                        orientation_test, this->m_params[m_type]);
+                    Shape shape_test(orientation_test, this->m_params[m_type]);
 
                     detail::AABB aabb_test_local = shape_test.getAABB(vec3<Scalar>(0,0,0));
 
@@ -641,70 +633,99 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         // check against overlap with old position
                         bool overlap_old = false;
 
-                        // All image boxes (including the primary)
-                        const unsigned int n_images = this->m_image_list.size();
+                        // Check if the old configuration of particle i generates an overlap
                         for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                             {
                             vec3<Scalar> pos_test_image = pos_test + this->m_image_list[cur_image];
-                            detail::AABB aabb = aabb_test_local;
-                            aabb.translate(pos_test_image);
+                            vec3<Scalar> r_ij = vec3<Scalar>(h_postype.data[i]) - pos_test_image;
 
-                            // stackless search
-                            for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
+                            n_overlap_checks++;
+
+                            // check circumsphere overlap
+                            Shape shape_i_old(quat<Scalar>(h_orientation.data[i]), this->m_params[typ_i]);
+                            OverlapReal rsq = dot(r_ij,r_ij);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i_old.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps.data[this->m_overlap_idx(m_type, typ_i)]
+                                && circumsphere_overlap
+                                && test_overlap(r_ij, shape_test, shape_i_old, overlap_err_count))
                                 {
-                                if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
+                                overlap_old = true;
+                                break;
+                                }
+                            }
+
+                        if (!overlap_old)
+                            {
+                            // All image boxes (including the primary)
+                            const unsigned int n_images = this->m_image_list.size();
+                            for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
+                                {
+                                vec3<Scalar> pos_test_image = pos_test + this->m_image_list[cur_image];
+                                detail::AABB aabb = aabb_test_local;
+                                aabb.translate(pos_test_image);
+
+                                // stackless search
+                                for (unsigned int cur_node_idx = 0; cur_node_idx < this->m_aabb_tree.getNumNodes(); cur_node_idx++)
                                     {
-                                    if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
+                                    if (detail::overlap(this->m_aabb_tree.getNodeAABB(cur_node_idx), aabb))
                                         {
-                                        for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
+                                        if (this->m_aabb_tree.isNodeLeaf(cur_node_idx))
                                             {
-                                            // read in its position and orientation
-                                            unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
-
-                                            Scalar4 postype_j;
-                                            Scalar4 orientation_j;
-
-                                            // load the old position and orientation of the j particle
-                                            postype_j = h_postype.data[j];
-                                            orientation_j = h_orientation.data[j];
-
-                                            // put particles in coordinate system of particle i
-                                            vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
-
-                                            unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                            Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
-
-                                            n_overlap_checks++;
-
-                                            // check circumsphere overlap
-                                            OverlapReal rsq = dot(r_ij,r_ij);
-                                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
-                                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                            if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
-                                                && circumsphere_overlap
-                                                && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
+                                            for (unsigned int cur_p = 0; cur_p < this->m_aabb_tree.getNodeNumParticles(cur_node_idx); cur_p++)
                                                 {
-                                                // depletant is ignored for any overlap in the old configuration
-                                                overlap_old = true;
-                                                break;
+                                                // read in its position and orientation
+                                                unsigned int j = this->m_aabb_tree.getNodeParticle(cur_node_idx, cur_p);
+
+                                                // we checked ptl i first
+                                                if (i == j) continue;
+
+                                                Scalar4 postype_j;
+                                                Scalar4 orientation_j;
+
+                                                // load the old position and orientation of the j particle
+                                                postype_j = h_postype.data[j];
+                                                orientation_j = h_orientation.data[j];
+
+                                                // put particles in coordinate system of particle i
+                                                vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
+
+                                                unsigned int typ_j = __scalar_as_int(postype_j.w);
+                                                Shape shape_j(quat<Scalar>(orientation_j), this->m_params[typ_j]);
+
+                                                n_overlap_checks++;
+
+                                                // check circumsphere overlap
+                                                OverlapReal rsq = dot(r_ij,r_ij);
+                                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_j.getCircumsphereDiameter();
+                                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                                                if (h_overlaps.data[this->m_overlap_idx(m_type,typ_j)]
+                                                    && circumsphere_overlap
+                                                    && test_overlap(r_ij, shape_test, shape_j, overlap_err_count))
+                                                    {
+                                                    // depletant is ignored for any overlap in the old configuration
+                                                    overlap_old = true;
+                                                    break;
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                else
-                                    {
-                                    // skip ahead
-                                    cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
-                                    }
+                                    else
+                                        {
+                                        // skip ahead
+                                        cur_node_idx += this->m_aabb_tree.getNodeSkip(cur_node_idx);
+                                        }
+
+                                    if (overlap_old)
+                                        break;
+                                    }  // end loop over AABB nodes
 
                                 if (overlap_old)
                                     break;
-                                }  // end loop over AABB nodes
-
-                            if (overlap_old)
-                                break;
-                            } // end loop over images
+                                } // end loop over images
+                            }
 
                         if (!overlap_old)
                             {
@@ -726,7 +747,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                         }
                     else if (overlap_depletant && m_n_trial)
                         {
-                        const typename Shape::param_type& params_depletant = h_params.data[m_type];
+                        const typename Shape::param_type& params_depletant = this->m_params[m_type];
 
                         // Number of successful depletant insertions in new configuration
                         unsigned int n_success_new = 0;
@@ -762,10 +783,10 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                             reinsert_count++;
 
                             Shape shape_depletant_new(orientation_depletant_new, params_depletant);
-                            const typename Shape::param_type& params_i = h_params.data[__scalar_as_int(postype_i_old.w)];
+                            const typename Shape::param_type& params_i = this->m_params[__scalar_as_int(postype_i_old.w)];
 
                             bool overlap_shape = false;
-                            if (insertDepletant(pos_depletant_new, shape_depletant_new, i, h_params.data, h_overlaps.data, typ_i,
+                            if (insertDepletant(pos_depletant_new, shape_depletant_new, i, this->m_params.data(), h_overlaps.data, typ_i,
                                 h_postype.data, h_orientation.data, pos_i, shape_i.orientation, params_i,
                                 n_overlap_checks, overlap_err_count, overlap_shape, false))
                                 {
@@ -784,7 +805,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                                 generateDepletantRestricted(m_rng_depletant[thread_idx], pos_i, h_d_max.data[typ_i], delta_insphere,
                                     pos_depletant_old, orientation_depletant_old, params_depletant, pos_i_old);
                                 Shape shape_depletant_old(orientation_depletant_old, params_depletant);
-                                if (insertDepletant(pos_depletant_old, shape_depletant_old, i, h_params.data, h_overlaps.data, typ_i,
+                                if (insertDepletant(pos_depletant_old, shape_depletant_old, i, this->m_params.data(), h_overlaps.data, typ_i,
                                     h_postype.data, h_orientation.data, pos_i, shape_i.orientation, params_i,
                                     n_overlap_checks, overlap_err_count, overlap_shape, true))
                                     {
@@ -894,7 +915,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
         ArrayHandle<int3> h_image(this->m_pdata->getImages(), access_location::host, access_mode::readwrite);
 
         // precalculate the grid shift
-        Saru rng(timestep, this->m_seed, 0xf4a3210e);
+        hoomd::detail::Saru rng(timestep, this->m_seed, 0xf4a3210e);
         Scalar3 shift = make_scalar3(0,0,0);
         shift.x = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
         shift.y = rng.s(-this->m_nominal_width/Scalar(2.0),this->m_nominal_width/Scalar(2.0));
@@ -1055,7 +1076,6 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletantRestricted(RNG& 
 /*! \param pos_depletant Depletant position
  * \param shape_depletant Depletant shape
  * \param idx Index of updated particle
- * \param h_params Parameter array
  * \param h_overlaps Interaction matrix
  * \param typ_i type of updated particle
  * \param h_orientation ion array
@@ -1066,7 +1086,7 @@ inline void IntegratorHPMCMonoImplicit<Shape>::generateDepletantRestricted(RNG& 
  */
 template<class Shape>
 inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos_depletant,
-    const Shape& shape_depletant, unsigned int idx, typename Shape::param_type *h_params, unsigned int *h_overlaps,
+    const Shape& shape_depletant, unsigned int idx, typename Shape::param_type *params, unsigned int *h_overlaps,
     unsigned int typ_i, Scalar4 *h_postype, Scalar4 *h_orientation, vec3<Scalar>  pos_new, quat<Scalar>& orientation_new,
     const typename Shape::param_type& params_new, unsigned int &n_overlap_checks,
     unsigned int &overlap_err_count, bool& overlap_shape, bool new_config)
@@ -1200,7 +1220,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::insertDepletant(vec3<Scalar>& pos
                             vec3<Scalar> pos_j(postype_j);
                             Scalar4 orientation_j = h_orientation[j];
                             unsigned int type = __scalar_as_int(postype_j.w);
-                            Shape shape_j(quat<Scalar>(orientation_j), h_params[type]);
+                            Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                             if (j == idx)
                                 {

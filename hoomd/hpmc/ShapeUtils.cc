@@ -7,7 +7,8 @@ namespace hpmc{
 namespace detail{
 
 const unsigned int ConvexHull::invalid_index = -1;
-const Scalar ConvexHull::zero = Scalar(1e-5);
+  //const Scalar ConvexHull::zero = Scalar(1e-5);
+const Scalar ConvexHull::zero = Scalar(1e-7);
 
 }
 
@@ -39,10 +40,6 @@ void export_massProperties(pybind11::module& m, std::string name)
     ;
     }
 
-template void export_massProperties< ShapeConvexPolyhedron<8> >(pybind11::module& m, std::string name);
-template void export_massProperties< ShapeConvexPolyhedron<16> >(pybind11::module& m, std::string name);
-template void export_massProperties< ShapeConvexPolyhedron<32> >(pybind11::module& m, std::string name);
-template void export_massProperties< ShapeConvexPolyhedron<64> >(pybind11::module& m, std::string name);
-template void export_massProperties< ShapeConvexPolyhedron<128> >(pybind11::module& m, std::string name);
+template void export_massProperties< ShapeConvexPolyhedron >(pybind11::module& m, std::string name);
 
 }// end namespace hpmc

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mphoward
@@ -140,7 +140,8 @@ void LoadBalancer::update(unsigned int timestep)
         // force a particle migration if one is needed
         if (m_needs_migrate)
             {
-            m_comm->migrateParticles();
+            m_comm->forceMigrate();
+            m_comm->communicate(timestep);
             resetNOwn(m_pdata->getN());
             m_needs_migrate = false;
 

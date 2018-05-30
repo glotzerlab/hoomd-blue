@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -13,6 +13,7 @@ to see what they do.
 from hoomd import _hoomd;
 import hoomd;
 import sys;
+import numpy
 
 ## \internal
 # \brief Base class for analyzers
@@ -179,6 +180,30 @@ class _analyzer(hoomd.meta._metadata):
         data = hoomd.meta._metadata.get_metadata(self)
         data['enabled'] = self.enabled
         return data
+
+    @classmethod
+    def _gsd_state_name(cls):
+        raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def _connect_gsd(self, gsd):
+        # This is an internal method, and should not be called directly. See gsd.dump_state() instead
+        if isinstance(gsd, hoomd.dump.gsd) and hasattr(self.cpp_analyzer, "connectGSDSignal"):
+            self.cpp_analyzer.connectGSDSignal(gsd.cpp_analyzer, self._gsd_state_name());
+        else:
+            raise NotImplementedError("GSD Schema is not implemented for {}".format(cls.__name__));
+
+    def restore_state(self):
+        """ Resore the state information from the file used to initialize the simulations
+        """
+        hoomd.util.print_status_line();
+        if isinstance(hoomd.context.current.state_reader, _hoomd.GSDReader) and hasattr(self.cpp_analyzer, "restoreStateGSD"):
+            self.cpp_analyzer.restoreStateGSD(hoomd.context.current.state_reader, self._gsd_state_name());
+        else:
+            if hoomd.context.current.state_reader is None:
+                hoomd.context.msg.error("Can only restore after the state reader has been initialized.\n");
+            else:
+                hoomd.context.msg.error("Restoring state from {reader_name} is not currently supported for {name}\n".format(reader_name=hoomd.context.current.state_reader.__name__, name=self.__class__.__name__));
+            raise RuntimeError("Can not restore state information!");
 
 # set default counter
 _analyzer.cur_id = 0;
@@ -412,7 +437,7 @@ class log(_analyzer):
             period = 1;
 
         # create the c++ mirror class
-        self.cpp_analyzer = _hoomd.Logger(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
+        self.cpp_analyzer = _hoomd.LogPlainTXT(hoomd.context.current.system_definition, filename, header_prefix, overwrite);
         self.setupAnalyzer(period, phase);
 
         # set the logged quantities
@@ -485,8 +510,9 @@ class log(_analyzer):
             name (str): Name of the quantity
             callback (callable): A python callable object (i.e. a lambda, function, or class that implements __call__)
 
-        The callback method must take a single argument, the current timestep, and return a single floating point value to
-        be logged.
+        The callback method must take a single argument, the current
+        timestep, and return a single floating point value to be
+        logged.
 
         Note:
             One callback can query the value of another, but logged quantities are evaluated in order from left to right.

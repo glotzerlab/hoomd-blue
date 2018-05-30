@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _INTEGRATOR_HPMC_CUH_
@@ -8,7 +8,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/Index1D.h"
-#include "hoomd/extern/saruprngCUDA.h"
+#include "hoomd/Saru.h"
 
 #include <cassert>
 
@@ -69,6 +69,8 @@ struct hpmc_args_t
                 const bool _has_orientation,
                 const unsigned int _max_n,
                 const cudaDeviceProp& _devprop,
+                bool _update_shape_param,
+                cudaStream_t _stream,
                 unsigned int *_d_active_cell_ptl_idx = NULL,
                 unsigned int *_d_active_cell_accept = NULL,
                 unsigned int *_d_active_cell_move_type_translate = NULL)
@@ -106,6 +108,8 @@ struct hpmc_args_t
                   has_orientation(_has_orientation),
                   max_n(_max_n),
                   devprop(_devprop),
+                  update_shape_param(_update_shape_param),
+                  stream(_stream),
                   d_active_cell_ptl_idx(_d_active_cell_ptl_idx),
                   d_active_cell_accept(_d_active_cell_accept),
                   d_active_cell_move_type_translate(_d_active_cell_move_type_translate)
@@ -146,6 +150,8 @@ struct hpmc_args_t
     const bool has_orientation;       //!< True if the shape has orientation
     const unsigned int max_n;         //!< Maximum size of pdata arrays
     const cudaDeviceProp& devprop;    //!< CUDA device properties
+    bool update_shape_param;          //!< If true, update size of shape param and synchronize GPU execution stream
+    cudaStream_t stream;              //!< The CUDA stream associated with the update kernel
     unsigned int *d_active_cell_ptl_idx; //!< Updated particle index per active cell (ignore if NULL)
     unsigned int *d_active_cell_accept;//!< =1 if active cell move has been accepted, =0 otherwise (ignore if NULL)
     unsigned int *d_active_cell_move_type_translate;//!< =1 if active cell move was a translation, =0 if rotation
@@ -163,7 +169,7 @@ cudaError_t gpu_hpmc_excell(unsigned int *d_excell_idx,
                             const unsigned int block_size);
 
 template< class Shape >
-cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *d_params);
+cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *params);
 
 cudaError_t gpu_hpmc_shift(Scalar4 *d_postype,
                            int3 *d_image,
@@ -268,7 +274,7 @@ __device__ inline unsigned int computeParticleCell(const Scalar3& p,
     cell. Otherwise, extremely non-uniform cell lengths (i.e. avg 1, max 4) don't cause massive performance degradation.
 
     **Indexing**
-        - threadIdx.z indexes the current group in the block
+        - threadIdx.y indexes the current group in the block
         - threadIdx.x is the offset within the current group
         - blockIdx.x runs enough blocks so that all active cells are covered
 
@@ -310,7 +316,8 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                                      unsigned int *d_active_cell_accept,
                                      unsigned int *d_active_cell_move_type_translate,
                                      const typename Shape::param_type *d_params,
-                                     unsigned int max_queue_size)
+                                     unsigned int max_queue_size,
+                                     unsigned int max_extra_bytes)
     {
     // flags to tell what type of thread we are
     bool active = true;
@@ -353,6 +360,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
 
     // load the per type pair parameters into shared memory
     extern __shared__ char s_data[];
+
     typename Shape::param_type *s_params = (typename Shape::param_type *)(&s_data[0]);
     Scalar4 *s_orientation_group = (Scalar4*)(s_params + num_types);
     Scalar3 *s_pos_group = (Scalar3*)(s_orientation_group + n_groups);
@@ -397,6 +405,15 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
                 }
             }
         }
+
+    __syncthreads();
+
+    // initialize extra shared mem
+    char *s_extra = (char *)(s_type_group + n_groups);
+
+    unsigned int available_bytes = max_extra_bytes;
+    for (unsigned int cur_type = 0; cur_type < num_types; ++cur_type)
+        s_params[cur_type].load_shared(s_extra, available_bytes);
 
     // initialize the shared memory array for communicating overlaps
     if (master && group == 0)
@@ -458,7 +475,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     if (active)
         {
         // one RNG per cell
-        SaruGPU rng(my_cell, seed+select, timestep);
+        hoomd::detail::Saru rng(my_cell, seed+select, timestep);
 
         // select one of the particles randomly from the cell
         unsigned int my_cell_offset = rand_select(rng, my_cell_size-1);
@@ -618,7 +635,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
         if (master && group == 0)
             s_still_searching = 0;
 
-        unsigned int tidx_1d = threadIdx.x+blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
+        unsigned int tidx_1d = offset + group_size*group;  // z component is for Shape parallelism
 
         // max_queue_size is always <= block size, so we just need an if here
         if (tidx_1d < min(s_queue_size, max_queue_size))
@@ -759,7 +776,7 @@ __global__ void gpu_hpmc_mpmc_kernel(Scalar4 *d_postype,
     \ingroup hpmc_kernels
 */
 template< class Shape >
-cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *d_params)
+cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param_type *params)
     {
     assert(args.d_postype);
     assert(args.d_orientation);
@@ -773,7 +790,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     assert(args.d_a);
     assert(args.d_check_overlaps);
     assert(args.group_size >= 1);
-    assert(args.block_size%(args.stride*args.group_size)==0);
+    assert(args.stride >= 1);
 
     // determine the maximum block size and clamp the input block size down
     static int max_block_size = -1;
@@ -792,21 +809,26 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     // choose a block size based on the max block size by regs (max_block_size) and include dynamic shared memory usage
     unsigned int block_size = min(args.block_size, (unsigned int)max_block_size);
 
-    // the new block size might not be a multiple of group size, decrease group size until it is
+    // the new block size might not fit the group size and stride, decrease group size until it is
     group_size = args.group_size;
 
-    while ((block_size%(args.stride*group_size)) != 0)
+    unsigned int stride = min(block_size, args.stride);
+    while (stride*group_size > block_size)
         {
         group_size--;
         }
 
-    unsigned int n_groups = block_size / group_size / args.stride;
+    unsigned int n_groups = block_size / (group_size * stride);
+    unsigned int max_queue_size = n_groups*group_size;
     unsigned int shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
-                                block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                                max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
                                 args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
                                 args.overlap_idx.getNumElements() * sizeof(unsigned int);
 
-    if (args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) >= args.devprop.sharedMemPerBlock)
+    unsigned int min_shared_bytes = args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
+               args.overlap_idx.getNumElements() * sizeof(unsigned int);
+
+    if (min_shared_bytes >= args.devprop.sharedMemPerBlock)
         throw std::runtime_error("Insufficient shared memory for HPMC kernel: reduce number of particle types or size of shape parameters");
 
     while (shared_bytes + attr.sharedSizeBytes >= args.devprop.sharedMemPerBlock)
@@ -815,27 +837,52 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
         if (block_size == 0)
             throw std::runtime_error("Insufficient shared memory for HPMC kernel");
 
-        // the new block size might not be a multiple of group size, decrease group size until it is
+        // the new block size might not fit the group size and stride, decrease group size until it is
+        stride = args.stride;
         group_size = args.group_size;
 
-        while ((block_size%(args.stride*group_size)) != 0)
+        unsigned int stride = min(block_size, args.stride);
+        while (stride*group_size > block_size)
             {
             group_size--;
             }
 
-        n_groups = block_size / group_size / args.stride;
+        n_groups = block_size / (group_size * stride);
+        max_queue_size = n_groups*group_size;
         shared_bytes = n_groups * (sizeof(unsigned int)*2 + sizeof(Scalar4) + sizeof(Scalar3)) +
-                       block_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
-                       args.num_types * (sizeof(typename Shape::param_type) + 2*sizeof(Scalar)) +
-                       args.overlap_idx.getNumElements() * sizeof(unsigned int);
+                       max_queue_size*(sizeof(unsigned int) + sizeof(unsigned int)) +
+                       min_shared_bytes;
         }
+
+    static unsigned int base_shared_bytes = UINT_MAX;
+    bool shared_bytes_changed = base_shared_bytes != shared_bytes + attr.sharedSizeBytes;
+    base_shared_bytes = shared_bytes + attr.sharedSizeBytes;
+
+    unsigned int max_extra_bytes = args.devprop.sharedMemPerBlock - base_shared_bytes;
+    static unsigned int extra_bytes = UINT_MAX;
+    if (extra_bytes == UINT_MAX || args.update_shape_param || shared_bytes_changed)
+        {
+        // required for memory coherency
+        cudaDeviceSynchronize();
+
+        // determine dynamically requested shared memory
+        char *ptr = (char *)nullptr;
+        unsigned int available_bytes = max_extra_bytes;
+        for (unsigned int i = 0; i < args.num_types; ++i)
+            {
+            params[i].load_shared(ptr, available_bytes);
+            }
+        extra_bytes = max_extra_bytes - available_bytes;
+        }
+
+    shared_bytes += extra_bytes;
 
     // setup the grid to run the kernel
     dim3 threads;
     if (Shape::isParallel())
         {
         // use three-dimensional thread-layout with blockDim.z < 64
-        threads = dim3(args.stride, group_size, n_groups);
+        threads = dim3(stride, group_size, n_groups);
         }
     else
         {
@@ -873,7 +920,7 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
     if (error != cudaSuccess)
         return error;
 
-    gpu_hpmc_mpmc_kernel<Shape><<<grid, threads, shared_bytes>>>(args.d_postype,
+    gpu_hpmc_mpmc_kernel<Shape><<<grid, threads, shared_bytes, args.stream>>>(args.d_postype,
                                                                  args.d_orientation,
                                                                  args.d_counters,
                                                                  args.d_cell_idx,
@@ -904,8 +951,9 @@ cudaError_t gpu_hpmc_update(const hpmc_args_t& args, const typename Shape::param
                                                                  args.d_active_cell_ptl_idx,
                                                                  args.d_active_cell_accept,
                                                                  args.d_active_cell_move_type_translate,
-                                                                 d_params,
-                                                                 block_size);
+                                                                 params,
+                                                                 max_queue_size,
+                                                                 max_extra_bytes);
 
     return cudaSuccess;
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -9,6 +9,7 @@
 
 #include "PotentialSpecialPair.h"
 #include "EvaluatorSpecialPairLJ.h"
+#include "EvaluatorSpecialPairCoulomb.h"
 
 #ifdef ENABLE_CUDA
 #include "PotentialSpecialPairGPU.h"
@@ -25,10 +26,14 @@
 
 //! Special pair potential force compute for LJ forces
 typedef PotentialSpecialPair<EvaluatorSpecialPairLJ> PotentialSpecialPairLJ;
+//! Special pair potential force compute for Coulomb forces
+typedef PotentialSpecialPair<EvaluatorSpecialPairCoulomb> PotentialSpecialPairCoulomb;
 
 #ifdef ENABLE_CUDA
 //! Special potential force compute for LJ forces on the GPU
 typedef PotentialSpecialPairGPU< EvaluatorSpecialPairLJ, gpu_compute_lj_forces > PotentialSpecialPairLJGPU;
+//! Special potential force compute for Coulomb forces on the GPU
+typedef PotentialSpecialPairGPU< EvaluatorSpecialPairCoulomb, gpu_compute_coulomb_forces > PotentialSpecialPairCoulombGPU;
 #endif
 
 #endif // __SPECIAL_PAIR_POTENTIALS_H__

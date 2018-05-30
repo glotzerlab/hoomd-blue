@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef __UPDATER_MUVT_IMPLICIT_H__
@@ -25,19 +25,19 @@ namespace hpmc
  * for pure GC moves see Vink and Horbach JCP 2004
  * Bolhuis Frenkel JCP 1994, Biben/Hansen J. Phys. Cond. Mat. 1996
  */
-template<class Shape>
+template<class Shape, class Integrator>
 class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
     {
     public:
         //! Constructor
         UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
-            std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > mc_implicit,
+            std::shared_ptr<Integrator > mc_implicit,
             unsigned int seed,
             unsigned int npartition);
 
     protected:
         std::poisson_distribution<unsigned int> m_poisson;   //!< Poisson distribution
-        std::shared_ptr<IntegratorHPMCMonoImplicit<Shape> > m_mc_implicit;   //!< The associated implicit depletants integrator
+        std::shared_ptr<Integrator > m_mc_implicit;   //!< The associated implicit depletants integrator
 
         /*! Check for overlaps in the new configuration
          * \param timestep  time step
@@ -149,13 +149,15 @@ class UpdaterMuVTImplicit : public UpdaterMuVT<Shape>
 
 //! Export the UpdaterMuVT class to python
 /*! \param name Name of the class in the exported python module
-    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape> will be exported
+    \tparam Shape An instantiation of UpdaterMuVTImplicit<Shape,Integrator> will be exported
 */
-template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
+template < class Shape, class Integrator >
+void export_UpdaterMuVTImplicit(pybind11::module& m, const std::string& name)
     {
-    pybind11::class_< UpdaterMuVTImplicit<Shape>, std::shared_ptr< UpdaterMuVTImplicit<Shape> > >(m, name.c_str(), pybind11::base<UpdaterMuVT<Shape> >())
+    pybind11::class_< UpdaterMuVTImplicit<Shape, Integrator>, std::shared_ptr< UpdaterMuVTImplicit<Shape, Integrator> > >(m, name.c_str(),
+          pybind11::base<UpdaterMuVT<Shape> >())
           .def(pybind11::init< std::shared_ptr<SystemDefinition>,
-            std::shared_ptr< IntegratorHPMCMonoImplicit<Shape> >, unsigned int, unsigned int>())
+            std::shared_ptr< Integrator >, unsigned int, unsigned int>())
           ;
     }
 
@@ -165,17 +167,17 @@ template < class Shape > void export_UpdaterMuVTImplicit(pybind11::module& m, co
     \param seed RNG seed
     \param npartition How many partitions to use in parallel for Gibbs ensemble (n=1 == grand canonical)
 */
-template<class Shape>
-UpdaterMuVTImplicit<Shape>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
-    std::shared_ptr<IntegratorHPMCMonoImplicit< Shape > > mc_implicit,
+template<class Shape, class Integrator>
+UpdaterMuVTImplicit<Shape, Integrator>::UpdaterMuVTImplicit(std::shared_ptr<SystemDefinition> sysdef,
+    std::shared_ptr<Integrator> mc_implicit,
     unsigned int seed,
     unsigned int npartition)
     : UpdaterMuVT<Shape>(sysdef, mc_implicit,seed,npartition), m_mc_implicit(mc_implicit)
     {
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation, Scalar &lnboltzmann)
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::tryInsertParticle(unsigned int timestep, unsigned int type, vec3<Scalar> pos, quat<Scalar> orientation, Scalar &lnboltzmann)
     {
     // check overlaps with colloid particles first
     lnboltzmann = Scalar(0.0);
@@ -192,11 +194,11 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
     // Depletant and colloid diameter
     Scalar d_dep, d_colloid;
         {
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[type_d]);
+        Shape tmp(o, params[type_d]);
         d_dep = tmp.getCircumsphereDiameter();
-        Shape shape(o, h_params.data[type]);
+        Shape shape(o, params[type]);
         d_colloid = shape.getCircumsphereDiameter();
         }
 
@@ -205,9 +207,8 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
     Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
 
 
-    #ifdef ENABLE_MPI
     unsigned int n_overlap = 0;
-
+    #ifdef ENABLE_MPI
     // number of depletants to insert
     unsigned int n_insert = 0;
 
@@ -268,50 +269,17 @@ bool UpdaterMuVTImplicit<Shape>::tryInsertParticle(unsigned int timestep, unsign
             unsigned int n_dep = getNumDepletants(timestep, V, false);
 
             // count depletants overlapping with new config (but ignore overlap in old one)
-            unsigned int n_free = 0;
-            unsigned int n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
-
-            Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-            // fix the maximum number of removed depletants at the average number
-            // of depletants in the excluded volume sphere
-            unsigned int m = (unsigned int)(V*n_R) + 1;
-            Saru rng(this->m_seed, timestep,  0x2138af32);
-            unsigned int n_remove = rand_select(rng, m-1);
-
-            if (n_free >= n_remove && n_remove >= n_overlap)
-                {
-                // compute combinatorial factor
-                for (unsigned int np = n_free; np > n_free - n_overlap; np--)
-                    {
-                    lnboltzmann -= log(np);
-                    }
-                for (unsigned int np = n_remove; np > n_remove - n_overlap; np--)
-                    {
-                    lnboltzmann += log(np);
-                    }
-
-                // compute acceptance probability for GC cluster move
-                // according to Vink and Horbach JCP 2004
-                //lnboltzmann -= log((Scalar)m);
-                for (unsigned int np = n_free; np > n_free - n_remove; np--)
-                    {
-                    lnboltzmann += log((Scalar)np/(V*n_R));
-                    }
-                }
-            else
-                {
-                // reject
-                nonzero = false;
-                }
+            unsigned int n_free;
+            n_overlap = countDepletantOverlapsInNewPosition(timestep, n_dep, delta, pos, orientation, type, n_free);
+            nonzero = !n_overlap;
             }
         }
 
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned int tag, unsigned int new_type,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::trySwitchType(unsigned int timestep, unsigned int tag, unsigned int new_type,
     Scalar &lnboltzmann)
     {
     // check overlaps with colloid particles first
@@ -342,15 +310,15 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
     // Depletant and colloid diameter
     Scalar d_dep, d_colloid, d_colloid_old;
         {
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >&  params = this->m_mc->getParams();
         quat<Scalar> o;
-        Shape tmp(o, h_params.data[type_d]);
+        Shape tmp(o, params[type_d]);
         d_dep = tmp.getCircumsphereDiameter();
 
-        Shape shape(o, h_params.data[new_type]);
+        Shape shape(o, params[new_type]);
         d_colloid = shape.getCircumsphereDiameter();
 
-        Shape shape_old(o, h_params.data[type]);
+        Shape shape_old(o, params[type]);
         d_colloid_old = shape_old.getCircumsphereDiameter();
         }
 
@@ -421,8 +389,8 @@ bool UpdaterMuVTImplicit<Shape>::trySwitchType(unsigned int timestep, unsigned i
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::tryRemoveParticle(unsigned int timestep, unsigned int tag, Scalar &lnboltzmann)
     {
     // call parent class method
     lnboltzmann = Scalar(0.0);
@@ -473,22 +441,21 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         // Depletant and colloid diameter
         Scalar d_dep, d_colloid_old;
             {
-            ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+            const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
             quat<Scalar> o;
-            Shape tmp(o, h_params.data[type_d]);
+            Shape tmp(o, params[type_d]);
             d_dep = tmp.getCircumsphereDiameter();
 
-            Shape shape_old(o, h_params.data[type]);
+            Shape shape_old(o, params[type]);
             d_colloid_old = shape_old.getCircumsphereDiameter();
             }
 
-        Scalar delta = d_dep + d_colloid_old;
-        Scalar V = Scalar(M_PI/6.0)*delta*delta*delta;
-
         #ifdef ENABLE_MPI
+
         if (this->m_gibbs)
             {
             // try inserting depletants in new configuration (where particle is removed)
+            Scalar delta = d_dep + d_colloid_old;
             if (moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag, m_mc_implicit->getNumTrials(), lnb, true))
                 {
                 lnboltzmann += lnb;
@@ -501,51 +468,15 @@ bool UpdaterMuVTImplicit<Shape>::tryRemoveParticle(unsigned int timestep, unsign
         else
         #endif
             {
-            if (nonzero)
-                {
-                Scalar n_R = m_mc_implicit->getDepletantDensity();
-
-                Saru rng(this->m_seed, timestep,  0x123763de);
-
-                // fix the maximum number of inserted depletants at the average number
-                // of depletants in the excluded volume sphere
-                unsigned int m = (unsigned int)(V*n_R)+1;
-                n_insert = rand_select(rng, m-1);
-
-                // getPosition() corrects for grid shift, add it back
-                Scalar3 p = this->m_pdata->getPosition(tag)+this->m_pdata->getOrigin();
-                int3 tmp = make_int3(0,0,0);
-                this->m_pdata->getGlobalBox().wrap(p,tmp);
-                vec3<Scalar> pos(p);
-
-                // try inserting depletants in new configuration (where particle is removed)
-
-                // generate random depletant number
-                unsigned int n_dep = getNumDepletants(timestep, V, false);
-                unsigned int n_overlap = countDepletantOverlaps(timestep, n_dep, delta, pos);
-                unsigned int n_free = n_dep - n_overlap;
-
-                nonzero = moveDepletantsIntoOldPosition(timestep, n_insert, delta, tag,  1, lnb, false);
-
-                if (nonzero)
-                    {
-                    // compute acceptance probability for GC cluster move
-                    // according to Vink and Horbach JCP 2004
-                    //lnboltzmann += log((Scalar)m);
-                    for (unsigned int np = n_free+n_insert; np > n_free; np--)
-                        {
-                        lnboltzmann += log((V*n_R)/(Scalar)np);
-                        }
-                    }
-                }
+            // just accept
             }
         } // end nglobal
 
     return nonzero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsInUpdatedRegion(unsigned int timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int new_type, unsigned int n_trial, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -562,9 +493,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x974762fa );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x974762fa );
     #else
-    Saru rng(timestep, this->m_seed, 0x974762fa );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x974762fa );
     #endif
 
     // update the aabb tree
@@ -581,8 +512,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -607,7 +539,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -657,7 +589,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
                                     unsigned int type = __scalar_as_int(postype_j.w);
 
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                                     if (h_overlaps.data[overlap_idx(type,type_d)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -700,7 +632,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
 
                         // old particle shape
                         unsigned int typ_j = __scalar_as_int(postype_j.w);
-                        Shape shape_old(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                        Shape shape_old(quat<Scalar>(orientation_j), params[typ_j]);
 
                         if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                             && check_circumsphere_overlap(r_ij, shape_test, shape_old)
@@ -709,7 +641,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
                             // overlap with old particle configuration
 
                             // new particle shape
-                            Shape shape_new(quat<Scalar>(orientation_j), h_params.data[new_type]);
+                            Shape shape_new(quat<Scalar>(orientation_j), params[new_type]);
 
                             if (!(h_overlaps.data[overlap_idx(type_d,new_type)]
                                 && check_circumsphere_overlap(r_ij, shape_test, shape_new)
@@ -745,8 +677,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsInUpdatedRegion(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoNewPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int n_trial, Scalar &lnboltzmann)
     {
     lnboltzmann = Scalar(0.0);
@@ -765,9 +697,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x123b09af );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x123b09af );
     #else
-    Saru rng(timestep, this->m_seed, 0x123b09af );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x123b09af );
     #endif
 
     // update the aabb tree
@@ -781,8 +713,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> >& params = this->m_mc->getParams();
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -813,7 +746,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -857,7 +790,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                     if (h_overlaps.data[overlap_idx(type_d,typ_j)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -882,7 +815,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
                     } // end loop over images
 
                 // checking the (0,0,0) image is sufficient
-                Shape shape(orientation, h_params.data[type]);
+                Shape shape(orientation, params[type]);
                 vec3<Scalar> r_ij = pos - pos_test;
                 if (h_overlaps.data[overlap_idx(type, type_d)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
@@ -919,8 +852,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoNewPosition(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::moveDepletantsIntoOldPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, unsigned int tag, unsigned int n_trial, Scalar &lnboltzmann, bool need_overlap_shape)
     {
     lnboltzmann = Scalar(0.0);
@@ -937,9 +870,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x64f123da );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x64f123da );
     #else
-    Saru rng(timestep, this->m_seed, 0x64f123da );
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x64f123da );
     #endif
 
     // update the aabb tree
@@ -956,8 +889,9 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_rtag(this->m_pdata->getRTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
+
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
 
         const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
@@ -986,7 +920,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                 // test depletant position
                 vec3<Scalar> pos_test = pos+r*n;
 
-                Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+                Shape shape_test(quat<Scalar>(), params[type_d]);
                 if (shape_test.hasOrientation())
                     {
                     // if the depletant is anisotropic, generate orientation
@@ -1036,7 +970,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int type = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[type]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[type]);
 
                                     if (h_overlaps.data[overlap_idx(type_d, type)]
                                         && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1074,7 +1008,7 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test;
 
                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                Shape shape(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                Shape shape(quat<Scalar>(orientation_j), params[typ_j]);
 
                 if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                     && check_circumsphere_overlap(r_ij, shape_test, shape)
@@ -1113,8 +1047,8 @@ bool UpdaterMuVTImplicit<Shape>::moveDepletantsIntoOldPosition(unsigned int time
     return !zero;
     }
 
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlapsInNewPosition(unsigned int timestep, unsigned int n_insert,
     Scalar delta, vec3<Scalar> pos, quat<Scalar> orientation, unsigned int type, unsigned int &n_free)
     {
     // number of depletants successfully inserted
@@ -1133,9 +1067,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
     #else
-    Saru rng(timestep, this->m_seed, 0x1412459a);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x1412459a);
     #endif
 
     // update the aabb tree
@@ -1151,9 +1085,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D & overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
@@ -1173,7 +1108,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1217,7 +1152,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(type_d, typ_j)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1247,7 +1182,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
                 // see if it overlaps with inserted particle
                 for (unsigned int cur_image = 0; cur_image < n_images; cur_image++)
                     {
-                    Shape shape(orientation, h_params.data[type]);
+                    Shape shape(orientation, params[type]);
 
                     vec3<Scalar> pos_test_image = pos_test + image_list[cur_image];
                     vec3<Scalar> r_ij = pos - pos_test_image;
@@ -1274,8 +1209,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlapsInNewPosition(uns
     return n_overlap;
     }
 
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos)
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::countDepletantOverlaps(unsigned int timestep, unsigned int n_insert, Scalar delta, vec3<Scalar> pos)
     {
     // number of depletants successfully inserted
     unsigned int n_overlap = 0;
@@ -1293,9 +1228,9 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
 
     // initialize another rng
     #ifdef ENABLE_MPI
-    Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
+    hoomd::detail::Saru rng(timestep, this->m_seed, this->m_exec_conf->getPartition() ^0x1412459a );
     #else
-    Saru rng(timestep, this->m_seed, 0x1412459a);
+    hoomd::detail::Saru rng(timestep, this->m_seed, 0x1412459a);
     #endif
 
     // update the aabb tree
@@ -1309,9 +1244,10 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
         ArrayHandle<Scalar4> h_postype(this->m_pdata->getPositions(), access_location::host, access_mode::read);
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
         ArrayHandle<unsigned int> h_tag(this->m_pdata->getTags(), access_location::host, access_mode::read);
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
-        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
+
+        ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
 
         // for every test depletant
@@ -1331,7 +1267,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
             // test depletant position
             vec3<Scalar> pos_test = pos+r*n;
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1375,7 +1311,7 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
                                 vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1418,8 +1354,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::countDepletantOverlaps(unsigned int tim
 
 
 //! Get a poisson-distributed number of depletants
-template<class Shape>
-unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,  Scalar V, bool local)
+template<class Shape, class Integrator>
+unsigned int UpdaterMuVTImplicit<Shape,Integrator>::getNumDepletants(unsigned int timestep,  Scalar V, bool local)
     {
     // parameter for Poisson distribution
     Scalar lambda = this->m_mc_implicit->getDepletantDensity()*V;
@@ -1450,8 +1386,8 @@ unsigned int UpdaterMuVTImplicit<Shape>::getNumDepletants(unsigned int timestep,
     return n;
     }
 
-template<class Shape>
-bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
+template<class Shape, class Integrator>
+bool UpdaterMuVTImplicit<Shape,Integrator>::boxResizeAndScale(unsigned int timestep, const BoxDim old_box, const BoxDim new_box,
     unsigned int &extra_ndof)
     {
     // call parent class method
@@ -1472,7 +1408,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
         ArrayHandle<Scalar4> h_orientation(this->m_pdata->getOrientationArray(), access_location::host, access_mode::read);
 
         // access parameters
-        ArrayHandle<typename Shape::param_type> h_params(this->m_mc->getParams(), access_location::host, access_mode::read);
+        const std::vector<typename Shape::param_type, managed_allocator<typename Shape::param_type> > & params = this->m_mc->getParams();
         ArrayHandle<unsigned int> h_overlaps(this->m_mc->getInteractionMatrix(), access_location::host, access_mode::read);
 
         const Index2D& overlap_idx = this->m_mc->getOverlapIndexer();
@@ -1499,9 +1435,9 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
 
         // draw a random vector in the box
         #ifdef ENABLE_MPI
-        Saru rng(this->m_seed, this->m_exec_conf->getNPartitions()*this->m_exec_conf->getRank()+this->m_exec_conf->getPartition(), timestep);
+        hoomd::detail::Saru rng(this->m_seed, this->m_exec_conf->getNPartitions()*this->m_exec_conf->getRank()+this->m_exec_conf->getPartition(), timestep);
         #else
-        Saru rng(this->m_seed, timestep);
+        hoomd::detail::Saru rng(this->m_seed, timestep);
         #endif
 
         uint3 dim = make_uint3(1,1,1);
@@ -1526,7 +1462,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
             f_test = (f_test + make_scalar3(grid_pos.x,grid_pos.y,grid_pos.z))/make_scalar3(dim.x,dim.y,dim.z);
             vec3<Scalar> pos_test = vec3<Scalar>(new_box.makeCoordinates(f_test));
 
-            Shape shape_test(quat<Scalar>(), h_params.data[type_d]);
+            Shape shape_test(quat<Scalar>(), params[type_d]);
             if (shape_test.hasOrientation())
                 {
                 // if the depletant is anisotropic, generate orientation
@@ -1587,7 +1523,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                 vec3<Scalar> r_ij = pos_j_old - pos_test_image_old;
 
                                 unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                 if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                     && check_circumsphere_overlap(r_ij, shape_test, shape_j)
@@ -1655,7 +1591,7 @@ bool UpdaterMuVTImplicit<Shape>::boxResizeAndScale(unsigned int timestep, const 
                                     vec3<Scalar> r_ij = vec3<Scalar>(postype_j) - pos_test_image;
 
                                     unsigned int typ_j = __scalar_as_int(postype_j.w);
-                                    Shape shape_j(quat<Scalar>(orientation_j), h_params.data[typ_j]);
+                                    Shape shape_j(quat<Scalar>(orientation_j), params[typ_j]);
 
                                     if (h_overlaps.data[overlap_idx(typ_j, type_d)]
                                          && check_circumsphere_overlap(r_ij, shape_test, shape_j)

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -46,6 +46,7 @@ struct SnapshotSystemData {
     unsigned int dimensions;               //!< The dimensionality of the system
     BoxDim global_box;                     //!< The dimensions of the simulation box
     SnapshotParticleData<Real> particle_data;    //!< The particle data
+    std::map<unsigned int, unsigned int> map; //!< Lookup particle index by tag
     BondData::Snapshot bond_data;          //!< The bond data
     AngleData::Snapshot angle_data;         //!< The angle data
     DihedralData::Snapshot dihedral_data;    //!< The dihedral data

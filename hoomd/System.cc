@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -34,13 +34,15 @@ PyObject* walltimeLimitExceptionTypeObj = 0;
 */
 System::System(std::shared_ptr<SystemDefinition> sysdef, unsigned int initial_tstep)
         : m_sysdef(sysdef), m_start_tstep(initial_tstep), m_end_tstep(0), m_cur_tstep(initial_tstep), m_cur_tps(0),
-        m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
+        m_med_tps(0), m_last_status_time(0), m_last_status_tstep(initial_tstep), m_quiet_run(false),
         m_profile(false), m_stats_period(10)
     {
     // sanity check
     assert(m_sysdef);
     m_exec_conf = m_sysdef->getParticleData()->getExecConf();
 
+    // initialize tps array
+    m_tps_list.resize(0);
     #ifdef ENABLE_MPI
     // the initial time step is defined on the root processor
     if (m_sysdef->getParticleData()->getDomainDecomposition())
@@ -211,7 +213,12 @@ void System::addUpdater(std::shared_ptr<Updater> updater, const std::string& nam
     {
     // sanity check
     assert(updater);
-    assert(period != 0);
+
+    if (period == 0)
+        {
+        m_exec_conf->msg->error() << "The period cannot be set to 0!" << endl;
+        throw runtime_error("System: cannot add Updater");
+        }
 
     // first check that the name is unique
     vector<updater_item>::iterator i;
@@ -319,6 +326,21 @@ void System::addCompute(std::shared_ptr<Compute> compute, const std::string& nam
         }
     }
 
+/*! \param compute Shared pointer to the Compute to add
+    \param name Unique name to assign to this Compute
+
+    Computes are added to the System only as a convenience for naming,
+    saving to restart files, and to activate profiling. They are never
+    directly called by the system. This method adds a compute, overwriting
+    any existing compute by the same name.
+*/
+void System::overwriteCompute(std::shared_ptr<Compute> compute, const std::string& name)
+    {
+    // sanity check
+    assert(compute);
+
+    m_computes[name] = compute;
+    }
 
 /*! \param name Name of the Compute to remove
 */
@@ -479,7 +501,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
+                    {
+                    if (m_profiler) m_profiler->push("MPI sync");
                     MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    if (m_profiler) m_profiler->pop();
+                    }
                 #endif
 
                 if (timeout_end_run)
@@ -499,8 +525,8 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 time_t predict_time = time(NULL);
 
                 // predict when the next limit_multiple will be reached
-                if (m_cur_tps != Scalar(0))
-                    predict_time += time_t(Scalar(limit_multiple) / m_cur_tps);
+                if (m_med_tps != Scalar(0))
+                    predict_time += time_t(Scalar(limit_multiple) / m_med_tps);
 
                 if (predict_time >= end_time)
                     timeout_end_run = 1;
@@ -508,7 +534,11 @@ void System::run(unsigned int nsteps, unsigned int cb_frequency,
                 #ifdef ENABLE_MPI
                 // if any processor wants to end the run, end it on all processors
                 if (m_comm)
+                    {
+                    if (m_profiler) m_profiler->push("MPI sync");
                     MPI_Allreduce(MPI_IN_PLACE, &timeout_end_run, 1, MPI_INT, MPI_SUM, m_exec_conf->getMPICommunicator());
+                    if (m_profiler) m_profiler->pop();
+                    }
                 #endif
 
                 if (timeout_end_run)
@@ -786,6 +816,25 @@ void System::generateStatusLine()
 
     // time steps per second
     Scalar TPS = Scalar(m_cur_tstep - m_last_status_tstep) / Scalar(cur_time - m_last_status_time) * Scalar(1e9);
+    // put into the tps list
+    size_t tps_size = m_tps_list.size();
+    if ((unsigned int)tps_size < 10)
+        {
+        // add to list if list less than 10
+        m_tps_list.push_back(TPS);
+        }
+    else
+        {
+        // remove the first item, add to the end
+        m_tps_list.erase(m_tps_list.begin());
+        m_tps_list.push_back(TPS);
+        }
+    tps_size = m_tps_list.size();
+    std::vector<Scalar> l_tps_list = m_tps_list;
+    std::sort(l_tps_list.begin(), l_tps_list.end());
+    // not the "true" median calculation, but it doesn't really matter in this case
+    Scalar median = l_tps_list[tps_size / 2];
+    m_med_tps = median;
     m_cur_tps = TPS;
 
     // estimated time to go (base on current TPS)
@@ -864,6 +913,7 @@ void export_System(py::module& m)
     .def("getUpdaterPeriod", &System::getUpdaterPeriod)
 
     .def("addCompute", &System::addCompute)
+    .def("overwriteCompute", &System::overwriteCompute)
     .def("removeCompute", &System::removeCompute)
     .def("getCompute", &System::getCompute)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -130,6 +130,7 @@ class ForceCompute : public Compute
             // by default, only request positions
             CommFlags flags(0);
             flags[comm_flag::position] = 1;
+            flags[comm_flag::net_force] = 1; // only used if constraints are present
             return flags;
             }
         #endif

@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander
@@ -13,6 +13,23 @@ import linecache;
 import re;
 import hoomd;
 from hoomd import _hoomd;
+
+## \internal
+# \brief Compatibility definition of a basestring for python 2/3
+try:
+    _basestring = basestring
+except NameError:
+    _basestring = str
+
+## \internal
+# \brief Checks if a variable is an instance of a string and always returns a list.
+# \param s Variable to turn into a list
+# \returns A list
+def listify(s):
+    if isinstance(s, _basestring):
+        return [s]
+    else:
+        return list(s)
 
 ## \internal
 # \brief Internal flag tracking if status lines should be quieted

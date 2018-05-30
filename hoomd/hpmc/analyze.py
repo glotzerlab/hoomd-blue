@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 """ Compute properties of hard particle configurations.
@@ -25,7 +25,7 @@ class sdf(_analyzer):
 
     :py:class:`sdf` computes a distribution function of scale parameters :math:`x`. For each particle, it finds the smallest
     scale factor :math:`1+x` that would cause the particle to touch one of its neighbors and records that in the histogram
-    :math:`s(x)`. The histogram is discreet and :math:`s(x_i) = s[i]` where :math:`x_i = i \cdot dx + dx/2`.
+    :math:`s(x)`. The histogram is discrete and :math:`s(x_i) = s[i]` where :math:`x_i = i \cdot dx + dx/2`.
 
     In an NVT simulation, the extrapolation of :math:`s(x)` to :math:`x = 0`, :math:`s(0+)` is related to the pressure.
 
@@ -88,9 +88,9 @@ class sdf(_analyzer):
         elif isinstance(mc, integrate.simple_polygon):
             cls = _hpmc.AnalyzerSDFSimplePolygon;
         elif isinstance(mc, integrate.convex_polyhedron):
-            cls = integrate._get_sized_entry('AnalyzerSDFConvexPolyhedron', mc.max_verts);
+            cls = _hpmc.AnalyzerSDFConvexPolyhedron;
         elif isinstance(mc, integrate.convex_spheropolyhedron):
-            cls = integrate._get_sized_entry('AnalyzerSDFSpheropolyhedron', mc.max_verts);
+            cls = _hpmc.AnalyzerSDFSpheropolyhedron;
         elif isinstance(mc, integrate.ellipsoid):
             cls = _hpmc.AnalyzerSDFEllipsoid;
         elif isinstance(mc, integrate.convex_spheropolygon):

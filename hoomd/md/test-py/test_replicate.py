@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md;
 context.initialize()
 import unittest
@@ -11,12 +10,7 @@ import os
 # unit tests for init.create_random
 class replicate(unittest.TestCase):
     def setUp(self):
-        self.polymer1 = dict(bond_len=1.2, type=['A']*6 + ['B']*7 + ['A']*6, bond="linear", count=100);
-        self.polymer2 = dict(bond_len=1.2, type=['B']*4, bond="linear", count=10)
-        self.polymers = [self.polymer1, self.polymer2]
-        self.box = data.boxdim(L=35);
-        self.separation=dict(A=0.42, B=0.42)
-        self.s = deprecated.init.create_random_polymers(box=self.box, polymers=self.polymers, separation=self.separation);
+        self.s = init.read_gsd(os.path.join(os.path.dirname(__file__),'test_data_polymer_system.gsd'));
         self.assert_(context.current.system_definition);
         self.assert_(context.current.system);
         self.harmonic = md.bond.harmonic();

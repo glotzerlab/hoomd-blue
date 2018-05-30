@@ -41,7 +41,7 @@ Axel Kohlmeyer, David LeBard, Ben Levine, from the ICMS group at Temple Universi
   * numerous other small contributions enhancing the usability of HOOMD
 
 Igor Morozov, Andrey Kazennov, Roman Bystryi, Joint Institute for High Temperatures of RAS (Moscow, Russia)
-  * pair.eam
+  * pair.eam (original implementation)
 
 Philipp Mertmann, Ruhr University Bochum
  * charge.pppm
@@ -86,6 +86,7 @@ Jens Glaser, University of Michigan
  * pair.reaction_field
  * Rewrite of rigid body framework
  * Multi-GPU electrostatics (PPPM)
+ * pair.van_der_waals
  * hpmc interaction_matrix
  * special_pair framework
 
@@ -99,7 +100,7 @@ Brandon D. Smith, University of Michigan
  * pair.tersoff
 
 Trung Dac Nguyen, University of Michigan
- * integreate.nve_rigid
+ * integrate.nve_rigid
  * integrate.bdnvt_rigid
  * integrate.nvt_rigid
  * integrate.npt_rigid
@@ -129,6 +130,7 @@ Michael P. Howard, Princeton University
  * Wall potentials extrapolated mode
  * XML dump by particle group
  * Fix references when disabling/enabling objects
+ * Misc. bug fixes
 
 James Antonaglia, University of Michigan
  * pair.mie
@@ -138,7 +140,7 @@ Carl Simon Adorf, University of Michigan
  * metadata output
  * Frenkel-Ladd bug fixes
 
-Paull Dodd, University of Michigan
+Paul Dodd, University of Michigan
  * pair.compute_energy
 
 Erin Teich, University of Michigan
@@ -165,112 +167,124 @@ Chengyu Dai, University of Michigan
  * Rewrite integrate.brownian with 3D rotational updates
  * Rewrite integrate.langevin with 3D rotational updates
 
-Isass Bruss, Chengyu Dai, University of Michigan
+Isaac Bruss, Chengyu Dai, University of Michigan
  * force.active
  * update.constraint_ellipsoid
 
-Bryan Vansaders, University of Michigan
- * Constant stress mode to integrate.npt.
- * map_overlaps() in hpmc.
-
 Vyas Ramasubramani, University of Michigan
  * init.read_gsd bug fixes
+ * Reverse communication for MPI
 
 Nathan Horst
  * Language and figure clarifying the dihedral angle definition.
 
 Bryan VanSaders, University of Michigan
  * constrain.oneD
+ * Constant stress mode to integrate.npt.
+ * map_overlaps() in hpmc.
+ * Torque options to force.constant and force.active
 
 Ludwig Schneider, Georg-August Univeristy Goettingen
   * Constant stress flow: hoomd.md.update.mueller_plathe_flow
+  * Matrix logging and hdf5 logging: hoomd.hdf5.log
 
+Bjørnar Jensen, University of Bergen
+ * Add Lennard-Jones 12-8 pair potential
+ * Add Buckingham/exp-6 pair potential
+ * Add special_pair Coulomb 1-4 scaling
+
+Lin Yang, Alex Travesset, Iowa State University
+  * metal.pair.eam - reworked implementation
+
+Tim Moore, Vanderbilt University
+  * angle.cosinesq
 
 HPMC developers
 ---------------
 
 The following people contributed to the :py:mod:`hoomd.hpmc` package.
 
-* Joshua Anderson, University of Michigan - Lead developer
-    * Vision
-    * Initial design
-    * Code review
-    * NVT trial move processing (CPU / GPU)
-    * Sphere shape
-    * Polygon shape
-    * Spheropolygon shape
-    * Simple polygon shape
-    * Ellipsoid shape - adaptation of Michael's Ellipsoid overlap check
-    * 2D Xenocollide implementation
-    * 2D GJKE implementation
-    * MPI parallel domain decomposition
-    * Scale distribution function pressure measurement
-    * POS writer integration
-    * Bounding box tree generation, query, and optimizations
-    * BVH implementation of trial move processing
-    * SSE and AVX intrinsics
+Joshua Anderson, University of Michigan - Lead developer
+ * Vision
+ * Initial design
+ * Code review
+ * NVT trial move processing (CPU / GPU)
+ * Sphere shape
+ * Polygon shape
+ * Spheropolygon shape
+ * Simple polygon shape
+ * Ellipsoid shape - adaptation of Michael's Ellipsoid overlap check
+ * 2D Xenocollide implementation
+ * 2D GJKE implementation
+ * MPI parallel domain decomposition
+ * Scale distribution function pressure measurement
+ * POS writer integration
+ * Bounding box tree generation, query, and optimizations
+ * BVH implementation of trial move processing
+ * SSE and AVX intrinsics
 
-* Eric Irrgang, University of Michigan
-    * NPT updater
-    * Convex polyhedron shape
-    * Convex spheropolyhedron shape
-    * 3D Xenocollide implementation
-    * 3D GJKE implementation
-    * Move size autotuner (in collaboration with Ben Schultz)
-    * Densest packing compressor (in collaboration with Ben Schultz)
-    * POS file utilities (in collaboration with Ben Schultz)
-    * Shape union low-level implementation
-    * Sphere union shape (in collaboration with Khalid Ahmed)
+Eric Irrgang, University of Michigan
+ * NPT updater
+ * Convex polyhedron shape
+ * Convex spheropolyhedron shape
+ * 3D Xenocollide implementation
+ * 3D GJKE implementation
+ * Move size autotuner (in collaboration with Ben Schultz)
+ * Densest packing compressor (in collaboration with Ben Schultz)
+ * POS file utilities (in collaboration with Ben Schultz)
+ * Shape union low-level implementation
+ * Sphere union shape (in collaboration with Khalid Ahmed)
 
-* Ben Schultz, University of Michigan
-    * Frenkel-Ladd free energy determination
-    * Move size autotuner (in collaboration with Eric Irrgang)
-    * Densest packing compressor (in collaboration with Eric Irrgang)
-    * POS file utilities (in collaboration with Eric Irrgang)
-    * Assign move size by particle type
-    * Ellipsoid overlap check bug fixes
+Ben Schultz, University of Michigan
+ * Frenkel-Ladd free energy determination
+ * Move size autotuner (in collaboration with Eric Irrgang)
+ * Densest packing compressor (in collaboration with Eric Irrgang)
+ * POS file utilities (in collaboration with Eric Irrgang)
+ * Assign move size by particle type
+ * Ellipsoid overlap check bug fixes
 
-* Jens Glaser, University of Michigan
-    * Patchy sphere shape
-    * General polyhedron shape
-    * BVH implementation for countOverlaps
-    * Hybrid BVH/small box trial move processing
-    * Helped port the Sphinx overlap check
-    * Dynamic number of particle types support
-    * Implicit depletants
+Jens Glaser, University of Michigan
+ * Patchy sphere shape
+ * General polyhedron shape
+ * BVH implementation for countOverlaps
+ * Hybrid BVH/small box trial move processing
+ * Helped port the Sphinx overlap check
+ * Dynamic number of particle types support
+ * Implicit depletants
 
-* Eric Harper, University of Michigan
-    * Misc bug fixes to move size by particle type feature
-    * Initial code for MPI domain decomposition
+Eric Harper, University of Michigan
+ * Misc bug fixes to move size by particle type feature
+ * Initial code for MPI domain decomposition
 
-* Khalid Ahmed, University of Michigan
-    * Ported the Sphinx overlap check
-    * Sphere union shape (in collaberation with Eric Irrgang)
+Khalid Ahmed, University of Michigan
+ * Ported the Sphinx overlap check
+ * Sphere union shape (in collaberation with Eric Irrgang)
 
-* Elizabeth R Chen, University of Michigan
-    * Developed the Sphinx overlap check
+Elizabeth R Chen, University of Michigan
+ * Developed the Sphinx overlap check
 
-* Carl Simon Adorf, University of Michigan
-    * meta data output
+Carl Simon Adorf, University of Michigan
+ * meta data output
 
-* Samanthule Nola, University of Michigan
-    * Run time determination of max_verts
+Samanthule Nola, University of Michigan
+ * Run time determination of max_verts
 
-* Paul Dodd, Erin Teich, University of Michigan
-    * External potential framework
-    * Wall overlap checks
-    * Lattice external potential
+Paul Dodd, Erin Teich, University of Michigan
+ * External potential framework
+ * Wall overlap checks
+ * Lattice external potential
 
 Vyas Ramasubramani, University of Michigan
  * hpmc.util.tune fixes for tuning by type
+ * hpmc.update.boxmc fixes for non-orthorhombic box volume moves
 
 DEM developers
 --------------
 
 The following people contributed to the :py:mod:`hoomd.dem` package.
 
-* Matthew Spellings, University of Michigan - Lead developer
-* Ryan Marson, University of Michigan
+Matthew Spellings, University of Michigan - Lead developer
+Ryan Marson, University of Michigan
 
 Source code
 -----------

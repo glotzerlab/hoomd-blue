@@ -18,4 +18,3 @@ if (NOT LOCAL_FFT_LIB)
     set(LOCAL_FFT_LIB LOCAL_LIB_BARE)
     message(STATUS "No CPU FFT library found, falling back on SLOW internal radix-2 FFT")
 endif()
-

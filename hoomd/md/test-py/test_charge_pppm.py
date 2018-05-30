@@ -2,7 +2,6 @@
 # Maintainer: joaander
 
 from hoomd import *
-from hoomd import deprecated
 from hoomd import md
 import unittest
 import os
@@ -12,7 +11,7 @@ context.initialize()
 # charge.pppm
 class charge_pppm_tests (unittest.TestCase):
     def setUp(self):
-        self.s = deprecated.init.create_random(N=100, phi_p=0.05);
+        self.s = init.create_lattice(lattice.sc(a=2.1878096788957757),n=[5,5,4]); #target a packing fraction of 0.05
 
         for i in range(0,50):
             self.s.particles[i].charge = -1;
@@ -60,7 +59,7 @@ class charge_pppm_twoparticle_tests (unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(xy=0.5,xz=0.5,yz=0.5,L=10))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
@@ -145,7 +144,7 @@ class charge_pppm_screening_test(unittest.TestCase):
     def setUp(self):
         print
         # initialize a two particle system in a triclinic box
-        snap = data.make_snapshot(N=2, particle_types=['A'], box = data.boxdim(L=25))
+        snap = data.make_snapshot(N=2, particle_types=[u'A1'], box = data.boxdim(L=10))
 
         if comm.get_rank() == 0:
             snap.particles.position[0] = (0,0,0)
@@ -160,7 +159,9 @@ class charge_pppm_screening_test(unittest.TestCase):
         all = group.all()
         nl = md.nlist.cell()
         c = md.charge.pppm(all, nlist = nl);
-        c.set_params(Nx=64, Ny=64, Nz=64, order=6, rcut=1.5, alpha=0.5);
+        # use a reasonably long screening length so the charges are actually interacting via
+        # the periodic boundaries
+        c.set_params(Nx=128, Ny=128, Nz=128, order=7, rcut=1.5, alpha=0.1);
         log = analyze.log(quantities = ['potential_energy'], period = 1, filename=None);
         md.integrate.mode_standard(dt=0.0);
         md.integrate.nve(all);
@@ -169,22 +170,118 @@ class charge_pppm_screening_test(unittest.TestCase):
         context.current.sorter.disable()
         run(1);
 
+        # the reference forces and energies have been obtained by
+        # summing the (derivatives of) the ionic crystal with Yukawa potential over nmax=6
+        # periodic images in Mathematica
         self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.6117382645606995, 3)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0.685379, 5)
 
         self.assertAlmostEqual(self.s.particles[1].net_force[0], 0, 5)
         self.assertAlmostEqual(self.s.particles[1].net_force[1], 0, 5)
-        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.6117382645606995, 3)
+        self.assertAlmostEqual(self.s.particles[1].net_force[2], -0.685379, 5)
 
         pe = log.query('potential_energy')
-        self.assertAlmostEqual(pe,-0.4572266042,2)
+        self.assertAlmostEqual(pe,-0.741706,5)
 
         del all
         del c
         del log
 
     def tearDown(self):
+        del self.s
+        context.initialize();
+
+# charge.pppm
+class charge_pppm_rigid_body_test(unittest.TestCase):
+    def setUp(self):
+        # initialize a two particle system in a cubic box
+        snap = data.make_snapshot(N=1, particle_types=[u'A'], box = data.boxdim(L=15))
+        if comm.get_rank() == 0:
+            snap.particles.position[0] = (0,0,0)
+            snap.particles.orientation[0] = (1,0,0,0)
+            snap.particles.charge[0] = 0
+            snap.particles.moment_inertia[0] = (1,1,1)
+
+        self.s = init.read_snapshot(snap);
+
+        self.rigid = md.constrain.rigid()
+        self.s.particles.types.add('A1')
+        self.rigid.set_param('A',types=['A1']*2,positions=[(0,0,0),(0,0,1.2)],charges=[-1,1])
+
+    # test PPPM for Yukawa interaction
+    def test_screening_noexclusion(self):
+        # create rigid particles
+        self.rigid.create_bodies()
+
+        all = group.all()
+        nl = md.nlist.cell()
+        c = md.charge.pppm(all, nlist = nl);
+        c.set_params(Nx=128, Ny=128, Nz=128, order=7, rcut=1.5, alpha=0.1);
+        log = analyze.log(quantities = ['potential_energy'], period = 1, filename=None);
+        md.integrate.mode_standard(dt=0.0);
+        md.integrate.nve(group.rigid_center());
+        # trick to allow larger decompositions
+        nl.set_params(r_buff=0.1)
+        context.current.sorter.disable()
+
+        nl.reset_exclusions()
+        run(1);
+
+        # pairwise forces on a rigid body cancel out
+        self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0, 5)
+
+        pe = log.query('potential_energy')
+        self.assertAlmostEqual(pe,-0.739741,5) # Mathematica ionic crystal calculation
+
+        del all
+        del c
+        del log
+
+    # test PPPM for Yukawa interaction with rigid body exclusions
+    def test_screening_exclusions_set(self):
+        import math
+        import numpy as np
+
+        # create rigid particles
+        self.rigid.create_bodies()
+
+        all = group.all()
+        nl = md.nlist.cell()
+        c = md.charge.pppm(all, nlist = nl);
+        kappa = 0.1
+        c.set_params(Nx=128, Ny=128, Nz=128, order=7, rcut=1.5, alpha=kappa);
+        log = analyze.log(quantities = ['potential_energy','pppm_energy','pair_ewald_energy'], period = 1, filename=None);
+        md.integrate.mode_standard(dt=0.0);
+        md.integrate.nve(group.rigid_center());
+        # trick to allow larger decompositions
+        nl.set_params(r_buff=0.1)
+        context.current.sorter.disable()
+
+        run(1);
+
+        # pairwise forces on a rigid body cancel out
+        self.assertAlmostEqual(self.s.particles[0].net_force[0], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[1], 0, 5)
+        self.assertAlmostEqual(self.s.particles[0].net_force[2], 0, 5)
+
+        pe = log.query('potential_energy')
+        dx = np.array(self.s.particles[2].position)-np.array(self.s.particles[1].position)
+        r = math.sqrt(np.dot(dx,dx))
+        pe_primary_image = -math.exp(-kappa*r)/r
+        self.assertAlmostEqual(pe_primary_image,-0.7391,4)
+
+        self.assertAlmostEqual(pe,-0.739741-pe_primary_image,5)
+
+        del all
+        del c
+        del log
+
+
+    def tearDown(self):
+        del self.rigid
         del self.s
         context.initialize();
 

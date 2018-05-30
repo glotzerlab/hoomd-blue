@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -216,7 +216,7 @@ def read_snapshot(snapshot):
         snapshot (:py:mod:`hoomd.data` snapshot): The snapshot to initialize the system.
 
     Snapshots temporarily store system data. Snapshots contain the complete simulation state in a
-    single object. They can be used to start or restart a simulation.
+    single object. Snapshots are set to time_step 0, and should not be used to restart a simulation.
 
     Example use cases in which a simulation may be started from a snapshot include user code that generates initial
     particle positions.
@@ -308,6 +308,8 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     hoomd.context.current.system = _hoomd.System(hoomd.context.current.system_definition, time_step);
 
     _perform_common_init_tasks();
+    hoomd.context.current.state_reader = reader;
+    hoomd.context.current.state_reader.clearSnapshot();
     return hoomd.data.system_data(hoomd.context.current.system_definition);
 
 def restore_getar(filename, modes={'any': 'any'}):

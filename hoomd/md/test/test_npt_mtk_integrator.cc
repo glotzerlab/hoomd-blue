@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -30,7 +30,8 @@
 #include "hoomd/CellListGPU.h"
 #endif
 
-#include "hoomd/extern/saruprng.h"
+#include "hoomd/Saru.h"
+using namespace hoomd;
 
 #include <math.h>
 
@@ -315,7 +316,7 @@ void npt_mtk_updater_test(twostep_npt_mtk_creator npt_mtk_creator, std::shared_p
     }
 
 //! Helper function to get gaussian random numbers
-Scalar inline gaussianRand(Saru& saru, Scalar sigma)
+Scalar inline gaussianRand(detail::Saru& saru, Scalar sigma)
 {
     Scalar x1 = saru.d();
     Scalar x2 = saru.d();
@@ -342,7 +343,7 @@ void nph_integration_test(twostep_npt_mtk_creator nph_creator, std::shared_ptr<E
     std::shared_ptr<ParticleData> pdata = sysdef->getParticleData();
 
     // give the particles velocities according to a Maxwell-Boltzmann distribution
-    Saru saru(54321);
+    detail::Saru saru(54321);
 
     // total up the system momentum
     Scalar3 total_momentum = make_scalar3(0.0, 0.0, 0.0);
@@ -537,18 +538,8 @@ void npt_mtk_updater_aniso(twostep_npt_mtk_creator npt_mtk_creator, std::shared_
     Scalar tau = .1;
     Scalar tauP = .1;
 
-    RandomGenerator rand_init(exec_conf, box_g, 12345, 3);
-    std::vector<string> types;
-    types.push_back("A");
-    std::vector<unsigned int> bonds;
-    std::vector<string> bond_types;
-    rand_init.addGenerator((int)N, std::shared_ptr<PolymerParticleGenerator>(new PolymerParticleGenerator(exec_conf, 1.0, types, bonds, bonds, bond_types, 100, 3)));
-    rand_init.setSeparationRadius("A", .5);
-
-    rand_init.generate();
-
-    std::shared_ptr<SnapshotSystemData<Scalar> > snap;
-    snap = rand_init.getSnapshot();
+    SimpleCubicInitializer cubic_init(10, Scalar(0.89), "A");
+    std::shared_ptr< SnapshotSystemData<Scalar> > snap = cubic_init.getSnapshot();
 
     // have to set moment of inertia to actually test aniso integration
     for(unsigned int i(0); i < snap->particle_data.size; ++i)

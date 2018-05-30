@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2016 The Regents of the University of Michigan
+# Copyright (c) 2009-2017 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -103,8 +103,7 @@ class coeff:
         hoomd.util.print_status_line();
 
         # listify the input
-        if isinstance(type, str):
-            type = [type];
+        type = hoomd.util.listify(type)
 
         for typei in type:
             self.set_single(typei, coeffs);

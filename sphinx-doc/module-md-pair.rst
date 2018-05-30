@@ -8,6 +8,7 @@ md.pair
 .. autosummary::
     :nosignatures:
 
+    md.pair.buckingham
     md.pair.dipole
     md.pair.dpd
     md.pair.dpdlj
@@ -17,12 +18,14 @@ md.pair
     md.pair.gauss
     md.pair.gb
     md.pair.lj
+    md.pair.lj1208
     md.pair.mie
     md.pair.morse
     md.pair.moliere
     md.pair.pair
     md.pair.reaction_field
     md.pair.slj
+    md.pair.square_density
     md.pair.table
     md.pair.tersoff
     md.pair.yukawa

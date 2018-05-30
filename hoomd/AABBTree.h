@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2017 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -131,7 +131,7 @@ class AABBTree
             {
             return (m_nodes[node].left == INVALID_NODE);
             }
-            
+
         //! Get the AABBNode
         /*! \param node Index of the node (not the particle) to query
          */
@@ -179,7 +179,7 @@ class AABBTree
             {
             return (m_nodes[node].particles[j]);
             }
-            
+
         //! Get the associate tag for each particle
         /*! \param node Index of the node (not the particle) to query
          *  \param j Local index in particle array for node

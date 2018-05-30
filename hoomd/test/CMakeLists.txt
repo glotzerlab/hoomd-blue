@@ -14,6 +14,7 @@ set(TEST_LIST
     test_quat
     test_rotmat2
     test_rotmat3
+    test_shared_signal
     test_system
     test_utils
     test_vec2
@@ -47,7 +48,7 @@ foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
 
     add_dependencies(test_all ${CUR_TEST})
 
-    target_link_libraries(${CUR_TEST} _hoomd ${HOOMD_COMMON_LIBS})
+    target_link_libraries(${CUR_TEST} _hoomd ${HOOMD_PYTHON_LIBRARY} ${HOOMD_COMMON_LIBS})
     fix_cudart_rpath(${CUR_TEST})
 
     if (ENABLE_MPI)
