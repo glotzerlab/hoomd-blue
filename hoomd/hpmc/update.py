@@ -855,7 +855,7 @@ class shape_update(_updater):
                     nselect=1,
                     nsweeps=1,
                     multi_phase = False,
-                    num_phase = 2
+                    num_phase = 2,
                     gsdid = None):
         _updater.__init__(self);
 
