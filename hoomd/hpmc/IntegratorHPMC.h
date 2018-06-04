@@ -37,7 +37,8 @@ namespace hpmc
 class PatchEnergy
     {
     public:
-        PatchEnergy(){};
+        PatchEnergy() { }
+        virtual ~PatchEnergy() { }
 
     //! Returns the cut-off radius
     virtual Scalar getRCut()
@@ -412,8 +413,10 @@ class IntegratorHPMC : public Integrator
         hpmc_counters_t m_count_run_start;             //!< Count saved at run() start
         hpmc_counters_t m_count_step_start;            //!< Count saved at the start of the last step
 
+        #ifdef ENABLE_MPI
         bool m_communicator_ghost_width_connected;     //!< True if we have connected to Communicator's ghost layer width signal
         bool m_communicator_flags_connected;           //!< True if we have connected to Communicator's communication flags signal
+        #endif
     };
 
 //! Export the IntegratorHPMC class to python

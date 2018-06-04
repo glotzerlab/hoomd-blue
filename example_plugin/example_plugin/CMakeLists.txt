@@ -11,9 +11,6 @@ set(_${COMPONENT_NAME}_cu_sources
     ExampleUpdater.cu
     )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_${COMPONENT_NAME}_sources} ${_${COMPONENT_NAME}_cu_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 if (ENABLE_CUDA)
 CUDA_COMPILE(_CUDA_GENERATED_FILES ${_${COMPONENT_NAME}_cu_sources} OPTIONS ${CUDA_ADDITIONAL_OPTIONS} SHARED)
 endif (ENABLE_CUDA)

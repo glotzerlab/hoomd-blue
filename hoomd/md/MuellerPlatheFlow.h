@@ -148,7 +148,7 @@ class PYBIND11_EXPORT MuellerPlatheFlow : public Updater
         //! Verify that the box is orthorhombic.
         //!
         //! Returns if box is orthorhombic, but throws a runtime_error, if the box is not orthorhombic.
-        void verify_orthorhombic_box(void) throw(std::runtime_error);
+        void verify_orthorhombic_box(void);
 #ifdef ENABLE_MPI
         struct MPI_SWAP{
             MPI_Comm comm;

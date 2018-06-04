@@ -26,10 +26,6 @@ set(_${PACKAGE_NAME}_headers PatchEnergyJIT.h
                              KaleidoscopeJIT.h
    )
 
-# Need to define NO_IMPORT_ARRAY in every file but module.cc
-set_source_files_properties(${_${PACKAGE_NAME}_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-set_source_files_properties(${_${PACKAGE_NAME}_llvm_sources} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
 pybind11_add_module (_${PACKAGE_NAME} SHARED ${_${PACKAGE_NAME}_sources} NO_EXTRAS)
 add_library (_${PACKAGE_NAME}_llvm SHARED ${_${PACKAGE_NAME}_llvm_sources})
 
@@ -61,7 +57,7 @@ target_link_libraries(_${PACKAGE_NAME}_llvm ${llvm_libs})
 target_link_libraries(_${PACKAGE_NAME} PRIVATE _hoomd _${PACKAGE_NAME}_llvm ${HOOMD_COMMON_LIBS} ${llvm_libs})
 
 # set installation RPATH
-set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME}/)
+set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}/${PACKAGE_NAME};${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR}")
 set_target_properties(_${PACKAGE_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # if we are compiling with MPI support built in, set appropriate

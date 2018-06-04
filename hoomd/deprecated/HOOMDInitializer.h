@@ -55,6 +55,8 @@ class PYBIND11_EXPORT HOOMDInitializer
                          const std::string &fname,
                          bool wrap_coordinates = false);
 
+        virtual ~HOOMDInitializer() { }
+
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;
 

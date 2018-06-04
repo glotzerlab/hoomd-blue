@@ -34,8 +34,6 @@ if(ENABLE_MPI)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)
-    # set_source_files_properties(${TEST_SRC} PROPERTIES COMPILE_DEFINITIONS NO_IMPORT_ARRAY)
-
     # add and link the unit test executable
     add_executable(${TEST_EXE} EXCLUDE_FROM_ALL ${TEST_SRC})
     add_dependencies(test_all ${TEST_EXE})
@@ -60,11 +58,10 @@ foreach (CUR_TEST ${TEST_LIST})
     set(CUR_TEST_NAME mpcd-core-${CUR_TEST})
 
     compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
-    get_target_property(CUR_EXE_FULL ${CUR_TEST_EXE} LOCATION)
     if (ENABLE_MPI)
-        add_test(${CUR_TEST_NAME} ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} ${CUR_EXE_FULL})
+        add_test(NAME ${CUR_TEST_NAME} COMMAND ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG} 1 ${MPIEXEC_POSTFLAGS} $<TARGET_FILE:${CUR_TEST_EXE}>)
     else()
-        add_test(${CUR_TEST_NAME} ${CUR_EXE_FULL})
+        add_test(NAME ${CUR_TEST_NAME} COMMAND $<TARGET_FILE:${CUR_TEST_EXE}>)
     endif()
 endforeach(CUR_TEST)
 
@@ -75,9 +72,8 @@ foreach (CUR_TEST ${MPI_TEST_LIST})
     set(CUR_TEST_NAME mpcd-core-${CUR_TEST}-mpi)
 
     compile_test(${CUR_TEST_EXE} ${CUR_TEST_SRC})
-    get_target_property(CUR_EXE_FULL ${CUR_TEST_EXE} LOCATION)
-    add_test(${CUR_TEST_NAME}
+    add_test(NAME ${CUR_TEST_NAME} COMMAND
              ${MPIEXEC} ${MPIEXEC_NUMPROC_FLAG}
              ${NProc_${CUR_TEST}} ${MPIEXEC_POSTFLAGS}
-             ${CUR_EXE_FULL})
+             $<TARGET_FILE:${CUR_TEST_EXE}>)
 endforeach(CUR_TEST)

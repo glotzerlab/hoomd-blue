@@ -338,8 +338,7 @@ void IMDInterface::processIMD_MDCOMM(unsigned int n)
         m_force->setForce(0,0,0);
         for (unsigned int i = 0; i < n; i++)
             {
-            unsigned int j = h_rtag.data[indices[i]];
-            m_force->setParticleForce(j,
+            m_force->setParticleForce(indices[i],
                                       forces[3*i+0]*m_force_scale,
                                       forces[3*i+1]*m_force_scale,
                                       forces[3*i+2]*m_force_scale);

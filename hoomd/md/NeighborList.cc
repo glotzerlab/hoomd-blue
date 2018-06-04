@@ -460,7 +460,9 @@ void NeighborList::addExclusion(unsigned int tag1, unsigned int tag2)
         }
 
     if (grow)
+        {
         growExclusionList();
+        }
 
         {
         // access arrays

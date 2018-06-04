@@ -555,7 +555,7 @@ void UpdaterMuVT<Shape>::update(unsigned int timestep)
                 }
             else
                 {
-                MPI_Status(stat);
+                MPI_Status stat;
                 MPI_Send(&timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD);
                 MPI_Recv(&other_timestep, 1, MPI_UNSIGNED, m_gibbs_other, 0, MPI_COMM_WORLD, &stat);
                 }

@@ -131,7 +131,6 @@ pybind11::object ParticleDataSnapshotGetPosition(pybind11::object self)
     dims[0] = self_cpp->position.size();
     dims[1] = 3;
     return pybind11::array(dims, (Scalar*)&self_cpp->position[0], self);
-    //return pybind11::object(num_util::makeNumFromData((Scalar*)&position[0], dims), false);
     }
 
 pybind11::object ParticleDataSnapshotGetVelocity(pybind11::object self)
@@ -142,14 +141,12 @@ pybind11::object ParticleDataSnapshotGetVelocity(pybind11::object self)
     dims[0] = self_cpp->velocity.size();
     dims[1] = 3;
     return pybind11::array(dims, (Scalar*)&self_cpp->velocity[0], self);
-    //return pybind11::object(num_util::makeNumFromData((Scalar*)&velocity[0], dims), false);
     }
 
 pybind11::object ParticleDataSnapshotGetType(pybind11::object self)
     {
     auto self_cpp = self.cast<ParticleDataSnapshot *>();
     return pybind11::array(self_cpp->type.size(), &self_cpp->type[0], self);
-    //return pybind11::object(num_util::makeNumFromData(&type[0], type.size()), false);
     }
 
 pybind11::list ParticleDataSnapshotGetTypeNames(pybind11::object self)
