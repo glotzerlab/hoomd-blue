@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -58,7 +58,7 @@
     See \ref page_dev_info for more information
     \ingroup computes
 */
-class Compute
+class PYBIND11_EXPORT Compute
     {
     public:
         //! Constructs the compute and associates it with the ParticleData
@@ -89,7 +89,7 @@ class Compute
         virtual void resetStats(){}
 
         //! Sets the profiler for the compute to use
-        void setProfiler(std::shared_ptr<Profiler> prof);
+        virtual void setProfiler(std::shared_ptr<Profiler> prof);
 
         //! Set autotuner parameters
         /*! \param enable Enable/disable autotuning
@@ -203,14 +203,16 @@ class Compute
         std::shared_ptr<const ExecutionConfiguration> m_exec_conf; //!< Stored shared ptr to the execution configuration
         std::vector< std::shared_ptr<hoomd::detail::SignalSlot> > m_slots; //!< Stored shared ptr to the system signals
         bool m_force_compute;           //!< true if calculation is enforced
+        unsigned int m_last_computed;   //!< Stores the last timestep compute was called
+        bool m_first_compute;           //!< true if compute has not yet been called
 
         //! Simple method for testing if the computation should be run or not
         virtual bool shouldCompute(unsigned int timestep);
 
-    private:
-        unsigned int m_last_computed;   //!< Stores the last timestep compute was called
-        bool m_first_compute;           //!< true if compute has not yet been called
+        //! Peek to see if computation should be run without updating internal state
+        virtual bool peekCompute(unsigned int timestep) const;
 
+    private:
         //! The python export needs to be a friend to export shouldCompute()
         friend void export_Compute();
     };

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -25,6 +25,8 @@
 
 #include "ExecutionConfiguration.h"
 #include "BoxDim.h"
+
+#include "HOOMDMPI.h"
 
 #include <memory>
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
@@ -103,6 +105,29 @@ const unsigned int NO_BODY = 0xffffffff;
 //! Sentinel value in \a r_tag to signify that this particle is not currently present on the local processor
 const unsigned int NOT_LOCAL = 0xffffffff;
 
+#ifdef ENABLE_MPI
+namespace cereal
+    {
+    //! Serialization of vec3<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, vec3<Real> & v, const unsigned int version)
+        {
+        ar & v.x;
+        ar & v.y;
+        ar & v.z;
+        }
+
+    //! Serialization of quat<Real>
+    template<class Archive, class Real>
+    void serialize(Archive & ar, quat<Real> & q, const unsigned int version)
+        {
+        // serialize both members
+        ar & q.s;
+        ar & q.v;
+        }
+    }
+#endif
+
 //! Handy structure for passing around per-particle data
 /*! A snapshot is used for two purposes:
  * - Initializing the ParticleData
@@ -118,7 +143,7 @@ const unsigned int NOT_LOCAL = 0xffffffff;
  * \ingroup data_structs
  */
 template <class Real>
-struct SnapshotParticleData {
+struct PYBIND11_EXPORT SnapshotParticleData {
     //! Empty snapshot
     SnapshotParticleData()
         : size(0), is_accel_set(false)
@@ -143,6 +168,14 @@ struct SnapshotParticleData {
      */
     bool validate() const;
 
+    #ifdef ENABLE_MPI
+    //! Broadcast the snapshot using MPI
+    /*! \param root the processor to send from
+        \param mpi_comm The MPI communicator
+     */
+    void bcast(unsigned int root, MPI_Comm mpi_comm);
+    #endif
+
     //! Replicate this snapshot
     /*! \param nx Number of times to replicate the system along the x direction
      *  \param ny Number of times to replicate the system along the y direction
@@ -154,29 +187,29 @@ struct SnapshotParticleData {
         const BoxDim& old_box, const BoxDim& new_box);
 
     //! Get pos as a Python object
-    pybind11::object getPosNP();
+    static pybind11::object getPosNP(pybind11::object self);
     //! Get vel as a Python object
-    pybind11::object getVelNP();
+    static pybind11::object getVelNP(pybind11::object self);
     //! Get accel as a Python object
-    pybind11::object getAccelNP();
+    static pybind11::object getAccelNP(pybind11::object self);
     //! Get type as a Python object
-    pybind11::object getTypeNP();
+    static pybind11::object getTypeNP(pybind11::object self);
     //! Get mass as a Python object
-    pybind11::object getMassNP();
+    static pybind11::object getMassNP(pybind11::object self);
     //! Get charge as a Python object
-    pybind11::object getChargeNP();
+    static pybind11::object getChargeNP(pybind11::object self);
     //! Get diameter as a Python object
-    pybind11::object getDiameterNP();
+    static pybind11::object getDiameterNP(pybind11::object self);
     //! Get image as a Python object
-    pybind11::object getImageNP();
+    static pybind11::object getImageNP(pybind11::object self);
     //! Get body as a Python object
-    pybind11::object getBodyNP();
+    static pybind11::object getBodyNP(pybind11::object self);
     //! Get orientation as a Python object
-    pybind11::object getOrientationNP();
+    static pybind11::object getOrientationNP(pybind11::object self);
     //! Get moment of inertia as a numpy array
-    pybind11::object getMomentInertiaNP();
+    static pybind11::object getMomentInertiaNP(pybind11::object self);
     //! Get angular momentum as a numpy array
-    pybind11::object getAngmomNP();
+    static pybind11::object getAngmomNP(pybind11::object self);
 
     //! Get the type names for python
     pybind11::list getTypes();
@@ -358,7 +391,7 @@ struct pdata_element
     is valid, the integrator will do nothing. On initialization from a snapshot, ParticleData will inherit its
     valid flag.
 */
-class ParticleData
+class PYBIND11_EXPORT ParticleData
     {
     public:
         //! Construct with N particles in the given box
@@ -764,10 +797,8 @@ class ParticleData
         //! Get the angular momentum array
         const GPUArray< Scalar3 >& getMomentsOfInertiaArray() const { return m_inertia; }
 
-        #ifdef ENABLE_MPI
         //! Get the communication flags array
         const GPUArray< unsigned int >& getCommFlags() const { return m_comm_flags; }
-        #endif
 
         #ifdef ENABLE_MPI
         //! Find the processor that owns a particle
@@ -1039,6 +1070,13 @@ class ParticleData
             m_global_box.wrap(m_origin, m_o_image);
             }
 
+        //! Set the origin and its image
+        void setOrigin(const Scalar3& origin, int3& img)
+            {
+            m_origin = origin;
+            m_o_image = img;
+            }
+
         //! Rest the box origin
         /*! \post The origin is 0,0,0
         */
@@ -1089,9 +1127,7 @@ class ParticleData
         GPUArray< Scalar4 > m_orientation;          //!< Orientation quaternion for each particle (ignored if not anisotropic)
         GPUArray< Scalar4 > m_angmom;               //!< Angular momementum quaternion for each particle
         GPUArray< Scalar3 > m_inertia;              //!< Principal moments of inertia for each particle
-        #ifdef ENABLE_MPI
         GPUArray<unsigned int> m_comm_flags;        //!< Array of communication flags
-        #endif
 
         std::stack<unsigned int> m_recycled_tags;    //!< Global tags of removed particles
         std::set<unsigned int> m_tag_set;            //!< Lookup table for tags by active index
@@ -1139,6 +1175,8 @@ class ParticleData
         #ifdef ENABLE_CUDA
         mgpu::ContextPtr m_mgpu_context;             //!< moderngpu context
         #endif
+
+        bool m_arrays_allocated;                     //!< True if arrays have been initialized
 
         //! Helper function to allocate particle data
         void allocate(unsigned int N);

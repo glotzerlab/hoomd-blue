@@ -280,5 +280,44 @@ class test_constrain_rigid_self_interactions(unittest.TestCase):
         del self.system
         context.initialize();
 
+# test that mixtures of rigid and nonrigid particles are possible
+class test_constrain_rigid_nonrigid(unittest.TestCase):
+    def setUp(self):
+        self.s = init.create_lattice(lattice.sc(a=2,type_name='A'),n=[10,10,10]);
+
+        # 50% of the particles are B
+        self.s.particles.types.add('B')
+        for i,p in enumerate(self.s.particles):
+            if i % 2:
+                p.type = 'B'
+
+    def test_rigid_nonrigid(self):
+        self.s.particles.types.add('A_const')
+        rigid = md.constrain.rigid()
+        rigid.set_param('A',types=['A_const']*2,positions=[(-.5,0,0),(.5,0,0)])
+
+        rigid.create_bodies()
+
+        nlist = md.nlist.cell()
+        lj = md.pair.lj(r_cut=False, nlist = nlist)
+
+        # central particles
+        lj.pair_coeff.set(['A'], self.s.particles.types, epsilon=0, sigma=0, r_cut=False)
+        lj.pair_coeff.set('B', ['B','A_const'], epsilon=1, sigma=1, r_cut=2.5)
+        lj.pair_coeff.set('A_const','A_const', epsilon=1.0, sigma=1.0, r_cut=2.5)
+
+        center = group.rigid_center()
+        nonrigid = group.nonrigid()
+        g = group.union(a=center,b=nonrigid, name='intgroup')
+
+        md.integrate.mode_standard(dt=0.005)
+        langevin = md.integrate.langevin(group=g,kT=1.0,seed=1234)
+
+        run(1000)
+
+    def tearDown(self):
+        del self.s
+        context.initialize();
+
 if __name__ == '__main__':
     unittest.main(argv = ['test.py', '-v'])

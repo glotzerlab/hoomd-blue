@@ -390,7 +390,7 @@ class gsd_read_tests (unittest.TestCase):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
         context.initialize();
 
-        init.read_gsd(filename=self.tmp_file);
+        init.read_gsd(filename=self.tmp_file, frame=-1);
 
     def tearDown(self):
         if comm.get_rank() == 0:
@@ -427,7 +427,7 @@ class gsd_default_type (unittest.TestCase):
     def test_gsd(self):
         dump.gsd(filename=self.tmp_file, group=group.all(), period=None, overwrite=True);
 
-        snap = data.gsd_snapshot(self.tmp_file, frame=0);
+        snap = data.gsd_snapshot(self.tmp_file, frame=-1);
         if comm.get_rank() == 0:
             self.assertEqual(snap.particles.N, self.snapshot.particles.N);
             self.assertEqual(snap.particles.types, self.snapshot.particles.types);

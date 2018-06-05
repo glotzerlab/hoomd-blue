@@ -1,6 +1,6 @@
 # coding: utf-8
 
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -144,7 +144,8 @@ class mode_standard(_integrator):
 
     def reset_methods(self):
         R""" (Re-)initialize the integrator variables in all integration methods
-        ..versionadded:: v2.2
+
+        .. versionadded:: 2.2
 
         Examples::
 
@@ -261,6 +262,28 @@ class nvt(_integration_method):
         if tau is not None:
             self.cpp_method.setTau(tau);
             self.tau = tau
+
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        .. versionadded:: 2.3
+
+        Args:
+            seed (int): Random number seed
+
+        Note:
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+
+        Example::
+
+            integrator = md.integrate.nvt(group=group.all(), kT=1.0, tau=0.5)
+            integrator.randomize_velocities(seed=42)
+            run(100)
+
+        """
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class npt(_integration_method):
     R""" NPT Integration via MTK barostat-thermostat.
@@ -620,6 +643,28 @@ class npt(_integration_method):
 
         return data
 
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        .. versionadded:: 2.3
+
+        Args:
+            seed (int): Random number seed
+
+        Note:
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+
+        Example::
+
+            integrator = md.integrate.npt(group=group.all(), kT=1.0, tau=0.5, tauP=1.0, P=2.0)
+            integrator.randomize_velocities(seed=42)
+            run(100)
+
+        """
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
+
 class nph(npt):
     R""" NPH Integration via MTK barostat-thermostat..
 
@@ -659,6 +704,27 @@ class nph(npt):
         hoomd.util.quiet_status();
         npt.__init__(self, nph=True, kT=1.0, **params);
         hoomd.util.unquiet_status();
+
+    def randomize_velocities(self, kT, seed):
+        R""" Assign random velocities to particles in the group.
+
+        .. versionadded:: 2.3
+
+        Args:
+            kT (float): Temperature (in energy units)
+            seed (int): Random number seed
+
+        Note:
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+
+        Example::
+
+            integrator = md.integrate.nph(group=group.all(), P=2.0, tauP=1.0)
+            integrator.randomize_velocities(kT=1.0, seed=42)
+            run(100)
+
+        """
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class nve(_integration_method):
     R""" NVE Integration via Velocity-Verlet
@@ -753,6 +819,27 @@ class nve(_integration_method):
 
         if zero_force is not None:
             self.cpp_method.setZeroForce(zero_force);
+
+    def randomize_velocities(self, kT, seed):
+        R""" Assign random velocities to particles in the group.
+
+        .. versionadded:: 2.3
+
+        Args:
+            kT (float): Temperature (in energy units)
+            seed (int): Random number seed
+
+        Note:
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+
+        Example::
+
+            integrator = md.integrate.nve(group=group.all())
+            integrator.randomize_velocities(kT=1.0, seed=42)
+            run(100)
+
+        """
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)
 
 class langevin(_integration_method):
     R""" Langevin dynamics.
@@ -1184,7 +1271,7 @@ class mode_minimize_fire(_integrator):
 
     Args:
         group (:py:mod:`hoomd.group`): Particle group to apply minimization to.
-          Deprecated in version v2.2:
+          Deprecated in version 2.2:
           :py:class:`hoomd.md.integrate.mode_minimize_fire()` now accepts integration methods, such as :py:class:`hoomd.md.integrate.nve()`
           and :py:class:`hoomd.md.integrate.nph()`. The functions operate on user-defined groups. If **group** is defined here,
           automatically :py:class:`hoomd.md.integrate.nve()` will be used for integration
@@ -1199,10 +1286,10 @@ class mode_minimize_fire(_integrator):
         Etol (float): energy convergence criteria (in energy units)
         min_steps (int): A minimum number of attempts before convergence criteria are considered
         aniso (bool): Whether to integrate rotational degrees of freedom (bool), default None (autodetect).
-          Added in version v2.2
+          Added in version 2.2
 
-    .. versionadded:: v2.1
-    .. versionchanged:: v2.2
+    .. versionadded:: 2.1
+    .. versionchanged:: 2.2
 
     :py:class:`mode_minimize_fire` uses the Fast Inertial Relaxation Engine (FIRE) algorithm to minimize the energy
     for a group of particles while keeping all other particles fixed.  This method is published in
@@ -1440,3 +1527,25 @@ class berendsen(_integration_method):
         self.kT = kT
         self.tau = tau
         self.metadata_fields = ['kT','tau']
+
+    def randomize_velocities(self, seed):
+        R""" Assign random velocities to particles in the group.
+
+        .. versionadded:: 2.3
+
+        Args:
+            seed (int): Random number seed
+
+        Note:
+            Randomization is applied at the start of the next call to :py:func:`hoomd.run`.
+
+        Example::
+
+            integrator = md.integrate.berendsen(group=group.all(), kT=1.0, tau=0.5)
+            integrator.randomize_velocities(seed=42)
+            run(100)
+
+        """
+        timestep = hoomd.get_step()
+        kT = self.kT.cpp_variant.getValue(timestep)
+        self.cpp_method.setRandomizeVelocitiesParams(kT, seed)

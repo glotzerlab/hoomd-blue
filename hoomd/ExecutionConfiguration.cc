@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: joaander
@@ -111,7 +111,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     if (exec_mode == GPU)
         {
         // initialize cached allocator, max allocation 0.5*global mem
-        m_cached_alloc = new CachedAllocator(this, (unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
+        m_cached_alloc = new CachedAllocator((unsigned int)(0.5f*(float)dev_prop.totalGlobalMem));
         }
     #endif
 
@@ -161,6 +161,18 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
             msg->notice(2) << "mpi_init_time: [" << mpi_init_time_min << ", " << mpi_init_time_max << "]" << std::endl;
             msg->notice(2) << "conf_time:     [" << conf_time_min << ", " << conf_time_max << "]" << std::endl;
             }
+        }
+    #endif
+
+    #ifdef ENABLE_TBB
+    m_num_threads = tbb::task_scheduler_init::default_num_threads();
+
+    char *env;
+    if ((env = getenv("OMP_NUM_THREADS")) != NULL)
+        {
+        unsigned int num_threads = atoi(env);
+        msg->notice(2) << "Setting number of TBB threads to value of OMP_NUM_THREADS=" << num_threads << std::endl;
+        setNumThreads(num_threads);
         }
     #endif
     }
@@ -706,12 +718,14 @@ void export_ExecutionConfiguration(py::module& m)
          .def("getNRanks", &ExecutionConfiguration::getNRanks)
          .def("getRank", &ExecutionConfiguration::getRank)
          .def("guessLocalRank", &ExecutionConfiguration::guessLocalRank)
-         .def("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
-         .def("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
          .def("barrier", &ExecutionConfiguration::barrier)
          .def_static("getNRanksGlobal", &ExecutionConfiguration::getNRanksGlobal)
          .def_static("getRankGlobal", &ExecutionConfiguration::getRankGlobal)
 #endif
+#ifdef ENABLE_TBB
+        .def("setNumThreads", &ExecutionConfiguration::setNumThreads)
+#endif
+        .def("getNumThreads", &ExecutionConfiguration::getNumThreads);
     ;
 
     py::enum_<ExecutionConfiguration::executionMode>(executionconfiguration,"executionMode")

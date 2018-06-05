@@ -1,0 +1,127 @@
+pipeline
+    {
+    options { skipDefaultCheckout() }
+    agent none
+
+    stages
+        {
+        stage('Unit and validation tests')
+            {
+            when { not { branch 'release' } }
+            failFast true
+            parallel
+                {
+                {% for test in tests %}stage('{{ test.name }}')
+                    {
+                    agent { label '{{ test.agent }}' }
+
+                    environment
+                        {
+                        CC = '{{ test.CC }}'
+                        CXX = '{{ test.CXX }}'
+                        PYVER = '{{ test.PYVER }}'
+                        CMAKE_BIN = '{{ test.CMAKE_BIN }}'
+                        ENABLE_CUDA = '{{ test.ENABLE_CUDA }}'
+                        ENABLE_MPI = '{{ test.ENABLE_MPI }}'
+                        ENABLE_TBB = '{{ test.ENABLE_TBB }}'
+                        BUILD_VALIDATION = '{{ test.BUILD_VALIDATION }}'
+                        CONTAINER = '/nfs/glotzer/containers/{{ test.CONTAINER }}'
+                        BUILD_JIT = '{{ test.BUILD_JIT }}'
+                        }
+
+                    steps
+                        {
+                        sh 'echo ${NODE_NAME}'
+
+                        dir('code')
+                            {
+                            checkout scm
+                            sh 'git submodule update --init'
+                            }
+
+                        dir('build')
+                            {
+                            timeout(time: 1, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/cmake ../code -DPYTHON_EXECUTABLE=/usr/bin/python${PYVER} -DENABLE_CUDA=${ENABLE_CUDA} -DENABLE_MPI=${ENABLE_MPI} -DENABLE_TBB=${ENABLE_TBB} -DBUILD_VALIDATION=${BUILD_VALIDATION} -DTEST_CPU_IN_GPU_BUILDS=OFF -DBUILD_DEPRECATED=off -DBUILD_JIT=${BUILD_JIT} -GNinja
+                                   '''
+
+                                sh 'singularity exec --nv ${CONTAINER} ninja -j 3'
+                                }
+
+                            timeout(time: {{ test.timeout }}, unit: 'HOURS')
+                                {
+                                sh '''
+                                    singularity exec --nv ${CONTAINER} ${CMAKE_BIN}/ctest --no-compress-output -T test --output-on-failure
+                                   '''
+                                }
+                            }
+
+                        sh 'xsltproc code/.jenkins/ctest2junit.xsl build/Testing/**/Test.xml > ./test.xml'
+
+                        junit 'test.xml'
+                        }
+                    post
+                        {
+                        always
+                            {
+                            archive 'build/Testing/**/Test.xml'
+                            deleteDir()
+                            }
+                        }
+                    }
+                {% endfor %}
+                }
+            }
+
+        stage('conda-build-mac')
+            {
+            agent { label 'mac' }
+            when { anyOf { branch 'master'; branch 'maint'; branch 'release' } }
+
+            environment
+                {
+                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
+                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
+                }
+
+            steps
+                {
+                sh 'echo ${CONDA_BLD_PATH}'
+
+                retry(5)
+                    {
+                    dir('code')
+                        {
+                        checkout scm
+
+                        timeout(time: 2, unit: 'HOURS')
+                            {
+                            sh 'git submodule update --init'
+
+                            sh '''
+                               conda build conda-recipe
+                               '''
+                            }
+                        }
+                    }
+
+                script
+                    {
+                    if (env.BRANCH_NAME == 'release')
+                        {
+                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
+                        }
+                    }
+                }
+            post
+                {
+                always
+                    {
+                    deleteDir()
+                    }
+                }
+            }
+        }
+    }

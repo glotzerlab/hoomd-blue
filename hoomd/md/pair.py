@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 R""" Pair potentials.
@@ -2590,7 +2590,7 @@ class square_density(pair):
     For further details regarding this multibody potential, see
 
     Warning:
-        Currently HOOMD does not support reverse force communication between MPI domains on the GPU. 
+        Currently HOOMD does not support reverse force communication between MPI domains on the GPU.
         Since reverse force communication is required for the calculation of multi-body potentials, attempting to use the
         square_density potential on the GPU with MPI will result in an error.
 

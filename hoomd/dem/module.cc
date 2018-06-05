@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Maintainer: mspells
@@ -26,17 +26,13 @@ void export_NF_WCA_3D(pybind11::module& m);
 void export_NF_SWCA_3D(pybind11::module& m);
 void export_NF_SWCA_2D(pybind11::module& m);
 
-PYBIND11_PLUGIN(_dem)
+PYBIND11_MODULE(_dem, m)
     {
-    pybind11::module m("_dem");
-
     export_params(m);
     export_NF_WCA_2D(m);
     export_NF_WCA_3D(m);
     export_NF_SWCA_2D(m);
     export_NF_SWCA_3D(m);
-
-    return m.ptr();
     }
 
 // Export all of the parameter wrapper objects to the python interface

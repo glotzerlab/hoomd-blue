@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -65,7 +65,6 @@
 #include "SignalHandler.h"
 
 #include "HOOMDVersion.h"
-#include "hoomd/extern/num_util.h"
 
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 #include <hoomd/extern/pybind/include/pybind11/stl_bind.h>
@@ -88,28 +87,8 @@ lib/python2.7/site-packages/numpy/core/generate_numpy_array.py)
 The following #defines help get around this
 */
 
-#if (PYBIND11_VERSION_MAJOR) != 1 || (PYBIND11_VERSION_MINOR) != 8
-#error HOOMD-blue requires pybind11 1.8.x
-#endif
-
-#if PY_VERSION_HEX >= 0x03000000
-#define MY_PY_VER_3x
-#else
-#define MY_PY_VER_2x
-#endif
-
-#ifdef MY_PY_VER_3x
-void *my_import_array()
-    {
-    import_array();
-    return NULL;
-    }
-#endif
-#ifdef MY_PY_VER_2x
-void my_import_array()
-    {
-    import_array();
-    }
+#if (PYBIND11_VERSION_MAJOR) != 2 || (PYBIND11_VERSION_MINOR) != 2
+#error HOOMD-blue requires pybind11 2.2.x
 #endif
 
 //! Method for getting the current version of HOOMD
@@ -189,6 +168,18 @@ void mpi_barrier_world()
     MPI_Barrier(MPI_COMM_WORLD);
     #endif
     }
+
+//! Determine availability of TBB support
+bool is_TBB_available()
+   {
+   return
+#ifdef ENABLE_TBB
+       true;
+#else
+       false;
+#endif
+    }
+
 
 //! Start the CUDA profiler
 void cuda_profile_start()
@@ -289,22 +280,12 @@ std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfigu
     #endif
     }
 
-//! set number of TBB threads
-void set_num_threads(unsigned int num_threads)
-    {
-    #ifdef ENABLE_TBB
-    static tbb::task_scheduler_init init(num_threads);
-    #endif
-    }
-
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_hoomd)
+PYBIND11_MODULE(_hoomd, m)
     {
-    pybind11::module m("_hoomd");
-
     #ifdef ENABLE_MPI
     // initialize MPI early
     initialize_mpi();
@@ -315,7 +296,7 @@ PYBIND11_PLUGIN(_hoomd)
     #endif
 
     // setup needed for numpy
-    my_import_array();
+    // my_import_array();
 
     m.def("abort_mpi", abort_mpi);
     m.def("mpi_barrier_world", mpi_barrier_world);
@@ -331,8 +312,10 @@ PYBIND11_PLUGIN(_hoomd)
     m.attr("__git_refspec__") = pybind11::str(HOOMD_GIT_REFSPEC);
     m.attr("__cuda_version__") = get_cuda_version_tuple();
     m.attr("__compiler_version__") = pybind11::str(get_compiler_version());
+    m.attr("__hoomd_source_dir__") = pybind11::str(HOOMD_SOURCE_DIR);
 
     m.def("is_MPI_available", &is_MPI_available);
+    m.def("is_TBB_available", &is_TBB_available);
 
     m.def("cuda_profile_start", &cuda_profile_start);
     m.def("cuda_profile_stop", &cuda_profile_stop);
@@ -426,6 +409,4 @@ PYBIND11_PLUGIN(_hoomd)
 
     // messenger
     export_Messenger(m);
-
-    return m.ptr();
     }

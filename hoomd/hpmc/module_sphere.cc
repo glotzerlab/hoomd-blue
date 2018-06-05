@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
@@ -51,8 +53,12 @@ void export_sphere(py::module& m)
     export_ComputeFreeVolume< ShapeSphere >(m, "ComputeFreeVolumeSphere");
     export_AnalyzerSDF< ShapeSphere >(m, "AnalyzerSDFSphere");
     export_UpdaterMuVT< ShapeSphere >(m, "UpdaterMuVTSphere");
+    export_UpdaterClusters< ShapeSphere >(m, "UpdaterClustersSphere");
+    export_UpdaterClustersImplicit< ShapeSphere,IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterClustersImplicitSphere");
+    export_UpdaterClustersImplicit< ShapeSphere,IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterClustersImplicitNewSphere");
     export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicit<ShapeSphere> >(m, "UpdaterMuVTImplicitSphere");
     export_UpdaterMuVTImplicit< ShapeSphere, IntegratorHPMCMonoImplicitNew<ShapeSphere> >(m, "UpdaterMuVTImplicitNewSphere");
+
     export_ExternalFieldInterface<ShapeSphere>(m, "ExternalFieldSphere");
     export_LatticeField<ShapeSphere>(m, "ExternalFieldLatticeSphere");
     export_ExternalFieldComposite<ShapeSphere>(m, "ExternalFieldCompositeSphere");

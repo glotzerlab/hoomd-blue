@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -48,7 +48,7 @@
     not being maintained, it will print a warning but continue.
     \ingroup analyzers
 */
-class DCDDumpWriter : public Analyzer
+class PYBIND11_EXPORT DCDDumpWriter : public Analyzer
     {
     public:
         //! Construct the writer

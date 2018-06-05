@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #ifndef _EXTERNAL_FIELD_LATTICE_H_
@@ -203,7 +203,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
 
         Scalar calculateBoltzmannWeight(unsigned int timestep) { return 0.0; }
 
-        Scalar calculateBoltzmannFactor(const Scalar4 * const position_old_arg,
+        double calculateDeltaE(const Scalar4 * const position_old_arg,
                                         const Scalar4 * const orientation_old_arg,
                                         const BoxDim * const box_old_arg
                                         )
@@ -229,7 +229,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             Scalar scaleOld = pow((oldVolume/curVolume), Scalar(1.0/3.0));
             Scalar scaleNew = pow((newVolume/curVolume), Scalar(1.0/3.0));
 
-            Scalar dE = 0.0;
+            double dE = 0.0;
             for(size_t i = 0; i < m_pdata->getN(); i++)
                 {
                 Scalar old_E = calcE(i, vec3<Scalar>(*(position_old+i)), quat<Scalar>(*(orientation_old+i)), scaleOld);
@@ -244,7 +244,7 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
                 }
             #endif
 
-            return fast::exp(dE);
+            return dE;
             }
 
         void compute(unsigned int timestep)
@@ -285,23 +285,10 @@ class ExternalFieldLattice : public ExternalFieldMono<Shape>
             m_num_samples++;
             }
 
-        bool accept(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new, hoomd::detail::Saru& rng)
+        double energydiff(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
             {
-            // calc boltzmann factor from springs
-            Scalar boltz = boltzmann(index, position_old, shape_old, position_new, shape_new);
-            bool reject = false;
-            if(rng.s(Scalar(0.0),Scalar(1.0)) < boltz)
-                reject = false;
-            else
-                reject = true;
-
-            return !reject;
-            }
-
-        Scalar boltzmann(const unsigned int& index, const vec3<Scalar>& position_old, const Shape& shape_old, const vec3<Scalar>& position_new, const Shape& shape_new)
-            {
-            Scalar old_U = calcE(index, position_old, shape_old), new_U = calcE(index, position_new, shape_new);
-            return fast::exp(old_U-new_U);
+            double old_U = calcE(index, position_old, shape_old), new_U = calcE(index, position_new, shape_new);
+            return new_U - old_U;
             }
 
         void setReferences(const pybind11::list& r0, const pybind11::list& q0)

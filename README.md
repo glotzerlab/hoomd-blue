@@ -24,9 +24,12 @@ To install HOOMD-blue, first download and install
 Then add the `glotzer` channel and install HOOMD-blue:
 
 ```bash
-$ conda config --add channels file:///nfs/glotzer/software/conda-private
-$ conda install hoomd=2.0.1.2a
+$ conda config --add channels glotzer
+$ conda install hoomd cudatoolkit=8.0
 ```
+
+Conda does not properly pin the CUDA toolkit version in the dependencies, so you must explicitly request
+`cudatoolkit=8.0`.
 
 ## Compiling HOOMD-blue
 
@@ -53,9 +56,10 @@ For more detailed instructions, [see the documentation](http://hoomd-blue.readth
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, clang 3.4 (*no cuda*), clang 3.8)
+     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, clang 3.8, 5.0)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
+     * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
 

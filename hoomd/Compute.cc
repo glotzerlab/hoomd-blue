@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -96,6 +96,19 @@ bool Compute::shouldCompute(unsigned int timestep)
 
     // failing the above, we perform no computation
     return false;
+    }
+
+/*! \param timestep Current time step
+    \returns true if computations should be performed, false if they have already been done
+        at this \a timestep.
+
+    The same logic is applied as in shouldCompute() to determine if compute() should
+    be called at \a timestep. However, unlike shouldCompute(), this method does not
+    modify the internal state of the Compute and is safe to be called multiple times.
+*/
+bool Compute::peekCompute(unsigned int timestep) const
+    {
+    return (m_first_compute || m_force_compute || m_last_computed != timestep);
     }
 
 void Compute::forceCompute(unsigned int timestep)

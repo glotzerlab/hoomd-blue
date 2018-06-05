@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // Include the defined classes that are to be exported to python
@@ -22,6 +22,8 @@
 #include "UpdaterRemoveDrift.h"
 #include "UpdaterMuVT.h"
 #include "UpdaterMuVTImplicit.h"
+#include "UpdaterClusters.h"
+#include "UpdaterClustersImplicit.h"
 
 #include "ShapeUtils.h"
 #include "ShapeMoves.h"
@@ -54,6 +56,9 @@ void export_convex_spheropolyhedron(py::module& m)
     export_ComputeFreeVolume< ShapeSpheropolyhedron >(m, "ComputeFreeVolumeSpheropolyhedron");
     export_AnalyzerSDF< ShapeSpheropolyhedron >(m, "AnalyzerSDFSpheropolyhedron");
     export_UpdaterMuVT< ShapeSpheropolyhedron >(m, "UpdaterMuVTSpheropolyhedron");
+    export_UpdaterClusters< ShapeSpheropolyhedron >(m, "UpdaterClustersSpheropolyhedron");
+    export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitSpheropolyhedron");
+    export_UpdaterClustersImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterClustersImplicitNewSpheropolyhedron");
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicit<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitSpheropolyhedron");
     export_UpdaterMuVTImplicit< ShapeSpheropolyhedron, IntegratorHPMCMonoImplicitNew<ShapeSpheropolyhedron> >(m, "UpdaterMuVTImplicitNewSpheropolyhedron");
 
@@ -61,8 +66,8 @@ void export_convex_spheropolyhedron(py::module& m)
     export_LatticeField<ShapeSpheropolyhedron >(m, "ExternalFieldLatticeSpheropolyhedron");
     export_ExternalFieldComposite<ShapeSpheropolyhedron >(m, "ExternalFieldCompositeSpheropolyhedron");
     export_RemoveDriftUpdater<ShapeSpheropolyhedron >(m, "RemoveDriftUpdaterSpheropolyhedron");
-    // export_ExternalFieldWall<ShapeSpheropolyhedron >(m, "WallSpheropolyhedron");
-    // export_UpdaterExternalFieldWall<ShapeSpheropolyhedron >(m, "UpdaterExternalFieldWallSpheropolyhedron");
+    export_ExternalFieldWall<ShapeSpheropolyhedron >(m, "WallSpheropolyhedron");
+    export_UpdaterExternalFieldWall<ShapeSpheropolyhedron >(m, "UpdaterExternalFieldWallSpheropolyhedron");
     export_ExternalCallback<ShapeSpheropolyhedron>(m, "ExternalCallbackSpheropolyhedron");
 
     export_ShapeMoveInterface< ShapeSpheropolyhedron >(m, "ShapeMoveSpheropolyhedron");

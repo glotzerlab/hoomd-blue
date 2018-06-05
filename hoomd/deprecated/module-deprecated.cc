@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "MSDAnalyzer.h"
@@ -17,19 +17,14 @@
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
 */
-PYBIND11_PLUGIN(_deprecated)
+PYBIND11_MODULE(_deprecated, m)
     {
-    pybind11::module m("_deprecated");
-
     export_MSDAnalyzer(m);
     export_HOOMDDumpWriter(m);
     export_POSDumpWriter(m);
     export_HOOMDInitializer(m);
     export_RandomGenerator(m);
 
-    return m.ptr();
-
 #ifdef ENABLE_CUDA
 #endif
-
     }

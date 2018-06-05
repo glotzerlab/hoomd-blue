@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -14,7 +14,7 @@
 
 #include "hoomd/ParticleData.h"
 #include "hoomd/BondedGroupData.h"
-#include "hoomd/extern/xmlParser.h"
+#include "hoomd/deprecated/xmlParser.h"
 
 #include <string>
 #include <vector>
@@ -47,13 +47,15 @@ template <class Real> struct SnapshotSystemData;
 
     \ingroup data_structs
 */
-class HOOMDInitializer
+class PYBIND11_EXPORT HOOMDInitializer
     {
     public:
         //! Loads in the file and parses the data
         HOOMDInitializer(std::shared_ptr<const ExecutionConfiguration> exec_conf,
                          const std::string &fname,
                          bool wrap_coordinates = false);
+
+        virtual ~HOOMDInitializer() { }
 
         //! Returns the timestep of the simulation
         virtual unsigned int getTimeStep() const;

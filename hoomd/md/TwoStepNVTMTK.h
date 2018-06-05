@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -36,7 +36,7 @@
 
     \ingroup updaters
 */
-class TwoStepNVTMTK : public IntegrationMethodTwoStep
+class PYBIND11_EXPORT TwoStepNVTMTK : public IntegrationMethodTwoStep
     {
     public:
         //! Constructs the integration method and associates it with the system

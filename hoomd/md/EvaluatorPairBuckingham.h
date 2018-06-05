@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2016 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -38,7 +38,7 @@
     \f[ V_{\mathrm{Buckingham}}(r) = A \exp\left( \frac{-r}{\rho} \right) -
                                             \frac{C}{r^{6}} \f]
    Split into:
-   \f[ V_{\mathrm{Buckingham}}(r) = Exp_factor - \frac{C}{r^6}
+   \f[ V_{\mathrm{Buckingham}}(r) = Exp_factor - \frac{C}{r^6} \f]
 
    Similarly,
     \f[ -\frac{1}{r} \frac{\partial V_{\mathrm{Buckingham}}}{\partial r} = \frac{Exp_factor}{\rho \cdot r} -

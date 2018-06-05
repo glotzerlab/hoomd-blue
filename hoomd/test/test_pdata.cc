@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -468,7 +468,7 @@ UP_TEST( ParticleData_test )
     UP_ASSERT(a.getCharges().getNumElements() == 1);
     UP_ASSERT(a.getDiameters().getNumElements() == 1);
     UP_ASSERT(a.getTags().getNumElements() == 1);
-    UP_ASSERT(a.getRTags().getNumElements() == 1);
+    UP_ASSERT(a.getRTags().size() == 1);
     UP_ASSERT(a.getBodies().getNumElements() == 1);
 
 
@@ -578,7 +578,7 @@ UP_TEST( ParticleData_test )
     UP_ASSERT(b.getCharges().getNumElements() == N);
     UP_ASSERT(b.getDiameters().getNumElements() == N);
     UP_ASSERT(b.getTags().getNumElements() == N);
-    UP_ASSERT(b.getRTags().getNumElements() == N);
+    UP_ASSERT(b.getRTags().size() == N);
     UP_ASSERT(b.getBodies().getNumElements() == N);
 
 

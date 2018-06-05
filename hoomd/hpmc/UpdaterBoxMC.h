@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 // inclusion guard
@@ -290,7 +290,7 @@ class UpdaterBoxMC : public Updater
         Scalar m_Length_delta[3];                   //!< Max length change in each dimension
         float m_Length_weight;                     //!< relative weight of length change moves
 
-        Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension        Scalar m_Shear_reduce;                            //!< Threshold for lattice reduction
+        Scalar m_Shear_delta[3];                    //!< Max tilt factor change in each dimension
         float m_Shear_weight;                      //!< relative weight of shear moves
         Scalar m_Shear_reduce;                      //!< Tolerance for automatic box lattice reduction
 

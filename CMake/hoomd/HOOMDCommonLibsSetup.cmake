@@ -1,6 +1,6 @@
 # Maintainer: joaander
 
-include_directories(${HOOMD_PYTHON_INCLUDE_DIR})
+include_directories(${PYTHON_INCLUDE_DIR})
 
 ################################
 ## Define common libraries used by every target in HOOMD
@@ -20,21 +20,7 @@ endif (UNIX AND NOT APPLE)
 option(ENABLE_TBB "Enable support for Threading Building Blocks (TBB)" off)
 
 if(ENABLE_TBB)
-    # find TBB lib and includes
-    find_library(TBB_LIBRARY tbb
-                 PATHS ENV TBB_LINK)
-    find_path(TBB_INCLUDE_DIR tbb/tbb.h
-              PATHS ENV TBB_INC)
-    include_directories(${TBB_INCLUDE_DIR})
-    if (TBB_LIBRARY)
-        mark_as_advanced(TBB_LIBRARY)
-    endif()
-    if (TBB_INCLUDE_DIR)
-        mark_as_advanced(TBB_INCLUDE_DIR)
-    endif()
-    if (TBB_INCLUDE_DIR AND TBB_LIBRARY)
-        add_definitions(-DENABLE_TBB)
-    endif()
+    find_package(TBB 4.3)
 
     # Detect clang and fix incompatiblity with TBB
     # https://github.com/wjakob/tbb/blob/master/CMakeLists.txt
@@ -50,10 +36,11 @@ if (TBB_USE_GLIBCXX_VERSION)
    add_definitions(-DTBB_USE_GLIBCXX_VERSION=${TBB_USE_GLIBCXX_VERSION})
 endif()
 
-set(HOOMD_COMMON_LIBS
-        ${ADDITIONAL_LIBS}
-        ${TBB_LIBRARY}
-        )
+set(HOOMD_COMMON_LIBS ${ADDITIONAL_LIBS})
+
+if (ENABLE_TBB)
+    list(APPEND HOOMD_COMMON_LIBS ${TBB_LIBRARY})
+endif()
 
 if (APPLE)
     list(APPEND HOOMD_COMMON_LIBS "-undefined dynamic_lookup")

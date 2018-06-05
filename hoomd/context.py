@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: csadorf / All Developers are free to add commands for new features
@@ -151,6 +151,9 @@ class SimulationContext(object):
         ## Cached all group
         self.group_all = None;
 
+        ## MPCD system
+        self.mpcd = None;
+
         ## Stored reference to the reader that was used to initialize the system
         self.state_reader = None;
 
@@ -201,6 +204,7 @@ def initialize(args=None):
         from hoomd import *
         context.initialize();
         context.initialize("--mode=gpu --nrank=64");
+        context.initialize("--mode=cpu --nthreads=64");
 
     """
     global exec_conf, msg, options, current, _prev_args
@@ -216,6 +220,17 @@ def initialize(args=None):
     options = hoomd.option.options();
     hoomd.option._parse_command_line(args);
 
+    # Check to see if we are built without MPI support and the user used mpirun
+    if (not _hoomd.is_MPI_available() and not options.single_mpi
+        and (    'OMPI_COMM_WORLD_RANK' in os.environ
+              or 'MV2_COMM_WORLD_LOCAL_RANK' in os.environ
+              or 'PMI_RANK' in os.environ
+              or 'ALPS_APP_PE' in os.environ)
+       ):
+        print('HOOMD-blue is built without MPI support, but seems to have been launched with mpirun');
+        print('exiting now to prevent many sequential jobs from starting');
+        raise RuntimeError('Error launching hoomd')
+
     # output the version info on initialization
     msg.notice(1, _hoomd.output_version_info())
 
@@ -226,21 +241,6 @@ def initialize(args=None):
 
     current = SimulationContext();
     return current
-
-## Get the current processor name
-#
-# platform.node() can spawn forked processes in some version of MPI.
-# This avoids that problem by using MPI information about the hostname directly
-# when it is available. MPI is initialized on module load if it is available,
-# so this data is accessible immediately.
-#
-# \returns String name for the current processor
-# \internal
-def _get_proc_name():
-    if _hoomd.is_MPI_available():
-        return _hoomd.get_mpi_proc_name()
-    else:
-        return platform.node()
 
 ## Initializes the execution configuration
 #
@@ -254,12 +254,7 @@ def _create_exec_conf():
 
     mpi_available = _hoomd.is_MPI_available();
 
-    # error out on nyx/flux if the auto mode is set
     if options.mode == 'auto':
-        host = _get_proc_name()
-        if "flux" in host or "nyx" in host:
-            msg.error("--mode=gpu or --mode=cpu must be specified on nyx/flux\n");
-            raise RuntimeError("Error initializing");
         exec_mode = _hoomd.ExecutionConfiguration.executionMode.AUTO;
     elif options.mode == "cpu":
         exec_mode = _hoomd.ExecutionConfiguration.executionMode.CPU;
@@ -286,6 +281,11 @@ def _create_exec_conf():
     if options.gpu_error_checking:
        exec_conf.setCUDAErrorChecking(True);
 
+    if _hoomd.is_TBB_available():
+        # set the number of TBB threads as necessary
+        if options.nthreads != None:
+            exec_conf.setNumThreads(options.nthreads)
+
     exec_conf = exec_conf;
 
     return exec_conf;
@@ -311,6 +311,8 @@ class ExecutionContext(hoomd.meta._metadata):
             'username', 'wallclocktime', 'cputime',
             'job_id', 'job_name'
             ]
+        if _hoomd.is_TBB_available():
+            self.metadata_fields.append('num_threads')
 
     ## \internal
     # \brief Return the execution configuration if initialized or raise exception.
@@ -379,6 +381,14 @@ class ExecutionContext(hoomd.meta._metadata):
         else:
             return '';
 
+    # \brief Return the number of CPU threads
+    @property
+    def num_threads(self):
+        if not _hoomd.is_TBB_available():
+            msg.warning("HOOMD was compiled without thread support, returning None\n");
+            return None
+        else:
+            return self._get_exec_conf().getNumThreads();
 
 ## \internal
 # \brief Gather context about HOOMD

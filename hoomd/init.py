@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2017 The Regents of the University of Michigan
+# Copyright (c) 2009-2018 The Regents of the University of Michigan
 # This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 # Maintainer: joaander / All Developers are free to add commands for new features
@@ -182,7 +182,7 @@ def read_getar(filename, modes={'any': 'any'}):
     snapshot = initializer.initialize(newModes);
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
 
     try:
         box = snapshot._global_box;
@@ -239,7 +239,7 @@ def read_snapshot(snapshot):
         raise RuntimeError("Error initializing");
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:
@@ -259,7 +259,7 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
     Args:
         filename (str): File to read.
         restart (str): If it exists, read the file *restart* instead of *filename*.
-        frame (int): Index of the frame to read from the GSD file.
+        frame (int): Index of the frame to read from the GSD file. Negative values index from the end of the file.
         time_step (int): (if specified) Time step number to initialize instead of the one stored in the GSD file.
 
     All particles, bonds, angles, dihedrals, impropers, constraints, and box information
@@ -288,15 +288,15 @@ def read_gsd(filename, restart = None, frame = 0, time_step = None):
         raise RuntimeError("Error initializing");
 
     if restart is not None and os.path.exists(restart):
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, frame);
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, restart, abs(frame), frame < 0);
     else:
-        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, frame);
+        reader = _hoomd.GSDReader(hoomd.context.exec_conf, filename, abs(frame), frame < 0);
     snapshot = reader.getSnapshot();
     if time_step is None:
         time_step = reader.getTimeStep();
 
     # broadcast snapshot metadata so that all ranks have _global_box (the user may have set box only on rank 0)
-    snapshot._broadcast(hoomd.context.exec_conf);
+    snapshot._broadcast_box(hoomd.context.exec_conf);
     my_domain_decomposition = _create_domain_decomposition(snapshot._global_box);
 
     if my_domain_decomposition is not None:

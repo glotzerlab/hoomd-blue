@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -29,7 +29,7 @@
 //! A null stream that doesn't write anything sent to it
 /*! From: http://bytes.com/topic/c/answers/127843-null-output-stream#post444998
 */
-struct nullstream: std::ostream
+struct PYBIND11_EXPORT nullstream: std::ostream
     {
     //! Construct a null stream
     nullstream(): std::ios(0), std::ostream(0) {}
@@ -101,7 +101,7 @@ struct nullstream: std::ostream
         - 7 memory allocation/reallocation notices from GPUArray
     - 10: Trace messages that may print many times per time step.
 */
-class Messenger
+class PYBIND11_EXPORT Messenger
     {
     public:
         //! Construct a messenger
@@ -373,10 +373,6 @@ class Messenger
         void releaseSharedMem();
 #endif
     };
-
-// This pybind11 code needs to be called before any export functions.
-// It is in Messenger.h because this is the first include file in the chain.
-PYBIND11_DECLARE_HOLDER_TYPE(Tsharedptr, std::shared_ptr<Tsharedptr>);
 
 //! Exports Messenger to python
 void export_Messenger(pybind11::module& m);

@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2017 The Regents of the University of Michigan
+// Copyright (c) 2009-2018 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 
@@ -23,6 +23,7 @@ const unsigned int GROUP_NOT_LOCAL ((unsigned int) 0xffffffff);
 #include "Profiler.h"
 #include "Index1D.h"
 #include "HOOMDMath.h"
+#include "HOOMDMPI.h"
 #include "ParticleData.h"
 
 #ifdef ENABLE_CUDA
@@ -198,13 +199,28 @@ class BondedGroupData
              */
             void replicate(unsigned int n, unsigned int old_n_particles);
 
+            #ifdef ENABLE_MPI
+            //! Broadcast the snapshot
+            /*! \param root the processor to send from
+             *  \param mpi_comm The MPI communicator
+             */
+            void bcast(unsigned int root, MPI_Comm mpi_comm)
+                {
+                ::bcast(type_id, root, mpi_comm);
+                ::bcast(val, root, mpi_comm);
+                ::bcast(groups, root, mpi_comm);
+                ::bcast(type_mapping, root, mpi_comm);
+                ::bcast(size, root, mpi_comm);
+                }
+            #endif
+
             //! Get type as a numpy array
-            pybind11::object getTypeNP();
+            static pybind11::object getTypeNP(pybind11::object self);
             //! Get value as a numpy array
-            pybind11::object getValueNP();
+            static pybind11::object getValueNP(pybind11::object self);
 
             //! Get bonded tags as a numpy array
-            pybind11::object getBondedTagsNP();
+            static pybind11::object getBondedTagsNP(pybind11::object self);
             //! Get the type names for python
             pybind11::list getTypes();
             //! Set the type names from python
