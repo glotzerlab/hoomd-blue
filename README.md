@@ -11,7 +11,30 @@ many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab
 
 ## Installing HOOMD-blue
 
-Official binaries of HOOMD-blue are available via [conda](http://conda.pydata.org/docs/) through
+HOOMD-blue binaries are available via [Anaconda](http://conda.pydata.org/docs/) and images via the
+[Docker Hub](https://hub.docker.com/). Anaconda packages are best suited for use on *local workstations*,
+while the images are best for use on HPC clusters with Singularity.
+
+### Docker images
+
+The [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) images contain HOOMD-blue along with
+many other tools commonly used in simulation workflows. You can use these images to execute HOOMD-blue and related tools in Docker/Singularity containers on Mac, Linux, and cloud systems you control and on HPC clusters with Singularity support. CUDA and MPI operate with native performance on supported HPC systems
+See full usage information on the [glotzerlab/software docker hub page](https://hub.docker.com/r/glotzerlab/software/).
+
+Singularity:
+```bash
+$ umask 002
+$ singularity pull docker://glotzerlab/software
+```
+
+Docker:
+```bash
+$ docker pull glotzerlab/software
+```
+
+### Anaconda
+
+Anaconda packages are available on
 the [glotzer channel](https://anaconda.org/glotzer).
 To install HOOMD-blue, first download and install
 [miniconda](http://conda.pydata.org/miniconda.html) following [conda's instructions](http://conda.pydata.org/docs/install/quick.html).
@@ -19,11 +42,8 @@ Then add the `glotzer` channel and install HOOMD-blue:
 
 ```bash
 $ conda config --add channels glotzer
-$ conda install hoomd cudatoolkit=8.0
+$ conda install hoomd
 ```
-
-Conda does not properly pin the CUDA toolkit version in the dependencies, so you must explicitly request
-`cudatoolkit=8.0`.
 
 ## Compiling HOOMD-blue
 
@@ -83,7 +103,7 @@ hoomd.md.integrate.langevin(group=all, kT=1.2, seed=4)
 hoomd.run(10e3)
 ```
 
-Save this as `lj.py` and run with `python lj.py`.
+Save this as `lj.py` and run with `python lj.py` (or `singularity exec software.simg python3 lj.py` if using containers).
 
 ## Reference Documentation
 
