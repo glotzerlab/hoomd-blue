@@ -12,8 +12,7 @@ many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab
 ## Installing HOOMD-blue
 
 HOOMD-blue binaries are available via [Anaconda](http://conda.pydata.org/docs/) and images via the
-[Docker Hub](https://hub.docker.com/). Anaconda packages are best suited for use on *local workstations*,
-while the images are best for use on HPC clusters with Singularity.
+[Docker Hub](https://hub.docker.com/).
 
 ### Docker images
 
