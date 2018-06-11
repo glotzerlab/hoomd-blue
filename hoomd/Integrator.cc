@@ -398,7 +398,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         }
 
     // return early if there are no constraint forces or no HalfStepHook set
-    if (m_constraint_forces.size() == 0 && !m_half_step_hook)
+    if (m_constraint_forces.size() == 0)
         return;
 
     #ifdef ENABLE_MPI
@@ -480,13 +480,6 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         m_prof->pop();
         }
-
-    // Call HalfStep hook
-    if (m_half_step_hook)
-        {
-        m_half_step_hook->update();
-        }
-
     }
 
 #ifdef ENABLE_CUDA
@@ -678,7 +671,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         }
 
     // return early if there are no constraint forces or no HalfStepHook set
-    if (m_constraint_forces.size() == 0 && !m_half_step_hook)
+    if (m_constraint_forces.size() == 0)
         return;
 
     #ifdef ENABLE_MPI
@@ -835,12 +828,6 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         {
         m_prof->pop(m_exec_conf);
         m_prof->pop(m_exec_conf);
-        }
-
-    // Call HalfStep hook
-    if (m_half_step_hook)
-        {
-        m_half_step_hook->update();
         }
 
     }
