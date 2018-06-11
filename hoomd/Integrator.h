@@ -18,7 +18,7 @@
 #include "Updater.h"
 #include "ForceCompute.h"
 #include "ForceConstraint.h"
-#include "HalfStephook.h"
+#include "HalfStepHook.h"
 #include "ParticleGroup.h"
 #include <string>
 #include <vector>
