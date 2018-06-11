@@ -484,7 +484,7 @@ void Integrator::computeNetForce(unsigned int timestep)
     // Call HalfStep hook
     if (m_half_step_hook)
         {
-        m_half_step_hook->updateHalfStep();
+        m_half_step_hook->update();
         }
 
     }
@@ -840,7 +840,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
     // Call HalfStep hook
     if (m_half_step_hook)
         {
-        m_half_step_hook->updateHalfStep();
+        m_half_step_hook->update();
         }
 
     }
