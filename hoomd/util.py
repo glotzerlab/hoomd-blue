@@ -76,7 +76,6 @@ def print_status_line():
         file_name, line, module, code = stack[frame];
     except IndexError:
         # No traceback information is available.
-        # This happens when pybind calls SSAGES from C++.
         return
 
     # if we are in interactive mode, there is no need to print anything: the

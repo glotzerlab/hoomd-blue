@@ -60,12 +60,12 @@ void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     fc->setDeltaT(m_deltaT);
     }
 
-/*! \param hook SSAGESHook to set
+/*! \param hook HalfStepHook to set
 */
-void Integrator::setSSAGESHook(std::shared_ptr<SSAGESHook> hook)
+void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
     {
     assert(hook);
-    m_ssages = hook;
+    m_half_step_hook = hook;
     }
 
 /*! Call removeForceComputes() to completely wipe out the list of force computes
@@ -77,11 +77,11 @@ void Integrator::removeForceComputes()
     m_constraint_forces.clear();
     }
 
-/*! Call removeSSAGESHook() to unset the integrator's SSAGES hook
+/*! Call removeHalfStepHook() to unset the integrator's HalfStep hook
 */
-void Integrator::removeSSAGESHook()
+void Integrator::removeHalfStepHook()
     {
-    m_ssages.reset();
+    m_half_step_hook.reset();
     }
 
 /*! \param deltaT New time step to set
@@ -397,8 +397,8 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // return early if there are no constraint forces or SSAGES
-    if (m_constraint_forces.size() == 0 && !m_ssages)
+    // return early if there are no constraint forces or no HalfStepHook set
+    if (m_constraint_forces.size() == 0 && !m_half_step_hook)
         return;
 
     #ifdef ENABLE_MPI
@@ -481,10 +481,10 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // Call SSAGES hook
-    if (m_ssages)
+    // Call HalfStep hook
+    if (m_half_step_hook)
         {
-        m_ssages->updateSSAGES();
+        m_half_step_hook->updateHalfStep();
         }
 
     }
@@ -677,8 +677,8 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         }
 
-    // return early if there are no constraint forces or SSAGES
-    if (m_constraint_forces.size() == 0 && !m_ssages)
+    // return early if there are no constraint forces or no HalfStepHook set
+    if (m_constraint_forces.size() == 0 && !m_half_step_hook)
         return;
 
     #ifdef ENABLE_MPI
@@ -837,10 +837,10 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         }
 
-    // Call SSAGES hook
-    if (m_ssages)
+    // Call HalfStep hook
+    if (m_half_step_hook)
         {
-        m_ssages->updateSSAGES();
+        m_half_step_hook->updateHalfStep();
         }
 
     }
@@ -940,9 +940,9 @@ void export_Integrator(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
-    .def("setSSAGESHook", &Integrator::setSSAGESHook)
+    .def("setHalfStepHook", &Integrator::setHalfStepHook)
     .def("removeForceComputes", &Integrator::removeForceComputes)
-    .def("removeSSAGESHook", &Integrator::removeSSAGESHook)
+    .def("removeHalfStepHook", &Integrator::removeHalfStepHook)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
     .def("getRotationalNDOF", &Integrator::getRotationalNDOF)
