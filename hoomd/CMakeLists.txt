@@ -101,6 +101,7 @@ set(_hoomd_headers
     GPUVector.h
     GSDDumpWriter.h
     GSDReader.h
+    HalfStepHook.h
     HOOMDMath.h
     HOOMDMPI.h
     IMDInterface.h
@@ -126,7 +127,6 @@ set(_hoomd_headers
     SFCPackUpdaterGPU.cuh
     SFCPackUpdaterGPU.h
     SFCPackUpdater.h
-    HalfStepHook.h
     SharedSignal.h
     SignalHandler.h
     SnapshotSystemData.h
