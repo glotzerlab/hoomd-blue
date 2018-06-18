@@ -80,7 +80,7 @@ from hoomd.dem import utils
 
 # add DEM article citation notice
 import hoomd
-_citation = hoomd.cite.article(cite_key='anderson2016',
+_citation = hoomd.cite.article(cite_key='spellings2016',
                                author=['M Spellings', 'R L Marson', 'J A Anderson', 'S C Glotzer'],
                                title='GPU accelerated Discrete Element Method (DEM) molecular dynamics for conservative, faceted particle simulations',
                                journal=' Journal of Computational Physics',
