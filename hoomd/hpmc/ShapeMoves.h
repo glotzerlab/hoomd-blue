@@ -658,46 +658,6 @@ public:
         }
 };
 
-//** Python export functions and additional classes to wrap the move and boltzmann interface.
-//**
-//**
-//**
-//**
-// ! Wrapper class for wrapping pure virtual methods
-template<class Shape, class RNG>
-class shape_move_function_wrap : public shape_move_function<Shape, RNG>
-    {
-    public:
-        //! Constructor
-        shape_move_function_wrap(unsigned int ntypes) : shape_move_function<Shape, RNG>(ntypes) {}
-        void prepare(unsigned int timestep) override
-            {
-            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
-                                    shape_move_function<Shape, RNG>,            /* Parent class */
-                                    &shape_move_function<Shape, RNG>::prepare,  /* Name of function */
-                                    timestep);                                  /* Argument(s) */
-            }
-
-        void construct(const unsigned int& timestep, const unsigned int& type_id, typename Shape::param_type& shape, RNG& rng) override
-            {
-            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
-                                    shape_move_function<Shape, RNG>,            /* Parent class */
-                                    &shape_move_function<Shape, RNG>::construct,/* Name of function */
-                                    timestep,                                   /* Argument(s) */
-                                    type_id,
-                                    shape,
-                                    rng);
-            }
-
-        void retreat(unsigned int timestep) override
-            {
-            PYBIND11_OVERLOAD_PURE( void,                                       /* Return type */
-                                    shape_move_function<Shape, RNG>,            /* Parent class */
-                                    &shape_move_function<Shape, RNG>::retreat,  /* Name of function */
-                                    timestep);                                  /* Argument(s) */
-            }
-    };
-
 template<class Shape>
 void export_ShapeMoveInterface(pybind11::module& m, const std::string& name);
 
