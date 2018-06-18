@@ -1267,7 +1267,7 @@ OverlapReal IntegratorHPMCMono<Shape>::getMinCoreDiameter()
     }
 
 template <class Shape>
-void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param)
+void IntegratorHPMCMono<Shape>::setParam(unsigned int typ,  const param_type& param, bool update)
     {
     // validate input
     if (typ >= this->m_pdata->getNTypes())
@@ -1805,8 +1805,8 @@ template < class Shape > void export_IntegratorHPMCMono(pybind11::module& m, con
           .def("setExternalField", &IntegratorHPMCMono<Shape>::setExternalField)
           .def("setPatchEnergy", &IntegratorHPMCMono<Shape>::setPatchEnergy)
           .def("mapOverlaps", &IntegratorHPMCMono<Shape>::PyMapOverlaps)
-          .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           .def("connectGSDSignal", &IntegratorHPMCMono<Shape>::connectGSDSignal)
+          .def("restoreStateGSD", &IntegratorHPMCMono<Shape>::restoreStateGSD)
           ;
     }
 

@@ -6,7 +6,7 @@
 #include <hoomd/Variant.h>
 #include "Moves.h"
 #include "hoomd/GSDState.h"
-#include <hoomd/extern/Eigen/Dense>
+#include <hoomd/extern/Eigen/Eigen/Dense>
 #include <hoomd/extern/pybind/include/pybind11/pybind11.h>
 
 namespace hpmc {

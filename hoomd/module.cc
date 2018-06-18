@@ -280,6 +280,14 @@ std::string mpi_bcast_str(const std::string& s, std::shared_ptr<ExecutionConfigu
     #endif
     }
 
+//! set number of TBB threads
+void set_num_threads(unsigned int num_threads)
+    {
+    #ifdef ENABLE_TBB
+    static tbb::task_scheduler_init init(num_threads);
+    #endif
+    }
+
 //! Create the python module
 /*! each class setup their own python exports in a function export_ClassName
     create the hoomd python module and define the exports here.
@@ -322,13 +330,12 @@ PYBIND11_MODULE(_hoomd, m)
 
     m.def("set_num_threads", &set_num_threads);
 
-    pybind11::bind_vector<Scalar>(m,"std_vector_scalar");
-    pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector2_scalar");
-    pybind11::bind_vector<string>(m,"std_vector_string");
-    pybind11::bind_vector<unsigned int>(m,"std_vector_uint");
-    pybind11::bind_vector<int>(m,"std_vector_int");
-    pybind11::bind_vector<Scalar3>(m,"std_vector_scalar3");
-    pybind11::bind_vector<Scalar4>(m,"std_vector_scalar4");
+    pybind11::bind_vector< std::vector<Scalar> >(m,"std_vector_scalar");
+    pybind11::bind_vector< std::vector<string> >(m,"std_vector_string");
+    pybind11::bind_vector< std::vector<unsigned int> >(m,"std_vector_uint");
+    pybind11::bind_vector< std::vector<int> >(m,"std_vector_int");
+    pybind11::bind_vector< std::vector<Scalar3> >(m,"std_vector_scalar3");
+    pybind11::bind_vector< std::vector<Scalar4> >(m,"std_vector_scalar4");
 
     InstallSIGINTHandler();
 
