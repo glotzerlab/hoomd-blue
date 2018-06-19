@@ -777,12 +777,6 @@ struct quat
         return q;
         }
 
-    DEVICE void swap(quat<Real>& q)
-        {
-        std::swap(s, q.s);
-        v.swap(q.v);
-        }
-
     Real s;         //!< scalar component
     vec3<Real> v;   //!< vector component
     };

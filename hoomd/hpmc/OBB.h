@@ -100,21 +100,6 @@ struct OBB
         is_sphere = obb.is_sphere;
         }
 
-    DEVICE void swap(OBB& obb)
-        {
-        lengths.swap(obb.lengths);
-        center.swap(obb.center);
-        rotation.swap(obb.rotation);
-        std::swap(mask, obb.mask);
-        std::swap(is_sphere, obb.is_sphere);
-        }
-
-    DEVICE OBB& operator=(OBB obb)
-        {
-        swap(obb);
-        return *this;
-        }
-
     //! Construct an OBB from an AABB
     //! Get the OBB's position
     DEVICE vec3<OverlapReal> getPosition() const
