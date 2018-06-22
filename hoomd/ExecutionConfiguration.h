@@ -20,6 +20,7 @@
 #ifdef ENABLE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <cuda_profiler_api.h>
 #endif
 
 #ifdef ENABLE_TBB
@@ -136,6 +137,26 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     const std::vector<unsigned int>& getGPUIds() const
         {
         return m_gpu_id;
+        }
+
+    void cudaProfileStart() const
+        {
+        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaDeviceSynchronize();
+            cudaProfilerStart();
+            }
+        }
+
+    void cudaProfileStop() const
+        {
+        for (int idev = m_gpu_id.size()-1; idev >= 0; idev--)
+            {
+            cudaSetDevice(m_gpu_id[idev]);
+            cudaDeviceSynchronize();
+            cudaProfilerStop();
+            }
         }
     #endif
 

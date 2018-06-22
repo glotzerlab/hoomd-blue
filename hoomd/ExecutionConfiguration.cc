@@ -848,6 +848,8 @@ void export_ExecutionConfiguration(py::module& m)
          .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
 #ifdef ENABLE_CUDA
          .def("getNumActiveGPUs", &ExecutionConfiguration::getNumActiveGPUs)
+         .def("cudaProfileStart", &ExecutionConfiguration::cudaProfileStart)
+         .def("cudaProfileStop", &ExecutionConfiguration::cudaProfileStop)
 #endif
          .def("getGPUName", &ExecutionConfiguration::getGPUName)
          .def_readonly("n_cpu", &ExecutionConfiguration::n_cpu)
