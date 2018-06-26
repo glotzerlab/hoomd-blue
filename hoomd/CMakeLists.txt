@@ -192,7 +192,7 @@ add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC quickhull)
 target_link_libraries(_hoomd PRIVATE ${HOOMD_COMMON_LIBS})
-set_target_properties(_hoomd PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/${PYTHON_MODULE_BASE_DIR})
+set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "$ORIGIN")
 
 set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 
