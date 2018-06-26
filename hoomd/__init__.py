@@ -123,7 +123,7 @@ def run(tsteps, profile=False, limit_hours=None, limit_multiple=1, callback_peri
     There are a number of mechanisms to limit the time of a running hoomd script. Use these in a job
     queuing environment to allow your script to cleanly exit before reaching the system enforced walltime limit.
 
-    Force :py:func:`run()` to end only on time steps that are a multiple of ``multiple``. Set this to the period at which you
+    Force :py:func:`run()` to end only on time steps that are a multiple of ``limit_multiple``. Set this to the period at which you
     dump restart files so that you always end a :py:func:`run()` cleanly at a point where you can restart from. Use
     ``phase=0`` on logs, file dumps, and other periodic tasks. With ``phase=0``, these tasks will continue on the same
     sequence regardless of the restart period.

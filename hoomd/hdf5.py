@@ -51,14 +51,14 @@ class log(hoomd.analyze._analyzer):
         h5file(:py:class:`hoomd.hdf5.File`): Instance describing the opened h5file.
         period(int):  Quantities are logged every *period* time steps
         quantities(list): Quantities to log.
-        matrix(list): Matrix quantities to log.
+        matrix_quantities(list): Matrix quantities to log.
         overwrite(bool): When False (the default) the existing log will be append. When True the file will be overwritten.
         phase(int): When -1, start on the current time step. When >= 0 execute on steps where *(step +phase) % period == 0*.
 
     For details on the loggable quantities refer :py:class:`hoomd.analyze.log` for details.
 
     The non-matrix quantities are combined in an array 'quantities' in the hdf5 file.
-    The attributes list all the names of the logged quantities and there position in the file.
+    The attributes list all the names of the logged quantities and their position in the file.
 
     Matrix quantities are logged as a separate data set each in the file. The name of the data set
     corresponds to the name of the quantity. The first dimension of the data set is counting the

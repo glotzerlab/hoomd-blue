@@ -12,7 +12,7 @@
  *   If you add "#define STRICT_PARSING", on the first line of this file
  *   the parser will see the following XML-stream:
  *      <a><b>some text</b><b>other text    </a>
- *   as an error. Otherwise, this string will be equivalent to:
+ *   as an error. Otherwise, this tring will be equivalent to:
  *      <a><b>some text</b><b>other text</b></a>
  *
  * NOTE:
@@ -180,7 +180,7 @@ char myIsTextWideChar(const void *b, int len) { return FALSE; }
     char myIsTextWideChar(const void *b, int len) // inspired by the Wine API: RtlIsTextUnicode
     {
 #ifdef sun
-        // for SPARC processors: wchar_t* buffers must always be aligned, otherwise it's a char* buffer.
+        // for SPARC processors: wchar_t* buffers must always be alligned, otherwise it's a char* buffer.
         if ((((unsigned long)b)%sizeof(wchar_t))!=0) return FALSE;
 #endif
         const wchar_t *s=(const wchar_t*)b;
@@ -474,7 +474,7 @@ typedef struct XML
 {
     XMLCSTR                lpXML;
     XMLCSTR                lpszText;
-    int                    nIndex,nIndexMissingEndTag;
+    int                    nIndex,nIndexMissigEndTag;
     enum XMLError          error;
     XMLCSTR                lpEndTag;
     int                    cbEndTag;
@@ -1355,13 +1355,13 @@ int XMLNode::ParseXMLElement(void *pa)
 #ifdef STRICT_PARSING
                     {
                         pXML->error=eXMLErrorUnmatchedEndTag;
-                        pXML->nIndexMissingEndTag=pXML->nIndex;
+                        pXML->nIndexMissigEndTag=pXML->nIndex;
                         return FALSE;
                     }
 #else
                     {
                         pXML->error=eXMLErrorMissingEndTag;
-                        pXML->nIndexMissingEndTag=pXML->nIndex;
+                        pXML->nIndexMissigEndTag=pXML->nIndex;
                         pXML->lpEndTag = lpszTemp;
                         pXML->cbEndTag = cbTemp;
                     }
@@ -1563,7 +1563,7 @@ int XMLNode::ParseXMLElement(void *pa)
 #else
                 pXML->error=eXMLErrorMissingEndTag;
 #endif
-                pXML->nIndexMissingEndTag=pXML->nIndex;
+                pXML->nIndexMissigEndTag=pXML->nIndex;
             }
             maybeAddTxT(pXML,pXML->lpXML+pXML->nIndex);
             return FALSE;
@@ -1658,7 +1658,7 @@ XMLNode XMLNode::parseString(XMLCSTR lpszXML, XMLCSTR tag, XMLResults *pResults)
         // If we have an error
         if (error!=eXMLErrorNone)
         {
-            if (error==eXMLErrorMissingEndTag) xml.nIndex=xml.nIndexMissingEndTag;
+            if (error==eXMLErrorMissingEndTag) xml.nIndex=xml.nIndexMissigEndTag;
             // Find which line and column it starts on.
             CountLinesAndColumns(xml.lpXML, xml.nIndex, pResults);
         }
@@ -2024,10 +2024,10 @@ int XMLNode::detachFromParent(XMLNodeData *d)
 
 XMLNode::~XMLNode() { deleteNodeContent_priv(1,0); }
 void XMLNode::deleteNodeContent(){ deleteNodeContent_priv(0,1); }
-void XMLNode::deleteNodeContent_priv(char isInDestructor, char force)
+void XMLNode::deleteNodeContent_priv(char isInDestuctor, char force)
 {
     if (!d) return;
-    if (isInDestructor) (d->ref_count)--;
+    if (isInDestuctor) (d->ref_count)--;
     if ((d->ref_count==0)||force)
     {
         int i;
