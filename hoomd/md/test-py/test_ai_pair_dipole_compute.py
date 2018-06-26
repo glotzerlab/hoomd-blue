@@ -14,12 +14,13 @@ class pair_dipole_tests_force (unittest.TestCase):
         context.initialize()
 
         snapshot = data.make_snapshot(N=2, box=data.boxdim(L=1000.0))
-        snapshot.particles.position[0] = [0.0, 0.0, 0.0]
-        snapshot.particles.position[1] = [0.8, 0.45, 0.9]
-        snapshot.particles.orientation[0] = [1, 0, 0, 0]
-        snapshot.particles.orientation[1] = [m.cos(2*m.pi/6), m.sin(2*m.pi/6)/m.sqrt(2), m.sin(2*m.pi/6)/m.sqrt(2), 0]
-        snapshot.particles.charge[0] = 2.0
-        snapshot.particles.charge[1] = 1.0
+        if comm.get_rank() == 0:
+            snapshot.particles.position[0] = [0.0, 0.0, 0.0]
+            snapshot.particles.position[1] = [0.8, 0.45, 0.9]
+            snapshot.particles.orientation[0] = [1, 0, 0, 0]
+            snapshot.particles.orientation[1] = [m.cos(2*m.pi/6), m.sin(2*m.pi/6)/m.sqrt(2), m.sin(2*m.pi/6)/m.sqrt(2), 0]
+            snapshot.particles.charge[0] = 2.0
+            snapshot.particles.charge[1] = 1.0
         self.system = init.read_snapshot(snapshot)
 
     def test_force_torque_kappa0(self):
