@@ -208,11 +208,11 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - unit-gcc48-py27-cm28-mpi-tbb:
-      - gcc48-py27-mpi-cd80:
-      - gcc49-py34-mpi-cd75:
-      - gcc54-py35-mpi-cd80:
-      - gcc48-py34-cm28-mpi-cd70:
-      - unit-clang38-py35:
-      - gcc72-py36-mpi:
-      - sphinx-docs:
+      - unit-gcc48-py27-cm28-mpi-tbb
+      - gcc48-py27-mpi-cd80
+      - gcc49-py34-mpi-cd75
+      - gcc54-py35-mpi-cd80
+      - gcc48-py34-cm28-mpi-cd70
+      - unit-clang38-py35
+      - gcc72-py36-mpi
+      - sphinx-docs
