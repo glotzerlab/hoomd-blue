@@ -11,13 +11,14 @@ many nodes. For more information, see the [HOOMD-blue website](http://glotzerlab
 
 ## Installing HOOMD-blue
 
-HOOMD-blue binary packages are available via [conda-forge](https://conda-forge.org/) and images via the
-[Docker Hub](https://hub.docker.com/).
+**HOOMD-blue** binary images are available on [Docker Hub](https://hub.docker.com/) and packages on [conda-forge](https://conda-forge.org/).
 
 ### Docker images
 
-Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) to get HOOMD-blue along with
-many other tools commonly used in simulation workflows. Use these images to execute HOOMD-blue in Docker/Singularity containers on Mac, Linux, and cloud systems you control and on HPC clusters with Singularity support. CUDA and MPI operate with native performance on supported HPC systems
+Pull the [glotzerlab/software](https://hub.docker.com/r/glotzerlab/software/) to get **HOOMD-blue** along with
+many other tools commonly used in simulation and analysis workflows. Use these images to execute HOOMD-blue in
+Docker/Singularity containers on Mac, Linux, and cloud systems you control and on HPC clusters with Singularity support.
+CUDA and MPI operate with native performance on supported HPC systems
 See full usage information on the [glotzerlab/software docker hub page](https://hub.docker.com/r/glotzerlab/software/).
 
 Singularity:
@@ -31,11 +32,10 @@ Docker:
 $ docker pull glotzerlab/software
 ```
 
-### Anaconda
+### Anaconda package
 
-HOOMD-blue is available on [conda-forge](https://conda-forge.org/).
-To install, first download and install [miniconda](http://conda.pydata.org/miniconda.html)
-following [conda's instructions](http://conda.pydata.org/docs/install/quick.html).
+**HOOMD-blue** is available on [conda-forge](https://conda-forge.org/).
+To install, first download and install [miniconda](http://conda.pydata.org/miniconda.html).
 Then add the `conda-forge` channel and install ``hoomd``:
 
 ```bash
@@ -45,28 +45,26 @@ $ conda install hoomd
 
 If you have already installed ``hoomd`` in ``conda``, you can upgrade to the latest version with:
 
-``bash
-$ conda update --all
-``
-
-## Compile from source
-
-Use ``cmake`` to configure an out of source build and make to build ``hoomd``.
-
 ```bash
-mkdir build
-cd build
-cmake ../
-make -j10
+$ conda update hoomd
 ```
 
-To run out of the build directory, add the build directory to your `PYTHONPATH`:
+### Compile from source
+
+Download source releases directly from the web: https://glotzerlab.engin.umich.edu/Downloads/hoomd
 
 ```bash
-export PYTHONPATH=`pwd`:$PYTHONPATH
+$ curl -O https://glotzerlab.engin.umich.edu/Downloads/hoomd/hoomd-v2.3.1.tar.gz
 ```
 
-For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
+Or, clone using git:
+
+```bash
+$ git clone --recursive  https://bitbucket.org/glotzer/hoomd-blue
+```
+
+**HOOMD-blue** uses git submodules. Either clone with the ``--recursive`` option, or execute ``git submodule update --init``
+to fetch the submodules.
 
 ### Prerequisites
 
@@ -80,6 +78,25 @@ For more detailed instructions, [see the documentation](http://hoomd-blue.readth
      * Intel Threaded Building Blocks >= 4.3
      * MPI (tested with OpenMPI, MVAPICH)
      * sqlite3
+
+### Compile
+
+Configure with **cmake** and compile with **make**. Replace ``${PREFIX}`` your desired installation location.
+
+```bash
+mkdir build
+cd build
+cmake ../ -DCMAKE_INSTALL_PREFIX=${PREFIX}/lib/python
+make install -j10
+```
+
+Add ``${PREFIX}/lib/python`` to your ``PYTHONPATH`` to use **HOOMD-blue**.
+
+```bash
+$ export PYTHONPATH=$PYTHONPATH:${PREFIX}/lib/python
+```
+
+For more detailed instructions, [see the documentation](http://hoomd-blue.readthedocs.io/en/stable/compiling.html).
 
 ## Job scripts
 
