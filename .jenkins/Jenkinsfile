@@ -380,54 +380,5 @@ pipeline
                 
                 }
             }
-
-        stage('conda-build-mac')
-            {
-            agent { label 'mac' }
-            when { anyOf { branch 'master'; branch 'maint'; branch 'release' } }
-
-            environment
-                {
-                CONDA_BLD_PATH = "${WORKSPACE}/conda-bld"
-                ANACONDA_TOKEN = credentials('glotzer-anaconda-token')
-                }
-
-            steps
-                {
-                sh 'echo ${CONDA_BLD_PATH}'
-
-                retry(5)
-                    {
-                    dir('code')
-                        {
-                        checkout scm
-
-                        timeout(time: 2, unit: 'HOURS')
-                            {
-                            sh 'git submodule update --init'
-
-                            sh '''
-                               conda build conda-recipe
-                               '''
-                            }
-                        }
-                    }
-
-                script
-                    {
-                    if (env.BRANCH_NAME == 'release')
-                        {
-                        sh 'anaconda -t ${ANACONDA_TOKEN} upload --force --no-progress ${WORKSPACE}/conda-bld/**/*.tar.bz2'
-                        }
-                    }
-                }
-            post
-                {
-                always
-                    {
-                    deleteDir()
-                    }
-                }
-            }
         }
     }
