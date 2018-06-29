@@ -2,6 +2,27 @@
 
 [TOC]
 
+## v2.3.2
+
+Released 2018/06/29
+
+*Bug fixes*
+
+* Fix a bug where gsd_snapshot would segfault when called without an execution context.
+* Compile warning free with gcc8.
+* Fix compile error when TBB include files are in non-system directory.
+* Fix ``libquickhull.so`` not found error on additional platforms.
+* HOOMD-blue is now available on **conda-forge** and the **docker hub**.
+* MPCD: Default value for ``kT`` parameter is removed for ``mpcd.collide.at``.
+  Scripts that are correctly running are not affected by this change.
+* MPCD: ``mpcd`` notifies the user of the appropriate citation.
+* MD: Correct force calculation between dipoles and point charge in ``pair.dipole``
+
+*Deprecated*
+
+* The **anaconda** channel **glotzer** will no longer be updated. Use **conda-forge**
+  to upgrade to v2.3.2 and newer versions.
+
 ## v2.3.1
 
 Released 2018/05/25
