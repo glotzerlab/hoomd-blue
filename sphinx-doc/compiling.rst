@@ -11,7 +11,7 @@ HOOMD-blue requires a number of prerequisite software packages and libraries.
      * Python >= 2.7
      * numpy >= 1.7
      * CMake >= 2.8.0
-     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, clang 3.8, 5.0)
+     * C++ 11 capable compiler (tested with gcc 4.8, 4.9, 5.4, 6.4, 7.0, 8.0, clang 3.8, 5.0, 6.0)
  * Optional:
      * NVIDIA CUDA Toolkit >= 7.0
      * Intel Threaded Building Blocks >= 4.3
