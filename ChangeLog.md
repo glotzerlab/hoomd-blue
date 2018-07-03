@@ -2,6 +2,14 @@
 
 [TOC]
 
+## v2.3.3
+
+Released 2018/07/03
+
+*Bug fixes*
+
+* Fix ``libquickhull.so`` not found regression on Mac OS X
+
 ## v2.3.2
 
 Released 2018/06/29
