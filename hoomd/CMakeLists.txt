@@ -192,7 +192,11 @@ add_library (quickhull SHARED extern/quickhull/QuickHull.cpp)
 # link the library to its dependencies
 target_link_libraries(_hoomd PUBLIC quickhull)
 target_link_libraries(_hoomd PRIVATE ${HOOMD_COMMON_LIBS})
-set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "$ORIGIN")
+if (APPLE)
+set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "@loader_path")
+else()
+set_target_properties(_hoomd PROPERTIES INSTALL_RPATH "\$ORIGIN")
+endif()
 
 set(HOOMD_LIBRARIES _hoomd quickhull ${HOOMD_COMMON_LIBS})
 
