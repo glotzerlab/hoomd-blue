@@ -240,7 +240,11 @@ CUDA_COMPILE(_CUDA_GENERATED_FILES ${_md_cu_sources} ${DFFT_CU_SOURCES} OPTIONS 
 endif (ENABLE_CUDA)
 
 pybind11_add_module(_md SHARED ${_md_sources} ${_CUDA_GENERATED_FILES} ${DFFT_SOURCES} NO_EXTRAS)
-set_target_properties(_md PROPERTIES INSTALL_RPATH "$ORIGIN/..:$ORIGIN")
+if(APPLE)
+set_target_properties(_md PROPERTIES INSTALL_RPATH "@loader_path/..;@loader_path")
+else()
+set_target_properties(_md PROPERTIES INSTALL_RPATH "$ORIGIN/..;$ORIGIN")
+endif()
 
 # link the library to its dependencies
 if (CUSOLVER_AVAILABLE)
