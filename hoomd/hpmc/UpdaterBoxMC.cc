@@ -432,7 +432,7 @@ void UpdaterBoxMC::update(unsigned int timestep)
         m_exec_conf->msg->notice(8) << "Volume move performed at step " << timestep << std::endl;
         update_V(timestep, rng);
         }
-    if (move_type_select < m_Volume_weight + m_lnVolume_weight)
+    else if (move_type_select < m_Volume_weight + m_lnVolume_weight)
         {
         // Isotropic volume change in logarithmic steps
         m_exec_conf->msg->notice(8) << "lnV move performed at step " << timestep << std::endl;

@@ -15,8 +15,8 @@ HOOMD_UP_MAIN()
  * When drawing uniformly on a sphere, the pdf should satisfy:
  *
  * \f[
- *    \int f(\omega) d\omega = 1 = \int d\theta \dphi f(\theta, \phi).
- * \f ]
+ *    \int f(\omega) d\omega = 1 = \int d\theta d\phi f(\theta, \phi).
+ * \f]
  *
  * The proper distribution satisfying this is:
  *

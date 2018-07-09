@@ -2,6 +2,22 @@
 
 [TOC]
 
+## v2.3.1
+
+Released 2018/05/25
+
+*Bug fixes*
+
+* Fix doxygen documentation syntax errors
+* Fix libquickhull.so not found error on some platforms
+* HPMC: Fix bug that allowed particles to pas through walls
+* HPMC: Check spheropolyhedra with 0 vertices against walls correctly
+* HPMC: Fix plane wall/spheropolyhedra overlap test
+* HPMC: Restore detailed balance in implicit depletant integrator
+* HPMC: Correctly choose between volume and lnV moves in `hpmc.update.boxmc`
+* HPMC: Fix name of log quantity `hpmc_clusters_pivot_acceptance`
+* MD: Fix image list for tree neighbor lists in 2d
+
 ## v2.3.0
 
 Released 2018/04/25

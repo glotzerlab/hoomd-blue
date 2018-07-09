@@ -669,7 +669,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 // Add external energetic contribution
                 if (this->m_external)
                     {
-                    patch_field_energy_diff += this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
+                    patch_field_energy_diff -= this->m_external->energydiff(i, pos_old, shape_old, pos_i, shape_i);
                     }
 
                 // Update acceptance based on patch, will only be reached if overlap check succeeded

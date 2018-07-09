@@ -214,15 +214,15 @@ void srd_collision_method_rotvec_test(std::shared_ptr<ExecutionConfiguration> ex
         }
 
     /* When drawing uniformly on a sphere, the pdf should satisfy
-     * \int f(\omega) d\omega = 1 = \int d\theta \dphi f(\theta, \phi).
+     * \f$ \int f(\omega) d\omega = 1 = \int d\theta d\phi f(\theta, \phi) \f$.
      * The proper distribution satisfying this is:
-     * f(\theta, \phi) = sin(\phi) / 4\pi
-     * because d\omega = sin(\phi) d\theta d\phi.
+     * \f$ f(\theta, \phi) = sin(\phi) / 4\pi \f$
+     * because \f$ d\omega = sin(\phi) d\theta d\phi \f$.
      *
      * The marginal probability of each spherical coordinate is then
      *
-     * f(\theta) = 1/2\pi
-     * f(\phi) = sin(\phi)/2
+     * \f$ f(\theta) = 1/2\pi \f$
+     * \f$ f(\phi) = sin(\phi)/2 \f$
      *
      * Verify this with a loose (2%) tolerance since there will just be some random noise as well.
      */
