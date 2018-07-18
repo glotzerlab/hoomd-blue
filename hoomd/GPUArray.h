@@ -117,7 +117,7 @@ template<class T> class ArrayHandle
     ArrayHandleAync objects maybe instantiated for multiple GPUArrays in a row, without
     incurring significant overhead for each of the handles.
 
-    \warning Because ArrayHandleAsync uses asyncronous copying, however, array data is not
+    \warning Because ArrayHandleAsync uses asynchronous copying, however, array data is not
     guaranteed to be available on the host unless the device has been synchronized.
 
     Example usage:

@@ -47,7 +47,11 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                bool min_cpu,
                                                bool ignore_display,
                                                std::shared_ptr<Messenger> _msg,
-                                               unsigned int n_ranks)
+                                               unsigned int n_ranks
+                                               #ifdef ENABLE_MPI
+                                               , MPI_Comm hoomd_world
+                                               #endif
+                                               )
     : m_cuda_error_checking(false), msg(_msg)
     {
     if (!msg)
@@ -102,7 +106,8 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
     #ifdef ENABLE_MPI
     m_n_rank = n_ranks;
-    initializeMPI();
+    m_hoomd_world = hoomd_world;
+    splitPartitions(hoomd_world);
     #endif
 
     setupStats();
@@ -145,14 +150,14 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
 
         // get the min and max times
         unsigned int start_time_min, start_time_max, mpi_init_time_min, mpi_init_time_max, conf_time_min, conf_time_max;
-        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_start_time, &start_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_start_time, &start_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&hoomd_mpi_init_time, &mpi_init_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
-        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, MPI_COMM_WORLD);
-        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&conf_time, &conf_time_min, 1, MPI_UNSIGNED, MPI_MIN, 0, m_hoomd_world);
+        MPI_Reduce(&conf_time, &conf_time_max, 1, MPI_UNSIGNED, MPI_MAX, 0, m_hoomd_world);
 
         // write them out to a file
         if (getRankGlobal() == 0)
@@ -199,9 +204,9 @@ ExecutionConfiguration::~ExecutionConfiguration()
     }
 
 #ifdef ENABLE_MPI
-void ExecutionConfiguration::initializeMPI()
+void ExecutionConfiguration::splitPartitions(MPI_Comm mpi_comm)
     {
-    m_mpi_comm = MPI_COMM_WORLD;
+    m_mpi_comm = mpi_comm;
 
     int num_total_ranks;
     MPI_Comm_size(m_mpi_comm, &num_total_ranks);
@@ -210,7 +215,7 @@ void ExecutionConfiguration::initializeMPI()
 
     if  (m_n_rank != 0)
         {
-        int  rank;
+        int rank;
         MPI_Comm_rank(m_mpi_comm, &rank);
 
         if (num_total_ranks % m_n_rank != 0)
@@ -640,8 +645,8 @@ int ExecutionConfiguration::guessLocalRank()
             errors = 1;
 
         // some SLURMs set LOCALID to 0 on all ranks, check for this
-        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Comm_size(MPI_COMM_WORLD, &num_total_ranks);
+        MPI_Allreduce(MPI_IN_PLACE, &errors, 1, MPI_INT, MPI_SUM, m_hoomd_world);
+        MPI_Comm_size(m_hoomd_world, &num_total_ranks);
         if (errors == num_total_ranks)
             {
             msg->notice(3) << "SLURM_LOCALID is 0 on all ranks" << std::endl;

@@ -131,7 +131,6 @@ class _integrator(hoomd.meta._metadata):
 
                 f.update_coeffs();
 
-
     ## \internal
     # \brief Updates the integration methods in the reflected c++ class
     def update_methods(self):
