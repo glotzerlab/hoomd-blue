@@ -60,6 +60,14 @@ void Integrator::addForceConstraint(std::shared_ptr<ForceConstraint> fc)
     fc->setDeltaT(m_deltaT);
     }
 
+/*! \param hook HalfStepHook to set
+*/
+void Integrator::setHalfStepHook(std::shared_ptr<HalfStepHook> hook)
+    {
+    assert(hook);
+    m_half_step_hook = hook;
+    }
+
 /*! Call removeForceComputes() to completely wipe out the list of force computes
     that the integrator uses to sum forces.
 */
@@ -67,6 +75,13 @@ void Integrator::removeForceComputes()
     {
     m_forces.clear();
     m_constraint_forces.clear();
+    }
+
+/*! Call removeHalfStepHook() to unset the integrator's HalfStep hook
+*/
+void Integrator::removeHalfStepHook()
+    {
+    m_half_step_hook.reset();
     }
 
 /*! \param deltaT New time step to set
@@ -382,7 +397,7 @@ void Integrator::computeNetForce(unsigned int timestep)
         m_prof->pop();
         }
 
-    // return early if there are no constraint forces
+    // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
 
@@ -655,7 +670,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         }
 
-    // return early if there are no constraint forces
+    // return early if there are no constraint forces or no HalfStepHook set
     if (m_constraint_forces.size() == 0)
         return;
 
@@ -814,6 +829,7 @@ void Integrator::computeNetForceGPU(unsigned int timestep)
         m_prof->pop(m_exec_conf);
         m_prof->pop(m_exec_conf);
         }
+
     }
 #endif
 
@@ -911,7 +927,9 @@ void export_Integrator(py::module& m)
     .def(py::init< std::shared_ptr<SystemDefinition>, Scalar >())
     .def("addForceCompute", &Integrator::addForceCompute)
     .def("addForceConstraint", &Integrator::addForceConstraint)
+    .def("setHalfStepHook", &Integrator::setHalfStepHook)
     .def("removeForceComputes", &Integrator::removeForceComputes)
+    .def("removeHalfStepHook", &Integrator::removeHalfStepHook)
     .def("setDeltaT", &Integrator::setDeltaT)
     .def("getNDOF", &Integrator::getNDOF)
     .def("getRotationalNDOF", &Integrator::getRotationalNDOF)

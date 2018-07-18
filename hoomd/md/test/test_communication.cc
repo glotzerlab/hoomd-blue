@@ -51,7 +51,7 @@ void test_domain_decomposition(std::shared_ptr<ExecutionConfiguration> exec_conf
 {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -175,7 +175,7 @@ void test_balanced_domain_decomposition(std::shared_ptr<ExecutionConfiguration> 
 {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -369,7 +369,7 @@ void test_communicator_migrate(communicator_creator comm_creator, std::shared_pt
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
@@ -674,7 +674,7 @@ void test_communicator_balanced_migrate(communicator_creator comm_creator, std::
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     BoxDim ref_box = BoxDim(2.0);
@@ -961,7 +961,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -1686,7 +1686,7 @@ void test_communicator_ghosts(communicator_creator comm_creator,
         ArrayHandle<unsigned int> h_global_rtag(pdata->getRTags(), access_location::host, access_mode::read);
         unsigned int rtag;
         int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(exec_conf->getHOOMDWorldMPICommunicator(), &rank);
         switch (rank)
             {
             case 0:
@@ -1927,7 +1927,7 @@ void test_communicator_bond_exchange(communicator_creator comm_creator,
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -2595,7 +2595,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight particles
@@ -2693,7 +2693,7 @@ void test_communicator_bonded_ghosts(communicator_creator comm_creator,
 
         // check bond partners
         int rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_rank(exec_conf->getHOOMDWorldMPICommunicator(), &rank);
 
         switch (rank)
             {
@@ -2910,7 +2910,7 @@ void test_communicator_ghost_fields(communicator_creator comm_creator, std::shar
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with eight + 1 one ptls (1 ptl in ghost layer)
@@ -3162,7 +3162,7 @@ void test_communicator_ghost_layer_width(communicator_creator comm_creator, std:
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // just create some system
@@ -3262,7 +3262,7 @@ void test_communicator_ghosts_per_type(communicator_creator comm_creator, std::s
     {
     // this test needs to be run on eight processors
     int size;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(exec_conf->getHOOMDWorldMPICommunicator(), &size);
     UP_ASSERT_EQUAL(size,8);
 
     // create a system with fourteen particles

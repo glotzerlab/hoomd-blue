@@ -79,7 +79,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
                            bool min_cpu=false,
                            bool ignore_display=false,
                            std::shared_ptr<Messenger> _msg=std::shared_ptr<Messenger>(),
-                           unsigned int n_ranks = 0);
+                           unsigned int n_ranks = 0
+                           #ifdef ENABLE_MPI
+                           , MPI_Comm hoomd_world=MPI_COMM_WORLD
+                           #endif
+                           );
 
     ~ExecutionConfiguration();
 
@@ -88,6 +92,11 @@ struct PYBIND11_EXPORT ExecutionConfiguration
     MPI_Comm getMPICommunicator() const
         {
         return m_mpi_comm;
+        }
+    //! Returns the HOOMD World MPI communicator
+    MPI_Comm getHOOMDWorldMPICommunicator() const
+        {
+        return m_hoomd_world;
         }
 #endif
 
@@ -208,6 +217,12 @@ struct PYBIND11_EXPORT ExecutionConfiguration
         m_mpi_comm = mpi_comm;
         }
 
+    //! Set the HOOMD world MPI communicator
+    void setHOOMDWorldMPICommunicator(const MPI_Comm mpi_comm)
+        {
+        m_hoomd_world = mpi_comm;
+        }
+
     //! Perform a job-wide MPI barrier
     void barrier()
         {
@@ -277,9 +292,10 @@ private:
 #endif
 
 #ifdef ENABLE_MPI
-    void initializeMPI();                  //!< Initialize MPI environment
+    void splitPartitions(const MPI_Comm mpi_comm); //!< Create partitioned communicators
 
     MPI_Comm m_mpi_comm;                   //!< The MPI communicator
+    MPI_Comm m_hoomd_world;                //!< The HOOMD world communicator
     unsigned int m_n_rank;                 //!< Ranks per partition
 #endif
 
