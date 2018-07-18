@@ -286,7 +286,7 @@ class lj(_special_pair):
 
     Example::
 
-        lj = special_pair.harmonic(name="mybond")
+        lj = special_pair.lj(name="my_pair")
         lj.pair_coeff.set('pairtype_1', epsilon=5.4, sigma=0.47, r_cut=1.1)
 
     Note:
@@ -355,8 +355,8 @@ class coulomb(_special_pair):
     Coefficients:
 
     - :math:`\alpha` - Coulomb scaling factor (defaults to 1.0)
-    - :math:`\q_{a}` - charge of particle a (in hoomd charge units)
-    - :math:`\q_{b}` - charge of particle b (in hoomd charge units)
+    - :math:`q_{a}` - charge of particle a (in hoomd charge units)
+    - :math:`q_{b}` - charge of particle b (in hoomd charge units)
     - :math:`r_{\mathrm{cut}}` - *r_cut* (in distance units)
 
     Example::

@@ -148,7 +148,7 @@ class PYBIND11_EXPORT ForceCompute : public Compute
         //! Helper function called when particles are sorted
         /*! setParticlesSorted() is passed as a slot to the particle sort signal.
             It is used to flag \c m_particles_sorted so that a second call to compute
-            with the same timestep can properly recaculate the forces, which are stored
+            with the same timestep can properly recalculate the forces, which are stored
             by index.
         */
         void setParticlesSorted()
