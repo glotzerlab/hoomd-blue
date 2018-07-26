@@ -2,6 +2,21 @@
 
 [TOC]
 
+## v2.4.0
+
+Not yet released
+
+*New features*
+
+* General:
+
+* MD:
+
+* HPMC:
+
+* API:
+    * Allow external callers of HOOMD to set the MPI communicator
+
 ## v2.3.4
 
 Released 2018/07/27
