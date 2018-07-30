@@ -16,7 +16,7 @@ If you have already installed hoomd in conda, you can upgrade to the latest vers
 
     $ conda update --all
 
-On clusters, use [singularity containers](https://hub.docker.com/r/glotzerlab/software/) or compile HOOMD from source so
+On clusters, use `singularity containers <https://hub.docker.com/r/glotzerlab/software/>`_ or compile HOOMD from source so
 that you are using the right MPI version to take advantage of the high performance network. Your cluster may also require
 a specific version of CUDA.
 
