@@ -4,7 +4,7 @@
 
 ## v2.3.4
 
-Released 2018/07/27
+Released 2018/07/30
 
 *Bug fixes*
 
