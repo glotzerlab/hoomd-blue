@@ -1133,9 +1133,14 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                 for (unsigned int k = 0; k < (intersect_i_new.size() + intersect_i.size()); ++k)
                 #endif
                     {
+                    #ifdef ENABLE_TBB
+                    if (!accept)
+                        return;
+                    #endif
+
                     unsigned int j = (k < intersect_i_new.size()) ? intersect_i_new[k] : intersect_i[k-intersect_i_new.size()];
-                    vec3<Scalar> ri = pos_i;
-                    vec3<Scalar> rj = (j == i) ? pos_i : vec3<Scalar>(h_postype.data[j]);
+                    vec3<Scalar> ri = k < intersect_i_new.size() ? pos_i : pos_i_old;
+                    vec3<Scalar> rj = (j == i && k < intersect_i_new.size()) ? pos_i : vec3<Scalar>(h_postype.data[j]);
                     Scalar Ri = Scalar(0.5)*(shape_i.getCircumsphereDiameter()+m_d_dep_negative);
                     Shape shape_j(quat<Scalar>(), this->m_params[(j == i) ? typ_i : __scalar_as_int(h_postype.data[j].w)]);
                     Scalar Rj = Scalar(0.5)*(shape_j.getCircumsphereDiameter()+m_d_dep_negative);
@@ -1221,28 +1226,17 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                         bool active = true;
                         if (k < intersect_i_new.size())
                             {
-                            // check against any other new lens preceding this
-                            for (unsigned int m = 0; m < k; ++m)
+                            // check against circumsphere at old position
+                            vec3<Scalar> r_ij = vec3<Scalar>(h_postype.data[i]) - pos_test;
+                            Shape shape_i_old(quat<Scalar>(h_orientation.data[i]), this->m_params[typ_i]);
+
+                            OverlapReal rsq = dot(r_ij,r_ij);
+                            OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i_old.getCircumsphereDiameter();
+                            bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                            if (h_overlaps.data[this->m_overlap_idx(m_type_negative, typ_i)] && circumsphere_overlap)
                                 {
-                                unsigned int p = intersect_i_new[m];
-                                vec3<Scalar> rp = (p == i) ? pos_i : vec3<Scalar>(h_postype.data[p]);
-                                Shape shape_p(quat<Scalar>(), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype.data[p].w)]);
-
-                                vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i_new[m]] - rp);
-                                OverlapReal rsq = dot(delta_r,delta_r);
-                                OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter();
-                                bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
-
-                                if (circumsphere_overlap)
-                                    {
-                                    active = false;
-                                    break;
-                                    }
-                                }
-
-                            if (active)
-                                {
-                                // check against every old overlap overlap volume
+                                // check against old overlap volume
                                 for (unsigned int m = 0; m < intersect_i.size(); ++m)
                                     {
                                     unsigned int p = intersect_i[m];
@@ -1251,6 +1245,28 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
                                     Shape shape_p(quat<Scalar>(), this->m_params[__scalar_as_int(postype_p.w)]);
 
                                     vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i[m]] - rp);
+                                    OverlapReal rsq = dot(delta_r,delta_r);
+                                    OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter();
+                                    bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
+
+                                    if (circumsphere_overlap)
+                                        {
+                                        active = false;
+                                        break;
+                                        }
+                                    }
+                                }
+
+                            if (active)
+                                {
+                                // check against any other new lens preceding this
+                                for (unsigned int m = 0; m < k; ++m)
+                                    {
+                                    unsigned int p = intersect_i_new[m];
+                                    vec3<Scalar> rp = (p == i) ? pos_i : vec3<Scalar>(h_postype.data[p]);
+                                    Shape shape_p(quat<Scalar>(), this->m_params[(p == i) ? typ_i : __scalar_as_int(h_postype.data[p].w)]);
+
+                                    vec3<Scalar> delta_r(pos_test + this->m_image_list[image_i_new[m]] - rp);
                                     OverlapReal rsq = dot(delta_r,delta_r);
                                     OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_p.getCircumsphereDiameter();
                                     bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
