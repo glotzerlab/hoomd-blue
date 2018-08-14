@@ -174,7 +174,7 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         virtual void update(unsigned int timestep);
 
         //! Test whether to reject the current particle move based on depletants
-        inline bool checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937 rng_poisson, hoomd::detail::Saru rng_i);
+        inline bool checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
 
         //! Initalize Poisson distribution parameters
         virtual void updatePoissonParameters();
@@ -681,7 +681,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
                 } // end if (m_patch)
 
             // The trial move is valid, so check if it is invalidated by depletants
-            if (accept)
+            if (accept && h_overlaps.data[this->m_overlap_idx(m_type, typ_i)])
                 {
                 accept = checkDepletant(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
                 } // end depletant placement
@@ -794,7 +794,7 @@ void IntegratorHPMCMonoImplicit< Shape >::update(unsigned int timestep)
     NOTE: To avoid numerous acquires and releases of GPUArrays, ArrayHandles are passed directly into this const function. 
     */
 template<class Shape>
-inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937 rng_poisson, hoomd::detail::Saru rng_i)
+inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i)
     {
     // log of acceptance probability
     Scalar lnb(0.0);
@@ -869,8 +869,7 @@ inline bool IntegratorHPMCMonoImplicit<Shape>::checkDepletant(unsigned int i, ve
             OverlapReal DaDb = shape_test.getCircumsphereDiameter() + shape_i.getCircumsphereDiameter();
             bool circumsphere_overlap = (rsq*OverlapReal(4.0) <= DaDb * DaDb);
 
-            if (h_overlaps[this->m_overlap_idx(m_type, typ_i)]
-                && circumsphere_overlap
+            if (circumsphere_overlap
                 && test_overlap(r_ij, shape_test, shape_i, overlap_err_count))
                 {
                 overlap_depletant = true;
