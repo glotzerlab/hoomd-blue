@@ -134,8 +134,6 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         hpmc_implicit_counters_t m_implicit_count_run_start;     //!< Counter of active cell cluster moves at run start
         hpmc_implicit_counters_t m_implicit_count_step_start;    //!< Counter of active cell cluster moves at run start
 
-        std::vector<std::poisson_distribution<unsigned int> > m_poisson;   //!< Poisson distribution
-        std::vector<Scalar> m_lambda;                            //!< Poisson distribution parameters per type
         Scalar m_d_dep;                                          //!< Depletant circumsphere diameter
         GPUArray<Scalar> m_d_min;                                //!< Minimum sphere from which test depletant is excluded
         GPUArray<Scalar> m_d_max;                                //!< Maximum sphere for test depletant insertion
@@ -146,13 +144,14 @@ class IntegratorHPMCMonoImplicitNew : public IntegratorHPMCMono<Shape>
         virtual void update(unsigned int timestep);
 
         //! Test whether to reject the current particle move based on depletants
+        #ifndef ENABLE_TBB
         inline bool checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
+        #else
+        inline bool checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt);
+        #endif
 
         //! Initalize Poisson distribution parameters
         virtual void updatePoissonParameters();
-
-        //! Initialize the Poisson distributions
-        virtual void initializePoissonDistribution();
 
         //! Set the nominal width appropriate for depletion interaction
         virtual void updateCellWidth();
@@ -185,8 +184,6 @@ IntegratorHPMCMonoImplicitNew< Shape >::IntegratorHPMCMonoImplicitNew(std::share
 
     GPUArray<Scalar> d_max(this->m_pdata->getNTypes(), this->m_exec_conf);
     m_d_max.swap(d_max);
-
-    m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
     }
 
 //! Destructor
@@ -200,8 +197,6 @@ void IntegratorHPMCMonoImplicitNew<Shape>::slotNumTypesChange()
     {
     // call parent class method
     IntegratorHPMCMono<Shape>::slotNumTypesChange();
-
-    m_lambda.resize(this->m_pdata->getNTypes(),FLT_MAX);
 
     GPUArray<Scalar> d_min(this->m_pdata->getNTypes(), this->m_exec_conf);
     m_d_min.swap(d_min);
@@ -242,30 +237,8 @@ void IntegratorHPMCMonoImplicitNew< Shape >::updatePoissonParameters()
 
         // subtract inner sphere from sampling volume
         V -= Scalar(M_PI/6.0)*d*d*d;
-
-        // average number of depletants in volume
-        m_lambda[i_type] = this->m_n_R*V;
         }
     }
-
-template<class Shape>
-void IntegratorHPMCMonoImplicitNew< Shape >::initializePoissonDistribution()
-    {
-    m_poisson.resize(this->m_pdata->getNTypes());
-
-    for (unsigned int i_type = 0; i_type < this->m_pdata->getNTypes(); ++i_type)
-        {
-        // parameter for Poisson distribution
-        Scalar lambda = m_lambda[i_type];
-        if (lambda <= Scalar(0.0))
-            {
-            // guard against invalid parameters
-            continue;
-            }
-        m_poisson[i_type] = std::poisson_distribution<unsigned int>(lambda);
-        }
-    }
-
 
 template< class Shape >
 void IntegratorHPMCMonoImplicitNew< Shape >::updateCellWidth()
@@ -311,7 +284,6 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
     if (m_need_initialize_poisson)
         {
         updatePoissonParameters();
-        initializePoissonDistribution();
         m_need_initialize_poisson = false;
         }
 
@@ -670,7 +642,11 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
             // Depletant check
             if (accept)
                 {
+                #ifndef ENABLE_TBB
                 accept = checkDepletant(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_poisson, rng_i);
+                #else
+                accept = checkDepletant(i, pos_i, shape_i, typ_i, h_d_max.data[typ_i], h_d_min.data[typ_i], h_postype.data, h_orientation.data, h_overlaps.data, counters, implicit_counters, rng_i, rng_parallel, rng_parallel_mt);
+                #endif
                 } // end depletant placement
 
             // if the move is accepted
@@ -780,8 +756,13 @@ void IntegratorHPMCMonoImplicitNew< Shape >::update(unsigned int timestep)
 
     NOTE: To avoid numerous acquires and releases of GPUArrays, ArrayHandles are passed directly into this const function. 
     */
+#ifndef ENABLE_TBB
 template<class Shape>
 inline bool IntegratorHPMCMonoImplicitNew<Shape>::checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i)
+#else
+template<class Shape>
+inline bool IntegratorHPMCMonoImplicitNew<Shape>::checkDepletant(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, hoomd::detail::Saru& rng_i, tbb::enumerable_thread_specific< hoomd::detail::Saru >& rng_parallel, tbb::enumerable_thread_specific<std::mt19937>& rng_parallel_mt)
+#endif
     {
     // List of particles whose circumspheres intersect particle i's excluded-volume circumsphere
     std::vector<unsigned int> intersect_i;
@@ -911,9 +892,6 @@ inline bool IntegratorHPMCMonoImplicitNew<Shape>::checkDepletant(unsigned int i,
         std::poisson_distribution<unsigned int> poisson(m_n_R*V);
         #ifdef ENABLE_TBB
         std::mt19937& rng_poisson = rng_parallel_mt.local();
-        #endif
-
-        #ifdef ENABLE_TBB
         hoomd::detail::Saru& my_rng = rng_parallel.local();
         #else
         hoomd::detail::Saru& my_rng = rng_i;
