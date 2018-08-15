@@ -200,7 +200,22 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AllDriverAnisoPotentialPairGPU.cu
                       AllDriverPotentialBondGPU.cu
                       AllDriverPotentialSpecialPairGPU.cu
-                      AllDriverPotentialPairGPU.cu
+                      BuckinghamDriverPotentialPairGPU.cu
+		      DLVODriverPotentialPairGPU.cu
+		      DPDLJThermoDriverPotentialPairGPU.cu
+		      DPDThermoDriverPotentialPairGPU.cu
+		      EwaldDriverPotentialPairGPU.cu
+		      ForceShiftedLJDriverPotentialPairGPU.cu
+		      GaussDriverPotentialPairGPU.cu
+		      LJDriverPotentialPairGPU.cu
+		      MieDriverPotentialPairGPU.cu
+		      MoliereDriverPotentialPairGPU.cu
+		      MorseDriverPotentialPairGPU.cu
+		      PairLJ1208DriverPotentialPairGPU.cu
+		      ReactionFieldDriverPotentialPairGPU.cu
+		      SLJDriverPotentialPairGPU.cu
+		      YukawaDriverPotentialPairGPU.cu
+		      ZBLDriverPotentialPairGPU.cu
                       BondTablePotentialGPU.cu
                       CommunicatorGridGPU.cu
                       ConstraintEllipsoidGPU.cu
