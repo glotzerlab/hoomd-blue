@@ -181,7 +181,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         virtual void update(unsigned int timestep);
 
         //! Test whether to reject the current particle move based on depletants
-        //TODO: Switch to references from pointers
         #ifndef ENABLE_TBB
         inline bool checkDepletantOverlap(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
         #else
@@ -189,7 +188,6 @@ class IntegratorHPMCMonoImplicit : public IntegratorHPMCMono<Shape>
         #endif
 
         //! Test whether to reject the current particle move based on depletants
-        //TODO: Switch to references from pointers
         #ifndef ENABLE_TBB
         inline bool checkDepletantCircumsphere(unsigned int i, vec3<Scalar> pos_i, Shape shape_i, unsigned int typ_i, Scalar d_max, Scalar d_min, Scalar4 *h_postype, Scalar4 *h_orientation, unsigned int *h_overlaps, hpmc_counters_t& counters, hpmc_implicit_counters_t& implicit_counters, std::mt19937& rng_poisson, hoomd::detail::Saru& rng_i);
         #else
